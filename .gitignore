@@ -19,9 +19,7 @@ venv/
 .idea/
 .DS_Store
 
-# Local data: retain directory placeholders only
-data/raw/**
-!data/raw/.gitkeep
+# Local data: raw source files are tracked; derived layers are generated
 data/interim/**
 !data/interim/.gitkeep
 data/processed/**

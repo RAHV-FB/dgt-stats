@@ -4,16 +4,19 @@ Data are organised by processing stage. Source data must never be manually edite
 
 ## Layers
 
-- `raw/`: byte-for-byte source downloads.
+- `raw/`: byte-for-byte source downloads, tracked in Git, with `raw/manifest.csv` listing path, size, SHA-256, source URL and description. Subfolders: `microdata/`, `tables/`, `exposure/`, `reports/`.
 - `interim/`: parsed files with harmonised encodings, names and types.
 - `processed/`: validated, analysis-ready tables at documented units of observation.
 
-The contents of these folders are ignored by Git. Each ingestion run should record the source URL, provider, release date, download date, file checksum, file size, row count and schema version.
+`interim/` and `processed/` are ignored by Git and rebuilt from `raw/`. Each ingestion run should record row counts, validation outcomes and schema version alongside the manifest.
 
-## Seed source inventory
+## Source inventory
+
+The full audit is in [`docs/data_inventory.md`](../docs/data_inventory.md).
 
 | Source group | Files currently available | Intended use |
 |---|---|---|
+| Crash microdata | `microdata/accidentes_2016.xlsx` … `accidentes_2024.xlsx`, dictionary | Crash-level analysis, severity models |
 | Driver census | Pipe-delimited files for 2023, 2024 and 2025; 2025 statistical workbook | Exposure context by province, sex, licence class and licence seniority |
 | Injury crashes | 2024 DGT statistical tables | Official totals and validation controls |
 | Historical series | DGT accident-yearbook series through 2024 | Long-run trends by area, severity, sex, age and road-user role |
