@@ -12,20 +12,22 @@ This is the working source register. It will be expanded into machine-readable m
 - Role in project: primary source for Spanish crash, person, vehicle and exposure-related data.
 - Main caution: provisional and definitive series, and 24-hour and 30-day fatality definitions, must not be mixed.
 
-## Initial local source set
+## Local source set
+
+Paths are relative to `data/raw/`. Crash microdata for 2016–2024 (`microdata/accidentes_YYYY.xlsx`) and its dictionary are catalogued in [`data_inventory.md`](data_inventory.md).
 
 | Dataset or report | Coverage | Proposed role | Main limitation to resolve |
 |---|---:|---|---|
-| `Accidentes-con-victimas-Tablas-estadisticas-2024.xlsx` | 2024 | Official reconciliation totals | Aggregated tables, not crash-level observations |
-| `Series-Historicas-Anuario-Accidentes-2024.xlsx` | Historical–2024 | Trend baselines | Definitions and breaks in series require review |
-| `conductores_censo_*_2023/2024/2025.txt` | 2023–2025 | Licensed-driver exposure context | A licensed-driver count is not kilometres driven |
-| `Censo-de-conductores-Tablas-estadisticas-2025.xlsx` | 2025 | Published driver-census controls | Aggregate dimensions may differ from raw text extracts |
-| `Km_recorridos_anuales_estimados.xlsx` | To audit | Vehicle-kilometre denominator | Estimation method and uncertainty must be preserved |
-| `Media_km_recorridos_ antiguedad_tipo de vehículo.xlsx` | To audit | Vehicle age/type exposure | Small cells and aggregation level require review |
-| `KM_Recorridos_ITV_Parque.pdf` | Methodology | Explain annual-distance estimates | ITV selection and survivorship biases may remain |
-| `INF_TEMA_4_Factor-Velocidad_v5_FINAL.pdf` | Thematic | Speed definitions and DGT context | Report evidence is contextual, not a substitute for microdata |
-| `INF_TEMA_8_PersonasMayores_v4_FINAL_nipo.pdf` | 2023 | Older-road-user context | Population and exposure denominators must match |
-| `INF_SEMANASANTA_2026_v8_FINAL.pdf` | Easter 2026 | Possible campaign/holiday case study | Short, seasonal and potentially provisional period |
+| `tables/tablas_estadisticas_2024.xlsx` | 2024 | Official reconciliation totals | Aggregated tables, not crash-level observations |
+| `tables/series_historicas_2024.xlsx` | 1993–2024 | Trend baselines | Definitions and breaks in series require review |
+| `exposure/censo_conductores_{2023,2024,2025}.txt` | 2023–2025 | Licensed-driver exposure context | A licensed-driver count is not kilometres driven |
+| `exposure/censo_tablas_2025.xlsx` | 2025 | Published driver-census controls | Aggregate dimensions may differ from raw text extracts |
+| `exposure/km_itv_2022/km_recorridos_estimados_2022.xlsx` | 2022 | Vehicle-kilometre denominator | Estimation method and uncertainty must be preserved |
+| `exposure/km_itv_2022/media_km_antiguedad_tipo_2022.xlsx` | 2022 | Vehicle age/type exposure | Small cells and aggregation level require review |
+| `exposure/km_itv_2022/metodologia.pdf` | Methodology | Explain annual-distance estimates | ITV selection and survivorship biases may remain |
+| `reports/dgt_factor_velocidad_2023.pdf` | 2014–2023 | Speed definitions and DGT context | Report evidence is contextual, not a substitute for microdata |
+| `reports/dgt_personas_mayores_2023.pdf` | 2023 | Older-road-user context | Population and exposure denominators must match |
+| `reports/dgt_semana_santa_2026.pdf` | Easter 2026 | Possible campaign/holiday case study | Short, seasonal and potentially provisional period |
 
 ## Research and comparison sources
 
@@ -38,7 +40,7 @@ This is the working source register. It will be expanded into machine-readable m
 
 ## Sources still required
 
-- Crash-level DGT microdata and its codebook for a consistent multi-year window.
+- Vehicle-level and person-level DGT microdata (not published for download; request to DGT).
 - Road network geometry, road class, junction form, curvature, lanes, median and roadside attributes.
 - Posted speed limits and, where possible, observed speed distributions.
 - Traffic volume or vehicle-kilometres by road, vehicle class, geography and time.

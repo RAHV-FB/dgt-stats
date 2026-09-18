@@ -63,6 +63,7 @@ European evidence illustrates why denominators and severity both matter: HGVs we
 
 The seed material currently available includes:
 
+- DGT crash microdata for 2016–2024, one row per injury crash;
 - DGT annual statistical tables for injury crashes in 2024;
 - DGT historical crash series through 2024;
 - driver-census data for 2023–2025 by province, sex, licence class and licence seniority;
@@ -72,7 +73,9 @@ The seed material currently available includes:
 
 The official [DGT en Cifras](https://www.dgt.es/menusecundario/dgt-en-cifras/) portal also provides annual definitive statistics, historical series and annual crash microdata. See [`docs/data_sources.md`](docs/data_sources.md) for the working source register.
 
-Raw source files are intentionally not committed yet. They will remain immutable, be documented with provenance and checksums, and only be added when reuse terms and repository size are appropriate.
+A file-by-file audit of everything currently in the repository, with reconciliation results and known quality issues, is in [`docs/data_inventory.md`](docs/data_inventory.md). The resulting analytics plan is in [`docs/analytics_plan.md`](docs/analytics_plan.md).
+
+Raw source files are tracked under `data/raw/`, grouped by role (microdata, tables, exposure, reports), and never edited in place. `data/raw/manifest.csv` records size, SHA-256 and source URL for each file.
 
 ## Analytical standards
 
@@ -100,8 +103,8 @@ Full details are in [`docs/methodology.md`](docs/methodology.md).
 ## Project structure
 
 ```text
-data/                  Local data layers; generated/raw contents are git-ignored
-  raw/                 Immutable source downloads
+data/                  Data layers; interim and processed contents are git-ignored
+  raw/                 Immutable source files with a checksum manifest
   interim/             Parsed and partially cleaned data
   processed/           Analysis-ready tables
 docs/                  Source register, methodology and project decisions
@@ -115,7 +118,7 @@ tests/                 Data-contract and code tests
 ## Roadmap
 
 - [x] Define the scope, standards and repository structure.
-- [ ] Audit each source, identify the unit of observation and build a data dictionary.
+- [x] Audit each source, identify the unit of observation and build a data dictionary ([`docs/data_inventory.md`](docs/data_inventory.md)).
 - [ ] Create ingestion scripts with schema, range, uniqueness and reconciliation checks.
 - [ ] Reproduce official headline totals before producing new analysis.
 - [ ] Build the first exposure-adjusted trend analysis.
