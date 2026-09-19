@@ -1,6 +1,6 @@
 """Descriptive summaries for the site: trends (Q1), timing (Q2), geography (Q4), road users (Q5),
-exposure-adjusted rates for older drivers (Q7) and, through ``vehicles`` and ``policy``, rates per
-kilometre (Q6) and the interrupted time series (Q8).
+exposure-adjusted rates for older drivers (Q7) and, through ``vehicles``, ``policy`` and ``speed``,
+rates per kilometre (Q6), the interrupted time series (Q8) and the speed chapter (Q9).
 
 Every function returns a tidy ``pandas.DataFrame`` built from the interim or processed layers. The
 column names are stable because the site and the tests key on them.
@@ -22,6 +22,7 @@ from dgt_stats import (
     labels,
     rates,
     policy,
+    speed,
     validate,
     vehicles,
 )
@@ -705,6 +706,16 @@ SUMMARIES = {
     "q6_van_light_truck_split": vehicles.van_light_truck_split,
     "q6_involvement_by_year": vehicles.involvement_by_year,
     "q6_occupant_deaths_series": vehicles.occupant_deaths_series,
+    "q9_infraction_shares": speed.infraction_shares,
+    "q9_infractions_by_vehicle": speed.infractions_by_vehicle,
+    "q9_other_infractions": speed.other_infractions,
+    "q9_report_factors": speed.report_factors,
+    "q9_report_road_type": speed.report_road_type,
+    "q9_report_speed_limit": speed.report_speed_limit,
+    "q9_report_vehicle": speed.report_vehicle,
+    "q9_report_age": speed.report_age,
+    "q9_report_day_hour": speed.report_day_hour,
+    "q9_report_licence": speed.report_licence,
     **{
         name: _policy_table(name)
         for name in (

@@ -1,0 +1,28 @@
+year,zone,zone_label,block,item,label,drivers_with_infraction,drivers,known,share_of_known
+2024,all,All roads,driver,other_priority,Other priority infraction,14331.0,170187.0,104621.0,0.137
+2024,all,All roads,driver,safety_distance,Not keeping a safe distance,11257.0,170187.0,104621.0,0.1076
+2024,all,All roads,speed,speed_infraction,Speed infraction,7393.0,170187.0,81535.0,0.0907
+2024,all,All roads,driver,other_infraction,Other infraction,4206.0,170187.0,104621.0,0.0402
+2024,all,All roads,driver,pedestrian_crossing,Failing to respect a pedestrian crossing,4116.0,170187.0,104621.0,0.0393
+2024,all,All roads,driver,stop_sign,Failing to stop at a stop sign,3487.0,170187.0,104621.0,0.0333
+2024,all,All roads,driver,partial_wrong_side,Partly invading the opposite lane,2579.0,170187.0,104621.0,0.0247
+2024,all,All roads,driver,overtaking,Illegal overtaking,1429.0,170187.0,104621.0,0.0137
+2024,all,All roads,driver,wrong_way,Driving against the flow or where prohibited,1417.0,170187.0,104621.0,0.0135
+2024,interurban,Interurban roads,driver,safety_distance,Not keeping a safe distance,5507.0,61318.0,35609.0,0.1547
+2024,interurban,Interurban roads,speed,speed_infraction,Speed infraction,4473.0,61318.0,31203.0,0.1434
+2024,interurban,Interurban roads,driver,other_priority,Other priority infraction,2598.0,61318.0,35609.0,0.073
+2024,interurban,Interurban roads,driver,partial_wrong_side,Partly invading the opposite lane,1663.0,61318.0,35609.0,0.0467
+2024,interurban,Interurban roads,driver,stop_sign,Failing to stop at a stop sign,1173.0,61318.0,35609.0,0.0329
+2024,interurban,Interurban roads,driver,other_infraction,Other infraction,1072.0,61318.0,35609.0,0.0301
+2024,interurban,Interurban roads,driver,overtaking,Illegal overtaking,524.0,61318.0,35609.0,0.0147
+2024,interurban,Interurban roads,driver,wrong_way,Driving against the flow or where prohibited,257.0,61318.0,35609.0,0.0072
+2024,interurban,Interurban roads,driver,pedestrian_crossing,Failing to respect a pedestrian crossing,165.0,61318.0,35609.0,0.0046
+2024,urban,Urban streets,driver,other_priority,Other priority infraction,11733.0,108869.0,69012.0,0.17
+2024,urban,Urban streets,driver,safety_distance,Not keeping a safe distance,5750.0,108869.0,69012.0,0.0833
+2024,urban,Urban streets,driver,pedestrian_crossing,Failing to respect a pedestrian crossing,3951.0,108869.0,69012.0,0.0573
+2024,urban,Urban streets,driver,other_infraction,Other infraction,3134.0,108869.0,69012.0,0.0454
+2024,urban,Urban streets,speed,speed_infraction,Speed infraction,2920.0,108869.0,50332.0,0.058
+2024,urban,Urban streets,driver,stop_sign,Failing to stop at a stop sign,2314.0,108869.0,69012.0,0.0335
+2024,urban,Urban streets,driver,wrong_way,Driving against the flow or where prohibited,1160.0,108869.0,69012.0,0.0168
+2024,urban,Urban streets,driver,partial_wrong_side,Partly invading the opposite lane,916.0,108869.0,69012.0,0.0133
+2024,urban,Urban streets,driver,overtaking,Illegal overtaking,905.0,108869.0,69012.0,0.0131

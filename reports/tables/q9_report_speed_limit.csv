@@ -1,0 +1,151 @@
+category,year,crashes,deaths,share_of_crashes,share_of_deaths,label,region_scope,limit_km_h
+10 km/h,2014,1.0,0.0,0.0002,0.0,10 km/h,Spain without Cataluña and País Vasco,10.0
+20 km/h,2014,48.0,0.0,0.0076,0.0,20 km/h,Spain without Cataluña and País Vasco,20.0
+30 km/h,2014,199.0,9.0,0.0316,0.0284,30 km/h,Spain without Cataluña and País Vasco,30.0
+40 km/h,2014,706.0,37.0,0.1122,0.1167,40 km/h,Spain without Cataluña and País Vasco,40.0
+50 km/h,2014,405.0,15.0,0.0643,0.0473,50 km/h,Spain without Cataluña and País Vasco,50.0
+60 km/h,2014,439.0,26.0,0.0697,0.082,60 km/h,Spain without Cataluña and País Vasco,60.0
+70 km/h,2014,211.0,15.0,0.0335,0.0473,70 km/h,Spain without Cataluña and País Vasco,70.0
+80 km/h,2014,324.0,25.0,0.0515,0.0789,80 km/h,Spain without Cataluña and País Vasco,80.0
+90 km/h,2014,82.0,9.0,0.013,0.0284,90 km/h,Spain without Cataluña and País Vasco,90.0
+100 km/h,2014,150.0,8.0,0.0238,0.0252,100 km/h,Spain without Cataluña and País Vasco,100.0
+110 km/h,2014,0.0,0.0,0.0,0.0,110 km/h,Spain without Cataluña and País Vasco,110.0
+120 km/h,2014,18.0,1.0,0.0029,0.0032,120 km/h,Spain without Cataluña and País Vasco,120.0
+Otra velocidad máxima,2014,5.0,0.0,0.0008,0.0,Other limit,Spain without Cataluña and País Vasco,
+Se desconoce *,2014,3707.0,172.0,0.5889,0.5426,Unknown,Spain without Cataluña and País Vasco,
+Total,2014,6295.0,317.0,1.0,1.0,Total,Spain without Cataluña and País Vasco,
+10 km/h,2015,4.0,0.0,0.0007,0.0,10 km/h,Spain without Cataluña and País Vasco,10.0
+20 km/h,2015,39.0,1.0,0.0066,0.0034,20 km/h,Spain without Cataluña and País Vasco,20.0
+30 km/h,2015,164.0,5.0,0.0278,0.0169,30 km/h,Spain without Cataluña and País Vasco,30.0
+40 km/h,2015,747.0,28.0,0.1267,0.0946,40 km/h,Spain without Cataluña and País Vasco,40.0
+50 km/h,2015,444.0,28.0,0.0753,0.0946,50 km/h,Spain without Cataluña and País Vasco,50.0
+60 km/h,2015,398.0,28.0,0.0675,0.0946,60 km/h,Spain without Cataluña and País Vasco,60.0
+70 km/h,2015,183.0,15.0,0.031,0.0507,70 km/h,Spain without Cataluña and País Vasco,70.0
+80 km/h,2015,262.0,16.0,0.0444,0.0541,80 km/h,Spain without Cataluña and País Vasco,80.0
+90 km/h,2015,57.0,0.0,0.0097,0.0,90 km/h,Spain without Cataluña and País Vasco,90.0
+100 km/h,2015,137.0,2.0,0.0232,0.0068,100 km/h,Spain without Cataluña and País Vasco,100.0
+110 km/h,2015,0.0,0.0,0.0,0.0,110 km/h,Spain without Cataluña and País Vasco,110.0
+120 km/h,2015,16.0,0.0,0.0027,0.0,120 km/h,Spain without Cataluña and País Vasco,120.0
+Otra velocidad máxima,2015,4.0,1.0,0.0007,0.0034,Other limit,Spain without Cataluña and País Vasco,
+Se desconoce *,2015,3441.0,172.0,0.5836,0.5811,Unknown,Spain without Cataluña and País Vasco,
+Total,2015,5896.0,296.0,1.0,1.0,Total,Spain without Cataluña and País Vasco,
+10 km/h,2016,2.0,0.0,0.0003,0.0,10 km/h,Spain without Cataluña and País Vasco,10.0
+20 km/h,2016,49.0,2.0,0.0074,0.006,20 km/h,Spain without Cataluña and País Vasco,20.0
+30 km/h,2016,216.0,12.0,0.0326,0.0361,30 km/h,Spain without Cataluña and País Vasco,30.0
+40 km/h,2016,791.0,25.0,0.1192,0.0753,40 km/h,Spain without Cataluña and País Vasco,40.0
+50 km/h,2016,493.0,27.0,0.0743,0.0813,50 km/h,Spain without Cataluña and País Vasco,50.0
+60 km/h,2016,483.0,40.0,0.0728,0.1205,60 km/h,Spain without Cataluña and País Vasco,60.0
+70 km/h,2016,242.0,20.0,0.0365,0.0602,70 km/h,Spain without Cataluña and País Vasco,70.0
+80 km/h,2016,331.0,7.0,0.0499,0.0211,80 km/h,Spain without Cataluña and País Vasco,80.0
+90 km/h,2016,111.0,3.0,0.0167,0.009,90 km/h,Spain without Cataluña and País Vasco,90.0
+100 km/h,2016,169.0,7.0,0.0255,0.0211,100 km/h,Spain without Cataluña and País Vasco,100.0
+110 km/h,2016,0.0,0.0,0.0,0.0,110 km/h,Spain without Cataluña and País Vasco,110.0
+120 km/h,2016,31.0,1.0,0.0047,0.003,120 km/h,Spain without Cataluña and País Vasco,120.0
+Otra velocidad máxima,2016,6.0,1.0,0.0009,0.003,Other limit,Spain without Cataluña and País Vasco,
+Se desconoce *,2016,3710.0,187.0,0.5592,0.5633,Unknown,Spain without Cataluña and País Vasco,
+Total,2016,6634.0,332.0,1.0,1.0,Total,Spain without Cataluña and País Vasco,
+10 km/h,2017,3.0,0.0,0.0005,0.0,10 km/h,Spain without Cataluña and País Vasco,10.0
+20 km/h,2017,47.0,0.0,0.0072,0.0,20 km/h,Spain without Cataluña and País Vasco,20.0
+30 km/h,2017,252.0,9.0,0.0387,0.0217,30 km/h,Spain without Cataluña and País Vasco,30.0
+40 km/h,2017,803.0,40.0,0.1234,0.0966,40 km/h,Spain without Cataluña and País Vasco,40.0
+50 km/h,2017,530.0,32.0,0.0815,0.0773,50 km/h,Spain without Cataluña and País Vasco,50.0
+60 km/h,2017,512.0,39.0,0.0787,0.0942,60 km/h,Spain without Cataluña and País Vasco,60.0
+70 km/h,2017,235.0,28.0,0.0361,0.0676,70 km/h,Spain without Cataluña and País Vasco,70.0
+80 km/h,2017,329.0,19.0,0.0506,0.0459,80 km/h,Spain without Cataluña and País Vasco,80.0
+90 km/h,2017,94.0,5.0,0.0144,0.0121,90 km/h,Spain without Cataluña and País Vasco,90.0
+100 km/h,2017,164.0,15.0,0.0252,0.0362,100 km/h,Spain without Cataluña and País Vasco,100.0
+110 km/h,2017,0.0,0.0,0.0,0.0,110 km/h,Spain without Cataluña and País Vasco,110.0
+120 km/h,2017,24.0,4.0,0.0037,0.0097,120 km/h,Spain without Cataluña and País Vasco,120.0
+Otra velocidad máxima,2017,2.0,0.0,0.0003,0.0,Other limit,Spain without Cataluña and País Vasco,
+Se desconoce *,2017,3512.0,223.0,0.5397,0.5386,Unknown,Spain without Cataluña and País Vasco,
+Total,2017,6507.0,414.0,1.0,1.0,Total,Spain without Cataluña and País Vasco,
+10 km/h,2018,0.0,0.0,0.0,0.0,10 km/h,Spain without Cataluña and País Vasco,10.0
+20 km/h,2018,48.0,1.0,0.0073,0.003,20 km/h,Spain without Cataluña and País Vasco,20.0
+30 km/h,2018,243.0,9.0,0.0368,0.0274,30 km/h,Spain without Cataluña and País Vasco,30.0
+40 km/h,2018,864.0,25.0,0.1308,0.076,40 km/h,Spain without Cataluña and País Vasco,40.0
+50 km/h,2018,475.0,25.0,0.0719,0.076,50 km/h,Spain without Cataluña and País Vasco,50.0
+60 km/h,2018,526.0,30.0,0.0796,0.0912,60 km/h,Spain without Cataluña and País Vasco,60.0
+70 km/h,2018,246.0,11.0,0.0373,0.0334,70 km/h,Spain without Cataluña and País Vasco,70.0
+80 km/h,2018,375.0,21.0,0.0568,0.0638,80 km/h,Spain without Cataluña and País Vasco,80.0
+90 km/h,2018,95.0,6.0,0.0144,0.0182,90 km/h,Spain without Cataluña and País Vasco,90.0
+100 km/h,2018,198.0,9.0,0.03,0.0274,100 km/h,Spain without Cataluña and País Vasco,100.0
+110 km/h,2018,0.0,0.0,0.0,0.0,110 km/h,Spain without Cataluña and País Vasco,110.0
+120 km/h,2018,27.0,0.0,0.0041,0.0,120 km/h,Spain without Cataluña and País Vasco,120.0
+Otra velocidad máxima,2018,1.0,1.0,0.0002,0.003,Other limit,Spain without Cataluña and País Vasco,
+Se desconoce *,2018,3506.0,191.0,0.5309,0.5805,Unknown,Spain without Cataluña and País Vasco,
+Total,2018,6604.0,329.0,1.0,1.0,Total,Spain without Cataluña and País Vasco,
+10 km/h,2019,6.0,0.0,0.001,0.0,10 km/h,Spain without Cataluña and País Vasco,10.0
+20 km/h,2019,66.0,1.0,0.0109,0.0032,20 km/h,Spain without Cataluña and País Vasco,20.0
+30 km/h,2019,244.0,10.0,0.0403,0.0315,30 km/h,Spain without Cataluña and País Vasco,30.0
+40 km/h,2019,825.0,27.0,0.1364,0.0852,40 km/h,Spain without Cataluña and País Vasco,40.0
+50 km/h,2019,474.0,24.0,0.0784,0.0757,50 km/h,Spain without Cataluña and País Vasco,50.0
+60 km/h,2019,441.0,31.0,0.0729,0.0978,60 km/h,Spain without Cataluña and País Vasco,60.0
+70 km/h,2019,236.0,16.0,0.039,0.0505,70 km/h,Spain without Cataluña and País Vasco,70.0
+80 km/h,2019,325.0,15.0,0.0537,0.0473,80 km/h,Spain without Cataluña and País Vasco,80.0
+90 km/h,2019,75.0,4.0,0.0124,0.0126,90 km/h,Spain without Cataluña and País Vasco,90.0
+100 km/h,2019,155.0,11.0,0.0256,0.0347,100 km/h,Spain without Cataluña and País Vasco,100.0
+110 km/h,2019,0.0,0.0,0.0,0.0,110 km/h,Spain without Cataluña and País Vasco,110.0
+120 km/h,2019,31.0,2.0,0.0051,0.0063,120 km/h,Spain without Cataluña and País Vasco,120.0
+Otra velocidad máxima,2019,3.0,0.0,0.0005,0.0,Other limit,Spain without Cataluña and País Vasco,
+Se desconoce *,2019,3168.0,176.0,0.5237,0.5552,Unknown,Spain without Cataluña and País Vasco,
+Total,2019,6049.0,317.0,1.0,1.0,Total,Spain without Cataluña and País Vasco,
+10 km/h,2020,3.0,0.0,0.0007,0.0,10 km/h,Spain without Cataluña and País Vasco,10.0
+20 km/h,2020,50.0,3.0,0.0109,0.0108,20 km/h,Spain without Cataluña and País Vasco,20.0
+30 km/h,2020,200.0,10.0,0.0437,0.036,30 km/h,Spain without Cataluña and País Vasco,30.0
+40 km/h,2020,609.0,32.0,0.133,0.1151,40 km/h,Spain without Cataluña and País Vasco,40.0
+50 km/h,2020,381.0,24.0,0.0832,0.0863,50 km/h,Spain without Cataluña and País Vasco,50.0
+60 km/h,2020,325.0,25.0,0.071,0.0899,60 km/h,Spain without Cataluña and País Vasco,60.0
+70 km/h,2020,189.0,21.0,0.0413,0.0755,70 km/h,Spain without Cataluña and País Vasco,70.0
+80 km/h,2020,233.0,18.0,0.0509,0.0647,80 km/h,Spain without Cataluña and País Vasco,80.0
+90 km/h,2020,60.0,2.0,0.0131,0.0072,90 km/h,Spain without Cataluña and País Vasco,90.0
+100 km/h,2020,112.0,1.0,0.0245,0.0036,100 km/h,Spain without Cataluña and País Vasco,100.0
+110 km/h,2020,0.0,0.0,0.0,0.0,110 km/h,Spain without Cataluña and País Vasco,110.0
+120 km/h,2020,16.0,1.0,0.0035,0.0036,120 km/h,Spain without Cataluña and País Vasco,120.0
+Otra velocidad máxima,2020,3.0,0.0,0.0007,0.0,Other limit,Spain without Cataluña and País Vasco,
+Se desconoce *,2020,2397.0,141.0,0.5236,0.5072,Unknown,Spain without Cataluña and País Vasco,
+Total,2020,4578.0,278.0,1.0,1.0,Total,Spain without Cataluña and País Vasco,
+10 km/h,2021,4.0,1.0,0.0008,0.0036,10 km/h,Spain without Cataluña and País Vasco,10.0
+20 km/h,2021,50.0,1.0,0.0099,0.0036,20 km/h,Spain without Cataluña and País Vasco,20.0
+30 km/h,2021,234.0,11.0,0.0465,0.0399,30 km/h,Spain without Cataluña and País Vasco,30.0
+40 km/h,2021,661.0,35.0,0.1313,0.1268,40 km/h,Spain without Cataluña and País Vasco,40.0
+50 km/h,2021,385.0,20.0,0.0765,0.0725,50 km/h,Spain without Cataluña and País Vasco,50.0
+60 km/h,2021,372.0,21.0,0.0739,0.0761,60 km/h,Spain without Cataluña and País Vasco,60.0
+70 km/h,2021,186.0,13.0,0.0369,0.0471,70 km/h,Spain without Cataluña and País Vasco,70.0
+80 km/h,2021,255.0,23.0,0.0507,0.0833,80 km/h,Spain without Cataluña and País Vasco,80.0
+90 km/h,2021,45.0,2.0,0.0089,0.0072,90 km/h,Spain without Cataluña and País Vasco,90.0
+100 km/h,2021,109.0,3.0,0.0217,0.0109,100 km/h,Spain without Cataluña and País Vasco,100.0
+110 km/h,2021,0.0,0.0,0.0,0.0,110 km/h,Spain without Cataluña and País Vasco,110.0
+120 km/h,2021,15.0,0.0,0.003,0.0,120 km/h,Spain without Cataluña and País Vasco,120.0
+Otra velocidad máxima,2021,3.0,0.0,0.0006,0.0,Other limit,Spain without Cataluña and País Vasco,
+Se desconoce *,2021,2715.0,146.0,0.5393,0.529,Unknown,Spain without Cataluña and País Vasco,
+Total,2021,5034.0,276.0,1.0,1.0,Total,Spain without Cataluña and País Vasco,
+10 km/h,2022,14.0,0.0,0.003,0.0,10 km/h,Spain without Cataluña and País Vasco,10.0
+20 km/h,2022,71.0,4.0,0.0151,0.0117,20 km/h,Spain without Cataluña and País Vasco,20.0
+30 km/h,2022,528.0,28.0,0.112,0.0819,30 km/h,Spain without Cataluña and País Vasco,30.0
+40 km/h,2022,693.0,49.0,0.1469,0.1433,40 km/h,Spain without Cataluña and País Vasco,40.0
+50 km/h,2022,543.0,44.0,0.1151,0.1287,50 km/h,Spain without Cataluña and País Vasco,50.0
+60 km/h,2022,382.0,20.0,0.081,0.0585,60 km/h,Spain without Cataluña and País Vasco,60.0
+70 km/h,2022,188.0,21.0,0.0399,0.0614,70 km/h,Spain without Cataluña and País Vasco,70.0
+80 km/h,2022,252.0,35.0,0.0534,0.1023,80 km/h,Spain without Cataluña and País Vasco,80.0
+90 km/h,2022,424.0,50.0,0.0899,0.1462,90 km/h,Spain without Cataluña and País Vasco,90.0
+100 km/h,2022,158.0,8.0,0.0335,0.0234,100 km/h,Spain without Cataluña and País Vasco,100.0
+110 km/h,2022,0.0,0.0,0.0,0.0,110 km/h,Spain without Cataluña and País Vasco,110.0
+120 km/h,2022,145.0,10.0,0.0307,0.0292,120 km/h,Spain without Cataluña and País Vasco,120.0
+Otra velocidad máxima,2022,2.0,0.0,0.0004,0.0,Other limit,Spain without Cataluña and País Vasco,
+Se desconoce *,2022,1316.0,73.0,0.2791,0.2135,Unknown,Spain without Cataluña and País Vasco,
+Total,2022,4716.0,342.0,1.0,1.0,Total,Spain without Cataluña and País Vasco,
+10 km/h,2023,33.0,0.0,0.0065,0.0,10 km/h,Spain without Cataluña and País Vasco,10.0
+20 km/h,2023,113.0,5.0,0.0223,0.0157,20 km/h,Spain without Cataluña and País Vasco,20.0
+30 km/h,2023,958.0,36.0,0.189,0.1129,30 km/h,Spain without Cataluña and País Vasco,30.0
+40 km/h,2023,767.0,35.0,0.1513,0.1097,40 km/h,Spain without Cataluña and País Vasco,40.0
+50 km/h,2023,797.0,49.0,0.1572,0.1536,50 km/h,Spain without Cataluña and País Vasco,50.0
+60 km/h,2023,401.0,26.0,0.0791,0.0815,60 km/h,Spain without Cataluña and País Vasco,60.0
+70 km/h,2023,250.0,23.0,0.0493,0.0721,70 km/h,Spain without Cataluña and País Vasco,70.0
+80 km/h,2023,360.0,28.0,0.071,0.0878,80 km/h,Spain without Cataluña and País Vasco,80.0
+90 km/h,2023,914.0,86.0,0.1803,0.2696,90 km/h,Spain without Cataluña and País Vasco,90.0
+100 km/h,2023,161.0,12.0,0.0318,0.0376,100 km/h,Spain without Cataluña and País Vasco,100.0
+110 km/h,2023,2.0,0.0,0.0004,0.0,110 km/h,Spain without Cataluña and País Vasco,110.0
+120 km/h,2023,304.0,19.0,0.06,0.0596,120 km/h,Spain without Cataluña and País Vasco,120.0
+Otra velocidad máxima,2023,0.0,0.0,0.0,0.0,Other limit,Spain without Cataluña and País Vasco,
+Se desconoce *,2023,10.0,0.0,0.002,0.0,Unknown,Spain without Cataluña and País Vasco,
+Total,2023,5070.0,319.0,1.0,1.0,Total,Spain without Cataluña and País Vasco,
