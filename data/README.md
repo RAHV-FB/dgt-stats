@@ -31,7 +31,7 @@ Existing outputs are skipped unless `--force` is given. Tests that need the inte
 
 ```bash
 python scripts/build_tables.py      # data/processed/accidentes.parquet: interim crashes + derived fields
-python scripts/model.py             # reports/tables/q3_*.csv: the severity models (about 2 minutes)
+python scripts/model.py             # reports/tables/q3_*.csv: the severity models (about 30 seconds)
 python scripts/analyse.py all       # reports/tables/q*.csv, reports/figures/*.svg, captions.json
 python scripts/build_site.py        # site/*.html, site/style.css, site/figures/
 ```
