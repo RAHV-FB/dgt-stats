@@ -18,6 +18,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
+from dgt_stats import io_exposure, io_microdata, io_tables, validate  # noqa: E402
 from dgt_stats.paths import MICRODATA_YEARS  # noqa: E402
 
 log = logging.getLogger("ingest")
@@ -26,19 +27,19 @@ STEPS = ("microdata", "tables", "exposure", "validate")
 
 
 def run_microdata(years: tuple[int, ...], force: bool) -> None:
-    log.info("microdata: not implemented yet (years=%s, force=%s)", years, force)
+    io_microdata.build_all(years, force=force)
 
 
 def run_tables(force: bool) -> None:
-    log.info("tables: not implemented yet (force=%s)", force)
+    io_tables.build_tables(force=force)
 
 
 def run_exposure(force: bool) -> None:
-    log.info("exposure: not implemented yet (force=%s)", force)
+    io_exposure.build_exposure(force=force)
 
 
 def run_validate() -> None:
-    log.info("validate: not implemented yet")
+    validate.run_all()
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:

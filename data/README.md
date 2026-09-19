@@ -8,7 +8,24 @@ Data are organised by processing stage. Source data must never be manually edite
 - `interim/`: parsed files with harmonised encodings, names and types.
 - `processed/`: validated, analysis-ready tables at documented units of observation.
 
-`interim/` and `processed/` are ignored by Git and rebuilt from `raw/`. Each ingestion run should record row counts, validation outcomes and schema version alongside the manifest.
+`interim/` and `processed/` are ignored by Git and rebuilt from `raw/`.
+
+## Building the interim layer
+
+```bash
+python scripts/ingest.py all        # microdata, tables, exposure, validate (about 6 minutes)
+python scripts/ingest.py microdata --years 2024 --force
+python scripts/ingest.py validate
+```
+
+| Step | Output in `interim/` | Notes |
+|---|---|---|
+| `microdata` | `microdata/accidentes_YYYY.parquet` (9 files) and `microdata/accidentes_all.parquet` (875,013 rows, 74 columns) | one row per injury crash; codes kept as integers, `SECUENCIAL` renamed to `ID_ACCIDENTE`, VMP death columns added as missing where a year lacks them; about 35 s per year |
+| `tables` | `series_annual`, `series_monthly`, `series_province`, `series_age`, `series_sex`, `series_road_users`, `series_pedestrians`, `tables_2024_province`, `tables_2024_month`, `tables_2024_units`, `tables_2024_vehicles_involved` | tidy long frames with a `source_sheet` column; `.` cells become missing |
+| `exposure` | `censo_conductores` (2023–2025 stacked), `censo_provincias_2025`, `km_medios_2022`, `km_estimados_2022` | census `licence_class` is the driver's highest class |
+| `validate` | `reports/tables/validation.csv`, `reports/tables/missingness_by_year.csv` (both committed) | reconciliation against the yearbook and 2024 tables, key uniqueness, code domains, census cross-check, per-year missingness |
+
+Existing outputs are skipped unless `--force` is given. Tests that need the interim layer skip themselves with a message until it has been built.
 
 ## Source inventory
 

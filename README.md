@@ -119,8 +119,8 @@ tests/                 Data-contract and code tests
 
 - [x] Define the scope, standards and repository structure.
 - [x] Audit each source, identify the unit of observation and build a data dictionary ([`docs/data_inventory.md`](docs/data_inventory.md)).
-- [ ] Create ingestion scripts with schema, range, uniqueness and reconciliation checks.
-- [ ] Reproduce official headline totals before producing new analysis.
+- [x] Create ingestion scripts with schema, range, uniqueness and reconciliation checks (`scripts/ingest.py`).
+- [x] Reproduce official headline totals before producing new analysis ([`reports/tables/validation.csv`](reports/tables/validation.csv)).
 - [ ] Build the first exposure-adjusted trend analysis.
 - [ ] Analyse factor co-occurrence and alcohol × speed interactions.
 - [ ] Add road-design and geospatial variables.
