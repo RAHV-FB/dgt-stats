@@ -1,0 +1,289 @@
+year,vehicle_type,deaths_30d,vehicle_type_label
+1993,Bicicletas,145.0,Bicycles
+1993,VMP,,Personal mobility vehicles
+1993,Ciclomotores,325.0,Mopeds
+1993,Motocicletas,493.0,Motorcycles
+1993,Turismos,2130.0,Cars
+1993,Camiones hasta 3.500 kg y furgonetas,220.0,Vans and light trucks (≤3.5 t)
+1993,Camiones más de 3.500 kg,126.0,Heavy trucks (>3.5 t)
+1993,Autobuses,3.0,Buses
+1993,Otros,31.0,Other
+1994,Bicicletas,151.0,Bicycles
+1994,VMP,,Personal mobility vehicles
+1994,Ciclomotores,343.0,Mopeds
+1994,Motocicletas,401.0,Motorcycles
+1994,Turismos,1788.0,Cars
+1994,Camiones hasta 3.500 kg y furgonetas,171.0,Vans and light trucks (≤3.5 t)
+1994,Camiones más de 3.500 kg,156.0,Heavy trucks (>3.5 t)
+1994,Autobuses,4.0,Buses
+1994,Otros,43.0,Other
+1995,Bicicletas,122.0,Bicycles
+1995,VMP,,Personal mobility vehicles
+1995,Ciclomotores,343.0,Mopeds
+1995,Motocicletas,401.0,Motorcycles
+1995,Turismos,1874.0,Cars
+1995,Camiones hasta 3.500 kg y furgonetas,196.0,Vans and light trucks (≤3.5 t)
+1995,Camiones más de 3.500 kg,153.0,Heavy trucks (>3.5 t)
+1995,Autobuses,4.0,Buses
+1995,Otros,43.0,Other
+1996,Bicicletas,101.0,Bicycles
+1996,VMP,,Personal mobility vehicles
+1996,Ciclomotores,348.0,Mopeds
+1996,Motocicletas,386.0,Motorcycles
+1996,Turismos,1802.0,Cars
+1996,Camiones hasta 3.500 kg y furgonetas,181.0,Vans and light trucks (≤3.5 t)
+1996,Camiones más de 3.500 kg,139.0,Heavy trucks (>3.5 t)
+1996,Autobuses,7.0,Buses
+1996,Otros,53.0,Other
+1997,Bicicletas,116.0,Bicycles
+1997,VMP,,Personal mobility vehicles
+1997,Ciclomotores,400.0,Mopeds
+1997,Motocicletas,397.0,Motorcycles
+1997,Turismos,1830.0,Cars
+1997,Camiones hasta 3.500 kg y furgonetas,213.0,Vans and light trucks (≤3.5 t)
+1997,Camiones más de 3.500 kg,150.0,Heavy trucks (>3.5 t)
+1997,Autobuses,6.0,Buses
+1997,Otros,44.0,Other
+1998,Bicicletas,113.0,Bicycles
+1998,VMP,,Personal mobility vehicles
+1998,Ciclomotores,443.0,Mopeds
+1998,Motocicletas,363.0,Motorcycles
+1998,Turismos,2050.0,Cars
+1998,Camiones hasta 3.500 kg y furgonetas,224.0,Vans and light trucks (≤3.5 t)
+1998,Camiones más de 3.500 kg,161.0,Heavy trucks (>3.5 t)
+1998,Autobuses,3.0,Buses
+1998,Otros,43.0,Other
+1999,Bicicletas,118.0,Bicycles
+1999,VMP,,Personal mobility vehicles
+1999,Ciclomotores,459.0,Mopeds
+1999,Motocicletas,354.0,Motorcycles
+1999,Turismos,1983.0,Cars
+1999,Camiones hasta 3.500 kg y furgonetas,218.0,Vans and light trucks (≤3.5 t)
+1999,Camiones más de 3.500 kg,153.0,Heavy trucks (>3.5 t)
+1999,Autobuses,4.0,Buses
+1999,Otros,47.0,Other
+2000,Bicicletas,83.0,Bicycles
+2000,VMP,,Personal mobility vehicles
+2000,Ciclomotores,417.0,Mopeds
+2000,Motocicletas,359.0,Motorcycles
+2000,Turismos,2033.0,Cars
+2000,Camiones hasta 3.500 kg y furgonetas,220.0,Vans and light trucks (≤3.5 t)
+2000,Camiones más de 3.500 kg,178.0,Heavy trucks (>3.5 t)
+2000,Autobuses,6.0,Buses
+2000,Otros,53.0,Other
+2001,Bicicletas,100.0,Bicycles
+2001,VMP,,Personal mobility vehicles
+2001,Ciclomotores,412.0,Mopeds
+2001,Motocicletas,336.0,Motorcycles
+2001,Turismos,1972.0,Cars
+2001,Camiones hasta 3.500 kg y furgonetas,199.0,Vans and light trucks (≤3.5 t)
+2001,Camiones más de 3.500 kg,139.0,Heavy trucks (>3.5 t)
+2001,Autobuses,5.0,Buses
+2001,Otros,57.0,Other
+2002,Bicicletas,96.0,Bicycles
+2002,VMP,,Personal mobility vehicles
+2002,Ciclomotores,347.0,Mopeds
+2002,Motocicletas,360.0,Motorcycles
+2002,Turismos,1922.0,Cars
+2002,Camiones hasta 3.500 kg y furgonetas,227.0,Vans and light trucks (≤3.5 t)
+2002,Camiones más de 3.500 kg,153.0,Heavy trucks (>3.5 t)
+2002,Autobuses,4.0,Buses
+2002,Otros,31.0,Other
+2003,Bicicletas,77.0,Bicycles
+2003,VMP,,Personal mobility vehicles
+2003,Ciclomotores,343.0,Mopeds
+2003,Motocicletas,332.0,Motorcycles
+2003,Turismos,2044.0,Cars
+2003,Camiones hasta 3.500 kg y furgonetas,202.0,Vans and light trucks (≤3.5 t)
+2003,Camiones más de 3.500 kg,144.0,Heavy trucks (>3.5 t)
+2003,Autobuses,3.0,Buses
+2003,Otros,51.0,Other
+2004,Bicicletas,89.0,Bicycles
+2004,VMP,,Personal mobility vehicles
+2004,Ciclomotores,320.0,Mopeds
+2004,Motocicletas,362.0,Motorcycles
+2004,Turismos,1689.0,Cars
+2004,Camiones hasta 3.500 kg y furgonetas,204.0,Vans and light trucks (≤3.5 t)
+2004,Camiones más de 3.500 kg,138.0,Heavy trucks (>3.5 t)
+2004,Autobuses,0.0,Buses
+2004,Otros,59.0,Other
+2005,Bicicletas,82.0,Bicycles
+2005,VMP,,Personal mobility vehicles
+2005,Ciclomotores,280.0,Mopeds
+2005,Motocicletas,439.0,Motorcycles
+2005,Turismos,1564.0,Cars
+2005,Camiones hasta 3.500 kg y furgonetas,168.0,Vans and light trucks (≤3.5 t)
+2005,Camiones más de 3.500 kg,126.0,Heavy trucks (>3.5 t)
+2005,Autobuses,6.0,Buses
+2005,Otros,73.0,Other
+2006,Bicicletas,75.0,Bicycles
+2006,VMP,,Personal mobility vehicles
+2006,Ciclomotores,281.0,Mopeds
+2006,Motocicletas,443.0,Motorcycles
+2006,Turismos,1377.0,Cars
+2006,Camiones hasta 3.500 kg y furgonetas,188.0,Vans and light trucks (≤3.5 t)
+2006,Camiones más de 3.500 kg,126.0,Heavy trucks (>3.5 t)
+2006,Autobuses,4.0,Buses
+2006,Otros,75.0,Other
+2007,Bicicletas,88.0,Bicycles
+2007,VMP,,Personal mobility vehicles
+2007,Ciclomotores,221.0,Mopeds
+2007,Motocicletas,595.0,Motorcycles
+2007,Turismos,1187.0,Cars
+2007,Camiones hasta 3.500 kg y furgonetas,155.0,Vans and light trucks (≤3.5 t)
+2007,Camiones más de 3.500 kg,85.0,Heavy trucks (>3.5 t)
+2007,Autobuses,5.0,Buses
+2007,Otros,89.0,Other
+2008,Bicicletas,54.0,Bicycles
+2008,VMP,,Personal mobility vehicles
+2008,Ciclomotores,164.0,Mopeds
+2008,Motocicletas,463.0,Motorcycles
+2008,Turismos,994.0,Cars
+2008,Camiones hasta 3.500 kg y furgonetas,105.0,Vans and light trucks (≤3.5 t)
+2008,Camiones más de 3.500 kg,78.0,Heavy trucks (>3.5 t)
+2008,Autobuses,6.0,Buses
+2008,Otros,65.0,Other
+2009,Bicicletas,54.0,Bicycles
+2009,VMP,,Personal mobility vehicles
+2009,Ciclomotores,140.0,Mopeds
+2009,Motocicletas,415.0,Motorcycles
+2009,Turismos,847.0,Cars
+2009,Camiones hasta 3.500 kg y furgonetas,111.0,Vans and light trucks (≤3.5 t)
+2009,Camiones más de 3.500 kg,62.0,Heavy trucks (>3.5 t)
+2009,Autobuses,1.0,Buses
+2009,Otros,62.0,Other
+2010,Bicicletas,67.0,Bicycles
+2010,VMP,,Personal mobility vehicles
+2010,Ciclomotores,93.0,Mopeds
+2010,Motocicletas,365.0,Motorcycles
+2010,Turismos,785.0,Cars
+2010,Camiones hasta 3.500 kg y furgonetas,80.0,Vans and light trucks (≤3.5 t)
+2010,Camiones más de 3.500 kg,64.0,Heavy trucks (>3.5 t)
+2010,Autobuses,0.0,Buses
+2010,Otros,57.0,Other
+2011,Bicicletas,49.0,Bicycles
+2011,VMP,,Personal mobility vehicles
+2011,Ciclomotores,67.0,Mopeds
+2011,Motocicletas,334.0,Motorcycles
+2011,Turismos,663.0,Cars
+2011,Camiones hasta 3.500 kg y furgonetas,75.0,Vans and light trucks (≤3.5 t)
+2011,Camiones más de 3.500 kg,58.0,Heavy trucks (>3.5 t)
+2011,Autobuses,0.0,Buses
+2011,Otros,46.0,Other
+2012,Bicicletas,72.0,Bicycles
+2012,VMP,,Personal mobility vehicles
+2012,Ciclomotores,65.0,Mopeds
+2012,Motocicletas,282.0,Motorcycles
+2012,Turismos,579.0,Cars
+2012,Camiones hasta 3.500 kg y furgonetas,61.0,Vans and light trucks (≤3.5 t)
+2012,Camiones más de 3.500 kg,45.0,Heavy trucks (>3.5 t)
+2012,Autobuses,0.0,Buses
+2012,Otros,58.0,Other
+2013,Bicicletas,68.0,Bicycles
+2013,VMP,,Personal mobility vehicles
+2013,Ciclomotores,50.0,Mopeds
+2013,Motocicletas,285.0,Motorcycles
+2013,Turismos,494.0,Cars
+2013,Camiones hasta 3.500 kg y furgonetas,47.0,Vans and light trucks (≤3.5 t)
+2013,Camiones más de 3.500 kg,36.0,Heavy trucks (>3.5 t)
+2013,Autobuses,1.0,Buses
+2013,Otros,33.0,Other
+2014,Bicicletas,75.0,Bicycles
+2014,VMP,,Personal mobility vehicles
+2014,Ciclomotores,52.0,Mopeds
+2014,Motocicletas,275.0,Motorcycles
+2014,Turismos,501.0,Cars
+2014,Camiones hasta 3.500 kg y furgonetas,67.0,Vans and light trucks (≤3.5 t)
+2014,Camiones más de 3.500 kg,44.0,Heavy trucks (>3.5 t)
+2014,Autobuses,1.0,Buses
+2014,Otros,28.0,Other
+2015,Bicicletas,58.0,Bicycles
+2015,VMP,,Personal mobility vehicles
+2015,Ciclomotores,54.0,Mopeds
+2015,Motocicletas,312.0,Motorcycles
+2015,Turismos,475.0,Cars
+2015,Camiones hasta 3.500 kg y furgonetas,64.0,Vans and light trucks (≤3.5 t)
+2015,Camiones más de 3.500 kg,55.0,Heavy trucks (>3.5 t)
+2015,Autobuses,1.0,Buses
+2015,Otros,29.0,Other
+2016,Bicicletas,67.0,Bicycles
+2016,VMP,,Personal mobility vehicles
+2016,Ciclomotores,50.0,Mopeds
+2016,Motocicletas,323.0,Motorcycles
+2016,Turismos,511.0,Cars
+2016,Camiones hasta 3.500 kg y furgonetas,69.0,Vans and light trucks (≤3.5 t)
+2016,Camiones más de 3.500 kg,46.0,Heavy trucks (>3.5 t)
+2016,Autobuses,2.0,Buses
+2016,Otros,33.0,Other
+2017,Bicicletas,78.0,Bicycles
+2017,VMP,,Personal mobility vehicles
+2017,Ciclomotores,47.0,Mopeds
+2017,Motocicletas,336.0,Motorcycles
+2017,Turismos,555.0,Cars
+2017,Camiones hasta 3.500 kg y furgonetas,70.0,Vans and light trucks (≤3.5 t)
+2017,Camiones más de 3.500 kg,53.0,Heavy trucks (>3.5 t)
+2017,Autobuses,0.0,Buses
+2017,Otros,32.0,Other
+2018,Bicicletas,58.0,Bicycles
+2018,VMP,,Personal mobility vehicles
+2018,Ciclomotores,59.0,Mopeds
+2018,Motocicletas,338.0,Motorcycles
+2018,Turismos,523.0,Cars
+2018,Camiones hasta 3.500 kg y furgonetas,76.0,Vans and light trucks (≤3.5 t)
+2018,Camiones más de 3.500 kg,53.0,Heavy trucks (>3.5 t)
+2018,Autobuses,3.0,Buses
+2018,Otros,43.0,Other
+2019,Bicicletas,80.0,Bicycles
+2019,VMP,,Personal mobility vehicles
+2019,Ciclomotores,43.0,Mopeds
+2019,Motocicletas,401.0,Motorcycles
+2019,Turismos,459.0,Cars
+2019,Camiones hasta 3.500 kg y furgonetas,63.0,Vans and light trucks (≤3.5 t)
+2019,Camiones más de 3.500 kg,50.0,Heavy trucks (>3.5 t)
+2019,Autobuses,0.0,Buses
+2019,Otros,43.0,Other
+2020,Bicicletas,71.0,Bicycles
+2020,VMP,8.0,Personal mobility vehicles
+2020,Ciclomotores,29.0,Mopeds
+2020,Motocicletas,300.0,Motorcycles
+2020,Turismos,392.0,Cars
+2020,Camiones hasta 3.500 kg y furgonetas,49.0,Vans and light trucks (≤3.5 t)
+2020,Camiones más de 3.500 kg,38.0,Heavy trucks (>3.5 t)
+2020,Autobuses,0.0,Buses
+2020,Otros,35.0,Other
+2021,Bicicletas,63.0,Bicycles
+2021,VMP,9.0,Personal mobility vehicles
+2021,Ciclomotores,34.0,Mopeds
+2021,Motocicletas,340.0,Motorcycles
+2021,Turismos,453.0,Cars
+2021,Camiones hasta 3.500 kg y furgonetas,58.0,Vans and light trucks (≤3.5 t)
+2021,Camiones más de 3.500 kg,32.0,Heavy trucks (>3.5 t)
+2021,Autobuses,3.0,Buses
+2021,Otros,30.0,Other
+2022,Bicicletas,80.0,Bicycles
+2022,VMP,8.0,Personal mobility vehicles
+2022,Ciclomotores,36.0,Mopeds
+2022,Motocicletas,385.0,Motorcycles
+2022,Turismos,471.0,Cars
+2022,Camiones hasta 3.500 kg y furgonetas,73.0,Vans and light trucks (≤3.5 t)
+2022,Camiones más de 3.500 kg,50.0,Heavy trucks (>3.5 t)
+2022,Autobuses,2.0,Buses
+2022,Otros,26.0,Other
+2023,Bicicletas,89.0,Bicycles
+2023,VMP,10.0,Personal mobility vehicles
+2023,Ciclomotores,28.0,Mopeds
+2023,Motocicletas,429.0,Motorcycles
+2023,Turismos,486.0,Cars
+2023,Camiones hasta 3.500 kg y furgonetas,50.0,Vans and light trucks (≤3.5 t)
+2023,Camiones más de 3.500 kg,33.0,Heavy trucks (>3.5 t)
+2023,Autobuses,1.0,Buses
+2023,Otros,52.0,Other
+2024,Bicicletas,90.0,Bicycles
+2024,VMP,19.0,Personal mobility vehicles
+2024,Ciclomotores,37.0,Mopeds
+2024,Motocicletas,415.0,Motorcycles
+2024,Turismos,495.0,Cars
+2024,Camiones hasta 3.500 kg y furgonetas,67.0,Vans and light trucks (≤3.5 t)
+2024,Camiones más de 3.500 kg,32.0,Heavy trucks (>3.5 t)
+2024,Autobuses,1.0,Buses
+2024,Otros,30.0,Other

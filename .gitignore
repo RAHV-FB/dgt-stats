@@ -25,13 +25,19 @@ data/interim/**
 data/processed/**
 !data/processed/.gitkeep
 
-# Generated reports: retain directory placeholders only
+# Generated reports: placeholders plus the published tables and figures
 reports/figures/**
 !reports/figures/.gitkeep
+!reports/figures/*.svg
+!reports/figures/captions.json
 reports/tables/**
 !reports/tables/.gitkeep
 !reports/tables/validation.csv
 !reports/tables/missingness_by_year.csv
+!reports/tables/q*.csv
+
+# Site figures are copied from reports/figures at build time
+site/figures/
 
 # Build and coverage outputs
 build/

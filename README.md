@@ -89,6 +89,21 @@ Raw source files are tracked under `data/raw/`, grouped by role (microdata, tabl
 
 Full details are in [`docs/methodology.md`](docs/methodology.md).
 
+## Results so far
+
+The first results are published as a static site built from the validated data: an overview with
+the 2024 headline numbers, long-run trends since 1993, the timing of crashes and fatal crashes, the
+distribution of deaths across road-user types, and a data page with the sources, definitions and the
+reconciliation checks. The pages live in [`site/`](site/) and are deployed to GitHub Pages from
+`main`; the tables and SVG figures behind them are in [`reports/`](reports/).
+
+```bash
+python scripts/ingest.py all        # raw -> data/interim, validation report
+python scripts/build_tables.py      # data/interim -> data/processed (derived fields, labels)
+python scripts/analyse.py all       # reports/tables/q*.csv and reports/figures/*.svg
+python scripts/build_site.py        # site/
+```
+
 ## Planned outputs
 
 - A reproducible data-ingestion and validation pipeline.
@@ -121,6 +136,7 @@ tests/                 Data-contract and code tests
 - [x] Audit each source, identify the unit of observation and build a data dictionary ([`docs/data_inventory.md`](docs/data_inventory.md)).
 - [x] Create ingestion scripts with schema, range, uniqueness and reconciliation checks (`scripts/ingest.py`).
 - [x] Reproduce official headline totals before producing new analysis ([`reports/tables/validation.csv`](reports/tables/validation.csv)).
+- [x] Publish the first descriptive results (trends, timing, road users) as a static site.
 - [ ] Build the first exposure-adjusted trend analysis.
 - [ ] Analyse factor co-occurrence and alcohol × speed interactions.
 - [ ] Add road-design and geospatial variables.

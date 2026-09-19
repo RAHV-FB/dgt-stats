@@ -27,6 +27,19 @@ python scripts/ingest.py validate
 
 Existing outputs are skipped unless `--force` is given. Tests that need the interim layer skip themselves with a message until it has been built.
 
+## Processed layer and results
+
+```bash
+python scripts/build_tables.py      # data/processed/accidentes.parquet: interim crashes + derived fields
+python scripts/analyse.py all       # reports/tables/q*.csv, reports/figures/*.svg, captions.json
+python scripts/build_site.py        # site/*.html, site/style.css, site/figures/
+```
+
+`data/processed/accidentes.parquet` (875,013 rows, 102 columns) adds outcome flags (`fatal`, `serious`),
+`zone`, `road_group`, `hour_band`, `night`, `weekend`, a `status_*` companion for every condition column
+and an English `*_label` column for the code lists used on the site. The result tables, figures and the
+site are committed so they can be reviewed without rebuilding.
+
 ## Source inventory
 
 The full audit is in [`docs/data_inventory.md`](../docs/data_inventory.md).
