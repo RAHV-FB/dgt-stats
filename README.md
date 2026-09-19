@@ -1,212 +1,147 @@
 # DGT Road Safety Analytics
 
-Reproducible analysis of road crashes in Spain using official data from the Dirección General de Tráfico (DGT), exposure estimates, road context and published road-safety research.
+Road safety in Spain, analysed from the open data of the Dirección General de Tráfico (DGT): 875,013
+injury crashes from the 2016–2024 microdata, the yearbook series since 1993, the yearly statistical
+tables, the driver census, the 2022 kilometre estimates and INE population. Every number on the site
+is reconciled against DGT's published totals and reproducible from this repository with Python alone.
 
-> **Status:** early-stage portfolio project. The repository currently defines the research design and project structure; it does not yet publish analytical results.
+**The results are a static site:** <https://rahv-fb.github.io/dgt-stats/> (HTML and CSS, no
+JavaScript; built by `scripts/build_site.py` from the committed tables and figures in `reports/`).
 
-## Objective
+## What the site answers
 
-The project will move beyond raw crash counts to examine:
+The analytics plan ([`docs/analytics_plan.md`](docs/analytics_plan.md)) set nine questions after an
+audit of the data. Each has a page.
 
-- which factors are associated with crash occurrence and severity;
-- how alcohol, speeding, distraction and other factors interact;
-- whether road design changes the likelihood or consequences of a crash;
-- how trucks, buses and other vehicle types differ after accounting for exposure;
-- whether prevention and enforcement campaigns are followed by measurable changes; and
-- which findings support realistic, evidence-based prevention measures.
+| Question | Page | Method | Finding |
+|---|---|---|---|
+| How have crashes, deaths and injuries evolved since 1993? | [Trends](https://rahv-fb.github.io/dgt-stats/trends.html) | yearbook series, indexed lines, rates per vehicle and per resident | 1,785 deaths in 2024, 72 % fewer than in 1993; the fall stopped around 2013 |
+| When do crashes happen, and when do they kill? | [Timing](https://rahv-fb.github.io/dgt-stats/timing.html) | hour × weekday and month × zone grids from the microdata | night hours hold a quarter of interurban crashes but a third of interurban deaths |
+| Who dies on the road? | [Road users](https://rahv-fb.github.io/dgt-stats/road-users.html) | death columns by road-user type, series since 1993 | vulnerable road users are 79 % of urban deaths; motorcyclist deaths are back at their late-1990s level |
+| Which provinces have high rates once exposure is considered? | [Geography](https://rahv-fb.github.io/dgt-stats/geography.html) | deaths per 100,000 residents and licence holders with exact Poisson intervals | rates run from 1.2 (Melilla) to 14.5 (Zamora) per 100,000, most intervals overlapping |
+| Are older drivers at higher risk? | [Older drivers](https://rahv-fb.github.io/dgt-stats/older-drivers.html) | the same driver deaths against four denominators | 75+ drivers die 0.7 times as often as 35–64 per resident, 1.6 per licence holder, 3 per driver involved |
+| Given a crash, what makes it fatal or serious? | [Severity](https://rahv-fb.github.io/dgt-stats/severity.html) | two logistic models on all 875,013 crashes, province-clustered intervals, 2023–2024 holdout | head-on collisions and pedestrian strikes carry six times the odds of a death; holdout AUC 0.80 |
+| How dangerous are heavy vehicles per kilometre? | [Vehicles per km](https://rahv-fb.github.io/dgt-stats/vehicles.html) | 2022 involvement and occupant deaths over the ITV kilometre estimates | a heavy truck is in a fatal crash 10× a car per vehicle, 2.5× per km; four in five of those killed are outside it |
+| Did a policy change coincide with a break in monthly deaths? | [Policy](https://rahv-fb.github.io/dgt-stats/policy.html) | segmented Poisson regression with placebo breaks; a two-group design for 2019 | July 2006 coincided with a 12 % drop beyond the trend (placebo rank 1 of 39); the 2019 limit fails its placebo, no claim |
+| How large is the speed factor and where does it concentrate? | [Speed](https://rahv-fb.github.io/dgt-stats/speed.html) | driver tables 6.1 with the unknown share in view; DGT's speed report transcribed | 52 % of drivers have no speed record since 2016; the report puts speed in 7 % of crashes, two thirds of its deaths on conventional roads |
 
-The end product should be useful both as a public road-safety analysis and as a transparent data-analytics portfolio project.
+The [data page](https://rahv-fb.github.io/dgt-stats/data.html) lists the sources, the definitions
+and the 434 reconciliation checks. Each phase has a plan with an outcome section that records what
+was built and what deviated from the design: [`docs/phase3_plan.md`](docs/phase3_plan.md) to
+[`docs/phase8_plan.md`](docs/phase8_plan.md).
 
-## Why this requires careful analysis
+## What could not be done, and why
 
-Road crashes are usually multi-factor events. The European Road Safety Observatory describes crash causation as an interaction between human, technical and organisational factors, rather than a simple exercise in assigning blame. Its recent reviews estimate that speeding is involved in roughly 30% of fatal crashes in Europe and alcohol in roughly 25%, while also warning that speed is often a contributing or aggravating factor rather than the sole cause ([main factors report](https://road-safety.transport.ec.europa.eu/document/download/a7428369-8eaf-4032-806e-ea08b46028c0_en?filename=ERSO-TR-MainCauses.pdf), [speed report](https://road-safety.transport.ec.europa.eu/document/download/9826c063-bc55-423e-84a3-24200dca3547_en?filename=ERSO-TR-speed_2026.pdf)).
+The project was framed around factor interactions, road design and campaign evaluation. The audit
+([`docs/data_inventory.md`](docs/data_inventory.md)) showed what the files in hand support:
 
-That distinction is central to this project. If alcohol and speeding are both recorded, the analysis will not simply declare one of them the “real cause.” It will test:
+- **Factor interactions such as alcohol × speed require person-level data.** The public microdata
+  are one row per crash with no driver, vehicle or person fields: no age, sex, alcohol or drug test,
+  speed, seat belt or helmet. The severity models therefore explain outcomes from where, when and
+  how a crash happened, and the speed page describes the police judgement the two aggregate sources
+  record. European evidence that speed and alcohol are each present in a large share of fatal
+  crashes and often interact ([ERSO main factors](https://road-safety.transport.ec.europa.eu/document/download/a7428369-8eaf-4032-806e-ea08b46028c0_en?filename=ERSO-TR-MainCauses.pdf),
+  [ERSO speed](https://road-safety.transport.ec.europa.eu/document/download/9826c063-bc55-423e-84a3-24200dca3547_en?filename=ERSO-TR-speed_2026.pdf))
+  is context, not a result for Spain; testing it here needs the vehicle and person files that DGT
+  does not publish for download.
+- **Road design needs geometry and traffic data.** The microdata carry road type, junction,
+  alignment, surface and lighting, all used in the severity models, but no coordinates, curvature,
+  shoulder, median or traffic volume. The 2019 speed-limit case study, which would have benefited
+  from section-level speeds and volumes, is the clearest casualty.
+- **A campaign register was replaced by two dated policy changes.** DGT campaigns are not published
+  as a dated list with enforcement intensity; the policy page uses the two changes with a legal date
+  and a clean window, and states the confounders that arrived with them.
+- **Vehicle-kilometres exist for one year.** The heavy-vehicle comparison is a 2022 cross-section.
 
-1. their separate associations with crash severity;
-2. whether their joint presence is associated with additional risk beyond the separate effects;
-3. whether speeding could be part of the pathway through which alcohol affects outcomes; and
-4. whether the available variables and research design are strong enough to support any causal interpretation.
+## Standards, as applied
 
-## Research tracks
+- **Counts are not risks.** Every rate names its denominator and year; the older-drivers page shows
+  the same deaths under four denominators because the answer changes with each.
+- **Unknown is not no.** "Not specified", "not applicable" and explicit unknown codes are kept apart
+  in every table, the data page profiles them by year, and the speed page puts the drivers with no
+  record in the same chart as those with one.
+- **Uncertainty is visible.** Exact Poisson or Wilson intervals on every rate and share,
+  province-clustered intervals on the models, placebo distributions on the time series.
+- **Association is not causation.** Model results are associations; the policy page says
+  "coincided with" unless the pre-trend, the placebos and the sensitivity fits agree.
+- **Transparent models first.** Descriptive tables, then interpretable regressions with their
+  calibration and stability reported; no machine learning.
+- **Every number reconciles.** 434 checks tie the interim data to DGT's published totals before any
+  analysis runs; the microdata match the yearbook exactly, year by year.
 
-### 1. Crash factors and interactions
+The full statement is in [`docs/methodology.md`](docs/methodology.md), with a status line per section
+saying whether it was done, reframed or requires person-level data.
 
-- Alcohol, drugs, excessive or inappropriate speed, distraction, fatigue and protective-equipment use.
-- Single-factor versus multi-factor crashes.
-- Interaction terms such as alcohol × speed, road type × speed and vehicle type × road environment.
-- Separate models for crash incidence and injury severity.
+## Data
 
-### 2. Speed and road design
+Raw files are tracked under `data/raw/`, grouped by role, never edited, and listed with size, SHA-256
+and source URL in `data/raw/manifest.csv`. The register is [`docs/data_sources.md`](docs/data_sources.md);
+the audit with reconciliation results and known quality issues is
+[`docs/data_inventory.md`](docs/data_inventory.md); the build of the interim and processed layers is
+described in [`data/README.md`](data/README.md).
 
-- Distinguish exceeding the legal limit from travelling too fast for the conditions.
-- Compare road type, junctions, curvature, lighting, median, shoulder, surface and roadside context where data permit.
-- Add road geometry, speed-limit, traffic-volume and weather data before making design-related causal claims.
-- Examine both average speed and speed dispersion if suitable observed-speed data become available.
+| Group | Files | Used for |
+|---|---|---|
+| Crash microdata 2016–2024 | nine yearly workbooks, the code dictionary | timing, road users, severity, the 2019 case study, monthly deaths by road type |
+| Yearbook series 1993–2024 | one workbook, 69 sheets | trends, occupant deaths by vehicle, the 2006 case study |
+| Statistical tables 2014–2024 | chapter workbooks to 2019, one workbook per year from 2020 | province and month totals, vehicles involved, victims by mode, drivers by age, sex and infraction |
+| Driver census 2014–2025 | text extracts and published tables | licence-holder denominators by province and age |
+| INE population 2002–2025 | one CSV | resident denominators by province and age |
+| ITV kilometre estimates 2022 | two workbooks and the methodology note | vehicle-kilometres by type and age |
+| Travel and driving surveys | MOVILIA 2006–2007, ECEPOV 2021, EHMA 2008, ESRA shares | the travel-weighted driver denominator |
+| DGT thematic reports | speed factor, older road users, Easter 2026 | the speed page (transcribed), definitions |
 
-### 3. Trucks, buses and other vehicle types
-
-- Compare involvement and severity using vehicle-kilometres, fleet size or another defensible exposure denominator.
-- Separate risk to vehicle occupants from risk imposed on other road users.
-- Investigate mass mismatch, blind spots, fatigue, working conditions and road compatibility.
-
-European evidence illustrates why denominators and severity both matter: HGVs were involved in an estimated 4–5% of police-reported crashes but about 14% of road deaths, with most fatalities occurring among the other road users ([ERSO professional drivers report](https://road-safety.transport.ec.europa.eu/document/download/e19cf119-eed4-4cb3-b1fd-1fd0b4554992_en?filename=Road_Safety_Thematic_Report_Professional_drivers_trucks_and_buses_2023.pdf)). These figures are context, not results for Spain.
-
-### 4. Prevention and enforcement campaigns
-
-- Build a dated register of DGT campaigns, enforcement periods and relevant policy changes.
-- Use interrupted time-series or difference-in-differences designs when a credible comparison group exists.
-- Check pre-trends, seasonality, traffic exposure, simultaneous policies and displacement effects.
-- Avoid interpreting a simple before/after comparison as causal evidence.
-
-## Initial data inventory
-
-The seed material currently available includes:
-
-- DGT crash microdata for 2016–2024, one row per injury crash;
-- DGT annual statistical tables for injury crashes in 2024;
-- DGT historical crash series through 2024;
-- driver-census data for 2023–2025 by province, sex, licence class and licence seniority;
-- annual-distance estimates by vehicle type and vehicle age, based on ITV and fleet information;
-- DGT reports on speed, older road users and Easter 2026 interurban fatalities; and
-- the 2025 DGT driver-census workbook.
-
-The official [DGT en Cifras](https://www.dgt.es/menusecundario/dgt-en-cifras/) portal also provides annual definitive statistics, historical series and annual crash microdata. See [`docs/data_sources.md`](docs/data_sources.md) for the working source register.
-
-A file-by-file audit of everything currently in the repository, with reconciliation results and known quality issues, is in [`docs/data_inventory.md`](docs/data_inventory.md). The resulting analytics plan is in [`docs/analytics_plan.md`](docs/analytics_plan.md).
-
-Raw source files are tracked under `data/raw/`, grouped by role (microdata, tables, exposure, reports), and never edited in place. `data/raw/manifest.csv` records size, SHA-256 and source URL for each file.
-
-## Analytical standards
-
-- **Counts are not risks.** Whenever possible, results will use vehicle-kilometres, trips, registered vehicles, licensed drivers or population as an exposure denominator.
-- **Incidence and severity are different outcomes.** A factor may affect whether a crash occurs, how serious it becomes, or both.
-- **Crash-only data have selection bias.** They can describe crashes and model severity among recorded crashes, but they cannot by themselves estimate population crash risk.
-- **Association is not causation.** Causal language will be reserved for designs with explicit identification assumptions and sensitivity checks.
-- **Unknown is not “no.”** Missing and untested alcohol, drug, speed and distraction fields will remain distinct from negative observations.
-- **Uncertainty will be visible.** Estimates will include confidence intervals, sample sizes and robustness checks.
-- **Transparent models come first.** Reproducible descriptive statistics and interpretable regression models will precede predictive machine learning.
-
-Full details are in [`docs/methodology.md`](docs/methodology.md).
-
-## Results so far
-
-The first results are published as a static site built from the validated data: an overview with
-the 2024 headline numbers, long-run trends since 1993, the timing of crashes and fatal crashes, the
-distribution of deaths across road-user types, a geography page with province rates per resident and
-per licence holder (exact Poisson intervals), an older-drivers page that keeps driver deaths fixed and
-changes only the denominator (residents, licence holders, travel-weighted drivers, drivers involved in
-crashes), and a data page with the sources, definitions and the reconciliation checks. The pages live
-in [`site/`](site/) and are deployed to GitHub Pages from `main`; the tables and SVG figures behind
-them are in [`reports/`](reports/). A severity page adds two logistic models of every crash since
-2016: given that an injury crash happened, head-on collisions and pedestrian strikes carry about six
-times the odds of a death of a side collision, interurban roads two to three times the odds of a
-street, darkness without lighting about 1.4 times daylight; a fit on 2016–2022 scores the crashes of
-2023–2024 with an area under the curve of 0.80 for a fatal outcome and stays calibrated across the
-deciles of predicted risk.
-
-Two findings from the older-drivers page: per resident, drivers aged 75 and over die less often than
-drivers aged 35–64 (ratio about 0.7 in 2024), per licence holder more often (about 1.6), and per driver
-involved in an injury crash about three times as often; and licence holders aged 75+ are involved in
-injury crashes about half as often per licence as those aged 35–64, which mostly reflects how much less
-they drive. No Spanish source gives the share of people who drive by age, so the travel-weighted
-denominator is an estimate with stated limits ([`docs/phase3_plan.md`](docs/phase3_plan.md)).
-
-A vehicles-per-kilometre page uses the one year, 2022, for which DGT publishes a distance estimate by
-vehicle type. Per registered vehicle a heavy truck is in a fatal crash about ten times as often as a
-car; per kilometre driven the ratio is 2.5, because a heavy truck covers four times a car's distance
-in a year. Motorcycles are in a fatal crash ten times as often as cars per kilometre and their riders
-die eighteen times as often. In fatal crashes involving a heavy truck, more than four in five of the
-people killed were outside the truck, so a rate of a vehicle type's own occupant deaths, the only
-per-type measure the microdata allow, misses most of the harm heavy vehicles are involved in
-([`docs/phase5_plan.md`](docs/phase5_plan.md)).
-
-A policy page runs two interrupted time series. The points-based licence of July 2006 coincided
-with a 12 percent drop in the monthly level of road deaths (interval 6 to 17 percent) beyond the
-pre-trend, larger than any of the 38 placebo breaks placed in 2002 to 2005 and stable under most
-alternative fits; the speed-camera programme and the December 2007 Penal Code reform arrived close
-enough that the drop cannot be attributed to the licence alone. The 90 km/h limit on conventional
-roads of January 2019 shows a 13 percent fall relative to motorways in the clean window, but a
-placebo break placed in January 2018 gives the same result, so no claim is made
-([`docs/phase6_plan.md`](docs/phase6_plan.md)).
-
-A speed page describes what the two sources that mention speed record, since nothing in the open
-data measures it. In the yearbook's driver tables the share of drivers with no speed record jumped
-from 17 percent in 2014 to 52 percent in 2016 and stayed there, so the raw infraction share fell for
-reasons unrelated to driving; among drivers with a record it is about 9 percent, 14 percent on
-interurban roads, highest for motorcyclists. DGT's speed-factor report, which excludes Cataluña and
-País Vasco, records inappropriate speed in 7 percent of injury crashes in 2023 (14 percent
-interurban, 3 percent urban); two thirds of the deaths in those crashes are on conventional roads
-and the crashes cluster on weekend afternoons ([`docs/phase7_plan.md`](docs/phase7_plan.md)).
-
-```bash
-python scripts/ingest.py all        # raw -> data/interim, validation report
-python scripts/build_tables.py      # data/interim -> data/processed (derived fields, labels)
-python scripts/model.py             # reports/tables/q3_*.csv (severity models, about 30 seconds)
-python scripts/analyse.py all       # reports/tables/q*.csv and reports/figures/*.svg
-python scripts/build_site.py        # site/
-```
-
-## Planned outputs
-
-- A reproducible data-ingestion and validation pipeline.
-- A data-quality and coverage report.
-- Exploratory analysis of trends, road users, vehicles, geography and severity.
-- Exposure-adjusted rates and clearly defined denominators.
-- Interpretable statistical models for factor interactions and severity.
-- GIS analysis of road and location characteristics where coordinates permit.
-- A campaign-evaluation case study.
-- Publication-quality charts, maps and a concise final report or dashboard.
-
-## Project structure
-
-```text
-data/                  Data layers; interim and processed contents are git-ignored
-  raw/                 Immutable source files with a checksum manifest
-  interim/             Parsed and partially cleaned data
-  processed/           Analysis-ready tables
-docs/                  Source register, methodology and project decisions
-notebooks/             Ordered exploratory and reporting notebooks
-reports/               Exported figures and tables
-scripts/               Command-line ingestion and build entry points
-src/dgt_stats/         Reusable Python package
-tests/                 Data-contract and code tests
-```
-
-## Roadmap
-
-- [x] Define the scope, standards and repository structure.
-- [x] Audit each source, identify the unit of observation and build a data dictionary ([`docs/data_inventory.md`](docs/data_inventory.md)).
-- [x] Create ingestion scripts with schema, range, uniqueness and reconciliation checks (`scripts/ingest.py`).
-- [x] Reproduce official headline totals before producing new analysis ([`reports/tables/validation.csv`](reports/tables/validation.csv)).
-- [x] Publish the first descriptive results (trends, timing, road users) as a static site.
-- [x] Build the first exposure-adjusted trend analysis (province rates and the older-driver denominator ladder).
-- [x] Model crash severity from the recorded circumstances (the crash-level file has no driver, vehicle or alcohol fields, so factor interactions such as alcohol × speed are out of reach until person-level microdata are obtained).
-- [x] Compare vehicle types per registered vehicle and per kilometre driven for 2022, the one year with a distance estimate, with the limits of the modelled kilometres stated.
-- [x] Describe the speed factor from the sources that record it, with the share of drivers without a record and the report's regional exclusion stated.
-- [ ] Add road-design and geospatial variables.
-- [x] Evaluate one well-defined policy intervention (the 2006 points licence, with the 2019 speed limit as a second, failed case) with placebo checks and stated confounders.
-- [ ] Publish a final report and documented dashboard.
-
-## Quick start
+## Reproduce
 
 ```bash
 git clone https://github.com/RAHV-FB/dgt-stats.git
 cd dgt-stats
+python -m venv .venv && source .venv/bin/activate   # Windows PowerShell: .venv\Scripts\Activate.ps1
+python -m pip install -e ".[dev]"
 
-python -m venv .venv
-source .venv/bin/activate
-python -m pip install --upgrade pip
-python -m pip install -e ".[dev,geo]"
-
-pytest
-jupyter lab
+python scripts/ingest.py all        # raw -> data/interim, speed report, 434 checks (about 6 minutes)
+python scripts/build_tables.py      # data/interim -> data/processed (derived fields, labels)
+python scripts/model.py             # reports/tables/q3_*.csv, the severity models (about 30 seconds)
+python scripts/analyse.py all       # reports/tables/q*.csv and reports/figures/*.svg (under a minute)
+python scripts/build_site.py        # site/
+pytest                              # 140 tests, the reconciliation checks among them
 ```
 
-On Windows PowerShell, activate the environment with `.venv\Scripts\Activate.ps1`.
+The result tables, figures and the site are committed, so the pages can be read and reviewed without
+rebuilding. A push to `main` runs `.github/workflows/pages.yml`, which only renders `site/` from the
+committed tables and deploys it; the data never rebuild in CI. Lint with `ruff check` and
+`ruff format --check` over `src`, `scripts` and `tests`.
 
-## Reproducibility and data use
+## Project structure
 
-Every result should be traceable to a source file, transformation and defined population. Download dates, source URLs, checksums, row counts and validation outcomes will be recorded during ingestion. Published outputs will use aggregated, non-identifying data and will preserve the limitations stated by the original providers.
+```text
+data/                  raw/ is tracked with a manifest; interim/ and processed/ are rebuilt
+docs/                  analytics plan, source register, audit, methodology, one plan per phase
+notebooks/             not used: the scripts, tests and site replaced the planned notebooks
+reports/               result tables (CSV), figures (SVG) and captions, all committed
+scripts/               ingest, build_tables, model, analyse, build_site
+site/                  the published pages, rebuilt by build_site.py
+src/dgt_stats/         the package: readers, derived fields, summaries, models, plots, site
+tests/                 data-contract, reconciliation and code tests
+```
 
-No licence has been selected for the repository yet. DGT and third-party data retain their own reuse terms.
+Package modules by role: readers (`io_microdata`, `io_tables`, `io_exposure`, `io_population`,
+`io_activity`, `io_reports`), codes and labels (`codes`, `labels`, `agebands`, `vehicles`), derived
+fields and validation (`derive`, `validate`), analysis (`summaries`, `rates`, `features`, `models`,
+`policy`, `speed`), output (`plots`, `figures`, `site`).
+
+## What remains
+
+- **Person-level data.** A request to DGT's Observatorio Nacional de Seguridad Vial for the vehicle
+  and person files would unlock the factor-interaction work; the models and pages are built to take
+  them.
+- **Road design.** Coordinates or road-section identifiers, with traffic volumes, would turn the
+  road-type terms into a road-design analysis and give the 2019 case study a proper control.
+- **Licence.** No licence has been chosen for the code. DGT and INE data keep their own reuse terms,
+  stated on the data page, whatever the code licence.
+
+## Data use
+
+Every result is traceable to a source file, a transformation and a defined population; source URLs,
+checksums, row counts and validation outcomes are recorded during ingestion. Published outputs are
+aggregated, non-identifying, and preserve the limitations stated by the original providers.
