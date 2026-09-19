@@ -133,3 +133,40 @@ def test_speed_page_keeps_the_two_sources_apart(built: Path) -> None:
     assert 'href="speed.html"' in index
     data = (built / "data.html").read_text(encoding="utf-8")
     assert "speed-factor report" in data and "tables 6.1" in data
+
+
+def test_every_internal_link_and_anchor_resolves(built: Path) -> None:
+    pages = {p.name for p in built.glob("*.html")}
+    for page in sorted(built.glob("*.html")):
+        text = page.read_text(encoding="utf-8")
+        ids = set(re.findall(r'\sid="([^"]+)"', text))
+        for href in re.findall(r'href="([^"]+)"', text):
+            if href.startswith(("http://", "https://", "mailto:")):
+                continue
+            target, _, anchor = href.partition("#")
+            if target:
+                assert target in pages or (built / target).exists(), (page.name, href)
+            if anchor and not target:
+                assert anchor in ids, (page.name, href)
+
+
+def test_every_page_has_a_description_and_every_image_an_alt(built: Path) -> None:
+    for page in sorted(built.glob("*.html")):
+        text = page.read_text(encoding="utf-8")
+        description = re.search(r'<meta name="description" content="([^"]*)"', text)
+        assert description and len(description.group(1)) > 40, page.name
+        assert re.search(r"<title>[^<]+ · Road safety in Spain</title>", text), page.name
+        images = re.findall(r"<img[^>]*>", text)
+        for image in images:
+            alt = re.search(r'alt="([^"]*)"', image)
+            assert alt and alt.group(1).strip(), (page.name, image[:80])
+        assert "<script" not in text
+
+
+def test_front_page_digest_links_every_content_page(built: Path) -> None:
+    index = (built / "index.html").read_text(encoding="utf-8")
+    digest = index[index.find("What the data say") : index.find("How to read the numbers")]
+    for slug, _ in site.PAGES:
+        if slug in ("index", "data"):
+            continue
+        assert f'href="{slug}.html"' in digest, slug

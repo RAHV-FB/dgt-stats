@@ -226,6 +226,130 @@ is reproducible from the <a href="{REPO_URL}">repository</a>; see the data page 
 # --------------------------------------------------------------------------- pages
 
 
+def _digest() -> str:
+    """One computed line per page, in navigation order, for a reader who stops at the front page."""
+    headline = read_table("q1_annual_headline").set_index("year")
+    first, latest = int(headline.index.min()), int(headline.index.max())
+    deaths_change = headline.deaths_30d[latest] / headline.deaths_30d[first] - 1
+    night = read_table("q2_night_share")
+    night_latest = night[night.year == night.year.max()].set_index("zone")
+    vulnerable = read_table("q5_vulnerable_share")
+    vulnerable_latest = vulnerable[vulnerable.year == vulnerable.year.max()].set_index("zone")
+    provinces = read_table("q4_province_rates")
+    provinces = provinces[~provinces.is_total].sort_values("deaths_per_100k")
+    lowest, highest = provinces.iloc[0], provinces.iloc[-1]
+    ratios = read_table("q7_ladder_ratio")
+    older = ratios[(ratios.year == ratios.year.max()) & (ratios.band == "75+")].set_index(
+        "denominator"
+    )
+    holdout = read_model_table("q3_holdout_summary").set_index("outcome")
+    coefficients = read_model_table("q3_model_coefficients")
+    fatal = coefficients[(coefficients.outcome == "fatal") & ~coefficients.is_reference]
+    strongest = fatal.sort_values("odds_ratio", ascending=False).iloc[0]
+    vehicles = read_table("q6_summary_2022").set_index("group")
+    per_vehicle = (
+        vehicles.loc["heavy_truck", "fatal_involvement_per_100k_vehicles"]
+        / vehicles.loc["car", "fatal_involvement_per_100k_vehicles"]
+    )
+    per_km = (
+        vehicles.loc["heavy_truck", "fatal_involvement_per_bn_km"]
+        / vehicles.loc["car", "fatal_involvement_per_bn_km"]
+    )
+    points = read_table("q8_points_sensitivity").iloc[0]
+    placebo = read_table("q8_points_placebo")
+    rank = int(placebo[placebo.is_true]["rank"].iloc[0])
+    speed_placebo = read_table("q8_speed_placebo")
+    speed_placebo["break_date"] = pd.to_datetime(speed_placebo.break_date)
+    fake_2018 = speed_placebo[speed_placebo.break_date == "2018-01-01"].iloc[0]
+    infractions = read_table("q9_infraction_shares")
+    unknown = infractions[
+        (infractions.zone == "all") & (infractions.year == infractions.year.max())
+    ]
+    factors = read_table("q9_report_factors")
+    speed_factor = factors[
+        (factors.factor == "Inappropriate speed")
+        & (factors.zone == "all")
+        & (factors.year == factors.year.max())
+    ].iloc[0]
+    items = [
+        (
+            "trends.html",
+            "Trends",
+            f"{_fmt_int(headline.deaths_30d[latest])} deaths in {latest}, "
+            f"{abs(deaths_change) * 100:.0f}% fewer than in {first}; the fall stopped around 2013.",
+        ),
+        (
+            "timing.html",
+            "Timing",
+            f"Night hours hold {_fmt_pct(night_latest.loc['interurban', 'night_crash_share'], 0)} of "
+            f"interurban crashes but {_fmt_pct(night_latest.loc['interurban', 'night_death_share'], 0)} "
+            f"of interurban deaths ({int(night.year.max())}).",
+        ),
+        (
+            "road-users.html",
+            "Road users",
+            f"Pedestrians, cyclists, moped, motorcycle and scooter users are "
+            f"{_fmt_pct(vulnerable_latest.loc['urban', 'vulnerable_share'], 0)} of urban deaths and "
+            f"{_fmt_pct(vulnerable_latest.loc['interurban', 'vulnerable_share'], 0)} of interurban ones "
+            f"({int(vulnerable.year.max())}).",
+        ),
+        (
+            "geography.html",
+            "Geography",
+            f"Deaths per 100,000 residents run from {_fmt_dec(lowest.deaths_per_100k, 1)} in "
+            f"{lowest.province} to {_fmt_dec(highest.deaths_per_100k, 1)} in {highest.province} "
+            f"({int(provinces.year.max())}), with intervals wide enough that most provinces overlap.",
+        ),
+        (
+            "older-drivers.html",
+            "Older drivers",
+            f"Drivers aged 75 and over die {older.loc['residents', 'ratio']:.2f} times as often as "
+            f"drivers aged 35–64 per resident, {older.loc['licence_holders', 'ratio']:.2f} times per "
+            f"licence holder and {older.loc['drivers_involved', 'ratio']:.1f} times per driver "
+            "involved in a crash: the denominator decides the answer.",
+        ),
+        (
+            "severity.html",
+            "Severity",
+            f"Given an injury crash, the crash type '{strongest.level}' carries "
+            f"{strongest.odds_ratio:.1f} times the odds of a death of the reference type; a model "
+            f"fitted to 2016–2022 scores 2023–2024 with an area under the curve of "
+            f"{holdout.loc['fatal', 'auc']:.2f}.",
+        ),
+        (
+            "vehicles.html",
+            "Vehicles per km",
+            f"A heavy truck is in a fatal crash {per_vehicle:.0f} times as often as a car per "
+            f"registered vehicle but {per_km:.1f} times per kilometre driven (2022); most of the "
+            "people killed are outside the truck.",
+        ),
+        (
+            "policy.html",
+            "Policy",
+            f"The July 2006 points licence coincided with a {abs(points.level_change) * 100:.0f}% drop "
+            f"in monthly deaths beyond the trend, larger than any of the {int(placebo.n_fits.iloc[0]) - 1} "
+            f"placebo breaks (rank {rank}); the 2019 speed limit shows a change a placebo break in "
+            f"January 2018 reproduces ({_pct_change(fake_2018.level_change)}), so no claim is made.",
+        ),
+        (
+            "speed.html",
+            "Speed",
+            f"DGT's report records inappropriate speed in "
+            f"{_fmt_pct(speed_factor.share_of_crashes, 0)} of injury crashes ({int(speed_factor.year)}, "
+            "without Cataluña and País Vasco); in the yearbook's driver tables "
+            f"{_fmt_pct(unknown.share_unknown.iloc[0], 0)} of drivers have no speed record at all.",
+        ),
+    ]
+    return (
+        "<ul>"
+        + "".join(
+            f'<li><strong><a href="{esc(href)}">{esc(title)}</a></strong>: {esc(text)}</li>'
+            for href, title, text in items
+        )
+        + "</ul>"
+    )
+
+
 def page_index(captions: dict[str, str]) -> str:
     headline = read_table("q1_annual_headline").set_index("year")
     latest, base = int(headline.index.max()), BASE_YEAR
@@ -303,6 +427,7 @@ def page_index(captions: dict[str, str]) -> str:
             ),
         ]
     )
+    body += "<h2>What the data say</h2>" + _digest()
     body += "<h2>How to read the numbers</h2>" + note(
         "Counts are DGT's consolidated figures: an injury crash is one with at least one person killed or "
         "injured, and deaths are counted within 30 days of the crash unless a chart says otherwise. Crash "
@@ -490,10 +615,18 @@ def page_road_users(captions: dict[str, str]) -> str:
     )
     body += "<h2>Drivers, by vehicle, since 1993</h2>"
     body += figure("q5_driver_deaths", "Driver deaths by vehicle type", captions)
+    drivers = read_table("q5_driver_deaths_series")
+    cars = drivers[drivers.vehicle_type_label == "Cars"].set_index("year").deaths_30d
+    motorcycles = drivers[drivers.vehicle_type_label == "Motorcycles"].set_index("year").deaths_30d
+    last_year = int(cars.index.max())
     body += (
-        "<p>Car-driver deaths fell by three quarters between 1993 and 2013 and have been flat since. "
-        "Motorcyclist deaths did not follow: they rose through the 2000s, dipped, and are now back above "
-        "400 a year, close to the number of car drivers killed.</p>"
+        f"<p>Car-driver deaths fell by {abs(cars[2013] / cars[1993] - 1) * 100:.0f}% between 1993 and "
+        f"2013 and have been flat since ({_fmt_int(cars[last_year])} in {last_year}). Motorcyclist "
+        "deaths did not follow: they rose through the 2000s, dipped, and are back at "
+        f"{_fmt_int(motorcycles[last_year])} in {last_year}, "
+        f"{'above' if motorcycles[last_year] > motorcycles.loc[1997:1999].mean() else 'near'} their "
+        f"1997–1999 average of {_fmt_int(motorcycles.loc[1997:1999].mean())} and close to the number "
+        "of car drivers killed.</p>"
     )
     body += "<h2>Pedestrians</h2>"
     body += figure("q5_pedestrian_deaths", "Pedestrian deaths by zone", captions)
@@ -1372,13 +1505,24 @@ def page_vehicles(captions: dict[str, str]) -> str:
         "only for 2022)",
         {"Vehicle type": None, **{c: "int" for c in years_table.columns if c != "Vehicle type"}},
     )
+    occupants = read_table("q6_occupant_deaths_series")
+    last_year = int(occupants.year.max())
+    car_series = occupants[occupants.group == "car"].set_index("year").deaths_30d
+    moto_series = occupants[occupants.group == "motorcycle"].set_index("year").deaths_30d
+    ranking = occupants[occupants.year == last_year].sort_values("deaths_30d", ascending=False)
+    moto_rank = int(list(ranking.group).index("motorcycle")) + 1
+    ordinal = {1: "largest", 2: "second-largest", 3: "third-largest"}.get(
+        moto_rank, f"{moto_rank}th"
+    )
     body += (
-        "<p>Deaths of car occupants fell by three quarters between 2003 and 2013 and have been flat "
-        "since; heavy-truck and bus occupant deaths fell in step with them. Motorcyclist deaths did "
-        "not: after the drop to 2013 they have climbed back to the levels of the late 1990s, and in "
-        "2024 they were the second-largest group after car occupants. The per-kilometre rates above "
-        "describe a single year; without kilometre estimates for other years there is no way to say "
-        "whether the motorcycle rate has risen or whether more kilometres are being ridden.</p>"
+        f"<p>Deaths of car occupants fell by {abs(car_series[2013] / car_series[2003] - 1) * 100:.0f}% "
+        "between 2003 and 2013 and have been flat since; heavy-truck and bus occupant deaths fell in "
+        "step with them. Motorcyclist deaths did not: after the drop to 2013 they climbed back to "
+        f"{_fmt_int(moto_series[last_year])} in {last_year}, against an average of "
+        f"{_fmt_int(moto_series.loc[1997:1999].mean())} a year in 1997–1999, and they were the "
+        f"{ordinal} group in {last_year}. The per-kilometre rates above describe a single year; "
+        "without kilometre estimates for other years there is no way to say whether the motorcycle "
+        "rate has risen or whether more kilometres are being ridden.</p>"
     )
     body += "<h2>Limits</h2>"
     body += note(
@@ -2290,10 +2434,24 @@ def page_data(captions: dict[str, str]) -> str:
     )
     body += "<h2>Reproduce</h2>"
     body += (
-        f'<p>Everything on this site is generated by Python scripts in the <a href="{REPO_URL}">repository</a>: '
-        "<code>scripts/ingest.py</code> builds the Parquet layer and runs the checks, "
-        "<code>scripts/build_tables.py</code> adds derived fields, <code>scripts/analyse.py</code> writes "
-        "the result tables and figures, and <code>scripts/build_site.py</code> renders these pages.</p>"
+        f'<p>Everything on this site is generated by Python scripts in the <a href="{REPO_URL}">repository</a>, '
+        "run from its root in this order. Times are for a laptop-class machine.</p>"
+        "<ol>"
+        "<li><code>python scripts/ingest.py all</code>: reads every raw file into Parquet, transcribes the "
+        "speed report and runs the reconciliation checks (about six minutes, most of it the nine "
+        "microdata workbooks).</li>"
+        "<li><code>python scripts/build_tables.py</code>: adds the derived fields and English labels to "
+        "the crash table (seconds).</li>"
+        "<li><code>python scripts/model.py</code>: fits the two severity models and their checks (about "
+        "half a minute).</li>"
+        "<li><code>python scripts/analyse.py all</code>: writes every result table and figure, including "
+        "the rates, the interrupted time series and the speed summaries (under a minute).</li>"
+        "<li><code>python scripts/build_site.py</code>: renders these pages from the committed tables "
+        "and figures (seconds). The GitHub Pages workflow runs only this step, so the site never "
+        "depends on a rebuild of the data.</li>"
+        "</ol>"
+        "<p><code>pytest</code> runs the data-contract and code tests; the reconciliation checks above "
+        "are among them.</p>"
     )
     return render_page(
         "data",
