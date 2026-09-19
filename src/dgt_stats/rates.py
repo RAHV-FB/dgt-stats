@@ -1,4 +1,4 @@
-"""Rates with exact Poisson intervals, rate ratios, standardisation and the travel-weighted estimate.
+"""Rates with exact Poisson intervals, rate ratios and the travel-weighted driver estimate.
 
 Counts of deaths or involved drivers are treated as Poisson; the exposure (residents, licence
 holders, travel-weighted drivers) is treated as known. Intervals are 95 % unless ``alpha`` says otherwise.
@@ -67,32 +67,6 @@ def rate_ratio(
     z = stats.norm.ppf(1 - alpha / 2)
     se = np.sqrt(1 / count_1 + 1 / count_2)
     return (ratio, ratio * np.exp(-z * se), ratio * np.exp(z * se))
-
-
-def direct_standardise(
-    counts: pd.Series,
-    exposures: pd.Series,
-    standard: pd.Series,
-    per: float = 100_000,
-    alpha: float = 0.05,
-) -> tuple[float, float, float]:
-    """Directly standardised rate: band rates weighted by the standard population's band shares.
-
-    All three series are indexed by band; bands missing from any of them are dropped. The interval
-    uses the normal approximation to the variance of the weighted sum of Poisson rates.
-    """
-    bands = counts.index.intersection(exposures.index).intersection(standard.index)
-    if len(bands) == 0:
-        return (np.nan, np.nan, np.nan)
-    c = counts.loc[bands].astype(float).to_numpy()
-    e = exposures.loc[bands].astype(float).to_numpy()
-    w = standard.loc[bands].astype(float).to_numpy()
-    w = w / w.sum()
-    value = float(np.sum(w * c / e)) * per
-    variance = float(np.sum(w**2 * c / e**2)) * per**2
-    z = stats.norm.ppf(1 - alpha / 2)
-    half = z * np.sqrt(variance)
-    return (value, max(value - half, 0.0), value + half)
 
 
 def wilson_interval(share: float, n: float, alpha: float = 0.05) -> tuple[float, float]:

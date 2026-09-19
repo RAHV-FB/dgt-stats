@@ -168,7 +168,7 @@ at the end. Analysis age bands are 15–24, 25–34, 35–44, 45–54, 55–64, 
 
 ### Step 4 — `rates.py`
 - Exact Poisson intervals (`scipy.stats.chi2`), `rate_ratio()` with log-normal intervals,
-  `direct_standardise()`, `active_driver_share()` (ESRA national share interpolated between waves ×
+  `travel_weighted_share()` (ESRA national share interpolated between waves ×
   MOVILIA car-travel age profile, capped at the licence-holding share; low/high from the ESRA
   binomial interval). Tests against hand-computed values.
 

@@ -77,7 +77,9 @@ def read_movilia_trips() -> pd.DataFrame:
                 band = "all"
             elif label and sex is not None:
                 parsed = agebands.parse_age_label(label)
-                band = agebands.band_for(*parsed, agebands.MOVILIA_BANDS)
+                band = (
+                    None if parsed is None else agebands.band_for(*parsed, agebands.MOVILIA_BANDS)
+                )
             else:
                 continue
             if band is None or parsed is None:
@@ -97,6 +99,8 @@ def read_movilia_trips() -> pd.DataFrame:
                     }
                 )
     out = pd.DataFrame.from_records(records)
+    if out.trips_thousands.isna().any():
+        raise ValueError("MOVILIA: empty trip cells")
     totals = out[out.band == "all"].set_index(["day_type", "sex", "transport_mode"]).trips_thousands
     parts = (
         out[out.band != "all"].groupby(["day_type", "sex", "transport_mode"]).trips_thousands.sum()

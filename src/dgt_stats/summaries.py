@@ -7,6 +7,8 @@ column names are stable because the site and the tests key on them.
 
 from __future__ import annotations
 
+from functools import cache
+
 import pandas as pd
 
 from dgt_stats import (
@@ -258,9 +260,11 @@ def licence_holders_by_province(year: int) -> pd.Series:
     return rows.groupby("province_code").n_drivers.sum()
 
 
-def province_rates(year: int = LATEST_TABLE_YEAR) -> pd.DataFrame:
+def province_rates() -> pd.DataFrame:
     """Crashes, deaths and hospitalised per 100,000 residents and deaths per 100,000 licence holders,
-    by province, with exact Poisson intervals and a rank on the resident death rate."""
+    by province for the latest statistical-table year, with exact Poisson intervals and a rank on
+    the resident death rate."""
+    year = LATEST_TABLE_YEAR
     table = io_tables.read_table("tables_2024_province")
     table = table[table.zone == "all"]
     wide = table.pivot(index="province", columns="metric", values="value").reset_index()
@@ -333,11 +337,15 @@ LADDER_YEARS = tuple(range(2014, 2025))
 REFERENCE_BAND = "35-64"
 COMPARISON_BANDS = {"65-74": ("65-74",), "75+": ("75+",), "65+": ("65-74", "75+")}
 REFERENCE_MEMBERS = ("35-44", "45-54", "55-64")
+# The historical series groups victims into these bands (65 and over is not split).
 VICTIM_BANDS: dict[str, agebands.Band] = {
-    **{k: v for k, v in agebands.ANALYSIS_BANDS.items() if k != "75+"}
+    "15-24": (15, 24),
+    "25-34": (25, 34),
+    "35-44": (35, 44),
+    "45-54": (45, 54),
+    "55-64": (55, 64),
+    "65+": (65, None),
 }
-VICTIM_BANDS.pop("65-74")
-VICTIM_BANDS["65+"] = (65, None)
 
 
 def _to_analysis_band(fine: pd.Series) -> pd.Series:
@@ -391,14 +399,9 @@ def _residents(years: tuple[int, ...], sex: str) -> pd.DataFrame:
     return out.astype({"year": "int16", "band": "string"})
 
 
-def car_travel_profile(year: int, sex: str = "total") -> pd.Series:
-    """Relative car-travel intensity by analysis band, from MOVILIA 2006 trips per resident.
-
-    Trips by "coche o moto" per resident are computed for the MOVILIA bands (2006 population), given
-    to every five-year INE group inside them, averaged into the analysis bands with ``year``'s
-    population, and scaled so the population-weighted mean over 15–74 is 1 (the ESRA age range).
-    The 75+ band inherits the 65+ intensity.
-    """
+@cache
+def _movilia_intensity(sex: str) -> dict[str, float]:
+    """Weekday car-or-motorcycle trips per resident in 2006, by MOVILIA band."""
     trips = io_activity.read_movilia_trips()
     weekday = (
         trips[
@@ -411,7 +414,18 @@ def car_travel_profile(year: int, sex: str = "total") -> pd.Series:
         .trips_thousands
     )
     pop_2006 = io_population.population_by_band(2006, agebands.MOVILIA_BANDS, sex=sex)
-    intensity = (weekday * 1000 / pop_2006.set_index("band").population).to_dict()
+    return (weekday * 1000 / pop_2006.set_index("band").population).to_dict()
+
+
+def car_travel_profile(year: int, sex: str = "total") -> pd.Series:
+    """Relative car-travel intensity by analysis band, from MOVILIA 2006 trips per resident.
+
+    Trips by "coche o moto" per resident are computed for the MOVILIA bands (2006 population), given
+    to every five-year INE group inside them, averaged into the analysis bands with ``year``'s
+    population, and scaled so the population-weighted mean over 15–74 is 1 (the ESRA age range).
+    The 75+ band inherits the 65+ intensity.
+    """
+    intensity = _movilia_intensity(sex)
     groups = io_population.population(year, sex=sex)
     groups = groups[groups.age_low >= 15].copy()
     groups["movilia_band"] = [
@@ -433,7 +447,8 @@ def car_travel_profile(year: int, sex: str = "total") -> pd.Series:
     return (profile / mean).reindex(list(agebands.ANALYSIS_BANDS))
 
 
-def driver_ladder(sex: str = "total") -> pd.DataFrame:
+@cache
+def _ladder(sex: str) -> pd.DataFrame:
     """The denominator ladder: year × band with residents, licence holders, travel-weighted
     drivers (driver-equivalents), involved drivers, driver deaths and the rate against each."""
     residents = _residents(LADDER_YEARS, sex)
@@ -466,7 +481,7 @@ def driver_ladder(sex: str = "total") -> pd.DataFrame:
     out["travel_weighted_drivers_high"] = out.residents * out.travel_share_high
     out = rates.add_rate(out, "driver_deaths", "residents", "deaths_per_million_residents", 1e6)
     out = rates.add_rate(out, "driver_deaths", "licence_holders", "deaths_per_100k_licence")
-    out = rates.add_rate(out, "driver_deaths", "travel_weighted_drivers", "deaths_per_100k_travel")
+    out["deaths_per_100k_travel"] = out.driver_deaths / out.travel_weighted_drivers * 1e5
     # Envelope for the travel-weighted rate: Poisson bounds combined with the survey band.
     poisson = [rates.poisson_interval(c) for c in out.driver_deaths.astype(float)]
     out["deaths_per_100k_travel_low"] = [
@@ -483,6 +498,11 @@ def driver_ladder(sex: str = "total") -> pd.DataFrame:
     out = rates.add_rate(out, "driver_deaths", "drivers_involved", "deaths_per_1k_involved", 1e3)
     out["sex"] = sex
     return out.astype({"sex": "string"})
+
+
+def driver_ladder(sex: str = "total") -> pd.DataFrame:
+    """The denominator ladder (see :func:`_ladder`); computed once per sex and copied out."""
+    return _ladder(sex).copy()
 
 
 def _band_group(frame: pd.DataFrame, members: tuple[str, ...]) -> pd.DataFrame:
@@ -560,10 +580,10 @@ def victims_by_age_rates() -> pd.DataFrame:
     deaths = deaths[deaths.year >= 2002]
     keys = []
     for label in deaths.age_band:
-        try:
-            parsed = agebands.parse_age_label(label)
-        except ValueError:
-            parsed = None  # 'Total'
+        if str(label).strip().lower() == "total":
+            keys.append(None)
+            continue
+        parsed = agebands.parse_age_label(label)
         keys.append(None if parsed is None else agebands.band_for(*parsed, VICTIM_BANDS))
     deaths["band"] = pd.Series(keys, index=deaths.index, dtype="string")
     deaths = deaths.dropna(subset=["band"])

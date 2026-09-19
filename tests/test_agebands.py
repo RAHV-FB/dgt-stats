@@ -41,7 +41,7 @@ def test_band_for_nested_and_open_ended() -> None:
     assert agebands.band_for(80, 84) == "75+"
     assert agebands.band_for(None, None) == agebands.UNKNOWN
     assert agebands.band_for(0, 14) is None
-    assert agebands.band_for(70, 74, agebands.OLDER_BANDS) == "70-74"
+    assert agebands.band_for(70, 74, {"70-74": (70, 74)}) == "70-74"
 
 
 def test_band_for_rejects_straddling_intervals() -> None:
@@ -49,9 +49,3 @@ def test_band_for_rejects_straddling_intervals() -> None:
         agebands.band_for(15, 29)
     with pytest.raises(ValueError):
         agebands.band_for(65, None)  # open-ended from 65 spans 65-74 and 75+
-
-
-def test_assign_bands_series() -> None:
-    keys = agebands.assign_bands(["De 15 a 17 años", "Más de 74 años", "Se desconoce", "De 0 a 14"])
-    assert keys.tolist()[:3] == ["15-24", "75+", agebands.UNKNOWN]
-    assert keys.isna().tolist() == [False, False, False, True]

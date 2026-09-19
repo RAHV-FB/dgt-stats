@@ -29,7 +29,8 @@ def test_bands_cover_everyone_from_15() -> None:
     assert bands.band.tolist() == list(agebands.ANALYSIS_BANDS)
     groups = io_population.population(2024)
     assert bands.population.sum() == groups[groups.age_low >= 15].population.sum()
-    older = io_population.population_by_band(2024, agebands.OLDER_BANDS)
+    older_bands = {"65-69": (65, 69), "70-74": (70, 74), "75+": (75, None)}
+    older = io_population.population_by_band(2024, older_bands)
     assert older.population.sum() == groups[groups.age_low >= 65].population.sum()
 
 

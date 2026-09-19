@@ -9,9 +9,6 @@ one analysis band, so nothing is split silently: a band that straddles two analy
 from __future__ import annotations
 
 import re
-from typing import Iterable
-
-import pandas as pd
 
 Band = tuple[int, int | None]
 
@@ -25,9 +22,6 @@ ANALYSIS_BANDS: dict[str, Band] = {
     "65-74": (65, 74),
     "75+": (75, None),
 }
-
-# Finer bands for the older-driver tables; 65-69 and 70-74 exist in every DGT and INE source.
-OLDER_BANDS: dict[str, Band] = {"65-69": (65, 69), "70-74": (70, 74), "75+": (75, None)}
 
 # The DGT driver bands (census by age and tables 4.1.1 / 4.2 from 15 upwards).
 DGT_BANDS: dict[str, Band] = {
@@ -69,6 +63,7 @@ BAND_LABELS: dict[str, str] = {
     "70-74": "70–74",
     "65-74": "65–74",
     "75+": "75 and over",
+    "65+": "65 and over",
     UNKNOWN: "Age not recorded",
 }
 
@@ -148,15 +143,6 @@ def band_for(
     if not inside:
         raise ValueError(f"age interval {low}-{high} is not nested inside band {key}")
     return key
-
-
-def assign_bands(labels: Iterable[object], bands: dict[str, Band] = ANALYSIS_BANDS) -> pd.Series:
-    """Band key for each source label (see :func:`band_for`); labels outside the bands give NA."""
-    keys = []
-    for label in labels:
-        parsed = parse_age_label(label)
-        keys.append(band_for(None, None, bands) if parsed is None else band_for(*parsed, bands))
-    return pd.Series(keys, dtype="string")
 
 
 def band_label(key: object) -> str:

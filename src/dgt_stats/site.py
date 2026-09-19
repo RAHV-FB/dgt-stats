@@ -13,6 +13,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from dgt_stats import agebands
 from dgt_stats.paths import FIGURES_DIR, PROJECT_ROOT, TABLES_DIR
 from dgt_stats.summaries import BASE_YEAR
 
@@ -29,16 +30,6 @@ PAGES: tuple[tuple[str, str], ...] = (
     ("data", "Data and checks"),
 )
 
-BAND_LABELS = {
-    "15-24": "15–24",
-    "25-34": "25–34",
-    "35-44": "35–44",
-    "45-54": "45–54",
-    "55-64": "55–64",
-    "65-74": "65–74",
-    "75+": "75 and over",
-    "65+": "65 and over",
-}
 DENOMINATOR_LABELS = {
     "residents": "Residents of the age band",
     "licence_holders": "Licence holders",
@@ -607,6 +598,15 @@ def page_geography(captions: dict[str, str]) -> str:
     )
 
 
+def _compare(ratio: float) -> str:
+    """Wording for a rate ratio: 'less often than', 'about as often as' or 'more often than'."""
+    if ratio < 0.95:
+        return "less often than"
+    if ratio > 1.05:
+        return "more often than"
+    return "about as often as"
+
+
 def page_older_drivers(captions: dict[str, str]) -> str:
     ladder = read_table("q7_driver_ladder")
     ratios = read_table("q7_ladder_ratio")
@@ -614,11 +614,16 @@ def page_older_drivers(captions: dict[str, str]) -> str:
     latest = ladder[ladder.year == latest_year].set_index("band")
     latest_ratios = ratios[ratios.year == latest_year]
 
-    def ratio_cell(band: str, denominator: str) -> str:
-        row = latest_ratios[
+    def ratio_row(band: str, denominator: str) -> pd.Series:
+        return latest_ratios[
             (latest_ratios.band == band) & (latest_ratios.denominator == denominator)
         ].iloc[0]
-        return _interval(row, "ratio", 2)
+
+    def ratio_cell(band: str, denominator: str) -> str:
+        return _interval(ratio_row(band, denominator), "ratio", 2)
+
+    def ratio_value(band: str, denominator: str) -> float:
+        return float(ratio_row(band, denominator).ratio)
 
     ladder_table = pd.DataFrame(
         {
@@ -631,10 +636,10 @@ def page_older_drivers(captions: dict[str, str]) -> str:
     involvement = latest_ratios[latest_ratios.denominator == "involvement_per_licence"]
     involvement_75 = involvement[involvement.band == "75+"].iloc[0]
 
-    bands = list(BAND_LABELS)[:7]
+    bands = list(agebands.ANALYSIS_BANDS)
     shares = pd.DataFrame(
         {
-            "Age band": [BAND_LABELS[b] for b in bands],
+            "Age band": [agebands.band_label(b) for b in bands],
             "Residents": [latest.loc[b, "residents"] for b in bands],
             "Hold a licence": [latest.loc[b, "licence_share"] for b in bands],
             "Travel-weighted driver share (estimate)": [
@@ -655,7 +660,7 @@ def page_older_drivers(captions: dict[str, str]) -> str:
     by_sex = latest_share.pivot(index="band", columns="sex", values="licence_share").reindex(bands)
     by_sex_table = pd.DataFrame(
         {
-            "Age band": [BAND_LABELS[b] for b in bands],
+            "Age band": [agebands.band_label(b) for b in bands],
             "Men": by_sex.male.to_numpy(),
             "Women": by_sex.female.to_numpy(),
             "All": by_sex.total.to_numpy(),
@@ -672,17 +677,17 @@ def page_older_drivers(captions: dict[str, str]) -> str:
             ),
             (
                 "Driver deaths per resident, 75+ vs 35–64",
-                ratio_cell("75+", "residents").split(" ")[0] + "×",
+                f"{ratio_value('75+', 'residents'):.2f}×",
                 "the ratio DGT's per-inhabitant figures imply",
             ),
             (
                 "Per licence holder",
-                ratio_cell("75+", "licence_holders").split(" ")[0] + "×",
+                f"{ratio_value('75+', 'licence_holders'):.2f}×",
                 "same deaths, licence holders as the denominator",
             ),
             (
                 "Per travel-weighted driver",
-                ratio_cell("75+", "travel_weighted").split(" ")[0] + "×",
+                f"{ratio_value('75+', 'travel_weighted'):.2f}×",
                 "same deaths, drivers weighted by how much they travel by car",
             ),
         ]
@@ -699,7 +704,8 @@ def page_older_drivers(captions: dict[str, str]) -> str:
     body += table(
         ladder_table,
         f"Driver death rate ratio against drivers aged 35–64, {latest_year} (95% intervals from the "
-        "death counts; the travel-weighted row also carries the survey band)",
+        "death counts only; the travel-weighted denominator has its own survey band, shown in the "
+        "rates table below)",
         {
             "Denominator": None,
             "65–74 vs 35–64": None,
@@ -707,15 +713,15 @@ def page_older_drivers(captions: dict[str, str]) -> str:
             "65 and over vs 35–64": None,
         },
     )
+    per_resident = ratio_value("75+", "residents")
     body += (
-        f"<p>Per resident, drivers aged 75 and over die less often than drivers aged 35–64 "
-        f"({ratio_cell('75+', 'residents').split(' ')[0]}×). Per licence holder the ratio is "
-        f"{ratio_cell('75+', 'licence_holders').split(' ')[0]}×. Weighted by how much each age "
-        f"travels by car it is {ratio_cell('75+', 'travel_weighted').split(' ')[0]}×, and per driver "
-        f"actually involved in an injury crash it is "
-        f"{ratio_cell('75+', 'drivers_involved').split(' ')[0]}×: when an older driver crashes, the "
-        "crash is far more likely to kill them. The conclusion flips with the denominator, which is "
-        "why the denominator has to be stated every time.</p>"
+        f"<p>Per resident, drivers aged 75 and over die {_compare(per_resident)} drivers aged 35–64 "
+        f"({per_resident:.2f}×). Per licence holder the ratio is "
+        f"{ratio_value('75+', 'licence_holders'):.2f}×. Weighted by how much each age travels by "
+        f"car it is {ratio_value('75+', 'travel_weighted'):.2f}×, and per driver actually involved "
+        f"in an injury crash it is {ratio_value('75+', 'drivers_involved'):.2f}×: when an older "
+        "driver crashes, the crash is far more likely to kill them. The conclusion changes with the "
+        "denominator, which is why the denominator has to be stated every time.</p>"
     )
     body += "<h2>Why the ratio climbs: exposure and fragility</h2>"
     body += figure(
@@ -727,7 +733,8 @@ def page_older_drivers(captions: dict[str, str]) -> str:
         f"<p>Two things happen at once. Licence holders aged 75 and over are involved in injury crashes "
         f"about {_fmt_pct(involvement_75.ratio, 0)} as often as licence holders aged 35–64 (left panel), "
         "which mostly reflects how much less they drive. But when they are involved, the crash kills "
-        "them three to four times as often (right panel): age brings fragility, and older drivers are "
+        f"them {ratio_value('75+', 'drivers_involved'):.1f} times as often (right panel): age brings "
+        "fragility, and older drivers are "
         "over-represented in the crash types that kill, such as side collisions at junctions on "
         "conventional roads. The per-licence rate hides the second effect behind the first.</p>"
     )

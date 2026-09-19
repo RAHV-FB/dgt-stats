@@ -33,23 +33,6 @@ def test_rate_ratio_interval() -> None:
     assert np.isnan(rates.rate_ratio(0, 1000, 10, 1000)[1])
 
 
-def test_direct_standardisation_to_own_population_gives_crude_rate() -> None:
-    counts = pd.Series({"a": 10, "b": 30})
-    exposures = pd.Series({"a": 1000, "b": 3000})
-    value, low, high = rates.direct_standardise(counts, exposures, exposures, per=1000)
-    assert value == pytest.approx(10.0)
-    assert low < value < high
-    heavy_old = pd.Series({"a": 1, "b": 9})
-    assert rates.direct_standardise(counts, exposures, heavy_old, per=1000)[0] == pytest.approx(
-        10.0
-    )
-    different = pd.Series({"a": 1000, "b": 1000})
-    counts2 = pd.Series({"a": 10, "b": 60})
-    assert rates.direct_standardise(counts2, exposures, different, per=1000)[0] == pytest.approx(
-        15.0
-    )
-
-
 def test_wilson_interval_bounds() -> None:
     low, high = rates.wilson_interval(0.759, 935)
     assert 0.73 < low < 0.759 < high < 0.79

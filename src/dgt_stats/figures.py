@@ -470,9 +470,7 @@ def build_all(
     )
 
     victims = summary("q7_victims_by_age")
-    victims["band_label"] = victims.band.map(
-        lambda b: "65 and over" if b == "65+" else agebands.band_label(b)
-    )
+    victims["band_label"] = victims.band.map(agebands.band_label)
     plots.line_series(
         victims,
         "year",

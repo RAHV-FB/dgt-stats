@@ -82,7 +82,8 @@ def test_line_series_with_band_and_small_multiples_with_series(tmp_path: Path) -
         both, "band", "year", "value", tmp_path / "sm2.svg", "Panels", ncols=2, series="kind"
     )
     _svg_ok(out)
-    assert "kind" not in out.read_text(encoding="utf-8") or True
+    text = out.read_text(encoding="utf-8")
+    assert ">a<" in text and ">b<" in text  # series names appear in the shared legend
 
 
 def test_dot_interval_and_grouped_bars(tmp_path: Path) -> None:
