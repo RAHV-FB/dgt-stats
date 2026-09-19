@@ -23,6 +23,7 @@ MISSINGNESS_PATH = TABLES_DIR / "missingness_by_year.csv"
 CENSUS_TOLERANCE = 0.005
 CENSUS_AGE_TOLERANCE = 0.02
 VEHICLE_TABLE_TOLERANCE = 0.001
+INFRACTION_TABLE_TOLERANCE = 0.015
 
 VICTIM_COLUMNS = {
     "deaths_30d": "TOTAL_MU30DF",
@@ -400,6 +401,45 @@ def check_vehicle_tables(
     return results
 
 
+def check_driver_infractions(
+    infractions: pd.DataFrame, drivers_involved: pd.DataFrame
+) -> list[Result]:
+    """Check 11: the driver-infraction table 6.1 describes the drivers of table 4.2.
+
+    Every block of table 6.1 has the same total, and that total is within 1.5 % of the drivers
+    involved in table 4.2 for the same year and zone (equal in 2014–2015, 0.2–1.1 % lower after).
+    """
+    results: list[Result] = []
+    totals = infractions[(infractions.item == "total") & (infractions.vehicle_group == "total")]
+    involved = drivers_involved[drivers_involved.is_total].groupby(["year", "zone"]).value.sum()
+    for (year, zone), block in totals.groupby(["year", "zone"]):
+        values = block.set_index("block").value
+        results.append(
+            Result(
+                "table_6_1_drivers",
+                int(year),
+                f"{zone}:blocks_agree",
+                float(values.iloc[0]),
+                float(values.max()),
+                bool(values.nunique() == 1),
+            )
+        )
+        expected = float(involved.get((year, zone), float("nan")))
+        actual = float(values.iloc[0])
+        results.append(
+            Result(
+                "table_6_1_drivers",
+                int(year),
+                f"{zone}:table_4_2",
+                expected,
+                actual,
+                bool(abs(actual - expected) <= INFRACTION_TABLE_TOLERANCE * expected),
+                f"tolerance {INFRACTION_TABLE_TOLERANCE:.1%}",
+            )
+        )
+    return results
+
+
 # --------------------------------------------------------------------------- runner
 
 
@@ -418,6 +458,8 @@ def run_checks(crashes: pd.DataFrame | None = None) -> pd.DataFrame:
     census_age_text = io_exposure.read_exposure("censo_edad")
     units = io_tables.read_table("tables_units_by_type")
     victims = io_tables.read_table("tables_victims_by_mode")
+    infractions = io_tables.read_table("tables_driver_infractions")
+    drivers_involved = io_tables.read_table("tables_drivers_involved")
 
     results: list[Result] = []
     results += check_row_counts(crashes, annual)
@@ -429,6 +471,7 @@ def run_checks(crashes: pd.DataFrame | None = None) -> pd.DataFrame:
     results += check_driver_tables(driver_victims, road_users)
     results += check_census_age(census_age_tables, census_age_text)
     results += check_vehicle_tables(crashes, units, victims)
+    results += check_driver_infractions(infractions, drivers_involved)
     return pd.DataFrame([asdict(result) for result in results])
 
 

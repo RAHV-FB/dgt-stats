@@ -1783,6 +1783,7 @@ def page_data(captions: dict[str, str]) -> str:
         "census_age_2023": "The 2023 driver census by age (text file) is within 2% of the published age table, band by band",
         "table_2_3_vehicles": "Vehicles involved in the yearly tables 2.3 are within 0.1% of the microdata vehicle count, 2020–2024",
         "table_2_2_deaths": "Deaths by means of transport in the yearly tables 2.2 equal the microdata death columns for every vehicle group, 2020–2024",
+        "table_6_1_drivers": "The driver-infraction tables 6.1 have one total across their blocks, within 1.5% of the drivers involved in table 4.2, every year 2014–2024 and zone",
     }
     summary["What is checked"] = summary.check.map(descriptions)
     summary = summary[["What is checked", "checks", "passed"]].rename(
