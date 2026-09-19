@@ -28,6 +28,8 @@ Paths are relative to `data/raw/`. Crash microdata for 2016–2024 (`microdata/a
 | `reports/dgt_factor_velocidad_2023.pdf` | 2014–2023 | Speed definitions and DGT context | Report evidence is contextual, not a substitute for microdata |
 | `reports/dgt_personas_mayores_2023.pdf` | 2023 | Older-road-user context | Population and exposure denominators must match |
 | `reports/dgt_semana_santa_2026.pdf` | Easter 2026 | Possible campaign/holiday case study | Short, seasonal and potentially provisional period |
+| `exposure/ine_poblacion_provincias_edad_sexo.csv` | 2002–2025 | Population denominators by province, five-year age group and sex (INE table 56947, nationality total, 1 January and 1 July) | Extract, not the full INE file; rebuilt by `scripts/fetch_ine.py` |
+| `exposure/driving_activity_by_age.csv` | 2008, 2023 | Share of residents who drive, and driving frequency among older drivers, by age band and survey wave (ESRA3 Spain 2023; Fundación MAPFRE older-driver survey) | Hand-typed from published reports; every row carries its question, n and URL; age split from the ESRA dashboard still to be added |
 
 ## Research and comparison sources
 
@@ -46,6 +48,6 @@ Paths are relative to `data/raw/`. Crash microdata for 2016–2024 (`microdata/a
 - Traffic volume or vehicle-kilometres by road, vehicle class, geography and time.
 - Weather, daylight and roadworks data.
 - Dated DGT campaign, enforcement and policy records.
-- Population, fleet and licensed-driver denominators at matching geographic and temporal levels.
+- Fleet denominators by province and licensed drivers by age for years before 2023 (see `phase3_plan.md`).
 
 No source should enter the analytical pipeline without a stable identifier, provenance record and documented reuse terms.
