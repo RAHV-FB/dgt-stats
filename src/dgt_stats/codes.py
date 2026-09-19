@@ -29,6 +29,12 @@ NOT_CODE_SHEETS = frozenset(
     {"COD_MUNICIPIO", "CARRETERA", "KM", "CARRETERA_CRUCE", "TOTALIZADORES"}
 )
 
+# Codes that occur in the published files but are absent from the dictionary, with the meaning
+# inferred from the data. ``ISLA`` 0 appears from 2018 on, almost only in island provinces, where a
+# crash was assigned to no island; it is treated as "not specified".
+UNDOCUMENTED_CODES: dict[str, dict[str, str]] = {"ISLA": {"0": "Isla sin especificar"}}
+UNDOCUMENTED_NOT_SPECIFIED: dict[str, str] = {"ISLA": "0"}
+
 # Code that means "unknown" inside a column's own code list.
 EXPLICIT_UNKNOWN: dict[str, int] = {
     "SENTIDO_1F": 4,
@@ -111,7 +117,11 @@ def _code_key(value: object) -> str | None:
         return None
     if text.lstrip("-").isdigit():
         return str(int(text))
-    return text
+    try:
+        number = float(text)
+    except ValueError:
+        return text
+    return str(int(number)) if number.is_integer() else text
 
 
 @lru_cache(maxsize=1)
@@ -140,6 +150,7 @@ def load_dictionary() -> dict[str, dict[str, str]]:
             key = _code_key(first)
             codes["" if key is None else key] = str(second).strip()
         if codes:
+            codes.update(UNDOCUMENTED_CODES.get(sheet.title, {}))
             dictionary[sheet.title] = codes
     workbook.close()
     return dictionary
@@ -174,11 +185,12 @@ def status(column: str, values: Iterable[object]) -> pd.Series:
     keys = series.map(_code_key)
     unknown = EXPLICIT_UNKNOWN.get(column)
     unknown_key = None if unknown is None else str(unknown)
+    not_specified_keys = {str(NOT_SPECIFIED_CODE), UNDOCUMENTED_NOT_SPECIFIED.get(column)}
 
     def classify(key: object) -> str:
         if _is_missing(key):
             return "empty"
-        if key == str(NOT_SPECIFIED_CODE):
+        if key in not_specified_keys:
             return "not_specified"
         if key == str(NOT_APPLICABLE_CODE):
             return "not_applicable"

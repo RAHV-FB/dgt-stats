@@ -81,7 +81,7 @@ age, no coordinates, and no day of month.
 | Crash type and severity | `TIPO_ACCIDENTE` (20 codes), `TOTAL_MU24H/HG24H/HL24H/VICTIMAS_24H`, `TOTAL_MU30DF/HG30DF/HL30DF/VICTIMAS_30DF`, `TOTAL_VEHICULOS` | Both 24-hour and 30-day counts present, so definitions can be kept separate |
 | Fatalities by road-user type | `TOT_PEAT/BICI/CICLO/MOTO/TUR/FURG/CAM_MENOS3500/CAM_MAS3500/BUS/OTRO/SINESPECIF_MU24H` and `_MU30DF` | Deaths only; involvement of a vehicle type in a crash is **not** recorded. `TOT_VMP_MU30DF` (personal mobility vehicles) exists from 2020; `TOT_VMP_MU24H` only in 2020 |
 | Junction and priority | `NUDO`, `NUDO_INFO`, `CARRETERA_CRUCE`, 13 `PRIORI_*` flags | `PRIORI_*` are 999 "Sin especificar" for about 60% of rows, including many junction crashes |
-| Conditions | `CONDICION_NIVEL_CIRCULA`, `_FIRME`, `_ILUMINACION`, `_METEO`, `_NIEBLA`, `_VIENTO`, `VISIB_RESTRINGIDA_POR`, `ACERA`, `TRAZADO_PLANTA` | `ACERA` and `TRAZADO_PLANTA` are 998 "No aplica" for 62–87% of rows; fog and wind are null when absent |
+| Conditions | `CONDICION_NIVEL_CIRCULA`, `_FIRME`, `_ILUMINACION`, `_METEO`, `_NIEBLA`, `_VIENTO`, `VISIB_RESTRINGIDA_POR`, `ACERA`, `TRAZADO_PLANTA` | `ACERA` and `TRAZADO_PLANTA` are 998 "No aplica" for 62–87% of rows; fog and wind are null when absent. The dictionary's `.` code for "no strong wind" never occurs; strong wind is flagged in about 0.3% of crashes except 2021, where it is flagged in 24.6% (22,090 rows), a reporting artefact to keep out of trend comparisons |
 
 ### Missing-value states that must stay distinct
 
@@ -127,6 +127,8 @@ No duplicate identifiers were found in any year.
 | `TIPO_VIA = 14` ("Otro") share rises from 2.9% to 17.2%, and `TITULARIDAD_VIA = 5` ("Otra") from 1.6% to 22.0%, while `TIPO_VIA = 9` ("Calle") falls from 59.9% to 47.5% | 2016 → 2024 | coding change, almost certainly in urban reporting; road-type trends must use a collapsed grouping (motorway / dual carriageway / conventional / urban / other) and be checked year by year |
 | `CONDICION_METEO = 999` falls from 10.0% to 0.5%; `VISIB_RESTRINGIDA_POR = 999` from 32.3% to 14.8%; `CONDICION_NIVEL_CIRCULA = 999` rises from 17.9% to 34.0% | 2016 → 2024 | missingness is year-dependent; never run complete-case trend comparisons |
 | `KM` null share 62% in most years but 46–48% in 2019 and 2022 | 2019, 2022 | investigate before using km-post analyses |
+| `ISLA = 0`, absent from the dictionary, appears from 2018 (7 rows) and grows to 605 rows in 2024, almost only in the Balearic and Canary provinces | 2018+ | treated as "island not specified" (`codes.UNDOCUMENTED_CODES`), distinct from empty (not an island) |
+| `CONDICION_VIENTO = 1` share jumps from about 0.3% to 24.6% in 2021 only | 2021 | reporting artefact; exclude the wind flag from cross-year comparisons |
 
 ### Driver census text files
 

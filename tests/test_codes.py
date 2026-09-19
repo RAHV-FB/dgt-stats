@@ -44,6 +44,19 @@ def test_status_distinguishes_every_missing_state() -> None:
     assert list(out.cat.categories) == list(codes.STATUS_LEVELS)
 
 
+def test_undocumented_island_code_is_not_specified() -> None:
+    assert codes.labels_for("ISLA")["0"] == "Isla sin especificar"
+    out = codes.status("ISLA", pd.Series([0, 1, None], dtype="object"))
+    assert list(out) == ["not_specified", "observed", "empty"]
+    assert "0" in codes.allowed_codes("ISLA")
+
+
+def test_code_key_accepts_float_strings() -> None:
+    assert codes._code_key("1.0") == "1"
+    assert codes._code_key(2.0) == "2"
+    assert codes._code_key(".") == "."
+
+
 def test_status_without_explicit_unknown_code() -> None:
     out = codes.status("TIPO_VIA", pd.Series([4, 999]))
     assert list(out) == ["observed", "not_specified"]

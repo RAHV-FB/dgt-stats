@@ -139,7 +139,15 @@ def read_raw_year(year: int) -> pd.DataFrame:
 
 
 def _clean_text(series: pd.Series) -> pd.Series:
-    text = series.astype("string").str.strip()
+    """Trim text, turn blanks into missing and keep whole numbers free of a trailing '.0'."""
+    values = series.map(
+        lambda v: (
+            str(int(v))
+            if isinstance(v, (int, float)) and not pd.isna(v) and float(v).is_integer()
+            else v
+        )
+    )
+    text = values.astype("string").str.strip()
     return text.mask(text == "", pd.NA)
 
 

@@ -18,7 +18,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from dgt_stats import io_exposure, io_microdata, io_tables  # noqa: E402
+from dgt_stats import io_exposure, io_microdata, io_tables, validate  # noqa: E402
 from dgt_stats.paths import MICRODATA_YEARS  # noqa: E402
 
 log = logging.getLogger("ingest")
@@ -39,7 +39,7 @@ def run_exposure(force: bool) -> None:
 
 
 def run_validate() -> None:
-    log.info("validate: not implemented yet")
+    validate.run_all()
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
