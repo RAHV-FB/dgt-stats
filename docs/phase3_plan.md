@@ -199,7 +199,35 @@ at the end. Analysis age bands are 15–24, 25–34, 35–44, 45–54, 55–64, 
 ### Step 8 — Docs, PR, merge
 - Inventory, sources, README roadmap and results, analytics plan phase table; PR; squash merge.
 
-## 5. Verification
+## 5. Outcome (19 September 2026)
+
+All eight steps are merged. What was built, with the deviations from the design above:
+
+- `agebands.py`, `io_population.py`, `io_activity.py`, `rates.py` are new; `io_exposure.py` and
+  `io_tables.py` gained the census-by-age and driver-table readers; `summaries.py`, `figures.py` and
+  `site.py` gained Q4 and Q7. Seven result tables (`q4_*.csv`, `q7_*.csv`), seven figures and the
+  pages `geography.html` and `older-drivers.html`.
+- The licence series uses the published class × age tables up to 2023 and the text files from 2024
+  (not 2023 as planned): the 2023 text file differs from the 2023 tables by up to 1.1 % in some bands,
+  so one publication type is kept for as long as it exists; the gap is a validation check (2 %
+  tolerance, 15 rows) rather than an assertion.
+- Rung 3 is named **travel-weighted drivers** on the site and in the code (not "active drivers"):
+  spreading the ESRA share by the MOVILIA car-trip profile weights people by how much they travel by
+  car, which is an exposure weight rather than a head count of drivers. Because MOVILIA counts
+  passengers, the estimate overstates older people's driving and understates their per-driver rate,
+  so the true per-driver ratio is at or above the travel-weighted one. The site says so.
+- Rung 4 is presented as two measures rather than a quasi-induced-exposure risk: drivers involved in
+  injury crashes per 10,000 licence holders (crash involvement) and driver deaths per 1,000 drivers
+  involved (fatality given involvement). No yearly table splits involved drivers by fault and age.
+- The reconciliation is exact: driver deaths from tables 4.1.1 equal the yearbook series for every
+  year 2014–2024 and both zones (33 checks). 325 checks in all, none failing.
+- 2024 result, drivers aged 75+ against 35–64: 0.74 per resident, 1.55 per licence holder, 2.8 per
+  travel-weighted driver, 2.95 per driver involved; involvement per licence holder 0.53.
+
+Still open: an ESRA age cross-tab (data request to Vias institute) would turn rung 3 into a direct
+measure; kilometres by driver age remain unpublished.
+
+## 6. Verification
 
 - INE totals match DGT's published population figures where both exist.
 - Every survey share on the site traces to a source, wave, question and n in the activity CSV.

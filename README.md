@@ -93,9 +93,19 @@ Full details are in [`docs/methodology.md`](docs/methodology.md).
 
 The first results are published as a static site built from the validated data: an overview with
 the 2024 headline numbers, long-run trends since 1993, the timing of crashes and fatal crashes, the
-distribution of deaths across road-user types, and a data page with the sources, definitions and the
-reconciliation checks. The pages live in [`site/`](site/) and are deployed to GitHub Pages from
-`main`; the tables and SVG figures behind them are in [`reports/`](reports/).
+distribution of deaths across road-user types, a geography page with province rates per resident and
+per licence holder (exact Poisson intervals), an older-drivers page that keeps driver deaths fixed and
+changes only the denominator (residents, licence holders, travel-weighted drivers, drivers involved in
+crashes), and a data page with the sources, definitions and the reconciliation checks. The pages live
+in [`site/`](site/) and are deployed to GitHub Pages from `main`; the tables and SVG figures behind
+them are in [`reports/`](reports/).
+
+Two findings from the older-drivers page: per resident, drivers aged 75 and over die less often than
+drivers aged 35–64 (ratio about 0.7 in 2024), per licence holder more often (about 1.6), and per driver
+involved in an injury crash about three times as often; and licence holders aged 75+ are involved in
+injury crashes about half as often per licence as those aged 35–64, which mostly reflects how much less
+they drive. No Spanish source gives the share of people who drive by age, so the travel-weighted
+denominator is an estimate with stated limits ([`docs/phase3_plan.md`](docs/phase3_plan.md)).
 
 ```bash
 python scripts/ingest.py all        # raw -> data/interim, validation report
@@ -137,7 +147,7 @@ tests/                 Data-contract and code tests
 - [x] Create ingestion scripts with schema, range, uniqueness and reconciliation checks (`scripts/ingest.py`).
 - [x] Reproduce official headline totals before producing new analysis ([`reports/tables/validation.csv`](reports/tables/validation.csv)).
 - [x] Publish the first descriptive results (trends, timing, road users) as a static site.
-- [ ] Build the first exposure-adjusted trend analysis.
+- [x] Build the first exposure-adjusted trend analysis (province rates and the older-driver denominator ladder).
 - [ ] Analyse factor co-occurrence and alcohol × speed interactions.
 - [ ] Add road-design and geospatial variables.
 - [ ] Evaluate one well-defined campaign or policy intervention.

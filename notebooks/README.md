@@ -9,10 +9,11 @@ Notebooks are numbered in the order a reviewer should run or read them:
 03_time_patterns.ipynb         Q2
 04_severity_model.ipynb        Q3
 05_geography_rates.ipynb       Q4
-06_road_users.ipynb            Q5, Q7
-07_heavy_vehicles_2022.ipynb   Q6
-08_policy_its.ipynb            Q8
-09_speed_context.ipynb         Q9
+06_road_users.ipynb            Q5
+07_older_drivers.ipynb         Q7 (denominator ladder)
+08_heavy_vehicles_2022.ipynb   Q6
+09_policy_its.ipynb            Q8
+10_speed_context.ipynb         Q9
 ```
 
 None exist yet: the pipeline is script-driven (`scripts/`), and notebooks will be added as explanatory
