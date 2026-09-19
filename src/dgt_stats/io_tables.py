@@ -13,7 +13,14 @@ from pathlib import Path
 import openpyxl
 import pandas as pd
 
-from dgt_stats.paths import INTERIM_DATA_DIR, SERIES_PATH, TABLES_2024_PATH
+from dgt_stats import agebands
+from dgt_stats.paths import (
+    INTERIM_DATA_DIR,
+    SERIES_PATH,
+    TABLE_YEARS,
+    TABLES_2024_PATH,
+    tables_raw_path,
+)
 
 log = logging.getLogger(__name__)
 
@@ -620,6 +627,225 @@ def read_table_8_1_1() -> pd.DataFrame:
     )
 
 
+# --------------------------------------------------------------------------- driver tables 2014–2024
+
+DRIVER_SEX_LABELS = {
+    "v": "male",
+    "hombre": "male",
+    "hombres": "male",
+    "m": "female",
+    "mujer": "female",
+    "mujeres": "female",
+    "desconocido": "unknown",
+    "se desconoce": "unknown",
+}
+DRIVER_SEVERITIES = ("deaths_30d", "hospitalised_30d", "non_hospitalised_30d")
+DRIVER_SEVERITY_HEADERS = ("fallecidos", "heridos hospitalizados", "heridos no hospitalizados")
+DRIVER_TOTAL_LABELS = {"total", "totales"}
+DRIVER_ZONES = {"I": "interurban", "U": "urban"}
+CHILD_BAND = "0-14"
+
+
+def _sheet_key(name: object) -> str:
+    return _text(name).upper().removeprefix("TABLA ").strip()
+
+
+def _rows_any(path: Path, sheet_key: str) -> list[tuple]:
+    """Rows of the sheet whose name (without the 'TABLA ' prefix) is ``sheet_key``.
+
+    Legacy ``.xls`` workbooks (2014) go through pandas/xlrd, everything else through openpyxl.
+    """
+    if path.suffix == ".xls":
+        book = pd.ExcelFile(path)
+        names = {_sheet_key(name): name for name in book.sheet_names}
+        frame = book.parse(names[sheet_key], header=None)
+        return [
+            tuple(None if pd.isna(value) else value for value in row)
+            for row in frame.itertuples(index=False)
+        ]
+    names = {_sheet_key(name): name for name in _workbook(path).sheetnames}
+    return _rows(path, names[sheet_key])
+
+
+def _driver_band(parsed: tuple[int, int | None] | None) -> str:
+    if parsed is None:
+        return agebands.UNKNOWN
+    key = agebands.band_for(parsed[0], parsed[1], agebands.DGT_BANDS)
+    if key is None and parsed[1] is not None and parsed[1] <= 14:
+        return CHILD_BAND
+    if key is None:
+        raise ValueError(f"driver table: age {parsed} outside the driver bands")
+    return key
+
+
+def _driver_header(rows: list[tuple]) -> int:
+    for index, row in enumerate(rows):
+        if len(row) > 2 and _text(row[2]).lower() in DRIVER_TOTAL_LABELS:
+            return index
+    raise ValueError("driver table: header row with 'Total' in the third column not found")
+
+
+def _driver_body(rows: list[tuple], first_index: int) -> tuple[list[tuple[str, str, tuple]], tuple]:
+    """``[(age_label, sex, row), ...]`` for the data rows, and the published grand-total row.
+
+    Per-age total rows and the grand-total group are skipped; the last total-like row of the sheet
+    is returned so callers can verify the parsed sum against the published total.
+    """
+    body: list[tuple[str, str, tuple]] = []
+    grand_total: tuple | None = None
+    current: str | None = None
+    for row in rows[first_index:]:
+        first, second = _text(row[0]), _text(row[1]) if len(row) > 1 else ""
+        if first.lower() in DRIVER_TOTAL_LABELS and not second:
+            grand_total = row
+            continue
+        if first.lower() in DRIVER_TOTAL_LABELS:
+            current = None  # the grand-total group (2015 onwards): rows by sex, then 'Total'
+        elif first:
+            current = first
+        sex = DRIVER_SEX_LABELS.get(second.lower())
+        if current is None and second.lower() == "total":
+            grand_total = row
+        if current is None or sex is None:
+            continue
+        body.append((current, sex, row))
+    if grand_total is None:
+        raise ValueError("driver table: grand total row not found")
+    return body, grand_total
+
+
+def read_table_4_1_1(year: int) -> pd.DataFrame:
+    """Table 4.1.1: driver victims by age band, sex and vehicle type, interurban and urban.
+
+    One row per age × sex × vehicle type × severity (killed, hospitalised, not hospitalised, all
+    30-day). Sexes are recorded as published (male, female, unknown); totals are not stored, they
+    are sums. The parsed rows must reproduce the published grand total of deaths.
+    """
+    frames: list[pd.DataFrame] = []
+    for suffix, zone in DRIVER_ZONES.items():
+        sheet = f"4.1.1.{suffix}"
+        rows = _rows_any(_driver_table_path(year), sheet)
+        header = _driver_header(rows)
+        blocks: list[tuple[int, str]] = [
+            (column, _text(label))
+            for column, label in enumerate(rows[header])
+            if column >= 2 and _text(label)
+        ]
+        sub = [_text(cell).lower() for cell in rows[header + 1]]
+        for column, _ in blocks:
+            if tuple(sub[column : column + 3]) != DRIVER_SEVERITY_HEADERS:
+                raise ValueError(f"table 4.1.1 {year} {zone}: severity headers moved")
+        body, grand_total = _driver_body(rows, header + 2)
+        records: list[dict[str, object]] = []
+        for age_label, sex, row in body:
+            parsed = agebands.parse_age_label(age_label)
+            for column, vehicle in blocks:
+                is_total = vehicle.lower() in DRIVER_TOTAL_LABELS
+                for offset, severity in enumerate(DRIVER_SEVERITIES):
+                    records.append(
+                        {
+                            "year": year,
+                            "zone": zone,
+                            "age_label": age_label,
+                            "age_low": None if parsed is None else parsed[0],
+                            "age_high": None if parsed is None else parsed[1],
+                            "band": _driver_band(parsed),
+                            "sex": sex,
+                            "vehicle_type": "Total" if is_total else vehicle,
+                            "is_total": is_total,
+                            "severity": severity,
+                            "value": _number(row[column + offset]) or 0.0,
+                            "source_sheet": sheet,
+                        }
+                    )
+        frame = pd.DataFrame.from_records(records)
+        parsed_deaths = frame[frame.is_total & (frame.severity == "deaths_30d")].value.sum()
+        published = _number(grand_total[blocks[0][0]])
+        if parsed_deaths != published:
+            raise ValueError(
+                f"table 4.1.1 {year} {zone}: parsed deaths {parsed_deaths} != published {published}"
+            )
+        frames.append(frame)
+    return _driver_frame(pd.concat(frames, ignore_index=True))
+
+
+def read_table_4_2(year: int) -> pd.DataFrame:
+    """Table 4.2: drivers involved in injury crashes by age band, sex and vehicle type, by zone."""
+    frames: list[pd.DataFrame] = []
+    for suffix, zone in DRIVER_ZONES.items():
+        sheet = f"4.2.{suffix}"
+        rows = _rows_any(_driver_table_path(year), sheet)
+        header = _driver_header(rows)
+        columns = [
+            (column, _text(label))
+            for column, label in enumerate(rows[header])
+            if column >= 2 and _text(label)
+        ]
+        body, grand_total = _driver_body(rows, header + 1)
+        records: list[dict[str, object]] = []
+        for age_label, sex, row in body:
+            parsed = agebands.parse_age_label(age_label)
+            for column, vehicle in columns:
+                is_total = vehicle.lower() in DRIVER_TOTAL_LABELS
+                records.append(
+                    {
+                        "year": year,
+                        "zone": zone,
+                        "age_label": age_label,
+                        "age_low": None if parsed is None else parsed[0],
+                        "age_high": None if parsed is None else parsed[1],
+                        "band": _driver_band(parsed),
+                        "sex": sex,
+                        "vehicle_type": "Total" if is_total else vehicle,
+                        "is_total": is_total,
+                        "value": _number(row[column]) or 0.0,
+                        "source_sheet": sheet,
+                    }
+                )
+        frame = pd.DataFrame.from_records(records)
+        parsed_total = frame[frame.is_total].value.sum()
+        published = _number(grand_total[columns[0][0]])
+        if parsed_total != published:
+            raise ValueError(
+                f"table 4.2 {year} {zone}: parsed total {parsed_total} != published {published}"
+            )
+        frames.append(frame)
+    return _driver_frame(pd.concat(frames, ignore_index=True))
+
+
+def _driver_table_path(year: int) -> Path:
+    return tables_raw_path(year, 4)
+
+
+def _driver_frame(frame: pd.DataFrame) -> pd.DataFrame:
+    types = {
+        "year": "int16",
+        "zone": "string",
+        "age_label": "string",
+        "age_low": "Int16",
+        "age_high": "Int16",
+        "band": "string",
+        "sex": "string",
+        "vehicle_type": "string",
+        "source_sheet": "string",
+    }
+    if "severity" in frame:
+        types["severity"] = "string"
+    return frame.astype(types)
+
+
+def read_driver_victims_all(years: tuple[int, ...] = TABLE_YEARS) -> pd.DataFrame:
+    out = pd.concat([read_table_4_1_1(year) for year in years], ignore_index=True)
+    close_workbooks()
+    return out
+
+
+def read_drivers_involved_all(years: tuple[int, ...] = TABLE_YEARS) -> pd.DataFrame:
+    out = pd.concat([read_table_4_2(year) for year in years], ignore_index=True)
+    close_workbooks()
+    return out
+
+
 # --------------------------------------------------------------------------- interim layer
 
 TABLE_BUILDERS = {
@@ -634,6 +860,8 @@ TABLE_BUILDERS = {
     "tables_2024_month": read_table_3_1,
     "tables_2024_units": read_table_2_3,
     "tables_2024_vehicles_involved": read_table_8_1_1,
+    "tables_driver_victims": read_driver_victims_all,
+    "tables_drivers_involved": read_drivers_involved_all,
 }
 
 
