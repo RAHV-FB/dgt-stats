@@ -85,7 +85,31 @@ not as 52 dummies; a province random effect is left for later.
 - `analytics_plan.md` phase table, README results and roadmap (the factor-interaction line reworded to
   what the data allow), `phase4_plan.md` outcome section, notebooks map; PR; squash merge.
 
-## 3. Verification
+## 3. Outcome (19 September 2026)
+
+All five steps are merged. What was built, with the deviations from the design above:
+
+- `features.py`, `models.py`, `scripts/model.py` are new; `summaries.py` exposes the model tables,
+  `figures.py` adds forest, calibration, stability and predicted-grid figures, `site.py` adds
+  `severity.html`. Eight result tables (`q3_*.csv`), five figures.
+- The fit is a hand-written IRLS with a cluster-robust sandwich (`numpy`), not `statsmodels`: the
+  GLM route was killed for memory on the 875,013-row design in a 16 GB container. The two agree on
+  synthetic data to the third decimal; the whole script runs in about two minutes.
+- Alignment code 998 (not applicable) is exactly the street zone, so it cannot be a level next to
+  zone; it folds into the reference ("straight"). Levels with fewer than 500 crashes (three of them,
+  with no events) merge into their reference. The other missing states remain levels.
+- Results, fatal outcome: head-on collisions 5.8× and pedestrian strikes 6.4× the odds of a side
+  collision; interurban roads 3.2× and urban crossings 4.2× a street; conventional, dual carriageway
+  and motorway 2.0–2.4× an urban street; darkness without lighting 1.4×; 00:00–06:59 1.5×; three or
+  more vehicles 1.5×; rear-end collisions 0.5×; at a junction 0.75×; wet surface 0.62×. Holdout
+  (2016–2022 fit, 2023–2024 scored): AUC 0.80 for fatal, 0.69 for serious, calibrated by decile,
+  Brier below the base rate for both.
+- Stability: 36 of 90 year-by-term estimates leave the full model's (narrow) interval; in 2024 the
+  road-type effects collapse towards 1 while the zone effects jump, matching the 2024 change in
+  road-type coding recorded in the data inventory. The page says road type and zone must be read
+  together.
+
+## 4. Verification
 
 - Odds ratios reproduce known descriptive facts already on the site: darkness without lighting and
   conventional roads raise the fatal share; urban streets and rear-end collisions lower it.

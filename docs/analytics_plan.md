@@ -125,7 +125,7 @@ site/*.html + site/style.css      static site, publishable with GitHub Pages
 | 1. Ingest and validate | done: `codes`, `io_microdata`, `io_tables`, `io_exposure`, `validate`; Parquet outputs; checks 1–6 | all 277 checks pass; `reports/tables/validation.csv` and `missingness_by_year.csv` committed |
 | 2. Descriptives | done: `derive`, `labels`, `summaries`, `plots`, `figures`, `site`; 12 result tables, 13 SVG figures, five pages | site built into `site/` and deployed by `.github/workflows/pages.yml` |
 | 3. Rates | done: `agebands`, `io_population`, census by age (2014–2025), driver tables 4.1.1 and 4.2 (2014–2024), `io_activity`, `rates`; Q4 province and national rates, Q7 denominator ladder; two new checks (325 in all); seven tables, seven figures, two pages | rate tables with exact intervals on the geography and older-drivers pages; every rate names its denominator |
-| 4. Severity model | Q3 logistic models, calibration check, year-stability check | odds-ratio tables and forest plots on the site |
+| 4. Severity model | done: `features`, `models`, `scripts/model.py`; fatal and serious logistic models on 875,013 crashes with province-clustered intervals, average marginal effects, a 2016–2022 fit scored on 2023–2024 (fatal AUC 0.80, serious 0.69, calibrated by decile), per-year refits; eight tables, five figures, the severity page | odds-ratio tables and forest plots on the site with calibration and stability reported |
 | 5. Exposure case study | Q6 for 2022 | heavy-vehicle page with stated limits |
 | 6. Policy case study | Q8 for the 2006 points licence, then 2019 speed limit | ITS charts with pre-trend, coefficients and CIs |
 | 7. Speed and context | Q9 descriptive chapter | speed page |
