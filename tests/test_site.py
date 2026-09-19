@@ -76,3 +76,16 @@ def test_severity_page_reports_the_models(built: Path) -> None:
     assert "Area under the ROC curve" in text
     assert 'href="figures/q3_forest_fatal.svg"' not in text  # figures are images, not links
     assert 'src="figures/q3_forest_fatal.svg"' in text
+
+
+def test_vehicles_page_reports_the_rates(built: Path) -> None:
+    text = (built / "vehicles.html").read_text(encoding="utf-8")
+    assert "per billion km" in text
+    assert "Heavy trucks vs cars, per kilometre" in text
+    assert 'src="figures/q6_rates_per_km.svg"' in text
+    assert "Trucks over 3,500 kg" in text and "Vans and trucks up to 3,500 kg" in text
+    assert "1993" in text and "Has a km denominator" in text
+    index = (built / "index.html").read_text(encoding="utf-8")
+    assert 'href="vehicles.html"' in index
+    data = (built / "data.html").read_text(encoding="utf-8")
+    assert "yearly tables 2.3" in data and "yearly tables 2.2" in data
