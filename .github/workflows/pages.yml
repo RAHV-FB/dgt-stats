@@ -3,7 +3,12 @@ name: Publish site
 on:
   push:
     branches: [main]
-    paths: ["site/**", "reports/**", "src/dgt_stats/site.py", "scripts/build_site.py"]
+    paths:
+      - "site/**"
+      - "reports/**"
+      - "src/dgt_stats/**"
+      - "scripts/build_site.py"
+      - ".github/workflows/pages.yml"
   workflow_dispatch:
 
 permissions:
@@ -26,7 +31,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install pandas
+      - run: pip install pandas openpyxl pyarrow
       - run: python scripts/build_site.py
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
