@@ -94,11 +94,35 @@ estimate in its tail and the sensitivity fits agree.
   well-defined policy intervention" line), notebooks map, `phase6_plan.md` outcome section; PR;
   squash merge.
 
-## 3. Verification
+## 3. Outcome (19 September 2026)
 
-- The 2006 fit reproduces the raw comparison already visible in the series (July 2006 to June 2007
-  against the twelve months before) once trend and season are removed, and the page prints both.
-- Placebo distributions have the expected spread; the true estimate's rank is reported whatever it is.
-- The 2019 control group shows no break of its own at January 2019.
-- `pytest`, `ruff`, idempotent `analyse.py all` and `build_site.py`, headless screenshots at 1280 px
-  and 390 px.
+All five steps are merged. What was built, with the deviations from the design above:
+
+- `policy.py` holds the series, the intervention registry, the segmented and difference-in-
+  differences fits, the placebos and the sensitivity tables; the eight `q8_*` tables are written by
+  `analyse.py tables` in about six seconds. `plots.intervention()` and a highlighted variant of the
+  dot plot draw the five figures. `policy.html` is the page.
+- The negative-binomial sensitivity uses the dispersion from the Poisson fit (Pearson chi-square
+  solved for alpha) inside a GLM rather than a maximum-likelihood negative binomial: the likelihood
+  search did not converge reliably when the data are close to Poisson, and the moment version is
+  deterministic.
+- Results, 2006: level change −12.0 % (−17.2 to −6.4) at July 2006 against a pre-trend of −4.7 % a
+  year; slope change +4.2 % a year, not distinguishable from zero; 586 deaths below the trend over
+  the seventeen clean months; placebo rank 1 of 39 (the other estimates run from −8.1 % to +8.4 %).
+  The estimate holds for 24-hour deaths, interurban roads, the fleet offset and the negative binomial;
+  it is −7.6 % and not significant on urban streets; with the window run to December 2009 and a
+  second break at the Penal Code reform it falls to −6.0 % (n.s.) while the reform takes −7.9 %.
+- Results, 2019: −13.5 % (−21.7 to −4.4) on conventional roads relative to motorways and dual
+  carriageways in the clean window, control change +2.5 %. The design fails its placebo: a break in
+  January 2018 gives −11.7 % (−17.9 to −5.0), so the divergence predates the limit; extended through
+  the pandemic the term turns to +30 %. The page makes no claim about the limit.
+- The yearbook's zone sheets differ from its all-roads sheet by one death in four months of 1995;
+  the test records it.
+
+## 4. Verification
+
+- The 2006 fit and the raw twelve-month comparison (−11.4 %) point the same way once the pre-trend
+  (−4.7 %) is taken out, and the page prints both.
+- The 2019 control group shows no break of its own at February 2019 (+2.5 %, interval includes zero).
+- `pytest` (130), `ruff`, idempotent `analyse.py all` and `build_site.py`, headless screenshots at
+  1280 px and 390 px with no horizontal overflow.
