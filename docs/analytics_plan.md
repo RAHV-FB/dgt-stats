@@ -129,22 +129,26 @@ site/*.html + site/style.css      static site, publishable with GitHub Pages
 | 5. Exposure case study | done: `vehicles`, yearbook tables 2.2 and 2.3 for 2020–2024, two new checks (390 in all); six vehicle groups with rates per billion km and per 100,000 vehicles for 2022; seven tables, four figures, the vehicles page | vehicles page with stated limits |
 | 6. Policy case study | done: `policy`; segmented regression for the 2006 points licence with 39 placebo breaks and nine sensitivity variants; difference-in-differences series for the 2019 speed limit with 2017 and 2018 placebos; eight tables, five figures, the policy page | ITS charts with pre-trend, coefficients and CIs |
 | 7. Speed and context | done: `io_reports`, `speed`; tables 6.1 for 2014–2024 with one validation check (434 in all), the speed report transcribed, ten tables, six figures, the speed page | speed page |
-| 8. Publish | site review, README rewritten to match actual results | GitHub Pages live |
+| 8. Publish | done: front-page digest, computed long-run sentences, link and alt-text tests, README rewritten, methodology and source register brought into line, version 1.0.0 | GitHub Pages live at https://rahv-fb.github.io/dgt-stats/ |
 
 Phases 2 through 4 are the core portfolio result. Phases 5 to 7 add depth but depend on external
 additions or carry stronger caveats.
 
 ## 6. External data to add (small, free, documented)
 
-| Need | Source | Used by |
+| Need | Source | Status |
 |---|---|---|
-| Population by province and by age band, 2014–2024 | INE "Cifras de población" CSV | Q4, Q7 |
-| Vehicle and person microdata 2016–2024 | not published for download; data request to DGT Observatorio Nacional de Seguridad Vial | unlocks the dropped factor-interaction work |
-| Registered vehicles by province | DGT "Parque de vehículos" yearbook table | Q4 |
+| Population by province and by age band, 2002–2025 | INE "Estadística Continua de Población" table 56947 | added in Phase 3; used by Q4 and Q7 |
+| Driver census by age 2014–2025, yearly driver tables 2014–2024, MOVILIA, ECEPOV, EHMA and ESRA shares | DGT and INE | added in Phase 3 for the travel-weighted denominator |
+| Yearly statistical tables 2020–2023 and the 2014–2019 chapter workbooks | DGT | added in Phase 3; used by Q6 (tables 2.2, 2.3) and Q9 (table 6.1) |
+| Vehicle and person microdata 2016–2024 | not published for download; data request to DGT Observatorio Nacional de Seguridad Vial | still missing; would unlock the factor-interaction work |
+| Registered vehicles by province | DGT "Parque de vehículos" yearbook table | not added; the vehicles page uses the national fleet from the kilometre table |
 
 ## 7. Notebook sequence
 
-Notebooks explain and show; all reusable code lives in `src/dgt_stats/`.
+Planned as explanatory companions; none was written. The scripts, the tests and the site's own prose
+took their place (decision recorded in `notebooks/README.md` at Phase 8). The sequence is kept for
+the record.
 
 ```text
 00_source_audit.ipynb          reproduces data_inventory.md numbers
