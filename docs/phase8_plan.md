@@ -88,9 +88,28 @@ Two decisions belong to the user and are flagged, not taken:
   the digest and one figure are served; the stale branches listed for the user; the two open
   decisions restated.
 
-## 3. Verification
+## 3. Outcome (19 September 2026)
 
-- `pytest` (with the new site tests), `ruff`, `analyse.py all` and `build_site.py` idempotent after
-  the clean rebuild.
-- Every README command runs as written from the repository root.
-- The live site serves every page listed in the navigation.
+All five steps are merged.
+
+- Site: the front page carries a computed one-line digest per page; the road-users and vehicles
+  pages compute their long-run sentences from the series; the data page lists the full reproduce
+  sequence with timings and the data reuse terms; the front page has its own title. Three new tests
+  check every internal link and anchor, every image's alt text, every page's description and title,
+  and that the digest links every content page. All eleven pages render at 1280 px and 390 px with no
+  horizontal overflow.
+- README rewritten: what the site answers (nine questions, page, method, finding), what could not be
+  done and why, the standards as applied, the data groups, the reproduce sequence, the structure,
+  what remains. `docs/methodology.md` has a status line per section, `docs/data_sources.md` lists
+  every raw file with its role and page, `docs/analytics_plan.md` is closed, `notebooks/README.md`
+  records that no notebook was written and why.
+- `pyproject.toml` at 1.0.0 with the unused notebook and geo dependencies dropped.
+- The full sequence in the README was run from an empty interim layer: `ingest.py all` (314 s, 434
+  checks passed), `build_tables.py`, `model.py`, `analyse.py all`, `build_site.py`. It reproduced
+  every committed table, figure and page byte for byte.
+- Two decisions stay with the user: a licence for the code, and whether notebooks are ever wanted.
+
+## 4. Verification
+
+- `pytest` 140, `ruff` clean, no diff after the clean rebuild.
+- The live site at https://rahv-fb.github.io/dgt-stats/ answers with the front page and its digest.
