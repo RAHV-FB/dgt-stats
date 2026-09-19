@@ -299,7 +299,9 @@ def heatmap(
     bar.outline.set_visible(False)
     if percent:
         bar.formatter = matplotlib.ticker.FuncFormatter(lambda v, _: f"{v * 100:.0f}%")
-        bar.update_ticks()
+    else:
+        bar.formatter = matplotlib.ticker.FuncFormatter(_tick)
+    bar.update_ticks()
     axis.set_title(title)
     axis.set_xlabel(xlabel)
     axis.set_ylabel(ylabel)
@@ -598,3 +600,108 @@ def missingness_heatmap(profile: pd.DataFrame, path: Path, title: str) -> Path:
         height=max(4.0, 0.22 * len(matrix) + 1.5),
         xlabel="Year",
     )
+
+
+def dot_interval_panels(
+    frame: pd.DataFrame,
+    panel: str,
+    label: str,
+    value: str,
+    low: str,
+    high: str,
+    path: Path,
+    title: str,
+    order: list[str] | None = None,
+    panel_order: list[str] | None = None,
+    xlabel: str = "",
+) -> Path:
+    """Side-by-side dot-and-whisker panels sharing one row order (``order``, top to bottom).
+
+    Each panel has its own x scale from zero, so the panels compare rankings, not magnitudes.
+    """
+    apply_style()
+    labels_order = order or list(dict.fromkeys(frame[label]))
+    panels = panel_order or list(dict.fromkeys(frame[panel]))
+    height = max(2.8, 0.34 * len(labels_order) + 1.6)
+    fig, axes = plt.subplots(
+        1, len(panels), figsize=(FIGURE_WIDTH, height), sharey=True, constrained_layout=True
+    )
+    axes = np.atleast_1d(axes)
+    positions = np.arange(len(labels_order))[::-1]
+    for axis, name in zip(axes, panels):
+        block = frame[frame[panel] == name].set_index(label).reindex(labels_order)
+        axis.hlines(
+            positions, block[low], block[high], color=CATEGORICAL[0], linewidth=1.5, alpha=0.6
+        )
+        axis.plot(
+            block[value],
+            positions,
+            marker="o",
+            markersize=6,
+            color=CATEGORICAL[0],
+            markeredgecolor=SURFACE,
+            markeredgewidth=1,
+            linestyle="none",
+        )
+        axis.set_title(str(name), fontsize=10, fontweight="normal", loc="left")
+        axis.grid(True, axis="x")
+        axis.grid(False, axis="y")
+        axis.set_xlim(left=0)
+        axis.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(_tick))
+        axis.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(nbins=4))
+        axis.tick_params(labelsize=8)
+        axis.set_xlabel(xlabel, fontsize=8)
+    axes[0].set_yticks(positions, [str(v) for v in labels_order], fontsize=8)
+    axes[0].set_ylim(-0.7, len(labels_order) - 0.3)
+    fig.suptitle(title, x=0.01, ha="left", fontsize=12, fontweight="bold")
+    return save(fig, path)
+
+
+def slope(
+    frame: pd.DataFrame,
+    label: str,
+    left: str,
+    right: str,
+    path: Path,
+    title: str,
+    left_title: str,
+    right_title: str,
+    value_format: str = "{:,.1f}",
+) -> Path:
+    """Two ranked columns joined by a line per row: how each label moves between two measures.
+
+    Rows are placed by rank on each side (highest value at the top); the values are printed next to
+    the labels so the reader has the numbers, not only the order.
+    """
+    apply_style()
+    n = len(frame)
+    left_rank = frame[left].rank(ascending=False, method="first")
+    right_rank = frame[right].rank(ascending=False, method="first")
+    fig, axis = plt.subplots(figsize=(FIGURE_WIDTH, max(3.0, 0.42 * n + 1.4)))
+    for index, (_, row) in enumerate(frame.iterrows()):
+        y0, y1 = n - left_rank.iloc[index], n - right_rank.iloc[index]
+        colour = CATEGORICAL[index % len(CATEGORICAL)]
+        axis.plot([0, 1], [y0, y1], color=colour, linewidth=2, marker="o", markersize=6)
+        axis.text(
+            -0.03,
+            y0,
+            f"{row[label]}  {value_format.format(row[left])}",
+            ha="right",
+            va="center",
+            fontsize=8,
+        )
+        axis.text(
+            1.03,
+            y1,
+            f"{value_format.format(row[right])}  {row[label]}",
+            ha="left",
+            va="center",
+            fontsize=8,
+        )
+    axis.text(0, n - 0.2, left_title, ha="center", va="bottom", fontsize=9, color=TEXT_SECONDARY)
+    axis.text(1, n - 0.2, right_title, ha="center", va="bottom", fontsize=9, color=TEXT_SECONDARY)
+    axis.set_xlim(-0.9, 1.9)
+    axis.set_ylim(-0.6, n + 0.4)
+    axis.axis("off")
+    axis.set_title(title, loc="left", pad=18)
+    return save(fig, path)

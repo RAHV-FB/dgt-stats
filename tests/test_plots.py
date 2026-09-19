@@ -144,3 +144,33 @@ def test_forest_and_calibration(tmp_path: Path) -> None:
         }
     )
     _svg_ok(plots.calibration(cal, "predicted", "observed", tmp_path / "cal.svg", "Cal", "outcome"))
+
+
+def test_dot_interval_panels_and_slope(tmp_path: Path) -> None:
+    frame = pd.DataFrame(
+        {
+            "panel": ["p", "p", "p", "q", "q", "q"],
+            "name": ["a", "b", "c"] * 2,
+            "v": [1, 3, 2, 10, 30, 20],
+            "lo": [0.5, 2, 1, 5, 20, 10],
+            "hi": [2, 4, 3, 15, 40, 30],
+        }
+    )
+    out = plots.dot_interval_panels(
+        frame,
+        "panel",
+        "name",
+        "v",
+        "lo",
+        "hi",
+        tmp_path / "panels.svg",
+        "Panels",
+        order=["b", "c", "a"],
+        xlabel="per unit",
+    )
+    _svg_ok(out)
+    ranks = pd.DataFrame({"name": list("abc"), "left": [1.0, 2.0, 3.0], "right": [3.0, 1.0, 2.0]})
+    out = plots.slope(
+        ranks, "name", "left", "right", tmp_path / "slope.svg", "Slope", "Left", "Right"
+    )
+    _svg_ok(out)
