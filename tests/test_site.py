@@ -155,7 +155,10 @@ def test_every_page_has_a_description_and_every_image_an_alt(built: Path) -> Non
         text = page.read_text(encoding="utf-8")
         description = re.search(r'<meta name="description" content="([^"]*)"', text)
         assert description and len(description.group(1)) > 40, page.name
-        assert re.search(r"<title>[^<]+ · Road safety in Spain</title>", text), page.name
+        if page.name == "index.html":
+            assert "<title>Road safety in Spain · DGT crash data" in text
+        else:
+            assert re.search(r"<title>[^<]+ · Road safety in Spain</title>", text), page.name
         images = re.findall(r"<img[^>]*>", text)
         for image in images:
             alt = re.search(r'alt="([^"]*)"', image)

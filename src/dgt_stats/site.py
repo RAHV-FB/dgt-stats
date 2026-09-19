@@ -199,7 +199,7 @@ def render_page(slug: str, title: str, lead: str, body: str) -> str:
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{esc(title)} · Road safety in Spain</title>
+<title>{"Road safety in Spain · DGT crash data, 1993–2024" if slug == "index" else esc(title) + " · Road safety in Spain"}</title>
 <meta name="description" content="{esc(lead)}">
 <link rel="stylesheet" href="style.css">
 </head>
@@ -2396,6 +2396,11 @@ def page_data(captions: dict[str, str]) -> str:
         "(Spain), MOVILIA 2006 trips by mode, sex and age. No Spanish source gives the share of people "
         "who drive by age.</li>"
         "</ul>"
+    )
+    body += (
+        "<p>All of these are published as open data by DGT (DGT en Cifras) and INE under their own "
+        "reuse terms, which this site preserves: figures are quoted with attribution, aggregated, and "
+        "never combined with anything that could identify a person.</p>"
     )
     body += "<h2>Definitions</h2>"
     body += (
