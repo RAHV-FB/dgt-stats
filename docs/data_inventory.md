@@ -44,6 +44,9 @@ All raw files live under `data/raw/`, grouped by role.
 | `tablas_estadisticas_2024.xlsx` | 2024 | 39 tables: crashes and victims by province, autonomous community, month, weekday, hour, road type, lighting, vehicle type, driver age/sex/licence seniority, driver infractions, vehicle age | `Accidentes-con-victimas-Tablas-estadisticas-2024.xlsx` |
 | `series_historicas_2024.xlsx` | 1993–2024 | 69 sheets of annual series: crashes, victims (24 h and 30 day), by month, province, sex, age, pedestrians, driver deaths by vehicle type, rates per fleet and population | `Series-Historicas-Anuario-Accidentes-2024.xlsx` |
 
+| `tablas_estadisticas_{2020..2023}.xlsx` | 2020–2023 | Same 39–40 tables as 2024, one workbook per year, same sheet names (`TABLA 4.1.1.I`, `TABLA 4.2.U`, ...) | `Accidentes_con_victimas_Tablas_estadisticas_YYYY.xlsx` |
+| `chapters/{2014..2019}/grupo_{1..8}.xls(x)` | 2014–2019 | The same yearbook split into eight chapter workbooks; chapter 4 holds driver victims by age and sex (4.1.1), drivers involved by age, sex and condition (4.2) and licence seniority (4.4), interurban and urban. 2014 is `.xls` (read with `xlrd`), 2015 uses upper-case titles without the year, 2016+ match the modern layout | `Grupo-N.-...-YYYY.xls(x)` |
+
 A second copy of the series workbook (`...2024(1).xlsx`, byte-identical, same MD5) was removed.
 
 ### C. Exposure and denominators (`data/raw/exposure/`)
@@ -58,6 +61,16 @@ A second copy of the series workbook (`...2024(1).xlsx`, byte-identical, same MD
 | `km_itv_2022/media_km_antiguedad_tipo_2022.xlsx` | 2022 | Mean annual km and fleet size by vehicle type (7) × age band (5) | `Media_km_recorridos_ antiguedad_tipo de vehículo.xlsx` |
 | `km_itv_2022/metodologia.pdf` | 2014–2023 ITV | Methodology: gamma-regression (LightGBM) imputation of annualised odometer readings; explains 19–45% of variance per vehicle, valid only for aggregates | `KM_Recorridos_ITV_Parque.pdf` |
 
+| `censo_conductores_edad_{2023,2024,2025}.txt` | 2023–2025 | Pipe-delimited: province × sex × age band (15–17, 18–20, 21–24, then five-year bands to 70–74, "Más de 74", "Se desconoce") → permits, licences and permits by class. 2023 and 2024 are Latin-1, 2025 is UTF-8 with BOM | `censo_prov_sexo_clase_edad_YYYY.txt` |
+| `censo_tablas_{2014..2024}.xlsx` | 2014–2024 | Published driver-census tables; 2014–2023 include `P_6_1_1_7` (drivers by licence class × age band, plus men/women sheets), 2024 has only the province tables (age comes from the text file) | `Censo-de-conductores-Anuario-YYYY.xlsx` / `...Tablas-estadisticas-YYYY.xlsx` |
+| `ine_poblacion_provincias_edad_sexo.csv` | 2002–2025 | INE table 56947 extract: residents by province × five-year age group × sex, 1 January and 1 July; 149,460 rows, rebuilt by `scripts/fetch_ine.py` | INE CSV download |
+| `driving_activity_by_age.csv` | 2008, 2018, 2023 | Hand-typed survey register: ESRA2/ESRA3 Spain share of adults driving a car at least a few days a month (national only), Fundación MAPFRE driving days per week among drivers 65+ (Madrid) | typed from the reports |
+| `movilia_2006.xls` | 2006 | MOVILIA 2006 daily-mobility tables (168 sheets). Tables 63–64 give trips by main mode × sex × age; the mode is "coche o moto" with **no driver/passenger split**, so it yields a car-travel intensity curve by age, not a driver share | `Movilia2006.xls` |
+| `movilia_2007.xls` | 2007 | MOVILIA 2007 long-distance tables (134 sheets): trips over 50 km by mode, purpose, age and sex | `Movilia2007.xls` |
+| `movilia_madrid/movilia07t0{1..5}.xls` | 2006/07 | Madrid statistical office extract of MOVILIA daily mobility (Madrid and Spain); no driver status by age | `movilia07t0N.xls` |
+| `ine_ecepov_2021_55378.xlsx` | 2021 | INE ECEPOV table 55378: persons 16+ by main vehicle used to commute to work or study, by sex and age group; commuters only | INE table export |
+| `ine_ehma_2008_1001{6,9}.csv` | 2008 | INE household survey: mean annual km per household vehicle by sex, age and nationality of the reference person, by fuel (10016) and by vehicle age (10019) | INE px CSV export |
+
 The zip archive was extracted in place and the archive itself dropped.
 
 ### D. Thematic reports (`data/raw/reports/`, context, definitions, hypotheses)
@@ -66,6 +79,8 @@ The zip archive was extracted in place and the archive itself dropped.
 |---|---:|---|---|
 | `dgt_factor_velocidad_2023.pdf` | 61 | Speed factor 2014–2023, 30-day data, **excludes Cataluña and País Vasco**. Speed present in 7% of injury crashes in 2023 (3% urban, 14% interurban); profiles by road type, speed limit, vehicle, driver | `INF_TEMA_4_Factor-Velocidad_v5_FINAL.pdf` |
 | `dgt_personas_mayores_2023.pdf` | 82 | Road users aged 65+ in 2023: 26% of all deaths; 47.8 deaths per million vs 34.4 for under-65; collision matrices; profiles | `INF_TEMA_8_PersonasMayores_v4_FINAL_nipo.pdf` |
+| `Anuario-estadistico-de-accidentes-{2015..2019}-fe-de-erratas.pdf` | — | DGT errata sheets for the 2015–2019 yearbooks; check before reconciling those years | same |
+| `esra2023countryfactsheetspain.pdf`, `esra2023thematicreportno5youngandagingdrivers.pdf`, `esra3-main-report.pdf`, `esra3-methodology-report.pdf` | — | ESRA3 (2023) Spain fact sheet (935 respondents, 75.9 % drive at least a few days a month), the young-and-ageing-drivers report and the main and methodology reports | same |
 | `dgt_semana_santa_2026.pdf` | 45 | Easter 2026 interurban fatal crashes, **24-hour provisional counts**: 28 fatal crashes, 30 deaths, 17.3 million long-distance trips; series 1995–2026 | `INF_SEMANASANTA_2026_v8_FINAL.pdf` |
 
 ## 2. Crash microdata: schema and content
@@ -167,7 +182,7 @@ factor-interaction work can start. They are not published for download; a data r
 
 ## 5. Organisation
 
-- Raw files are tracked in Git under `data/raw/` (about 230 MB) and are never edited in place.
+- Raw files are tracked in Git under `data/raw/` (about 265 MB, 110 files) and are never edited in place.
   `data/raw/manifest.csv` records path, size, SHA-256, source URL and description for each file; any
   replacement must update the manifest entry.
 - `data/interim/` and `data/processed/` stay ignored and are rebuilt from `data/raw/` by the ingestion

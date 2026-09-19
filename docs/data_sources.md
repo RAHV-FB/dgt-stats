@@ -30,6 +30,13 @@ Paths are relative to `data/raw/`. Crash microdata for 2016–2024 (`microdata/a
 | `reports/dgt_semana_santa_2026.pdf` | Easter 2026 | Possible campaign/holiday case study | Short, seasonal and potentially provisional period |
 | `exposure/ine_poblacion_provincias_edad_sexo.csv` | 2002–2025 | Population denominators by province, five-year age group and sex (INE table 56947, nationality total, 1 January and 1 July) | Extract, not the full INE file; rebuilt by `scripts/fetch_ine.py` |
 | `exposure/driving_activity_by_age.csv` | 2008, 2023 | Share of residents who drive, and driving frequency among older drivers, by age band and survey wave (ESRA3 Spain 2023; Fundación MAPFRE older-driver survey) | Hand-typed from published reports; every row carries its question, n and URL; age split from the ESRA dashboard still to be added |
+| `tables/tablas_estadisticas_{2020..2023}.xlsx`, `tables/chapters/{2014..2019}/grupo_{1..8}.xls(x)` | 2014–2023 | Driver victims and drivers involved by age and sex for every year (rungs 2–4 of the Phase 3 ladder) | Layout differs by year (chapter workbooks, `.xls` in 2014, title wording in 2015) |
+| `exposure/censo_conductores_edad_{2023,2024,2025}.txt` | 2023–2025 | Licence holders by province, sex and age band | Encoding differs by year (Latin-1 to 2024, UTF-8 BOM in 2025) |
+| `exposure/censo_tablas_{2014..2024}.xlsx` | 2014–2024 | Licence holders by class × age band for 2014–2023 (table P.6.1.1.7) | 2024 workbook lacks the age table; use the text file |
+| `exposure/movilia_2006.xls`, `exposure/movilia_2007.xls`, `exposure/movilia_madrid/*.xls` | 2006–2007 | Car-travel intensity by age and sex (trips by main mode) | Mode is "coche o moto" without a driver/passenger split; old |
+| `exposure/ine_ecepov_2021_55378.xlsx` | 2021 | Commuting mode by sex and age, sensitivity check | Commuters only; says little about 65+ |
+| `exposure/ine_ehma_2008_1001{6,9}.csv` | 2008 | Mean km per household vehicle by reference-person age | Household vehicle, not driver; old |
+| `reports/esra*.pdf`, `reports/Anuario-estadistico-de-accidentes-*-fe-de-erratas.pdf` | 2015–2023 | ESRA Spain benchmarks; yearbook errata | ESRA age split not public |
 
 ## Research and comparison sources
 
@@ -48,6 +55,7 @@ Paths are relative to `data/raw/`. Crash microdata for 2016–2024 (`microdata/a
 - Traffic volume or vehicle-kilometres by road, vehicle class, geography and time.
 - Weather, daylight and roadworks data.
 - Dated DGT campaign, enforcement and policy records.
-- Fleet denominators by province and licensed drivers by age for years before 2023 (see `phase3_plan.md`).
+- Fleet denominators by province (Parque de vehículos tables).
+- Share of people who drive by age band, Spain: the ESRA dashboard does not expose it and no other national survey asks it (see `phase3_plan.md`).
 
 No source should enter the analytical pipeline without a stable identifier, provenance record and documented reuse terms.
