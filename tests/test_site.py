@@ -67,3 +67,12 @@ def test_table_formats_numbers() -> None:
     assert "<td>101,996</td>" in out
     assert "<td>12.3%</td>" in out
     assert "<caption>Caption</caption>" in out
+
+
+def test_severity_page_reports_the_models(built: Path) -> None:
+    text = (built / "severity.html").read_text(encoding="utf-8")
+    assert "Odds ratio (95% interval)" in text
+    assert "1 (reference)" in text
+    assert "Area under the ROC curve" in text
+    assert 'href="figures/q3_forest_fatal.svg"' not in text  # figures are images, not links
+    assert 'src="figures/q3_forest_fatal.svg"' in text
