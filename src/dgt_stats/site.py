@@ -15,7 +15,7 @@ import pandas as pd
 
 from dgt_stats import agebands
 from dgt_stats.paths import FIGURES_DIR, PROJECT_ROOT, TABLES_DIR
-from dgt_stats.summaries import BASE_YEAR
+from dgt_stats.summaries import BASE_YEAR, read_model_table
 
 SITE_DIR = PROJECT_ROOT / "site"
 REPO_URL = "https://github.com/RAHV-FB/dgt-stats"
@@ -27,6 +27,7 @@ PAGES: tuple[tuple[str, str], ...] = (
     ("road-users", "Road users"),
     ("geography", "Geography"),
     ("older-drivers", "Older drivers"),
+    ("severity", "Severity"),
     ("data", "Data and checks"),
 )
 
@@ -141,6 +142,7 @@ def table(frame: pd.DataFrame, caption: str, formats: dict[str, str] | None = No
         "pct2": lambda v: _fmt_pct(v, 2),
         "dec": _fmt_dec,
         "dec2": lambda v: _fmt_dec(v, 2),
+        "dec4": lambda v: _fmt_dec(v, 4),
     }
     rows = []
     for _, row in frame.iterrows():
@@ -269,6 +271,11 @@ def page_index(captions: dict[str, str]) -> str:
                 "older-drivers.html",
                 "Older drivers",
                 "The same driver deaths against four denominators: residents, licence holders, travel-weighted drivers and drivers involved in crashes.",
+            ),
+            (
+                "severity.html",
+                "Severity",
+                "Given that a crash happened, which circumstances make it fatal or serious: two logistic models with odds ratios, marginal effects, calibration and stability.",
             ),
             (
                 "data.html",
@@ -813,6 +820,231 @@ def page_older_drivers(captions: dict[str, str]) -> str:
     )
 
 
+def _or_cell(row: pd.Series) -> str:
+    if bool(row.is_reference):
+        return "1 (reference)"
+    return f"{row.odds_ratio:.2f} ({row.or_low:.2f}–{row.or_high:.2f})"
+
+
+def page_severity(captions: dict[str, str]) -> str:
+    coefficients = read_model_table("q3_model_coefficients")
+    effects = read_model_table("q3_marginal_effects")
+    holdout = read_model_table("q3_holdout_summary").set_index("outcome")
+    stability = read_model_table("q3_year_stability")
+    profiles = read_model_table("q3_profiles")
+    groupings = read_model_table("q3_groupings")
+    n_crashes = int(coefficients.n.iloc[0])
+    fatal = coefficients[coefficients.outcome == "fatal"]
+    serious = coefficients[coefficients.outcome == "serious"]
+    base_fatal = fatal.events.iloc[0] / n_crashes
+    base_serious = serious.events.iloc[0] / n_crashes
+
+    def effect_table(outcome: str) -> pd.DataFrame:
+        table = coefficients[(coefficients.outcome == outcome) & (coefficients.predictor != "year")]
+        points = effects[effects.outcome == outcome].set_index(["predictor", "level"]).effect
+        return pd.DataFrame(
+            {
+                "Circumstance": table.predictor_label.to_numpy(),
+                "Level": table.level.to_numpy(),
+                "Crashes": table.crashes.to_numpy(),
+                "Observed share": table.observed_share.to_numpy(),
+                "Odds ratio (95% interval)": [_or_cell(row) for _, row in table.iterrows()],
+                "Change in probability, points": [
+                    points.get((p, lv), 0.0) * 100 for p, lv in zip(table.predictor, table.level)
+                ],
+            }
+        )
+
+    formats = {
+        "Circumstance": None,
+        "Level": None,
+        "Crashes": "int",
+        "Observed share": "pct",
+        "Odds ratio (95% interval)": None,
+        "Change in probability, points": "dec2",
+    }
+    year_rows = coefficients[coefficients.predictor == "year"]
+    year_table = pd.DataFrame(
+        {
+            "Year": year_rows[year_rows.outcome == "fatal"].level.to_numpy(),
+            "Fatal, odds ratio": [
+                _or_cell(row) for _, row in year_rows[year_rows.outcome == "fatal"].iterrows()
+            ],
+            "Serious, odds ratio": [
+                _or_cell(row) for _, row in year_rows[year_rows.outcome == "serious"].iterrows()
+            ],
+        }
+    ).sort_values("Year")
+    profile_table = profiles.rename(
+        columns={"profile": "Crash profile", "fatal": "Fatal", "serious": "Serious"}
+    )
+    holdout_table = pd.DataFrame(
+        {
+            "Outcome": ["Fatal", "Serious"],
+            "Test crashes": [holdout.loc[o, "test_crashes"] for o in ("fatal", "serious")],
+            "Observed share": [holdout.loc[o, "base_rate_test"] for o in ("fatal", "serious")],
+            "Mean predicted": [holdout.loc[o, "mean_predicted"] for o in ("fatal", "serious")],
+            "Area under the ROC curve": [holdout.loc[o, "auc"] for o in ("fatal", "serious")],
+            "Brier score": [holdout.loc[o, "brier"] for o in ("fatal", "serious")],
+            "Brier score of the base rate": [
+                holdout.loc[o, "brier_base_rate"] for o in ("fatal", "serious")
+            ],
+        }
+    )
+    fatal_stability = stability[stability.outcome == "fatal"]
+    unstable = fatal_stability[~fatal_stability.within_full_interval]
+    if unstable.empty:
+        unstable_text = "every per-year estimate lies within the interval of the full model"
+    else:
+        by_year = unstable.groupby("year").size().sort_values(ascending=False)
+        worst_year = int(by_year.index[0])
+        worst_terms = unstable[unstable.year == worst_year]
+        unstable_text = (
+            f"{len(unstable)} of the {len(fatal_stability)} year-by-term estimates fall outside the "
+            f"interval of the full model; {worst_year} alone accounts for {int(by_year.iloc[0])} "
+            f"of them ({', '.join(worst_terms.level)})"
+        )
+        unstable_text += (
+            ". The yardstick is strict: the full model's intervals are narrow because they pool "
+            "nine years, while a single year of fatal crashes gives wide ones"
+        )
+    latest_year = int(fatal_stability.year.max())
+    road_latest = fatal_stability[
+        (fatal_stability.year == latest_year) & (fatal_stability.predictor == "road")
+    ]
+    zone_latest = fatal_stability[
+        (fatal_stability.year == latest_year) & (fatal_stability.predictor == "zone")
+    ]
+    road_collapses = (
+        not road_latest.empty
+        and (road_latest.odds_ratio < road_latest.full_model_or_low).all()
+        and (road_latest.odds_ratio.between(0.67, 1.5)).all()
+    )
+    zone_rises = (
+        not zone_latest.empty and (zone_latest.odds_ratio > zone_latest.full_model_odds_ratio).all()
+    )
+    if latest_year == 2024 and road_collapses and zone_rises:
+        unstable_text += (
+            ". One pattern is not noise: in 2024 every road-type effect collapses towards 1 while "
+            "every zone effect rises above its full-model estimate, which matches the change in "
+            "how road type is coded that year "
+            "(the share of crashes coded to other road types rose sharply; see the data page). "
+            "Road type and zone should be read together, not separately"
+        )
+    grouping_table = groupings.rename(
+        columns={
+            "predictor": "Circumstance",
+            "source": "Source field",
+            "code": "Code",
+            "level": "Model level",
+            "reference": "Reference",
+        }
+    )
+    grouping_table["Reference"] = grouping_table.Reference.map({True: "yes", False: ""})
+
+    body = tiles(
+        [
+            ("Injury crashes modelled", _fmt_int(n_crashes), "2016–2024, none dropped"),
+            ("Fatal", _fmt_pct(base_fatal, 2), "share with at least one death within 30 days"),
+            ("Serious", _fmt_pct(base_serious, 1), "share with a death or a hospitalised victim"),
+            (
+                "Holdout discrimination, fatal",
+                f"{holdout.loc['fatal', 'auc']:.2f}",
+                "area under the ROC curve, 2023–2024 scored by a 2016–2022 fit",
+            ),
+        ]
+    )
+    body += "<h2>What the models are</h2>"
+    body += (
+        "<p>Two logistic regressions on every injury crash of 2016–2024: one for a fatal outcome, one "
+        "for a serious outcome (death or hospitalisation). The predictors are the circumstances the "
+        "police record for the crash itself: zone, road type, crash type, junction, lighting, weather, "
+        "surface, alignment, time of day, weekend, number of vehicles and year. Missing states are "
+        "kept as their own level and no crash is dropped; the only exception is a level with fewer "
+        "than 500 crashes, which is merged into the reference (the grouping table at the end says "
+        "which). Intervals are clustered by province.</p>"
+    )
+    body += note(
+        "<strong>What they are not.</strong> The microdata carry no driver, vehicle or person "
+        "fields, so nothing here says who was driving, how fast, or whether alcohol was involved; "
+        "the alcohol × speed interaction in the project's methodology note cannot be estimated from "
+        "this file. And a model of recorded crashes describes which recorded crashes turn out badly, "
+        "not the risk of crashing in the first place."
+    )
+    body += "<h2>Fatal outcome</h2>"
+    body += figure("q3_forest_fatal", "Odds of a fatal outcome by crash circumstance", captions)
+    body += table(
+        effect_table("fatal"),
+        "Fatal outcome: odds ratio against the reference level and the average change in the "
+        "probability of a death, in percentage points, when a crash is moved to that level",
+        formats,
+    )
+    body += "<h2>Serious outcome</h2>"
+    body += figure("q3_forest_serious", "Odds of a serious outcome by crash circumstance", captions)
+    body += table(
+        effect_table("serious"),
+        "Serious outcome (death or hospitalisation): odds ratio against the reference level and the "
+        "average change in probability in percentage points",
+        formats,
+    )
+    body += "<h2>What the two models say together</h2>"
+    body += figure(
+        "q3_predicted_grid",
+        "Predicted probability of a fatal crash by road type and lighting",
+        captions,
+    )
+    body += table(
+        profile_table,
+        "Predicted probability of each outcome for named crash profiles (year 2024; circumstances "
+        "not named are at their reference level)",
+        {"Crash profile": None, "Fatal": "pct2", "Serious": "pct"},
+    )
+    body += "<h2>Year</h2>"
+    body += table(
+        year_table,
+        "Year effects against 2019, all other circumstances held constant",
+        {"Year": None, "Fatal, odds ratio": None, "Serious, odds ratio": None},
+    )
+    body += "<h2>Does it hold up?</h2>"
+    body += figure("q3_calibration", "Calibration on the held-out years", captions)
+    body += table(
+        holdout_table,
+        "Fit on 2016–2022 scored on 2023–2024 (the year predictor is left out of this fit)",
+        {
+            "Outcome": None,
+            "Test crashes": "int",
+            "Observed share": "pct2",
+            "Mean predicted": "pct2",
+            "Area under the ROC curve": "dec2",
+            "Brier score": "dec4",
+            "Brier score of the base rate": "dec4",
+        },
+    )
+    body += figure("q3_year_stability", "Odds ratios refitted year by year", captions)
+    body += f"<p>Refitting the fatal model one year at a time, {unstable_text}.</p>"
+    body += "<h2>How the codes were grouped</h2>"
+    body += table(
+        grouping_table,
+        "Every original DGT code and the model level it maps to, including the missing markers and "
+        "the levels merged into the reference for having fewer than 500 crashes; values no crash "
+        "takes are marked as such",
+        {
+            "Circumstance": None,
+            "Source field": None,
+            "Code": None,
+            "Model level": None,
+            "Reference": None,
+        },
+    )
+    return render_page(
+        "severity",
+        "Severity",
+        "Given that an injury crash happened, which recorded circumstances make it fatal or serious, "
+        "from logistic models of every crash since 2016.",
+        body,
+    )
+
+
 def page_data(captions: dict[str, str]) -> str:
     validation = pd.read_csv(TABLES_DIR / "validation.csv")
     grid = read_table("q2_hour_weekday")
@@ -918,6 +1150,7 @@ PAGE_BUILDERS = {
     "road-users": page_road_users,
     "geography": page_geography,
     "older-drivers": page_older_drivers,
+    "severity": page_severity,
     "data": page_data,
 }
 

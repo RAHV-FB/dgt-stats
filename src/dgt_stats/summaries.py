@@ -22,7 +22,7 @@ from dgt_stats import (
     rates,
     validate,
 )
-from dgt_stats.paths import PROCESSED_DATA_DIR
+from dgt_stats.paths import PROCESSED_DATA_DIR, TABLES_DIR
 
 PROCESSED_CRASHES = PROCESSED_DATA_DIR / "accidentes.parquet"
 
@@ -630,6 +630,35 @@ def movilia_car_travel() -> pd.DataFrame:
             "car_share_of_trips",
         ]
     ].rename_axis(columns=None)
+
+
+# --------------------------------------------------------------------------- Q3 severity models
+
+# Written by scripts/model.py (the fits take minutes); analyse.py and the site only read them.
+MODEL_TABLES = (
+    "q3_model_coefficients",
+    "q3_marginal_effects",
+    "q3_calibration",
+    "q3_holdout_summary",
+    "q3_year_stability",
+    "q3_profiles",
+    "q3_predicted_grid",
+    "q3_groupings",
+)
+
+
+def model_tables_present() -> bool:
+    return all((TABLES_DIR / f"{name}.csv").exists() for name in MODEL_TABLES)
+
+
+def read_model_table(name: str) -> pd.DataFrame:
+    """One of the Q3 result tables; a clear error when the models have not been fitted yet."""
+    if name not in MODEL_TABLES:
+        raise KeyError(f"not a model table: {name}")
+    path = TABLES_DIR / f"{name}.csv"
+    if not path.exists():
+        raise FileNotFoundError(f"{path.name} missing: run `python scripts/model.py` first")
+    return pd.read_csv(path)
 
 
 # --------------------------------------------------------------------------- registry

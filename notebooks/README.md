@@ -7,7 +7,7 @@ Notebooks are numbered in the order a reviewer should run or read them:
 01_validation.ipynb            reconciliation and missingness profile
 02_trends.ipynb                Q1
 03_time_patterns.ipynb         Q2
-04_severity_model.ipynb        Q3
+04_severity_model.ipynb        Q3 (scripts/model.py writes the tables)
 05_geography_rates.ipynb       Q4
 06_road_users.ipynb            Q5
 07_older_drivers.ipynb         Q7 (denominator ladder)

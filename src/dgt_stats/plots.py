@@ -429,6 +429,115 @@ def dot_interval(
     return save(fig, path)
 
 
+def forest(
+    frame: pd.DataFrame,
+    group: str,
+    label: str,
+    value: str,
+    low: str,
+    high: str,
+    path: Path,
+    title: str,
+    xlabel: str = "Odds ratio (log scale)",
+    reference_flag: str | None = None,
+) -> Path:
+    """Odds ratios on a log axis, one row per level, grouped by predictor with group headings.
+
+    Rows flagged by ``reference_flag`` are drawn as hollow markers at 1 with no whisker.
+    """
+    apply_style()
+    rows: list[tuple[str, pd.Series | None]] = []
+    for name, block in frame.groupby(group, sort=False):
+        rows.append((str(name), None))
+        for _, row in block.iterrows():
+            rows.append((str(row[label]), row))
+    height = max(3.5, 0.24 * len(rows) + 1.2)
+    fig, axis = plt.subplots(figsize=(FIGURE_WIDTH, height))
+    positions = np.arange(len(rows))[::-1]
+    tick_labels = []
+    for position, (text, row) in zip(positions, rows):
+        if row is None:
+            tick_labels.append(text)
+            continue
+        tick_labels.append("    " + text)
+        is_reference = bool(row[reference_flag]) if reference_flag else False
+        if is_reference:
+            axis.plot(
+                [1.0],
+                [position],
+                marker="o",
+                markersize=6,
+                markerfacecolor=SURFACE,
+                markeredgecolor=CATEGORICAL[0],
+                markeredgewidth=1.5,
+                linestyle="none",
+            )
+            continue
+        axis.hlines(position, row[low], row[high], color=CATEGORICAL[0], linewidth=1.5)
+        axis.plot(
+            [row[value]],
+            [position],
+            marker="o",
+            markersize=6,
+            color=CATEGORICAL[0],
+            markeredgecolor=SURFACE,
+            markeredgewidth=1,
+            linestyle="none",
+        )
+    axis.axvline(1.0, color=TEXT_SECONDARY, linewidth=1, linestyle=":")
+    axis.set_xscale("log")
+    axis.set_yticks(positions, tick_labels, fontsize=8)
+    for tick, (_, row) in zip(axis.get_yticklabels(), rows):
+        if row is None:
+            tick.set_fontweight("bold")
+    axis.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(lambda v, _: f"{v:g}"))
+    axis.grid(True, axis="x")
+    axis.grid(False, axis="y")
+    axis.set_ylim(-0.7, len(rows) - 0.3)
+    axis.set_title(title)
+    axis.set_xlabel(xlabel)
+    return save(fig, path)
+
+
+def calibration(
+    frame: pd.DataFrame,
+    predicted: str,
+    observed: str,
+    path: Path,
+    title: str,
+    series: str | None = None,
+) -> Path:
+    """Observed share against mean predicted probability by decile, with the diagonal."""
+    apply_style()
+    fig, axis = plt.subplots(figsize=(FIGURE_WIDTH, 4.6))
+    groups = [(None, frame)] if series is None else list(frame.groupby(series, sort=False))
+    top = 0.0
+    for index, (name, group) in enumerate(groups):
+        group = group.sort_values(predicted)
+        axis.plot(
+            group[predicted],
+            group[observed],
+            marker="o",
+            markersize=6,
+            color=CATEGORICAL[index],
+            markeredgecolor=SURFACE,
+            markeredgewidth=1,
+            label=None if name is None else str(name),
+        )
+        top = max(top, float(group[[predicted, observed]].max().max()))
+    axis.plot([0, top * 1.05], [0, top * 1.05], color=TEXT_SECONDARY, linewidth=1, linestyle=":")
+    axis.set_xlim(0, top * 1.05)
+    axis.set_ylim(0, top * 1.05)
+    _percent(axis, 1)
+    axis.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(lambda v, _: f"{v * 100:.1f}%"))
+    axis.set_title(title)
+    axis.set_xlabel("Mean predicted probability in the decile")
+    axis.set_ylabel("Observed share")
+    if len(groups) >= 2:
+        axis.legend(loc="upper left", bbox_to_anchor=(0, -0.14), ncol=min(len(groups), 4))
+    return save(fig, path)
+
+
 def grouped_bars(
     frame: pd.DataFrame,
     x: str,

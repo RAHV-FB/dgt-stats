@@ -1,0 +1,26 @@
+outcome,road,lighting,probability
+fatal,urban street,daylight,0.00358807
+fatal,urban street,dusk or dawn,0.0041615
+fatal,urban street,"dark, street lighting",0.0039689
+fatal,urban street,"dark, no lighting",0.00494284
+fatal,urban street,not specified,0.00130543
+fatal,conventional,daylight,0.0224821
+fatal,conventional,dusk or dawn,0.0259963
+fatal,conventional,"dark, street lighting",0.0248184
+fatal,conventional,"dark, no lighting",0.0307506
+fatal,conventional,not specified,0.0082794
+fatal,dual carriageway,daylight,0.0263003
+fatal,dual carriageway,dusk or dawn,0.0303928
+fatal,dual carriageway,"dark, street lighting",0.0290216
+fatal,dual carriageway,"dark, no lighting",0.0359216
+fatal,dual carriageway,not specified,0.00970949
+fatal,motorway,daylight,0.0261147
+fatal,motorway,dusk or dawn,0.0301792
+fatal,motorway,"dark, street lighting",0.0288173
+fatal,motorway,"dark, no lighting",0.0356705
+fatal,motorway,not specified,0.00963978
+fatal,other road,daylight,0.0200746
+fatal,other road,dusk or dawn,0.0232214
+fatal,other road,"dark, street lighting",0.0221664
+fatal,other road,"dark, no lighting",0.0274826
+fatal,other road,not specified,0.00738132

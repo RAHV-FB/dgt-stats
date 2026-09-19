@@ -109,3 +109,38 @@ def test_dot_interval_and_grouped_bars(tmp_path: Path) -> None:
         bars, "band", "kind", "share", tmp_path / "bars2.svg", "Bars", percent=True
     )
     _svg_ok(out)
+
+
+def test_forest_and_calibration(tmp_path: Path) -> None:
+    frame = pd.DataFrame(
+        {
+            "predictor": ["Zone", "Zone", "Zone", "Lighting", "Lighting"],
+            "level": ["street", "interurban", "crossing", "daylight", "dark"],
+            "odds_ratio": [1.0, 2.5, 1.3, 1.0, 1.8],
+            "or_low": [1.0, 2.2, 1.0, 1.0, 1.6],
+            "or_high": [1.0, 2.9, 1.7, 1.0, 2.0],
+            "is_reference": [True, False, False, True, False],
+        }
+    )
+    out = plots.forest(
+        frame,
+        "predictor",
+        "level",
+        "odds_ratio",
+        "or_low",
+        "or_high",
+        tmp_path / "forest.svg",
+        "Forest",
+        reference_flag="is_reference",
+    )
+    _svg_ok(out)
+    text = out.read_text(encoding="utf-8")
+    assert "interurban" in text and "Lighting" in text
+    cal = pd.DataFrame(
+        {
+            "outcome": ["fatal"] * 3 + ["serious"] * 3,
+            "predicted": [0.005, 0.02, 0.08, 0.03, 0.1, 0.3],
+            "observed": [0.006, 0.019, 0.085, 0.028, 0.11, 0.29],
+        }
+    )
+    _svg_ok(plots.calibration(cal, "predicted", "observed", tmp_path / "cal.svg", "Cal", "outcome"))

@@ -1,0 +1,105 @@
+predictor,source,code,level,reference
+Zone,ZONA,3,street,True
+Zone,ZONA,1,interurban road,False
+Zone,ZONA,2,urban crossing,False
+Zone,ZONA,4,urban motorway,False
+Zone,ZONA,999,not specified (no crash takes this value),False
+Zone,ZONA,998,not applicable (no crash takes this value),False
+Zone,ZONA,any other value or empty,not specified (no crash takes this value),False
+Road type,road_group,urban_street,urban street,True
+Road type,road_group,conventional,conventional,False
+Road type,road_group,dual_carriageway,dual carriageway,False
+Road type,road_group,motorway,motorway,False
+Road type,road_group,other,other road,False
+Road type,road_group,any other value or empty,"urban street (merged: 85 crashes, fewer than 500)",True
+Crash type,TIPO_ACCIDENTE,1,head-on collision,False
+Crash type,TIPO_ACCIDENTE,2,side collision,True
+Crash type,TIPO_ACCIDENTE,3,side collision,True
+Crash type,TIPO_ACCIDENTE,4,rear-end or chain collision,False
+Crash type,TIPO_ACCIDENTE,5,rear-end or chain collision,False
+Crash type,TIPO_ACCIDENTE,6,object or animal struck,False
+Crash type,TIPO_ACCIDENTE,7,pedestrian struck,False
+Crash type,TIPO_ACCIDENTE,8,object or animal struck,False
+Crash type,TIPO_ACCIDENTE,9,run-off or overturn,False
+Crash type,TIPO_ACCIDENTE,10,fall,False
+Crash type,TIPO_ACCIDENTE,11,run-off or overturn,False
+Crash type,TIPO_ACCIDENTE,12,run-off or overturn,False
+Crash type,TIPO_ACCIDENTE,13,run-off or overturn,False
+Crash type,TIPO_ACCIDENTE,14,run-off or overturn,False
+Crash type,TIPO_ACCIDENTE,15,run-off or overturn,False
+Crash type,TIPO_ACCIDENTE,16,run-off or overturn,False
+Crash type,TIPO_ACCIDENTE,17,run-off or overturn,False
+Crash type,TIPO_ACCIDENTE,18,run-off or overturn,False
+Crash type,TIPO_ACCIDENTE,19,run-off or overturn,False
+Crash type,TIPO_ACCIDENTE,20,other crash type,False
+Crash type,TIPO_ACCIDENTE,999,"side collision (merged: 35 crashes, fewer than 500)",True
+Crash type,TIPO_ACCIDENTE,998,not applicable (no crash takes this value),False
+Crash type,TIPO_ACCIDENTE,any other value or empty,"side collision (merged: 35 crashes, fewer than 500)",True
+Junction,NUDO,2,not at a junction,True
+Junction,NUDO,1,at a junction,False
+Junction,NUDO,999,"not at a junction (merged: 356 crashes, fewer than 500)",True
+Junction,NUDO,998,not applicable (no crash takes this value),False
+Junction,NUDO,any other value or empty,"not at a junction (merged: 356 crashes, fewer than 500)",True
+Lighting,CONDICION_ILUMINACION,1,daylight,True
+Lighting,CONDICION_ILUMINACION,2,dusk or dawn,False
+Lighting,CONDICION_ILUMINACION,3,dusk or dawn,False
+Lighting,CONDICION_ILUMINACION,4,"dark, street lighting",False
+Lighting,CONDICION_ILUMINACION,5,"dark, no lighting",False
+Lighting,CONDICION_ILUMINACION,6,"dark, no lighting",False
+Lighting,CONDICION_ILUMINACION,999,not specified,False
+Lighting,CONDICION_ILUMINACION,998,not applicable (no crash takes this value),False
+Lighting,CONDICION_ILUMINACION,any other value or empty,not specified,False
+Weather,CONDICION_METEO,1,clear,True
+Weather,CONDICION_METEO,2,cloudy,False
+Weather,CONDICION_METEO,3,rain,False
+Weather,CONDICION_METEO,4,rain,False
+Weather,CONDICION_METEO,5,hail or snow,False
+Weather,CONDICION_METEO,6,hail or snow,False
+Weather,CONDICION_METEO,999,not specified,False
+Weather,CONDICION_METEO,998,not applicable (no crash takes this value),False
+Weather,CONDICION_METEO,any other value or empty,not specified,False
+Road surface,CONDICION_FIRME,1,dry,True
+Road surface,CONDICION_FIRME,3,wet,False
+Road surface,CONDICION_FIRME,2,other surface,False
+Road surface,CONDICION_FIRME,4,other surface,False
+Road surface,CONDICION_FIRME,5,other surface,False
+Road surface,CONDICION_FIRME,6,other surface,False
+Road surface,CONDICION_FIRME,7,other surface,False
+Road surface,CONDICION_FIRME,8,other surface,False
+Road surface,CONDICION_FIRME,999,not specified,False
+Road surface,CONDICION_FIRME,998,not applicable (no crash takes this value),False
+Road surface,CONDICION_FIRME,any other value or empty,not specified,False
+Alignment,TRAZADO_PLANTA,1,straight,True
+Alignment,TRAZADO_PLANTA,2,curve,False
+Alignment,TRAZADO_PLANTA,3,curve,False
+Alignment,TRAZADO_PLANTA,999,not specified,False
+Alignment,TRAZADO_PLANTA,998,straight,True
+Alignment,TRAZADO_PLANTA,any other value or empty,not specified,False
+Time of day,hour_band,00-06,00-06,False
+Time of day,hour_band,07-09,07-09,False
+Time of day,hour_band,10-13,10-13,True
+Time of day,hour_band,14-16,14-16,False
+Time of day,hour_band,17-19,17-19,False
+Time of day,hour_band,20-23,20-23,False
+Time of day,hour_band,any other value or empty,not specified (no crash takes this value),False
+Weekend,weekend,False,weekday,True
+Weekend,weekend,True,weekend,False
+Weekend,weekend,any other value or empty,not specified (no crash takes this value),False
+Vehicles involved,TOTAL_VEHICULOS,0,1 vehicle,False
+Vehicles involved,TOTAL_VEHICULOS,1,1 vehicle,False
+Vehicles involved,TOTAL_VEHICULOS,2,2 vehicles,True
+Vehicles involved,TOTAL_VEHICULOS,999,not specified (no crash takes this value),False
+Vehicles involved,TOTAL_VEHICULOS,998,not applicable (no crash takes this value),False
+Vehicles involved,TOTAL_VEHICULOS,any other value or empty,3 or more vehicles,False
+Year,ANYO,2016,2016,False
+Year,ANYO,2017,2017,False
+Year,ANYO,2018,2018,False
+Year,ANYO,2019,2019,True
+Year,ANYO,2020,2020,False
+Year,ANYO,2021,2021,False
+Year,ANYO,2022,2022,False
+Year,ANYO,2023,2023,False
+Year,ANYO,2024,2024,False
+Year,ANYO,999,not specified (no crash takes this value),False
+Year,ANYO,998,not applicable (no crash takes this value),False
+Year,ANYO,any other value or empty,not specified (no crash takes this value),False

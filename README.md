@@ -98,7 +98,12 @@ per licence holder (exact Poisson intervals), an older-drivers page that keeps d
 changes only the denominator (residents, licence holders, travel-weighted drivers, drivers involved in
 crashes), and a data page with the sources, definitions and the reconciliation checks. The pages live
 in [`site/`](site/) and are deployed to GitHub Pages from `main`; the tables and SVG figures behind
-them are in [`reports/`](reports/).
+them are in [`reports/`](reports/). A severity page adds two logistic models of every crash since
+2016: given that an injury crash happened, head-on collisions and pedestrian strikes carry about six
+times the odds of a death of a side collision, interurban roads two to three times the odds of a
+street, darkness without lighting about 1.4 times daylight; a fit on 2016–2022 scores the crashes of
+2023–2024 with an area under the curve of 0.80 for a fatal outcome and stays calibrated across the
+deciles of predicted risk.
 
 Two findings from the older-drivers page: per resident, drivers aged 75 and over die less often than
 drivers aged 35–64 (ratio about 0.7 in 2024), per licence holder more often (about 1.6), and per driver
@@ -110,6 +115,7 @@ denominator is an estimate with stated limits ([`docs/phase3_plan.md`](docs/phas
 ```bash
 python scripts/ingest.py all        # raw -> data/interim, validation report
 python scripts/build_tables.py      # data/interim -> data/processed (derived fields, labels)
+python scripts/model.py             # reports/tables/q3_*.csv (severity models, about 2 minutes)
 python scripts/analyse.py all       # reports/tables/q*.csv and reports/figures/*.svg
 python scripts/build_site.py        # site/
 ```
@@ -148,7 +154,7 @@ tests/                 Data-contract and code tests
 - [x] Reproduce official headline totals before producing new analysis ([`reports/tables/validation.csv`](reports/tables/validation.csv)).
 - [x] Publish the first descriptive results (trends, timing, road users) as a static site.
 - [x] Build the first exposure-adjusted trend analysis (province rates and the older-driver denominator ladder).
-- [ ] Analyse factor co-occurrence and alcohol × speed interactions.
+- [x] Model crash severity from the recorded circumstances (the crash-level file has no driver, vehicle or alcohol fields, so factor interactions such as alcohol × speed are out of reach until person-level microdata are obtained).
 - [ ] Add road-design and geospatial variables.
 - [ ] Evaluate one well-defined campaign or policy intervention.
 - [ ] Publish a final report and documented dashboard.
