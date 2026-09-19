@@ -123,7 +123,7 @@ site/*.html + site/style.css      static site, publishable with GitHub Pages
 |---|---|---|
 | 0. Organise | done: files under `data/raw/`, duplicate removed, `manifest.csv` written | tests pass on the new layout |
 | 1. Ingest and validate | done: `codes`, `io_microdata`, `io_tables`, `io_exposure`, `validate`; Parquet outputs; checks 1–6 | all 277 checks pass; `reports/tables/validation.csv` and `missingness_by_year.csv` committed |
-| 2. Descriptives | Q1, Q2, Q5 charts and tables; missingness profile by year | first site build with four pages |
+| 2. Descriptives | done: `derive`, `labels`, `summaries`, `plots`, `figures`, `site`; 12 result tables, 13 SVG figures, five pages | site built into `site/` and deployed by `.github/workflows/pages.yml` |
 | 3. Rates | INE population added; Q4 and Q7 | rate tables with CIs on the site |
 | 4. Severity model | Q3 logistic models, calibration check, year-stability check | odds-ratio tables and forest plots on the site |
 | 5. Exposure case study | Q6 for 2022 | heavy-vehicle page with stated limits |
