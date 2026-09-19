@@ -99,7 +99,12 @@ STATUS_LEVELS: tuple[str, ...] = (
 
 
 def _is_missing(value: object) -> bool:
-    return value is None or value is pd.NA or (isinstance(value, float) and pd.isna(value))
+    if value is None or value is pd.NA:
+        return True
+    try:
+        return bool(pd.isna(value))
+    except (TypeError, ValueError):
+        return False
 
 
 def _code_key(value: object) -> str | None:

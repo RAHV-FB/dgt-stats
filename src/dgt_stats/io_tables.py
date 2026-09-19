@@ -8,7 +8,6 @@ by fixed row numbers so that small layout shifts in future releases are caught a
 from __future__ import annotations
 
 import logging
-from functools import lru_cache
 from pathlib import Path
 
 import openpyxl
@@ -133,9 +132,21 @@ SEVERITY_LABELS = {
 # --------------------------------------------------------------------------- generic helpers
 
 
-@lru_cache(maxsize=4)
+_WORKBOOKS: dict[Path, openpyxl.Workbook] = {}
+
+
 def _workbook(path: Path) -> openpyxl.Workbook:
-    return openpyxl.load_workbook(path, read_only=True, data_only=True)
+    """Open a workbook once per process; ``close_workbooks`` releases the file handles."""
+    if path not in _WORKBOOKS:
+        _WORKBOOKS[path] = openpyxl.load_workbook(path, read_only=True, data_only=True)
+    return _WORKBOOKS[path]
+
+
+def close_workbooks() -> None:
+    """Close every cached read-only workbook and drop it from the cache."""
+    for workbook in _WORKBOOKS.values():
+        workbook.close()
+    _WORKBOOKS.clear()
 
 
 def _rows(path: Path, sheet: str) -> list[tuple]:
@@ -293,6 +304,8 @@ def read_series_province() -> pd.DataFrame:
             if not name:
                 continue
             values = [_number(v) for v in row[1 : 1 + len(years)]]
+            if all(v is None for v in values):
+                continue
             frames.append(
                 pd.DataFrame(
                     {
@@ -371,28 +384,26 @@ def read_series_sex() -> pd.DataFrame:
 
 def read_series_road_users() -> pd.DataFrame:
     """Driver (and passenger) casualties by vehicle type × year × zone, 1993–2024."""
-    frames: list[pd.DataFrame] = []
+    records: list[dict[str, object]] = []
     for sheet, (population, severity, zone) in ROAD_USER_SHEETS.items():
         rows = _rows(SERIES_PATH, sheet)
         header = _find_header(rows, "Años")
         types = [_text(cell) for cell in rows[header][1:] if cell is not None]
         for year, *values in _year_rows(rows, header):
             for vehicle_type, value in zip(types, values):
-                frames.append(
-                    pd.DataFrame(
-                        {
-                            "year": [year],
-                            "population": [population],
-                            "severity": [severity],
-                            "vehicle_type": [vehicle_type],
-                            "is_total": [vehicle_type.upper() == "TOTAL"],
-                            "zone": [zone],
-                            "value": [_number(value)],
-                            "source_sheet": [sheet],
-                        }
-                    )
+                records.append(
+                    {
+                        "year": year,
+                        "population": population,
+                        "severity": severity,
+                        "vehicle_type": vehicle_type,
+                        "is_total": vehicle_type.upper() == "TOTAL",
+                        "zone": zone,
+                        "value": _number(value),
+                        "source_sheet": sheet,
+                    }
                 )
-    out = pd.concat(frames, ignore_index=True)
+    out = pd.DataFrame.from_records(records)
     return out.astype(
         {
             "year": "int16",
@@ -407,44 +418,28 @@ def read_series_road_users() -> pd.DataFrame:
 
 def read_series_pedestrians() -> pd.DataFrame:
     """Pedestrian victims by severity × zone and by age band × zone, 1993–2024."""
-    frames: list[pd.DataFrame] = []
-    for sheet, zone in PEDESTRIAN_SHEETS.items():
-        rows = _rows(SERIES_PATH, sheet)
-        header = _find_header(rows, "Años")
-        labels = [_text(cell) for cell in rows[header][1:5]]
-        for year, *values in _year_rows(rows, header):
-            for label, value in zip(labels, values):
-                frames.append(
-                    pd.DataFrame(
+    records: list[dict[str, object]] = []
+    for breakdown, sheets in (("severity", PEDESTRIAN_SHEETS), ("age_band", PEDESTRIAN_AGE_SHEETS)):
+        for sheet, zone in sheets.items():
+            rows = _rows(SERIES_PATH, sheet)
+            header = _find_header(rows, "Años")
+            labels = [_text(cell) for cell in rows[header][1:] if cell is not None]
+            for year, *values in _year_rows(rows, header):
+                for label, value in zip(labels, values):
+                    category = (
+                        SEVERITY_LABELS.get(label, label) if breakdown == "severity" else label
+                    )
+                    records.append(
                         {
-                            "year": [year],
-                            "breakdown": ["severity"],
-                            "category": [SEVERITY_LABELS.get(label, label)],
-                            "zone": [zone],
-                            "value": [_number(value)],
-                            "source_sheet": [sheet],
+                            "year": year,
+                            "breakdown": breakdown,
+                            "category": category,
+                            "zone": zone,
+                            "value": _number(value),
+                            "source_sheet": sheet,
                         }
                     )
-                )
-    for sheet, zone in PEDESTRIAN_AGE_SHEETS.items():
-        rows = _rows(SERIES_PATH, sheet)
-        header = _find_header(rows, "Años")
-        labels = [_text(cell) for cell in rows[header][1:] if cell is not None]
-        for year, *values in _year_rows(rows, header):
-            for label, value in zip(labels, values):
-                frames.append(
-                    pd.DataFrame(
-                        {
-                            "year": [year],
-                            "breakdown": ["age_band"],
-                            "category": [label],
-                            "zone": [zone],
-                            "value": [_number(value)],
-                            "source_sheet": [sheet],
-                        }
-                    )
-                )
-    out = pd.concat(frames, ignore_index=True)
+    out = pd.DataFrame.from_records(records)
     return out.astype(
         {
             "year": "int16",
@@ -478,6 +473,8 @@ def read_table_1_1() -> pd.DataFrame:
         if not name:
             continue
         values = [_number(v) for v in row[1:16]]
+        if all(v is None for v in values):
+            continue
         for zone_index, zone in enumerate(zones):
             block = values[zone_index * 5 : zone_index * 5 + 5]
             frames.append(
@@ -520,6 +517,8 @@ def read_table_3_1() -> pd.DataFrame:
             continue
         month = MONTH_NAMES.index(name) + 1 if name in MONTH_NAMES else None
         values = [_number(v) for v in row[1:19]]
+        if all(v is None for v in values):
+            continue
         for zone_index, zone in enumerate(zones):
             block = values[zone_index * 6 : zone_index * 6 + 6]
             frames.append(
@@ -561,6 +560,8 @@ def read_table_2_3() -> pd.DataFrame:
         if not name:
             continue
         values = [_number(v) for v in row[1:10]]
+        if all(v is None for v in values):
+            continue
         for zone_index, zone in enumerate(zones):
             block = values[zone_index * 3 : zone_index * 3 + 3]
             frames.append(
@@ -592,6 +593,8 @@ def read_table_8_1_1() -> pd.DataFrame:
         if not name:
             continue
         values = [_number(v) for v in row[1:16]]
+        if all(v is None for v in values):
+            continue
         for zone_index, zone in enumerate(zones):
             block = values[zone_index * 5 : zone_index * 5 + 5]
             frames.append(
@@ -652,6 +655,7 @@ def build_tables(force: bool = False) -> list[Path]:
         frame.to_parquet(target, index=False)
         log.info("tables %s: %s rows -> %s", name, f"{len(frame):,}", target.name)
         written.append(target)
+    close_workbooks()
     return written
 
 

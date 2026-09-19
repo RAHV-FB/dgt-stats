@@ -211,10 +211,17 @@ def all_years_path() -> Path:
 
 
 def build_all(years: tuple[int, ...] = MICRODATA_YEARS, force: bool = False) -> Path:
-    """Write every year and stack them into ``accidentes_all.parquet``."""
+    """Write the requested years, then stack every available year into ``accidentes_all.parquet``.
+
+    The stacked file always covers all of :data:`MICRODATA_YEARS`, so rebuilding a single year with
+    ``--years`` never drops the others; a year whose Parquet file is missing is built on the spot.
+    """
     for year in years:
         write_interim(year, force=force)
-    frames = [read_interim_year(year) for year in years]
+    for year in MICRODATA_YEARS:
+        if not microdata_interim_path(year).exists():
+            write_interim(year)
+    frames = [read_interim_year(year) for year in MICRODATA_YEARS]
     stacked = pd.concat(frames, ignore_index=True)
     target = all_years_path()
     stacked.to_parquet(target, index=False)

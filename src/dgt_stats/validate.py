@@ -13,7 +13,7 @@ from pathlib import Path
 import pandas as pd
 
 from dgt_stats import codes, io_exposure, io_microdata, io_tables
-from dgt_stats.paths import TABLES_DIR
+from dgt_stats.paths import MICRODATA_YEARS, TABLES_DIR
 
 log = logging.getLogger(__name__)
 
@@ -68,10 +68,11 @@ def check_row_counts(crashes: pd.DataFrame, annual: pd.DataFrame) -> list[Result
             int(year),
             "crashes",
             float(expected.loc[year]),
-            float(n),
-            expected.loc[year] == n,
+            float(actual.get(year, 0)),
+            expected.loc[year] == actual.get(year, 0),
+            "" if year in actual.index else "year missing from interim layer",
         )
-        for year, n in actual.items()
+        for year in MICRODATA_YEARS
     ]
 
 
@@ -81,6 +82,7 @@ def check_victim_totals(
     """Check 2: 30-day victim sums per year equal the yearbook; 24-hour deaths equal the 24 h series."""
     results: list[Result] = []
     sums = crashes.groupby("ANYO")[list(VICTIM_COLUMNS.values())].sum()
+    sums = sums.reindex(list(MICRODATA_YEARS), fill_value=0)
     for metric, column in VICTIM_COLUMNS.items():
         expected = (
             annual[(annual.metric == metric) & (annual.zone == "all")].set_index("year").value
@@ -101,7 +103,9 @@ def check_victim_totals(
         .groupby("year")
         .annual_total.first()
     )
-    actual_24h = crashes.groupby("ANYO")["TOTAL_MU24H"].sum()
+    actual_24h = (
+        crashes.groupby("ANYO")["TOTAL_MU24H"].sum().reindex(list(MICRODATA_YEARS), fill_value=0)
+    )
     for year, actual in actual_24h.items():
         results.append(
             Result(
@@ -293,8 +297,9 @@ def missingness_profile(crashes: pd.DataFrame) -> pd.DataFrame:
 # --------------------------------------------------------------------------- runner
 
 
-def run_checks() -> pd.DataFrame:
-    crashes = io_microdata.read_all()
+def run_checks(crashes: pd.DataFrame | None = None) -> pd.DataFrame:
+    if crashes is None:
+        crashes = io_microdata.read_all()
     annual = io_tables.read_table("series_annual")
     monthly = io_tables.read_table("series_monthly")
     province_table = io_tables.read_table("tables_2024_province")
@@ -314,7 +319,8 @@ def run_checks() -> pd.DataFrame:
 
 def run_all(output_dir: Path = TABLES_DIR) -> tuple[pd.DataFrame, pd.DataFrame]:
     output_dir.mkdir(parents=True, exist_ok=True)
-    results = run_checks()
+    crashes = io_microdata.read_all()
+    results = run_checks(crashes)
     results.to_csv(output_dir / VALIDATION_PATH.name, index=False)
     summary = results.groupby("check").passed.agg(["size", "sum"])
     for check, (size, passed) in summary.iterrows():
@@ -323,7 +329,7 @@ def run_all(output_dir: Path = TABLES_DIR) -> tuple[pd.DataFrame, pd.DataFrame]:
     if not failed.empty:
         log.warning("validate: %d checks failed", len(failed))
 
-    profile = missingness_profile(io_microdata.read_all())
+    profile = missingness_profile(crashes)
     profile.to_csv(output_dir / MISSINGNESS_PATH.name, index=False)
     log.info("validate: wrote %s and %s", VALIDATION_PATH.name, MISSINGNESS_PATH.name)
     return results, profile
