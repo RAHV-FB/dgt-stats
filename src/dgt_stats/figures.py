@@ -551,7 +551,8 @@ def _vehicle_figures(figures_dir: Path, captions: dict[str, str], summary) -> No
         "vehicles of each type involved in injury crashes and in 30-day fatal crashes, and their "
         "drivers and passengers killed within 30 days, divided by the type's estimated "
         "vehicle-kilometres (registered fleet × mean annual km from ITV odometer readings); "
-        "whiskers are exact 95% Poisson intervals; rows ordered by fatal-crash involvement",
+        "whiskers are exact 95% Poisson intervals; rows ordered by fatal-crash involvement; "
+        "trucks over 3,500 kg include tractor units and articulated vehicles",
         f"{int(rates[rates.measure == 'injury_involvement']['count'].sum()):,} vehicles involved",
     )
 

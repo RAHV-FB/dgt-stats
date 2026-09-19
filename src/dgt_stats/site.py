@@ -1150,9 +1150,26 @@ def page_vehicles(captions: dict[str, str]) -> str:
             "km_table_type": "Kilometre table type",
             "series_column": "Series column",
             "has_km_denominator": "Has a km denominator",
+            "note": "Note",
         }
     ).drop(columns=["group", "microdata_column"])
     mapping["Has a km denominator"] = mapping["Has a km denominator"].map({True: "yes", False: ""})
+    split = read_table("q6_van_light_truck_split").set_index("group")
+    split_table = pd.DataFrame(
+        {
+            "Vehicle type": split.label.values,
+            "Registered": split.n_vehicles.values,
+            "In injury crashes": split.injury_involvement.values,
+            "per bn km": split.injury_involvement_per_bn_km.values,
+            "In fatal crashes": split.fatal_involvement.values,
+            "per bn km ": split.fatal_involvement_per_bn_km.values,
+            "per 100,000 vehicles": split.fatal_involvement_per_100k_vehicles.values,
+        }
+    )
+    split_ratio = (
+        split.loc["light_truck", "fatal_involvement_per_bn_km"]
+        / split.loc["van", "fatal_involvement_per_bn_km"]
+    )
 
     by_age = read_table("q6_km_by_age_2022")
     heavy_age = by_age[by_age.group == "heavy_truck"].set_index("age_band").mean_km_year
@@ -1160,7 +1177,20 @@ def page_vehicles(captions: dict[str, str]) -> str:
     ratio_vehicle = per_vehicle("heavy_truck") / per_vehicle("car")
     ratio_km = per_km("heavy_truck") / per_km("car")
     moto_ratio = per_km("motorcycle") / per_km("car")
-    fatal_share_rate_groups = latest.loc[order, "fatal_involvement_share"].sum()
+    fatal_share_rate_groups = latest.loc[order, "fatal_involvement_share_of_vehicles"].sum()
+    heavy_fatal_share = latest.loc["heavy_truck", "fatal_involvement_share_of_vehicles"]
+
+    def occupant_ratio(group: str) -> float:
+        return per_km(group, "occupant_deaths") / per_km("car", "occupant_deaths")
+
+    def times(ratio: float) -> str:
+        if ratio < 0.95:
+            return "less often"
+        if ratio > 1.05:
+            return f"{ratio:.1f} times as often"
+        return "about as often"
+
+    bus_deaths = row("bus", "occupant_deaths")
 
     body = tiles(
         [
@@ -1168,8 +1198,8 @@ def page_vehicles(captions: dict[str, str]) -> str:
                 f"Trucks over 3,500 kg, {year}",
                 _fmt_pct(heavy.n_vehicles / km_total.n_vehicles, 1),
                 f"of the seven-type fleet; {_fmt_pct(heavy.vehicle_km_bn * 1e9 / km_total.vehicle_km, 1)} "
-                f"of its kilometres; {_fmt_pct(latest.loc['heavy_truck', 'fatal_involvement_share'], 1)} "
-                "of all vehicles in fatal crashes",
+                f"of its kilometres; {_fmt_pct(heavy_fatal_share, 1)} of the vehicles in fatal "
+                "crashes",
             ),
             (
                 "Heavy trucks vs cars, per vehicle",
@@ -1196,9 +1226,9 @@ def page_vehicles(captions: dict[str, str]) -> str:
         "yearbook tables count the vehicles of each type involved in injury crashes and in fatal "
         "crashes, and the drivers and passengers of each type who died. Dividing the counts by the "
         f"kilometres gives the three rates below for the six vehicle groups the two sources share "
-        f"({_fmt_pct(fatal_share_rate_groups, 0)} of all vehicles in fatal crashes; pedestrians, "
-        "bicycles, personal mobility vehicles, machinery and unknown vehicles have no kilometre "
-        "denominator).</p>"
+        f"({_fmt_pct(fatal_share_rate_groups, 0)} of the vehicles in fatal crashes, pedestrians "
+        "not counted; bicycles, personal mobility vehicles, machinery and unknown vehicles have no "
+        "kilometre denominator).</p>"
     )
     body += figure("q6_rates_per_km", "Vehicles per billion kilometres driven, 2022", captions)
     body += table(
@@ -1228,9 +1258,16 @@ def page_vehicles(captions: dict[str, str]) -> str:
         f"{per_km('car', 'occupant_deaths'):.1f}). Mopeds sit close behind on both. Heavy trucks "
         f"({per_km('heavy_truck'):.1f}) and buses ({per_km('bus'):.1f}) are in fatal crashes "
         f"{ratio_km:.1f} and {per_km('bus') / per_km('car'):.1f} times as often as cars per "
-        "kilometre, yet their occupants die less often per kilometre than car occupants. Vans and "
-        f"trucks up to 3,500 kg ({per_km('van_light_truck'):.1f}) are close to cars on every "
-        "rate.</p>"
+        f"kilometre. Heavy-truck occupants die {times(occupant_ratio('heavy_truck'))} per kilometre "
+        f"than car occupants ({per_km('heavy_truck', 'occupant_deaths'):.1f} against "
+        f"{per_km('car', 'occupant_deaths'):.1f}); bus occupants "
+        f"{times(occupant_ratio('bus'))} ({per_km('bus', 'occupant_deaths'):.1f}, but on "
+        f"{int(bus_deaths['count'])} deaths, so the interval runs from "
+        f"{bus_deaths.per_billion_km_low:.1f} to {bus_deaths.per_billion_km_high:.1f}). Vans and "
+        f"trucks up to 3,500 kg ({per_km('van_light_truck'):.1f}) match cars on the fatal measures "
+        f"and are in injury crashes less often per kilometre "
+        f"({per_km('van_light_truck', 'injury_involvement'):.0f} against "
+        f"{per_km('car', 'injury_involvement'):.0f}).</p>"
     )
     body += "<h2>Per vehicle or per kilometre</h2>"
     body += figure(
@@ -1339,10 +1376,28 @@ def page_vehicles(captions: dict[str, str]) -> str:
         "roadworthiness inspections and imputes them to the registered fleet; its methodology note "
         "reports that the model explains between 19% and 45% of the variance across individual "
         "vehicles and that the estimates are valid for aggregates only. The intervals on this page "
-        "come from the crash counts alone and treat the kilometres as known. Third, vans and trucks "
-        "up to 3,500 kg are one group here because the crash record codes most light commercial "
-        "vehicles as vans while the register splits them; taken separately, light trucks would show a "
-        "fifth of the van rate for no real reason."
+        "come from the crash counts alone and treat the kilometres as known. Third, the groups "
+        "must mean the same thing on both sides of the division. Vans and trucks up to 3,500 kg are "
+        "one group because the crash record codes most light commercial vehicles as vans while the "
+        "register splits them: taken separately (table below), trucks up to 3,500 kg would be in "
+        f"fatal crashes {_fmt_pct(split_ratio, 0)} as often as vans per kilometre, a gap with no "
+        "plausible cause but the coding. Heavy trucks include tractor units and articulated vehicles "
+        "because the kilometre table's heavy category is, per DGT's methodology note, the union of "
+        "trucks over 3,500 kg (272,157 vehicles, 6.9 billion km) and industrial tractors (222,594 "
+        "vehicles, 19.7 billion km)."
+    )
+    body += table(
+        split_table,
+        f"Vans and trucks up to 3,500 kg taken separately, {year}: the gap that motivates merging them",
+        {
+            "Vehicle type": None,
+            "Registered": "int",
+            "In injury crashes": "int",
+            "per bn km": "dec",
+            "In fatal crashes": "int",
+            "per bn km ": "dec",
+            "per 100,000 vehicles": "dec",
+        },
     )
     body += table(
         mapping,
@@ -1354,6 +1409,7 @@ def page_vehicles(captions: dict[str, str]) -> str:
             "Kilometre table type": None,
             "Series column": None,
             "Has a km denominator": None,
+            "Note": None,
         },
     )
     return render_page(

@@ -129,6 +129,21 @@ VEHICLE_GROUPS: dict[str, dict[str, object]] = {
     },
 }
 
+# What the reader must know about a group's sources, printed in the mapping table.
+GROUP_NOTES = {
+    "heavy_truck": (
+        "the kilometre table's category is the union of the methodology note's 'camiones de más de "
+        "3.500 kg' (272,157 vehicles, 6.9 bn km) and 'tractores industriales' (222,594 vehicles, "
+        "19.7 bn km), so tractor units and articulated vehicles belong in the numerator"
+    ),
+    "van": "one rate group with trucks up to 3,500 kg",
+    "light_truck": "one rate group with vans",
+    "other": (
+        "agricultural tractors that pass roadworthiness inspection sit in the kilometre table's "
+        "tractor category but have no involvement row of their own, so they stay without a rate"
+    ),
+}
+
 # Groups with a kilometre denominator, in the order the page shows them.
 KM_GROUPS = tuple(name for name, spec in VEHICLE_GROUPS.items() if spec["km_type"] is not None)
 
@@ -186,6 +201,7 @@ def vehicle_groups_table() -> pd.DataFrame:
                 "series_column": spec["series"]
                 or (SERIES_MERGED_COLUMN if name in SERIES_MERGED_GROUPS else ""),
                 "has_km_denominator": spec["km_type"] is not None,
+                "note": GROUP_NOTES.get(name, ""),
             }
         )
     return pd.DataFrame.from_records(records)
@@ -379,10 +395,58 @@ def summary_2022() -> pd.DataFrame:
         out.occupant_deaths / out.fatal_involvement
     ).round(3)
     out["rank_fatal_per_100k_vehicles"] = out.fatal_involvement_per_100k_vehicles.rank(
-        ascending=False
+        ascending=False, method="first"
     ).astype(int)
-    out["rank_fatal_per_bn_km"] = out.fatal_involvement_per_bn_km.rank(ascending=False).astype(int)
+    out["rank_fatal_per_bn_km"] = out.fatal_involvement_per_bn_km.rank(
+        ascending=False, method="first"
+    ).astype(int)
     return out
+
+
+def van_light_truck_split() -> pd.DataFrame:
+    """Vans and trucks up to 3,500 kg taken separately for 2022: the evidence for merging them.
+
+    The crash record codes most light commercial vehicles as vans while the register splits them,
+    so the separate rates are not comparable; the page prints them to show the gap.
+    """
+    units = io_tables.read_table("tables_units_by_type")
+    units = units[(units.year == KM_YEAR) & ~units.is_total & (units.zone == "all")]
+    units = units.assign(group=lambda d: _group_column(d.unit_type))
+    counts = (
+        units[
+            units.group.isin(SERIES_MERGED_GROUPS) & units.metric.isin(["crashes", "fatal_crashes"])
+        ]
+        .groupby(["group", "metric"])
+        .value.sum()
+        .unstack("metric")
+        .rename(columns={"crashes": "injury_involvement", "fatal_crashes": "fatal_involvement"})
+    )
+    km = vehicle_km().set_index("group")
+    out = counts.reindex(list(SERIES_MERGED_GROUPS)).reset_index()
+    out["label"] = out.group.map(label)
+    out["n_vehicles"] = out.group.map(km.n_vehicles).astype("int64")
+    out["vehicle_km"] = out.group.map(km.vehicle_km)
+    for measure in ("injury_involvement", "fatal_involvement"):
+        out[measure] = out[measure].astype("int64")
+        out[f"{measure}_per_bn_km"] = (out[measure] / out.vehicle_km * BILLION).round(2)
+        out[f"{measure}_per_100k_vehicles"] = (out[measure] / out.n_vehicles * PER_VEHICLES).round(
+            2
+        )
+    out["year"] = KM_YEAR
+    columns = [
+        "year",
+        "group",
+        "label",
+        "n_vehicles",
+        "vehicle_km",
+        "injury_involvement",
+        "injury_involvement_per_bn_km",
+        "injury_involvement_per_100k_vehicles",
+        "fatal_involvement",
+        "fatal_involvement_per_bn_km",
+        "fatal_involvement_per_100k_vehicles",
+    ]
+    return out[columns]
 
 
 def involvement_by_year() -> pd.DataFrame:
@@ -393,8 +457,10 @@ def involvement_by_year() -> pd.DataFrame:
     for column in ("injury_involvement", "fatal_involvement", "occupant_deaths"):
         out[column] = out[column].fillna(0).astype("int64")
     out["label"] = out.group.map(label)
-    totals = out.groupby("year")[["injury_involvement", "fatal_involvement"]].transform("sum")
-    out["fatal_involvement_share"] = (out.fatal_involvement / totals.fatal_involvement).round(4)
+    vehicles_only = out[out.group != "pedestrian"]
+    totals = vehicles_only.groupby("year").fatal_involvement.sum()
+    share = vehicles_only.fatal_involvement / vehicles_only.year.map(totals)
+    out["fatal_involvement_share_of_vehicles"] = share.round(4)  # NaN for pedestrians
     order = {name: index for index, name in enumerate(dict.fromkeys(RATE_GROUP_OF.values()))}
     out = out.sort_values(["year", "group"], key=lambda s: s.map(order) if s.name == "group" else s)
     columns = [
@@ -404,7 +470,7 @@ def involvement_by_year() -> pd.DataFrame:
         "injury_involvement",
         "fatal_involvement",
         "occupant_deaths",
-        "fatal_involvement_share",
+        "fatal_involvement_share_of_vehicles",
     ]
     return out[columns].reset_index(drop=True)
 

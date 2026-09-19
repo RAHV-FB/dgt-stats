@@ -689,6 +689,7 @@ SUMMARIES = {
     "q6_km_by_age_2022": vehicles.km_by_age,
     "q6_rates_2022": vehicles.rates_2022,
     "q6_summary_2022": vehicles.summary_2022,
+    "q6_van_light_truck_split": vehicles.van_light_truck_split,
     "q6_involvement_by_year": vehicles.involvement_by_year,
     "q6_occupant_deaths_series": vehicles.occupant_deaths_series,
 }

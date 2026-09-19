@@ -40,7 +40,16 @@ def test_rates_recompute_from_their_columns_and_intervals_hold() -> None:
     assert np.allclose(per_vehicle, long.per_100k_vehicles)
     assert (long.per_billion_km_low <= long.per_billion_km).all()
     assert (long.per_billion_km <= long.per_billion_km_high).all()
-    zones = long.pivot_table(index=["group", "measure"], columns="zone", values="count")
+    # Pinned to the published inputs: TABLA 2.3 2022 car rows and the km table car strata.
+    car = long[(long.group == "car") & (long.zone == "all")].set_index("measure")
+    car_km = 1.040664e11 + 6.569315e10 + 4.612673e10 + 5.686434e10 + 3.019795e10
+    assert car.loc["fatal_involvement", "count"] == 1_290 + 2 + 7
+    assert car.loc["fatal_involvement", "per_billion_km"] == pytest.approx(
+        1_299 / car_km * vehicles.BILLION, rel=1e-4
+    )
+    assert car.loc["occupant_deaths", "count"] == 681  # equals TOT_TUR_MU30DF in the microdata
+    involvement = long[long.measure != "occupant_deaths"]
+    zones = involvement.pivot_table(index=["group", "measure"], columns="zone", values="count")
     assert (zones.interurban + zones.urban == zones["all"]).all()
 
 
@@ -64,7 +73,20 @@ def test_summary_matches_the_yearbook_and_the_long_table() -> None:
 def test_involvement_by_year_and_occupant_series() -> None:
     by_year = vehicles.involvement_by_year()
     assert sorted(by_year.year.unique()) == list(io_tables.VEHICLE_TABLE_YEARS)
-    assert by_year.groupby("year").fatal_involvement_share.sum().round(3).eq(1).all()
+    shares = by_year.groupby("year").fatal_involvement_share_of_vehicles
+    assert shares.sum().round(3).eq(1).all()
+    assert by_year[by_year.group == "pedestrian"].fatal_involvement_share_of_vehicles.isna().all()
+
+    split = vehicles.van_light_truck_split().set_index("group")
+    assert list(split.index) == ["van", "light_truck"]
+    assert split.loc["van", "fatal_involvement"] == 215
+    assert split.loc["light_truck", "fatal_involvement"] == 62 + 1
+    assert (
+        split.fatal_involvement.sum()
+        == vehicles.summary_2022()
+        .set_index("group")
+        .loc[vehicles.MERGED_GROUP, "fatal_involvement"]
+    )
     assert (
         by_year[(by_year.year == 2024) & (by_year.group == "pedestrian")].iloc[0].fatal_involvement
         == 380

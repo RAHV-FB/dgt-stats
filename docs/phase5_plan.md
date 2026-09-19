@@ -123,6 +123,15 @@ All five steps are merged. What was built, with the deviations from the design a
   a heavy truck drives 53,600 km a year against 13,100 for a car. Occupant deaths per fatal-crash
   involvement: motorcycles 0.93, mopeds 0.92, cars 0.52, vans and light trucks 0.35, buses 0.31,
   heavy trucks 0.18. The seven km-table types cover 91 % of the registered fleet.
+- **Heavy trucks include tractor units.** The published kilometre table has seven types, but the
+  methodology note (`km_itv_2022/metodologia.pdf`) models eight: its "camiones de más de 3.500 kg"
+  (272,157 vehicles, 6.9 bn km) and "tractores industriales" (222,594 vehicles, 19.7 bn km) add up to
+  the table's "Camión más de 3.500Kg" row (493,815 vehicles, 26.5 bn km). The numerator therefore
+  keeps "Tractocamión" and "Vehículo articulado" with the heavy trucks, and the page and the mapping
+  table say so. A review pass also replaced two typed sentences with computed ones (bus occupants
+  die more often per kilometre than car occupants, not less; light trucks taken alone show 39 % of
+  the van rate, not a fifth), made the fatal-involvement shares vehicle-only (pedestrians excluded)
+  and added the van/light-truck split table as the evidence for merging them.
 - The verification item comparing a fleet-wide rate with `Tasas_Acc_Vic` was dropped: the yearbook
   rate counts all deaths per registered vehicle of every kind, which is not the quantity any row of
   this page estimates. The reconciliation is the two validation checks instead.

@@ -1,6 +1,7 @@
 import re
 from pathlib import Path
 
+import pandas as pd
 import pytest
 
 from dgt_stats import site
@@ -85,6 +86,13 @@ def test_vehicles_page_reports_the_rates(built: Path) -> None:
     assert 'src="figures/q6_rates_per_km.svg"' in text
     assert "Trucks over 3,500 kg" in text and "Vans and trucks up to 3,500 kg" in text
     assert "1993" in text and "Has a km denominator" in text
+    summary = pd.read_csv(TABLES_DIR / "q6_summary_2022.csv").set_index("group")
+    ratio = (
+        summary.loc["heavy_truck", "fatal_involvement_per_bn_km"]
+        / summary.loc["car", "fatal_involvement_per_bn_km"]
+    )
+    assert f"{ratio:.1f}×" in text  # the per-kilometre tile is computed, not typed
+    assert "yet their occupants die less often" not in text
     index = (built / "index.html").read_text(encoding="utf-8")
     assert 'href="vehicles.html"' in index
     data = (built / "data.html").read_text(encoding="utf-8")
