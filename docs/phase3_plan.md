@@ -41,6 +41,26 @@ come from the historical series already in the repo.
 
 ## 2. What is already in hand
 
+Update 19 September 2026, after the data collection round: everything in section 3.2 is in the repo
+(driver census by age 2023–2025, census workbooks 2014–2024, yearly crash tables 2014–2023), plus
+MOVILIA 2006/07, INE ECEPOV 2021 and INE EHMA 2008. The ESRA age split is **not obtainable** from the
+public dashboard (only national totals: 80.2 % in 2018, 75.9 % in 2023), and MOVILIA's published
+tables report the mode "coche o moto" without a driver/passenger split. Consequences for rung 3:
+
+- Rung 3 cannot be built as "residents × survey share who drive by age" from public data alone.
+  It becomes **rung 3 (bounded)**: the age shape of active driving is taken from the DGT
+  induced-exposure measure (rung 4, yearly, from tables 4.2), scaled so that the national active-driver
+  total matches the ESRA national share in 2018 and 2023 (interpolated between, held flat outside).
+  MOVILIA 2006 trips by "coche o moto" per resident by age and sex is the historical cross-check on
+  that age shape. The result carries the ESRA binomial band and is labelled as a calibrated estimate.
+- Rung 2 (licence holders) and rung 4 (observed drivers) are reported separately and never merged
+  into one unlabelled exposure measure.
+- If an ESRA age cross-tab is obtained later (data request to Vias institute), it drops straight into
+  `driving_activity_by_age.csv` and rung 3 switches to the direct definition without code changes
+  beyond the reader.
+
+Originally in hand before the collection round:
+
 - **INE population** by province × five-year age group × sex, nationality total, 1 January and
   1 July, 2002–2025: `data/raw/exposure/ine_poblacion_provincias_edad_sexo.csv`, 149,460 rows,
   produced by `scripts/fetch_ine.py` from INE table 56947 (Estadística Continua de Población). The
@@ -66,12 +86,12 @@ What was checked and what each gives:
 
 | # | Source | What it gives | Status |
 |---|---|---|---|
-| 1 | **ESRA3 (2023) and ESRA2 (2018)**, E-Survey of Road users' Attitudes, Spain sample 935 adults 18+ in 2023 (DGT and Fundación MAPFRE are the Spanish partners) | Question: how often did you use each transport mode in the last 12 months; "car driver at least a few days a month" is the frequent-driver definition. National 2023 value for Spain: 75.9 % of adults; the 2023 country fact sheet is at `https://www.esranet.eu/storage/minisites/esra2023countryfactsheetspain.pdf` (in the scratch notes). The **age split (18–24 … 65–74, 75+) is in the ESRA dashboard** (Power BI, linked from `https://www.esranet.eu/en/publications/esra3-publications/`), filter country = Spain, indicator = use of transport modes, split by age; the 2018 wave is in the ESRA-123 dashboard. Read the values off and type them into the CSV described below, one row per age band and wave, with the n shown. If the dashboard does not give n by age, note it. A data request to Vias institute (ESRA coordinator) is the alternative for the microdata. | to gather |
-| 2 | **MOVILIA 2006/07** (Ministerio de Transportes, national travel survey, ~49,000 households) | Persons making at least one trip as car driver on an average weekday, by age band and sex; also trips per person as driver. Old, but the only Spanish travel survey with driver status by age. Excel tables from `https://www.transportes.gob.es/informacion-para-el-ciudadano/informacion-estadistica/movilidad/movilia-20062007` (the page refused the automated fetch; open it in a browser and download the "fichero Excel completo" for 2006). | to gather |
-| 3 | **INE Encuesta de Hogares y Medio Ambiente 2008**, tables 10016 and 10019 | Mean kilometres per year of household cars by age of the reference person; a km-by-age curve for rung 3b/5 | to gather (px/CSV export from INEbase, links in section 3.1 notes below) |
+| 1 | **ESRA3 (2023) and ESRA2 (2018)**, E-Survey of Road users' Attitudes, Spain sample 935 adults 18+ in 2023 (DGT and Fundación MAPFRE are the Spanish partners) | Question: how often did you use each transport mode in the last 12 months; "car driver at least a few days a month" is the frequent-driver definition. National 2023 value for Spain: 75.9 % of adults; the 2023 country fact sheet is at `https://www.esranet.eu/storage/minisites/esra2023countryfactsheetspain.pdf` (in the scratch notes). The **age split (18–24 … 65–74, 75+) is in the ESRA dashboard** (Power BI, linked from `https://www.esranet.eu/en/publications/esra3-publications/`), filter country = Spain, indicator = use of transport modes, split by age; the 2018 wave is in the ESRA-123 dashboard. The dashboard was checked: it exposes the Spain national totals only (2018: 80.2 %, n 906 weighted; 2023: 75.9 %, n 935 weighted), both typed into the CSV. A data request to Vias institute (ESRA coordinator) is the only route to the age split. | national values in the CSV; age split unavailable |
+| 2 | **MOVILIA 2006/07** (Ministerio de Transportes, national travel survey, ~49,000 households) | Persons making at least one trip as car driver on an average weekday, by age band and sex; also trips per person as driver. Old, but the only Spanish travel survey with driver status by age. In the repo as `movilia_2006.xls` and `movilia_2007.xls`. Checked: tables 63–64 give trips by main mode × sex × age, but the mode is "coche o moto" with no driver/passenger split, so it is a car-travel intensity curve by age, not a driver share. | in the repo; weaker than hoped |
+| 3 | **INE Encuesta de Hogares y Medio Ambiente 2008**, tables 10016 and 10019 | Mean kilometres per year of household cars by age of the reference person; a km-by-age curve for rung 3b/5 | in the repo (`ine_ehma_2008_10016.csv`, `ine_ehma_2008_10019.csv`) |
 | 4 | **Fundación MAPFRE, "Mayores de 65 años y seguridad vial"** (300 drivers aged 65+, Comunidad de Madrid, quota sample, about 2008) | Among older drivers: 55.9 % drive fewer than 3 days a week, 30.3 % 3–5 days, 13.8 % more; `https://app.mapfre.com/ccm/content/documentos/fundacion/seg-vial/investigacion/mayores-y-seguridad-vial.pdf` | read and typed into the CSV; conditional on being a driver and regional, used for rung 3b only |
 | 5 | Encuesta Nacional de Salud 2011/12 and 2017, Encuesta Europea de Salud 2014/2020 | Checked the adult questionnaires: no driving or seat-belt-as-driver question, so no help | ruled out |
-| 6 | INE ECEPOV 2021, table 55378 (main vehicle used to commute, by sex and age) | Commuters only, so it says little about 65+; keep as a cross-check for 25–64 | optional |
+| 6 | INE ECEPOV 2021, table 55378 (main vehicle used to commute, by sex and age) | Commuters only, so it says little about 65+; keep as a cross-check for 25–64 | in the repo (`ine_ecepov_2021_55378.xlsx`) |
 | 7 | CIS studies on road safety (they ask "¿Conduce Ud.?" with frequency, cross-tabulated by age) | Could not identify the study number from outside; if you know one, its "tabulación por edad" PDF is enough | optional |
 
 Survey values go in one hand-typed CSV, `data/raw/exposure/driving_activity_by_age.csv` (started, with
@@ -92,9 +112,9 @@ is found, because it contradicts item 4.
 
 | # | What | Where | Folder and name |
 |---|---|---|---|
-| 8 | Driver census by province × sex × class × **age**, 2023, 2024, 2025 | `https://www.dgt.es/microdatos/salida/conductores/censo/2023/censo_prov_sexo_clase_edad_2023.txt` (same pattern for 2024 and 2025); listing page: DGT en Cifras → "Microdatos de censo de conductores según provincia, sexo, edad y tipo de permiso (anual)" | `exposure/censo_conductores_edad_YYYY.txt` |
-| 9 | "Accidentes con víctimas – Tablas estadísticas" workbooks for **2014 to 2023** (2024 is in the repo) | DGT en Cifras → DGT en cifras resultados → search "Tablas estadísticas"; each year has its own page. 2023 is at `https://www.dgt.es/export/sites/web-DGT/.galleries/downloads/dgt-en-cifras/publicaciones/Anuario-Estadistico-de-Accidentes/Accidentes-con-victimas-Tablas-estadisticas-2023.xlsx`; earlier years sit under different paths, so take the link from each year's page | `tables/tablas_estadisticas_YYYY.xlsx` |
-| 10 | "Censo de conductores – Tablas estadísticas" workbooks for **2014 to 2024** (2025 is in the repo) | 2024 is at `https://www.dgt.es/export/sites/web-DGT/.galleries/downloads/dgt-en-cifras/publicaciones/Censo-conductores-Tablas-estadisticas/Censo-de-conductores-Tablas-estadisticas-2024.xlsx`; earlier years from each year's page, or from the "Anuario Estadístico General" of that year (chapter on conductores, table class × age) | `exposure/censo_tablas_YYYY.xlsx` |
+| 8 | Driver census by province × sex × class × **age**, 2023, 2024, 2025 (in the repo) | `https://www.dgt.es/microdatos/salida/conductores/censo/2023/censo_prov_sexo_clase_edad_2023.txt` (same pattern for 2024 and 2025); listing page: DGT en Cifras → "Microdatos de censo de conductores según provincia, sexo, edad y tipo de permiso (anual)" | `exposure/censo_conductores_edad_YYYY.txt` |
+| 9 | "Accidentes con víctimas – Tablas estadísticas" workbooks for **2014 to 2023** (in the repo: 2020–2023 as yearly workbooks, 2014–2019 as chapter workbooks under `tables/chapters/`) | DGT en Cifras → DGT en cifras resultados → search "Tablas estadísticas"; each year has its own page. 2023 is at `https://www.dgt.es/export/sites/web-DGT/.galleries/downloads/dgt-en-cifras/publicaciones/Anuario-Estadistico-de-Accidentes/Accidentes-con-victimas-Tablas-estadisticas-2023.xlsx`; earlier years sit under different paths, so take the link from each year's page | `tables/tablas_estadisticas_YYYY.xlsx` |
+| 10 | "Censo de conductores – Tablas estadísticas" workbooks for **2014 to 2024** (in the repo; 2024 has no age table, the age text file covers it) | 2024 is at `https://www.dgt.es/export/sites/web-DGT/.galleries/downloads/dgt-en-cifras/publicaciones/Censo-conductores-Tablas-estadisticas/Censo-de-conductores-Tablas-estadisticas-2024.xlsx`; earlier years from each year's page, or from the "Anuario Estadístico General" of that year (chapter on conductores, table class × age) | `exposure/censo_tablas_YYYY.xlsx` |
 
 Item 9 gives driver victims by age and drivers involved by age for every year (rungs 2–4 numerators
 and the rung 4 denominator). Items 8 and 10 give licence holders by age (rung 2) for 2014–2025.
@@ -119,7 +139,8 @@ that year uses involvement alone and is marked as such.
 
 ### Step 2 — Driver exposure readers
 - Extend `io_exposure.py`: `read_census_age_year(year)` for item 8 files; `read_census_age_workbook(year)` for the class × age tables of item 10 (2014–2025); a `licence_holders_by_age(year)` view that yields drivers per DGT age band and sex.
-- Yearly statistical-table readers for item 9: `read_table_4_1_1(year)` (driver victims by age and sex, interurban and urban), `read_table_4_2(year)` (drivers involved by age, sex and condition) and the infraction-by-age table where present, header-located like `io_tables`.
+- Yearly statistical-table readers for item 9: `read_table_4_1_1(year)` (driver victims by age and sex, interurban and urban), `read_table_4_2(year)` (drivers involved by age, sex and condition) and the infraction-by-age table where present, header-located like `io_tables`; `paths.tables_raw_path(year, chapter)` already resolves the chapter workbooks of 2014–2019 (2014 is `.xls`, read with `xlrd`).
+- `io_activity.py` also reads MOVILIA 2006 table 64 (trips by "coche o moto" per resident by sex and age) as the historical cross-check curve.
 - `io_activity.py`: read `driving_activity_by_age.csv`; `driving_share(year, definition)` returns the share of residents who drive per DGT age band and sex, interpolated linearly between survey waves and held flat outside them, with a low/high band from the binomial interval on n; `driving_days(age_band)` from item 4. Every output row carries the source and wave it came from.
 - Tests: 2024 values equal the already-parsed 2024 workbook; totals reconcile with the series; a synthetic activity CSV interpolates and bounds as expected; an age band with no survey row yields NA, never a guess.
 
