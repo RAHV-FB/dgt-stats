@@ -212,3 +212,62 @@ def test_vehicle_groups_cover_every_source_once() -> None:
     assert vehicles.group_of("Vehículo articulado") == "heavy_truck"
     with pytest.raises(KeyError):
         vehicles.group_of("Nave espacial")
+
+
+def test_driver_infractions_every_layout() -> None:
+    latest = tables.read_table_6_1(2024, "interurban")
+    totals = latest[(latest.item == "total") & (latest.vehicle_group == "total")]
+    assert set(totals.block) == set(tables.INFRACTION_BLOCKS)
+    assert totals.value.nunique() == 1 and totals.value.iloc[0] == 61_318
+    speed = latest[(latest.block == "speed") & (latest.vehicle_group == "total")].set_index("item")
+    assert speed.value["speed_infraction"] == 4_473 and speed.value["unknown"] == 30_115
+    assert (
+        latest[
+            (latest.item == "speed_infraction") & (latest.vehicle_group == "motorcycle")
+        ].value.iloc[0]
+        == 894
+    )
+    assert "vmp" in set(latest.vehicle_group)
+
+    oldest = tables.read_table_6_1(2014, "interurban")  # .xls, block headings as rows
+    assert set(oldest.block) == {"speed", "driver", "door", "lighting", "load", "summary"}
+    speed_2014 = oldest[(oldest.block == "speed") & (oldest.vehicle_group == "total")].set_index(
+        "item"
+    )
+    assert speed_2014.value["speed_infraction"] == 7_702 and speed_2014.value["total"] == 58_976
+    summary_2014 = oldest[
+        (oldest.block == "summary") & (oldest.vehicle_group == "total")
+    ].set_index("item")
+    assert summary_2014.value["none"] == 25_023 and summary_2014.value["unknown"] == 7_143
+    assert "vmp" not in set(oldest.vehicle_group) and "unknown" not in set(oldest.vehicle_group)
+
+    two_columns = tables.read_table_6_1(2015, "urban")  # block in one column, item in the next
+    summary_2015 = two_columns[
+        (two_columns.block == "summary") & (two_columns.vehicle_group == "total")
+    ]
+    assert set(summary_2015.item) == {"none", "any", "unknown", "total"}
+    prefixed = tables.read_table_6_1(2017, "urban")  # block name prefixed to every label
+    driver = prefixed[(prefixed.block == "driver") & (prefixed.vehicle_group == "total")]
+    assert set(driver.item) >= {
+        "stop_sign",
+        "safety_distance",
+        "other_infraction",
+        "none",
+        "unknown",
+        "total",
+    }
+
+    everything = tables.read_driver_infractions_all()
+    assert sorted(everything.year.unique()) == list(tables.TABLE_YEARS)
+    per_table = everything[(everything.item == "total") & (everything.vehicle_group == "total")]
+    assert per_table.groupby(["year", "zone"]).value.nunique().eq(1).all()
+    recent = everything[(everything.year >= 2016) & (everything.vehicle_group == "total")]
+    for (year, zone, block), rows in recent.groupby(["year", "zone", "block"]):
+        items = rows.set_index("item").value
+        expected = items["total"]
+        if block == "summary":
+            assert items["any"] + items["none"] + items["unknown"] == expected, (year, zone)
+        elif block == "speed":
+            assert items.drop(index="total").sum() == expected, (year, zone)
+        else:
+            assert items.drop(index="total").sum() == expected, (year, zone, block)

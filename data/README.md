@@ -13,7 +13,7 @@ Data are organised by processing stage. Source data must never be manually edite
 ## Building the interim layer
 
 ```bash
-python scripts/ingest.py all        # microdata, tables, exposure, validate (about 6 minutes)
+python scripts/ingest.py all        # microdata, tables, exposure, reports, validate (about 6 minutes)
 python scripts/ingest.py microdata --years 2024 --force
 python scripts/ingest.py validate
 ```
@@ -21,9 +21,10 @@ python scripts/ingest.py validate
 | Step | Output in `interim/` | Notes |
 |---|---|---|
 | `microdata` | `microdata/accidentes_YYYY.parquet` (9 files) and `microdata/accidentes_all.parquet` (875,013 rows, 74 columns) | one row per injury crash; codes kept as integers, `SECUENCIAL` renamed to `ID_ACCIDENTE`, VMP death columns added as missing where a year lacks them; about 35 s per year |
-| `tables` | `series_annual`, `series_monthly`, `series_province`, `series_age`, `series_sex`, `series_road_users`, `series_pedestrians`, `tables_2024_province`, `tables_2024_month`, `tables_2024_vehicles_involved`, `tables_units_by_type` (2.3, 2020–2024), `tables_victims_by_mode` (2.2, 2020–2024), `tables_driver_victims` (4.1.1, 2014–2024), `tables_drivers_involved` (4.2, 2014–2024) | tidy long frames with a `source_sheet` column; `.` cells become missing; the driver tables carry a `band` column on the DGT age bands |
+| `tables` | `series_annual`, `series_monthly`, `series_province`, `series_age`, `series_sex`, `series_road_users`, `series_pedestrians`, `tables_2024_province`, `tables_2024_month`, `tables_2024_vehicles_involved`, `tables_units_by_type` (2.3, 2020–2024), `tables_victims_by_mode` (2.2, 2020–2024), `tables_driver_victims` (4.1.1, 2014–2024), `tables_drivers_involved` (4.2, 2014–2024), `tables_driver_infractions` (6.1, 2014–2024) | tidy long frames with a `source_sheet` column; `.` cells become missing; the driver tables carry a `band` column on the DGT age bands |
 | `exposure` | `censo_conductores` (2023–2025 stacked), `censo_provincias_2025`, `censo_edad` (2023–2025 by province, sex and age band), `censo_edad_tablas` (published class × age totals 2014–2023), `conductores_por_edad` (2014–2025 stitched), `poblacion_ine` (INE residents 2002–2025), `km_medios_2022`, `km_estimados_2022` | census `licence_class` is the driver's highest class; `conductores_por_edad` uses the published tables to 2023 and the text files from 2024 |
-| `validate` | `reports/tables/validation.csv`, `reports/tables/missingness_by_year.csv` (both committed) | reconciliation against the yearbook and 2024 tables, key uniqueness, code domains, census cross-check, driver deaths in the yearly tables against the series (2014–2024), 2023 census by age against the published table, vehicles involved and deaths by means of transport in the yearly tables 2.3 and 2.2 against the microdata (2020–2024), per-year missingness (390 checks) |
+| `reports` | `speed_report` | the 61 annex tables of the DGT speed-factor report (2014–2023, without Cataluña or País Vasco) transcribed from the PDF text with `pymupdf`; long format with the table's metric, zone, breakdown and a `region_scope` column on every row |
+| `validate` | `reports/tables/validation.csv`, `reports/tables/missingness_by_year.csv` (both committed) | reconciliation against the yearbook and 2024 tables, key uniqueness, code domains, census cross-check, driver deaths in the yearly tables against the series (2014–2024), 2023 census by age against the published table, vehicles involved and deaths by means of transport in the yearly tables 2.3 and 2.2 against the microdata (2020–2024), per-year missingness (434 checks) |
 
 Existing outputs are skipped unless `--force` is given. Tests that need the interim layer skip themselves with a message until it has been built.
 

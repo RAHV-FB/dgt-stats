@@ -389,3 +389,47 @@ table_2_2_deaths,2024.0,bicycle,90.0,90.0,True,
 table_2_2_deaths,2024.0,vmp,19.0,19.0,True,
 table_2_2_deaths,2024.0,other,31.0,31.0,True,
 table_2_2_deaths,2024.0,unknown,2.0,2.0,True,
+table_6_1_drivers,2014.0,interurban:blocks_agree,58976.0,58976.0,True,
+table_6_1_drivers,2014.0,interurban:table_4_2,58976.0,58976.0,True,tolerance 1.5%
+table_6_1_drivers,2014.0,urban:blocks_agree,95943.0,95943.0,True,
+table_6_1_drivers,2014.0,urban:table_4_2,95943.0,95943.0,True,tolerance 1.5%
+table_6_1_drivers,2015.0,interurban:blocks_agree,59148.0,59148.0,True,
+table_6_1_drivers,2015.0,interurban:table_4_2,59148.0,59148.0,True,tolerance 1.5%
+table_6_1_drivers,2015.0,urban:blocks_agree,107474.0,107474.0,True,
+table_6_1_drivers,2015.0,urban:table_4_2,107474.0,107474.0,True,tolerance 1.5%
+table_6_1_drivers,2016.0,interurban:blocks_agree,63229.0,63229.0,True,
+table_6_1_drivers,2016.0,interurban:table_4_2,63422.0,63229.0,True,tolerance 1.5%
+table_6_1_drivers,2016.0,urban:blocks_agree,110664.0,110664.0,True,
+table_6_1_drivers,2016.0,urban:table_4_2,111257.0,110664.0,True,tolerance 1.5%
+table_6_1_drivers,2017.0,interurban:blocks_agree,65561.0,65561.0,True,
+table_6_1_drivers,2017.0,interurban:table_4_2,65750.0,65561.0,True,tolerance 1.5%
+table_6_1_drivers,2017.0,urban:blocks_agree,108791.0,108791.0,True,
+table_6_1_drivers,2017.0,urban:table_4_2,109380.0,108791.0,True,tolerance 1.5%
+table_6_1_drivers,2018.0,interurban:blocks_agree,65953.0,65953.0,True,
+table_6_1_drivers,2018.0,interurban:table_4_2,66151.0,65953.0,True,tolerance 1.5%
+table_6_1_drivers,2018.0,urban:blocks_agree,108193.0,108193.0,True,
+table_6_1_drivers,2018.0,urban:table_4_2,108825.0,108193.0,True,tolerance 1.5%
+table_6_1_drivers,2019.0,interurban:blocks_agree,65062.0,65062.0,True,
+table_6_1_drivers,2019.0,interurban:table_4_2,65241.0,65062.0,True,tolerance 1.5%
+table_6_1_drivers,2019.0,urban:blocks_agree,111435.0,111435.0,True,
+table_6_1_drivers,2019.0,urban:table_4_2,112455.0,111435.0,True,tolerance 1.5%
+table_6_1_drivers,2020.0,interurban:blocks_agree,44111.0,44111.0,True,
+table_6_1_drivers,2020.0,interurban:table_4_2,44243.0,44111.0,True,tolerance 1.5%
+table_6_1_drivers,2020.0,urban:blocks_agree,76653.0,76653.0,True,
+table_6_1_drivers,2020.0,urban:table_4_2,77329.0,76653.0,True,tolerance 1.5%
+table_6_1_drivers,2021.0,interurban:blocks_agree,54295.0,54295.0,True,
+table_6_1_drivers,2021.0,interurban:table_4_2,54473.0,54295.0,True,tolerance 1.5%
+table_6_1_drivers,2021.0,urban:blocks_agree,96167.0,96167.0,True,
+table_6_1_drivers,2021.0,urban:table_4_2,97215.0,96167.0,True,tolerance 1.5%
+table_6_1_drivers,2022.0,interurban:blocks_agree,57281.0,57281.0,True,
+table_6_1_drivers,2022.0,interurban:table_4_2,57395.0,57281.0,True,tolerance 1.5%
+table_6_1_drivers,2022.0,urban:blocks_agree,105962.0,105962.0,True,
+table_6_1_drivers,2022.0,urban:table_4_2,106971.0,105962.0,True,tolerance 1.5%
+table_6_1_drivers,2023.0,interurban:blocks_agree,61048.0,61048.0,True,
+table_6_1_drivers,2023.0,interurban:table_4_2,61186.0,61048.0,True,tolerance 1.5%
+table_6_1_drivers,2023.0,urban:blocks_agree,108273.0,108273.0,True,
+table_6_1_drivers,2023.0,urban:table_4_2,109124.0,108273.0,True,tolerance 1.5%
+table_6_1_drivers,2024.0,interurban:blocks_agree,61318.0,61318.0,True,
+table_6_1_drivers,2024.0,interurban:table_4_2,61428.0,61318.0,True,tolerance 1.5%
+table_6_1_drivers,2024.0,urban:blocks_agree,108869.0,108869.0,True,
+table_6_1_drivers,2024.0,urban:table_4_2,109760.0,108869.0,True,tolerance 1.5%

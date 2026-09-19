@@ -18,12 +18,12 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from dgt_stats import io_exposure, io_microdata, io_tables, validate  # noqa: E402
+from dgt_stats import io_exposure, io_microdata, io_reports, io_tables, validate  # noqa: E402
 from dgt_stats.paths import MICRODATA_YEARS  # noqa: E402
 
 log = logging.getLogger("ingest")
 
-STEPS = ("microdata", "tables", "exposure", "validate")
+STEPS = ("microdata", "tables", "exposure", "reports", "validate")
 
 
 def run_microdata(years: tuple[int, ...], force: bool) -> None:
@@ -36,6 +36,10 @@ def run_tables(force: bool) -> None:
 
 def run_exposure(force: bool) -> None:
     io_exposure.build_exposure(force=force)
+
+
+def run_reports(force: bool) -> None:
+    io_reports.build_reports(force=force)
 
 
 def run_validate() -> None:
@@ -77,6 +81,8 @@ def main(argv: list[str] | None = None) -> int:
             run_tables(args.force)
         elif step == "exposure":
             run_exposure(args.force)
+        elif step == "reports":
+            run_reports(args.force)
         elif step == "validate":
             run_validate()
     log.info("done in %.1f s", time.perf_counter() - started)

@@ -35,7 +35,7 @@ JavaScript frameworks, no machine learning before a defensible descriptive and r
 | Q6 | How dangerous are heavy vehicles and buses per kilometre driven? | 2022 yearbook tables 2.3 (vehicles involved by type) and 2.2 (occupants killed), `Media_km_...` fleet × mean km | vehicles in injury and fatal crashes and occupant deaths per billion vehicle-km and per 100,000 vehicles, 2022, with exact intervals; the occupant-death share of fatal involvements | vehicles page |
 | Q7 | Are older road users at higher risk, and is that changing? | series `Vict_ED_*` sheets, DGT older-users report, INE population by age (to be added) | deaths per million by age band 2014–2024; replicate the DGT 47.8 vs 34.4 figure | older-users page |
 | Q8 | Did a major policy change coincide with a measurable break in monthly deaths? | series `M_I-U_Meses` 1993–2024; microdata monthly deaths by road group 2016–2024 | segmented Poisson regression with Newey–West errors, placebo breaks and sensitivity fits for July 2006; a difference-in-differences interrupted series (conventional roads against motorways and dual carriageways) for January 2019 | policy page |
-| Q9 | How large is the speed factor and where does it concentrate? | DGT speed report, `TABLA 6.1.I/U` | descriptive tables only, with the report's exclusions stated (no Cataluña or País Vasco) | speed page |
+| Q9 | How large is the speed factor and where does it concentrate? | yearbook tables 6.1.I/U 2014–2024 (drivers by recorded speed status), the DGT speed report 2014–2023 (61 tables transcribed from the PDF) | descriptive only: shares with the unknown share in view and Wilson intervals for the share among recorded drivers; the report's exclusion (no Cataluña or País Vasco) in every caption | speed page |
 
 Policy candidates for Q8, in order of preference:
 
@@ -128,7 +128,7 @@ site/*.html + site/style.css      static site, publishable with GitHub Pages
 | 4. Severity model | done: `features`, `models`, `scripts/model.py`; fatal and serious logistic models on 875,013 crashes with province-clustered intervals, average marginal effects, a 2016–2022 fit scored on 2023–2024 (fatal AUC 0.80, serious 0.69, calibrated by decile), per-year refits; eight tables, five figures, the severity page | odds-ratio tables and forest plots on the site with calibration and stability reported |
 | 5. Exposure case study | done: `vehicles`, yearbook tables 2.2 and 2.3 for 2020–2024, two new checks (390 in all); six vehicle groups with rates per billion km and per 100,000 vehicles for 2022; seven tables, four figures, the vehicles page | vehicles page with stated limits |
 | 6. Policy case study | done: `policy`; segmented regression for the 2006 points licence with 39 placebo breaks and nine sensitivity variants; difference-in-differences series for the 2019 speed limit with 2017 and 2018 placebos; eight tables, five figures, the policy page | ITS charts with pre-trend, coefficients and CIs |
-| 7. Speed and context | Q9 descriptive chapter | speed page |
+| 7. Speed and context | done: `io_reports`, `speed`; tables 6.1 for 2014–2024 with one validation check (434 in all), the speed report transcribed, ten tables, six figures, the speed page | speed page |
 | 8. Publish | site review, README rewritten to match actual results | GitHub Pages live |
 
 Phases 2 through 4 are the core portfolio result. Phases 5 to 7 add depth but depend on external

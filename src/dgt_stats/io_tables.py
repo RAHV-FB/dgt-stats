@@ -938,6 +938,178 @@ def read_drivers_involved_all(years: tuple[int, ...] = TABLE_YEARS) -> pd.DataFr
     return out
 
 
+# --------------------------------------------------------------------------- driver infractions 6.1
+
+INFRACTION_BLOCKS = ("speed", "driver", "door", "lighting", "load", "summary")
+INFRACTION_VEHICLES = {
+    "total": "total",
+    "bicicleta": "bicycle",
+    "vmp": "vmp",
+    "ciclomotor": "moped",
+    "motocicleta": "motorcycle",
+    "turismo": "car",
+    "furgoneta": "van",
+    "camión hasta": "light_truck",
+    "camión más": "heavy_truck",
+    "autobús": "bus",
+    "otro vehículo": "other",
+    "se desconoce": "unknown",
+    "sin dato": "unknown",
+    "peatón": None,  # 2015 only, all zeros
+}
+# Item labels that identify their block; the shared ones (none, unknown, total) take the current
+# block, and a repeated item advances to the next block.
+INFRACTION_ITEMS = {
+    "infracción de velocidad": ("speed", "speed_infraction"),
+    "marcha lenta": ("speed", "too_slow"),
+    "ninguna infracción de velocidad": ("speed", "none"),
+    "no respetar señal de stop": ("driver", "stop_sign"),
+    "no respetar paso para peatones": ("driver", "pedestrian_crossing"),
+    "no respetar otra regulación": ("driver", "other_priority"),
+    "circular en sentido contrario": ("driver", "wrong_way"),
+    "invadir parcialmente": ("driver", "partial_wrong_side"),
+    "adelantar antirreglamentariamente": ("driver", "overtaking"),
+    "no mantener el intervalo": ("driver", "safety_distance"),
+    "otra infracción": ("driver", "other_infraction"),
+    "apertura de puertas": ("door", "door_opening"),
+    "incorrecta utilización del alumbrado": ("lighting", "lighting"),
+    "exceso, mal acondicionamiento": ("load", "load"),
+    "alguna infracción": ("summary", "any"),
+}
+INFRACTION_SHARED = {
+    "ninguna infracción": "none",
+    "se desconoce": "unknown",
+    "se ignora": "unknown",
+    "total": "total",
+}
+INFRACTION_PREFIXES = (
+    "infracciones de velocidad",
+    "infracciones del conductor",
+    "infracciones de apertura de puerta",
+    "infracciones de alumbrado",
+    "infracciones de carga del vehículo",
+    "resumen de infracciones",
+)
+INFRACTION_ITEM_LABELS = {
+    "speed_infraction": "Speed infraction",
+    "too_slow": "Driving too slowly, obstructing traffic",
+    "stop_sign": "Failing to stop at a stop sign",
+    "pedestrian_crossing": "Failing to respect a pedestrian crossing",
+    "other_priority": "Other priority infraction",
+    "wrong_way": "Driving against the flow or where prohibited",
+    "partial_wrong_side": "Partly invading the opposite lane",
+    "overtaking": "Illegal overtaking",
+    "safety_distance": "Not keeping a safe distance",
+    "other_infraction": "Other infraction",
+    "door_opening": "Opening a door without care",
+    "lighting": "Incorrect use of lights",
+    "load": "Excess, badly secured or shed load",
+    "any": "Some infraction",
+    "none": "No infraction",
+    "unknown": "Unknown",
+    "total": "All drivers",
+}
+
+
+def _infraction_key(label: str) -> str:
+    text = " ".join(label.lower().split())
+    for prefix in INFRACTION_PREFIXES:
+        if text.startswith(prefix + " "):
+            text = text[len(prefix) + 1 :]
+            break
+    return text
+
+
+def _classify_infraction(text: str, current: str, seen: set[tuple[str, str]]) -> tuple[str, str]:
+    """(block, item) for a row label given the current block and the items already recorded."""
+    for pattern, (block, item) in INFRACTION_ITEMS.items():
+        if text.startswith(pattern):
+            return block, item
+    if text.startswith("total conductores") or text.startswith("total resumen"):
+        return "summary", "total"
+    for pattern, item in INFRACTION_SHARED.items():
+        if text == pattern or text.startswith(pattern + " "):
+            block = current
+            if (block, item) in seen:
+                block = INFRACTION_BLOCKS[min(INFRACTION_BLOCKS.index(block) + 1, 5)]
+            return block, item
+    raise ValueError(f"table 6.1: unknown row label {text!r}")
+
+
+def read_table_6_1(year: int, zone: str) -> pd.DataFrame:
+    """TABLA 6.1.I / 6.1.U: drivers involved by vehicle type × infraction, one year and zone.
+
+    Long format: ``year``, ``zone``, ``block`` (speed, driver, door, lighting, load, summary),
+    ``item``, ``vehicle_group``, ``value``. The block totals are the drivers involved. Rows are
+    located by label, so the four layouts of 2014–2024 parse the same way.
+    """
+    zone_code = {"interurban": "I", "urban": "U"}[zone]
+    rows = _rows_any(tables_raw_path(year, 6), f"6.1.{zone_code}")
+    header_index = next(
+        i for i, row in enumerate(rows) if any("bicicleta" in _text(c).lower() for c in row)
+    )
+    columns: dict[int, str] = {}
+    for index, cell in enumerate(rows[header_index]):
+        text = _text(cell).lower()
+        if not text:
+            continue
+        for pattern, group in INFRACTION_VEHICLES.items():
+            if text.startswith(pattern):
+                if group is not None:
+                    columns[index] = group
+                break
+    if "total" not in columns.values() or "car" not in columns.values():
+        raise ValueError(f"table 6.1 {year} {zone}: vehicle columns not found")
+    first_value = min(columns)
+    records: list[dict[str, object]] = []
+    current = "speed"
+    seen: set[tuple[str, str]] = set()
+    for row in rows[header_index + 1 :]:
+        label_cells = [_text(c) for c in row[:first_value] if isinstance(c, str) and _text(c)]
+        values = [_number(row[i]) if i < len(row) else None for i in columns]
+        if not label_cells or all(v is None for v in values):
+            continue
+        text = _infraction_key(label_cells[-1])
+        if text.startswith("debido a"):
+            break
+        block, item = _classify_infraction(text, current, seen)
+        current = block
+        seen.add((block, item))
+        for (index, group), value in zip(columns.items(), values):
+            records.append(
+                {
+                    "year": year,
+                    "zone": zone,
+                    "block": block,
+                    "item": item,
+                    "vehicle_group": group,
+                    "value": 0.0 if value is None else float(value),
+                }
+            )
+        if item == "total" and block != "summary":
+            current = INFRACTION_BLOCKS[INFRACTION_BLOCKS.index(block) + 1]
+    out = pd.DataFrame.from_records(records)
+    keys = ["year", "zone", "block", "item", "vehicle_group"]
+    if out.duplicated(keys).any():
+        raise ValueError(f"table 6.1 {year} {zone}: a row was assigned to a block twice")
+    return out.astype(
+        {
+            "year": "int16",
+            "zone": "string",
+            "block": "string",
+            "item": "string",
+            "vehicle_group": "string",
+        }
+    )
+
+
+def read_driver_infractions_all(years: tuple[int, ...] = TABLE_YEARS) -> pd.DataFrame:
+    frames = [read_table_6_1(year, zone) for year in years for zone in ("interurban", "urban")]
+    out = pd.concat(frames, ignore_index=True)
+    close_workbooks()
+    return out
+
+
 # --------------------------------------------------------------------------- interim layer
 
 TABLE_BUILDERS = {
@@ -955,6 +1127,7 @@ TABLE_BUILDERS = {
     "tables_2024_vehicles_involved": read_table_8_1_1,
     "tables_driver_victims": read_driver_victims_all,
     "tables_drivers_involved": read_drivers_involved_all,
+    "tables_driver_infractions": read_driver_infractions_all,
 }
 
 

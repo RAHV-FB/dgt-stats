@@ -448,8 +448,11 @@ def dot_interval(
     if float(ordered[low].min()) >= 0:
         axis.set_xlim(left=0)
     if percent:
+        signed = float(ordered[low].min()) < 0  # changes carry a sign, shares do not
         axis.xaxis.set_major_formatter(
-            matplotlib.ticker.FuncFormatter(lambda v, _: f"{v * 100:+.0f}%")
+            matplotlib.ticker.FuncFormatter(
+                lambda v, _: f"{v * 100:+.0f}%" if signed else f"{v * 100:.0f}%"
+            )
         )
     axis.set_ylim(-0.7, len(ordered) - 0.3)
     axis.set_title(title)
@@ -578,8 +581,14 @@ def grouped_bars(
     percent: bool = False,
     ylabel: str = "",
     height: float = 4.2,
+    xlabel: str = "",
+    full_scale: bool = True,
 ) -> Path:
-    """Side-by-side bars per category, one colour per series in fixed order."""
+    """Side-by-side bars per category, one colour per series in fixed order.
+
+    With ``percent`` the axis runs to 100 % unless ``full_scale`` is off, in which case it stops
+    just above the tallest bar; many categories get rotated tick labels.
+    """
     apply_style()
     wide = frame.pivot_table(index=x, columns=series, values=value, aggfunc="first")
     if order:
@@ -601,16 +610,26 @@ def grouped_bars(
             color=CATEGORICAL[index],
             label=str(column),
         )
-    axis.set_xticks(positions, [str(v) for v in wide.index])
+    rotation = 45 if len(wide) > 8 else 0
+    axis.set_xticks(
+        positions,
+        [str(v) for v in wide.index],
+        rotation=rotation,
+        ha="right" if rotation else "center",
+    )
     axis.set_ylim(bottom=0)
     if percent:
-        axis.set_ylim(0, 1)
+        top = 1.0 if full_scale else min(1.0, float(np.nanmax(wide.to_numpy(dtype=float))) * 1.15)
+        axis.set_ylim(0, top)
         _percent(axis)
     else:
         _thousands(axis)
     axis.set_title(title)
     axis.set_ylabel(ylabel)
-    axis.legend(loc="upper left", bbox_to_anchor=(0, -0.1), ncol=min(n_series, 4))
+    axis.set_xlabel(xlabel)
+    axis.legend(
+        loc="upper left", bbox_to_anchor=(0, -0.18 if rotation else -0.1), ncol=min(n_series, 4)
+    )
     return save(fig, path)
 
 

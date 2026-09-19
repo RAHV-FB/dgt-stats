@@ -118,3 +118,18 @@ def test_policy_page_reports_both_interventions(built: Path) -> None:
         assert "Both placebos are near zero" in text
     index = (built / "index.html").read_text(encoding="utf-8")
     assert 'href="policy.html"' in index
+
+
+def test_speed_page_keeps_the_two_sources_apart(built: Path) -> None:
+    text = (built / "speed.html").read_text(encoding="utf-8")
+    assert 'src="figures/q9_speed_status_interurban.svg"' in text
+    assert 'src="figures/q9_report_day_hour.svg"' in text
+    shares = pd.read_csv(TABLES_DIR / "q9_infraction_shares.csv")
+    latest = shares[(shares.zone == "all") & (shares.year == shares.year.max())].iloc[0]
+    assert f"{latest.share_unknown * 100:.0f}%" in text  # the unknown share is computed
+    assert "without Cataluña and País Vasco" in text
+    assert "never adds them together" in text
+    index = (built / "index.html").read_text(encoding="utf-8")
+    assert 'href="speed.html"' in index
+    data = (built / "data.html").read_text(encoding="utf-8")
+    assert "speed-factor report" in data and "tables 6.1" in data
