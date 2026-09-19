@@ -694,9 +694,11 @@ def _policy_figures(figures_dir: Path, captions: dict[str, str], summary) -> Non
         highlight="is_true",
         keep_order=True,
     )
+    fake = placebo[~placebo.is_true].period
     captions["q8_points_placebo"] = plots.caption(
         SERIES_SOURCE,
-        "breaks from January 2002 to January 2005, each with a 17-month post-period",
+        f"breaks from {fake.min():%B %Y} to {fake.max():%B %Y}, each with a "
+        f"{points.post_months}-month post-period",
         "the same segmented regression refitted with a false intervention date; the filled marker "
         "is the true date; a real effect should sit in the tail of this distribution",
         f"{len(placebo)} fits",

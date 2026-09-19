@@ -1607,13 +1607,19 @@ def page_policy(captions: dict[str, str]) -> str:
         "Estimated level change with the break placed at every other month",
         captions,
     )
+    placebo_dates = pd.to_datetime(others.break_date)
     body += (
-        f"<p>With the break placed at any of the {n_fits - 1} other months from January 2002 to "
-        f"January 2005, the estimated level change runs from {_pct_change(others.level_change.min(), 1)} "
-        f"to {_pct_change(others.level_change.max(), 1)}; the July 2006 estimate ranks "
-        f"{rank} of {n_fits}. The placebos are not noise around zero: the 2004 breaks all come out "
-        "negative because the decline steepened that year, which is the pre-trend problem in "
-        "another form. The July 2006 drop is larger than any of them.</p>"
+        f"<p>With the break placed at any of the {n_fits - 1} other months from "
+        f"{placebo_dates.min():%B %Y} to {placebo_dates.max():%B %Y}, the estimated level change "
+        f"runs from {_pct_change(others.level_change.min(), 1)} to "
+        f"{_pct_change(others.level_change.max(), 1)}; the July 2006 estimate ranks {rank} of "
+        f"{n_fits}. The placebos are not noise around zero: the 2004 breaks all come out negative "
+        "because the decline steepened that year, which is the pre-trend problem in another form. "
+        + (
+            "The July 2006 drop is larger than any of them.</p>"
+            if rank == 1
+            else f"{rank - 1} of the placebo drops are larger than the July 2006 one.</p>"
+        )
     )
     body += table(
         sensitivity_table,
@@ -1716,18 +1722,28 @@ def page_policy(captions: dict[str, str]) -> str:
         "deaths rather than fewer. Nothing in these data separates the limit from the pandemic's "
         "different effects on the two kinds of road.</p>"
     )
-    body += note(
-        "<strong>Reading.</strong> The clean-window estimate for the 90 km/h limit, "
-        f"{_pct_change(speed_main.level_change)}, is not distinguishable from a change that had "
-        "already begun in 2018 and is reversed once the series runs through the pandemic. No claim "
-        "about the limit's effect can be made from these data; a road-section series with speeds "
-        "and traffic volumes would be needed."
-    )
+    if placebo_2018_significant:
+        body += note(
+            "<strong>Reading.</strong> The clean-window estimate for the 90 km/h limit, "
+            f"{_pct_change(speed_main.level_change)}, is not distinguishable from a change that "
+            "had already begun in 2018 and is reversed once the series runs through the pandemic. "
+            "No claim about the limit's effect can be made from these data; a road-section series "
+            "with speeds and traffic volumes would be needed."
+        )
+    else:
+        body += note(
+            "<strong>Reading.</strong> The clean-window estimate for the 90 km/h limit, "
+            f"{_pct_change(speed_main.level_change)}, passes its placebo checks but is reversed "
+            "once the series runs through the pandemic, so it describes thirteen months and no "
+            "more. A road-section series with speeds and traffic volumes would be needed to say "
+            "whether the limit itself lowered deaths."
+        )
     body += "<h2>Limits</h2>"
     body += note(
         "Monthly deaths are counts with overdispersion (the Pearson dispersion of the main 2006 fit "
         f"is {main.dispersion:.1f}) and serial correlation; the standard errors are Newey–West with "
-        "twelve lags and the negative-binomial variant is in each table. The 2006 model has no "
+        "twelve lags (within each road group in the 2019 panel) and the negative-binomial variant "
+        "is in each table. The 2006 model has no "
         "exposure series but the annual fleet, interpolated to months. The 2019 model treats the "
         "road type recorded at the crash as fixed, but the microdata note a change in road-type "
         "coding in 2024 (see the data page); the clean window ends in February 2020 and is not "

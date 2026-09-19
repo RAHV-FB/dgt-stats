@@ -72,14 +72,20 @@ def test_intervention_windows_and_fleet_offset() -> None:
     assert july_2006 == pytest.approx(float(published.value.iloc[0]))
 
 
-def _synthetic_series(level_change: float, break_date: str, seed: int = 3) -> pd.DataFrame:
-    """Poisson counts with a trend, a season and a known level change at ``break_date``."""
+def _synthetic_series(
+    level_change: float, break_date: str, seed: int = 3, slope_change: float = 0.0
+) -> pd.DataFrame:
+    """Poisson counts with a trend, a season, a known level change at ``break_date`` and an
+    optional extra slope (per month, log scale) after it."""
     rng = np.random.default_rng(seed)
     periods = pd.date_range("2000-01-01", "2007-11-01", freq="MS")
     t = np.arange(len(periods))
     season = 0.12 * np.sin(2 * np.pi * (periods.month - 1) / 12)
     post = (periods >= pd.Timestamp(break_date)).astype(float)
-    mu = np.exp(np.log(380) - 0.004 * t + season + np.log1p(level_change) * post)
+    since = np.clip(t - int(np.argmax(post)), 0, None) * post
+    mu = np.exp(
+        np.log(380) - 0.004 * t + season + np.log1p(level_change) * post + slope_change * since
+    )
     deaths = rng.poisson(mu).astype(float)
     return pd.DataFrame({"period": periods, "deaths": deaths})
 
@@ -104,6 +110,10 @@ def test_segmented_fit_recovers_a_known_level_change() -> None:
     assert np.isnan(no_slope.slope_change)
     nb = policy.segmented_fit(series, it, family="negative_binomial")
     assert nb.level_change == pytest.approx(fit.level_change, abs=0.02)
+    sloped = policy.segmented_fit(_synthetic_series(0.0, "2006-07-01", slope_change=-0.01), it)
+    assert sloped.slope_change == pytest.approx(np.expm1(-0.12), abs=0.06)  # annualised
+    late = sloped.series[sloped.series.post].tail(6)
+    assert (late.fitted < late.counterfactual).all()
 
 
 def test_placebo_distribution_ranks_a_real_break_first() -> None:
@@ -137,6 +147,10 @@ def test_did_fit_recovers_a_treated_change_and_a_flat_control() -> None:
     control = fit.coefficients.set_index("term")
     assert abs(np.expm1(control.estimate["post"])) < 0.12
     assert control.low["post"] < 0 < control.high["post"]
+    interleaved = panel.sort_values(["period", "group"]).reset_index(drop=True)
+    again = policy.did_fit(interleaved, it)
+    assert again.level_low == pytest.approx(fit.level_low)  # errors do not depend on row order
+    assert again.level_high == pytest.approx(fit.level_high)
     placebo = policy.did_placebos(panel, it)
     assert list(placebo.break_date) == [*it.placebo_dates, it.date]
     assert placebo[placebo.is_true].level_change.iloc[0] == fit.level_change

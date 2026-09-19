@@ -231,8 +231,19 @@ def _segmented_design(
     return design
 
 
+def _hac(groups: np.ndarray | None = None) -> dict[str, object]:
+    """Newey–West covariance with 12 lags; within each group when ``groups`` is given (a panel)."""
+    if groups is None:
+        return {"cov_type": "HAC", "cov_kwds": {"maxlags": HAC_LAGS}}
+    return {"cov_type": "hac-panel", "cov_kwds": {"groups": groups, "maxlags": HAC_LAGS}}
+
+
 def _fit(
-    y: pd.Series, design: pd.DataFrame, family: str, offset: pd.Series | None
+    y: pd.Series,
+    design: pd.DataFrame,
+    family: str,
+    offset: pd.Series | None,
+    cov: dict[str, object] | None = None,
 ) -> tuple[pd.Series, pd.DataFrame, float, np.ndarray]:
     """Fit a Poisson or negative-binomial regression with Newey–West errors.
 
@@ -241,7 +252,7 @@ def _fit(
     import statsmodels.api as sm  # imported here: the site build never needs statsmodels
 
     log_offset = None if offset is None else np.log(offset.to_numpy(dtype=float))
-    cov = {"cov_type": "HAC", "cov_kwds": {"maxlags": HAC_LAGS}}
+    cov = cov or _hac()
     values = y.to_numpy(dtype=float)
     if family == "poisson":
         model = sm.GLM(values, design, family=sm.families.Poisson(), offset=log_offset)
@@ -429,7 +440,8 @@ def did_fit(
     """Difference-in-differences interrupted series: treated against control, one count model.
 
     The estimate is the ``post_treated`` term; the ``post`` term is the control group's own
-    change at the break, which a valid design expects to be near zero.
+    change at the break, which a valid design expects to be near zero. The Newey–West covariance
+    runs within each group (a panel), never across the group boundary.
     """
     break_date = break_date or intervention.date
     frame = window(panel, start or intervention.pre_start, end or intervention.post_end)
@@ -437,7 +449,8 @@ def did_fit(
     if frame.empty or (frame.period >= break_date).sum() == 0:
         raise ValueError("did_fit: the window has no post-intervention months")
     design = _did_design(frame, break_date, slope, pandemic)
-    params, coefficients, dispersion, mu = _fit(frame.deaths, design, family, None)
+    groups = frame.group.astype("category").cat.codes.to_numpy()
+    params, coefficients, dispersion, mu = _fit(frame.deaths, design, family, None, _hac(groups))
     counterfactual_design = design.copy()
     for column in ("post_treated", "post_t_treated"):
         if column in counterfactual_design:
@@ -514,7 +527,7 @@ def _fit_row(fit: ItsFit, window_text: str) -> dict[str, object]:
         "variant": fit.variant,
         "family": fit.family,
         "window": window_text,
-        "n_months": fit.n,
+        "n_months": int(fit.series.period.nunique()),
         "level_change": fit.level_change,
         "level_low": fit.level_low,
         "level_high": fit.level_high,

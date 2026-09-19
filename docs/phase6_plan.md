@@ -112,10 +112,15 @@ All five steps are merged. What was built, with the deviations from the design a
   The estimate holds for 24-hour deaths, interurban roads, the fleet offset and the negative binomial;
   it is −7.6 % and not significant on urban streets; with the window run to December 2009 and a
   second break at the Penal Code reform it falls to −6.0 % (n.s.) while the reform takes −7.9 %.
-- Results, 2019: −13.5 % (−21.7 to −4.4) on conventional roads relative to motorways and dual
+- Results, 2019: −13.5 % (−22.4 to −3.5) on conventional roads relative to motorways and dual
   carriageways in the clean window, control change +2.5 %. The design fails its placebo: a break in
-  January 2018 gives −11.7 % (−17.9 to −5.0), so the divergence predates the limit; extended through
+  January 2018 gives −11.7 % (−18.3 to −4.5), so the divergence predates the limit; extended through
   the pandemic the term turns to +30 %. The page makes no claim about the limit.
+- A review pass caught the covariance of the two-group model: Newey–West on the stacked panel had
+  treated the control series as the continuation of the treated one. The fit now uses the panel
+  form (within-group lags), which widens the 2019 intervals slightly and changes no conclusion; the
+  page's conditional sentences were also aligned so that the tile, the paragraph and the reading note
+  cannot disagree.
 - The yearbook's zone sheets differ from its all-roads sheet by one death in four months of 1995;
   the test records it.
 
