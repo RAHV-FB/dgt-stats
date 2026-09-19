@@ -647,6 +647,10 @@ MODEL_TABLES = (
 )
 
 
+def model_tables_present() -> bool:
+    return all((TABLES_DIR / f"{name}.csv").exists() for name in MODEL_TABLES)
+
+
 def read_model_table(name: str) -> pd.DataFrame:
     """One of the Q3 result tables; a clear error when the models have not been fitted yet."""
     if name not in MODEL_TABLES:

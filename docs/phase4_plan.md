@@ -97,7 +97,8 @@ All five steps are merged. What was built, with the deviations from the design a
   synthetic data to the third decimal; the whole script runs in about two minutes.
 - Alignment code 998 (not applicable) is exactly the street zone, so it cannot be a level next to
   zone; it folds into the reference ("straight"). Levels with fewer than 500 crashes (three of them,
-  with no events) merge into their reference. The other missing states remain levels.
+  476 crashes with 1 fatal and 30 serious events between them) merge into their reference, and the
+  grouping table on the page says so. The other missing states remain levels.
 - Results, fatal outcome: head-on collisions 5.8× and pedestrian strikes 6.4× the odds of a side
   collision; interurban roads 3.2× and urban crossings 4.2× a street; conventional, dual carriageway
   and motorway 2.0–2.4× an urban street; darkness without lighting 1.4×; 00:00–06:59 1.5×; three or

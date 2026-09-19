@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from pathlib import Path
 
 import pandas as pd
@@ -11,6 +12,7 @@ from dgt_stats import agebands, labels, plots, summaries
 from dgt_stats.paths import FIGURES_DIR, TABLES_DIR
 
 CAPTIONS_PATH = FIGURES_DIR / "captions.json"
+log = logging.getLogger(__name__)
 
 SERIES_SOURCE = "DGT, Series históricas del Anuario de Accidentes 2024"
 MICRODATA_SOURCE = "DGT, Ficheros de microdatos de accidentes con víctimas 2016–2024"
@@ -488,6 +490,32 @@ def build_all(
     )
 
     # ------------------------------------------------------------------ Q3 severity models
+    if summaries.model_tables_present():
+        _severity_figures(figures_dir, captions)
+    else:
+        log.warning("model tables missing: run scripts/model.py to get the severity figures")
+
+    # ------------------------------------------------------------------ data quality
+    profile = pd.read_csv(TABLES_DIR / "missingness_by_year.csv")
+    plots.missingness_heatmap(
+        profile,
+        figures_dir / "data_missingness.svg",
+        "Share of crashes with an observed value, by field and year",
+    )
+    captions["data_missingness"] = plots.caption(
+        MICRODATA_SOURCE,
+        "2016–2024",
+        "observed = not empty, not 999 (not specified), not 998 (not applicable) and not an explicit unknown code",
+        n_crashes,
+    )
+
+    with (figures_dir / CAPTIONS_PATH.name).open("w", encoding="utf-8") as handle:
+        json.dump(captions, handle, indent=2, ensure_ascii=False)
+        handle.write("\n")
+    return captions
+
+
+def _severity_figures(figures_dir: Path, captions: dict[str, str]) -> None:
     coefficients = summaries.read_model_table("q3_model_coefficients")
     n_model = int(coefficients.n.iloc[0])
     for outcome, title in (
@@ -535,6 +563,11 @@ def build_all(
     stability = summaries.read_model_table("q3_year_stability")
     stability = stability[stability.outcome == "fatal"].copy()
     stability["term"] = stability.level.str.capitalize()
+    pairs = stability[["term", "predictor"]].drop_duplicates()
+    duplicated = set(pairs[pairs.term.duplicated(keep=False)].term)
+    stability.loc[stability.term.isin(duplicated), "term"] = (
+        stability.term + " (" + stability.predictor_label.str.lower() + ")"
+    )
     plots.small_multiples(
         stability,
         "term",
@@ -593,22 +626,3 @@ def build_all(
         "every other circumstance at its reference level (side collision, two vehicles, not at a "
         "junction, clear, dry, weekday, 10:00–13:59; interurban zone for interurban road types)",
     )
-
-    # ------------------------------------------------------------------ data quality
-    profile = pd.read_csv(TABLES_DIR / "missingness_by_year.csv")
-    plots.missingness_heatmap(
-        profile,
-        figures_dir / "data_missingness.svg",
-        "Share of crashes with an observed value, by field and year",
-    )
-    captions["data_missingness"] = plots.caption(
-        MICRODATA_SOURCE,
-        "2016–2024",
-        "observed = not empty, not 999 (not specified), not 998 (not applicable) and not an explicit unknown code",
-        n_crashes,
-    )
-
-    with (figures_dir / CAPTIONS_PATH.name).open("w", encoding="utf-8") as handle:
-        json.dump(captions, handle, indent=2, ensure_ascii=False)
-        handle.write("\n")
-    return captions

@@ -73,6 +73,7 @@ class Fit:
     cov: pd.DataFrame
     n: int
     events: int
+    separated: list[str]  # levels with no events (or only events) in this fit, left out
 
 
 def design_matrix(frame: pd.DataFrame, predictors: tuple[str, ...]) -> pd.DataFrame:
@@ -97,12 +98,14 @@ def _irls(
     """Logistic regression by iteratively reweighted least squares, written to keep memory low.
 
     Returns the coefficients, the fitted probabilities and the inverse information matrix
-    (the model-based covariance, the "bread" of the sandwich).
+    (the model-based covariance, the "bread" of the sandwich). Raises when the iterations do not
+    converge, rather than returning a drifting estimate.
     """
     n, k = design.shape
     beta = np.zeros(k)
     beta[0] = np.log(y.mean() / (1 - y.mean()))
     probability = np.empty(n)
+    converged = False
     for _ in range(max_iter):
         linear = design @ beta
         np.clip(linear, -30, 30, out=linear)
@@ -113,7 +116,10 @@ def _irls(
         step = np.linalg.solve(information, gradient)
         beta = beta + step
         if np.max(np.abs(step)) < tol:
+            converged = True
             break
+    if not converged:
+        raise RuntimeError(f"IRLS did not converge in {max_iter} iterations")
     linear = np.clip(design @ beta, -30, 30)
     probability = 1 / (1 + np.exp(-linear))
     weights = probability * (1 - probability)
@@ -143,8 +149,18 @@ def fit_severity(
     """Logistic regression (IRLS) with cluster-robust covariance; returns the parameters and cov."""
     predictors = predictors or tuple(features.PREDICTORS)
     design = design_matrix(frame, predictors)
-    matrix = design.to_numpy(dtype=float)
     y = frame[outcome].astype(float).to_numpy()
+    # A level whose crashes all share one outcome cannot be estimated (the odds ratio would run
+    # to zero or infinity); it is left out of the design and its crashes count as the reference.
+    events_per_column = y @ design.to_numpy(dtype=float)
+    crashes_per_column = design.sum(axis=0).to_numpy()
+    separated = [
+        column
+        for column, events, crashes in zip(design.columns, events_per_column, crashes_per_column)
+        if column != "intercept" and (events == 0 or events == crashes)
+    ]
+    design = design.drop(columns=separated)
+    matrix = design.to_numpy(dtype=float)
     beta, probability, bread = _irls(matrix, y)
     if cluster is not None:
         groups = pd.factorize(frame[cluster])[0]
@@ -160,6 +176,7 @@ def fit_severity(
         cov=pd.DataFrame(cov, index=design.columns, columns=design.columns),
         n=len(frame),
         events=int(y.sum()),
+        separated=separated,
     )
 
 
@@ -171,7 +188,6 @@ def odds_ratios(fit: Fit, alpha: float = 0.05) -> pd.DataFrame:
     z = stats.norm.ppf(1 - alpha / 2)
     records = []
     for name in fit.predictors:
-        spec_levels = None
         for column in fit.columns:
             if not column.startswith(f"{name}="):
                 continue
@@ -193,9 +209,7 @@ def odds_ratios(fit: Fit, alpha: float = 0.05) -> pd.DataFrame:
                     "p_value": float(2 * stats.norm.sf(abs(estimate / se))) if se > 0 else np.nan,
                 }
             )
-            spec_levels = spec_levels or True
-    out = pd.DataFrame.from_records(records)
-    return out
+    return pd.DataFrame.from_records(records)
 
 
 def _reference_rows(frame: pd.DataFrame, fit: Fit) -> pd.DataFrame:
@@ -220,9 +234,33 @@ def _reference_rows(frame: pd.DataFrame, fit: Fit) -> pd.DataFrame:
     return pd.DataFrame.from_records(records)
 
 
+def _separated_rows(fit: Fit) -> pd.DataFrame:
+    records = []
+    for column in fit.separated:
+        name, level = column.split("=", 1)
+        records.append(
+            {
+                "outcome": fit.outcome,
+                "predictor": name,
+                "predictor_label": features.PREDICTOR_LABELS.get(name, name),
+                "level": level,
+                "is_reference": False,
+                "log_odds": np.nan,
+                "se": np.nan,
+                "odds_ratio": np.nan,
+                "or_low": np.nan,
+                "or_high": np.nan,
+                "p_value": np.nan,
+            }
+        )
+    return pd.DataFrame.from_records(records)
+
+
 def coefficient_table(frame: pd.DataFrame, fit: Fit) -> pd.DataFrame:
-    """Odds ratios plus the reference rows, in predictor and level order, with level counts."""
-    table = pd.concat([_reference_rows(frame, fit), odds_ratios(fit)], ignore_index=True)
+    """Odds ratios plus the reference rows (and any level left out for having no events), in
+    predictor and level order, with level counts."""
+    parts = [_reference_rows(frame, fit), odds_ratios(fit), _separated_rows(fit)]
+    table = pd.concat([part for part in parts if not part.empty], ignore_index=True)
     counts = []
     shares = []
     for row in table.itertuples():
@@ -258,13 +296,17 @@ def marginal_effects(frame: pd.DataFrame, fit: Fit) -> pd.DataFrame:
     For each predictor and level, every crash is set to that level (all else as observed) and the
     mean predicted probability is compared with the mean when every crash is set to the reference.
     """
-    design = design_matrix(frame, fit.predictors)
+    design = design_matrix(frame, fit.predictors).reindex(columns=fit.params.index, fill_value=0.0)
+    matrix = design.to_numpy(dtype=float)
+    beta = fit.params.to_numpy()
     records = []
     for name in fit.predictors:
         level_columns = [c for c in fit.columns if c.startswith(f"{name}=")]
-        base = design.copy()
-        base[level_columns] = 0.0
-        p_reference = predict(fit, base).mean()
+        # Linear predictor with this predictor at its reference for every crash; a level is then
+        # one added coefficient, so no copy of the design is needed.
+        indices = [design.columns.get_loc(c) for c in level_columns]
+        eta_reference = matrix @ beta - matrix[:, indices] @ beta[indices]
+        p_reference = (1 / (1 + np.exp(-np.clip(eta_reference, -30, 30)))).mean()
         records.append(
             {
                 "outcome": fit.outcome,
@@ -277,9 +319,8 @@ def marginal_effects(frame: pd.DataFrame, fit: Fit) -> pd.DataFrame:
             }
         )
         for column in level_columns:
-            counterfactual = base.copy()
-            counterfactual[column] = 1.0
-            p_level = predict(fit, counterfactual).mean()
+            eta_level = eta_reference + fit.params[column]
+            p_level = (1 / (1 + np.exp(-np.clip(eta_level, -30, 30)))).mean()
             records.append(
                 {
                     "outcome": fit.outcome,

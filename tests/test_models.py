@@ -102,8 +102,11 @@ def test_model_frame_levels_and_groupings() -> None:
     assert frame.year.cat.categories[0] == "2019"
     groupings = features.grouping_table()
     assert groupings.groupby("predictor").reference.any().all()
-    codes_by_predictor = groupings.groupby("predictor").code.count()
-    assert codes_by_predictor["Crash type"] == 20
+    crash_type = groupings[groupings.predictor == "Crash type"]
+    assert len(crash_type) == 23  # 20 dictionary codes, 999, 998 and the fallback row
+    assert set(crash_type.code.tail(3)) == {"999", "998", "any other value or empty"}
+    merged = features.grouping_table(frame)
+    assert merged.columns.tolist() == groupings.columns.tolist()
 
 
 def test_every_predictor_level_list_starts_with_its_reference() -> None:
@@ -137,3 +140,12 @@ def test_small_levels_merge_into_the_reference() -> None:
     frame = features.model_frame(raw)
     assert list(frame.crash_type.cat.categories) == ["side collision"]
     assert list(frame.alignment.cat.categories) == ["straight"]
+    assert frame.attrs["merged_levels"] == {"crash_type": {"not specified": 10}}
+    groupings = features.grouping_table(frame).set_index(["predictor", "code"])
+    merged = groupings.loc[("Crash type", "999")]
+    assert (
+        merged.level == "side collision (merged: 10 crashes, fewer than 500)" and merged.reference
+    )
+    absent = groupings.loc[("Crash type", "1")]
+    assert absent.level == "head-on collision (no crash takes this value)" and not absent.reference
+    assert groupings.loc[("Crash type", "2")].level == "side collision"

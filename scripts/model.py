@@ -56,7 +56,7 @@ def main() -> int:
         "q3_year_stability": pd.concat(stability, ignore_index=True),
         "q3_profiles": models.profiles(frame, fits),
         "q3_predicted_grid": models.predicted_grid(frame, fits["fatal"]),
-        "q3_groupings": features.grouping_table(),
+        "q3_groupings": features.grouping_table(frame),
     }
     for name, table in outputs.items():
         target = TABLES_DIR / f"{name}.csv"

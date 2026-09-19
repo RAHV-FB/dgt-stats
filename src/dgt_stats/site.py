@@ -15,7 +15,7 @@ import pandas as pd
 
 from dgt_stats import agebands
 from dgt_stats.paths import FIGURES_DIR, PROJECT_ROOT, TABLES_DIR
-from dgt_stats.summaries import BASE_YEAR
+from dgt_stats.summaries import BASE_YEAR, read_model_table
 
 SITE_DIR = PROJECT_ROOT / "site"
 REPO_URL = "https://github.com/RAHV-FB/dgt-stats"
@@ -142,6 +142,7 @@ def table(frame: pd.DataFrame, caption: str, formats: dict[str, str] | None = No
         "pct2": lambda v: _fmt_pct(v, 2),
         "dec": _fmt_dec,
         "dec2": lambda v: _fmt_dec(v, 2),
+        "dec4": lambda v: _fmt_dec(v, 4),
     }
     rows = []
     for _, row in frame.iterrows():
@@ -826,12 +827,12 @@ def _or_cell(row: pd.Series) -> str:
 
 
 def page_severity(captions: dict[str, str]) -> str:
-    coefficients = read_table("q3_model_coefficients")
-    effects = read_table("q3_marginal_effects")
-    holdout = read_table("q3_holdout_summary").set_index("outcome")
-    stability = read_table("q3_year_stability")
-    profiles = read_table("q3_profiles")
-    groupings = read_table("q3_groupings")
+    coefficients = read_model_table("q3_model_coefficients")
+    effects = read_model_table("q3_marginal_effects")
+    holdout = read_model_table("q3_holdout_summary").set_index("outcome")
+    stability = read_model_table("q3_year_stability")
+    profiles = read_model_table("q3_profiles")
+    groupings = read_model_table("q3_groupings")
     n_crashes = int(coefficients.n.iloc[0])
     fatal = coefficients[coefficients.outcome == "fatal"]
     serious = coefficients[coefficients.outcome == "serious"]
@@ -907,13 +908,26 @@ def page_severity(captions: dict[str, str]) -> str:
             ". The yardstick is strict: the full model's intervals are narrow because they pool "
             "nine years, while a single year of fatal crashes gives wide ones"
         )
-    road_2024 = fatal_stability[
-        (fatal_stability.year == 2024) & (fatal_stability.predictor == "road")
+    latest_year = int(fatal_stability.year.max())
+    road_latest = fatal_stability[
+        (fatal_stability.year == latest_year) & (fatal_stability.predictor == "road")
     ]
-    if not road_2024.empty and (road_2024.odds_ratio < road_2024.full_model_or_low).all():
+    zone_latest = fatal_stability[
+        (fatal_stability.year == latest_year) & (fatal_stability.predictor == "zone")
+    ]
+    road_collapses = (
+        not road_latest.empty
+        and (road_latest.odds_ratio < road_latest.full_model_or_low).all()
+        and (road_latest.odds_ratio.between(0.67, 1.5)).all()
+    )
+    zone_rises = (
+        not zone_latest.empty and (zone_latest.odds_ratio > zone_latest.full_model_odds_ratio).all()
+    )
+    if latest_year == 2024 and road_collapses and zone_rises:
         unstable_text += (
             ". One pattern is not noise: in 2024 every road-type effect collapses towards 1 while "
-            "the zone effects jump, which matches the change in how road type is coded that year "
+            "every zone effect rises above its full-model estimate, which matches the change in "
+            "how road type is coded that year "
             "(the share of crashes coded to other road types rose sharply; see the data page). "
             "Road type and zone should be read together, not separately"
         )
@@ -946,7 +960,9 @@ def page_severity(captions: dict[str, str]) -> str:
         "for a serious outcome (death or hospitalisation). The predictors are the circumstances the "
         "police record for the crash itself: zone, road type, crash type, junction, lighting, weather, "
         "surface, alignment, time of day, weekend, number of vehicles and year. Missing states are "
-        "kept as their own level, so no crash is dropped. Intervals are clustered by province.</p>"
+        "kept as their own level and no crash is dropped; the only exception is a level with fewer "
+        "than 500 crashes, which is merged into the reference (the grouping table at the end says "
+        "which). Intervals are clustered by province.</p>"
     )
     body += note(
         "<strong>What they are not.</strong> The microdata carry no driver, vehicle or person "
@@ -1000,8 +1016,8 @@ def page_severity(captions: dict[str, str]) -> str:
             "Observed share": "pct2",
             "Mean predicted": "pct2",
             "Area under the ROC curve": "dec2",
-            "Brier score": None,
-            "Brier score of the base rate": None,
+            "Brier score": "dec4",
+            "Brier score of the base rate": "dec4",
         },
     )
     body += figure("q3_year_stability", "Odds ratios refitted year by year", captions)
@@ -1009,8 +1025,9 @@ def page_severity(captions: dict[str, str]) -> str:
     body += "<h2>How the codes were grouped</h2>"
     body += table(
         grouping_table,
-        "Every original DGT code and the model level it maps to; 999 (not specified), 998 (not "
-        "applicable) and explicit unknown codes become their own levels",
+        "Every original DGT code and the model level it maps to, including the missing markers and "
+        "the levels merged into the reference for having fewer than 500 crashes; values no crash "
+        "takes are marked as such",
         {
             "Circumstance": None,
             "Source field": None,

@@ -221,6 +221,7 @@ def model_frame(crashes: pd.DataFrame | None = None) -> pd.DataFrame:
     out["province"] = crashes["COD_PROVINCIA"].astype("Int16").astype(str)
     for outcome in OUTCOMES:
         out[outcome] = crashes[outcome].astype(bool)
+    merged: dict[str, dict[str, int]] = {}
     for name, spec in PREDICTORS.items():
         raw = crashes[str(spec["source"])]
         mapped = _level_series(raw, spec)
@@ -228,32 +229,58 @@ def model_frame(crashes: pd.DataFrame | None = None) -> pd.DataFrame:
         for source_level, target in dict(spec.get("fold", {})).items():  # type: ignore[union-attr]
             mapped[mapped == source_level] = target
         counts = mapped.value_counts()
-        small = [level for level, count in counts.items() if count < MIN_LEVEL_CRASHES]
+        small = {
+            str(level): int(count)
+            for level, count in counts.items()
+            if count < MIN_LEVEL_CRASHES and level != reference
+        }
         if small and len(crashes) >= MIN_LEVEL_CRASHES:
-            mapped[mapped.isin(small)] = reference
+            mapped[mapped.isin(list(small))] = reference
+            merged[name] = small
         used = [level for level in levels(name) if (mapped == level).any()]
         out[name] = pd.Categorical(mapped, categories=used, ordered=True)
+    # Which levels were merged, and how many crashes each had, for the grouping table.
+    out.attrs["merged_levels"] = merged
     return out
 
 
-def grouping_table() -> pd.DataFrame:
-    """Every original code with its model level, for the data page."""
+def grouping_table(frame: pd.DataFrame | None = None) -> pd.DataFrame:
+    """Every original code with its model level, for the severity page.
+
+    Includes the missing markers and the "any other value" fallback. When ``frame`` (from
+    :func:`model_frame`) is given, the table describes the model that was actually fitted: a level
+    merged into the reference for having fewer than ``MIN_LEVEL_CRASHES`` crashes says so with its
+    count, and a level that no crash takes is marked as absent.
+    """
     records = []
     for name, spec in PREDICTORS.items():
         source = str(spec["source"])
         mapping: dict = spec["map"]  # type: ignore[assignment]
         fold: dict = spec.get("fold", {})  # type: ignore[assignment]
-        codes_and_levels = list(mapping.items()) + [
-            (codes.NOT_APPLICABLE_CODE, fold[NOT_APPLICABLE]) for _ in [0] if NOT_APPLICABLE in fold
-        ]
-        for code, level in codes_and_levels:
+        reference = str(list(spec["levels"])[0])  # type: ignore[index]
+        rows: list[tuple[str, str]] = [(str(code), level) for code, level in mapping.items()]
+        if source not in ("hour_band", "weekend", "road_group"):
+            rows.append((str(codes.NOT_SPECIFIED_CODE), NOT_SPECIFIED))
+            rows.append((str(codes.NOT_APPLICABLE_CODE), fold.get(NOT_APPLICABLE, NOT_APPLICABLE)))
+        rows.append(("any other value or empty", str(spec["fallback"])))
+        present = None if frame is None else set(frame[name].cat.categories)
+        merged: dict[str, int] = (
+            {} if frame is None else frame.attrs.get("merged_levels", {}).get(name, {})
+        )
+        for code, level in rows:
+            shown, is_reference = level, level == reference
+            if level in merged:
+                shown = f"{reference} (merged: {merged[level]:,} crashes, fewer than {MIN_LEVEL_CRASHES})"
+                is_reference = True
+            elif present is not None and level not in present:
+                shown = f"{level} (no crash takes this value)"
             records.append(
                 {
                     "predictor": PREDICTOR_LABELS[name],
                     "source": source,
-                    "code": str(code),
-                    "level": level,
-                    "reference": level == list(spec["levels"])[0],  # type: ignore[index]
+                    "code": code,
+                    "level": shown,
+                    "reference": is_reference,
                 }
             )
     return pd.DataFrame.from_records(records)
