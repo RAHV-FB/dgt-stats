@@ -32,8 +32,12 @@ def read_population() -> pd.DataFrame:
             "province_code": codes.fillna(NATIONAL_CODE).astype("string"),
             "province": names.where(codes.notna(), "Spain").astype("string"),
             "age_group": raw.age_group,
-            "age_low": pd.array([low for low, _ in parsed], dtype="Int16"),
-            "age_high": pd.array([high for _, high in parsed], dtype="Int16"),
+            "age_low": pd.array(
+                [None if item is None else item[0] for item in parsed], dtype="Int16"
+            ),
+            "age_high": pd.array(
+                [None if item is None else item[1] for item in parsed], dtype="Int16"
+            ),
             "all_ages": (raw.age_group == ALL_AGES).to_numpy(),
             "sex": raw.sex.map(SEX_LABELS).astype("string"),
             "reference": raw.reference.astype("string"),

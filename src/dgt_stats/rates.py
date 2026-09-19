@@ -1,7 +1,7 @@
-"""Rates with exact Poisson intervals, rate ratios, direct standardisation and the active-driver estimate.
+"""Rates with exact Poisson intervals, rate ratios, standardisation and the travel-weighted estimate.
 
 Counts of deaths or involved drivers are treated as Poisson; the exposure (residents, licence
-holders, active drivers) is treated as known. Intervals are 95 % unless ``alpha`` says otherwise.
+holders, travel-weighted drivers) is treated as known. Intervals are 95 % unless ``alpha`` says otherwise.
 """
 
 from __future__ import annotations
@@ -120,18 +120,20 @@ def interpolate_share(year: int, waves: pd.DataFrame) -> tuple[float, float, flo
     return (value, value - (float(nearest.share) - low), value + (high - float(nearest.share)))
 
 
-def active_driver_share(
+def travel_weighted_share(
     year: int,
     waves: pd.DataFrame,
     profile: pd.Series,
     licence_share: pd.Series,
 ) -> pd.DataFrame:
-    """Estimated share of residents who drive, by band, for one year.
+    """Car-travel-weighted share of residents, by band, for one year ("driver-equivalents").
 
     ``profile`` is the relative car-travel intensity by band (population-weighted mean of 1 over the
-    survey's age range); the national survey share is spread across bands in proportion to it and
-    capped at the licence-holding share of the band (nobody drives without a licence). Columns:
-    ``band, share, share_low, share_high, national_share, capped``.
+    survey's age range); the national survey share of adults who drive is spread across bands in
+    proportion to it and capped at the licence-holding share of the band. It is not the share of
+    people who drive (no Spanish source gives that by age); it is the survey level weighted by how
+    much each band travels by car. Columns: ``band, share, share_low, share_high, national_share,
+    capped``.
     """
     national, low, high = interpolate_share(year, waves)
     records = []

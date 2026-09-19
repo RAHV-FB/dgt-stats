@@ -83,4 +83,62 @@ def test_series_based_summaries() -> None:
 
 
 def test_registry_names_are_prefixed_by_question() -> None:
-    assert all(name.split("_")[0] in {"q1", "q2", "q5"} for name in summaries.SUMMARIES)
+    assert all(name.split("_")[0] in {"q1", "q2", "q4", "q5", "q7"} for name in summaries.SUMMARIES)
+
+
+def test_province_rates_cover_every_province() -> None:
+    provinces = summaries.province_rates()
+    assert len(provinces) == 53 and provinces.is_total.sum() == 1
+    total = provinces[provinces.is_total].iloc[0]
+    assert total.deaths_30d == 1_785 and total.crashes == 101_996
+    rest = provinces[~provinces.is_total]
+    assert rest.deaths_30d.sum() == total.deaths_30d
+    assert rest.population.sum() == total.population
+    assert rest.licence_holders.sum() == total.licence_holders
+    assert (rest.deaths_per_100k_low <= rest.deaths_per_100k).all()
+    assert rest.deaths_rank.min() == 1 and rest.deaths_rank.max() <= 52
+
+
+def test_national_rates_by_year() -> None:
+    national = summaries.national_rates_by_year()
+    assert national.year.min() == 2002 and national.year.max() == 2024
+    row = national[national.year == 2024].iloc[0]
+    assert 3.0 < row.deaths_per_100k_residents < 4.0
+    assert row.licence_holders == 28_142_470
+    assert national[national.year < 2014].deaths_per_100k_licence.isna().all()
+
+
+def test_driver_ladder_is_complete_and_ordered() -> None:
+    ladder = summaries.driver_ladder()
+    assert sorted(ladder.year.unique()) == list(summaries.LADDER_YEARS)
+    assert set(ladder.band.unique()) == set(summaries.agebands.ANALYSIS_BANDS)
+    assert ladder.driver_deaths.notna().all() and ladder.licence_holders.notna().all()
+    assert ((ladder.licence_share > 0) & (ladder.licence_share < 1)).all()
+    assert ((ladder.travel_share > 0) & (ladder.travel_share <= ladder.licence_share + 1e-9)).all()
+    assert (ladder.travel_share_low <= ladder.travel_share).all()
+    assert (ladder.deaths_per_100k_travel >= ladder.deaths_per_100k_licence - 1e-9).all()
+    deaths_2024 = ladder[ladder.year == 2024].driver_deaths.sum()
+    assert deaths_2024 < 1_186 and deaths_2024 > 1_150  # drivers with unknown age excluded
+
+
+def test_ladder_ratio_rises_with_the_denominator() -> None:
+    ratios = summaries.ladder_ratio()
+    assert set(ratios.denominator.unique()) == set(summaries.LADDER_DENOMINATORS)
+    latest = ratios[(ratios.year == 2024) & (ratios.band == "75+")].set_index("denominator").ratio
+    assert latest["residents"] < latest["licence_holders"] < latest["travel_weighted"]
+
+
+def test_licence_share_victims_and_movilia() -> None:
+    share = summaries.licence_share_by_age()
+    assert set(share.sex.unique()) == {"total", "male", "female"}
+    older = share[(share.year == 2024) & (share.sex == "female") & (share.band == "75+")].iloc[0]
+    assert older.licence_share < 0.4
+    victims = summaries.victims_by_age_rates()
+    assert set(victims.band.unique()) == set(summaries.VICTIM_BANDS)
+    assert victims[victims.year == 2024].deaths_30d.sum() == 1_785 - 29 - 12
+    travel = summaries.movilia_car_travel()
+    assert travel.car_share_of_trips.between(0, 1).all()
+
+
+def test_registry_covers_phase_3_questions() -> None:
+    assert all(name.split("_")[0] in {"q1", "q2", "q4", "q5", "q7"} for name in summaries.SUMMARIES)

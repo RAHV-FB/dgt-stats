@@ -66,11 +66,11 @@ def test_interpolate_share_between_and_outside_waves() -> None:
     assert low < value < high
 
 
-def test_active_driver_share_spreads_and_caps() -> None:
+def test_travel_weighted_share_spreads_and_caps() -> None:
     waves = pd.DataFrame({"wave": [2023], "share": [0.75], "n": [900]})
     profile = pd.Series({"25-34": 1.2, "75+": 0.4})
     licence = pd.Series({"25-34": 0.95, "75+": 0.25})
-    out = rates.active_driver_share(2023, waves, profile, licence)
+    out = rates.travel_weighted_share(2023, waves, profile, licence)
     young = out[out.band == "25-34"].iloc[0]
     old = out[out.band == "75+"].iloc[0]
     assert young.share == pytest.approx(0.9) and not young.capped
