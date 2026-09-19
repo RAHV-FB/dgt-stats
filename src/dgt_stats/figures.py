@@ -7,14 +7,25 @@ from pathlib import Path
 
 import pandas as pd
 
-from dgt_stats import labels, plots, summaries
+from dgt_stats import agebands, labels, plots, summaries
 from dgt_stats.paths import FIGURES_DIR, TABLES_DIR
 
 CAPTIONS_PATH = FIGURES_DIR / "captions.json"
 
 SERIES_SOURCE = "DGT, Series históricas del Anuario de Accidentes 2024"
 MICRODATA_SOURCE = "DGT, Ficheros de microdatos de accidentes con víctimas 2016–2024"
+TABLES_SOURCE = "DGT, Accidentes con víctimas, tablas estadísticas 2014–2024"
+INE_SOURCE = "INE, Estadística Continua de Población"
+CENSUS_SOURCE = "DGT, Censo de conductores 2014–2025"
+ACTIVITY_SOURCE = "ESRA 2018 and 2023 (Spain), MOVILIA 2006"
 THIRTY_DAY = "deaths within 30 days of the crash"
+
+LADDER_LABELS = {
+    "residents": "per resident",
+    "licence_holders": "per licence holder",
+    "travel_weighted": "per travel-weighted driver",
+    "drivers_involved": "per driver involved in a crash",
+}
 
 METRIC_LABELS = {
     "crashes": "Injury crashes",
@@ -289,6 +300,194 @@ def build_all(
         ylabel="Deaths (30 days)",
     )
     captions["q5_pedestrian_deaths"] = plots.caption(SERIES_SOURCE, "1993–2024", THIRTY_DAY)
+
+    # ------------------------------------------------------------------ Q4 geography
+    provinces = summary("q4_province_rates")
+    latest_year = int(provinces.year.iloc[0])
+    national = provinces[provinces.is_total].iloc[0]
+    plots.dot_interval(
+        provinces[~provinces.is_total],
+        "province",
+        "deaths_per_100k",
+        "deaths_per_100k_low",
+        "deaths_per_100k_high",
+        figures_dir / "q4_province_deaths.svg",
+        f"Road deaths per 100,000 residents by province, {latest_year}",
+        xlabel="Deaths per 100,000 residents (95% interval)",
+        reference=float(national.deaths_per_100k),
+        reference_label=f"Spain {national.deaths_per_100k:.1f}",
+    )
+    captions["q4_province_deaths"] = plots.caption(
+        f"{TABLES_SOURCE}; {INE_SOURCE}",
+        str(latest_year),
+        "30-day deaths in the province where the crash happened, divided by residents on 1 July; "
+        "exact Poisson 95% intervals, wide where deaths are few",
+        int(national.deaths_30d),
+    )
+
+    national_rates = summary("q4_national_rates")
+    rate_long = national_rates.melt(
+        id_vars="year",
+        value_vars=["deaths_per_100k_residents", "deaths_per_100k_licence"],
+        var_name="denominator",
+        value_name="rate",
+    ).dropna(subset=["rate"])
+    rate_long["denominator"] = rate_long.denominator.map(
+        {
+            "deaths_per_100k_residents": "per 100,000 residents",
+            "deaths_per_100k_licence": "per 100,000 licence holders",
+        }
+    )
+    plots.line_series(
+        rate_long,
+        "year",
+        "rate",
+        figures_dir / "q4_national_rates.svg",
+        "Road deaths per 100,000 residents and per 100,000 licence holders",
+        series="denominator",
+        ylabel="Deaths per 100,000",
+    )
+    captions["q4_national_rates"] = plots.caption(
+        f"{SERIES_SOURCE}; {INE_SOURCE}; {CENSUS_SOURCE}",
+        "2002–2024 (residents), 2014–2024 (licence holders)",
+        "30-day deaths of all road users; residents on 1 July; licence holders at the census date",
+    )
+
+    # ------------------------------------------------------------------ Q7 older drivers
+    ratio = summary("q7_ladder_ratio")
+    ratio_65 = ratio[ratio.band == "65+"].copy()
+    ratio_65 = ratio_65[ratio_65.denominator.isin(LADDER_LABELS)]
+    ratio_65["denominator"] = ratio_65.denominator.map(LADDER_LABELS)
+    plots.line_series(
+        ratio_65,
+        "year",
+        "ratio",
+        figures_dir / "q7_ladder_ratio.svg",
+        "Driver death rate, 65 and over relative to 35–64, under each denominator",
+        series="denominator",
+        ylabel="Rate ratio (35–64 = 1)",
+        reference=1.0,
+        band=("ratio_low", "ratio_high"),
+        end_labels=False,
+        height=4.8,
+    )
+    captions["q7_ladder_ratio"] = plots.caption(
+        f"{TABLES_SOURCE}; {INE_SOURCE}; {CENSUS_SOURCE}; {ACTIVITY_SOURCE}",
+        "2014–2024",
+        "driver deaths (30 days) per unit of each denominator, 65+ divided by 35–64; shaded bands "
+        "are 95% intervals from the death counts; drivers with unknown age excluded",
+    )
+
+    ladder = summary("q7_driver_ladder")
+    ladder["band_label"] = ladder.band.map(agebands.band_label)
+    latest = ladder[ladder.year == ladder.year.max()]
+    shares = latest.melt(
+        id_vars="band_label",
+        value_vars=["licence_share", "travel_share"],
+        var_name="measure",
+        value_name="share",
+    )
+    shares["measure"] = shares.measure.map(
+        {"licence_share": "Hold a licence", "travel_share": "Travel-weighted driver share"}
+    )
+    plots.grouped_bars(
+        shares,
+        "band_label",
+        "measure",
+        "share",
+        figures_dir / "q7_licence_travel_share.svg",
+        f"Share of residents with a licence and travel-weighted driver share, {int(latest.year.iloc[0])}",
+        order=[agebands.band_label(b) for b in agebands.ANALYSIS_BANDS],
+        percent=True,
+        ylabel="Share of residents",
+    )
+    captions["q7_licence_travel_share"] = plots.caption(
+        f"{CENSUS_SOURCE}; {INE_SOURCE}; {ACTIVITY_SOURCE}",
+        str(int(latest.year.iloc[0])),
+        "licence holders divided by residents; travel-weighted share = ESRA national share of "
+        "adults who drive spread by the MOVILIA 2006 car-travel profile, capped at the licence share",
+    )
+
+    rate_long = ladder.melt(
+        id_vars=["year", "band_label"],
+        value_vars=["deaths_per_100k_licence", "deaths_per_100k_travel"],
+        var_name="denominator",
+        value_name="rate",
+    )
+    rate_long["denominator"] = rate_long.denominator.map(
+        {
+            "deaths_per_100k_licence": "per 100,000 licence holders",
+            "deaths_per_100k_travel": "per 100,000 travel-weighted drivers",
+        }
+    )
+    plots.small_multiples(
+        rate_long,
+        "band_label",
+        "year",
+        "rate",
+        figures_dir / "q7_death_rates_by_band.svg",
+        "Driver deaths per 100,000, by age band and denominator",
+        ncols=4,
+        order=[agebands.band_label(b) for b in agebands.ANALYSIS_BANDS],
+        series="denominator",
+        shared_y=True,
+    )
+    captions["q7_death_rates_by_band"] = plots.caption(
+        f"{TABLES_SOURCE}; {CENSUS_SOURCE}; {ACTIVITY_SOURCE}",
+        "2014–2024",
+        "driver deaths within 30 days (interurban and urban) divided by licence holders and by "
+        "travel-weighted drivers of the same age band; same scale on every panel",
+    )
+
+    decomposition = ladder.melt(
+        id_vars=["year", "band_label"],
+        value_vars=["involved_per_10k_licence", "deaths_per_1k_involved"],
+        var_name="measure",
+        value_name="value",
+    )
+    decomposition["measure"] = decomposition.measure.map(
+        {
+            "involved_per_10k_licence": "Drivers involved per 10,000 licence holders",
+            "deaths_per_1k_involved": "Driver deaths per 1,000 drivers involved",
+        }
+    )
+    plots.small_multiples(
+        decomposition,
+        "measure",
+        "year",
+        "value",
+        figures_dir / "q7_involvement_fragility.svg",
+        "Crash involvement and fatality given involvement, by age band",
+        ncols=2,
+        series="band_label",
+        series_order=[agebands.band_label(b) for b in agebands.ANALYSIS_BANDS],
+    )
+    captions["q7_involvement_fragility"] = plots.caption(
+        f"{TABLES_SOURCE}; {CENSUS_SOURCE}",
+        "2014–2024",
+        "left: drivers involved in injury crashes per 10,000 licence holders of the band; right: "
+        "driver deaths per 1,000 drivers involved (fragility and crash severity)",
+    )
+
+    victims = summary("q7_victims_by_age")
+    victims["band_label"] = victims.band.map(
+        lambda b: "65 and over" if b == "65+" else agebands.band_label(b)
+    )
+    plots.line_series(
+        victims,
+        "year",
+        "deaths_per_million",
+        figures_dir / "q7_victims_by_age.svg",
+        "Road deaths per million residents by age band, all road users",
+        series="band_label",
+        ylabel="Deaths per million residents",
+        end_labels=False,
+    )
+    captions["q7_victims_by_age"] = plots.caption(
+        f"{SERIES_SOURCE}; {INE_SOURCE}",
+        "2002–2024",
+        "all road users killed within 30 days, by age band, divided by residents on 1 July",
+    )
 
     # ------------------------------------------------------------------ data quality
     profile = pd.read_csv(TABLES_DIR / "missingness_by_year.csv")

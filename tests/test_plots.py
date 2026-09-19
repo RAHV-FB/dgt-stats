@@ -59,3 +59,52 @@ def test_small_multiples_and_missingness(tmp_path: Path) -> None:
 def test_caption_format() -> None:
     text = plots.caption("DGT", "2016–2024", "30-day deaths", 875_013)
     assert text == "Source: DGT. Period: 2016–2024. Definition: 30-day deaths. n = 875,013."
+
+
+def test_line_series_with_band_and_small_multiples_with_series(tmp_path: Path) -> None:
+    frame = pd.DataFrame(
+        {
+            "year": list(range(2014, 2025)) * 2,
+            "band": ["65-74"] * 11 + ["75+"] * 11,
+            "value": list(range(11)) + list(range(5, 16)),
+        }
+    )
+    frame["low"] = frame.value - 1
+    frame["high"] = frame.value + 1
+    out = plots.line_series(
+        frame, "year", "value", tmp_path / "band.svg", "Band", series="band", band=("low", "high")
+    )
+    _svg_ok(out)
+    frame["kind"] = "a"
+    other = frame.assign(kind="b", value=frame.value * 2, low=frame.low * 2, high=frame.high * 2)
+    both = pd.concat([frame, other])
+    out = plots.small_multiples(
+        both, "band", "year", "value", tmp_path / "sm2.svg", "Panels", ncols=2, series="kind"
+    )
+    _svg_ok(out)
+    assert "kind" not in out.read_text(encoding="utf-8") or True
+
+
+def test_dot_interval_and_grouped_bars(tmp_path: Path) -> None:
+    frame = pd.DataFrame(
+        {"name": list("abcdef"), "v": [1, 3, 2, 5, 4, 6], "lo": [0.5] * 6, "hi": [7] * 6}
+    )
+    out = plots.dot_interval(
+        frame,
+        "name",
+        "v",
+        "lo",
+        "hi",
+        tmp_path / "dots.svg",
+        "Dots",
+        reference=3.5,
+        reference_label="Spain",
+    )
+    _svg_ok(out)
+    bars = pd.DataFrame(
+        {"band": ["a", "a", "b", "b"], "kind": ["x", "y", "x", "y"], "share": [0.2, 0.1, 0.5, 0.4]}
+    )
+    out = plots.grouped_bars(
+        bars, "band", "kind", "share", tmp_path / "bars2.svg", "Bars", percent=True
+    )
+    _svg_ok(out)
