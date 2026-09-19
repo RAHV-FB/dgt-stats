@@ -276,3 +276,51 @@ census_2025,2025.0,drivers:zamora,105632.0,105632.0,True,difference +0
 census_2025,2025.0,drivers:zaragoza,552052.0,552052.0,True,difference +0
 census_2025,2025.0,drivers:ceuta,41924.0,41924.0,True,difference +0
 census_2025,2025.0,drivers:melilla,45814.0,45814.0,True,difference +0
+driver_deaths,2014.0,driver_deaths:interurban,836.0,836.0,True,
+driver_deaths,2014.0,driver_deaths:urban,207.0,207.0,True,
+driver_deaths,2014.0,driver_deaths:all,1043.0,1043.0,True,
+driver_deaths,2015.0,driver_deaths:interurban,884.0,884.0,True,
+driver_deaths,2015.0,driver_deaths:urban,164.0,164.0,True,
+driver_deaths,2015.0,driver_deaths:all,1048.0,1048.0,True,
+driver_deaths,2016.0,driver_deaths:interurban,865.0,865.0,True,
+driver_deaths,2016.0,driver_deaths:urban,236.0,236.0,True,
+driver_deaths,2016.0,driver_deaths:all,1101.0,1101.0,True,
+driver_deaths,2017.0,driver_deaths:interurban,947.0,947.0,True,
+driver_deaths,2017.0,driver_deaths:urban,224.0,224.0,True,
+driver_deaths,2017.0,driver_deaths:all,1171.0,1171.0,True,
+driver_deaths,2018.0,driver_deaths:interurban,921.0,921.0,True,
+driver_deaths,2018.0,driver_deaths:urban,232.0,232.0,True,
+driver_deaths,2018.0,driver_deaths:all,1153.0,1153.0,True,
+driver_deaths,2019.0,driver_deaths:interurban,885.0,885.0,True,
+driver_deaths,2019.0,driver_deaths:urban,254.0,254.0,True,
+driver_deaths,2019.0,driver_deaths:all,1139.0,1139.0,True,
+driver_deaths,2020.0,driver_deaths:interurban,701.0,701.0,True,
+driver_deaths,2020.0,driver_deaths:urban,221.0,221.0,True,
+driver_deaths,2020.0,driver_deaths:all,922.0,922.0,True,
+driver_deaths,2021.0,driver_deaths:interurban,817.0,817.0,True,
+driver_deaths,2021.0,driver_deaths:urban,205.0,205.0,True,
+driver_deaths,2021.0,driver_deaths:all,1022.0,1022.0,True,
+driver_deaths,2022.0,driver_deaths:interurban,899.0,899.0,True,
+driver_deaths,2022.0,driver_deaths:urban,232.0,232.0,True,
+driver_deaths,2022.0,driver_deaths:all,1131.0,1131.0,True,
+driver_deaths,2023.0,driver_deaths:interurban,921.0,921.0,True,
+driver_deaths,2023.0,driver_deaths:urban,257.0,257.0,True,
+driver_deaths,2023.0,driver_deaths:all,1178.0,1178.0,True,
+driver_deaths,2024.0,driver_deaths:interurban,935.0,935.0,True,
+driver_deaths,2024.0,driver_deaths:urban,251.0,251.0,True,
+driver_deaths,2024.0,driver_deaths:all,1186.0,1186.0,True,
+census_age_2023,2023.0,drivers:15-17,56644.0,56305.0,True,difference -339
+census_age_2023,2023.0,drivers:18-20,489985.0,487041.0,True,difference -2944
+census_age_2023,2023.0,drivers:21-24,1223892.0,1222059.0,True,difference -1833
+census_age_2023,2023.0,drivers:25-29,1769437.0,1767327.0,True,difference -2110
+census_age_2023,2023.0,drivers:30-34,2077779.0,2074952.0,True,difference -2827
+census_age_2023,2023.0,drivers:35-39,2394508.0,2389186.0,True,difference -5322
+census_age_2023,2023.0,drivers:40-44,2941128.0,2934696.0,True,difference -6432
+census_age_2023,2023.0,drivers:45-49,3425264.0,3421313.0,True,difference -3951
+census_age_2023,2023.0,drivers:50-54,3172723.0,3174095.0,True,difference +1372
+census_age_2023,2023.0,drivers:55-59,2900256.0,2899186.0,True,difference -1070
+census_age_2023,2023.0,drivers:60-64,2419028.0,2422571.0,True,difference +3543
+census_age_2023,2023.0,drivers:65-69,1890302.0,1895075.0,True,difference +4773
+census_age_2023,2023.0,drivers:70-74,1363790.0,1367365.0,True,difference +3575
+census_age_2023,2023.0,drivers:75+,1789835.0,1803400.0,True,difference +13565
+census_age_2023,2023.0,drivers:unknown,1.0,1.0,True,difference +0

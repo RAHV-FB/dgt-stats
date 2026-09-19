@@ -110,8 +110,20 @@ def caption(source: str, period: str, definition: str, n: str | int | None = Non
     return ". ".join(parts) + "."
 
 
+def _tick(value: float, _: object = None) -> str:
+    """Thousands separators, and up to two decimals only when the tick is not a whole number."""
+    if float(value).is_integer():
+        return f"{value:,.0f}"
+    return f"{value:,.2f}".rstrip("0").rstrip(".")
+
+
 def _thousands(axis: plt.Axes) -> None:
-    axis.yaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(lambda v, _: f"{v:,.0f}"))
+    axis.yaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(_tick))
+
+
+def _integer_x(axis: plt.Axes, nbins: int | str = "auto") -> None:
+    """Whole-number x ticks (years); ``nbins`` limits the count in small panels."""
+    axis.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(nbins=nbins, integer=True))
 
 
 def _percent(axis: plt.Axes, decimals: int = 0) -> None:
@@ -133,10 +145,12 @@ def line_series(
     reference: float | None = None,
     height: float = 4.2,
     end_labels: bool = True,
+    band: tuple[str, str] | None = None,
 ) -> Path:
     """One or more lines on a single axis; legend plus end labels when there are 2–4 series.
 
-    Pass ``end_labels=False`` when the series converge at the right edge (indexed charts).
+    Pass ``end_labels=False`` when the series converge at the right edge (indexed charts) and
+    ``band=(low_column, high_column)`` to shade an interval around each line.
     """
     apply_style()
     fig, axis = plt.subplots(figsize=(FIGURE_WIDTH, height))
@@ -146,6 +160,10 @@ def line_series(
     for index, (name, group) in enumerate(groups):
         group = group.sort_values(x)
         colour = CATEGORICAL[index]
+        if band is not None:
+            axis.fill_between(
+                group[x], group[band[0]], group[band[1]], color=colour, alpha=0.15, linewidth=0
+            )
         axis.plot(group[x], group[y], color=colour, label=None if name is None else str(name))
         last = group.dropna(subset=[y]).iloc[-1] if group[y].notna().any() else None
         if last is not None:
@@ -177,6 +195,7 @@ def line_series(
         _percent(axis)
     else:
         _thousands(axis)
+    _integer_x(axis)
     axis.set_title(title)
     axis.set_ylabel(ylabel)
     axis.set_xlabel("")
@@ -298,30 +317,163 @@ def small_multiples(
     percent: bool = False,
     shared_y: bool = False,
     order: list[str] | None = None,
+    series: str | None = None,
+    series_order: list[str] | None = None,
+    band: tuple[str, str] | None = None,
 ) -> Path:
-    """One small line chart per facet value, same x range, each panel labelled by its facet."""
+    """One small line chart per facet value, same x range, each panel labelled by its facet.
+
+    With ``series`` every panel carries one line per series value in fixed colour order and a
+    shared legend below the grid; ``band`` shades an interval around each line.
+    """
     apply_style()
     facets = order or list(dict.fromkeys(frame[facet]))
+    names = [None] if series is None else (series_order or list(dict.fromkeys(frame[series])))
+    if len(names) > len(CATEGORICAL):
+        raise ValueError("more series than fixed colours; fold to 'Other' or facet")
     nrows = int(np.ceil(len(facets) / ncols))
     fig, axes = plt.subplots(
         nrows, ncols, figsize=(FIGURE_WIDTH, 2.2 * nrows + 0.6), sharex=True, sharey=shared_y
     )
     axes = np.atleast_1d(axes).ravel()
-    for index, name in enumerate(facets):
+    for index, facet_name in enumerate(facets):
         axis = axes[index]
-        group = frame[frame[facet] == name].sort_values(x)
-        axis.plot(group[x], group[y], color=CATEGORICAL[0])
-        axis.set_title(str(name), fontsize=10, fontweight="normal")
-        axis.set_ylim(bottom=0)
+        panel = frame[frame[facet] == facet_name]
+        for colour_index, name in enumerate(names):
+            group = panel if name is None else panel[panel[series] == name]
+            group = group.sort_values(x)
+            colour = CATEGORICAL[colour_index]
+            if band is not None:
+                axis.fill_between(
+                    group[x], group[band[0]], group[band[1]], color=colour, alpha=0.15, linewidth=0
+                )
+            axis.plot(group[x], group[y], color=colour, label=None if name is None else str(name))
+        axis.set_title(str(facet_name), fontsize=10, fontweight="normal")
         if percent:
             _percent(axis)
         else:
             _thousands(axis)
+        _integer_x(axis, nbins=4)
         axis.tick_params(labelsize=8)
+    for axis in axes[: len(facets)]:
+        axis.set_ylim(bottom=0)  # after every panel is drawn, so shared axes keep the full range
     for axis in axes[len(facets) :]:
         axis.set_visible(False)
     fig.suptitle(title, x=0.01, ha="left", fontsize=12, fontweight="bold")
-    fig.tight_layout()
+    if series is not None:
+        handles, labels = axes[0].get_legend_handles_labels()
+        legend_rows = int(np.ceil(len(names) / 4))
+        fig.legend(
+            handles,
+            labels,
+            loc="lower left",
+            bbox_to_anchor=(0.01, 0.0),
+            ncol=min(len(names), 4),
+        )
+        fig.tight_layout(rect=(0, 0.05 + 0.05 * legend_rows, 1, 1))
+    else:
+        fig.tight_layout()
+    return save(fig, path)
+
+
+def dot_interval(
+    frame: pd.DataFrame,
+    label: str,
+    value: str,
+    low: str,
+    high: str,
+    path: Path,
+    title: str,
+    xlabel: str = "",
+    reference: float | None = None,
+    reference_label: str = "",
+) -> Path:
+    """Ranked dots with interval whiskers, one row per label, highest value at the top."""
+    apply_style()
+    ordered = frame.sort_values(value, ascending=True).reset_index(drop=True)
+    height = max(3.0, 0.22 * len(ordered) + 1.4)
+    fig, axis = plt.subplots(figsize=(FIGURE_WIDTH, height))
+    positions = np.arange(len(ordered))
+    axis.hlines(
+        positions, ordered[low], ordered[high], color=CATEGORICAL[0], linewidth=1.5, alpha=0.6
+    )
+    axis.plot(
+        ordered[value],
+        positions,
+        marker="o",
+        markersize=6,
+        color=CATEGORICAL[0],
+        markeredgecolor=SURFACE,
+        markeredgewidth=1,
+        linestyle="none",
+    )
+    if reference is not None:
+        axis.axvline(reference, color=TEXT_SECONDARY, linewidth=1, linestyle=":")
+        if reference_label:
+            axis.annotate(
+                reference_label,
+                (reference, len(ordered) - 0.5),
+                xytext=(4, 0),
+                textcoords="offset points",
+                fontsize=8,
+                color=TEXT_SECONDARY,
+                va="top",
+            )
+    axis.set_yticks(positions, [str(v) for v in ordered[label]], fontsize=8)
+    axis.grid(True, axis="x")
+    axis.grid(False, axis="y")
+    axis.set_xlim(left=0)
+    axis.set_ylim(-0.7, len(ordered) - 0.3)
+    axis.set_title(title)
+    axis.set_xlabel(xlabel)
+    return save(fig, path)
+
+
+def grouped_bars(
+    frame: pd.DataFrame,
+    x: str,
+    series: str,
+    value: str,
+    path: Path,
+    title: str,
+    order: list[str] | None = None,
+    series_order: list[str] | None = None,
+    percent: bool = False,
+    ylabel: str = "",
+    height: float = 4.2,
+) -> Path:
+    """Side-by-side bars per category, one colour per series in fixed order."""
+    apply_style()
+    wide = frame.pivot_table(index=x, columns=series, values=value, aggfunc="first")
+    if order:
+        wide = wide.reindex(order)
+    if series_order:
+        wide = wide.reindex(columns=series_order)
+    if wide.shape[1] > len(CATEGORICAL):
+        raise ValueError("more series than fixed colours")
+    fig, axis = plt.subplots(figsize=(FIGURE_WIDTH, height))
+    n_series = wide.shape[1]
+    width = 0.8 / n_series
+    positions = np.arange(len(wide))
+    for index, column in enumerate(wide.columns):
+        offset = (index - (n_series - 1) / 2) * width
+        axis.bar(
+            positions + offset,
+            wide[column].to_numpy(dtype=float),
+            width=width * 0.92,
+            color=CATEGORICAL[index],
+            label=str(column),
+        )
+    axis.set_xticks(positions, [str(v) for v in wide.index])
+    axis.set_ylim(bottom=0)
+    if percent:
+        axis.set_ylim(0, 1)
+        _percent(axis)
+    else:
+        _thousands(axis)
+    axis.set_title(title)
+    axis.set_ylabel(ylabel)
+    axis.legend(loc="upper left", bbox_to_anchor=(0, -0.1), ncol=min(n_series, 4))
     return save(fig, path)
 
 

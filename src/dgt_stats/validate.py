@@ -21,6 +21,7 @@ VALIDATION_PATH = TABLES_DIR / "validation.csv"
 MISSINGNESS_PATH = TABLES_DIR / "missingness_by_year.csv"
 
 CENSUS_TOLERANCE = 0.005
+CENSUS_AGE_TOLERANCE = 0.02
 
 VICTIM_COLUMNS = {
     "deaths_30d": "TOTAL_MU30DF",
@@ -243,6 +244,65 @@ def check_census(census: pd.DataFrame, province_table: pd.DataFrame) -> list[Res
     return results
 
 
+def check_driver_tables(driver_victims: pd.DataFrame, road_users: pd.DataFrame) -> list[Result]:
+    """Check 7: driver deaths in tables 4.1.1 equal the yearbook series of driver deaths, by zone."""
+    results: list[Result] = []
+    deaths = driver_victims[driver_victims.is_total & (driver_victims.severity == "deaths_30d")]
+    actual = deaths.groupby(["year", "zone"]).value.sum()
+    expected = (
+        road_users[
+            (road_users.population == "drivers")
+            & (road_users.severity == "deaths_30d")
+            & road_users.is_total
+        ]
+        .set_index(["year", "zone"])
+        .value
+    )
+    for year in sorted(deaths.year.unique()):
+        for zone in ("interurban", "urban", "all"):
+            got = (
+                float(actual.get((year, "interurban"), 0) + actual.get((year, "urban"), 0))
+                if zone == "all"
+                else float(actual.get((year, zone), 0))
+            )
+            want = expected.get((year, zone))
+            results.append(
+                Result(
+                    "driver_deaths",
+                    int(year),
+                    f"driver_deaths:{zone}",
+                    None if want is None else float(want),
+                    got,
+                    want is not None and float(want) == got,
+                )
+            )
+    return results
+
+
+def check_census_age(census_tables: pd.DataFrame, census_text: pd.DataFrame) -> list[Result]:
+    """Check 8: the 2023 census text file agrees with the 2023 published age table per band."""
+    results: list[Result] = []
+    year = 2023
+    tables = census_tables[(census_tables.census_year == year) & (census_tables.sex == "total")]
+    text = census_text[census_text.census_year == year].groupby("band").n_drivers.sum()
+    for row in tables.itertuples():
+        got = text.get(row.band)
+        expected = float(row.n_drivers)
+        tolerance = CENSUS_AGE_TOLERANCE * expected if row.band != "unknown" else float("inf")
+        results.append(
+            Result(
+                "census_age_2023",
+                year,
+                f"drivers:{row.band}",
+                expected,
+                None if got is None else float(got),
+                got is not None and abs(got - expected) <= tolerance,
+                "" if got is None else f"difference {got - expected:+.0f}",
+            )
+        )
+    return results
+
+
 # --------------------------------------------------------------------------- missingness
 
 
@@ -306,6 +366,10 @@ def run_checks(crashes: pd.DataFrame | None = None) -> pd.DataFrame:
     month_table = io_tables.read_table("tables_2024_month")
     census = io_exposure.read_exposure("censo_conductores")
     census_table = io_exposure.read_exposure("censo_provincias_2025")
+    driver_victims = io_tables.read_table("tables_driver_victims")
+    road_users = io_tables.read_table("series_road_users")
+    census_age_tables = io_exposure.read_exposure("censo_edad_tablas")
+    census_age_text = io_exposure.read_exposure("censo_edad")
 
     results: list[Result] = []
     results += check_row_counts(crashes, annual)
@@ -314,6 +378,8 @@ def run_checks(crashes: pd.DataFrame | None = None) -> pd.DataFrame:
     results += check_unique_keys(crashes)
     results += check_code_domains(crashes)
     results += check_census(census, census_table)
+    results += check_driver_tables(driver_victims, road_users)
+    results += check_census_age(census_age_tables, census_age_text)
     return pd.DataFrame([asdict(result) for result in results])
 
 

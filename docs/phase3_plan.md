@@ -130,53 +130,104 @@ that year uses involvement alone and is marked as such.
 | 12 | "Parque de vehículos – Tablas estadísticas 2025" (fleet by province) | Q4 per-vehicle rates | DGT en Cifras page of that name |
 | 13 | Any Spanish survey reporting annual km by driver age band with its sample size | rung 5 | none found yet |
 
-## 4. Build steps
+## 4. Build steps (final design, 19 September 2026)
 
-### Step 1 — Population module
-- `io_population.py`: read the INE extract; expose `population(year, reference="1 July", province=None, sex="Total")` returning five-year groups, plus `to_dgt_age_bands()` mapping to DGT's bands (0–14, 15–24, 25–34, 35–44, 45–54, 55–64, 65+; and 65–69, 70–74, 75+ for the older-driver tables). Province names carry the INE code ("28 Madrid") and are joined to DGT provinces by code.
-- Interim: `data/interim/poblacion_ine.parquet`.
-- Tests: national 65+ on 1 January 2023 equals 9,687,776; every province code 01–52 present; age groups sum to "Todas las edades".
+Branch `phase-3`, one commit per step, `ruff` and `pytest` before each commit, squash-merge to `main`
+at the end. Analysis age bands are 15–24, 25–34, 35–44, 45–54, 55–64, 65–74 and 75+, with 65–69 and
+70–74 kept for the older-driver tables; every source band must nest inside exactly one analysis band
+(`agebands.py` raises otherwise, so nothing is split silently).
 
-### Step 2 — Driver exposure readers
-- Extend `io_exposure.py`: `read_census_age_year(year)` for item 8 files; `read_census_age_workbook(year)` for the class × age tables of item 10 (2014–2025); a `licence_holders_by_age(year)` view that yields drivers per DGT age band and sex.
-- Yearly statistical-table readers for item 9: `read_table_4_1_1(year)` (driver victims by age and sex, interurban and urban), `read_table_4_2(year)` (drivers involved by age, sex and condition) and the infraction-by-age table where present, header-located like `io_tables`; `paths.tables_raw_path(year, chapter)` already resolves the chapter workbooks of 2014–2019 (2014 is `.xls`, read with `xlrd`).
-- `io_activity.py` also reads MOVILIA 2006 table 64 (trips by "coche o moto" per resident by sex and age) as the historical cross-check curve.
-- `io_activity.py`: read `driving_activity_by_age.csv`; `driving_share(year, definition)` returns the share of residents who drive per DGT age band and sex, interpolated linearly between survey waves and held flat outside them, with a low/high band from the binomial interval on n; `driving_days(age_band)` from item 4. Every output row carries the source and wave it came from.
-- Tests: 2024 values equal the already-parsed 2024 workbook; totals reconcile with the series; a synthetic activity CSV interpolates and bounds as expected; an age band with no survey row yields NA, never a guess.
+### Step 1 — Age bands and population
+- `agebands.py`: band definitions, `parse_age_label()` for every DGT, INE and MOVILIA label
+  ("De 15 a 17 años", "Más de 74 años", "Hasta 14 años", "65 y más años", "0\\14 años"), `band_for()`.
+- `io_population.py`: the INE extract as a tidy frame (province code, sex, five-year group, reference
+  date, year); `population_by_band()`, `population_by_province()`; interim `poblacion_ine.parquet`.
+- Tests: national 65+ on 1 January 2023 = 9,687,776; provinces sum to the national total; five-year
+  groups sum to "Todas las edades"; label parsing; straddling bands raise.
 
-### Step 3 — `rates.py`
-- `rate(count, exposure, per)` with exact Poisson confidence intervals; `rate_ratio()` with CIs;
-  `direct_standardise()` to the 2019 population; `active_drivers(year)` = residents × driving share,
-  carrying the survey band through to the rate interval; `induced_exposure_ratio(age_band)` from the
-  drivers-involved tables (involved drivers with no infraction as the exposure set).
-- Tests against hand-computed values, including that the rung 3 rate is never below the rung 2 rate
-  for the same cell (active drivers cannot exceed licence holders; if a survey share implies more
-  active drivers than licences, the cell is capped at the licence count and flagged).
+### Step 2 — Licence holders by age
+- `io_exposure.read_census_age_year()` (text files 2023–2025; Latin-1 to 2024, UTF-8 BOM in 2025;
+  permits, licences and their sum per province × sex × band) and `read_census_age_tables()` (workbook
+  sheets P.6.1.1.7 / P.6.1.2.7 / P.6.1.3.7 for 2014–2023: the "TOTAL GENERAL" row to 2020, the
+  "Total censo" row from 2021). `licence_holders_by_age()` stitches 2014–2022 from the workbooks and
+  2023–2025 from the text files, by sex and fine band, with the source named per row.
+- Tests: text-file totals equal the published census totals (27,914,572 / 28,142,470 / 28,472,636);
+  the 2023 workbook equals the 2023 text file band by band.
 
-### Step 4 — Summaries and figures
-- **Q4 geography**: 2024 crashes, deaths and hospitalised per 100,000 residents (INE 1 July 2024)
-  and per 10,000 licence holders (census 2024) by province, with CIs, ranking tables and a
-  small-province caution; national rates per year 2002–2024.
-- **Q7 older road users, the denominator ladder**: for each age band (35–44 … 75+) and year
-  2014–2024: deaths per million residents (rung 1), driver deaths per 100,000 licence holders
-  (rung 2), **driver deaths per 100,000 active drivers (rung 3, the headline, with its survey band)**,
-  the driving-days-weighted variant (3b), and the induced-exposure relative risk (rung 4). One table
-  and one chart show the 65+ versus 35–64 ratio under each rung side by side, so the reader sees the
-  answer change with the denominator. A second table shows the three curves by age for the latest
-  year: share of residents with a licence, share who drive, and share of licence holders who drive.
-- Figures: province rate bars with CI whiskers; ladder chart (small multiples, one per rung, rung 3
-  with a shaded band); licence-holding and driving-share curves by age on one chart; older-driver
-  trend lines.
+### Step 3 — Driver tables 2014–2024, MOVILIA, checks
+- `io_tables.read_table_4_1_1(year)` (driver victims by fine age band × sex × vehicle type, killed /
+  hospitalised / not hospitalised, interurban and urban) and `read_table_4_2(year)` (drivers involved
+  by fine band × sex × vehicle type). Layout differences handled: 2014 `.xls` read through `xlrd`,
+  sheet names without the "TABLA" prefix, sex codes V/M/Desconocido, per-age "Total" rows in the
+  first column, "No especificada"; 2015 titles in upper case and labels with line breaks.
+- `io_activity.py`: the survey register and MOVILIA 2006 table 64 (trips by main mode × sex × age,
+  average weekday) with trips per resident from the 2006 population.
+- New validation checks: driver deaths from tables 4.1.1 (interurban + urban) equal the yearbook
+  series of driver deaths for every year 2014–2024; the 2023 census workbook equals the text file.
+- `scripts/ingest.py` builds the new interim tables; tests on totals and layouts.
 
-### Step 5 — Site
-- Two new pages: `geography.html` and `older-users.html`; cards on the overview; data page updated
-  with INE and the new DGT files; captions state denominator, reference date and CI method.
+### Step 4 — `rates.py`
+- Exact Poisson intervals (`scipy.stats.chi2`), `rate_ratio()` with log-normal intervals,
+  `travel_weighted_share()` (ESRA national share interpolated between waves ×
+  MOVILIA car-travel age profile, capped at the licence-holding share; low/high from the ESRA
+  binomial interval). Tests against hand-computed values.
 
-### Step 6 — Docs, tests, PR, merge
-- `docs/data_inventory.md` and `docs/data_sources.md` for every new file; README roadmap tick for
-  "first exposure-adjusted trend analysis"; `analytics_plan.md` phase table.
+### Step 5 — Summaries
+- Q4: `province_rates()` for 2024 (crashes, deaths, hospitalised per 100,000 residents on 1 July 2024
+  and per 10,000 licence holders, with intervals and ranks; small-province caution) and
+  `national_rates_by_year()` (deaths per 100,000 residents 2002–2024, per 10,000 licence holders
+  2014–2024).
+- Q7: `driver_ladder()` (year × band: residents, licence holders, active-driver estimate, drivers
+  involved, driver deaths; deaths per million residents, per 100,000 licence holders, per 100,000
+  active drivers, involvement per 10,000 licence holders, deaths per 1,000 involved drivers),
+  `ladder_ratio()` (65+ and 75+ against 35–64 under each denominator), `licence_share_by_age()`,
+  `victims_by_age_rates()` (all victims per million residents by band, 2002–2024, from the series)
+  and `movilia_car_travel()`.
+- Provinces are joined by code: the INE name carries it, the DGT dictionary maps codes to the names
+  used in table 1.1.
 
-## 5. Verification
+### Step 6 — Figures
+- `plots.dot_interval()` (ranked dots with interval whiskers) and an optional shaded band in
+  `line_series()`. Figures: province death rates with intervals; national rates over time; the
+  ladder (65+ / 35–64 ratio by year, one line per denominator); licence-holding and active-driver
+  shares by band; driver death rates by band over time; involvement versus fatality-given-involvement.
+
+### Step 7 — Site
+- `geography.html` and `older-users.html`, cards on the overview, data page updated, every rate
+  captioned with numerator, denominator, reference date and interval method.
+
+### Step 8 — Docs, PR, merge
+- Inventory, sources, README roadmap and results, analytics plan phase table; PR; squash merge.
+
+## 5. Outcome (19 September 2026)
+
+All eight steps are merged. What was built, with the deviations from the design above:
+
+- `agebands.py`, `io_population.py`, `io_activity.py`, `rates.py` are new; `io_exposure.py` and
+  `io_tables.py` gained the census-by-age and driver-table readers; `summaries.py`, `figures.py` and
+  `site.py` gained Q4 and Q7. Seven result tables (`q4_*.csv`, `q7_*.csv`), seven figures and the
+  pages `geography.html` and `older-drivers.html`.
+- The licence series uses the published class × age tables up to 2023 and the text files from 2024
+  (not 2023 as planned): the 2023 text file differs from the 2023 tables by up to 1.1 % in some bands,
+  so one publication type is kept for as long as it exists; the gap is a validation check (2 %
+  tolerance, 15 rows) rather than an assertion.
+- Rung 3 is named **travel-weighted drivers** on the site and in the code (not "active drivers"):
+  spreading the ESRA share by the MOVILIA car-trip profile weights people by how much they travel by
+  car, which is an exposure weight rather than a head count of drivers. Because MOVILIA counts
+  passengers, the estimate overstates older people's driving and understates their per-driver rate,
+  so the true per-driver ratio is at or above the travel-weighted one. The site says so.
+- Rung 4 is presented as two measures rather than a quasi-induced-exposure risk: drivers involved in
+  injury crashes per 10,000 licence holders (crash involvement) and driver deaths per 1,000 drivers
+  involved (fatality given involvement). No yearly table splits involved drivers by fault and age.
+- The reconciliation is exact: driver deaths from tables 4.1.1 equal the yearbook series for every
+  year 2014–2024 and both zones (33 checks). 325 checks in all, none failing.
+- 2024 result, drivers aged 75+ against 35–64: 0.74 per resident, 1.55 per licence holder, 2.8 per
+  travel-weighted driver, 2.95 per driver involved; involvement per licence holder 0.53.
+
+Still open: an ESRA age cross-tab (data request to Vias institute) would turn rung 3 into a direct
+measure; kilometres by driver age remain unpublished.
+
+## 6. Verification
 
 - INE totals match DGT's published population figures where both exist.
 - Every survey share on the site traces to a source, wave, question and n in the activity CSV.

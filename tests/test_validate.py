@@ -23,11 +23,13 @@ def test_every_check_family_present(results: pd.DataFrame) -> None:
         "unique_key",
         "code_domain",
         "census_2025",
+        "driver_deaths",
+        "census_age_2023",
     }
 
 
 def test_reconciliation_checks_pass_exactly(results: pd.DataFrame) -> None:
-    exact = results[results.check != "census_2025"]
+    exact = results[~results.check.isin(["census_2025", "census_age_2023"])]
     failed = exact[~exact.passed]
     assert failed.empty, failed.to_string()
 
@@ -53,3 +55,16 @@ def test_province_name_normalisation() -> None:
         "Balears (Illes)"
     )
     assert validate._normalise_province("Coruña, A") == "coruña (a)"
+
+
+def test_census_age_within_tolerance(results: pd.DataFrame) -> None:
+    rows = results[results.check == "census_age_2023"]
+    assert len(rows) == 15
+    failed = rows[~rows.passed]
+    assert failed.empty, failed.to_string()
+
+
+def test_driver_deaths_cover_every_year_and_zone(results: pd.DataFrame) -> None:
+    rows = results[results.check == "driver_deaths"]
+    assert len(rows) == 11 * 3
+    assert rows.passed.all()

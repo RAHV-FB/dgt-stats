@@ -131,3 +131,40 @@ def test_tables_2024_units_and_vehicles_involved() -> None:
     involved = tables.read_table_8_1_1()
     one = involved[(involved.vehicles_involved == "Un vehículo") & (involved.zone == "all")]
     assert float(one[one.metric == "crashes"].value.iloc[0]) == 38_810
+
+
+DRIVER_DEATHS_INTERURBAN = {2014: 836, 2015: 884, 2020: 701, 2024: 935}
+
+
+def test_driver_victims_every_year_reconciles_with_the_series() -> None:
+    victims = tables.read_driver_victims_all()
+    assert sorted(victims.year.unique()) == list(tables.TABLE_YEARS)
+    assert set(victims.sex.unique()) == {"male", "female", "unknown"}
+    assert set(victims.severity.unique()) == set(tables.DRIVER_SEVERITIES)
+    deaths = victims[victims.is_total & (victims.severity == "deaths_30d")]
+    by_year = deaths[deaths.zone == "interurban"].groupby("year").value.sum()
+    for year, expected in DRIVER_DEATHS_INTERURBAN.items():
+        assert by_year[year] == expected, year
+    series = tables.read_series_road_users()
+    expected = (
+        series[
+            (series.population == "drivers") & (series.severity == "deaths_30d") & series.is_total
+        ]
+        .set_index(["year", "zone"])
+        .value
+    )
+    actual = deaths.groupby(["year", "zone"]).value.sum()
+    for (year, zone), value in actual.items():
+        assert value == expected[(year, zone)], (year, zone)
+    bands = set(victims.band.unique())
+    assert bands == {*tables.agebands.DGT_BANDS, tables.CHILD_BAND, tables.agebands.UNKNOWN}
+
+
+def test_drivers_involved_every_year() -> None:
+    involved = tables.read_drivers_involved_all()
+    assert sorted(involved.year.unique()) == list(tables.TABLE_YEARS)
+    totals = involved[involved.is_total].groupby(["year", "zone"]).value.sum()
+    assert totals[(2024, "interurban")] == 61_428
+    assert totals[(2014, "urban")] == 95_943
+    assert (involved.value >= 0).all()
+    assert not involved.is_total.all()

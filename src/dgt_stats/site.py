@@ -13,6 +13,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from dgt_stats import agebands
 from dgt_stats.paths import FIGURES_DIR, PROJECT_ROOT, TABLES_DIR
 from dgt_stats.summaries import BASE_YEAR
 
@@ -24,8 +25,17 @@ PAGES: tuple[tuple[str, str], ...] = (
     ("trends", "Trends"),
     ("timing", "Timing"),
     ("road-users", "Road users"),
+    ("geography", "Geography"),
+    ("older-drivers", "Older drivers"),
     ("data", "Data and checks"),
 )
+
+DENOMINATOR_LABELS = {
+    "residents": "Residents of the age band",
+    "licence_holders": "Licence holders",
+    "travel_weighted": "Travel-weighted drivers (estimate)",
+    "drivers_involved": "Drivers involved in injury crashes",
+}
 
 STYLE = """
 :root {
@@ -251,6 +261,16 @@ def page_index(captions: dict[str, str]) -> str:
                 "Who dies on the road: pedestrians, cyclists, motorcyclists, car occupants and others, and how that mix is changing.",
             ),
             (
+                "geography.html",
+                "Geography",
+                "Deaths and crashes by province per resident and per licence holder, with intervals, and Spain's rates since 2002.",
+            ),
+            (
+                "older-drivers.html",
+                "Older drivers",
+                "The same driver deaths against four denominators: residents, licence holders, travel-weighted drivers and drivers involved in crashes.",
+            ),
+            (
                 "data.html",
                 "Data and checks",
                 f"Sources, definitions, the {len(validation)} reconciliation checks against DGT's published totals, and what is missing.",
@@ -460,6 +480,339 @@ def page_road_users(captions: dict[str, str]) -> str:
     )
 
 
+def _interval(row: pd.Series, name: str, decimals: int = 1) -> str:
+    return (
+        f"{_fmt_dec(row[name], decimals)} "
+        f"({_fmt_dec(row[f'{name}_low'], decimals)}–{_fmt_dec(row[f'{name}_high'], decimals)})"
+    )
+
+
+def page_geography(captions: dict[str, str]) -> str:
+    provinces = read_table("q4_province_rates")
+    year = int(provinces.year.iloc[0])
+    national = provinces[provinces.is_total].iloc[0]
+    ranked = provinces[~provinces.is_total].sort_values("deaths_per_100k", ascending=False)
+    top, bottom = ranked.iloc[0], ranked.iloc[-1]
+    listing = pd.DataFrame(
+        {
+            "Province": ranked.province,
+            "Deaths": ranked.deaths_30d,
+            "Residents": ranked.population,
+            "Deaths per 100,000 residents (95% interval)": [
+                _interval(row, "deaths_per_100k") for _, row in ranked.iterrows()
+            ],
+            "Injury crashes per 100,000 residents": ranked.crashes_per_100k,
+            "Licence holders": ranked.licence_holders,
+            "Deaths per 100,000 licence holders": ranked.deaths_per_100k_licence,
+        }
+    )
+    national_rates = read_table("q4_national_rates")
+    recent = national_rates[national_rates.year >= 2014]
+    recent_table = pd.DataFrame(
+        {
+            "Year": recent.year,
+            "Deaths (30 d)": recent.deaths_30d,
+            "Residents (1 July)": recent.population,
+            "Licence holders": recent.licence_holders,
+            "Deaths per 100,000 residents": recent.deaths_per_100k_residents,
+            "Deaths per 100,000 licence holders": recent.deaths_per_100k_licence,
+        }
+    )
+    body = tiles(
+        [
+            (
+                f"Spain, {year}",
+                _fmt_dec(national.deaths_per_100k, 1),
+                "deaths per 100,000 residents",
+            ),
+            (
+                f"Highest: {top.province}",
+                _fmt_dec(top.deaths_per_100k, 1),
+                f"{_fmt_int(top.deaths_30d)} deaths, {_fmt_int(top.population)} residents",
+            ),
+            (
+                f"Lowest: {bottom.province}",
+                _fmt_dec(bottom.deaths_per_100k, 1),
+                f"{_fmt_int(bottom.deaths_30d)} deaths, {_fmt_int(bottom.population)} residents",
+            ),
+            (
+                f"Per licence holder, {year}",
+                _fmt_dec(national.deaths_per_100k_licence, 1),
+                "deaths per 100,000 licence holders",
+            ),
+        ]
+    )
+    body += "<h2>Provinces</h2>"
+    body += figure(
+        "q4_province_deaths", f"Road deaths per 100,000 residents by province, {year}", captions
+    )
+    body += (
+        "<p>The rate is deaths in crashes that happened in the province divided by the people who "
+        "live there, so provinces crossed by long-distance traffic (Zamora, Soria, Cuenca, Huesca) "
+        "rank high partly because many of the dead were passing through, and dense urban provinces "
+        "rank low because most travel there is slow and short. The intervals are wide for the small "
+        "provinces: one crash more or less moves Soria or Teruel by several places, so the ranking "
+        "should be read in groups, not position by position.</p>"
+    )
+    body += table(
+        listing,
+        f"Deaths and crashes by province, {year}, ranked by deaths per 100,000 residents "
+        "(residents on 1 July; licence holders at the census date)",
+        {
+            "Province": None,
+            "Deaths": "int",
+            "Residents": "int",
+            "Deaths per 100,000 residents (95% interval)": None,
+            "Injury crashes per 100,000 residents": "dec",
+            "Licence holders": "int",
+            "Deaths per 100,000 licence holders": "dec",
+        },
+    )
+    body += "<h2>Spain over time</h2>"
+    body += figure(
+        "q4_national_rates", "Road deaths per 100,000 residents and licence holders", captions
+    )
+    body += (
+        "<p>Per resident, deaths fell by almost three quarters between 2002 and 2013 and have been "
+        "flat since. Per licence holder the line is flat too: the census has grown by about the same "
+        "share as the population, so neither denominator changes the story of the last decade.</p>"
+    )
+    body += table(
+        recent_table,
+        "National rates, 2014–2024",
+        {
+            "Year": "year",
+            "Deaths (30 d)": "int",
+            "Residents (1 July)": "int",
+            "Licence holders": "int",
+            "Deaths per 100,000 residents": "dec2",
+            "Deaths per 100,000 licence holders": "dec2",
+        },
+    )
+    return render_page(
+        "geography",
+        "Geography",
+        f"Road deaths and crashes by province in {year}, per resident and per licence holder, with "
+        "intervals that show how much of the ranking is chance.",
+        body,
+    )
+
+
+def _compare(ratio: float) -> str:
+    """Wording for a rate ratio: 'less often than', 'about as often as' or 'more often than'."""
+    if ratio < 0.95:
+        return "less often than"
+    if ratio > 1.05:
+        return "more often than"
+    return "about as often as"
+
+
+def page_older_drivers(captions: dict[str, str]) -> str:
+    ladder = read_table("q7_driver_ladder")
+    ratios = read_table("q7_ladder_ratio")
+    latest_year = int(ladder.year.max())
+    latest = ladder[ladder.year == latest_year].set_index("band")
+    latest_ratios = ratios[ratios.year == latest_year]
+
+    def ratio_row(band: str, denominator: str) -> pd.Series:
+        return latest_ratios[
+            (latest_ratios.band == band) & (latest_ratios.denominator == denominator)
+        ].iloc[0]
+
+    def ratio_cell(band: str, denominator: str) -> str:
+        return _interval(ratio_row(band, denominator), "ratio", 2)
+
+    def ratio_value(band: str, denominator: str) -> float:
+        return float(ratio_row(band, denominator).ratio)
+
+    ladder_table = pd.DataFrame(
+        {
+            "Denominator": [DENOMINATOR_LABELS[d] for d in DENOMINATOR_LABELS],
+            "65–74 vs 35–64": [ratio_cell("65-74", d) for d in DENOMINATOR_LABELS],
+            "75 and over vs 35–64": [ratio_cell("75+", d) for d in DENOMINATOR_LABELS],
+            "65 and over vs 35–64": [ratio_cell("65+", d) for d in DENOMINATOR_LABELS],
+        }
+    )
+    involvement = latest_ratios[latest_ratios.denominator == "involvement_per_licence"]
+    involvement_75 = involvement[involvement.band == "75+"].iloc[0]
+
+    bands = list(agebands.ANALYSIS_BANDS)
+    shares = pd.DataFrame(
+        {
+            "Age band": [agebands.band_label(b) for b in bands],
+            "Residents": [latest.loc[b, "residents"] for b in bands],
+            "Hold a licence": [latest.loc[b, "licence_share"] for b in bands],
+            "Travel-weighted driver share (estimate)": [
+                latest.loc[b, "travel_share"] for b in bands
+            ],
+            "Driver deaths": [latest.loc[b, "driver_deaths"] for b in bands],
+            "Per million residents": [latest.loc[b, "deaths_per_million_residents"] for b in bands],
+            "Per 100,000 licence holders": [
+                latest.loc[b, "deaths_per_100k_licence"] for b in bands
+            ],
+            "Per 100,000 travel-weighted drivers": [
+                latest.loc[b, "deaths_per_100k_travel"] for b in bands
+            ],
+        }
+    )
+    licence_share = read_table("q7_licence_share")
+    latest_share = licence_share[licence_share.year == latest_year]
+    by_sex = latest_share.pivot(index="band", columns="sex", values="licence_share").reindex(bands)
+    by_sex_table = pd.DataFrame(
+        {
+            "Age band": [agebands.band_label(b) for b in bands],
+            "Men": by_sex.male.to_numpy(),
+            "Women": by_sex.female.to_numpy(),
+            "All": by_sex.total.to_numpy(),
+        }
+    )
+    older_75 = latest.loc["75+"]
+
+    body = tiles(
+        [
+            (
+                f"Licence holders aged 75+, {latest_year}",
+                _fmt_pct(older_75.licence_share, 0),
+                f"of residents 75 and over; {_fmt_pct(latest.loc['45-54', 'licence_share'], 0)} at 45–54",
+            ),
+            (
+                "Driver deaths per resident, 75+ vs 35–64",
+                f"{ratio_value('75+', 'residents'):.2f}×",
+                "the ratio DGT's per-inhabitant figures imply",
+            ),
+            (
+                "Per licence holder",
+                f"{ratio_value('75+', 'licence_holders'):.2f}×",
+                "same deaths, licence holders as the denominator",
+            ),
+            (
+                "Per travel-weighted driver",
+                f"{ratio_value('75+', 'travel_weighted'):.2f}×",
+                "same deaths, drivers weighted by how much they travel by car",
+            ),
+        ]
+    )
+    body += "<h2>The same deaths, four denominators</h2>"
+    body += (
+        "<p>DGT reports deaths of people aged 65 and over per million inhabitants of that age. That "
+        "answers how often an older resident dies on the road, not how risky it is for an older person "
+        "to drive: fewer older people hold a licence, and those who do drive less. The ladder below "
+        "keeps the numerator fixed (drivers killed within 30 days, interurban and urban roads, all "
+        "vehicle types) and changes only the denominator.</p>"
+    )
+    body += figure("q7_ladder_ratio", "Driver death rate, 65 and over relative to 35–64", captions)
+    body += table(
+        ladder_table,
+        f"Driver death rate ratio against drivers aged 35–64, {latest_year} (95% intervals from the "
+        "death counts only; the travel-weighted denominator has its own survey band, shown in the "
+        "rates table below)",
+        {
+            "Denominator": None,
+            "65–74 vs 35–64": None,
+            "75 and over vs 35–64": None,
+            "65 and over vs 35–64": None,
+        },
+    )
+    per_resident = ratio_value("75+", "residents")
+    body += (
+        f"<p>Per resident, drivers aged 75 and over die {_compare(per_resident)} drivers aged 35–64 "
+        f"({per_resident:.2f}×). Per licence holder the ratio is "
+        f"{ratio_value('75+', 'licence_holders'):.2f}×. Weighted by how much each age travels by "
+        f"car it is {ratio_value('75+', 'travel_weighted'):.2f}×, and per driver actually involved "
+        f"in an injury crash it is {ratio_value('75+', 'drivers_involved'):.2f}×: when an older "
+        "driver crashes, the crash is far more likely to kill them. The conclusion changes with the "
+        "denominator, which is why the denominator has to be stated every time.</p>"
+    )
+    body += "<h2>Why the ratio climbs: exposure and fragility</h2>"
+    body += figure(
+        "q7_involvement_fragility",
+        "Crash involvement per licence holder and deaths per driver involved, by age band",
+        captions,
+    )
+    body += (
+        f"<p>Two things happen at once. Licence holders aged 75 and over are involved in injury crashes "
+        f"about {_fmt_pct(involvement_75.ratio, 0)} as often as licence holders aged 35–64 (left panel), "
+        "which mostly reflects how much less they drive. But when they are involved, the crash kills "
+        f"them {ratio_value('75+', 'drivers_involved'):.1f} times as often (right panel): age brings "
+        "fragility, and older drivers are "
+        "over-represented in the crash types that kill, such as side collisions at junctions on "
+        "conventional roads. The per-licence rate hides the second effect behind the first.</p>"
+    )
+    body += "<h2>Who holds a licence, who drives</h2>"
+    body += figure(
+        "q7_licence_travel_share",
+        f"Share of residents with a licence and travel-weighted driver share, {latest_year}",
+        captions,
+    )
+    body += table(
+        shares,
+        f"Residents, licence holders, driver deaths and rates by age band, {latest_year}",
+        {
+            "Age band": None,
+            "Residents": "int",
+            "Hold a licence": "pct",
+            "Travel-weighted driver share (estimate)": "pct",
+            "Driver deaths": "int",
+            "Per million residents": "dec",
+            "Per 100,000 licence holders": "dec2",
+            "Per 100,000 travel-weighted drivers": "dec2",
+        },
+    )
+    body += table(
+        by_sex_table,
+        f"Share of residents holding a licence by sex, {latest_year}",
+        {"Age band": None, "Men": "pct", "Women": "pct", "All": "pct"},
+    )
+    body += (
+        "<p>The licence gap between men and women widens with age: among people aged 75 and over, "
+        f"{_fmt_pct(by_sex.male.iloc[-1], 0)} of men hold a licence but only "
+        f"{_fmt_pct(by_sex.female.iloc[-1], 0)} of women, so the older driving population is mostly "
+        "male and the per-resident rates for women 75+ describe passengers and pedestrians far more "
+        "than drivers.</p>"
+    )
+    body += note(
+        "<strong>What the travel-weighted estimate is, and is not.</strong> No Spanish source says what "
+        "share of people of each age actually drive. ESRA, the European road-user survey in which DGT "
+        "takes part, gives a national figure only (80% of adults drove a car at least a few days a "
+        "month in 2018, 76% in 2023), and MOVILIA 2006, the last national travel survey, reports car "
+        "trips per person by age without separating drivers from passengers. The estimate spreads the "
+        "ESRA share across ages in proportion to MOVILIA car trips per resident and caps it at the "
+        "licence share; it is therefore an exposure weight, not a head count. Because MOVILIA counts "
+        "passengers too, it overstates older people's driving and so understates their per-driver "
+        "rate. The true per-driver ratio lies at or above the travel-weighted one. An age split of the "
+        "ESRA question would replace the estimate directly."
+    )
+    body += "<h2>Rates by age band over time</h2>"
+    body += figure(
+        "q7_death_rates_by_band",
+        "Driver deaths per 100,000 licence holders and per 100,000 travel-weighted drivers",
+        captions,
+    )
+    body += (
+        f"<p>Per licence holder, the 75-and-over rate fell from "
+        f"{_fmt_dec(ladder[(ladder.year == 2014) & (ladder.band == '75+')].deaths_per_100k_licence.iloc[0], 1)} "
+        f"in 2014 to {_fmt_dec(older_75.deaths_per_100k_licence, 1)} in {latest_year}, faster than any "
+        "other band, as the cohort reaching 75 became one where almost every man and many more women "
+        "had driven all their lives. Per travel-weighted driver the older bands stay well above the "
+        "rest throughout.</p>"
+    )
+    body += "<h2>The long view, all road users</h2>"
+    body += figure("q7_victims_by_age", "Road deaths per million residents by age band", captions)
+    body += (
+        "<p>Counting everyone killed, not only drivers, the youngest adults went from the highest "
+        "death rate in 2002 to the pack by 2013, while the rate for people aged 65 and over fell least "
+        "and has been the highest of any band since 2011. Most of that is pedestrians and, on "
+        "interurban roads, car occupants; the driver ladder above isolates the driving part.</p>"
+    )
+    return render_page(
+        "older-drivers",
+        "Older drivers",
+        "How the risk of driving changes with age once the denominator is the people who hold a "
+        "licence and travel by car, not the whole population of that age.",
+        body,
+    )
+
+
 def page_data(captions: dict[str, str]) -> str:
     validation = pd.read_csv(TABLES_DIR / "validation.csv")
     grid = read_table("q2_hour_weekday")
@@ -479,6 +832,8 @@ def page_data(captions: dict[str, str]) -> str:
         "unique_key": "Crash identifiers are unique within each year",
         "code_domain": "Every code in the 33 coded fields is in the DGT dictionary or a documented missing state",
         "census_2025": "The 2025 driver-census extract equals the published province table",
+        "driver_deaths": "Driver deaths in the yearly tables 4.1.1 equal the yearbook series, every year 2014–2024 and zone",
+        "census_age_2023": "The 2023 driver census by age (text file) is within 2% of the published age table, band by band",
     }
     summary["What is checked"] = summary.check.map(descriptions)
     summary = summary[["What is checked", "checks", "passed"]].rename(
@@ -493,9 +848,17 @@ def page_data(captions: dict[str, str]) -> str:
         "crash type, victim counts and conditions; no driver, vehicle or coordinate fields.</li>"
         "<li><strong>Historical series 1993–2024</strong>: the Anuario de Accidentes 2024 series workbook, "
         "used for the long-run trends and as the reference for reconciliation.</li>"
-        "<li><strong>2024 statistical tables</strong>: province, month, vehicle and involvement tables.</li>"
-        "<li><strong>Driver census 2023–2025</strong> and <strong>ITV kilometre estimates 2022</strong>: "
-        "exposure denominators for later analysis.</li>"
+        "<li><strong>Statistical tables 2014–2024</strong>: province, month, vehicle and involvement "
+        "tables for 2024; driver victims and drivers involved by age, sex and vehicle type for every "
+        "year (chapter workbooks up to 2019, one workbook per year from 2020).</li>"
+        "<li><strong>Driver census 2014–2025</strong>: licence holders by age band and sex from the "
+        "published class-by-age tables (2014–2023) and the province-by-age text files (2024–2025); "
+        "<strong>ITV kilometre estimates 2022</strong>.</li>"
+        "<li><strong>INE resident population</strong> (Estadística Continua de Población, table 56947): "
+        "province by five-year age group and sex, 1 January and 1 July, 2002–2025.</li>"
+        "<li><strong>Driving activity</strong>: ESRA 2018 and 2023 national shares of adults who drive "
+        "(Spain), MOVILIA 2006 trips by mode, sex and age. No Spanish source gives the share of people "
+        "who drive by age.</li>"
         "</ul>"
     )
     body += "<h2>Definitions</h2>"
@@ -506,6 +869,11 @@ def page_data(captions: dict[str, str]) -> str:
         "a 24-hour count is used, the chart says so.</li>"
         "<li><strong>Hospitalised</strong>: admitted for more than 24 hours.</li>"
         "<li><strong>Zone</strong>: interurban roads versus urban streets and crossings, as DGT groups them.</li>"
+        "<li><strong>Rates</strong>: counts are treated as Poisson with a known denominator; intervals "
+        "are exact 95% intervals. Residents are INE's estimate on 1 July of the year; licence holders "
+        "are DGT's census (people holding a driving permit or a moped or agricultural licence). "
+        "Drivers with unknown age (about 3% of those involved, 0.4% of those killed) are excluded from "
+        "the age-band rates.</li>"
         "</ul>"
     )
     body += "<h2>Reconciliation checks</h2>"
@@ -548,6 +916,8 @@ PAGE_BUILDERS = {
     "trends": page_trends,
     "timing": page_timing,
     "road-users": page_road_users,
+    "geography": page_geography,
+    "older-drivers": page_older_drivers,
     "data": page_data,
 }
 
