@@ -36,6 +36,9 @@ reports/tables/**
 !reports/tables/missingness_by_year.csv
 !reports/tables/q*.csv
 
+# Site figures are copied from reports/figures at build time
+site/figures/
+
 # Build and coverage outputs
 build/
 dist/

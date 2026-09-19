@@ -27,14 +27,6 @@ ROAD_GROUP_BY_TYPE: dict[int, str] = {
     14: "other",
 }
 
-HOUR_BAND_EDGES: tuple[tuple[int, int, str], ...] = (
-    (0, 6, "00-06"),
-    (7, 9, "07-09"),
-    (10, 13, "10-13"),
-    (14, 16, "14-16"),
-    (17, 19, "17-19"),
-    (20, 23, "20-23"),
-)
 
 NIGHT_LIGHTING_CODES: frozenset[int] = frozenset({4, 5, 6})
 ZONE_BY_CODE: dict[int, str] = {1: "interurban", 2: "urban"}
@@ -42,8 +34,8 @@ ZONE_BY_CODE: dict[int, str] = {1: "interurban", 2: "urban"}
 
 def hour_band(hours: pd.Series) -> pd.Series:
     """Map an hour (0–23) to its band label; missing or out-of-range hours become ``<NA>``."""
-    edges = [-1] + [high for _, high, _ in HOUR_BAND_EDGES]
-    names = [name for _, _, name in HOUR_BAND_EDGES]
+    edges = [-1] + [high for _, high in labels.HOUR_BAND_EDGES]
+    names = list(labels.HOUR_BANDS)
     numeric = pd.to_numeric(hours, errors="coerce")
     out = pd.cut(numeric, bins=edges, labels=names)
     return out.astype("string")

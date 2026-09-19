@@ -177,7 +177,9 @@ def deaths_by_road_user() -> pd.DataFrame:
     """30-day deaths by road-user type, year and zone (2016–2024), long format with shares."""
     columns = ["ANYO", "zone", *labels.ROAD_USER_TYPES]
     crashes = read_crashes(columns)
-    totals = crashes.groupby(["ANYO", "zone"], observed=True)[list(labels.ROAD_USER_TYPES)].sum()
+    totals = crashes.groupby(["ANYO", "zone"], observed=True)[list(labels.ROAD_USER_TYPES)].sum(
+        min_count=1
+    )
     long = (
         totals.reset_index()
         .melt(id_vars=["ANYO", "zone"], var_name="column", value_name="deaths_30d")
@@ -222,7 +224,7 @@ def pedestrian_series() -> pd.DataFrame:
     """Pedestrian victims by severity and zone, 1993–2024, from the yearbook series."""
     ped = io_tables.read_table("series_pedestrians")
     rows = ped[(ped.breakdown == "severity") & (ped.category != "victims_30d")]
-    out = rows.pivot_table(index=["year", "zone"], columns="category", values="value").reset_index()
+    out = rows.pivot(index=["year", "zone"], columns="category", values="value").reset_index()
     return out.rename_axis(columns=None)
 
 

@@ -71,14 +71,14 @@ year,zone,column,road_user,vulnerable,deaths_30d,share
 2023,urban,TOT_MOTO_MU30DF,Motorcyclists,True,138,0.2664
 2024,interurban,TOT_MOTO_MU30DF,Motorcyclists,True,323,0.2502
 2024,urban,TOT_MOTO_MU30DF,Motorcyclists,True,118,0.2389
-2016,interurban,TOT_VMP_MU30DF,Personal mobility vehicles,True,0,0.0
-2016,urban,TOT_VMP_MU30DF,Personal mobility vehicles,True,0,0.0
-2017,interurban,TOT_VMP_MU30DF,Personal mobility vehicles,True,0,0.0
-2017,urban,TOT_VMP_MU30DF,Personal mobility vehicles,True,0,0.0
-2018,interurban,TOT_VMP_MU30DF,Personal mobility vehicles,True,0,0.0
-2018,urban,TOT_VMP_MU30DF,Personal mobility vehicles,True,0,0.0
-2019,interurban,TOT_VMP_MU30DF,Personal mobility vehicles,True,0,0.0
-2019,urban,TOT_VMP_MU30DF,Personal mobility vehicles,True,0,0.0
+2016,interurban,TOT_VMP_MU30DF,Personal mobility vehicles,True,,
+2016,urban,TOT_VMP_MU30DF,Personal mobility vehicles,True,,
+2017,interurban,TOT_VMP_MU30DF,Personal mobility vehicles,True,,
+2017,urban,TOT_VMP_MU30DF,Personal mobility vehicles,True,,
+2018,interurban,TOT_VMP_MU30DF,Personal mobility vehicles,True,,
+2018,urban,TOT_VMP_MU30DF,Personal mobility vehicles,True,,
+2019,interurban,TOT_VMP_MU30DF,Personal mobility vehicles,True,,
+2019,urban,TOT_VMP_MU30DF,Personal mobility vehicles,True,,
 2020,interurban,TOT_VMP_MU30DF,Personal mobility vehicles,True,1,0.001
 2020,urban,TOT_VMP_MU30DF,Personal mobility vehicles,True,7,0.0177
 2021,interurban,TOT_VMP_MU30DF,Personal mobility vehicles,True,1,0.0009

@@ -60,14 +60,27 @@ def _zone_label(series: pd.Series) -> pd.Series:
     return series.map(labels.ZONES)
 
 
-def build_all(figures_dir: Path = FIGURES_DIR) -> dict[str, str]:
-    """Write every figure as SVG and return ``{figure name: caption}``; also saves captions.json."""
+def build_all(
+    figures_dir: Path = FIGURES_DIR, frames: dict[str, pd.DataFrame] | None = None
+) -> dict[str, str]:
+    """Write every figure as SVG and return ``{figure name: caption}``; also saves captions.json.
+
+    ``frames`` are the summaries by registry name; when omitted they are computed here.
+    """
+    frames = frames if frames is not None else {}
+
+    def summary(name: str) -> pd.DataFrame:
+        if name not in frames:
+            frames[name] = summaries.SUMMARIES[name]()
+        return frames[name].copy()
+
     figures_dir.mkdir(parents=True, exist_ok=True)
     captions: dict[str, str] = {}
-    n_crashes = 875_013
+    grid = summary("q2_hour_weekday")
+    n_crashes = int(grid.crashes.sum())
 
     # ------------------------------------------------------------------ Q1 trends
-    headline = summaries.annual_headline()
+    headline = summary("q1_annual_headline")
     indexed = headline.melt(
         id_vars="year",
         value_vars=[f"{m}_index" for m in METRIC_LABELS],
@@ -103,7 +116,7 @@ def build_all(figures_dir: Path = FIGURES_DIR) -> dict[str, str]:
     )
     captions["q1_deaths_30d"] = plots.caption(SERIES_SOURCE, "1993–2024, all roads", THIRTY_DAY)
 
-    rates = summaries.annual_rates().melt(id_vars="year", var_name="metric", value_name="value")
+    rates = summary("q1_annual_rates").melt(id_vars="year", var_name="metric", value_name="value")
     rates = rates[rates.metric.isin(RATE_LABELS)]
     rates["metric"] = rates.metric.map(RATE_LABELS)
     plots.small_multiples(
@@ -122,7 +135,7 @@ def build_all(figures_dir: Path = FIGURES_DIR) -> dict[str, str]:
         "DGT published rates; fleet = registered vehicles, 30-day deaths",
     )
 
-    monthly = summaries.monthly_deaths()
+    monthly = summary("q1_monthly_deaths")
     matrix = monthly.pivot(index="year", columns="month_label", values="share_of_year")
     matrix = matrix.reindex(columns=list(labels.MONTHS.values()))
     plots.heatmap(
@@ -139,7 +152,7 @@ def build_all(figures_dir: Path = FIGURES_DIR) -> dict[str, str]:
         SERIES_SOURCE, "1993–2024, all roads", "30-day deaths in the month as a share of the year"
     )
 
-    by_zone = summaries.annual_by_zone()
+    by_zone = summary("q1_annual_by_zone")
     by_zone["zone"] = _zone_label(by_zone.zone)
     plots.line_series(
         by_zone,
@@ -155,7 +168,6 @@ def build_all(figures_dir: Path = FIGURES_DIR) -> dict[str, str]:
     )
 
     # ------------------------------------------------------------------ Q2 timing
-    grid = summaries.hour_weekday()
     crashes_matrix = grid.pivot(index="weekday_label", columns="hour", values="crashes")
     crashes_matrix = crashes_matrix.reindex(index=list(labels.WEEKDAYS.values()))
     plots.heatmap(
@@ -187,7 +199,7 @@ def build_all(figures_dir: Path = FIGURES_DIR) -> dict[str, str]:
         n_crashes,
     )
 
-    night = summaries.night_share_by_year_zone()
+    night = summary("q2_night_share")
     night["zone"] = _zone_label(night.zone)
     plots.line_series(
         night,
@@ -206,7 +218,7 @@ def build_all(figures_dir: Path = FIGURES_DIR) -> dict[str, str]:
         n_crashes,
     )
 
-    bands = summaries.hour_band_by_road_group()
+    bands = summary("q2_hour_band_road_group")
     band_matrix = bands.pivot(
         index="road_group_label", columns="hour_band_label", values="fatal_share"
     )
@@ -229,7 +241,7 @@ def build_all(figures_dir: Path = FIGURES_DIR) -> dict[str, str]:
     )
 
     # ------------------------------------------------------------------ Q5 road users
-    users = summaries.deaths_by_road_user()
+    users = summary("q5_deaths_by_road_user")
     users["group"] = users.road_user.map(ROAD_USER_FOLD)
     folded = users.groupby(["year", "group"], observed=True).deaths_30d.sum().reset_index()
     plots.bar_shares(
@@ -244,11 +256,11 @@ def build_all(figures_dir: Path = FIGURES_DIR) -> dict[str, str]:
     captions["q5_road_user_shares"] = plots.caption(
         MICRODATA_SOURCE,
         "2016–2024, all roads",
-        "30-day deaths by the vehicle the person was using; trucks, buses, other and unspecified folded together",
+        "30-day deaths by the vehicle the person was using; trucks, buses, other and unspecified folded together; personal mobility vehicles counted separately only from 2020",
         n_crashes,
     )
 
-    drivers = summaries.driver_deaths_series()
+    drivers = summary("q5_driver_deaths_series")
     plots.small_multiples(
         drivers,
         "vehicle_type_label",
@@ -264,7 +276,7 @@ def build_all(figures_dir: Path = FIGURES_DIR) -> dict[str, str]:
         "drivers only, 30-day deaths; PMV series starts in 2020",
     )
 
-    pedestrians = summaries.pedestrian_series()
+    pedestrians = summary("q5_pedestrian_series")
     pedestrians = pedestrians[pedestrians.zone != "all"].copy()
     pedestrians["zone"] = _zone_label(pedestrians.zone)
     plots.line_series(

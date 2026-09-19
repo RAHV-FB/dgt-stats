@@ -199,6 +199,9 @@ def bar_shares(
     apply_style()
     wide = frame.pivot_table(index=x, columns=series, values=value, aggfunc="sum").fillna(0)
     if order:
+        unknown = sorted(set(map(str, wide.columns)) - set(order))
+        if unknown:
+            raise ValueError(f"series not in order: {unknown}")
         wide = wide.reindex(columns=[c for c in order if c in wide.columns])
     if wide.shape[1] > len(CATEGORICAL):
         raise ValueError("more series than fixed colours; fold to 'Other'")
@@ -260,7 +263,10 @@ def heatmap(
                 cell = values[r, c]
                 if np.isnan(cell):
                     continue
-                text = f"{cell * 100:.0f}%" if percent else value_format.format(cell)
+                if percent:
+                    text = f"{cell * 100:.1f}%" if cell < 0.1 else f"{cell * 100:.0f}%"
+                else:
+                    text = value_format.format(cell)
                 axis.text(
                     c,
                     r,

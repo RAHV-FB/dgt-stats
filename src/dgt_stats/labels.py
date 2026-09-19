@@ -117,13 +117,17 @@ ROAD_GROUPS: dict[str, str] = {
     "other": "Other road",
 }
 
+# Hour bands: (first hour, last hour) inclusive. Key and label are derived from the edges.
+HOUR_BAND_EDGES: tuple[tuple[int, int], ...] = (
+    (0, 6),
+    (7, 9),
+    (10, 13),
+    (14, 16),
+    (17, 19),
+    (20, 23),
+)
 HOUR_BANDS: dict[str, str] = {
-    "00-06": "00:00–06:59",
-    "07-09": "07:00–09:59",
-    "10-13": "10:00–13:59",
-    "14-16": "14:00–16:59",
-    "17-19": "17:00–19:59",
-    "20-23": "20:00–23:59",
+    f"{low:02d}-{high:02d}": f"{low:02d}:00–{high:02d}:59" for low, high in HOUR_BAND_EDGES
 }
 
 ZONES: dict[str, str] = {"interurban": "Interurban", "urban": "Urban", "all": "All roads"}

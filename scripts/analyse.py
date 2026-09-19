@@ -16,23 +16,28 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
+import pandas as pd  # noqa: E402
+
 from dgt_stats import figures, summaries  # noqa: E402
 from dgt_stats.paths import TABLES_DIR  # noqa: E402
 
 log = logging.getLogger("analyse")
 
 
-def run_tables() -> None:
+def run_tables() -> dict[str, pd.DataFrame]:
     TABLES_DIR.mkdir(parents=True, exist_ok=True)
+    frames = {}
     for name, builder in summaries.SUMMARIES.items():
         frame = builder()
         target = TABLES_DIR / f"{name}.csv"
         frame.to_csv(target, index=False)
+        frames[name] = frame
         log.info("table %-28s %6d rows -> %s", name, len(frame), target.name)
+    return frames
 
 
-def run_figures() -> None:
-    captions = figures.build_all()
+def run_figures(frames: dict[str, pd.DataFrame] | None = None) -> None:
+    captions = figures.build_all(frames=frames)
     for name in captions:
         log.info("figure %s.svg", name)
     log.info("wrote %d figures and captions.json", len(captions))
@@ -46,10 +51,11 @@ def main(argv: list[str] | None = None) -> int:
         level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s", datefmt="%H:%M:%S"
     )
     started = time.perf_counter()
+    frames = None
     if args.step in ("tables", "all"):
-        run_tables()
+        frames = run_tables()
     if args.step in ("figures", "all"):
-        run_figures()
+        run_figures(frames)
     log.info("done in %.1f s", time.perf_counter() - started)
     return 0
 

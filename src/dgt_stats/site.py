@@ -14,6 +14,7 @@ from pathlib import Path
 import pandas as pd
 
 from dgt_stats.paths import FIGURES_DIR, PROJECT_ROOT, TABLES_DIR
+from dgt_stats.summaries import BASE_YEAR
 
 SITE_DIR = PROJECT_ROOT / "site"
 REPO_URL = "https://github.com/RAHV-FB/dgt-stats"
@@ -211,22 +212,23 @@ is reproducible from the <a href="{REPO_URL}">repository</a>; see the data page 
 
 def page_index(captions: dict[str, str]) -> str:
     headline = read_table("q1_annual_headline").set_index("year")
-    y24, y19 = headline.loc[2024], headline.loc[2019]
+    latest, base = int(headline.index.max()), BASE_YEAR
+    y24, y19 = headline.loc[latest], headline.loc[base]
 
     def change(metric: str) -> str:
         delta = (y24[metric] / y19[metric] - 1) * 100
-        return f"{delta:+.1f}% vs 2019"
+        return f"{delta:+.1f}% vs {base}"
 
     validation = pd.read_csv(TABLES_DIR / "validation.csv")
     body = tiles(
         [
-            ("Injury crashes, 2024", _fmt_int(y24.crashes), change("crashes")),
-            ("Deaths within 30 days, 2024", _fmt_int(y24.deaths_30d), change("deaths_30d")),
-            ("Hospitalised, 2024", _fmt_int(y24.hospitalised_30d), change("hospitalised_30d")),
+            (f"Injury crashes, {latest}", _fmt_int(y24.crashes), change("crashes")),
+            (f"Deaths within 30 days, {latest}", _fmt_int(y24.deaths_30d), change("deaths_30d")),
+            (f"Hospitalised, {latest}", _fmt_int(y24.hospitalised_30d), change("hospitalised_30d")),
             (
-                "Deaths per 100 crashes, 2024",
+                f"Deaths per 100 crashes, {latest}",
                 _fmt_dec(y24.deaths_per_100_crashes, 2),
-                f"{_fmt_dec(y19.deaths_per_100_crashes, 2)} in 2019",
+                f"{_fmt_dec(y19.deaths_per_100_crashes, 2)} in {base}",
             ),
         ]
     )
@@ -339,6 +341,10 @@ def page_trends(captions: dict[str, str]) -> str:
 
 
 def page_timing(captions: dict[str, str]) -> str:
+    grid = read_table("q2_hour_weekday")
+    n_crashes = int(grid.crashes.sum())
+    by_zone = read_table("q1_annual_by_zone")
+    first_year, last_year = int(by_zone.year.min()), int(by_zone.year.max())
     bands = read_table("q2_hour_band_road_group")
     band_table = bands.pivot(
         index="road_group_label", columns="hour_band_label", values="fatal_share"
@@ -359,8 +365,9 @@ def page_timing(captions: dict[str, str]) -> str:
     )
     body += (
         "<p>Crashes cluster in the afternoon rush on weekdays. Fatal outcomes follow a different clock: "
-        "the share of crashes that kill someone peaks in the small hours, especially on Saturday and "
-        "Sunday nights, when traffic is light and speeds are higher.</p>"
+        "the share of crashes that kill someone is lowest in the daytime and peaks between two and five in "
+        "the morning on every day of the week, when traffic is light and speeds are higher. The very "
+        "highest cells are weekday nights, not weekends.</p>"
     )
     body += "<h2>Road type and time of day</h2>"
     body += figure("q2_hour_band_road_group", "Fatal share by road type and time of day", captions)
@@ -380,24 +387,36 @@ def page_timing(captions: dict[str, str]) -> str:
         "timing",
         "Timing",
         "When crashes happen and when they turn deadly: by hour, weekday, road type and lighting, "
-        "from 875,013 injury crashes recorded between 2016 and 2024.",
+        f"from {_fmt_int(n_crashes)} injury crashes recorded between {first_year} and {last_year}.",
         body,
     )
 
 
 def page_road_users(captions: dict[str, str]) -> str:
     users = read_table("q5_deaths_by_road_user")
-    totals = users.groupby(["year", "road_user"], observed=True).deaths_30d.sum().reset_index()
+    totals = (
+        users.groupby(["year", "road_user"], observed=True)
+        .deaths_30d.sum(min_count=1)
+        .reset_index()
+    )
     wide = totals.pivot(index="road_user", columns="year", values="deaths_30d")
+    first, latest = int(wide.columns.min()), int(wide.columns.max())
     compare = pd.DataFrame(
         {
             "Road user": wide.index,
-            "Deaths 2016": wide[2016].to_numpy(),
-            "Deaths 2019": wide[2019].to_numpy(),
-            "Deaths 2024": wide[2024].to_numpy(),
-            "Share 2024": (wide[2024] / wide[2024].sum()).to_numpy(),
+            f"Deaths {first}": wide[first].to_numpy(),
+            f"Deaths {BASE_YEAR}": wide[BASE_YEAR].to_numpy(),
+            f"Deaths {latest}": wide[latest].to_numpy(),
+            f"Share {latest}": (wide[latest] / wide[latest].sum()).to_numpy(),
         }
-    ).sort_values("Deaths 2024", ascending=False)
+    ).sort_values(f"Deaths {latest}", ascending=False)
+    compare_formats = {
+        "Road user": None,
+        f"Deaths {first}": "int",
+        f"Deaths {BASE_YEAR}": "int",
+        f"Deaths {latest}": "int",
+        f"Share {latest}": "pct",
+    }
     vulnerable = read_table("q5_vulnerable_share")
     vuln_wide = vulnerable.pivot(
         index="year", columns="zone", values="vulnerable_share"
@@ -409,14 +428,9 @@ def page_road_users(captions: dict[str, str]) -> str:
     body += figure("q5_road_user_shares", "Road deaths by type of road user", captions)
     body += table(
         compare,
-        "Deaths within 30 days by road-user type (microdata)",
-        {
-            "Road user": None,
-            "Deaths 2016": "int",
-            "Deaths 2019": "int",
-            "Deaths 2024": "int",
-            "Share 2024": "pct",
-        },
+        "Deaths within 30 days by road-user type (microdata; personal mobility vehicles are counted "
+        "separately only from 2020, earlier deaths sit under other vehicles)",
+        compare_formats,
     )
     body += (
         "<p>Pedestrians, cyclists, moped riders, motorcyclists and personal-mobility-vehicle users are "
@@ -448,6 +462,10 @@ def page_road_users(captions: dict[str, str]) -> str:
 
 def page_data(captions: dict[str, str]) -> str:
     validation = pd.read_csv(TABLES_DIR / "validation.csv")
+    grid = read_table("q2_hour_weekday")
+    n_crashes = int(grid.crashes.sum())
+    by_zone = read_table("q1_annual_by_zone")
+    first_year, last_year = int(by_zone.year.min()), int(by_zone.year.max())
     summary = (
         validation.groupby("check")
         .agg(checks=("passed", "size"), passed=("passed", "sum"))
@@ -469,7 +487,8 @@ def page_data(captions: dict[str, str]) -> str:
     body = "<h2>Sources</h2>"
     body += (
         "<ul>"
-        "<li><strong>Crash microdata 2016–2024</strong>: one row per injury crash, 875,013 rows, from "
+        f"<li><strong>Crash microdata {first_year}–{last_year}</strong>: one row per injury crash, "
+        f"{_fmt_int(n_crashes)} rows, from "
         "DGT en Cifras (Registro Nacional de Víctimas de Accidentes de Tráfico). Location, time, road type, "
         "crash type, victim counts and conditions; no driver, vehicle or coordinate fields.</li>"
         "<li><strong>Historical series 1993–2024</strong>: the Anuario de Accidentes 2024 series workbook, "
@@ -538,7 +557,9 @@ def build(site_dir: Path = SITE_DIR) -> list[Path]:
     captions = read_captions()
     site_dir.mkdir(parents=True, exist_ok=True)
     figures_out = site_dir / "figures"
-    figures_out.mkdir(exist_ok=True)
+    if figures_out.exists():
+        shutil.rmtree(figures_out)
+    figures_out.mkdir()
     written: list[Path] = []
     for svg in sorted(FIGURES_DIR.glob("*.svg")):
         target = figures_out / svg.name
