@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from dgt_stats import agebands, labels, plots, summaries
+from dgt_stats import agebands, labels, plots, summaries, vehicles
 from dgt_stats.paths import FIGURES_DIR, TABLES_DIR
 
 CAPTIONS_PATH = FIGURES_DIR / "captions.json"
@@ -20,6 +20,12 @@ TABLES_SOURCE = "DGT, Accidentes con víctimas, tablas estadísticas 2014–2024
 INE_SOURCE = "INE, Estadística Continua de Población"
 CENSUS_SOURCE = "DGT, Censo de conductores 2014–2025"
 ACTIVITY_SOURCE = "ESRA 2018 and 2023 (Spain), MOVILIA 2006"
+KM_SOURCE = "DGT, Kilómetros recorridos estimados a partir de la ITV 2022"
+RATE_PANELS = {
+    "injury_involvement": "In injury crashes",
+    "fatal_involvement": "In fatal crashes",
+    "occupant_deaths": "Occupants killed",
+}
 THIRTY_DAY = "deaths within 30 days of the crash"
 
 LADDER_LABELS = {
@@ -489,6 +495,9 @@ def build_all(
         "all road users killed within 30 days, by age band, divided by residents on 1 July",
     )
 
+    # ------------------------------------------------------------------ Q6 vehicles per km
+    _vehicle_figures(figures_dir, captions, summary)
+
     # ------------------------------------------------------------------ Q3 severity models
     if summaries.model_tables_present():
         _severity_figures(figures_dir, captions)
@@ -513,6 +522,109 @@ def build_all(
         json.dump(captions, handle, indent=2, ensure_ascii=False)
         handle.write("\n")
     return captions
+
+
+def _vehicle_figures(figures_dir: Path, captions: dict[str, str], summary) -> None:
+    rates = summary("q6_rates_2022")
+    rates = rates[rates.zone == "all"]
+    fatal = rates[rates.measure == "fatal_involvement"].sort_values(
+        "per_billion_km", ascending=False
+    )
+    order = list(fatal.label)
+    rates["panel"] = rates.measure.map(RATE_PANELS)
+    plots.dot_interval_panels(
+        rates,
+        "panel",
+        "label",
+        "per_billion_km",
+        "per_billion_km_low",
+        "per_billion_km_high",
+        figures_dir / "q6_rates_per_km.svg",
+        "Vehicles per billion kilometres driven, 2022",
+        order=order,
+        panel_order=list(RATE_PANELS.values()),
+        xlabel="per billion km",
+    )
+    captions["q6_rates_per_km"] = plots.caption(
+        f"{TABLES_SOURCE}; {KM_SOURCE}",
+        "2022",
+        "vehicles of each type involved in injury crashes and in 30-day fatal crashes, and their "
+        "drivers and passengers killed within 30 days, divided by the type's estimated "
+        "vehicle-kilometres (registered fleet × mean annual km from ITV odometer readings); "
+        "whiskers are exact 95% Poisson intervals; rows ordered by fatal-crash involvement; "
+        "trucks over 3,500 kg include tractor units and articulated vehicles",
+        f"{int(rates[rates.measure == 'injury_involvement']['count'].sum()):,} vehicles involved",
+    )
+
+    table = summary("q6_summary_2022")
+    plots.slope(
+        table,
+        "label",
+        "fatal_involvement_per_100k_vehicles",
+        "fatal_involvement_per_bn_km",
+        figures_dir / "q6_per_vehicle_vs_per_km.svg",
+        "Vehicles in fatal crashes: ranking per registered vehicle and per kilometre, 2022",
+        "per 100,000 vehicles",
+        "per billion km",
+    )
+    captions["q6_per_vehicle_vs_per_km"] = plots.caption(
+        f"{TABLES_SOURCE}; {KM_SOURCE}",
+        "2022",
+        "vehicles of each type involved in 30-day fatal crashes per 100,000 registered vehicles "
+        "(left) and per billion vehicle-km (right); the lines show how each type's rank moves when "
+        "distance driven replaces fleet size as the denominator",
+    )
+
+    by_age = summary("q6_km_by_age_2022")
+    matrix = by_age.pivot(index="label", columns="age_band", values="mean_km_year")
+    matrix = matrix.reindex(index=[vehicles.label(g) for g in vehicles.KM_GROUPS])
+    matrix = matrix.reindex(columns=list(vehicles.AGE_BANDS.values()))
+    plots.heatmap(
+        matrix,
+        figures_dir / "q6_km_by_age.svg",
+        "Mean annual kilometres per vehicle by type and vehicle age, 2022",
+        value_format="{:,.0f}",
+        xlabel="Vehicle age",
+    )
+    captions["q6_km_by_age"] = plots.caption(
+        KM_SOURCE,
+        "2022",
+        "mean annual km per vehicle, modelled from annualised ITV odometer readings and imputed "
+        "to the registered fleet; valid for aggregates, not for individual vehicles",
+        f"{int(by_age.n_vehicles.sum()):,} vehicles",
+    )
+
+    series = summary("q6_occupant_deaths_series")
+    order = [
+        vehicles.label(g)
+        for g in (
+            "car",
+            "motorcycle",
+            vehicles.MERGED_GROUP,
+            "heavy_truck",
+            "bus",
+            "moped",
+            "bicycle",
+            "vmp",
+            "other",
+        )
+    ]
+    plots.small_multiples(
+        series,
+        "label",
+        "year",
+        "deaths_30d",
+        figures_dir / "q6_occupant_deaths.svg",
+        "Drivers and passengers killed by vehicle type, 1993–2024",
+        ncols=3,
+        order=order,
+    )
+    captions["q6_occupant_deaths"] = plots.caption(
+        SERIES_SOURCE,
+        "1993–2024, all roads",
+        f"{THIRTY_DAY}, drivers and passengers of each vehicle type; panels have their own scales; "
+        "personal mobility vehicles are counted from 2020",
+    )
 
 
 def _severity_figures(figures_dir: Path, captions: dict[str, str]) -> None:

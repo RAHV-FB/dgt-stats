@@ -1,5 +1,6 @@
 import pytest
 
+from dgt_stats import vehicles
 from dgt_stats import io_tables as tables
 
 
@@ -127,6 +128,7 @@ def test_tables_2024_units_and_vehicles_involved() -> None:
         (units.unit_type == "Peatón") & (units.zone == "all") & (units.metric == "crashes")
     ]
     assert float(pedestrians.value.iloc[0]) == 14_110
+    assert set(units.year) == {2024}
 
     involved = tables.read_table_8_1_1()
     one = involved[(involved.vehicles_involved == "Un vehículo") & (involved.zone == "all")]
@@ -168,3 +170,45 @@ def test_drivers_involved_every_year() -> None:
     assert totals[(2014, "urban")] == 95_943
     assert (involved.value >= 0).all()
     assert not involved.is_total.all()
+
+
+def test_vehicle_tables_2020_to_2024_and_both_2_2_layouts() -> None:
+    units = tables.read_units_by_type_all()
+    assert sorted(units.year.unique()) == list(tables.VEHICLE_TABLE_YEARS)
+    total_2022 = units[(units.year == 2022) & units.is_total & (units.zone == "all")]
+    assert total_2022.set_index("metric").value["crashes"] == 183_078
+    assert total_2022.set_index("metric").value["fatal_crashes"] == 2_940
+    labels = set(units.unit_type) - {"Total"}
+    assert labels == set(vehicles.UNIT_TO_GROUP), labels ^ set(vehicles.UNIT_TO_GROUP)
+
+    single = tables.read_table_2_2(2022)  # one sheet, interurban and urban side by side
+    split = tables.read_table_2_2(2024)  # 2.2.I and 2.2.U
+    assert set(single.zone) == set(split.zone) == {"interurban", "urban"}
+    assert set(single.source_sheet) == {"TABLA 2.2"}
+    assert set(split.source_sheet) == {"TABLA 2.2.I", "TABLA 2.2.U"}
+    deaths = single[single.is_total & (single.metric == "deaths_30d") & (single.role == "total")]
+    assert deaths.set_index("zone").value.to_dict() == {"interurban": 1_273.0, "urban": 473.0}
+    roles = single[single.metric == "deaths_30d"].pivot_table(
+        index=["zone", "unit_type"], columns="role", values="value", aggfunc="sum"
+    )
+    assert (roles.driver + roles.passenger + roles.pedestrian == roles.total).all()
+    assert set(single.unit_type) - {"Total"} == set(vehicles.UNIT_TO_GROUP)
+
+
+def test_vehicle_groups_cover_every_source_once() -> None:
+    units = [unit for spec in vehicles.VEHICLE_GROUPS.values() for unit in spec["units"]]
+    assert len(units) == len(set(units)) == 22
+    columns = [spec["microdata"] for spec in vehicles.VEHICLE_GROUPS.values()]
+    assert len(columns) == len(set(columns)) == 12
+    assert vehicles.KM_GROUPS == (
+        "moped",
+        "motorcycle",
+        "car",
+        "van",
+        "light_truck",
+        "heavy_truck",
+        "bus",
+    )
+    assert vehicles.group_of("Vehículo articulado") == "heavy_truck"
+    with pytest.raises(KeyError):
+        vehicles.group_of("Nave espacial")

@@ -25,6 +25,8 @@ def test_every_check_family_present(results: pd.DataFrame) -> None:
         "census_2025",
         "driver_deaths",
         "census_age_2023",
+        "table_2_3_vehicles",
+        "table_2_2_deaths",
     }
 
 

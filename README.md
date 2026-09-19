@@ -112,10 +112,19 @@ injury crashes about half as often per licence as those aged 35–64, which most
 they drive. No Spanish source gives the share of people who drive by age, so the travel-weighted
 denominator is an estimate with stated limits ([`docs/phase3_plan.md`](docs/phase3_plan.md)).
 
+A vehicles-per-kilometre page uses the one year, 2022, for which DGT publishes a distance estimate by
+vehicle type. Per registered vehicle a heavy truck is in a fatal crash about ten times as often as a
+car; per kilometre driven the ratio is 2.5, because a heavy truck covers four times a car's distance
+in a year. Motorcycles are in a fatal crash ten times as often as cars per kilometre and their riders
+die eighteen times as often. In fatal crashes involving a heavy truck, more than four in five of the
+people killed were outside the truck, so a rate of a vehicle type's own occupant deaths, the only
+per-type measure the microdata allow, misses most of the harm heavy vehicles are involved in
+([`docs/phase5_plan.md`](docs/phase5_plan.md)).
+
 ```bash
 python scripts/ingest.py all        # raw -> data/interim, validation report
 python scripts/build_tables.py      # data/interim -> data/processed (derived fields, labels)
-python scripts/model.py             # reports/tables/q3_*.csv (severity models, about 2 minutes)
+python scripts/model.py             # reports/tables/q3_*.csv (severity models, about 30 seconds)
 python scripts/analyse.py all       # reports/tables/q*.csv and reports/figures/*.svg
 python scripts/build_site.py        # site/
 ```
@@ -155,6 +164,7 @@ tests/                 Data-contract and code tests
 - [x] Publish the first descriptive results (trends, timing, road users) as a static site.
 - [x] Build the first exposure-adjusted trend analysis (province rates and the older-driver denominator ladder).
 - [x] Model crash severity from the recorded circumstances (the crash-level file has no driver, vehicle or alcohol fields, so factor interactions such as alcohol × speed are out of reach until person-level microdata are obtained).
+- [x] Compare vehicle types per registered vehicle and per kilometre driven for 2022, the one year with a distance estimate, with the limits of the modelled kilometres stated.
 - [ ] Add road-design and geospatial variables.
 - [ ] Evaluate one well-defined campaign or policy intervention.
 - [ ] Publish a final report and documented dashboard.

@@ -11,7 +11,7 @@ Notebooks are numbered in the order a reviewer should run or read them:
 05_geography_rates.ipynb       Q4
 06_road_users.ipynb            Q5
 07_older_drivers.ipynb         Q7 (denominator ladder)
-08_heavy_vehicles_2022.ipynb   Q6
+08_vehicles_per_km_2022.ipynb  Q6 (rates per kilometre for the one year with a distance estimate)
 09_policy_its.ipynb            Q8
 10_speed_context.ipynb         Q9
 ```

@@ -83,7 +83,8 @@ def test_series_based_summaries() -> None:
 
 
 def test_registry_names_are_prefixed_by_question() -> None:
-    assert all(name.split("_")[0] in {"q1", "q2", "q4", "q5", "q7"} for name in summaries.SUMMARIES)
+    questions = {"q1", "q2", "q4", "q5", "q6", "q7"}
+    assert all(name.split("_")[0] in questions for name in summaries.SUMMARIES)
 
 
 def test_province_rates_cover_every_province() -> None:
@@ -140,5 +141,6 @@ def test_licence_share_victims_and_movilia() -> None:
     assert travel.car_share_of_trips.between(0, 1).all()
 
 
-def test_registry_covers_phase_3_questions() -> None:
-    assert all(name.split("_")[0] in {"q1", "q2", "q4", "q5", "q7"} for name in summaries.SUMMARIES)
+def test_registry_covers_phases_2_to_5() -> None:
+    questions = {name.split("_")[0] for name in summaries.SUMMARIES}
+    assert questions == {"q1", "q2", "q4", "q5", "q6", "q7"}
