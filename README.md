@@ -121,6 +121,15 @@ people killed were outside the truck, so a rate of a vehicle type's own occupant
 per-type measure the microdata allow, misses most of the harm heavy vehicles are involved in
 ([`docs/phase5_plan.md`](docs/phase5_plan.md)).
 
+A policy page runs two interrupted time series. The points-based licence of July 2006 coincided
+with a 12 percent drop in the monthly level of road deaths (interval 6 to 17 percent) beyond the
+pre-trend, larger than any of the 38 placebo breaks placed in 2002 to 2005 and stable under most
+alternative fits; the speed-camera programme and the December 2007 Penal Code reform arrived close
+enough that the drop cannot be attributed to the licence alone. The 90 km/h limit on conventional
+roads of January 2019 shows a 13 percent fall relative to motorways in the clean window, but a
+placebo break placed in January 2018 gives the same result, so no claim is made
+([`docs/phase6_plan.md`](docs/phase6_plan.md)).
+
 ```bash
 python scripts/ingest.py all        # raw -> data/interim, validation report
 python scripts/build_tables.py      # data/interim -> data/processed (derived fields, labels)
@@ -166,7 +175,7 @@ tests/                 Data-contract and code tests
 - [x] Model crash severity from the recorded circumstances (the crash-level file has no driver, vehicle or alcohol fields, so factor interactions such as alcohol × speed are out of reach until person-level microdata are obtained).
 - [x] Compare vehicle types per registered vehicle and per kilometre driven for 2022, the one year with a distance estimate, with the limits of the modelled kilometres stated.
 - [ ] Add road-design and geospatial variables.
-- [ ] Evaluate one well-defined campaign or policy intervention.
+- [x] Evaluate one well-defined policy intervention (the 2006 points licence, with the 2019 speed limit as a second, failed case) with placebo checks and stated confounders.
 - [ ] Publish a final report and documented dashboard.
 
 ## Quick start

@@ -389,26 +389,47 @@ def dot_interval(
     xlabel: str = "",
     reference: float | None = None,
     reference_label: str = "",
+    percent: bool = False,
+    highlight: str | None = None,
+    keep_order: bool = False,
 ) -> Path:
-    """Ranked dots with interval whiskers, one row per label, highest value at the top."""
+    """Ranked dots with interval whiskers, one row per label, highest value at the top.
+
+    ``keep_order`` keeps the frame's own order (first row at the top) instead of ranking;
+    ``highlight`` names a boolean column whose rows get a filled accent marker while the others
+    are drawn hollow, for a true estimate among placebos.
+    """
     apply_style()
-    ordered = frame.sort_values(value, ascending=True).reset_index(drop=True)
+    if keep_order:
+        ordered = frame.iloc[::-1].reset_index(drop=True)
+    else:
+        ordered = frame.sort_values(value, ascending=True).reset_index(drop=True)
     height = max(3.0, 0.22 * len(ordered) + 1.4)
     fig, axis = plt.subplots(figsize=(FIGURE_WIDTH, height))
     positions = np.arange(len(ordered))
+    flags = (
+        ordered[highlight].astype(bool).to_numpy()
+        if highlight is not None
+        else np.ones(len(ordered), dtype=bool)
+    )
     axis.hlines(
         positions, ordered[low], ordered[high], color=CATEGORICAL[0], linewidth=1.5, alpha=0.6
     )
-    axis.plot(
-        ordered[value],
-        positions,
-        marker="o",
-        markersize=6,
-        color=CATEGORICAL[0],
-        markeredgecolor=SURFACE,
-        markeredgewidth=1,
-        linestyle="none",
-    )
+    for filled in (False, True):
+        mask = flags == filled
+        if not mask.any():
+            continue
+        axis.plot(
+            ordered[value][mask],
+            positions[mask],
+            marker="o",
+            markersize=6 if filled else 5,
+            color=CATEGORICAL[0],
+            markerfacecolor=CATEGORICAL[0] if filled else SURFACE,
+            markeredgecolor=SURFACE if filled else CATEGORICAL[0],
+            markeredgewidth=1,
+            linestyle="none",
+        )
     if reference is not None:
         axis.axvline(reference, color=TEXT_SECONDARY, linewidth=1, linestyle=":")
         if reference_label:
@@ -424,7 +445,12 @@ def dot_interval(
     axis.set_yticks(positions, [str(v) for v in ordered[label]], fontsize=8)
     axis.grid(True, axis="x")
     axis.grid(False, axis="y")
-    axis.set_xlim(left=0)
+    if float(ordered[low].min()) >= 0:
+        axis.set_xlim(left=0)
+    if percent:
+        axis.xaxis.set_major_formatter(
+            matplotlib.ticker.FuncFormatter(lambda v, _: f"{v * 100:+.0f}%")
+        )
     axis.set_ylim(-0.7, len(ordered) - 0.3)
     axis.set_title(title)
     axis.set_xlabel(xlabel)
@@ -704,4 +730,84 @@ def slope(
     axis.set_ylim(-0.6, n + 0.4)
     axis.axis("off")
     axis.set_title(title, loc="left", pad=18)
+    return save(fig, path)
+
+
+def intervention(
+    frame: pd.DataFrame,
+    x: str,
+    observed: str,
+    fitted: str,
+    counterfactual: str,
+    path: Path,
+    title: str,
+    break_date: pd.Timestamp,
+    break_label: str,
+    facet: str | None = None,
+    facet_order: list[str] | None = None,
+    shaded: list[tuple[pd.Timestamp, pd.Timestamp, str]] | None = None,
+    ylabel: str = "",
+    height: float | None = None,
+) -> Path:
+    """Observed monthly counts, the fitted line and the dashed counterfactual around a break.
+
+    One panel, or one panel per ``facet`` value stacked with a shared x axis. ``shaded`` marks
+    periods (for example a confounding change or the pandemic) with a labelled grey band.
+    """
+    apply_style()
+    facets = [None] if facet is None else (facet_order or list(dict.fromkeys(frame[facet])))
+    height = height or (3.6 if facet is None else 2.6 * len(facets) + 0.8)
+    fig, axes = plt.subplots(len(facets), 1, figsize=(FIGURE_WIDTH, height), sharex=True)
+    axes = np.atleast_1d(axes)
+    for axis, name in zip(axes, facets):
+        panel = frame if name is None else frame[frame[facet] == name]
+        panel = panel.sort_values(x)
+        axis.plot(
+            panel[x],
+            panel[observed],
+            color=TEXT_SECONDARY,
+            linewidth=1,
+            alpha=0.7,
+            marker="o",
+            markersize=2.5,
+            label="Observed",
+        )
+        axis.plot(panel[x], panel[fitted], color=CATEGORICAL[0], linewidth=2, label="Fitted")
+        post = panel[panel[x] >= break_date]
+        axis.plot(
+            post[x],
+            post[counterfactual],
+            color=CATEGORICAL[1],
+            linewidth=2,
+            linestyle="--",
+            label="Counterfactual (no change)",
+        )
+        axis.axvline(break_date, color=TEXT_PRIMARY, linewidth=1)
+        top = float(panel[observed].max())
+        for index, (start, end, label) in enumerate(shaded or []):
+            axis.axvspan(start, end, color=GRID, alpha=0.6, linewidth=0)
+            axis.text(
+                start,
+                top * (1 - 0.12 * index),  # stagger neighbouring labels
+                f" {label}",
+                fontsize=7,
+                color=TEXT_SECONDARY,
+                va="top",
+            )
+        axis.set_ylim(bottom=0)
+        _thousands(axis)
+        axis.set_ylabel(ylabel, fontsize=9)
+        if name is not None:
+            axis.set_title(str(name), fontsize=10, fontweight="normal", loc="left")
+    axes[0].text(
+        break_date,
+        axes[0].get_ylim()[1] * 0.98,
+        f" {break_label}",
+        fontsize=8,
+        color=TEXT_PRIMARY,
+        va="top",
+    )
+    axes[-1].legend(loc="upper left", bbox_to_anchor=(0, -0.15), ncol=3)
+    fig.suptitle(title, x=0.01, ha="left", fontsize=12, fontweight="bold")
+    fig.tight_layout()
     return save(fig, path)

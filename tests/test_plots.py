@@ -174,3 +174,65 @@ def test_dot_interval_panels_and_slope(tmp_path: Path) -> None:
         ranks, "name", "left", "right", tmp_path / "slope.svg", "Slope", "Left", "Right"
     )
     _svg_ok(out)
+
+
+def test_intervention_and_placebo_dots(tmp_path: Path) -> None:
+    periods = pd.date_range("2005-01-01", "2007-12-01", freq="MS")
+    frame = pd.DataFrame(
+        {
+            "period": list(periods) * 2,
+            "group": ["a"] * len(periods) + ["b"] * len(periods),
+            "deaths": list(range(36)) * 2,
+            "fitted": list(range(36)) * 2,
+            "counterfactual": [v + 3 for v in range(36)] * 2,
+        }
+    )
+    out = plots.intervention(
+        frame,
+        "period",
+        "deaths",
+        "fitted",
+        "counterfactual",
+        tmp_path / "its.svg",
+        "ITS",
+        pd.Timestamp("2006-07-01"),
+        "July 2006",
+        facet="group",
+        shaded=[(pd.Timestamp("2007-06-01"), pd.Timestamp("2007-12-01"), "later")],
+    )
+    _svg_ok(out)
+    out = plots.intervention(
+        frame[frame.group == "a"],
+        "period",
+        "deaths",
+        "fitted",
+        "counterfactual",
+        tmp_path / "its_single.svg",
+        "ITS",
+        pd.Timestamp("2006-07-01"),
+        "July 2006",
+    )
+    _svg_ok(out)
+    placebo = pd.DataFrame(
+        {
+            "label": ["Jan", "Feb", "Mar"],
+            "v": [-0.1, 0.02, 0.05],
+            "lo": [-0.2, -0.05, -0.01],
+            "hi": [0.0, 0.09, 0.11],
+            "is_true": [True, False, False],
+        }
+    )
+    out = plots.dot_interval(
+        placebo,
+        "label",
+        "v",
+        "lo",
+        "hi",
+        tmp_path / "placebo.svg",
+        "Placebo",
+        percent=True,
+        reference=0,
+        highlight="is_true",
+        keep_order=True,
+    )
+    _svg_ok(out)
