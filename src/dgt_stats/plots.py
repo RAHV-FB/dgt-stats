@@ -705,3 +705,82 @@ def slope(
     axis.axis("off")
     axis.set_title(title, loc="left", pad=18)
     return save(fig, path)
+
+
+def intervention(
+    frame: pd.DataFrame,
+    x: str,
+    observed: str,
+    fitted: str,
+    counterfactual: str,
+    path: Path,
+    title: str,
+    break_date: pd.Timestamp,
+    break_label: str,
+    facet: str | None = None,
+    facet_order: list[str] | None = None,
+    shaded: list[tuple[pd.Timestamp, pd.Timestamp, str]] | None = None,
+    ylabel: str = "",
+    height: float | None = None,
+) -> Path:
+    """Observed monthly counts, the fitted line and the dashed counterfactual around a break.
+
+    One panel, or one panel per ``facet`` value stacked with a shared x axis. ``shaded`` marks
+    periods (for example a confounding change or the pandemic) with a labelled grey band.
+    """
+    apply_style()
+    facets = [None] if facet is None else (facet_order or list(dict.fromkeys(frame[facet])))
+    height = height or (3.6 if facet is None else 2.6 * len(facets) + 0.8)
+    fig, axes = plt.subplots(len(facets), 1, figsize=(FIGURE_WIDTH, height), sharex=True)
+    axes = np.atleast_1d(axes)
+    for axis, name in zip(axes, facets):
+        panel = frame if name is None else frame[frame[facet] == name]
+        panel = panel.sort_values(x)
+        axis.plot(
+            panel[x],
+            panel[observed],
+            color=TEXT_SECONDARY,
+            linewidth=1,
+            alpha=0.7,
+            marker="o",
+            markersize=2.5,
+            label="Observed",
+        )
+        axis.plot(panel[x], panel[fitted], color=CATEGORICAL[0], linewidth=2, label="Fitted")
+        post = panel[panel[x] >= break_date]
+        axis.plot(
+            post[x],
+            post[counterfactual],
+            color=CATEGORICAL[1],
+            linewidth=2,
+            linestyle="--",
+            label="Counterfactual (no change)",
+        )
+        axis.axvline(break_date, color=TEXT_PRIMARY, linewidth=1)
+        for start, end, label in shaded or []:
+            axis.axvspan(start, end, color=GRID, alpha=0.6, linewidth=0)
+            axis.text(
+                start,
+                axis.get_ylim()[1] if False else panel[observed].max(),
+                f" {label}",
+                fontsize=7,
+                color=TEXT_SECONDARY,
+                va="top",
+            )
+        axis.set_ylim(bottom=0)
+        _thousands(axis)
+        axis.set_ylabel(ylabel, fontsize=9)
+        if name is not None:
+            axis.set_title(str(name), fontsize=10, fontweight="normal", loc="left")
+    axes[0].text(
+        break_date,
+        axes[0].get_ylim()[1] * 0.98,
+        f" {break_label}",
+        fontsize=8,
+        color=TEXT_PRIMARY,
+        va="top",
+    )
+    axes[-1].legend(loc="upper left", bbox_to_anchor=(0, -0.15), ncol=3)
+    fig.suptitle(title, x=0.01, ha="left", fontsize=12, fontweight="bold")
+    fig.tight_layout()
+    return save(fig, path)

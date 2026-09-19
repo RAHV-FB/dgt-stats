@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -69,3 +70,74 @@ def test_intervention_windows_and_fleet_offset() -> None:
         (annual.metric == "vehicle_fleet") & (annual.zone == "all") & (annual.year == 2006)
     ]
     assert july_2006 == pytest.approx(float(published.value.iloc[0]))
+
+
+def _synthetic_series(level_change: float, break_date: str, seed: int = 3) -> pd.DataFrame:
+    """Poisson counts with a trend, a season and a known level change at ``break_date``."""
+    rng = np.random.default_rng(seed)
+    periods = pd.date_range("2000-01-01", "2007-11-01", freq="MS")
+    t = np.arange(len(periods))
+    season = 0.12 * np.sin(2 * np.pi * (periods.month - 1) / 12)
+    post = (periods >= pd.Timestamp(break_date)).astype(float)
+    mu = np.exp(np.log(380) - 0.004 * t + season + np.log1p(level_change) * post)
+    deaths = rng.poisson(mu).astype(float)
+    return pd.DataFrame({"period": periods, "deaths": deaths})
+
+
+def test_segmented_fit_recovers_a_known_level_change() -> None:
+    it = policy.INTERVENTIONS["points_licence"]
+    series = _synthetic_series(-0.15, "2006-07-01")
+    fit = policy.segmented_fit(series, it)
+    assert fit.n == 95 and fit.break_date == it.date
+    assert fit.level_change == pytest.approx(-0.15, abs=0.04)
+    assert fit.level_low < -0.15 < fit.level_high
+    assert abs(fit.slope_change) < 0.15
+    assert 0.5 < fit.dispersion < 2.0
+    assert set(fit.series.columns) == {"period", "deaths", "fitted", "counterfactual", "post"}
+    pre = fit.series[~fit.series.post]
+    assert np.allclose(pre.fitted, pre.counterfactual)
+    post = fit.series[fit.series.post]
+    assert (post.fitted < post.counterfactual).all()
+    trend = fit.coefficients.set_index("term").estimate["t"]
+    assert trend == pytest.approx(-0.004, abs=0.001)
+    no_slope = policy.segmented_fit(series, it, slope=False)
+    assert np.isnan(no_slope.slope_change)
+    nb = policy.segmented_fit(series, it, family="negative_binomial")
+    assert nb.level_change == pytest.approx(fit.level_change, abs=0.02)
+
+
+def test_placebo_distribution_ranks_a_real_break_first() -> None:
+    it = policy.INTERVENTIONS["points_licence"]
+    placebo = policy.placebo_fits(_synthetic_series(-0.2, "2006-07-01"), it)
+    assert placebo.is_true.sum() == 1
+    true = placebo[placebo.is_true].iloc[0]
+    assert true["rank"] == 1 and placebo.n_fits.iloc[0] == len(placebo) == 39
+    assert placebo.break_date.min() == it.pre_start + pd.DateOffset(months=it.placebo_pre)
+    assert placebo[~placebo.is_true].break_date.max() < it.date - pd.DateOffset(
+        months=it.post_months - 1
+    )
+    assert placebo[~placebo.is_true].level_change.abs().mean() < 0.1
+
+
+def test_did_fit_recovers_a_treated_change_and_a_flat_control() -> None:
+    rng = np.random.default_rng(5)
+    periods = pd.date_range("2016-01-01", "2020-02-01", freq="MS")
+    post = (periods >= pd.Timestamp("2019-02-01")).astype(float)
+    season = 0.15 * np.sin(2 * np.pi * (periods.month - 1) / 12)
+    rows = []
+    for group, base, effect in ((policy.TREATED, 60, -0.25), (policy.CONTROL, 40, 0.0)):
+        mu = np.exp(
+            np.log(base) - 0.003 * np.arange(len(periods)) + season + np.log1p(effect) * post
+        )
+        rows.append(pd.DataFrame({"period": periods, "group": group, "deaths": rng.poisson(mu)}))
+    panel = pd.concat(rows, ignore_index=True).astype({"deaths": float})
+    it = policy.INTERVENTIONS["speed_limit_90"]
+    fit = policy.did_fit(panel, it)
+    assert fit.level_change == pytest.approx(-0.25, abs=0.08)
+    control = fit.coefficients.set_index("term")
+    assert abs(np.expm1(control.estimate["post"])) < 0.12
+    assert control.low["post"] < 0 < control.high["post"]
+    placebo = policy.did_placebos(panel, it)
+    assert list(placebo.break_date) == [*it.placebo_dates, it.date]
+    assert placebo[placebo.is_true].level_change.iloc[0] == fit.level_change
+    assert (placebo[~placebo.is_true].low < 0).all() and (placebo[~placebo.is_true].high > 0).all()

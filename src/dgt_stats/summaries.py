@@ -1,5 +1,6 @@
 """Descriptive summaries for the site: trends (Q1), timing (Q2), geography (Q4), road users (Q5),
-exposure-adjusted rates for older drivers (Q7) and, through ``vehicles``, rates per kilometre (Q6).
+exposure-adjusted rates for older drivers (Q7) and, through ``vehicles`` and ``policy``, rates per
+kilometre (Q6) and the interrupted time series (Q8).
 
 Every function returns a tidy ``pandas.DataFrame`` built from the interim or processed layers. The
 column names are stable because the site and the tests key on them.
@@ -20,6 +21,7 @@ from dgt_stats import (
     io_tables,
     labels,
     rates,
+    policy,
     validate,
     vehicles,
 )
@@ -662,6 +664,17 @@ def read_model_table(name: str) -> pd.DataFrame:
     return pd.read_csv(path)
 
 
+# --------------------------------------------------------------------------- Q8 policy
+
+_points_licence = cache(policy.points_licence_fits)
+_speed_limit = cache(policy.speed_limit_fits)
+
+
+def _policy_table(name: str):
+    source = _points_licence if name.startswith("q8_points") else _speed_limit
+    return lambda: source()[name].copy()
+
+
 # --------------------------------------------------------------------------- registry
 
 SUMMARIES = {
@@ -692,4 +705,17 @@ SUMMARIES = {
     "q6_van_light_truck_split": vehicles.van_light_truck_split,
     "q6_involvement_by_year": vehicles.involvement_by_year,
     "q6_occupant_deaths_series": vehicles.occupant_deaths_series,
+    **{
+        name: _policy_table(name)
+        for name in (
+            "q8_points_fit",
+            "q8_points_series",
+            "q8_points_placebo",
+            "q8_points_sensitivity",
+            "q8_speed_fit",
+            "q8_speed_series",
+            "q8_speed_placebo",
+            "q8_speed_sensitivity",
+        )
+    },
 }
