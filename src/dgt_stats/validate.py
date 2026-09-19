@@ -12,7 +12,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from dgt_stats import codes, io_exposure, io_microdata, io_tables
+from dgt_stats import codes, io_exposure, io_microdata, io_tables, vehicles
 from dgt_stats.paths import MICRODATA_YEARS, TABLES_DIR
 
 log = logging.getLogger(__name__)
@@ -22,6 +22,7 @@ MISSINGNESS_PATH = TABLES_DIR / "missingness_by_year.csv"
 
 CENSUS_TOLERANCE = 0.005
 CENSUS_AGE_TOLERANCE = 0.02
+VEHICLE_TABLE_TOLERANCE = 0.001
 
 VICTIM_COLUMNS = {
     "deaths_30d": "TOTAL_MU30DF",
@@ -354,6 +355,51 @@ def missingness_profile(crashes: pd.DataFrame) -> pd.DataFrame:
     return out.round(4)
 
 
+def check_vehicle_tables(
+    crashes: pd.DataFrame, units: pd.DataFrame, victims: pd.DataFrame
+) -> list[Result]:
+    """Checks 9 and 10: the yearbook vehicle tables against the microdata, 2020–2024.
+
+    TABLA 2.3 vehicles involved (its total less pedestrians) must be within 0.1 % of the microdata
+    ``TOTAL_VEHICULOS`` sum (2024 is published with a 66-vehicle gap). TABLA 2.2 deaths by means of
+    transport, summed over drivers, passengers and pedestrians and over both zones, must equal the
+    microdata ``TOT_*_MU30DF`` columns exactly for every vehicle group.
+    """
+    results: list[Result] = []
+    pedestrian_units = vehicles.VEHICLE_GROUPS["pedestrian"]["units"]
+    for year in sorted(units.year.unique()):
+        year_crashes = crashes[crashes.ANYO == year]
+        block = units[(units.year == year) & (units.zone == "all") & (units.metric == "crashes")]
+        expected = float(block[block.is_total].value.sum()) - float(
+            block[block.unit_type.isin(pedestrian_units)].value.sum()
+        )
+        actual = float(year_crashes["TOTAL_VEHICULOS"].sum())
+        results.append(
+            Result(
+                "table_2_3_vehicles",
+                int(year),
+                "vehicles",
+                expected,
+                actual,
+                abs(actual - expected) <= VEHICLE_TABLE_TOLERANCE * expected,
+                f"tolerance {VEHICLE_TABLE_TOLERANCE:.1%}",
+            )
+        )
+    deaths = victims[
+        (victims.metric == "deaths_30d") & (victims.role == "total") & ~victims.is_total
+    ]
+    for year in sorted(deaths.year.unique()):
+        year_crashes = crashes[crashes.ANYO == year]
+        year_deaths = deaths[deaths.year == year]
+        for group, spec in vehicles.VEHICLE_GROUPS.items():
+            expected = float(year_deaths[year_deaths.unit_type.isin(spec["units"])].value.sum())
+            actual = float(year_crashes[str(spec["microdata"])].fillna(0).sum())
+            results.append(
+                Result("table_2_2_deaths", int(year), group, expected, actual, expected == actual)
+            )
+    return results
+
+
 # --------------------------------------------------------------------------- runner
 
 
@@ -370,6 +416,8 @@ def run_checks(crashes: pd.DataFrame | None = None) -> pd.DataFrame:
     road_users = io_tables.read_table("series_road_users")
     census_age_tables = io_exposure.read_exposure("censo_edad_tablas")
     census_age_text = io_exposure.read_exposure("censo_edad")
+    units = io_tables.read_table("tables_units_by_type")
+    victims = io_tables.read_table("tables_victims_by_mode")
 
     results: list[Result] = []
     results += check_row_counts(crashes, annual)
@@ -380,6 +428,7 @@ def run_checks(crashes: pd.DataFrame | None = None) -> pd.DataFrame:
     results += check_census(census, census_table)
     results += check_driver_tables(driver_victims, road_users)
     results += check_census_age(census_age_tables, census_age_text)
+    results += check_vehicle_tables(crashes, units, victims)
     return pd.DataFrame([asdict(result) for result in results])
 
 

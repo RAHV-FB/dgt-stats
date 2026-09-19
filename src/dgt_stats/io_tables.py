@@ -1,4 +1,4 @@
-"""Readers for the published DGT tables: the 1993–2024 historical series and the 2024 statistical tables.
+"""Readers for the published DGT tables: the 1993–2024 series and the yearly statistical tables.
 
 Every function returns a tidy ``pandas.DataFrame`` and records the sheet it came from in a
 ``source_sheet`` column. Sheet layouts are located by the label in the first header cell rather than
@@ -554,11 +554,24 @@ def read_table_3_1() -> pd.DataFrame:
 
 
 VEHICLE_TABLE_METRICS = ("crashes", "fatal_crashes", "injury_crashes")
+VEHICLE_TABLE_YEARS = tuple(range(2020, 2025))
+UNIT_ROLES = ("total", "driver", "passenger", "pedestrian")
+UNIT_VICTIM_METRICS = (
+    "involved",
+    "victims_30d",
+    "deaths_30d",
+    "hospitalised_30d",
+    "non_hospitalised_30d",
+)
 
 
-def read_table_2_3() -> pd.DataFrame:
-    """TABLA 2.3: 2024 units (vehicles and pedestrians) involved, by type, zone and crash severity."""
-    rows = _rows(TABLES_2024_PATH, "TABLA 2.3")
+def read_table_2_3(year: int = 2024) -> pd.DataFrame:
+    """TABLA 2.3: units (vehicles and pedestrians) involved, by type, zone and crash severity.
+
+    The five workbooks 2020–2024 share the layout: one row per unit type, three zone blocks of three
+    severity columns (injury crashes, 30-day fatal crashes, crashes with injured only).
+    """
+    rows = _rows(tables_raw_path(year), "TABLA 2.3")
     header = _find_header(rows, "TIPO VEHÍCULO")
     zones = ("all", "interurban", "urban")
     frames: list[pd.DataFrame] = []
@@ -574,6 +587,7 @@ def read_table_2_3() -> pd.DataFrame:
             frames.append(
                 pd.DataFrame(
                     {
+                        "year": year,
                         "unit_type": name,
                         "is_total": name.upper() == "TOTAL",
                         "zone": zone,
@@ -583,10 +597,88 @@ def read_table_2_3() -> pd.DataFrame:
                     }
                 )
             )
+        if name.upper() == "TOTAL":
+            break
     out = pd.concat(frames, ignore_index=True)
     return out.astype(
-        {"unit_type": "string", "zone": "string", "metric": "string", "source_sheet": "string"}
+        {
+            "year": "int16",
+            "unit_type": "string",
+            "zone": "string",
+            "metric": "string",
+            "source_sheet": "string",
+        }
     )
+
+
+def read_units_by_type_all(years: tuple[int, ...] = VEHICLE_TABLE_YEARS) -> pd.DataFrame:
+    out = pd.concat([read_table_2_3(year) for year in years], ignore_index=True)
+    close_workbooks()
+    return out
+
+
+def read_table_2_2(year: int) -> pd.DataFrame:
+    """TABLA 2.2: victims by means of transport, role (driver, passenger, pedestrian) and zone.
+
+    2020–2022 publish one sheet with the interurban and urban blocks side by side; 2023–2024 split it
+    into ``2.2.I`` and ``2.2.U``. Each zone block is four role blocks of five columns: units
+    involved, victims, deaths, hospitalised and non-hospitalised (30-day definitions).
+    """
+    path = tables_raw_path(year)
+    names = {_sheet_key(name): name for name in _workbook(path).sheetnames}
+    sheets = [("2.2", None)] if "2.2" in names else [("2.2.I", "interurban"), ("2.2.U", "urban")]
+    frames: list[pd.DataFrame] = []
+    for key, zone in sheets:
+        rows = _rows(path, names[key])
+        header = _find_header(rows, "CLASES DE USUARIOS")
+        if zone is None:
+            if _text(rows[header][1]).lower() != "vías interurbanas":
+                raise ValueError(f"TABLA 2.2 {year}: expected interurban and urban blocks")
+            zones: tuple[str, ...] = ("interurban", "urban")
+        else:
+            zones = (zone,)
+        width = len(UNIT_ROLES) * len(UNIT_VICTIM_METRICS)
+        for row in rows[header + 1 :]:
+            name = _text(row[0])
+            if not name or not isinstance(row[1], (int, float)):
+                continue
+            values = [_number(v) for v in row[1 : 1 + width * len(zones)]]
+            for zone_index, block_zone in enumerate(zones):
+                for role_index, role in enumerate(UNIT_ROLES):
+                    start = zone_index * width + role_index * len(UNIT_VICTIM_METRICS)
+                    frames.append(
+                        pd.DataFrame(
+                            {
+                                "year": year,
+                                "unit_type": name,
+                                "is_total": name.upper() == "TOTAL",
+                                "zone": block_zone,
+                                "role": role,
+                                "metric": list(UNIT_VICTIM_METRICS),
+                                "value": values[start : start + len(UNIT_VICTIM_METRICS)],
+                                "source_sheet": names[key],
+                            }
+                        )
+                    )
+            if name.upper() == "TOTAL":
+                break
+    out = pd.concat(frames, ignore_index=True)
+    return out.astype(
+        {
+            "year": "int16",
+            "unit_type": "string",
+            "zone": "string",
+            "role": "string",
+            "metric": "string",
+            "source_sheet": "string",
+        }
+    )
+
+
+def read_victims_by_mode_all(years: tuple[int, ...] = VEHICLE_TABLE_YEARS) -> pd.DataFrame:
+    out = pd.concat([read_table_2_2(year) for year in years], ignore_index=True)
+    close_workbooks()
+    return out
 
 
 def read_table_8_1_1() -> pd.DataFrame:
@@ -858,7 +950,8 @@ TABLE_BUILDERS = {
     "series_pedestrians": read_series_pedestrians,
     "tables_2024_province": read_table_1_1,
     "tables_2024_month": read_table_3_1,
-    "tables_2024_units": read_table_2_3,
+    "tables_units_by_type": read_units_by_type_all,
+    "tables_victims_by_mode": read_victims_by_mode_all,
     "tables_2024_vehicles_involved": read_table_8_1_1,
     "tables_driver_victims": read_driver_victims_all,
     "tables_drivers_involved": read_drivers_involved_all,
