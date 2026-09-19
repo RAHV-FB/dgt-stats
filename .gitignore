@@ -30,6 +30,8 @@ reports/figures/**
 !reports/figures/.gitkeep
 reports/tables/**
 !reports/tables/.gitkeep
+!reports/tables/validation.csv
+!reports/tables/missingness_by_year.csv
 
 # Build and coverage outputs
 build/
