@@ -13,7 +13,7 @@ Data are organised by processing stage. Source data must never be manually edite
 ## Building the interim layer
 
 ```bash
-python scripts/ingest.py all        # microdata, tables, exposure, validate (about 6 minutes)
+python scripts/ingest.py all        # microdata, tables, exposure, reports, validate (about 6 minutes)
 python scripts/ingest.py microdata --years 2024 --force
 python scripts/ingest.py validate
 ```

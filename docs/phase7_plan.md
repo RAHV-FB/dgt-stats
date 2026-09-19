@@ -85,10 +85,35 @@ Two facts shape the design:
   (interim table and the `reports` ingest step), notebooks map, `phase7_plan.md` outcome section;
   PR; squash merge.
 
-## 3. Verification
+## 3. Outcome (19 September 2026)
 
-- The report's 2023 totals reproduce its own executive summary, and its road-type and zone rows add
-  up to its totals every year.
-- Table 6.1 block totals equal each other and equal table 4.2's drivers involved, every year and zone.
-- `pytest`, `ruff`, idempotent `ingest.py tables reports`, `analyse.py all` and `build_site.py`,
-  headless screenshots at 1280 px and 390 px.
+All five steps are merged. What was built, with the deviations from the design above:
+
+- `io_tables.read_table_6_1` parses the four layouts by locating rows by label with a small state
+  machine (a repeated item advances the block), `io_reports.py` transcribes all 61 annex tables of
+  the speed report (the plan said 57; the PDF numbers some tables twice and three age-by-sex tables
+  share one caption, so their sex is taken from the header cell glued to the first row), `speed.py`
+  holds the ten `q9_*` summaries, and `speed.html` is the page. `pymupdf` joins the dependencies and
+  `ingest.py reports` the CLI.
+- Table 6.1 does not equal table 4.2 exactly: the totals match in 2014–2015 and sit 0.2–1.1 % below
+  from 2016, so the check (44 rows, 434 in all) uses a 1.5 % tolerance and also requires one total
+  across the six blocks.
+- Results, driver tables: the share of drivers with no speed record jumps from 17 % (2014) to 52 %
+  (2016) and stays there (52 % in 2024); the infraction share over all drivers falls from 6.7 % to
+  4.3 % while the share among recorded drivers moves from 8.1 % to 9.1 % (14.3 % interurban, 5.8 %
+  urban in 2024); motorcyclists 12.9 %, cars 9.0 %, bus drivers 2.8 %. Speed ranks third among the
+  infractions recorded, after priority and safety distance.
+- Results, the report: inappropriate speed in 5,070 injury crashes in 2023, 7 % of the total (10 %
+  in 2014), 14 % interurban and 3 % urban; 319 deaths, 66 % on conventional and other interurban
+  roads; 30 km/h streets carry 19 % of the crashes but 11 % of the deaths, 90 km/h roads 18 % and
+  27 %; motorcycle users are 37 % of the deaths; 36 % of the crashes fall at weekends. The excluded
+  regions hold 28 % of Spain's injury crashes (computed from the province table, not "a fifth").
+
+## 4. Verification
+
+- The report's 2023 totals reproduce its own executive summary, and its road-type, speed-limit and
+  day × hour rows add up to its totals.
+- Table 6.1 block totals equal each other and sit within 1.5 % of table 4.2's drivers involved,
+  every year and zone.
+- `pytest` (137), `ruff`, idempotent `ingest.py tables reports`, `analyse.py all` and
+  `build_site.py`, headless screenshots at 1280 px and 390 px with no horizontal overflow.

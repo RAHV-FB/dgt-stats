@@ -130,6 +130,15 @@ roads of January 2019 shows a 13 percent fall relative to motorways in the clean
 placebo break placed in January 2018 gives the same result, so no claim is made
 ([`docs/phase6_plan.md`](docs/phase6_plan.md)).
 
+A speed page describes what the two sources that mention speed record, since nothing in the open
+data measures it. In the yearbook's driver tables the share of drivers with no speed record jumped
+from 17 percent in 2014 to 52 percent in 2016 and stayed there, so the raw infraction share fell for
+reasons unrelated to driving; among drivers with a record it is about 9 percent, 14 percent on
+interurban roads, highest for motorcyclists. DGT's speed-factor report, which excludes Cataluña and
+País Vasco, records inappropriate speed in 7 percent of injury crashes in 2023 (14 percent
+interurban, 3 percent urban); two thirds of the deaths in those crashes are on conventional roads
+and the crashes cluster on weekend afternoons ([`docs/phase7_plan.md`](docs/phase7_plan.md)).
+
 ```bash
 python scripts/ingest.py all        # raw -> data/interim, validation report
 python scripts/build_tables.py      # data/interim -> data/processed (derived fields, labels)
@@ -174,6 +183,7 @@ tests/                 Data-contract and code tests
 - [x] Build the first exposure-adjusted trend analysis (province rates and the older-driver denominator ladder).
 - [x] Model crash severity from the recorded circumstances (the crash-level file has no driver, vehicle or alcohol fields, so factor interactions such as alcohol × speed are out of reach until person-level microdata are obtained).
 - [x] Compare vehicle types per registered vehicle and per kilometre driven for 2022, the one year with a distance estimate, with the limits of the modelled kilometres stated.
+- [x] Describe the speed factor from the sources that record it, with the share of drivers without a record and the report's regional exclusion stated.
 - [ ] Add road-design and geospatial variables.
 - [x] Evaluate one well-defined policy intervention (the 2006 points licence, with the 2019 speed limit as a second, failed case) with placebo checks and stated confounders.
 - [ ] Publish a final report and documented dashboard.

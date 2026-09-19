@@ -13,7 +13,7 @@ Notebooks are numbered in the order a reviewer should run or read them:
 07_older_drivers.ipynb         Q7 (denominator ladder)
 08_vehicles_per_km_2022.ipynb  Q6 (rates per kilometre for the one year with a distance estimate)
 09_policy_its.ipynb            Q8 (both interrupted series and their placebos)
-10_speed_context.ipynb         Q9
+10_speed_context.ipynb         Q9 (driver tables 6.1 and the transcribed speed report)
 ```
 
 None exist yet: the pipeline is script-driven (`scripts/`), and notebooks will be added as explanatory
