@@ -1,0 +1,13 @@
+group,label,yearbook_unit_types,km_table_type,microdata_column,series_column,has_km_denominator
+moped,Mopeds,Ciclomotor,Ciclomotor,TOT_CICLO_MU30DF,Ciclomotores,True
+motorcycle,Motorcycles,Motocicleta,Motocicleta,TOT_MOTO_MU30DF,Motocicletas,True
+car,Cars,Turismo sin remolque; Turismo con remolque; Turismo de SP hasta 9 plazas,Turismo,TOT_TUR_MU30DF,Turismos,True
+van,Vans,Furgoneta,Furgoneta,TOT_FURG_MU30DF,Camiones hasta 3.500 kg y furgonetas,True
+light_truck,"Trucks up to 3,500 kg",Camión <=3.500 kg sin remolque; Camión <=3.500 kg con remolque,Camión hasta 3.500Kg,TOT_CAM_MENOS3500_MU30DF,Camiones hasta 3.500 kg y furgonetas,True
+heavy_truck,"Trucks over 3,500 kg",Camión >3.500 kg sin remolque; Camión >3.500 kg con remolque; Tractocamión (cabeza tractora); Vehículo articulado,Camión más de 3.500Kg,TOT_CAM_MAS3500_MU30DF,Camiones más de 3.500 kg,True
+bus,Buses,Autobús (no escolar); Autobús escolar,Autobús,TOT_BUS_MU30DF,Autobuses,True
+pedestrian,Pedestrians,Peatón,,TOT_PEAT_MU30DF,,False
+bicycle,Bicycles,Bicicleta,,TOT_BICI_MU30DF,Bicicletas,False
+vmp,Personal mobility vehicles,VMP,,TOT_VMP_MU30DF,VMP,False
+other,Other vehicles,Maquinaria obras y agrícola y tractores agrícolas; Cuadriciclo; Tren/metro/tranvía; Otro vehículo,,TOT_OTRO_MU30DF,Otros,False
+unknown,Unknown vehicle,Se desconoce,,TOT_SINESPECIF_MU30DF,,False

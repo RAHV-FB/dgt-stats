@@ -1,5 +1,5 @@
-"""Descriptive summaries for the site: trends (Q1), timing (Q2), geography (Q4), road users (Q5)
-and exposure-adjusted rates for older drivers (Q7).
+"""Descriptive summaries for the site: trends (Q1), timing (Q2), geography (Q4), road users (Q5),
+exposure-adjusted rates for older drivers (Q7) and, through ``vehicles``, rates per kilometre (Q6).
 
 Every function returns a tidy ``pandas.DataFrame`` built from the interim or processed layers. The
 column names are stable because the site and the tests key on them.
@@ -21,6 +21,7 @@ from dgt_stats import (
     labels,
     rates,
     validate,
+    vehicles,
 )
 from dgt_stats.paths import PROCESSED_DATA_DIR, TABLES_DIR
 
@@ -683,4 +684,11 @@ SUMMARIES = {
     "q7_licence_share": licence_share_by_age,
     "q7_victims_by_age": victims_by_age_rates,
     "q7_movilia_car_travel": movilia_car_travel,
+    "q6_vehicle_groups": vehicles.vehicle_groups_table,
+    "q6_vehicle_km_2022": vehicles.vehicle_km,
+    "q6_km_by_age_2022": vehicles.km_by_age,
+    "q6_rates_2022": vehicles.rates_2022,
+    "q6_summary_2022": vehicles.summary_2022,
+    "q6_involvement_by_year": vehicles.involvement_by_year,
+    "q6_occupant_deaths_series": vehicles.occupant_deaths_series,
 }
