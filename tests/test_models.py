@@ -15,7 +15,7 @@ def _synthetic(n: int = 40_000) -> pd.DataFrame:
     y = RNG.random(n) < 1 / (1 + np.exp(-log_odds))
     return pd.DataFrame(
         {
-            "year": RNG.choice([2016, 2017, 2023, 2024], size=n),
+            "crash_year": RNG.choice([2016, 2017, 2023, 2024], size=n),
             "province": RNG.choice([str(i) for i in range(1, 11)], size=n),
             "fatal": y,
             "serious": y,
@@ -55,11 +55,11 @@ def test_holdout_and_stability_on_synthetic_years(monkeypatch: pytest.MonkeyPatc
     monkeypatch.setattr(
         features,
         "PREDICTORS",
-        {"x1": {"source": "x1"}, "x2": {"source": "x2"}, "year": {"source": "year"}},
+        {"x1": {"source": "x1"}, "x2": {"source": "x2"}, "year": {"source": "crash_year"}},
     )
     monkeypatch.setattr(features, "PREDICTOR_LABELS", {"x1": "X1", "x2": "X2", "year": "Year"})
     calibration, summary = models.holdout_check(frame, "fatal", (2023, 2024))
-    assert calibration.crashes.sum() == (frame.year >= 2023).sum()
+    assert calibration.crashes.sum() == (frame.crash_year >= 2023).sum()
     assert 0.5 < summary.auc.iloc[0] < 1.0
     assert summary.brier.iloc[0] <= summary.brier_base_rate.iloc[0] + 1e-6
     full = models.fit_severity(frame, "fatal", ("x1", "x2"), cluster=None)
@@ -96,7 +96,7 @@ def test_model_frame_levels_and_groupings() -> None:
     assert list(frame.lighting) == ["daylight", "dark, no lighting", "not specified"]
     assert list(frame.weather) == ["clear", "rain", "not specified"]
     assert list(frame.surface) == ["dry", "wet", "not specified"]
-    assert list(frame.alignment) == ["not applicable", "curve", "not specified"]
+    assert list(frame.alignment) == ["straight", "curve", "not specified"]  # 998 folds to reference
     assert list(frame.vehicles) == ["2 vehicles", "1 vehicle", "3 or more vehicles"]
     assert list(frame.year) == ["2019", "2020", "2024"]
     assert frame.year.cat.categories[0] == "2019"
@@ -111,3 +111,29 @@ def test_every_predictor_level_list_starts_with_its_reference() -> None:
         first = list(spec["levels"])[0]
         assert first in set(spec["map"].values()), name
         assert features.levels(name)[0] == first
+
+
+def test_small_levels_merge_into_the_reference() -> None:
+    n = 2_000
+    raw = pd.DataFrame(
+        {
+            "ANYO": [2019] * n,
+            "COD_PROVINCIA": [28] * n,
+            "fatal": [False] * n,
+            "serious": [False] * n,
+            "ZONA": [3] * n,
+            "road_group": ["urban_street"] * n,
+            "TIPO_ACCIDENTE": [2] * (n - 10) + [999] * 10,
+            "NUDO": [2] * n,
+            "CONDICION_ILUMINACION": [1] * n,
+            "CONDICION_METEO": [1] * n,
+            "CONDICION_FIRME": [1] * n,
+            "TRAZADO_PLANTA": [998] * n,
+            "hour_band": ["10-13"] * n,
+            "weekend": [False] * n,
+            "TOTAL_VEHICULOS": [2] * n,
+        }
+    )
+    frame = features.model_frame(raw)
+    assert list(frame.crash_type.cat.categories) == ["side collision"]
+    assert list(frame.alignment.cat.categories) == ["straight"]

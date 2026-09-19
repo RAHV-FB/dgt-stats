@@ -1,8 +1,8 @@
 """Crash-severity logistic models: fitting, tidy odds ratios, marginal effects and diagnostics.
 
 The design is main effects only, built by hand from the ordered categoricals of
-:mod:`dgt_stats.features` (reference level dropped), fitted with a binomial GLM and cluster-robust
-covariance by province. The fits are slow enough (a few minutes for everything) to live behind
+:mod:`dgt_stats.features` (reference level dropped), fitted by iteratively reweighted least squares
+with cluster-robust covariance by province. The fits are slow enough (a few minutes for everything) to live behind
 ``scripts/model.py``, which writes the result tables the site reads.
 """
 
@@ -13,7 +13,6 @@ from dataclasses import dataclass
 
 import numpy as np
 import pandas as pd
-import statsmodels.api as sm
 from sklearn.metrics import brier_score_loss, roc_auc_score
 
 from dgt_stats import features
@@ -77,13 +76,62 @@ class Fit:
 
 
 def design_matrix(frame: pd.DataFrame, predictors: tuple[str, ...]) -> pd.DataFrame:
-    """Intercept plus one 0/1 column per non-reference level, named ``predictor=level``."""
+    """Intercept plus one 0/1 column per non-reference level, named ``predictor=level``.
+
+    Levels with no crash in ``frame`` (a subset of years, say) get no column, so the design
+    never carries an all-zero column into the fit.
+    """
     blocks = [pd.Series(1.0, index=frame.index, name="intercept")]
     for name in predictors:
         column = frame[name]
         for level in column.cat.categories[1:]:
-            blocks.append((column == level).astype(float).rename(f"{name}={level}"))
+            indicator = (column == level).astype(float)
+            if indicator.any():
+                blocks.append(indicator.rename(f"{name}={level}"))
     return pd.concat(blocks, axis=1)
+
+
+def _irls(
+    design: np.ndarray, y: np.ndarray, max_iter: int = 25, tol: float = 1e-8
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Logistic regression by iteratively reweighted least squares, written to keep memory low.
+
+    Returns the coefficients, the fitted probabilities and the inverse information matrix
+    (the model-based covariance, the "bread" of the sandwich).
+    """
+    n, k = design.shape
+    beta = np.zeros(k)
+    beta[0] = np.log(y.mean() / (1 - y.mean()))
+    probability = np.empty(n)
+    for _ in range(max_iter):
+        linear = design @ beta
+        np.clip(linear, -30, 30, out=linear)
+        probability = 1 / (1 + np.exp(-linear))
+        weights = probability * (1 - probability)
+        information = design.T @ (design * weights[:, None])
+        gradient = design.T @ (y - probability)
+        step = np.linalg.solve(information, gradient)
+        beta = beta + step
+        if np.max(np.abs(step)) < tol:
+            break
+    linear = np.clip(design @ beta, -30, 30)
+    probability = 1 / (1 + np.exp(-linear))
+    weights = probability * (1 - probability)
+    information = design.T @ (design * weights[:, None])
+    return beta, probability, np.linalg.inv(information)
+
+
+def _cluster_covariance(
+    design: np.ndarray, residual: np.ndarray, bread: np.ndarray, groups: np.ndarray
+) -> np.ndarray:
+    """Cluster-robust (sandwich) covariance with the usual small-sample factor."""
+    n, k = design.shape
+    n_groups = int(groups.max()) + 1
+    scores = np.zeros((n_groups, k))
+    np.add.at(scores, groups, design * residual[:, None])
+    meat = scores.T @ scores
+    factor = (n_groups / (n_groups - 1)) * ((n - 1) / (n - k))
+    return factor * bread @ meat @ bread
 
 
 def fit_severity(
@@ -92,24 +140,24 @@ def fit_severity(
     predictors: tuple[str, ...] | None = None,
     cluster: str | None = "province",
 ) -> Fit:
-    """Binomial GLM (logit link) with cluster-robust covariance; returns the parameters and cov."""
+    """Logistic regression (IRLS) with cluster-robust covariance; returns the parameters and cov."""
     predictors = predictors or tuple(features.PREDICTORS)
     design = design_matrix(frame, predictors)
+    matrix = design.to_numpy(dtype=float)
     y = frame[outcome].astype(float).to_numpy()
-    model = sm.GLM(y, design.to_numpy(), family=sm.families.Binomial())
+    beta, probability, bread = _irls(matrix, y)
     if cluster is not None:
         groups = pd.factorize(frame[cluster])[0]
-        result = model.fit(cov_type="cluster", cov_kwds={"groups": groups})
+        cov = _cluster_covariance(matrix, y - probability, bread, groups)
     else:
-        result = model.fit()
-    params = pd.Series(result.params, index=design.columns)
-    cov = pd.DataFrame(result.cov_params(), index=design.columns, columns=design.columns)
+        cov = bread
+    params = pd.Series(beta, index=design.columns)
     return Fit(
         outcome=outcome,
         predictors=predictors,
         columns=list(design.columns[1:]),
         params=params,
-        cov=cov,
+        cov=pd.DataFrame(cov, index=design.columns, columns=design.columns),
         n=len(frame),
         events=int(y.sum()),
     )
@@ -198,7 +246,9 @@ def coefficient_table(frame: pd.DataFrame, fit: Fit) -> pd.DataFrame:
 
 
 def predict(fit: Fit, design: pd.DataFrame) -> np.ndarray:
-    linear = design[fit.params.index].to_numpy() @ fit.params.to_numpy()
+    """Fitted probability for each row; levels the fit never saw count as the reference."""
+    aligned = design.reindex(columns=fit.params.index, fill_value=0.0)
+    linear = np.clip(aligned.to_numpy() @ fit.params.to_numpy(), -30, 30)
     return 1 / (1 + np.exp(-linear))
 
 
@@ -253,8 +303,8 @@ def holdout_check(
     predictor is excluded from the holdout fit, so the model has to carry across years unaided.
     """
     predictors = tuple(name for name in features.PREDICTORS if name != "year")
-    train = frame[~frame.year.isin(holdout_years)]
-    test = frame[frame.year.isin(holdout_years)]
+    train = frame[~frame.crash_year.isin(holdout_years)]
+    test = frame[frame.crash_year.isin(holdout_years)]
     fit = fit_severity(train, outcome, predictors, cluster=None)
     scores = predict(fit, design_matrix(test, predictors))
     y = test[outcome].astype(int).to_numpy()
@@ -274,8 +324,8 @@ def holdout_check(
         [
             {
                 "outcome": outcome,
-                "train_years": f"{train.year.min()}–{train.year.max()}",
-                "test_years": f"{test.year.min()}–{test.year.max()}",
+                "train_years": f"{train.crash_year.min()}–{train.crash_year.max()}",
+                "test_years": f"{test.crash_year.min()}–{test.crash_year.max()}",
                 "train_crashes": len(train),
                 "test_crashes": len(test),
                 "test_events": int(y.sum()),
@@ -292,14 +342,18 @@ def holdout_check(
 
 
 def year_stability(frame: pd.DataFrame, full: Fit, terms: int = STABILITY_TERMS) -> pd.DataFrame:
-    """Refit per year (without the year predictor) for the largest effects of the full model."""
+    """Refit per year (without the year predictor) for the largest effects of the full model.
+
+    Missing-state levels are left out of the selection: their odds ratios reflect reporting
+    practice, which is exactly what changes from year to year.
+    """
     ranked = odds_ratios(full)
-    ranked = ranked[ranked.predictor != "year"]
+    ranked = ranked[(ranked.predictor != "year") & (ranked.level != features.NOT_SPECIFIED)]
     ranked = ranked.reindex(ranked.log_odds.abs().sort_values(ascending=False).index)
     keep = ranked.head(terms)
     predictors = tuple(name for name in full.predictors if name != "year")
     records = []
-    for year, group in frame.groupby("year"):
+    for year, group in frame.groupby("crash_year"):
         fit = fit_severity(group, full.outcome, predictors, cluster=None)
         table = odds_ratios(fit).set_index(["predictor", "level"])
         for row in keep.itertuples():

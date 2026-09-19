@@ -18,6 +18,9 @@ PROCESSED_CRASHES = PROCESSED_DATA_DIR / "accidentes.parquet"
 OUTCOMES = ("fatal", "serious")
 NOT_SPECIFIED = "not specified"
 NOT_APPLICABLE = "not applicable"
+# A level with fewer crashes than this is merged into the reference level: it cannot be estimated
+# (several such levels have no events at all) and would only add noise to the table.
+MIN_LEVEL_CRASHES = 500
 
 # Each predictor: source column, ordered levels (reference first) and a code -> level map.
 # Codes not listed fall to ``fallback`` (the missing markers 999/998 are handled first).
@@ -127,7 +130,10 @@ PREDICTORS: dict[str, dict[str, object]] = {
         "source": "TRAZADO_PLANTA",
         "levels": ["straight", "curve"],
         "map": {1: "straight", 2: "curve", 3: "curve"},
-        "fallback": NOT_SPECIFIED,  # 4 (unknown), 999; 998 becomes 'not applicable' (urban)
+        "fallback": NOT_SPECIFIED,  # 4 (unknown), 999
+        # 998 (not applicable) is exactly the street zone, so it cannot be its own level next to
+        # zone; alignment is only recorded outside streets and streets take the reference.
+        "fold": {NOT_APPLICABLE: "straight"},
     },
     "hour_band": {
         "source": "hour_band",
@@ -206,20 +212,26 @@ def levels(predictor: str) -> list[str]:
 
 
 def model_frame(crashes: pd.DataFrame | None = None) -> pd.DataFrame:
-    """One row per crash: outcomes, province, year and every predictor as an ordered categorical."""
+    """One row per crash: outcomes, province, numeric ``crash_year`` and every predictor as an ordered
+    categorical (``year`` is the categorical predictor)."""
     if crashes is None:
         crashes = pd.read_parquet(PROCESSED_CRASHES, columns=MODEL_COLUMNS)
     out = pd.DataFrame(index=crashes.index)
-    out["year"] = crashes["ANYO"].astype("int16")
+    out["crash_year"] = crashes["ANYO"].astype("int16")
     out["province"] = crashes["COD_PROVINCIA"].astype("Int16").astype(str)
     for outcome in OUTCOMES:
         out[outcome] = crashes[outcome].astype(bool)
     for name, spec in PREDICTORS.items():
         raw = crashes[str(spec["source"])]
         mapped = _level_series(raw, spec)
+        reference = str(list(spec["levels"])[0])  # type: ignore[index]
+        for source_level, target in dict(spec.get("fold", {})).items():  # type: ignore[union-attr]
+            mapped[mapped == source_level] = target
+        counts = mapped.value_counts()
+        small = [level for level, count in counts.items() if count < MIN_LEVEL_CRASHES]
+        if small and len(crashes) >= MIN_LEVEL_CRASHES:
+            mapped[mapped.isin(small)] = reference
         used = [level for level in levels(name) if (mapped == level).any()]
-        if name == "year":
-            used = [level for level in levels(name) if level in set(mapped)]
         out[name] = pd.Categorical(mapped, categories=used, ordered=True)
     return out
 
@@ -230,7 +242,11 @@ def grouping_table() -> pd.DataFrame:
     for name, spec in PREDICTORS.items():
         source = str(spec["source"])
         mapping: dict = spec["map"]  # type: ignore[assignment]
-        for code, level in mapping.items():
+        fold: dict = spec.get("fold", {})  # type: ignore[assignment]
+        codes_and_levels = list(mapping.items()) + [
+            (codes.NOT_APPLICABLE_CODE, fold[NOT_APPLICABLE]) for _ in [0] if NOT_APPLICABLE in fold
+        ]
+        for code, level in codes_and_levels:
             records.append(
                 {
                     "predictor": PREDICTOR_LABELS[name],
