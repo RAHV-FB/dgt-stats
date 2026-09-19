@@ -261,3 +261,13 @@ def test_driver_infractions_every_layout() -> None:
     assert sorted(everything.year.unique()) == list(tables.TABLE_YEARS)
     per_table = everything[(everything.item == "total") & (everything.vehicle_group == "total")]
     assert per_table.groupby(["year", "zone"]).value.nunique().eq(1).all()
+    recent = everything[(everything.year >= 2016) & (everything.vehicle_group == "total")]
+    for (year, zone, block), rows in recent.groupby(["year", "zone", "block"]):
+        items = rows.set_index("item").value
+        expected = items["total"]
+        if block == "summary":
+            assert items["any"] + items["none"] + items["unknown"] == expected, (year, zone)
+        elif block == "speed":
+            assert items.drop(index="total").sum() == expected, (year, zone)
+        else:
+            assert items.drop(index="total").sum() == expected, (year, zone, block)

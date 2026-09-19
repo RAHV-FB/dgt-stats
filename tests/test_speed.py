@@ -70,7 +70,8 @@ def test_report_tables_carry_the_scope_and_their_own_totals() -> None:
 
     vehicle = speed.report_vehicle()
     latest = vehicle[vehicle.year == 2023].set_index("label")
-    assert latest.loc["Motorcycles", "deaths"] == 117 and np.isnan(latest.loc["Total", "crashes"])
+    assert latest.loc["Motorcycles", "deaths"] == 117
+    assert latest.loc["Total", "crashes"] > 5_070  # one entry per vehicle type of a crash
     assert latest.loc["Cars", "share_of_deaths"] == pytest.approx(142 / 319, abs=1e-3)
 
     age = speed.report_age()

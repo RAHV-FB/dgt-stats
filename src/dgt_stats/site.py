@@ -1810,6 +1810,20 @@ def page_speed(captions: dict[str, str]) -> str:
     vehicle_latest = vehicle[vehicle.year == report_year].set_index("label")
     age_latest = age[(age.year == report_year) & (age.sex == "all")].set_index("age_band")
     licence_latest = licence[licence.year == report_year].set_index("licence_class")
+    first_report_year = int(limits.year.min())
+    limits_first = limits[(limits.year == first_report_year) & (limits.category != "Total")]
+    limits_last = limits[(limits.year == report_year) & (limits.category != "Total")]
+
+    def unknown_limit_share(block: pd.DataFrame) -> float:
+        return float(block[block.label == "Unknown"].crashes.sum() / block.crashes.sum())
+
+    def known_30_share(block: pd.DataFrame) -> float:
+        known = block[block.limit_km_h.notna()]
+        return float(known[known.label == "30 km/h"].crashes.sum() / known.crashes.sum())
+
+    unknown_limit_first = unknown_limit_share(limits_first)
+    unknown_limit_latest = unknown_limit_share(limits_last)
+    known_30_first, known_30_latest = known_30_share(limits_first), known_30_share(limits_last)
     weekend = (
         day_hour[day_hour.weekday.isin(["Saturday", "Sunday"])].crashes.sum()
         / day_hour.crashes.sum()
@@ -2021,7 +2035,7 @@ def page_speed(captions: dict[str, str]) -> str:
     )
     body += table(
         others_table,
-        f"Every infraction the tables record, all roads, {latest_year}, ranked",
+        f"The speed and driver infractions the tables record, all roads, {latest_year}, ranked",
         {
             "Infraction recorded": None,
             "Drivers": "int",
@@ -2091,15 +2105,18 @@ def page_speed(captions: dict[str, str]) -> str:
         f"({_fmt_pct(limits_latest.loc['30 km/h', 'share_of_crashes'], 0)}) and the 90 km/h roads "
         f"({_fmt_pct(limits_latest.loc['90 km/h', 'share_of_crashes'], 0)}), but the deaths do not: "
         f"{_fmt_pct(limits_latest.loc['90 km/h', 'share_of_deaths'], 0)} of them are on 90 km/h roads, "
-        f"{_fmt_pct(limits_latest.loc['30 km/h', 'share_of_deaths'], 0)} on 30 km/h streets. The 30 "
-        f"km/h count itself rose from {_fmt_int(limits[(limits.year == limits.year.min()) & (limits.label == '30 km/h')].crashes.iloc[0])} "
-        f"to {_fmt_int(limits_latest.loc['30 km/h', 'crashes'])} crashes as cities extended the limit "
-        "from 2021, which changes what a 30 km/h street is more than how people drive on it.</p>"
+        f"{_fmt_pct(limits_latest.loc['30 km/h', 'share_of_deaths'], 0)} on 30 km/h streets. The "
+        f"limit itself was unknown for {_fmt_pct(unknown_limit_first, 0)} of the speed-factor "
+        f"crashes in {first_report_year} and for {_fmt_pct(unknown_limit_latest, 1)} in "
+        f"{report_year}, so the earlier years cannot be compared row by row; among crashes with a "
+        f"known limit, the 30 km/h share went from {_fmt_pct(known_30_first, 0)} to "
+        f"{_fmt_pct(known_30_latest, 0)}, as cities extended the limit from 2021 and the "
+        "unknowns were filled in.</p>"
     )
     body += table(
         vehicle_report_table,
-        f"Crashes and deaths with the speed factor by means of transport, {report_year} (a crash with two "
-        "vehicle types counts under both, so crashes have no total)",
+        f"Crashes and deaths with the speed factor by means of transport, {report_year} (a crash "
+        "with two vehicle types counts under both, so the crash total exceeds the number of crashes)",
         {
             "Means of transport": None,
             "Injury crashes": "int",
@@ -2129,10 +2146,12 @@ def page_speed(captions: dict[str, str]) -> str:
         f"and motorcycles in {_fmt_int(vehicle_latest.loc['Motorcycles', 'crashes'])}, but motorcycle "
         f"users are {_fmt_pct(vehicle_latest.loc['Motorcycles', 'share_of_deaths'], 0)} of the deaths "
         f"against {_fmt_pct(vehicle_latest.loc['Cars', 'share_of_deaths'], 0)} for car occupants. Drivers "
-        f"aged 15 to 34 are involved in {_fmt_pct(age_latest.loc['15-24', 'share_of_crashes'] + age_latest.loc['25-34', 'share_of_crashes'], 0)} "
-        f"of the crashes, and class A (motorcycle) licence holders are "
+        f"aged 15 to 34 account for {_fmt_pct(age_latest.loc['15-24', 'share_of_crashes'] + age_latest.loc['25-34', 'share_of_crashes'], 0)} "
+        "of the driver-by-age entries the report counts (a crash counts once per age band of its "
+        "drivers), and class A (motorcycle) licence holders are "
         f"{_fmt_pct(licence_latest.loc['A', 'share_of_driver_deaths'], 0)} of the drivers killed while "
-        f"being {_fmt_pct(licence_latest.loc['A', 'share_of_crashes'], 0)} of the crashes.</p>"
+        f"being {_fmt_pct(licence_latest.loc['A', 'share_of_crashes'], 0)} of the driver-by-licence "
+        "entries.</p>"
     )
     body += figure(
         "q9_report_day_hour", "Injury crashes with the speed factor by weekday and hour", captions

@@ -1089,9 +1089,9 @@ def read_table_6_1(year: int, zone: str) -> pd.DataFrame:
         if item == "total" and block != "summary":
             current = INFRACTION_BLOCKS[INFRACTION_BLOCKS.index(block) + 1]
     out = pd.DataFrame.from_records(records)
-    out = out.groupby(
-        ["year", "zone", "block", "item", "vehicle_group"], as_index=False
-    ).value.sum()
+    keys = ["year", "zone", "block", "item", "vehicle_group"]
+    if out.duplicated(keys).any():
+        raise ValueError(f"table 6.1 {year} {zone}: a row was assigned to a block twice")
     return out.astype(
         {
             "year": "int16",

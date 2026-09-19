@@ -100,8 +100,8 @@ def _clean_label(label: str) -> str:
     """Drop the header cell the text extraction glues to the first row label of some tables."""
     for prefix in LABEL_PREFIXES:
         if label.startswith(prefix):
-            return label[len(prefix) :]
-    return label
+            label = label[len(prefix) :]
+    return "Total" if label == "Total*" else label
 
 
 def _is_prose(token: str) -> bool:
@@ -150,8 +150,8 @@ def _parse_table(lines: list[str], start: int) -> tuple[_Table | None, int]:
     values: list[float | None] = []
     while index < len(lines):
         token = lines[index]
-        if token == "" or token == "Total*":
-            index += 1
+        if token == "" or (token == "Total*" and not table.rows and not label):
+            index += 1  # a blank, or the "both sexes" header cell of the age tables
             continue
         if _is_value(token) and label:
             values.append(_value(token))
@@ -209,9 +209,9 @@ def read_speed_report(path: Path = SPEED_REPORT_PATH) -> pd.DataFrame:
     """
     records: list[dict[str, object]] = []
     for position, table in enumerate(parse_speed_report(path), start=1):
-        metric = _classify(table.caption, METRICS, "unknown")
         zone = _classify(table.caption, ZONES, "all")
         breakdown = _classify(table.caption, BREAKDOWNS, "series")
+        metric = "series" if breakdown == "series" else _classify(table.caption, METRICS, "unknown")
         if breakdown == "driver_age" and table.sex:
             breakdown = f"driver_age_{table.sex}"
         header = [WEEKDAY_LABELS.get(h, h) for h in table.header]

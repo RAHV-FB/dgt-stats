@@ -108,6 +108,12 @@ All five steps are merged. What was built, with the deviations from the design a
   roads; 30 km/h streets carry 19 % of the crashes but 11 % of the deaths, 90 km/h roads 18 % and
   27 %; motorcycle users are 37 % of the deaths; 36 % of the crashes fall at weekends. The excluded
   regions hold 28 % of Spain's injury crashes (computed from the province table, not "a fifth").
+- A review pass caught that the report's speed limit was unknown for 59 % of speed-factor crashes in
+  2014 and 0.2 % in 2023, so the page now compares the 30 km/h share among crashes with a known
+  limit (8 % to 19 %) instead of the raw count; that the "Total*" row of the vehicle and engine-size
+  tables was being swallowed as a header (it is the count of crash-by-vehicle entries, 6,213 in
+  2023); and that the reader's final groupby could hide a row assigned to two blocks, now an error
+  with a test that every block's items sum to its total.
 
 ## 4. Verification
 

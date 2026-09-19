@@ -175,7 +175,8 @@ def infractions_by_vehicle(year: int = LATEST_YEAR) -> pd.DataFrame:
 
 def other_infractions(year: int = LATEST_YEAR) -> pd.DataFrame:
     """Every infraction item of the driver and speed blocks for one year, by zone, as a share of the
-    drivers whose status in that block is known."""
+    drivers whose status in that block is known. Blocks without a total row (2014–2015) are left
+    out."""
     frame = _infractions()
     frame = frame[(frame.year == year) & (frame.vehicle_group == "total")]
     frame = frame[frame.block.isin(["speed", "driver"])]
@@ -184,6 +185,8 @@ def other_infractions(year: int = LATEST_YEAR) -> pd.DataFrame:
     unknown = frame[frame.item == "unknown"].set_index(["zone", "block"]).value
     items = frame[~frame.item.isin(["total", "unknown", "none", "too_slow"])].copy()
     keys = list(zip(items.zone, items.block))
+    has_total = [k in totals.index and k in unknown.index for k in keys]
+    items, keys = items[has_total].copy(), [k for k, ok in zip(keys, has_total) if ok]
     items["drivers"] = [totals[k] for k in keys]
     items["known"] = [totals[k] - unknown[k] for k in keys]
     items["share_of_known"] = (items.value / items.known).round(4)
@@ -289,8 +292,8 @@ def report_speed_limit() -> pd.DataFrame:
 
 
 def report_vehicle() -> pd.DataFrame:
-    """Crashes and deaths with the speed factor by means of transport and year (crashes have no
-    total because a crash with two vehicle types counts twice)."""
+    """Crashes and deaths with the speed factor by means of transport and year. The crash total
+    counts a crash once per vehicle type involved, so it exceeds the number of crashes."""
     out = _breakdown_with_shares("vehicle", REPORT_VEHICLE_LABELS)
     total_deaths = out[out.category == "Total"].set_index("year").deaths
     out["share_of_deaths"] = (out.deaths / out.year.map(total_deaths)).round(4)
