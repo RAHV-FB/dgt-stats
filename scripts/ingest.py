@@ -18,7 +18,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from dgt_stats import io_microdata  # noqa: E402
+from dgt_stats import io_microdata, io_tables  # noqa: E402
 from dgt_stats.paths import MICRODATA_YEARS  # noqa: E402
 
 log = logging.getLogger("ingest")
@@ -31,7 +31,7 @@ def run_microdata(years: tuple[int, ...], force: bool) -> None:
 
 
 def run_tables(force: bool) -> None:
-    log.info("tables: not implemented yet (force=%s)", force)
+    io_tables.build_tables(force=force)
 
 
 def run_exposure(force: bool) -> None:
