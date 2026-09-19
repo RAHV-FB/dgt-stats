@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from dgt_stats import agebands, labels, plots, policy, summaries, vehicles
+from dgt_stats import agebands, labels, plots, policy, speed, summaries, vehicles
 from dgt_stats.paths import FIGURES_DIR, TABLES_DIR
 
 CAPTIONS_PATH = FIGURES_DIR / "captions.json"
@@ -21,6 +21,10 @@ INE_SOURCE = "INE, Estadística Continua de Población"
 CENSUS_SOURCE = "DGT, Censo de conductores 2014–2025"
 ACTIVITY_SOURCE = "ESRA 2018 and 2023 (Spain), MOVILIA 2006"
 KM_SOURCE = "DGT, Kilómetros recorridos estimados a partir de la ITV 2022"
+SPEED_REPORT_SOURCE = (
+    "DGT Observatorio Nacional de Seguridad Vial, Informe temático Factor Velocidad (March 2025); "
+    "Spain without Cataluña and País Vasco"
+)
 RATE_PANELS = {
     "injury_involvement": "In injury crashes",
     "fatal_involvement": "In fatal crashes",
@@ -501,6 +505,9 @@ def build_all(
     # ------------------------------------------------------------------ Q8 policy
     _policy_figures(figures_dir, captions, summary)
 
+    # ------------------------------------------------------------------ Q9 speed
+    _speed_figures(figures_dir, captions, summary)
+
     # ------------------------------------------------------------------ Q3 severity models
     if summaries.model_tables_present():
         _severity_figures(figures_dir, captions)
@@ -751,6 +758,142 @@ def _policy_figures(figures_dir: Path, captions: dict[str, str], summary) -> Non
         "the model of the previous figure extended with lockdown and restriction periods (shaded), "
         "each with its own level for both groups and for conventional roads",
         int(panel.deaths.sum()),
+    )
+
+
+def _speed_figures(figures_dir: Path, captions: dict[str, str], summary) -> None:
+    shares = summary("q9_infraction_shares")
+    status_order = list(speed.SPEED_ITEM_LABELS.values())
+    for zone in ("interurban", "urban"):
+        block = shares[shares.zone == zone]
+        long = block.melt(
+            id_vars="year",
+            value_vars=["speed_infraction", "too_slow", "none", "unknown"],
+            var_name="status",
+            value_name="drivers",
+        )
+        long["status"] = long.status.map(speed.SPEED_ITEM_LABELS)
+        plots.bar_shares(
+            long,
+            "year",
+            "status",
+            "drivers",
+            figures_dir / f"q9_speed_status_{zone}.svg",
+            f"Drivers involved in injury crashes by recorded speed status, {speed.ZONE_LABELS[zone].lower()}",
+            order=status_order,
+        )
+        captions[f"q9_speed_status_{zone}"] = plots.caption(
+            TABLES_SOURCE,
+            "2014–2024",
+            "drivers involved in injury crashes by the police's record of a speed infraction "
+            "(yearbook tables 6.1); 'unknown' is the share for which no judgement was recorded",
+            f"{int(block.total.sum()):,} drivers",
+        )
+
+    by_vehicle = summary("q9_infractions_by_vehicle")
+    latest = by_vehicle[(by_vehicle.zone == "all") & (by_vehicle.vehicle_group != "total")]
+    latest = latest[latest.vehicle_group != "unknown"]
+    plots.dot_interval(
+        latest,
+        "vehicle_label",
+        "share_among_known",
+        "share_among_known_low",
+        "share_among_known_high",
+        figures_dir / "q9_speed_by_vehicle.svg",
+        f"Share of drivers with a recorded speed infraction, among those with a record, {int(latest.year.iloc[0])}",
+        xlabel="Share of drivers with a known speed status",
+        percent=True,
+        reference=float(
+            by_vehicle[
+                (by_vehicle.zone == "all") & (by_vehicle.vehicle_group == "total")
+            ].share_among_known.iloc[0]
+        ),
+        reference_label="all drivers",
+    )
+    captions["q9_speed_by_vehicle"] = plots.caption(
+        TABLES_SOURCE,
+        str(int(latest.year.iloc[0])),
+        "drivers with a speed infraction divided by drivers whose speed status was recorded "
+        "(all roads); whiskers are 95% Wilson intervals; about half of all drivers have no record, "
+        "and the recorded half is not a random sample",
+        f"{int(latest.known.sum()):,} drivers with a record",
+    )
+
+    factors = summary("q9_report_factors")
+    speed_factor = factors[factors.factor == "Inappropriate speed"].copy()
+    speed_factor["zone_label"] = speed_factor.zone.map(speed.ZONE_LABELS)
+    plots.line_series(
+        speed_factor,
+        "year",
+        "share_of_crashes",
+        figures_dir / "q9_report_speed_share.svg",
+        "Share of injury crashes with inappropriate speed as a factor, 2014–2023",
+        series="zone_label",
+        ylabel="Share of injury crashes",
+        percent=True,
+        end_labels=False,
+        height=4.4,
+    )
+    captions["q9_report_speed_share"] = plots.caption(
+        SPEED_REPORT_SOURCE,
+        "2014–2023",
+        "injury crashes in which the police recorded inappropriate speed as a concurrent factor, "
+        "as the report's rounded share of all injury crashes",
+    )
+
+    limits = summary("q9_report_speed_limit")
+    latest_limits = limits[(limits.year == int(speed.REPORT_LATEST)) & (limits.category != "Total")]
+    latest_limits = latest_limits[latest_limits.limit_km_h.notna()]
+    latest_limits = latest_limits.assign(label=latest_limits.limit_km_h.astype(int).astype(str))
+    long = latest_limits.melt(
+        id_vars="label",
+        value_vars=["share_of_crashes", "share_of_deaths"],
+        var_name="measure",
+        value_name="share",
+    )
+    long["measure"] = long.measure.map(
+        {"share_of_crashes": "Injury crashes", "share_of_deaths": "Deaths"}
+    )
+    plots.grouped_bars(
+        long,
+        "label",
+        "measure",
+        "share",
+        figures_dir / "q9_report_speed_limit.svg",
+        f"Crashes and deaths with the speed factor by the road's speed limit, {speed.REPORT_LATEST}",
+        order=list(latest_limits.label),
+        percent=True,
+        ylabel="Share of the year's total",
+        xlabel="Speed limit of the road (km/h)",
+        full_scale=False,
+    )
+    captions["q9_report_speed_limit"] = plots.caption(
+        SPEED_REPORT_SOURCE,
+        speed.REPORT_LATEST,
+        "crashes and 30-day deaths with inappropriate speed as a factor, by the posted limit of the "
+        "road, as shares of that year's totals (5,070 crashes, 319 deaths)",
+    )
+
+    grid = summary("q9_report_day_hour")
+    matrix = grid.pivot(index="hour_start", columns="weekday", values="crashes")
+    matrix = matrix.reindex(
+        columns=["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+    )
+    matrix.index = [f"{h:02d}h" for h in matrix.index]
+    plots.heatmap(
+        matrix,
+        figures_dir / "q9_report_day_hour.svg",
+        "Injury crashes with the speed factor by weekday and hour, 2014–2023 pooled",
+        value_format="{:,.0f}",
+        annotate=False,
+        height=6.0,
+        ylabel="Hour",
+    )
+    captions["q9_report_day_hour"] = plots.caption(
+        SPEED_REPORT_SOURCE,
+        "2014–2023 pooled, all roads",
+        "injury crashes with inappropriate speed as a factor by weekday and hour of the crash",
+        f"{int(grid.crashes.sum()):,} crashes",
     )
 
 

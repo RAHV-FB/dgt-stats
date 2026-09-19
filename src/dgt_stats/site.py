@@ -31,6 +31,7 @@ PAGES: tuple[tuple[str, str], ...] = (
     ("severity", "Severity"),
     ("vehicles", "Vehicles per km"),
     ("policy", "Policy"),
+    ("speed", "Speed"),
     ("data", "Data and checks"),
 )
 
@@ -289,6 +290,11 @@ def page_index(captions: dict[str, str]) -> str:
                 "policy.html",
                 "Policy",
                 "Did the 2006 points-based licence and the 2019 conventional-road speed limit coincide with a break in monthly deaths: two interrupted time series with placebo checks.",
+            ),
+            (
+                "speed.html",
+                "Speed",
+                "What the sources record about speed: drivers with a recorded speed infraction since 2014, with the unknown share in view, and the profile of speed-factor crashes from DGT's report.",
             ),
             (
                 "data.html",
@@ -1760,6 +1766,417 @@ def page_policy(captions: dict[str, str]) -> str:
     )
 
 
+def page_speed(captions: dict[str, str]) -> str:
+    shares = read_table("q9_infraction_shares")
+    by_vehicle = read_table("q9_infractions_by_vehicle")
+    others = read_table("q9_other_infractions")
+    factors = read_table("q9_report_factors")
+    roads = read_table("q9_report_road_type")
+    limits = read_table("q9_report_speed_limit")
+    vehicle = read_table("q9_report_vehicle")
+    age = read_table("q9_report_age")
+    licence = read_table("q9_report_licence")
+    day_hour = read_table("q9_report_day_hour")
+
+    latest_year = int(shares.year.max())
+    first_year = int(shares.year.min())
+    report_year = int(roads.year.max())
+    all_roads = shares[shares.zone == "all"].set_index("year")
+    inter = shares[shares.zone == "interurban"].set_index("year")
+    urban = shares[shares.zone == "urban"].set_index("year")
+    latest = all_roads.loc[latest_year]
+    first = all_roads.loc[first_year]
+    jump_year = int(all_roads[all_roads.share_unknown > 0.4].index.min())
+
+    vehicles_latest = by_vehicle[(by_vehicle.zone == "all") & (by_vehicle.vehicle_group != "total")]
+    vehicles_latest = vehicles_latest[vehicles_latest.vehicle_group != "unknown"].set_index(
+        "vehicle_group"
+    )
+    others_all = others[others.zone == "all"].reset_index(drop=True)
+    speed_rank = int(others_all.index[others_all["item"] == "speed_infraction"][0]) + 1
+
+    factor_latest = factors[(factors.zone == "all") & (factors.year == report_year)].set_index(
+        "factor"
+    )
+    speed_by_zone = factors[
+        (factors.factor == "Inappropriate speed") & (factors.year == report_year)
+    ].set_index("zone")
+    speed_2014 = factors[
+        (factors.factor == "Inappropriate speed") & (factors.year == int(factors.year.min()))
+    ].set_index("zone")
+    roads_latest = roads[roads.year == report_year].set_index("label")
+    limits_latest = limits[(limits.year == report_year) & (limits.category != "Total")]
+    limits_latest = limits_latest[limits_latest.limit_km_h.notna()].set_index("label")
+    vehicle_latest = vehicle[vehicle.year == report_year].set_index("label")
+    age_latest = age[(age.year == report_year) & (age.sex == "all")].set_index("age_band")
+    licence_latest = licence[licence.year == report_year].set_index("licence_class")
+    weekend = (
+        day_hour[day_hour.weekday.isin(["Saturday", "Sunday"])].crashes.sum()
+        / day_hour.crashes.sum()
+    )
+    top_cell = day_hour.sort_values("crashes", ascending=False).iloc[0]
+    provinces = read_table("q4_province_rates")
+    provinces = provinces[~provinces.is_total]
+    excluded_codes = {8, 17, 25, 43, 1, 20, 48}  # Cataluña and País Vasco
+    excluded_share = (
+        provinces[provinces.province_code.astype(int).isin(excluded_codes)].crashes.sum()
+        / provinces.crashes.sum()
+    )
+    ordinals = {1: "first", 2: "second", 3: "third", 4: "fourth", 5: "fifth"}
+
+    status_table = pd.DataFrame(
+        {
+            "Year": all_roads.index,
+            "Drivers involved": all_roads.total.values,
+            "Speed infraction": all_roads.speed_infraction.values,
+            "No speed infraction": all_roads.none.values,
+            "Unknown": all_roads.unknown.values,
+            "Infraction, share of all drivers": all_roads.share_speed_infraction.values,
+            "Unknown, share of all drivers": all_roads.share_unknown.values,
+            "Infraction, share of drivers with a record": [
+                f"{_fmt_pct(r.share_among_known, 1)} ({_fmt_pct(r.share_among_known_low, 1)}–{_fmt_pct(r.share_among_known_high, 1)})"
+                for _, r in all_roads.reset_index().iterrows()
+            ],
+        }
+    )
+    vehicle_table = pd.DataFrame(
+        {
+            "Vehicle": vehicles_latest.vehicle_label.values,
+            "Drivers involved": vehicles_latest.total.values,
+            "With a record": vehicles_latest.known.values,
+            "Speed infraction": vehicles_latest.speed_infraction.values,
+            "Unknown, share of drivers": vehicles_latest.share_unknown.values,
+            "Infraction, share of drivers with a record": [
+                f"{_fmt_pct(r.share_among_known, 1)} ({_fmt_pct(r.share_among_known_low, 1)}–{_fmt_pct(r.share_among_known_high, 1)})"
+                for _, r in vehicles_latest.iterrows()
+            ],
+        }
+    )
+    others_table = pd.DataFrame(
+        {
+            "Infraction recorded": others_all.label.values,
+            "Drivers": others_all.drivers_with_infraction.values,
+            "Share of drivers with a record in that block": others_all.share_of_known.values,
+        }
+    )
+    factors_table = pd.DataFrame(
+        {
+            "Factor": factor_latest.index,
+            "Injury crashes": factor_latest.crashes.values,
+            "Share of all injury crashes": factor_latest.share_of_crashes.values,
+        }
+    ).sort_values("Injury crashes", ascending=False)
+    roads_table = pd.DataFrame(
+        {
+            "Road type": roads_latest.index,
+            "Injury crashes": roads_latest.crashes.values,
+            "Share": roads_latest.share_of_crashes.values,
+            "Deaths": roads_latest.deaths.values,
+            "Share ": roads_latest.share_of_deaths.values,
+        }
+    )
+    limits_table = pd.DataFrame(
+        {
+            "Speed limit": limits_latest.index,
+            "Injury crashes": limits_latest.crashes.values,
+            "Share": limits_latest.share_of_crashes.values,
+            "Deaths": limits_latest.deaths.values,
+            "Share ": limits_latest.share_of_deaths.values,
+        }
+    )
+    vehicle_report_table = pd.DataFrame(
+        {
+            "Means of transport": vehicle_latest.index,
+            "Injury crashes": vehicle_latest.crashes.values,
+            "Deaths": vehicle_latest.deaths.values,
+            "Share of deaths": vehicle_latest.share_of_deaths.values,
+        }
+    )
+    age_table = pd.DataFrame(
+        {
+            "Driver age": age_latest.index,
+            "Injury crashes": age_latest.crashes.values,
+            "Share": age_latest.share_of_crashes.values,
+            "Drivers killed": age_latest.driver_deaths.values,
+        }
+    )
+    age_table = age_table[~age_table["Driver age"].isin(["65+ (all)"])]
+    licence_table = pd.DataFrame(
+        {
+            "Licence class": licence_latest.index,
+            "Injury crashes": licence_latest.crashes.values,
+            "Share": licence_latest.share_of_crashes.values,
+            "Drivers killed": licence_latest.driver_deaths.values,
+            "Share ": licence_latest.share_of_driver_deaths.values,
+        }
+    )
+
+    body = tiles(
+        [
+            (
+                f"Drivers with a speed infraction, {latest_year}",
+                _fmt_pct(latest.share_speed_infraction, 1),
+                f"of {_fmt_int(latest.total)} drivers involved in injury crashes; "
+                f"{_fmt_pct(latest.share_among_known, 1)} of those with a record",
+            ),
+            (
+                f"Drivers with no record, {latest_year}",
+                _fmt_pct(latest.share_unknown, 0),
+                f"{_fmt_pct(first.share_unknown, 0)} in {first_year}; the jump came in {jump_year}",
+            ),
+            (
+                f"Crashes with the speed factor, {report_year}",
+                _fmt_pct(speed_by_zone.loc["all", "share_of_crashes"], 0),
+                f"of injury crashes in DGT's report; {_fmt_pct(speed_by_zone.loc['interurban', 'share_of_crashes'], 0)} "
+                f"interurban, {_fmt_pct(speed_by_zone.loc['urban', 'share_of_crashes'], 0)} urban "
+                "(without Cataluña and País Vasco)",
+            ),
+            (
+                f"Deaths in speed-factor crashes, {report_year}",
+                _fmt_int(roads_latest.loc["Total", "deaths"]),
+                f"{_fmt_pct(roads_latest.loc['Other interurban roads', 'share_of_deaths'], 0)} of them on "
+                "conventional and other interurban roads",
+            ),
+        ]
+    )
+    body += "<h2>What the sources record</h2>"
+    body += (
+        "<p>Nothing in the open data measures speed. Two sources record a judgement about it. The "
+        "yearbook's driver tables say, for each driver involved in an injury crash, whether the "
+        "police recorded a speed infraction, no speed infraction, or nothing at all. DGT's thematic "
+        "report on the speed factor counts crashes in which inappropriate speed was recorded as a "
+        "concurrent factor for any road user, and it covers fifteen of the seventeen regions: "
+        "Cataluña and País Vasco, which run their own police forces, are excluded. The two count "
+        "different things over different territories, so this page never adds them together.</p>"
+    )
+    body += "<h2>Drivers with a recorded speed infraction</h2>"
+    body += figure(
+        "q9_speed_status_interurban",
+        "Drivers involved in injury crashes by recorded speed status, interurban roads",
+        captions,
+    )
+    body += figure(
+        "q9_speed_status_urban",
+        "Drivers involved in injury crashes by recorded speed status, urban streets",
+        captions,
+    )
+    body += (
+        f"<p>The first thing the tables show is not about speed. In {first_year}, "
+        f"{_fmt_pct(first.share_unknown, 0)} of drivers had no speed record; in {jump_year} the share "
+        f"jumped to {_fmt_pct(all_roads.loc[jump_year, 'share_unknown'], 0)} and it has stayed there "
+        f"({_fmt_pct(latest.share_unknown, 0)} in {latest_year}; "
+        f"{_fmt_pct(urban.loc[latest_year, 'share_unknown'], 0)} on urban streets, "
+        f"{_fmt_pct(inter.loc[latest_year, 'share_unknown'], 0)} on interurban roads). A share of "
+        "drivers with an infraction over all drivers therefore fell for reasons that have nothing to "
+        f"do with driving: {_fmt_pct(first.share_speed_infraction, 1)} in {first_year} to "
+        f"{_fmt_pct(latest.share_speed_infraction, 1)} in {latest_year}. Among drivers who do have a "
+        f"record the share went the other way, from {_fmt_pct(first.share_among_known, 1)} to "
+        f"{_fmt_pct(all_roads.loc[jump_year, 'share_among_known'], 1)} in {jump_year} and "
+        f"{_fmt_pct(latest.share_among_known, 1)} in {latest_year}, which says as much about which "
+        "drivers get a record as about speed. Interurban roads carry the higher rate throughout: "
+        f"{_fmt_pct(inter.loc[latest_year, 'share_among_known'], 1)} of interurban drivers with a "
+        f"record against {_fmt_pct(urban.loc[latest_year, 'share_among_known'], 1)} of urban ones in "
+        f"{latest_year}.</p>"
+    )
+    body += table(
+        status_table,
+        f"Drivers involved in injury crashes by recorded speed status, all roads, {first_year}–{latest_year}",
+        {
+            "Year": "year",
+            "Drivers involved": "int",
+            "Speed infraction": "int",
+            "No speed infraction": "int",
+            "Unknown": "int",
+            "Infraction, share of all drivers": "pct",
+            "Unknown, share of all drivers": "pct",
+            "Infraction, share of drivers with a record": None,
+        },
+    )
+    body += figure(
+        "q9_speed_by_vehicle",
+        "Share of drivers with a recorded speed infraction, among those with a record, by vehicle",
+        captions,
+    )
+    body += table(
+        vehicle_table,
+        f"Speed status by vehicle, all roads, {latest_year}",
+        {
+            "Vehicle": None,
+            "Drivers involved": "int",
+            "With a record": "int",
+            "Speed infraction": "int",
+            "Unknown, share of drivers": "pct",
+            "Infraction, share of drivers with a record": None,
+        },
+    )
+    body += (
+        f"<p>Among drivers with a record, motorcyclists carry the highest share "
+        f"({_fmt_pct(vehicles_latest.loc['motorcycle', 'share_among_known'], 1)}), then cars "
+        f"({_fmt_pct(vehicles_latest.loc['car', 'share_among_known'], 1)}); bus drivers the lowest "
+        f"({_fmt_pct(vehicles_latest.loc['bus', 'share_among_known'], 1)}). The unknown share is "
+        "similar for every vehicle, between "
+        f"{_fmt_pct(vehicles_latest.share_unknown.min(), 0)} and "
+        f"{_fmt_pct(vehicles_latest.share_unknown.max(), 0)}, so the ranking is not an artefact of "
+        "who gets recorded, though the level might be.</p>"
+    )
+    body += table(
+        others_table,
+        f"Every infraction the tables record, all roads, {latest_year}, ranked",
+        {
+            "Infraction recorded": None,
+            "Drivers": "int",
+            "Share of drivers with a record in that block": "pct",
+        },
+    )
+    body += (
+        f"<p>Speed ranks {ordinals.get(speed_rank, str(speed_rank))} among the infractions "
+        "recorded: priority infractions "
+        f"({_fmt_pct(others_all.share_of_known.iloc[0], 1)} of drivers with a record) and not "
+        f"keeping a safe distance ({_fmt_pct(others_all.share_of_known.iloc[1], 1)}) come first. "
+        "The two blocks are recorded separately, so a driver can appear in both.</p>"
+    )
+    body += "<h2>The speed factor in DGT's report</h2>"
+    body += figure(
+        "q9_report_speed_share",
+        "Share of injury crashes with inappropriate speed as a factor",
+        captions,
+    )
+    body += table(
+        factors_table,
+        f"Injury crashes with each concurrent factor, all roads, {report_year} (without Cataluña and País Vasco)",
+        {"Factor": None, "Injury crashes": "int", "Share of all injury crashes": "pct"},
+    )
+    body += (
+        f"<p>In the report's territory, inappropriate speed was recorded in "
+        f"{_fmt_int(speed_by_zone.loc['all', 'crashes'])} injury crashes in {report_year}, "
+        f"{_fmt_pct(speed_by_zone.loc['all', 'share_of_crashes'], 0)} of the total, down from "
+        f"{_fmt_pct(speed_2014.loc['all', 'share_of_crashes'], 0)} in {int(factors.year.min())}. The "
+        f"factor is an interurban one: {_fmt_pct(speed_by_zone.loc['interurban', 'share_of_crashes'], 0)} "
+        f"of interurban injury crashes against {_fmt_pct(speed_by_zone.loc['urban', 'share_of_crashes'], 0)} "
+        "of urban ones. Distraction and illegal manoeuvres are recorded far more often, as on the "
+        "driver tables above. The report's shares are rounded to whole percentages.</p>"
+    )
+    body += table(
+        roads_table,
+        f"Crashes and deaths with the speed factor by road type, {report_year}",
+        {
+            "Road type": None,
+            "Injury crashes": "int",
+            "Share": "pct",
+            "Deaths": "int",
+            "Share ": "pct",
+        },
+    )
+    body += figure(
+        "q9_report_speed_limit",
+        "Crashes and deaths with the speed factor by the road's speed limit",
+        captions,
+    )
+    body += table(
+        limits_table,
+        f"Crashes and deaths with the speed factor by the road's speed limit, {report_year}",
+        {
+            "Speed limit": None,
+            "Injury crashes": "int",
+            "Share": "pct",
+            "Deaths": "int",
+            "Share ": "pct",
+        },
+    )
+    body += (
+        f"<p>Conventional and other interurban roads take "
+        f"{_fmt_pct(roads_latest.loc['Other interurban roads', 'share_of_crashes'], 0)} of the "
+        f"speed-factor crashes and {_fmt_pct(roads_latest.loc['Other interurban roads', 'share_of_deaths'], 0)} "
+        "of the deaths. By posted limit the crashes split between the 30 km/h streets "
+        f"({_fmt_pct(limits_latest.loc['30 km/h', 'share_of_crashes'], 0)}) and the 90 km/h roads "
+        f"({_fmt_pct(limits_latest.loc['90 km/h', 'share_of_crashes'], 0)}), but the deaths do not: "
+        f"{_fmt_pct(limits_latest.loc['90 km/h', 'share_of_deaths'], 0)} of them are on 90 km/h roads, "
+        f"{_fmt_pct(limits_latest.loc['30 km/h', 'share_of_deaths'], 0)} on 30 km/h streets. The 30 "
+        f"km/h count itself rose from {_fmt_int(limits[(limits.year == limits.year.min()) & (limits.label == '30 km/h')].crashes.iloc[0])} "
+        f"to {_fmt_int(limits_latest.loc['30 km/h', 'crashes'])} crashes as cities extended the limit "
+        "from 2021, which changes what a 30 km/h street is more than how people drive on it.</p>"
+    )
+    body += table(
+        vehicle_report_table,
+        f"Crashes and deaths with the speed factor by means of transport, {report_year} (a crash with two "
+        "vehicle types counts under both, so crashes have no total)",
+        {
+            "Means of transport": None,
+            "Injury crashes": "int",
+            "Deaths": "int",
+            "Share of deaths": "pct",
+        },
+    )
+    body += table(
+        age_table,
+        f"Speed-factor crashes by the age of the drivers involved, and drivers killed, {report_year} "
+        "(a crash counts once per age band of its drivers)",
+        {"Driver age": None, "Injury crashes": "int", "Share": "pct", "Drivers killed": "int"},
+    )
+    body += table(
+        licence_table,
+        f"Speed-factor crashes and drivers killed by the driver's licence class, {report_year}",
+        {
+            "Licence class": None,
+            "Injury crashes": "int",
+            "Share": "pct",
+            "Drivers killed": "int",
+            "Share ": "pct",
+        },
+    )
+    body += (
+        f"<p>Cars are in {_fmt_int(vehicle_latest.loc['Cars', 'crashes'])} of the speed-factor crashes "
+        f"and motorcycles in {_fmt_int(vehicle_latest.loc['Motorcycles', 'crashes'])}, but motorcycle "
+        f"users are {_fmt_pct(vehicle_latest.loc['Motorcycles', 'share_of_deaths'], 0)} of the deaths "
+        f"against {_fmt_pct(vehicle_latest.loc['Cars', 'share_of_deaths'], 0)} for car occupants. Drivers "
+        f"aged 15 to 34 are involved in {_fmt_pct(age_latest.loc['15-24', 'share_of_crashes'] + age_latest.loc['25-34', 'share_of_crashes'], 0)} "
+        f"of the crashes, and class A (motorcycle) licence holders are "
+        f"{_fmt_pct(licence_latest.loc['A', 'share_of_driver_deaths'], 0)} of the drivers killed while "
+        f"being {_fmt_pct(licence_latest.loc['A', 'share_of_crashes'], 0)} of the crashes.</p>"
+    )
+    body += figure(
+        "q9_report_day_hour", "Injury crashes with the speed factor by weekday and hour", captions
+    )
+    body += (
+        f"<p>Pooled over ten years, {_fmt_pct(weekend, 0)} of the speed-factor crashes fall on "
+        f"Saturdays and Sundays, and the single busiest cell is {top_cell.weekday} at "
+        f"{int(top_cell.hour_start):02d}:00 ({_fmt_int(top_cell.crashes)} crashes). This is the "
+        "weekend-daytime pattern of leisure riding and driving on interurban roads, not the "
+        "commuting peaks of the timing page.</p>"
+    )
+    body += "<h2>Where speed already appears on this site</h2>"
+    body += (
+        '<p>The <a href="policy.html">policy page</a> tests the 2019 cut of the conventional-road '
+        "limit and finds nothing it can attribute to it. The "
+        '<a href="severity.html">severity models</a> have no speed term, because the microdata have '
+        'none; road type and darkness stand in for it. The <a href="timing.html">timing page</a> '
+        "shows the hour and weekday pattern of all crashes, which the speed-factor grid above "
+        "departs from.</p>"
+    )
+    body += "<h2>Limits</h2>"
+    body += note(
+        "<strong>Five things to keep in mind.</strong> First, both sources record a judgement, not "
+        "a measurement: no speed, no limit exceeded by how much. Second, the report excludes "
+        f"Cataluña and País Vasco, {_fmt_pct(excluded_share, 0)} of Spain's injury crashes in "
+        f"{int(provinces.year.max())}, and its shares are rounded. Third, about half of the drivers "
+        f"in the yearbook tables have no speed record since {jump_year}, and the half that does is not "
+        "a random sample: an infraction is more likely to be written down than its absence, so the "
+        "shares among recorded drivers probably overstate the true share, by an amount nothing here "
+        "can measure. Fourth, the driver tables count drivers and the report "
+        "counts crashes; a crash with two drivers appears twice in one and once in the other. Fifth, "
+        "nothing here is a rate: without knowing how many drivers speed without crashing, none of "
+        "these shares says how dangerous speeding is, only how often it is recorded when a crash "
+        "has happened."
+    )
+    return render_page(
+        "speed",
+        "Speed",
+        "What the two sources that mention speed record, for drivers since 2014 and for crashes in "
+        "DGT's speed-factor report, and where the recorded speed factor concentrates.",
+        body,
+    )
+
+
 def page_data(captions: dict[str, str]) -> str:
     validation = pd.read_csv(TABLES_DIR / "validation.csv")
     grid = read_table("q2_hour_weekday")
@@ -1807,6 +2224,9 @@ def page_data(captions: dict[str, str]) -> str:
         "<li><strong>ITV kilometre estimates 2022</strong>: registered fleet and mean annual km by "
         "vehicle type and age, modelled by DGT from annualised odometer readings at roadworthiness "
         "inspections; valid for aggregates only.</li>"
+        "<li><strong>DGT speed-factor report</strong> (Observatorio Nacional de Seguridad Vial, "
+        "March 2025): its 61 annex tables transcribed from the PDF, 2014–2023, for Spain without "
+        "Cataluña and País Vasco; never added to the yearbook figures.</li>"
         "<li><strong>INE resident population</strong> (Estadística Continua de Población, table 56947): "
         "province by five-year age group and sex, 1 January and 1 July, 2002–2025.</li>"
         "<li><strong>Driving activity</strong>: ESRA 2018 and 2023 national shares of adults who drive "
@@ -1878,6 +2298,7 @@ PAGE_BUILDERS = {
     "severity": page_severity,
     "vehicles": page_vehicles,
     "policy": page_policy,
+    "speed": page_speed,
     "data": page_data,
 }
 
