@@ -97,3 +97,24 @@ def test_vehicles_page_reports_the_rates(built: Path) -> None:
     assert 'href="vehicles.html"' in index
     data = (built / "data.html").read_text(encoding="utf-8")
     assert "yearly tables 2.3" in data and "yearly tables 2.2" in data
+
+
+def test_policy_page_reports_both_interventions(built: Path) -> None:
+    text = (built / "policy.html").read_text(encoding="utf-8")
+    assert 'src="figures/q8_points_series.svg"' in text
+    assert 'src="figures/q8_speed_series.svg"' in text
+    sensitivity = pd.read_csv(TABLES_DIR / "q8_points_sensitivity.csv")
+    level = sensitivity.level_change.iloc[0]
+    assert f"{level * 100:+.1f}%" in text  # the 2006 estimate is computed, not typed
+    placebo = pd.read_csv(TABLES_DIR / "q8_points_placebo.csv")
+    rank = int(placebo[placebo.is_true]["rank"].iloc[0])
+    assert f"placebo rank {rank} of {len(placebo)}" in text
+    assert "coincided" in text and "Penal Code" in text
+    speed = pd.read_csv(TABLES_DIR / "q8_speed_placebo.csv")
+    fake_2018 = speed[speed.break_date == "2018-01-01"].iloc[0]
+    if fake_2018.high < 0:
+        assert "The design fails its own check" in text
+    else:
+        assert "Both placebos are near zero" in text
+    index = (built / "index.html").read_text(encoding="utf-8")
+    assert 'href="policy.html"' in index

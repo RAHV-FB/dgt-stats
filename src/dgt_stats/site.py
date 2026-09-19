@@ -11,6 +11,7 @@ import json
 import shutil
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
 from dgt_stats import agebands
@@ -29,6 +30,7 @@ PAGES: tuple[tuple[str, str], ...] = (
     ("older-drivers", "Older drivers"),
     ("severity", "Severity"),
     ("vehicles", "Vehicles per km"),
+    ("policy", "Policy"),
     ("data", "Data and checks"),
 )
 
@@ -282,6 +284,11 @@ def page_index(captions: dict[str, str]) -> str:
                 "vehicles.html",
                 "Vehicles per km",
                 "Motorcycles, cars, vans, heavy trucks and buses in 2022: vehicles in injury and fatal crashes and occupants killed, per registered vehicle and per kilometre driven.",
+            ),
+            (
+                "policy.html",
+                "Policy",
+                "Did the 2006 points-based licence and the 2019 conventional-road speed limit coincide with a break in monthly deaths: two interrupted time series with placebo checks.",
             ),
             (
                 "data.html",
@@ -1422,6 +1429,321 @@ def page_vehicles(captions: dict[str, str]) -> str:
     )
 
 
+def _pct_change(value: float, decimals: int = 0) -> str:
+    return f"{value * 100:+.{decimals}f}%"
+
+
+def _change_cell(
+    row: pd.Series, name: str = "level_change", low: str = "level_low", high: str = "level_high"
+) -> str:
+    if pd.isna(row[name]):
+        return ""
+    return (
+        f"{_pct_change(row[name], 1)} ({_pct_change(row[low], 1)} to {_pct_change(row[high], 1)})"
+    )
+
+
+def page_policy(captions: dict[str, str]) -> str:
+    points_fit = read_table("q8_points_fit").set_index("term")
+    points_series = read_table("q8_points_series")
+    points_series["period"] = pd.to_datetime(points_series.period)
+    points_placebo = read_table("q8_points_placebo")
+    points_sens = read_table("q8_points_sensitivity")
+    speed_placebo = read_table("q8_speed_placebo")
+    speed_placebo["break_date"] = pd.to_datetime(speed_placebo.break_date)
+    speed_sens = read_table("q8_speed_sensitivity")
+
+    main = points_sens.iloc[0]
+    trend_month = float(points_fit.loc["t", "estimate"])
+    trend_year = float(np.expm1(12 * trend_month))
+    true_row = points_placebo[points_placebo.is_true].iloc[0]
+    rank, n_fits = int(true_row["rank"]), int(true_row.n_fits)
+    others = points_placebo[~points_placebo.is_true]
+    post = points_series[points_series.post & (points_series.period <= "2007-11-01")]
+    avoided = float((post.counterfactual_main - post.deaths).sum())
+    after = points_series[points_series.period.between("2006-07-01", "2007-06-01")].deaths.sum()
+    before = points_series[points_series.period.between("2005-07-01", "2006-06-01")].deaths.sum()
+    raw_change = after / before - 1
+    long_row = points_sens[points_sens.variant == "long"].iloc[0]
+    urban_row = points_sens[points_sens.variant == "urban"].iloc[0]
+    from_1993 = points_sens[points_sens.variant == "from_1993"].iloc[0]
+
+    speed_main = speed_sens.iloc[0]
+    placebo_2018 = speed_placebo[speed_placebo.break_date == "2018-01-01"].iloc[0]
+    placebo_2017 = speed_placebo[speed_placebo.break_date == "2017-01-01"].iloc[0]
+    placebo_2018_significant = placebo_2018.high < 0
+    long_speed = speed_sens[speed_sens.variant == "long"].iloc[0]
+
+    sensitivity_table = pd.DataFrame(
+        {
+            "Variant": points_sens.label,
+            "Window": points_sens.window,
+            "Level change (95% interval)": [_change_cell(r) for _, r in points_sens.iterrows()],
+            "Slope change per year": [
+                "" if pd.isna(v) else _pct_change(v, 1) for v in points_sens.slope_change_annual
+            ],
+            "Dispersion": points_sens.dispersion,
+        }
+    )
+    speed_table = pd.DataFrame(
+        {
+            "Variant": speed_sens.label,
+            "Window": speed_sens.window,
+            "Conventional roads, own change (95% interval)": [
+                _change_cell(r) for _, r in speed_sens.iterrows()
+            ],
+            "Control roads, change": [_pct_change(v, 1) for v in speed_sens.control_change],
+            "Dispersion": speed_sens.dispersion,
+        }
+    )
+    placebo_table = pd.DataFrame(
+        {
+            "Break placed at": speed_placebo.break_date.dt.strftime("%B %Y"),
+            "Conventional roads, own change (95% interval)": [
+                _change_cell(r, "level_change", "low", "high") for _, r in speed_placebo.iterrows()
+            ],
+            "Control roads, change (95% interval)": [
+                _change_cell(r, "control_change", "control_low", "control_high")
+                for _, r in speed_placebo.iterrows()
+            ],
+            "Real intervention": speed_placebo.is_true.map({True: "yes", False: "placebo"}),
+        }
+    )
+    timeline = pd.DataFrame(
+        {
+            "Date": [
+                "2005–2008",
+                "1 July 2006",
+                "2 December 2007",
+                "2008–2009",
+                "29 January 2019",
+                "March 2020",
+            ],
+            "Change": [
+                "Road-safety plan: automatic speed cameras rolled out on the main network",
+                "Points-based driving licence in force (Ley 17/2005)",
+                "Penal Code reform: speeding and drink-driving thresholds become offences (LO 15/2007)",
+                "Recession; traffic and freight fall",
+                "Speed limit on conventional roads cut from 100 to 90 km/h (RD 1514/2018)",
+                "Pandemic lockdown, then restrictions to the end of 2021",
+            ],
+            "Used as": [
+                "not modelled; confounds the 2006 estimate",
+                "intervention 1",
+                "end of the clean post-period; second break in the long fit",
+                "not modelled; the fleet offset is the only exposure control",
+                "intervention 2",
+                "end of the clean post-period; period terms in the long fit",
+            ],
+        }
+    )
+
+    body = tiles(
+        [
+            (
+                "Points licence, July 2006",
+                _pct_change(main.level_change),
+                f"level change in monthly deaths, {_pct_change(main.level_low)} to "
+                f"{_pct_change(main.level_high)}; placebo rank {rank} of {n_fits}",
+            ),
+            (
+                "Deaths below the trend, Jul 2006 – Nov 2007",
+                _fmt_int(avoided),
+                "fitted counterfactual minus observed over the 17 clean months",
+            ),
+            (
+                "90 km/h limit, January 2019",
+                _pct_change(speed_main.level_change),
+                f"conventional roads relative to motorways, {_pct_change(speed_main.level_low)} to "
+                f"{_pct_change(speed_main.level_high)}",
+            ),
+            (
+                "Same design, break placed in January 2018",
+                _pct_change(placebo_2018.level_change),
+                f"{_pct_change(placebo_2018.low)} to {_pct_change(placebo_2018.high)}: "
+                + (
+                    "a false break gives the same result"
+                    if placebo_2018_significant
+                    else "no effect, as it should"
+                ),
+            ),
+        ]
+    )
+    body += "<h2>What an interrupted series can and cannot show</h2>"
+    body += (
+        "<p>An interrupted time series fits the months before a change, projects that pattern "
+        "forward, and asks whether the months after sit below it. It needs a stable pre-trend, a "
+        "post-period free of other changes, and a way to tell a real break from the ordinary "
+        "wobble of the series. The last point is handled here with placebos: the same model is "
+        "refitted with the intervention placed at every other admissible month, and a real effect "
+        "should sit in the tail of that distribution. The wording follows the result: "
+        "<em>coincided with</em> unless the pre-trend, the placebos and the sensitivity fits all "
+        "agree.</p>"
+    )
+    body += table(
+        timeline,
+        "The changes around the two interventions and how each is handled",
+        {"Date": None, "Change": None, "Used as": None},
+    )
+    body += "<h2>The points-based licence, 1 July 2006</h2>"
+    body += figure(
+        "q8_points_series", "Monthly road deaths around the points-based licence", captions
+    )
+    body += (
+        f"<p>Deaths were already falling before July 2006: the fitted trend over January 2000 to "
+        f"June 2006 is {_pct_change(trend_year, 1)} a year. Against that trend and the seasonal "
+        f"pattern, the level of the series shifts by {_pct_change(main.level_change, 1)} at July "
+        f"2006 ({_pct_change(main.level_low, 1)} to {_pct_change(main.level_high, 1)}), and the "
+        f"slope afterwards is {_pct_change(main.slope_change_annual, 1)} a year relative to the "
+        "pre-trend, not distinguishable from no change. Over the seventeen months to November 2007 "
+        f"the fitted counterfactual exceeds the observed deaths by {_fmt_int(avoided)}. The raw "
+        f"comparison points the same way: the twelve months from July 2006 had {_fmt_int(after)} "
+        f"deaths against {_fmt_int(before)} in the twelve months before ({_pct_change(raw_change, 1)}), "
+        "of which the pre-trend alone explains about "
+        f"{_pct_change(trend_year, 1)}.</p>"
+    )
+    body += figure(
+        "q8_points_placebo",
+        "Estimated level change with the break placed at every other month",
+        captions,
+    )
+    body += (
+        f"<p>With the break placed at any of the {n_fits - 1} other months from January 2002 to "
+        f"January 2005, the estimated level change runs from {_pct_change(others.level_change.min(), 1)} "
+        f"to {_pct_change(others.level_change.max(), 1)}; the July 2006 estimate ranks "
+        f"{rank} of {n_fits}. The placebos are not noise around zero: the 2004 breaks all come out "
+        "negative because the decline steepened that year, which is the pre-trend problem in "
+        "another form. The July 2006 drop is larger than any of them.</p>"
+    )
+    body += table(
+        sensitivity_table,
+        "The same estimate under other choices",
+        {
+            "Variant": None,
+            "Window": None,
+            "Level change (95% interval)": None,
+            "Slope change per year": None,
+            "Dispersion": "dec2",
+        },
+    )
+    body += figure(
+        "q8_points_series_long",
+        "The same series to December 2009 with the December 2007 reform as a second break",
+        captions,
+    )
+    body += (
+        "<p>The estimate survives the 24-hour definition, the interurban series, the fleet offset "
+        "and a negative-binomial fit. It does not survive two things, and the page says which. "
+        f"On urban streets alone the change is {_pct_change(urban_row.level_change, 1)} with an "
+        "interval that includes zero: the drop is an interurban one. Extending the window to "
+        f"December 2009 with a second break at the Penal Code reform, the July 2006 level change "
+        f"falls to {_pct_change(long_row.level_change, 1)} ({_pct_change(long_row.level_low, 1)} to "
+        f"{_pct_change(long_row.level_high, 1)}) and the December 2007 break takes "
+        f"{_pct_change(long_row.second_break_change, 1)}: the two changes share the decline, and "
+        "the recession of 2008 is not in the model at all. Starting the pre-period in 1993 gives "
+        f"{_pct_change(from_1993.level_change, 1)}, but that fit is misspecified (the series is "
+        "flat to 2003 and then falls, so one line does not describe it) and its dispersion of "
+        f"{from_1993.dispersion:.1f} says so.</p>"
+    )
+    body += note(
+        "<strong>Reading.</strong> July 2006 coincided with a drop of about "
+        f"{abs(main.level_change) * 100:.0f}% in monthly road deaths that no other month of 2002 to "
+        "2005 reproduces and that holds under most alternative specifications. Whether the "
+        "licence caused it cannot be settled on this series: the speed-camera programme arrived in "
+        "the same two years, the Penal Code reform seventeen months later, and the recession after "
+        "that. What the series supports is that the decline from mid-2006 was a step, not the "
+        "continuation of the pre-trend."
+    )
+    body += "<h2>The 90 km/h limit on conventional roads, 29 January 2019</h2>"
+    body += figure(
+        "q8_speed_series",
+        "Monthly deaths on conventional roads and on motorways and dual carriageways",
+        captions,
+    )
+    body += (
+        "<p>Here the series cannot isolate conventional roads, but the microdata can, and "
+        "motorways and dual carriageways, which kept their limits, serve as a control for weather, "
+        "traffic and everything else the two share. In one model of both groups, conventional "
+        f"roads show a change of {_pct_change(speed_main.level_change, 1)} "
+        f"({_pct_change(speed_main.level_low, 1)} to {_pct_change(speed_main.level_high, 1)}) at "
+        f"February 2019 over and above the control roads, whose own change is "
+        f"{_pct_change(speed_main.control_change, 1)}.</p>"
+    )
+    body += table(
+        placebo_table,
+        "The same model with the break placed in January 2017 and January 2018",
+        {
+            "Break placed at": None,
+            "Conventional roads, own change (95% interval)": None,
+            "Control roads, change (95% interval)": None,
+            "Real intervention": None,
+        },
+    )
+    if placebo_2018_significant:
+        body += (
+            f"<p>The design fails its own check. A break placed in January 2018, a year before the "
+            f"limit changed, gives {_pct_change(placebo_2018.level_change, 1)} "
+            f"({_pct_change(placebo_2018.low, 1)} to {_pct_change(placebo_2018.high, 1)}), as large "
+            "as the real one: deaths on conventional roads were already falling relative to the "
+            "control roads through 2018, so the 2019 estimate is the continuation of a divergence "
+            "that predates the limit. The January 2017 placebo is "
+            f"{_pct_change(placebo_2017.level_change, 1)}, as it should be.</p>"
+        )
+    else:
+        body += (
+            f"<p>Both placebos are near zero ({_pct_change(placebo_2017.level_change, 1)} and "
+            f"{_pct_change(placebo_2018.level_change, 1)}), so the 2019 change stands out from the "
+            "years before it.</p>"
+        )
+    body += table(
+        speed_table,
+        "The 2019 estimate under other choices",
+        {
+            "Variant": None,
+            "Window": None,
+            "Conventional roads, own change (95% interval)": None,
+            "Control roads, change": None,
+            "Dispersion": "dec2",
+        },
+    )
+    body += figure("q8_speed_series_long", "The same two series to December 2024", captions)
+    body += (
+        f"<p>Extended through the pandemic with period terms, the conventional-road change turns "
+        f"to {_pct_change(long_speed.level_change, 1)} ({_pct_change(long_speed.level_low, 1)} to "
+        f"{_pct_change(long_speed.level_high, 1)}): from 2021 deaths on conventional roads "
+        "recovered to their 2016–2018 level while deaths on motorways and dual carriageways did "
+        "not, so relative to the control the 90 km/h limit is followed, years later, by more "
+        "deaths rather than fewer. Nothing in these data separates the limit from the pandemic's "
+        "different effects on the two kinds of road.</p>"
+    )
+    body += note(
+        "<strong>Reading.</strong> The clean-window estimate for the 90 km/h limit, "
+        f"{_pct_change(speed_main.level_change)}, is not distinguishable from a change that had "
+        "already begun in 2018 and is reversed once the series runs through the pandemic. No claim "
+        "about the limit's effect can be made from these data; a road-section series with speeds "
+        "and traffic volumes would be needed."
+    )
+    body += "<h2>Limits</h2>"
+    body += note(
+        "Monthly deaths are counts with overdispersion (the Pearson dispersion of the main 2006 fit "
+        f"is {main.dispersion:.1f}) and serial correlation; the standard errors are Newey–West with "
+        "twelve lags and the negative-binomial variant is in each table. The 2006 model has no "
+        "exposure series but the annual fleet, interpolated to months. The 2019 model treats the "
+        "road type recorded at the crash as fixed, but the microdata note a change in road-type "
+        "coding in 2024 (see the data page); the clean window ends in February 2020 and is not "
+        "affected. Neither design can attribute a change to one measure when several arrived "
+        "together, which is why the page says coincided."
+    )
+    return render_page(
+        "policy",
+        "Policy",
+        "Two interrupted time series on monthly road deaths: the points-based licence of July 2006 "
+        "and the 90 km/h limit on conventional roads of January 2019, each with placebo checks "
+        "and the changes that confound it.",
+        body,
+    )
+
+
 def page_data(captions: dict[str, str]) -> str:
     validation = pd.read_csv(TABLES_DIR / "validation.csv")
     grid = read_table("q2_hour_weekday")
@@ -1488,6 +1810,10 @@ def page_data(captions: dict[str, str]) -> str:
         "are DGT's census (people holding a driving permit or a moped or agricultural licence). "
         "Drivers with unknown age (about 3% of those involved, 0.4% of those killed) are excluded from "
         "the age-band rates.</li>"
+        "<li><strong>Interrupted time series</strong> (policy page): Poisson regressions of monthly "
+        "deaths on a linear trend, month-of-year terms and a level (and slope) change at the "
+        "intervention, with Newey–West standard errors (12 lags); the 2019 design adds a control "
+        "group of roads and estimates the treated group's own change.</li>"
         "</ul>"
     )
     body += "<h2>Reconciliation checks</h2>"
@@ -1534,6 +1860,7 @@ PAGE_BUILDERS = {
     "older-drivers": page_older_drivers,
     "severity": page_severity,
     "vehicles": page_vehicles,
+    "policy": page_policy,
     "data": page_data,
 }
 
