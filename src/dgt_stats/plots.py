@@ -389,26 +389,47 @@ def dot_interval(
     xlabel: str = "",
     reference: float | None = None,
     reference_label: str = "",
+    percent: bool = False,
+    highlight: str | None = None,
+    keep_order: bool = False,
 ) -> Path:
-    """Ranked dots with interval whiskers, one row per label, highest value at the top."""
+    """Ranked dots with interval whiskers, one row per label, highest value at the top.
+
+    ``keep_order`` keeps the frame's own order (first row at the top) instead of ranking;
+    ``highlight`` names a boolean column whose rows get a filled accent marker while the others
+    are drawn hollow, for a true estimate among placebos.
+    """
     apply_style()
-    ordered = frame.sort_values(value, ascending=True).reset_index(drop=True)
+    if keep_order:
+        ordered = frame.iloc[::-1].reset_index(drop=True)
+    else:
+        ordered = frame.sort_values(value, ascending=True).reset_index(drop=True)
     height = max(3.0, 0.22 * len(ordered) + 1.4)
     fig, axis = plt.subplots(figsize=(FIGURE_WIDTH, height))
     positions = np.arange(len(ordered))
+    flags = (
+        ordered[highlight].astype(bool).to_numpy()
+        if highlight is not None
+        else np.ones(len(ordered), dtype=bool)
+    )
     axis.hlines(
         positions, ordered[low], ordered[high], color=CATEGORICAL[0], linewidth=1.5, alpha=0.6
     )
-    axis.plot(
-        ordered[value],
-        positions,
-        marker="o",
-        markersize=6,
-        color=CATEGORICAL[0],
-        markeredgecolor=SURFACE,
-        markeredgewidth=1,
-        linestyle="none",
-    )
+    for filled in (False, True):
+        mask = flags == filled
+        if not mask.any():
+            continue
+        axis.plot(
+            ordered[value][mask],
+            positions[mask],
+            marker="o",
+            markersize=6 if filled else 5,
+            color=CATEGORICAL[0],
+            markerfacecolor=CATEGORICAL[0] if filled else SURFACE,
+            markeredgecolor=SURFACE if filled else CATEGORICAL[0],
+            markeredgewidth=1,
+            linestyle="none",
+        )
     if reference is not None:
         axis.axvline(reference, color=TEXT_SECONDARY, linewidth=1, linestyle=":")
         if reference_label:
@@ -424,7 +445,12 @@ def dot_interval(
     axis.set_yticks(positions, [str(v) for v in ordered[label]], fontsize=8)
     axis.grid(True, axis="x")
     axis.grid(False, axis="y")
-    axis.set_xlim(left=0)
+    if float(ordered[low].min()) >= 0:
+        axis.set_xlim(left=0)
+    if percent:
+        axis.xaxis.set_major_formatter(
+            matplotlib.ticker.FuncFormatter(lambda v, _: f"{v * 100:+.0f}%")
+        )
     axis.set_ylim(-0.7, len(ordered) - 0.3)
     axis.set_title(title)
     axis.set_xlabel(xlabel)
@@ -757,11 +783,12 @@ def intervention(
             label="Counterfactual (no change)",
         )
         axis.axvline(break_date, color=TEXT_PRIMARY, linewidth=1)
-        for start, end, label in shaded or []:
+        top = float(panel[observed].max())
+        for index, (start, end, label) in enumerate(shaded or []):
             axis.axvspan(start, end, color=GRID, alpha=0.6, linewidth=0)
             axis.text(
                 start,
-                axis.get_ylim()[1] if False else panel[observed].max(),
+                top * (1 - 0.12 * index),  # stagger neighbouring labels
                 f" {label}",
                 fontsize=7,
                 color=TEXT_SECONDARY,

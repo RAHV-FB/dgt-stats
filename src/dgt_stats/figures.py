@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from dgt_stats import agebands, labels, plots, summaries, vehicles
+from dgt_stats import agebands, labels, plots, policy, summaries, vehicles
 from dgt_stats.paths import FIGURES_DIR, TABLES_DIR
 
 CAPTIONS_PATH = FIGURES_DIR / "captions.json"
@@ -498,6 +498,9 @@ def build_all(
     # ------------------------------------------------------------------ Q6 vehicles per km
     _vehicle_figures(figures_dir, captions, summary)
 
+    # ------------------------------------------------------------------ Q8 policy
+    _policy_figures(figures_dir, captions, summary)
+
     # ------------------------------------------------------------------ Q3 severity models
     if summaries.model_tables_present():
         _severity_figures(figures_dir, captions)
@@ -624,6 +627,128 @@ def _vehicle_figures(figures_dir: Path, captions: dict[str, str], summary) -> No
         "1993–2024, all roads",
         f"{THIRTY_DAY}, drivers and passengers of each vehicle type; panels have their own scales; "
         "personal mobility vehicles are counted from 2020",
+    )
+
+
+def _policy_figures(figures_dir: Path, captions: dict[str, str], summary) -> None:
+    points = policy.INTERVENTIONS["points_licence"]
+    series = summary("q8_points_series")
+    series["period"] = pd.to_datetime(series.period)
+    main_window = series[series.period <= points.post_end]
+    plots.intervention(
+        main_window,
+        "period",
+        "deaths",
+        "fitted_main",
+        "counterfactual_main",
+        figures_dir / "q8_points_series.svg",
+        "Monthly road deaths around the points-based licence, 2000–2007",
+        points.date,
+        "1 July 2006",
+        ylabel="Deaths (30 days)",
+    )
+    captions["q8_points_series"] = plots.caption(
+        SERIES_SOURCE,
+        "January 2000 to November 2007, all roads",
+        f"{THIRTY_DAY}; fitted = Poisson regression with a linear trend, month terms and a level "
+        "and slope change at July 2006; counterfactual = the same model with the change set to "
+        "zero; the post-period ends before the Penal Code reform of December 2007",
+        int(main_window.deaths.sum()),
+    )
+    plots.intervention(
+        series,
+        "period",
+        "deaths",
+        "fitted_long",
+        "counterfactual_long",
+        figures_dir / "q8_points_series_long.svg",
+        "The same series to December 2009, with the December 2007 reform as a second break",
+        points.date,
+        "1 July 2006",
+        shaded=[(points.second_break, points.long_post_end, "Penal Code reform")],
+        ylabel="Deaths (30 days)",
+    )
+    captions["q8_points_series_long"] = plots.caption(
+        SERIES_SOURCE,
+        "January 2000 to December 2009, all roads",
+        f"{THIRTY_DAY}; the model of the previous figure with a second level change at December "
+        "2007 (shaded); the recession of 2008 is not modelled",
+        int(series.deaths.sum()),
+    )
+
+    placebo = summary("q8_points_placebo")
+    placebo["period"] = pd.to_datetime(placebo.break_date)
+    placebo["label"] = placebo.period.dt.strftime("%b %Y")
+    placebo["kind"] = placebo.is_true.map({True: "July 2006 (the intervention)", False: "Placebo"})
+    plots.dot_interval(
+        placebo.sort_values("period"),
+        "label",
+        "level_change",
+        "low",
+        "high",
+        figures_dir / "q8_points_placebo.svg",
+        "Estimated level change with the break placed at every other month, 2002–2005",
+        xlabel="Change in the monthly level",
+        percent=True,
+        reference=0,
+        highlight="is_true",
+        keep_order=True,
+    )
+    captions["q8_points_placebo"] = plots.caption(
+        SERIES_SOURCE,
+        "breaks from January 2002 to January 2005, each with a 17-month post-period",
+        "the same segmented regression refitted with a false intervention date; the filled marker "
+        "is the true date; a real effect should sit in the tail of this distribution",
+        f"{len(placebo)} fits",
+    )
+
+    speed = policy.INTERVENTIONS["speed_limit_90"]
+    panel = summary("q8_speed_series")
+    panel["period"] = pd.to_datetime(panel.period)
+    clean = panel[panel.period <= speed.post_end]
+    plots.intervention(
+        clean,
+        "period",
+        "deaths",
+        "fitted_main",
+        "counterfactual_main",
+        figures_dir / "q8_speed_series.svg",
+        "Monthly deaths on conventional roads and on the control roads, 2016 to February 2020",
+        speed.date,
+        "29 January 2019",
+        facet="group_label",
+        facet_order=[policy.GROUP_LABELS[policy.TREATED], policy.GROUP_LABELS[policy.CONTROL]],
+        ylabel="Deaths (30 days)",
+    )
+    captions["q8_speed_series"] = plots.caption(
+        MICRODATA_SOURCE,
+        "January 2016 to February 2020",
+        f"{THIRTY_DAY} by road type of the crash; fitted = one Poisson regression for both groups "
+        "with a shared trend, month terms, a group term, a post term and a post × conventional "
+        "term; counterfactual = conventional roads without their own change",
+        int(clean.deaths.sum()),
+    )
+    plots.intervention(
+        panel,
+        "period",
+        "deaths",
+        "fitted_long",
+        "counterfactual_long",
+        figures_dir / "q8_speed_series_long.svg",
+        "The same two series to December 2024, pandemic periods marked",
+        speed.date,
+        "29 January 2019",
+        facet="group_label",
+        facet_order=[policy.GROUP_LABELS[policy.TREATED], policy.GROUP_LABELS[policy.CONTROL]],
+        shaded=[(s, e, label) for s, e, label in policy.PANDEMIC_PERIODS],
+        ylabel="Deaths (30 days)",
+    )
+    captions["q8_speed_series_long"] = plots.caption(
+        MICRODATA_SOURCE,
+        "January 2016 to December 2024",
+        "the model of the previous figure extended with lockdown and restriction periods (shaded), "
+        "each with its own level for both groups and for conventional roads",
+        int(panel.deaths.sum()),
     )
 
 
