@@ -1,0 +1,7 @@
+profile,fatal,serious
+"Urban street, side collision, daylight, two vehicles",0.00358807,0.0586187
+"Urban street, pedestrian struck, dark with lighting",0.0247778,0.139123
+"Conventional road, head-on collision, daylight, two vehicles",0.117,0.340557
+"Conventional road, run-off in a curve, dark without lighting, one vehicle",0.086007,0.256076
+"Motorway, rear-end collision, daylight, two vehicles",0.0131507,0.0679719
+"Dual carriageway, run-off, night, one vehicle, weekend",0.105233,0.266966

@@ -487,6 +487,113 @@ def build_all(
         "all road users killed within 30 days, by age band, divided by residents on 1 July",
     )
 
+    # ------------------------------------------------------------------ Q3 severity models
+    coefficients = summaries.read_model_table("q3_model_coefficients")
+    n_model = int(coefficients.n.iloc[0])
+    for outcome, title in (
+        ("fatal", "at least one death"),
+        ("serious", "death or hospitalisation"),
+    ):
+        table = coefficients[(coefficients.outcome == outcome) & (coefficients.predictor != "year")]
+        plots.forest(
+            table,
+            "predictor_label",
+            "level",
+            "odds_ratio",
+            "or_low",
+            "or_high",
+            figures_dir / f"q3_forest_{outcome}.svg",
+            f"Odds of {title}, by crash circumstance",
+            reference_flag="is_reference",
+        )
+        captions[f"q3_forest_{outcome}"] = plots.caption(
+            MICRODATA_SOURCE,
+            "2016–2024",
+            f"logistic regression of {title} on the circumstances shown plus year; odds ratios "
+            "against the reference level (hollow marker) with 95% intervals clustered by province",
+            n_model,
+        )
+
+    cal = summaries.read_model_table("q3_calibration")
+    cal["outcome"] = cal.outcome.map({"fatal": "Fatal", "serious": "Serious"})
+    plots.calibration(
+        cal,
+        "predicted",
+        "observed",
+        figures_dir / "q3_calibration.svg",
+        "Predicted against observed severity, crashes of 2023–2024 scored by a 2016–2022 fit",
+        series="outcome",
+    )
+    captions["q3_calibration"] = plots.caption(
+        MICRODATA_SOURCE,
+        "fitted on 2016–2022, scored on 2023–2024",
+        "crashes grouped into ten equal bands of predicted probability; the dotted line is perfect "
+        "calibration",
+        int(cal[cal.outcome == "Fatal"].crashes.sum()),
+    )
+
+    stability = summaries.read_model_table("q3_year_stability")
+    stability = stability[stability.outcome == "fatal"].copy()
+    stability["term"] = stability.level.str.capitalize()
+    plots.small_multiples(
+        stability,
+        "term",
+        "year",
+        "odds_ratio",
+        figures_dir / "q3_year_stability.svg",
+        "Odds ratios for a fatal outcome, refitted year by year",
+        ncols=3,
+        band=("or_low", "or_high"),
+    )
+    captions["q3_year_stability"] = plots.caption(
+        MICRODATA_SOURCE,
+        "2016–2024, one fit per year",
+        "the ten largest effects of the full fatal-outcome model, each refitted on one year of "
+        "crashes; shaded bands are 95% intervals",
+    )
+
+    grid = summaries.read_model_table("q3_predicted_grid")
+    matrix = grid.pivot(index="road", columns="lighting", values="probability")
+    matrix = matrix.reindex(
+        index=[
+            r
+            for r in [
+                "urban street",
+                "conventional",
+                "dual carriageway",
+                "motorway",
+                "other road",
+                "not specified",
+            ]
+            if r in matrix.index
+        ],
+        columns=[
+            c
+            for c in [
+                "daylight",
+                "dusk or dawn",
+                "dark, street lighting",
+                "dark, no lighting",
+                "not specified",
+            ]
+            if c in matrix.columns
+        ],
+    )
+    plots.heatmap(
+        matrix,
+        figures_dir / "q3_predicted_grid.svg",
+        "Predicted probability that a crash is fatal, by road type and lighting",
+        percent=True,
+        height=3.4,
+        xlabel="Lighting",
+    )
+    captions["q3_predicted_grid"] = plots.caption(
+        MICRODATA_SOURCE,
+        "model of 2016–2024, predictions for 2024",
+        "every other circumstance at its reference level (side collision, two vehicles, not at a "
+        "junction, clear, dry, weekday, 10:00–13:59; interurban zone for interurban road types)",
+    )
+
     # ------------------------------------------------------------------ data quality
     profile = pd.read_csv(TABLES_DIR / "missingness_by_year.csv")
     plots.missingness_heatmap(
