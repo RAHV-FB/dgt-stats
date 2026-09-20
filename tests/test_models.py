@@ -4,19 +4,21 @@ import pytest
 
 from dgt_stats import features, models
 
-RNG = np.random.default_rng(7)
 
+def _synthetic(n: int = 40_000, seed: int = 7) -> pd.DataFrame:
+    """Two predictors with known effects: level b doubles the odds, level c halves them.
 
-def _synthetic(n: int = 40_000) -> pd.DataFrame:
-    """Two predictors with known effects: level b doubles the odds, level c halves them."""
-    x1 = RNG.choice(["a", "b", "c"], size=n, p=[0.5, 0.3, 0.2])
-    x2 = RNG.choice(["p", "q"], size=n)
+    Seeded per call, so a test's data do not depend on which tests ran before it.
+    """
+    rng = np.random.default_rng(seed)
+    x1 = rng.choice(["a", "b", "c"], size=n, p=[0.5, 0.3, 0.2])
+    x2 = rng.choice(["p", "q"], size=n)
     log_odds = -2.5 + np.log(2) * (x1 == "b") + np.log(0.5) * (x1 == "c") + 0.4 * (x2 == "q")
-    y = RNG.random(n) < 1 / (1 + np.exp(-log_odds))
+    y = rng.random(n) < 1 / (1 + np.exp(-log_odds))
     return pd.DataFrame(
         {
-            "crash_year": RNG.choice([2016, 2017, 2023, 2024], size=n),
-            "province": RNG.choice([str(i) for i in range(1, 11)], size=n),
+            "crash_year": rng.choice([2016, 2017, 2023, 2024], size=n),
+            "province": rng.choice([str(i) for i in range(1, 11)], size=n),
             "fatal": y,
             "serious": y,
             "x1": pd.Categorical(x1, categories=["a", "b", "c"], ordered=True),
@@ -94,9 +96,10 @@ def test_model_frame_levels_and_groupings() -> None:
     assert list(frame.crash_type) == ["side collision", "run-off or overturn", "pedestrian struck"]
     assert list(frame.junction) == ["not at a junction", "at a junction", "not specified"]
     assert list(frame.lighting) == ["daylight", "dark, no lighting", "not specified"]
-    assert list(frame.weather) == ["clear", "rain", "not specified"]
-    assert list(frame.surface) == ["dry", "wet", "not specified"]
-    assert list(frame.alignment) == ["straight", "curve", "not specified"]  # 998 folds to reference
+    # Each field's explicit unknown code (7, 9, 4) is a level of its own, apart from 999.
+    assert list(frame.weather) == ["clear", "rain", "unknown"]
+    assert list(frame.surface) == ["dry", "wet", "unknown"]
+    assert list(frame.alignment) == ["straight", "curve", "unknown"]  # 998 folds to reference
     assert list(frame.vehicles) == ["2 vehicles", "1 vehicle", "3 or more vehicles"]
     assert list(frame.year) == ["2019", "2020", "2024"]
     assert frame.year.cat.categories[0] == "2019"
@@ -149,3 +152,55 @@ def test_small_levels_merge_into_the_reference() -> None:
     absent = groupings.loc[("Crash type", "1")]
     assert absent.level == "head-on collision (no crash takes this value)" and not absent.reference
     assert groupings.loc[("Crash type", "2")].level == "side collision"
+
+
+def test_profiles_and_predicted_grid(monkeypatch: pytest.MonkeyPatch) -> None:
+    frame = _synthetic()
+    fit = models.fit_severity(frame, "fatal", ("x1", "x2"))
+    monkeypatch.setattr(models, "PROFILES", {"ref": {}, "b": {"x1": "b"}})
+    out = models.profiles(frame, {"fatal": fit})
+    reference = 1 / (1 + np.exp(-fit.params["intercept"]))
+    assert out.set_index("profile").fatal["ref"] == pytest.approx(reference, rel=1e-6)
+    assert out.fatal.between(0, 1).all()
+    grid = models.predicted_grid(frame, fit, rows="x1", columns="x2")
+    assert len(grid) == 3 * 2 and grid.probability.between(0, 1).all()
+
+
+def _road_frame(n: int = 20_000) -> pd.DataFrame:
+    rng = np.random.default_rng(11)
+    road = rng.choice(["urban street", "conventional", "motorway"], size=n)
+    zone = rng.choice(["urban street", "interurban road"], size=n)
+    lighting = rng.choice(["daylight", "dark, no lighting"], size=n)
+    log_odds = -2.5 + 0.5 * (road == "conventional") + 0.3 * (lighting == "dark, no lighting")
+    y = rng.random(n) < 1 / (1 + np.exp(-log_odds))
+    return pd.DataFrame(
+        {
+            "province": rng.choice([str(i) for i in range(1, 11)], size=n),
+            "fatal": y,
+            "road": pd.Categorical(
+                road, categories=["urban street", "conventional", "motorway"], ordered=True
+            ),
+            "zone": pd.Categorical(
+                zone, categories=["urban street", "interurban road"], ordered=True
+            ),
+            "lighting": pd.Categorical(
+                lighting, categories=["daylight", "dark, no lighting"], ordered=True
+            ),
+        }
+    )
+
+
+def test_predicted_grid_pins_zone_to_the_road_type() -> None:
+    frame = _road_frame()
+    fit = models.fit_severity(frame, "fatal", ("road", "zone", "lighting"), cluster=None)
+    grid = models.predicted_grid(frame, fit)
+    assert len(grid) == 3 * 2 and grid.probability.between(0, 1).all()
+    got = grid.set_index(["road", "lighting"]).probability
+    coupled = models._profile_design(
+        frame, fit, {"road": "motorway", "lighting": "daylight", "zone": "interurban road"}
+    )
+    assert got[("motorway", "daylight")] == pytest.approx(float(models.predict(fit, coupled)[0]))
+    urban = models._profile_design(frame, fit, {"road": "urban street", "lighting": "daylight"})
+    assert got[("urban street", "daylight")] == pytest.approx(float(models.predict(fit, urban)[0]))
+    with pytest.raises(ValueError):
+        models._profile_design(frame, fit, {"road": "no such road"})

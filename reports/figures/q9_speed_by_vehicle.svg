@@ -163,7 +163,7 @@ L 561.917572 28.318125
      </g>
     </g>
     <g id="text_9">
-     <text style="font-size: 10px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: middle; fill: #52514e" x="341.45875" y="255.500563" transform="rotate(-0 341.45875 255.500563)">Share of drivers with a known speed status</text>
+     <text style="font-size: 10px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: middle; fill: #52514e" x="341.45875" y="255.500563" transform="rotate(-0 341.45875 255.500563)">Share with a recorded speed infraction, among drivers with a record (95% interval)</text>
     </g>
    </g>
    <g id="matplotlib.axis_2">

@@ -35,19 +35,20 @@ def test_road_group_panel_covers_every_month_and_sums_to_the_microdata() -> None
     assert set(panel.group) == {policy.TREATED, policy.CONTROL}
     assert panel.groupby("group").size().eq(9 * 12).all()
     treated = panel[panel.group == policy.TREATED].set_index("period").deaths
-    assert treated.loc["2016-01-01"] == 55 and treated.loc["2016-07-01"] == 93
+    assert treated.loc["2016-01-01"] == 67 and treated.loc["2016-07-01"] == 110
     control = panel[panel.group == policy.CONTROL].set_index("period").deaths
-    assert control.loc["2016-01-01"] == 28 + 8
+    assert control.loc["2016-01-01"] == 24 and control.loc["2016-07-01"] == 30
     raw = pd.DataFrame(
         {
-            "ANYO": [2016, 2016, 2016, 2016],
-            "MES": [1, 1, 2, 3],
-            "road_group": ["conventional", "urban_street", "motorway", pd.NA],
-            "TOTAL_MU30DF": [2, 5, 1, 3],
+            "ANYO": [2016, 2016, 2016, 2016, 2016],
+            "MES": [1, 1, 2, 3, 3],
+            "TIPO_VIA": [6, 9, 1, 4, 5],
+            "TOTAL_MU30DF": [2, 5, 1, 3, 4],
         }
     )
     small = policy.monthly_by_road_group(raw)
-    assert len(small) == 24 and small.deaths.sum() == 3
+    # Code 9 (street) and code 4 (vía para automóviles) belong to neither group.
+    assert len(small) == 24 and small.deaths.sum() == 7
     assert (
         small[(small.group == policy.CONTROL) & (small.period == "2016-02-01")].deaths.iloc[0] == 1
     )
@@ -155,3 +156,48 @@ def test_did_fit_recovers_a_treated_change_and_a_flat_control() -> None:
     assert list(placebo.break_date) == [*it.placebo_dates, it.date]
     assert placebo[placebo.is_true].level_change.iloc[0] == fit.level_change
     assert (placebo[~placebo.is_true].low < 0).all() and (placebo[~placebo.is_true].high > 0).all()
+
+
+def test_points_licence_fits_assembles_the_published_tables() -> None:
+    tables = policy.points_licence_fits()
+    assert set(tables) == {
+        "q8_points_fit",
+        "q8_points_series",
+        "q8_points_placebo",
+        "q8_points_sensitivity",
+    }
+    sens = tables["q8_points_sensitivity"]
+    it = policy.INTERVENTIONS["points_licence"]
+    main = policy.segmented_fit(policy.monthly_series(), it)
+    assert sens.variant.iloc[0] == "main"
+    assert sens.level_change.iloc[0] == pytest.approx(main.level_change)
+    assert set(sens.variant) >= {"main", "24h", "interurban", "urban", "long", "fleet_offset"}
+    long_row = sens[sens.variant == "long"].iloc[0]
+    assert long_row.n_months > sens[sens.variant == "main"].iloc[0].n_months
+    assert np.isfinite(long_row.second_break_change)
+    assert sens[sens.variant != "long"].second_break_change.isna().all()
+    placebo = tables["q8_points_placebo"]
+    assert placebo.is_true.sum() == 1 and int(placebo[placebo.is_true]["rank"].iloc[0]) >= 1
+    series = tables["q8_points_series"]
+    assert {"fitted_main", "counterfactual_main"} <= set(series.columns)
+
+
+def test_speed_limit_fits_assembles_the_published_tables() -> None:
+    tables = policy.speed_limit_fits()
+    assert set(tables) == {
+        "q8_speed_fit",
+        "q8_speed_series",
+        "q8_speed_placebo",
+        "q8_speed_sensitivity",
+    }
+    sens = tables["q8_speed_sensitivity"]
+    it = policy.INTERVENTIONS["speed_limit_90"]
+    main = policy.did_fit(policy.monthly_by_road_group(), it)
+    assert sens.variant.iloc[0] == "main"
+    assert sens.level_change.iloc[0] == pytest.approx(main.level_change)
+    assert sens.control_change.notna().all()
+    placebo = tables["q8_speed_placebo"]
+    assert placebo.is_true.sum() == 1
+    assert sorted(pd.to_datetime(placebo.break_date)) == sorted([*it.placebo_dates, it.date])
+    series = tables["q8_speed_series"]
+    assert set(series.group) == {policy.TREATED, policy.CONTROL}

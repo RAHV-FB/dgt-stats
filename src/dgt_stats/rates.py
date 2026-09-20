@@ -103,11 +103,12 @@ def travel_weighted_share(
     """Car-travel-weighted share of residents, by band, for one year ("driver-equivalents").
 
     ``profile`` is the relative car-travel intensity by band (population-weighted mean of 1 over the
-    survey's age range); the national survey share of adults who drive is spread across bands in
-    proportion to it and capped at the licence-holding share of the band. It is not the share of
-    people who drive (no Spanish source gives that by age); it is the survey level weighted by how
-    much each band travels by car. Columns: ``band, share, share_low, share_high, national_share,
-    capped``.
+    analysis bands 15–74); the national survey share of adults who drive is spread across bands in
+    proportion to it and capped at the licence-holding share of the band. The cap is not
+    redistributed, so the capped bands sit at their licence share and the population-weighted mean
+    of the result falls below the survey level. It is not the share of people who drive (no
+    Spanish source gives that by age); it is the survey level weighted by how much each band
+    travels by car. Columns: ``band, share, share_low, share_high, national_share, capped``.
     """
     national, low, high = interpolate_share(year, waves)
     records = []

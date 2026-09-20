@@ -16,10 +16,10 @@ dependencies = [
   "xlrd>=2.0",
   "pandas>=2.2",
   "pyarrow>=17.0",
-  "pymupdf>=1.24",
+  "pymupdf>=1.24.3",
   "scikit-learn>=1.5",
   "scipy>=1.13",
-  "statsmodels>=0.14",
+  "statsmodels>=0.14.2",
 ]
 
 [project.optional-dependencies]

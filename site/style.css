@@ -4,7 +4,7 @@
   --text: #0b0b0b;
   --text-2: #52514e;
   --line: #e6e5e1;
-  --accent: #2a78d6;
+  --accent: #1d63b8;
   --measure: 76ch;
 }
 * { box-sizing: border-box; }
@@ -38,18 +38,28 @@ a { color: var(--accent); }
 .tile .value { font-size: 2rem; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.15; margin: 4px 0; }
 .tile .note { color: var(--text-2); font-size: 0.85rem; }
 figure { margin: 20px 0 28px; }
-figure img { width: 100%; height: auto; display: block; background: var(--surface); }
+.figure-wrap { overflow-x: auto; }
+figure img { width: 100%; min-width: 720px; height: auto; display: block; background: var(--surface); }
 figcaption { color: var(--text-2); font-size: 0.85rem; margin-top: 6px; max-width: var(--measure); }
 .table-wrap { overflow-x: auto; margin: 12px 0 24px; }
 table { border-collapse: collapse; font-size: 0.9rem; font-variant-numeric: tabular-nums; min-width: 480px; }
 th, td { padding: 6px 10px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
 th:first-child, td:first-child { text-align: left; }
+th.wrap, td.wrap { white-space: normal; min-width: 24ch; max-width: 44ch; text-align: left; }
 thead th { color: var(--text-2); font-weight: 600; border-bottom: 2px solid var(--line); }
-caption { caption-side: top; text-align: left; color: var(--text-2); font-size: 0.85rem; padding: 0 0 6px; }
+caption { caption-side: top; text-align: left; color: var(--text-2); font-size: 0.85rem; padding: 0 0 6px; width: fit-content; max-width: min(calc(100vw - 32px), 1008px); }
 .note { background: var(--surface-2); border-left: 3px solid var(--accent); padding: 10px 14px; border-radius: 0 6px 6px 0; max-width: var(--measure); }
 .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-top: 16px; }
 .card { border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; }
 .card h3 { margin: 0 0 6px; }
 .card p { margin: 0; color: var(--text-2); font-size: 0.95rem; }
 footer { border-top: 1px solid var(--line); padding-top: 16px; padding-bottom: 32px; color: var(--text-2); font-size: 0.85rem; }
-@media print { nav, footer { display: none; } figure { break-inside: avoid; } }
+@media print {
+  nav { display: none; }
+  figure, .figure-wrap { break-inside: avoid; overflow: visible; }
+  figure img { min-width: 0; }
+  .table-wrap { overflow: visible; }
+  table { min-width: 0; font-size: 0.75rem; }
+  th, td { white-space: normal; }
+  a[href^="http"]::after { content: " (" attr(href) ")"; }
+}

@@ -1,8 +1,12 @@
 # Reports
 
-Generated analytical outputs will be written here:
+Result tables, figures and captions, all committed and rebuilt by `scripts/model.py` (the `q3_*`
+tables), `scripts/analyse.py all` (the other `q*.csv`, the SVG figures and `figures/captions.json`)
+and `scripts/ingest.py validate` (`validation.csv` and `missingness_by_year.csv`).
 
-- `figures/`: publication-quality charts and maps;
-- `tables/`: machine-readable result tables and selected formatted exports.
+- `tables/`: the `q*.csv` result tables, plus `validation.csv` and `missingness_by_year.csv`;
+- `figures/`: one SVG per figure and `captions.json`, which records the source, period and metric
+  definition of each figure and the n where one applies; the SVGs are copied into `site/figures/`
+  at build time.
 
-Generated files are ignored by Git until a specific result is selected for publication. Every published output must be reproducible from code and record the analytical sample and metric definition.
+The site reads only these files.

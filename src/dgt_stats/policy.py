@@ -3,7 +3,8 @@
 Two interventions, two designs. The points-based licence of 1 July 2006 is a segmented regression
 on the yearbook's monthly death series (1993–2024). The 90 km/h limit on conventional roads of
 29 January 2019 is a difference-in-differences interrupted series on the microdata: conventional
-roads against motorways and dual carriageways, month by month, 2016–2024. Both are Poisson
+roads (road-type codes 5 and 6) against motorways and dual carriageways (codes 1 to 3), month by
+month, 2016–2024. Both are Poisson
 regressions with Newey–West standard errors; the estimates are read as coincidences unless the
 pre-trend, the placebo distribution and the sensitivity fits all agree.
 """
@@ -22,8 +23,15 @@ PROCESSED_CRASHES = PROCESSED_DATA_DIR / "accidentes.parquet"
 
 TREATED = "conventional"
 CONTROL = "motorway_dual"
-CONTROL_GROUPS = ("motorway", "dual_carriageway")
 GROUP_LABELS = {TREATED: "Conventional roads", CONTROL: "Motorways and dual carriageways"}
+# The two-group panel is built from the road-type code, not from ``road_group``: DGT's
+# "carretera convencional de doble calzada" (code 5) is a conventional road under RD 1514/2018,
+# so it belongs with the treated roads, and from 2021 most of its crashes are coded as
+# single-carriageway conventional (code 6) anyway. Keeping 5 and 6 together removes that 2021
+# recoding from the contrast. Code 4 ("vía para automóviles", a handful of deaths a year) is
+# left out of both groups.
+TREATED_CODES = (5, 6)
+CONTROL_CODES = (1, 2, 3)
 
 
 @dataclass(frozen=True)
@@ -123,15 +131,17 @@ def monthly_by_road_group(crashes: pd.DataFrame | None = None) -> pd.DataFrame:
     """Monthly 30-day deaths on conventional roads and on motorways + dual carriageways, 2016–2024.
 
     Long format: ``period``, ``group`` (treated or control), ``deaths``. Every month of every year
-    is present, with zero deaths where a group had none.
+    is present, with zero deaths where a group had none. The groups follow ``TREATED_CODES`` and
+    ``CONTROL_CODES`` on the raw road-type code.
     """
     if crashes is None:
         crashes = pd.read_parquet(
-            PROCESSED_CRASHES, columns=["ANYO", "MES", "road_group", "TOTAL_MU30DF"]
+            PROCESSED_CRASHES, columns=["ANYO", "MES", "TIPO_VIA", "TOTAL_MU30DF"]
         )
+    code = pd.to_numeric(crashes.TIPO_VIA, errors="coerce")
     group = pd.Series(pd.NA, index=crashes.index, dtype="string")
-    group[crashes.road_group == TREATED] = TREATED
-    group[crashes.road_group.isin(CONTROL_GROUPS)] = CONTROL
+    group[code.isin(TREATED_CODES)] = TREATED
+    group[code.isin(CONTROL_CODES)] = CONTROL
     rows = crashes[group.notna()].assign(group=group[group.notna()])
     counts = rows.groupby(["ANYO", "MES", "group"], observed=True).TOTAL_MU30DF.sum()
     years = sorted(crashes.ANYO.unique())

@@ -134,13 +134,19 @@ GROUP_NOTES = {
     "heavy_truck": (
         "the kilometre table's category is the union of the methodology note's 'camiones de más de "
         "3.500 kg' (272,157 vehicles, 6.9 bn km) and 'tractores industriales' (222,594 vehicles, "
-        "19.7 bn km), so tractor units and articulated vehicles belong in the numerator"
+        "19.7 bn km, the note's validation table; the estimation file places 936 of these vehicles "
+        "in the light stratum instead, so the fleet total is unchanged), so tractor units and "
+        "articulated vehicles belong in the numerator"
     ),
     "van": "one rate group with trucks up to 3,500 kg",
     "light_truck": "one rate group with vans",
     "other": (
-        "agricultural tractors that pass roadworthiness inspection sit in the kilometre table's "
-        "tractor category but have no involvement row of their own, so they stay without a rate"
+        "agricultural tractors that pass roadworthiness inspection are part of the note's "
+        "'tractores industriales', and so of the heavy-truck kilometre denominator, while their "
+        "involvements sit in the machinery row here, so the heavy-truck rate per kilometre is a "
+        "lower bound to that extent; quadricycle involvement also sits here while the kilometre "
+        "table counts light quadricycles (L6e) as mopeds and heavy ones (L7e) as motorcycles, so "
+        "those two denominators include vehicles whose crashes are counted in this row"
     ),
 }
 

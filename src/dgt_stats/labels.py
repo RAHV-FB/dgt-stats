@@ -30,7 +30,7 @@ ENGLISH: dict[str, dict[str, str]] = {
         "1": "Interurban road",
         "2": "Urban crossing (travesía)",
         "3": "Street",
-        "4": "Urban motorway",
+        "4": "Urban motorway or dual carriageway (autovía)",
     },
     "ZONA_AGRUPADA": {"1": "Interurban", "2": "Urban"},
     "TIPO_VIA": {

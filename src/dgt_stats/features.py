@@ -1,9 +1,10 @@
 """Model frame for the crash-severity models: grouped, labelled predictors with reference levels.
 
 Every predictor is an ordered categorical whose first level is the reference (the most common level,
-so odds ratios read "relative to the typical crash"). Missing markers become their own level and no
-row is dropped, because missingness is year-dependent. The grouping maps are data, so the data page
-can print them.
+so odds ratios read "relative to the typical crash"). The missing states (not specified, not
+applicable, and a field's explicit unknown code) are levels of their own and no row is dropped,
+because missingness is year-dependent. The grouping maps are data, so the severity page can print
+them.
 """
 
 from __future__ import annotations
@@ -27,9 +28,21 @@ MIN_LEVEL_CRASHES = 500
 PREDICTORS: dict[str, dict[str, object]] = {
     "zone": {
         "source": "ZONA",
-        "levels": ["street", "interurban road", "urban crossing", "urban motorway"],
-        "map": {3: "street", 1: "interurban road", 2: "urban crossing", 4: "urban motorway"},
+        "levels": [
+            "street",
+            "interurban road",
+            "urban crossing",
+            "urban motorway or dual carriageway",
+        ],
+        "map": {
+            3: "street",
+            1: "interurban road",
+            2: "urban crossing",
+            4: "urban motorway or dual carriageway",
+        },
         "fallback": NOT_SPECIFIED,
+        # Code 4 is 0.6-0.7 % of crashes in 2016-2018 and under 0.1 % from 2019 (0.4 % in 2021),
+        # so its level is mostly an early-period estimate; the severity page says so.
     },
     "road": {
         "source": "road_group",
@@ -80,6 +93,9 @@ PREDICTORS: dict[str, dict[str, object]] = {
         "fallback": NOT_SPECIFIED,
     },
     "junction": {
+        # Only the yes/no field is used; the junction type (NUDO_INFO) is not. From 2023 the
+        # at-junction share rises from 38 % to 44 %, mostly in Barcelona, and NUDO_INFO stops
+        # being empty exactly when NUDO says "not at a junction"; the level pools both regimes.
         "source": "NUDO",
         "levels": ["not at a junction", "at a junction"],
         "map": {2: "not at a junction", 1: "at a junction"},
@@ -100,7 +116,7 @@ PREDICTORS: dict[str, dict[str, object]] = {
     },
     "weather": {
         "source": "CONDICION_METEO",
-        "levels": ["clear", "cloudy", "rain", "hail or snow"],
+        "levels": ["clear", "cloudy", "rain", "hail or snow", "unknown"],
         "map": {
             1: "clear",
             2: "cloudy",
@@ -108,12 +124,13 @@ PREDICTORS: dict[str, dict[str, object]] = {
             4: "rain",
             5: "hail or snow",
             6: "hail or snow",
+            7: "unknown",
         },
-        "fallback": NOT_SPECIFIED,  # 7 (unknown) and 999
+        "fallback": NOT_SPECIFIED,
     },
     "surface": {
         "source": "CONDICION_FIRME",
-        "levels": ["dry", "wet", "other surface"],
+        "levels": ["dry", "wet", "other surface", "unknown"],
         "map": {
             1: "dry",
             3: "wet",
@@ -123,14 +140,15 @@ PREDICTORS: dict[str, dict[str, object]] = {
             6: "other surface",
             7: "other surface",
             8: "other surface",
+            9: "unknown",
         },
-        "fallback": NOT_SPECIFIED,  # 9 (unknown) and 999
+        "fallback": NOT_SPECIFIED,
     },
     "alignment": {
         "source": "TRAZADO_PLANTA",
-        "levels": ["straight", "curve"],
-        "map": {1: "straight", 2: "curve", 3: "curve"},
-        "fallback": NOT_SPECIFIED,  # 4 (unknown), 999
+        "levels": ["straight", "curve", "unknown"],
+        "map": {1: "straight", 2: "curve", 3: "curve", 4: "unknown"},
+        "fallback": NOT_SPECIFIED,
         # 998 (not applicable) is exactly the street zone, so it cannot be its own level next to
         # zone; alignment is only recorded outside streets and streets take the reference.
         "fold": {NOT_APPLICABLE: "straight"},

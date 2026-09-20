@@ -304,7 +304,7 @@ L 410.423529 164.10708
 L 428.86981 151.566491 
 L 447.316091 148.817492 
 L 465.762372 151.023093 
-" clip-path="url(#p6b22d9cc74)" style="fill: none; stroke: #eb6834; stroke-width: 2; stroke-linecap: round"/>
+" clip-path="url(#p6b22d9cc74)" style="fill: none; stroke-dasharray: 7.4,3.2; stroke-dashoffset: 0; stroke: #eb6834; stroke-width: 2"/>
    </g>
    <g id="line2d_27">
     <defs>
@@ -357,7 +357,7 @@ L 65.753281 300.896479
      <path d="M 190.242969 300.896479 
 L 199.242969 300.896479 
 L 208.242969 300.896479 
-" style="fill: none; stroke: #eb6834; stroke-width: 2; stroke-linecap: round"/>
+" style="fill: none; stroke-dasharray: 7.4,3.2; stroke-dashoffset: 0; stroke: #eb6834; stroke-width: 2"/>
     </g>
     <g id="text_22">
      <text style="font-size: 9px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start; fill: #0b0b0b" x="215.442969" y="304.046479" transform="rotate(-0 215.442969 304.046479)">per 100,000 licence holders</text>

@@ -2,8 +2,8 @@
 
 The design is main effects only, built by hand from the ordered categoricals of
 :mod:`dgt_stats.features` (reference level dropped), fitted by iteratively reweighted least squares
-with cluster-robust covariance by province. The fits are slow enough (a few minutes for everything) to live behind
-``scripts/model.py``, which writes the result tables the site reads.
+with cluster-robust covariance by province. The fits take about half a minute on the full table and
+live behind ``scripts/model.py``, which writes the result tables the site reads.
 """
 
 from __future__ import annotations
@@ -36,7 +36,7 @@ PROFILES: dict[str, dict[str, str]] = {
         "crash_type": "head-on collision",
         "alignment": "straight",
     },
-    "Conventional road, run-off in a curve, dark without lighting, one vehicle": {
+    "Conventional road, run-off in a curve, dark without lighting, one vehicle, 00:00–06:59": {
         "zone": "interurban road",
         "road": "conventional",
         "crash_type": "run-off or overturn",
@@ -51,7 +51,7 @@ PROFILES: dict[str, dict[str, str]] = {
         "crash_type": "rear-end or chain collision",
         "alignment": "straight",
     },
-    "Dual carriageway, run-off, night, one vehicle, weekend": {
+    "Dual carriageway, run-off, dark without lighting, one vehicle, weekend, 00:00–06:59": {
         "zone": "interurban road",
         "road": "dual carriageway",
         "crash_type": "run-off or overturn",
@@ -104,8 +104,14 @@ def _irls(
     n, k = design.shape
     beta = np.zeros(k)
     beta[0] = np.log(y.mean() / (1 - y.mean()))
+
+    def log_likelihood(coefficients: np.ndarray) -> float:
+        eta = np.clip(design @ coefficients, -30, 30)
+        return float(np.sum(y * eta - np.log1p(np.exp(eta))))
+
     probability = np.empty(n)
     converged = False
+    current = log_likelihood(beta)
     for _ in range(max_iter):
         linear = design @ beta
         np.clip(linear, -30, 30, out=linear)
@@ -114,8 +120,21 @@ def _irls(
         information = design.T @ (design * weights[:, None])
         gradient = design.T @ (y - probability)
         step = np.linalg.solve(information, gradient)
-        beta = beta + step
-        if np.max(np.abs(step)) < tol:
+        # A full Newton step can overshoot on a level with a handful of events; halve it until
+        # the likelihood improves, which leaves the converged estimate unchanged.
+        scale = 1.0
+        for _halving in range(12):
+            candidate = log_likelihood(beta + scale * step)
+            if candidate >= current - 1e-10:
+                break
+            scale /= 2
+        beta = beta + scale * step
+        improvement = candidate - current
+        current = candidate
+        # Converged when the coefficients stop moving, or when the likelihood has stopped rising:
+        # two nearly coincident missing-state levels in a single year can drift apart without
+        # bound while every other coefficient, and the fit, stand still.
+        if np.max(np.abs(scale * step)) < tol or abs(improvement) < 1e-9 * max(1.0, abs(current)):
             converged = True
             break
     if not converged:

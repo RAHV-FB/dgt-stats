@@ -1,7 +1,7 @@
 """Fit the crash-severity models and write their result tables.
 
 Usage:
-    python scripts/model.py            # reports/tables/q3_*.csv (a few minutes)
+    python scripts/model.py            # reports/tables/q3_*.csv (about 30 seconds)
 
 The site build never refits: scripts/analyse.py and scripts/build_site.py read these tables.
 """

@@ -2,7 +2,7 @@ predictor,source,code,level,reference
 Zone,ZONA,3,street,True
 Zone,ZONA,1,interurban road,False
 Zone,ZONA,2,urban crossing,False
-Zone,ZONA,4,urban motorway,False
+Zone,ZONA,4,urban motorway or dual carriageway,False
 Zone,ZONA,999,not specified (no crash takes this value),False
 Zone,ZONA,998,not applicable (no crash takes this value),False
 Zone,ZONA,any other value or empty,not specified (no crash takes this value),False
@@ -55,6 +55,7 @@ Weather,CONDICION_METEO,3,rain,False
 Weather,CONDICION_METEO,4,rain,False
 Weather,CONDICION_METEO,5,hail or snow,False
 Weather,CONDICION_METEO,6,hail or snow,False
+Weather,CONDICION_METEO,7,unknown,False
 Weather,CONDICION_METEO,999,not specified,False
 Weather,CONDICION_METEO,998,not applicable (no crash takes this value),False
 Weather,CONDICION_METEO,any other value or empty,not specified,False
@@ -66,15 +67,17 @@ Road surface,CONDICION_FIRME,5,other surface,False
 Road surface,CONDICION_FIRME,6,other surface,False
 Road surface,CONDICION_FIRME,7,other surface,False
 Road surface,CONDICION_FIRME,8,other surface,False
+Road surface,CONDICION_FIRME,9,unknown,False
 Road surface,CONDICION_FIRME,999,not specified,False
 Road surface,CONDICION_FIRME,998,not applicable (no crash takes this value),False
 Road surface,CONDICION_FIRME,any other value or empty,not specified,False
 Alignment,TRAZADO_PLANTA,1,straight,True
 Alignment,TRAZADO_PLANTA,2,curve,False
 Alignment,TRAZADO_PLANTA,3,curve,False
-Alignment,TRAZADO_PLANTA,999,not specified,False
+Alignment,TRAZADO_PLANTA,4,unknown,False
+Alignment,TRAZADO_PLANTA,999,"straight (merged: 6 crashes, fewer than 500)",True
 Alignment,TRAZADO_PLANTA,998,straight,True
-Alignment,TRAZADO_PLANTA,any other value or empty,not specified,False
+Alignment,TRAZADO_PLANTA,any other value or empty,"straight (merged: 6 crashes, fewer than 500)",True
 Time of day,hour_band,00-06,00-06,False
 Time of day,hour_band,07-09,07-09,False
 Time of day,hour_band,10-13,10-13,True

@@ -1,73 +1,73 @@
 year,sex,category,age_band,crashes,driver_deaths,share_of_crashes,region_scope
-2014,all,De 0 a 14 años,0-14,13.0,0.0,0.0015,Spain without Cataluña and País Vasco
-2023,all,De 0 a 14 años,0-14,20.0,0.0,0.0029,Spain without Cataluña and País Vasco
-2014,all,De 15 a 24 años,15-24,1542.0,29.0,0.1835,Spain without Cataluña and País Vasco
-2023,all,De 15 a 24 años,15-24,1385.0,40.0,0.2025,Spain without Cataluña and País Vasco
-2014,all,De 25 a 34 años,25-34,2154.0,48.0,0.2564,Spain without Cataluña and País Vasco
-2023,all,De 25 a 34 años,25-34,1491.0,60.0,0.218,Spain without Cataluña and País Vasco
-2014,all,De 35 a 44 años,35-44,1999.0,62.0,0.2379,Spain without Cataluña and País Vasco
-2023,all,De 35 a 44 años,35-44,1358.0,37.0,0.1986,Spain without Cataluña and País Vasco
-2014,all,De 45 a 54 años,45-54,1424.0,54.0,0.1695,Spain without Cataluña and País Vasco
-2023,all,De 45 a 54 años,45-54,1279.0,36.0,0.187,Spain without Cataluña and País Vasco
-2014,all,De 55 a 64 años,55-64,676.0,19.0,0.0805,Spain without Cataluña and País Vasco
-2023,all,De 55 a 64 años,55-64,806.0,40.0,0.1179,Spain without Cataluña and País Vasco
-2014,all,De 65 a 74 años,65-74,332.0,13.0,0.0395,Spain without Cataluña and País Vasco
-2023,all,De 65 a 74 años,65-74,306.0,10.0,0.0447,Spain without Cataluña and País Vasco
-2014,all,De 65 y más años,65+ (all),501.0,22.0,0.0596,Spain without Cataluña and País Vasco
-2023,all,De 65 y más años,65+ (all),445.0,15.0,0.0651,Spain without Cataluña and País Vasco
-2014,all,De 75 a 84 años,75-84,157.0,8.0,0.0187,Spain without Cataluña and País Vasco
-2023,all,De 75 a 84 años,75-84,123.0,5.0,0.018,Spain without Cataluña and País Vasco
-2014,all,De 85 y más años,85+,12.0,1.0,0.0014,Spain without Cataluña and País Vasco
-2023,all,De 85 y más años,85+,16.0,0.0,0.0023,Spain without Cataluña and País Vasco
-2014,all,Se desconoce,Unknown,92.0,1.0,0.011,Spain without Cataluña and País Vasco
-2023,all,Se desconoce,Unknown,55.0,0.0,0.008,Spain without Cataluña and País Vasco
-2014,all,Subtotal,Subtotal,8401.0,235.0,1.0,Spain without Cataluña and País Vasco
-2023,all,Subtotal,Subtotal,6839.0,228.0,1.0,Spain without Cataluña and País Vasco
-2014,men,De 0 a 14 años,0-14,12.0,0.0,0.0019,Spain without Cataluña and País Vasco
-2023,men,De 0 a 14 años,0-14,17.0,0.0,0.0032,Spain without Cataluña and País Vasco
-2014,men,De 15 a 24 años,15-24,1158.0,28.0,0.185,Spain without Cataluña and País Vasco
-2023,men,De 15 a 24 años,15-24,1124.0,35.0,0.2114,Spain without Cataluña and País Vasco
-2014,men,De 25 a 34 años,25-34,1515.0,44.0,0.242,Spain without Cataluña and País Vasco
-2023,men,De 25 a 34 años,25-34,1119.0,53.0,0.2104,Spain without Cataluña and País Vasco
-2014,men,De 35 a 44 años,35-44,1461.0,53.0,0.2334,Spain without Cataluña and País Vasco
-2023,men,De 35 a 44 años,35-44,1020.0,32.0,0.1918,Spain without Cataluña and País Vasco
-2014,men,De 45 a 54 años,45-54,1082.0,48.0,0.1728,Spain without Cataluña and País Vasco
-2023,men,De 45 a 54 años,45-54,966.0,34.0,0.1816,Spain without Cataluña and País Vasco
-2014,men,De 55 a 64 años,55-64,537.0,13.0,0.0858,Spain without Cataluña and País Vasco
-2023,men,De 55 a 64 años,55-64,653.0,37.0,0.1228,Spain without Cataluña and País Vasco
-2014,men,De 65 a 74 años,65-74,282.0,12.0,0.045,Spain without Cataluña and País Vasco
-2023,men,De 65 a 74 años,65-74,260.0,10.0,0.0489,Spain without Cataluña and País Vasco
-2014,men,De 65 y más años,65+ (all),438.0,21.0,0.07,Spain without Cataluña and País Vasco
-2023,men,De 65 y más años,65+ (all),385.0,15.0,0.0724,Spain without Cataluña and País Vasco
-2014,men,De 75 a 84 años,75-84,144.0,8.0,0.023,Spain without Cataluña and País Vasco
-2023,men,De 75 a 84 años,75-84,109.0,5.0,0.0205,Spain without Cataluña and País Vasco
-2014,men,De 85 y más años,85+,12.0,1.0,0.0019,Spain without Cataluña and País Vasco
-2023,men,De 85 y más años,85+,16.0,0.0,0.003,Spain without Cataluña and País Vasco
-2014,men,Se desconoce,Unknown,57.0,1.0,0.0091,Spain without Cataluña and País Vasco
-2023,men,Se desconoce,Unknown,34.0,0.0,0.0064,Spain without Cataluña and País Vasco
-2014,men,Subtotal,Subtotal,6260.0,208.0,1.0,Spain without Cataluña and País Vasco
-2023,men,Subtotal,Subtotal,5318.0,206.0,1.0,Spain without Cataluña and País Vasco
-2014,women,De 0 a 14 años,0-14,1.0,0.0,0.0005,Spain without Cataluña and País Vasco
-2023,women,De 0 a 14 años,0-14,2.0,0.0,0.0013,Spain without Cataluña and País Vasco
-2014,women,De 15 a 24 años,15-24,384.0,1.0,0.1805,Spain without Cataluña and País Vasco
-2023,women,De 15 a 24 años,15-24,257.0,5.0,0.172,Spain without Cataluña and País Vasco
-2014,women,De 25 a 34 años,25-34,639.0,4.0,0.3003,Spain without Cataluña and País Vasco
-2023,women,De 25 a 34 años,25-34,368.0,7.0,0.2463,Spain without Cataluña and País Vasco
-2014,women,De 35 a 44 años,35-44,538.0,9.0,0.2528,Spain without Cataluña and País Vasco
-2023,women,De 35 a 44 años,35-44,335.0,5.0,0.2242,Spain without Cataluña and País Vasco
-2014,women,De 45 a 54 años,45-54,342.0,6.0,0.1607,Spain without Cataluña and País Vasco
-2023,women,De 45 a 54 años,45-54,310.0,2.0,0.2075,Spain without Cataluña and País Vasco
-2014,women,De 55 a 64 años,55-64,139.0,6.0,0.0653,Spain without Cataluña and País Vasco
-2023,women,De 55 a 64 años,55-64,153.0,3.0,0.1024,Spain without Cataluña and País Vasco
-2014,women,De 65 a 74 años,65-74,50.0,1.0,0.0235,Spain without Cataluña and País Vasco
-2023,women,De 65 a 74 años,65-74,46.0,0.0,0.0308,Spain without Cataluña and País Vasco
-2014,women,De 65 y más años,65+ (all),63.0,1.0,0.0296,Spain without Cataluña and País Vasco
-2023,women,De 65 y más años,65+ (all),60.0,0.0,0.0402,Spain without Cataluña and País Vasco
-2014,women,De 75 a 84 años,75-84,13.0,0.0,0.0061,Spain without Cataluña and País Vasco
-2023,women,De 75 a 84 años,75-84,14.0,0.0,0.0094,Spain without Cataluña and País Vasco
-2014,women,De 85 y más años,85+,0.0,0.0,0.0,Spain without Cataluña and País Vasco
-2023,women,De 85 y más años,85+,0.0,0.0,0.0,Spain without Cataluña and País Vasco
-2014,women,Se desconoce,Unknown,22.0,0.0,0.0103,Spain without Cataluña and País Vasco
-2023,women,Se desconoce,Unknown,9.0,0.0,0.006,Spain without Cataluña and País Vasco
-2014,women,Subtotal,Subtotal,2128.0,27.0,1.0,Spain without Cataluña and País Vasco
-2023,women,Subtotal,Subtotal,1494.0,22.0,1.0,Spain without Cataluña and País Vasco
+2014,all,De 0 a 14 años,0-14,13,0,0.0015,Spain without Cataluña and País Vasco
+2023,all,De 0 a 14 años,0-14,20,0,0.0029,Spain without Cataluña and País Vasco
+2014,all,De 15 a 24 años,15-24,1542,29,0.1835,Spain without Cataluña and País Vasco
+2023,all,De 15 a 24 años,15-24,1385,40,0.2025,Spain without Cataluña and País Vasco
+2014,all,De 25 a 34 años,25-34,2154,48,0.2564,Spain without Cataluña and País Vasco
+2023,all,De 25 a 34 años,25-34,1491,60,0.218,Spain without Cataluña and País Vasco
+2014,all,De 35 a 44 años,35-44,1999,62,0.2379,Spain without Cataluña and País Vasco
+2023,all,De 35 a 44 años,35-44,1358,37,0.1986,Spain without Cataluña and País Vasco
+2014,all,De 45 a 54 años,45-54,1424,54,0.1695,Spain without Cataluña and País Vasco
+2023,all,De 45 a 54 años,45-54,1279,36,0.187,Spain without Cataluña and País Vasco
+2014,all,De 55 a 64 años,55-64,676,19,0.0805,Spain without Cataluña and País Vasco
+2023,all,De 55 a 64 años,55-64,806,40,0.1179,Spain without Cataluña and País Vasco
+2014,all,De 65 a 74 años,65-74,332,13,0.0395,Spain without Cataluña and País Vasco
+2023,all,De 65 a 74 años,65-74,306,10,0.0447,Spain without Cataluña and País Vasco
+2014,all,De 65 y más años,65+ (all),501,22,0.0596,Spain without Cataluña and País Vasco
+2023,all,De 65 y más años,65+ (all),445,15,0.0651,Spain without Cataluña and País Vasco
+2014,all,De 75 a 84 años,75-84,157,8,0.0187,Spain without Cataluña and País Vasco
+2023,all,De 75 a 84 años,75-84,123,5,0.018,Spain without Cataluña and País Vasco
+2014,all,De 85 y más años,85+,12,1,0.0014,Spain without Cataluña and País Vasco
+2023,all,De 85 y más años,85+,16,0,0.0023,Spain without Cataluña and País Vasco
+2014,all,Se desconoce,Unknown,92,1,0.011,Spain without Cataluña and País Vasco
+2023,all,Se desconoce,Unknown,55,0,0.008,Spain without Cataluña and País Vasco
+2014,all,Subtotal,Subtotal,8401,235,1,Spain without Cataluña and País Vasco
+2023,all,Subtotal,Subtotal,6839,228,1,Spain without Cataluña and País Vasco
+2014,men,De 0 a 14 años,0-14,12,0,0.0019,Spain without Cataluña and País Vasco
+2023,men,De 0 a 14 años,0-14,17,0,0.0032,Spain without Cataluña and País Vasco
+2014,men,De 15 a 24 años,15-24,1158,28,0.185,Spain without Cataluña and País Vasco
+2023,men,De 15 a 24 años,15-24,1124,35,0.2114,Spain without Cataluña and País Vasco
+2014,men,De 25 a 34 años,25-34,1515,44,0.242,Spain without Cataluña and País Vasco
+2023,men,De 25 a 34 años,25-34,1119,53,0.2104,Spain without Cataluña and País Vasco
+2014,men,De 35 a 44 años,35-44,1461,53,0.2334,Spain without Cataluña and País Vasco
+2023,men,De 35 a 44 años,35-44,1020,32,0.1918,Spain without Cataluña and País Vasco
+2014,men,De 45 a 54 años,45-54,1082,48,0.1728,Spain without Cataluña and País Vasco
+2023,men,De 45 a 54 años,45-54,966,34,0.1816,Spain without Cataluña and País Vasco
+2014,men,De 55 a 64 años,55-64,537,13,0.0858,Spain without Cataluña and País Vasco
+2023,men,De 55 a 64 años,55-64,653,37,0.1228,Spain without Cataluña and País Vasco
+2014,men,De 65 a 74 años,65-74,282,12,0.045,Spain without Cataluña and País Vasco
+2023,men,De 65 a 74 años,65-74,260,10,0.0489,Spain without Cataluña and País Vasco
+2014,men,De 65 y más años,65+ (all),438,21,0.07,Spain without Cataluña and País Vasco
+2023,men,De 65 y más años,65+ (all),385,15,0.0724,Spain without Cataluña and País Vasco
+2014,men,De 75 a 84 años,75-84,144,8,0.023,Spain without Cataluña and País Vasco
+2023,men,De 75 a 84 años,75-84,109,5,0.0205,Spain without Cataluña and País Vasco
+2014,men,De 85 y más años,85+,12,1,0.0019,Spain without Cataluña and País Vasco
+2023,men,De 85 y más años,85+,16,0,0.003,Spain without Cataluña and País Vasco
+2014,men,Se desconoce,Unknown,57,1,0.0091,Spain without Cataluña and País Vasco
+2023,men,Se desconoce,Unknown,34,0,0.0064,Spain without Cataluña and País Vasco
+2014,men,Subtotal,Subtotal,6260,208,1,Spain without Cataluña and País Vasco
+2023,men,Subtotal,Subtotal,5318,206,1,Spain without Cataluña and País Vasco
+2014,women,De 0 a 14 años,0-14,1,0,0.0005,Spain without Cataluña and País Vasco
+2023,women,De 0 a 14 años,0-14,2,0,0.0013,Spain without Cataluña and País Vasco
+2014,women,De 15 a 24 años,15-24,384,1,0.1805,Spain without Cataluña and País Vasco
+2023,women,De 15 a 24 años,15-24,257,5,0.172,Spain without Cataluña and País Vasco
+2014,women,De 25 a 34 años,25-34,639,4,0.3003,Spain without Cataluña and País Vasco
+2023,women,De 25 a 34 años,25-34,368,7,0.2463,Spain without Cataluña and País Vasco
+2014,women,De 35 a 44 años,35-44,538,9,0.2528,Spain without Cataluña and País Vasco
+2023,women,De 35 a 44 años,35-44,335,5,0.2242,Spain without Cataluña and País Vasco
+2014,women,De 45 a 54 años,45-54,342,6,0.1607,Spain without Cataluña and País Vasco
+2023,women,De 45 a 54 años,45-54,310,2,0.2075,Spain without Cataluña and País Vasco
+2014,women,De 55 a 64 años,55-64,139,6,0.0653,Spain without Cataluña and País Vasco
+2023,women,De 55 a 64 años,55-64,153,3,0.1024,Spain without Cataluña and País Vasco
+2014,women,De 65 a 74 años,65-74,50,1,0.0235,Spain without Cataluña and País Vasco
+2023,women,De 65 a 74 años,65-74,46,0,0.0308,Spain without Cataluña and País Vasco
+2014,women,De 65 y más años,65+ (all),63,1,0.0296,Spain without Cataluña and País Vasco
+2023,women,De 65 y más años,65+ (all),60,0,0.0402,Spain without Cataluña and País Vasco
+2014,women,De 75 a 84 años,75-84,13,0,0.0061,Spain without Cataluña and País Vasco
+2023,women,De 75 a 84 años,75-84,14,0,0.0094,Spain without Cataluña and País Vasco
+2014,women,De 85 y más años,85+,0,0,0,Spain without Cataluña and País Vasco
+2023,women,De 85 y más años,85+,0,0,0,Spain without Cataluña and País Vasco
+2014,women,Se desconoce,Unknown,22,0,0.0103,Spain without Cataluña and País Vasco
+2023,women,Se desconoce,Unknown,9,0,0.006,Spain without Cataluña and País Vasco
+2014,women,Subtotal,Subtotal,2128,27,1,Spain without Cataluña and País Vasco
+2023,women,Subtotal,Subtotal,1494,22,1,Spain without Cataluña and País Vasco

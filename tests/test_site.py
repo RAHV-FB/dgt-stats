@@ -111,11 +111,23 @@ def test_policy_page_reports_both_interventions(built: Path) -> None:
     assert f"placebo rank {rank} of {len(placebo)}" in text
     assert "coincided" in text and "Penal Code" in text
     speed = pd.read_csv(TABLES_DIR / "q8_speed_placebo.csv")
-    fake_2018 = speed[speed.break_date == "2018-01-01"].iloc[0]
-    if fake_2018.high < 0:
-        assert "The design fails its own check" in text
-    else:
-        assert "Both placebos are near zero" in text
+    fakes = speed[~speed.is_true]
+    # Both placebo estimates are quoted on the page, whichever branch its wording takes, and the
+    # design is said to fail when a placebo interval excludes zero in either direction.
+    for value in fakes.level_change:
+        assert f"{value * 100:+.1f}%" in text
+    fails = bool(((fakes.low > 0) | (fakes.high < 0)).any())
+    assert ("The design fails its own check" in text) == fails
+    # The 2006 sensitivity list follows the sign of each variant's upper bound.
+    phrases = {
+        "24h": "the 24-hour definition",
+        "interurban": "the interurban series",
+        "fleet_offset": "the fleet offset",
+        "negative_binomial": "a negative-binomial fit",
+    }
+    for row in sensitivity.itertuples():
+        if row.variant in phrases:
+            assert (phrases[row.variant] in text) == bool(row.level_high < 0)
     index = (built / "index.html").read_text(encoding="utf-8")
     assert 'href="policy.html"' in index
 

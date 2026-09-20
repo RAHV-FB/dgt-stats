@@ -288,7 +288,7 @@ L 327.893366 190.151998
 L 378.620639 180.615329 
 L 429.347912 172.951934 
 L 480.075185 177.039078 
-" clip-path="url(#pf0436def2c)" style="fill: none; stroke: #eb6834; stroke-width: 2; stroke-linecap: round"/>
+" clip-path="url(#pf0436def2c)" style="fill: none; stroke-dasharray: 7.4,3.2; stroke-dashoffset: 0; stroke: #eb6834; stroke-width: 2"/>
    </g>
    <g id="line2d_27">
     <defs>
@@ -341,7 +341,7 @@ L 80.066094 300.896479
      <path d="M 152.727031 300.896479 
 L 161.727031 300.896479 
 L 170.727031 300.896479 
-" style="fill: none; stroke: #eb6834; stroke-width: 2; stroke-linecap: round"/>
+" style="fill: none; stroke-dasharray: 7.4,3.2; stroke-dashoffset: 0; stroke: #eb6834; stroke-width: 2"/>
     </g>
     <g id="text_22">
      <text style="font-size: 9px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start; fill: #0b0b0b" x="177.927031" y="304.046479" transform="rotate(-0 177.927031 304.046479)">Urban</text>

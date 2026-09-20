@@ -82,11 +82,6 @@ def test_series_based_summaries() -> None:
     assert row.deaths_30d == 320
 
 
-def test_registry_names_are_prefixed_by_question() -> None:
-    questions = {"q1", "q2", "q4", "q5", "q6", "q7", "q8", "q9"}
-    assert all(name.split("_")[0] in questions for name in summaries.SUMMARIES)
-
-
 def test_province_rates_cover_every_province() -> None:
     provinces = summaries.province_rates()
     assert len(provinces) == 53 and provinces.is_total.sum() == 1
@@ -141,6 +136,20 @@ def test_licence_share_victims_and_movilia() -> None:
     assert travel.car_share_of_trips.between(0, 1).all()
 
 
-def test_registry_covers_phases_2_to_7() -> None:
+def test_registry_covers_every_question_except_the_models() -> None:
+    # Q3 is the severity model; its tables are written by scripts/model.py, not the registry.
     questions = {name.split("_")[0] for name in summaries.SUMMARIES}
     assert questions == {"q1", "q2", "q4", "q5", "q6", "q7", "q8", "q9"}
+
+
+def test_annual_rates_and_month_zone() -> None:
+    rates = summaries.annual_rates()
+    assert len(rates) == 32 and rates.year.min() == 1993 and rates.year.max() == 2024
+    fleet = rates.set_index("year").vehicle_fleet
+    assert fleet.loc[2022] == 35_668_443  # the register total behind the vehicles page
+    assert fleet.loc[2024] == 36_241_784
+
+    mz = summaries.month_zone()  # pooled 2016–2024
+    assert set(mz.zone) == {"interurban", "urban"}
+    assert len(mz) == 24 and (mz.groupby("zone", observed=True).size() == 12).all()
+    assert mz.crashes.sum() == 875_013 and mz.deaths_30d.sum() == 15_441

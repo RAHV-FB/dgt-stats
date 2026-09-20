@@ -290,7 +290,7 @@ def check_census_age(census_tables: pd.DataFrame, census_text: pd.DataFrame) -> 
     for row in tables.itertuples():
         got = text.get(row.band)
         expected = float(row.n_drivers)
-        tolerance = CENSUS_AGE_TOLERANCE * expected if row.band != "unknown" else float("inf")
+        tolerance = CENSUS_AGE_TOLERANCE * expected
         results.append(
             Result(
                 "census_age_2023",
@@ -362,9 +362,10 @@ def check_vehicle_tables(
     """Checks 9 and 10: the yearbook vehicle tables against the microdata, 2020–2024.
 
     TABLA 2.3 vehicles involved (its total less pedestrians) must be within 0.1 % of the microdata
-    ``TOTAL_VEHICULOS`` sum (2024 is published with a 66-vehicle gap). TABLA 2.2 deaths by means of
-    transport, summed over drivers, passengers and pedestrians and over both zones, must equal the
-    microdata ``TOT_*_MU30DF`` columns exactly for every vehicle group.
+    ``TOTAL_VEHICULOS`` sum (exact in 2020–2022; 2023 and 2024 are published 48 and 66 vehicles
+    short). TABLA 2.2 deaths by means of transport, summed over drivers, passengers and pedestrians
+    and over both zones, must equal the microdata ``TOT_*_MU30DF`` columns exactly for every vehicle
+    group.
     """
     results: list[Result] = []
     pedestrian_units = vehicles.VEHICLE_GROUPS["pedestrian"]["units"]

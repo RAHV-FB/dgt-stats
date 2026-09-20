@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from functools import cache
 
+import numpy as np
 import pandas as pd
 
 from dgt_stats import (
@@ -185,6 +186,31 @@ def hour_band_by_road_group() -> pd.DataFrame:
     out["fatal_share"] = (out.fatal_crashes / out.crashes).round(4)
     out["road_group_label"] = out.road_group.map(labels.ROAD_GROUPS)
     out["hour_band_label"] = out.hour_band.map(labels.HOUR_BANDS)
+    return out
+
+
+def other_road_by_period() -> pd.DataFrame:
+    """The "other" road group before and from 2024, when Barcelona starts coding streets as "other".
+
+    One row per period (``2016-2023`` and ``2024``): crashes, their share of the pooled row, the share
+    on urban streets (``ZONA`` 3) and the fatal share. The timing page reads it beside the pooled
+    hour-band table, whose "other" row mixes the two.
+    """
+    crashes = read_crashes(["ANYO", "road_group", "ZONA", "fatal"])
+    other = crashes[crashes.road_group == "other"].copy()
+    other["period"] = np.where(other.ANYO >= 2024, "2024", "2016-2023")
+    out = (
+        other.groupby("period")
+        .agg(
+            crashes=("fatal", "size"),
+            fatal_crashes=("fatal", "sum"),
+            street_crashes=("ZONA", lambda z: int((pd.to_numeric(z, errors="coerce") == 3).sum())),
+        )
+        .reset_index()
+    )
+    out["share_of_row"] = (out.crashes / out.crashes.sum()).round(4)
+    out["street_share"] = (out.street_crashes / out.crashes).round(4)
+    out["fatal_share"] = (out.fatal_crashes / out.crashes).round(4)
     return out
 
 
@@ -426,8 +452,9 @@ def car_travel_profile(year: int, sex: str = "total") -> pd.Series:
 
     Trips by "coche o moto" per resident are computed for the MOVILIA bands (2006 population), given
     to every five-year INE group inside them, averaged into the analysis bands with ``year``'s
-    population, and scaled so the population-weighted mean over 15–74 is 1 (the ESRA age range).
-    The 75+ band inherits the 65+ intensity.
+    population, and scaled so the population-weighted mean over 15–74 is 1 (the analysis bands that
+    overlap the ESRA range of 18–74; the 15–24 band includes three ages below it, and its share is
+    capped by the licence share). The 75+ band inherits the 65+ intensity, MOVILIA's oldest band.
     """
     intensity = _movilia_intensity(sex)
     groups = io_population.population(year, sex=sex)
@@ -687,6 +714,7 @@ SUMMARIES = {
     "q2_month_zone": month_zone,
     "q2_night_share": night_share_by_year_zone,
     "q2_hour_band_road_group": hour_band_by_road_group,
+    "q2_other_road_by_period": other_road_by_period,
     "q5_deaths_by_road_user": deaths_by_road_user,
     "q5_vulnerable_share": vulnerable_share_by_year,
     "q5_driver_deaths_series": driver_deaths_series,
