@@ -1,122 +1,214 @@
 # Methodology
 
-> **As built (September 2026).** This note was written before the data were audited. Each section
-> keeps its original text and gains a status line: done (with where to see it), reframed (with what
-> replaced it) or requires data the project does not have. The scope decisions are in
-> [`analytics_plan.md`](analytics_plan.md); the results are on the site.
+How the numbers on the site are made, as built (September 2026). The planning document that
+preceded the data audit is superseded by this one; the scope decisions it forced are in
+[`analytics_plan.md`](analytics_plan.md) and the per-phase plans, and the reasons the project could
+not do what it first set out to do are in the README. Every method below names the module that
+implements it.
 
-## 1. Units of analysis
+## 1. Units and sources
 
-**Status: reframed.** The public microdata are one row per injury crash; DGT does not publish the vehicle or person files, so only the `crashes` and `exposure` tables exist (`data/processed/accidentes.parquet`, the interim exposure tables). `roads` requires geometry that is not in the data; `interventions` became the two dated changes on the policy page.
+The public DGT crash microdata are one row per injury crash: 875,013 rows for 2016–2024, with the
+place, time, road, conditions and victim counts by severity and road-user type. There are no
+vehicle or person rows, so nothing here is estimated at the driver, vehicle or victim level; where
+the site speaks of drivers it uses DGT's aggregate yearly tables, which count drivers by age, sex,
+vehicle and recorded infraction but cannot be linked to crashes.
 
-DGT sources may describe different entities: crashes, vehicles, drivers, passengers and casualties. These units must remain separate until explicit keys and relationship cardinalities are documented.
+| Source | Unit | Years | Used for |
+|---|---|---|---|
+| crash microdata | injury crash | 2016–2024 | timing, road users, severity models, 2019 case study, occupant deaths by vehicle |
+| yearbook series | year, month or province totals | 1993–2024 | trends, 2006 case study, reference totals for reconciliation |
+| yearly statistical tables | aggregate cells | 2014–2024 | vehicles involved, victims by mode, drivers by age, sex and infraction |
+| driver census | licence holders by province, sex, age | 2014–2025 | denominators |
+| INE population | residents by province, age, sex | 2002–2025 | denominators |
+| ITV kilometre estimates | fleet and mean km by vehicle type and age | 2022 | per-km rates |
+| DGT speed report | annex tables transcribed from the PDF | 2014–2023 | speed page, as published |
 
-Planned core tables:
+Raw files are never edited (`data/raw/`, listed in `manifest.csv` with SHA-256 and source URL).
+`ingest.py` parses them into typed Parquet tables (`data/interim/`), `build_tables.py` adds the
+derived fields (`data/processed/`), and every result table and figure is written by `model.py` and
+`analyse.py` from those layers. The site reads only the committed result tables.
 
-- `crashes`: one row per recorded crash;
-- `vehicles`: one row per vehicle involved in a crash;
-- `people`: one row per involved person or casualty, depending on source coverage;
-- `exposure`: denominator observations by time, geography, road or vehicle group;
-- `roads`: road-segment and junction characteristics; and
-- `interventions`: campaigns, enforcement periods and policy changes.
+## 2. Reconciliation before analysis
 
-## 2. Outcomes and denominators
+No summary is published until the interim layer reconciles with DGT's own totals
+(`validate.py`, 434 checks, all enforced by `tests/test_validate.py`):
 
-**Status: done.** Incidence and involvement rates per resident, licence holder, travel-weighted driver, registered vehicle and vehicle-kilometre are on the geography, older-drivers and vehicles pages; severity conditional on a crash is the severity page. Every rate states its numerator, denominator, geography and period.
+| Check | What must agree | Tolerance |
+|---|---|---|
+| row_count, victim_total | crashes, deaths, hospitalised and non-hospitalised per year against the yearbook, 30-day and 24-hour | exact |
+| table_1_1_province, table_3_1_month | 2024 crashes and deaths by province and by month against the 2024 tables | exact |
+| unique_key, code_domain | one identifier per crash and year; every code in the dictionary or a documented missing state | exact |
+| driver_deaths | driver deaths in tables 4.1.1 against the series, 2014–2024, both zones | exact |
+| table_2_2_deaths | deaths by means of transport in tables 2.2 against the microdata death columns, 2020–2024 | exact |
+| table_2_3_vehicles | vehicles involved in tables 2.3 against the microdata vehicle count, 2020–2024 | 0.1 % |
+| census_2025, census_age_2023 | the census text files against the published census tables | 0.5 % and 2 % |
+| table_6_1_drivers | the six blocks of table 6.1 share one total, within 1.5 % of table 4.2 | 1.5 % |
 
-The project will distinguish at least three questions:
+Where two publications of the same quantity differ, one is kept for as long as it exists rather
+than mixing them: licence holders by age come from the published class-by-age tables to 2023 and
+the text files from 2024; 24-hour and 30-day deaths are never combined; provisional figures are not
+used.
 
-1. **Crash incidence:** how often crashes occur relative to exposure.
-2. **Crash involvement:** how often a road-user or vehicle group is involved relative to its exposure.
-3. **Crash severity:** the probability or ordered level of injury conditional on a recorded crash.
+## 3. Definitions and derived fields (`derive.py`, `codes.py`)
 
-Candidate metrics include crashes, serious injuries or fatalities per 100 million vehicle-kilometres; involvement per 10,000 registered vehicles; and casualties per 100,000 population. Each published rate must state its numerator, denominator, geography, period and inclusion rules.
+- **Injury crash**: at least one person killed or injured. **Death**: within 30 days. **Serious
+  crash**: at least one death or one person admitted to hospital for more than 24 hours. A crash
+  is `fatal` when its 30-day death count is positive.
+- **Zone**: DGT's grouped zone, interurban road or urban street and crossing. **Road group**:
+  motorway (motorway and urban motorway codes), dual carriageway (dual carriageway and multi-lane),
+  conventional (conventional with and without shoulder), urban street, other.
+- **Time of day**: six bands, 00:00–06:59 the first. **Night** on the timing page means the
+  lighting was recorded as dark (with or without street lighting or at dusk), not a clock hour.
+  **Weekend**: Saturday, Sunday and Friday from 20:00.
+- **Vulnerable road users**: pedestrians, cyclists, moped riders, motorcyclists and personal
+  mobility vehicle users, summed from the death columns by type.
+- **Missing states**. Four are kept apart in every table: not specified (999), not applicable (998),
+  an explicit unknown code (six fields have one) and an empty cell. Each condition column has a
+  `status_*` companion that names the state, the data page profiles them by year, and no analysis
+  drops a row for a missing value. Two undocumented quirks are handled as stated on the data page:
+  code 0 in the island field from 2018 and the strong-wind flag in 2021.
 
-## 3. Factor attribution
+## 4. Rates and intervals (`rates.py`, `summaries.py`)
 
-**Status: requires person-level data.** Neither alcohol nor speed is in the crash-level file, so the interaction model was not estimable. The speed page describes the police judgement the two aggregate sources record, with the share of drivers who have no record at all; the severity models use the crash circumstances instead.
+Counts of deaths, crashes or involved drivers are treated as Poisson with a known denominator, and
+every rate carries an exact 95 % interval (Garwood, from the chi-square quantiles). Ratios of two
+rates carry a log-normal interval. Survey shares carry Wilson intervals.
 
-Police-recorded contributory factors are observations, not complete causal explanations. Detection may depend on crash severity, enforcement practice, testing, survivorship and investigator judgement.
+Denominators, each named on the page that uses it:
 
-For alcohol and speed, the first model will estimate an interpretable specification such as:
+- **Residents**: INE's estimate on 1 July of the year, by province and five-year age group.
+- **Licence holders**: DGT's census at its reference date, people holding any driving permit or a
+  moped or agricultural licence, by province, sex and age band.
+- **Travel-weighted drivers** (older-drivers page only): the ESRA share of adults who drive,
+  interpolated between the 2018 and 2023 waves and held flat outside them, spread across age bands
+  in proportion to the MOVILIA 2006 car-travel profile and capped at the licence-holding share of
+  the band. It is a weight for how much each band travels by car, not a count of drivers. MOVILIA
+  counts passengers as well as drivers, so the estimate overstates older people's driving and the
+  per-driver ratio it yields is a lower bound; the page says so.
+- **Drivers involved in injury crashes**: from tables 4.2, giving deaths per 1,000 involved drivers
+  (fatality given involvement) and involvement per 10,000 licence holders. Drivers of unknown age
+  (about 3 % of those involved, 0.4 % of those killed) are left out of the age-band rates.
+- **Registered vehicles and vehicle-kilometres**: section 6.
 
-```text
-severity ~ alcohol + speed + alcohol:speed + road + weather + time + driver + vehicle controls
-```
+Province rates are shown with their intervals and ranked; small provinces are flagged where their
+intervals span most of the range. Age comparisons are ratios of the 65+ and 75+ bands to 35–64
+under each denominator in turn, because the answer changes with the denominator and the page is
+built to show that.
 
-The interaction term tests whether the association of one factor changes in the presence of the other. It does not by itself establish that one factor caused the other or that either is the sole cause of the crash.
+## 5. Severity models (`features.py`, `models.py`, `scripts/model.py`)
 
-If alcohol plausibly changes speed choice, speed may act as a mediator. Estimating direct and indirect effects would require temporal ordering, confounder assumptions and stronger measurement than a basic crash record may provide. The project will state when that analysis is not identifiable.
+Two logistic regressions on all 875,013 crashes: the odds that a crash is fatal, and that it is
+serious. Predictors are the circumstances the crash record carries: zone, road group, crash type,
+junction, lighting, weather, surface, alignment, time of day, weekend, number of vehicles and year.
+Each is an ordered categorical whose reference is its most common level, so an odds ratio reads
+"relative to the typical crash". Missing states are levels of their own. A level with fewer than
+500 crashes is merged into its reference and the grouping table on the page records it; the
+"not applicable" alignment code, which is exactly the street zone, folds into "straight" for the
+same reason.
 
-## 4. Selection and missingness
+The fit is main effects only, by iteratively reweighted least squares written in `numpy` (the
+`statsmodels` route ran out of memory on the design), with a cluster-robust sandwich covariance by
+province. It reports odds ratios with 95 % intervals, average marginal effects in probability
+points (every crash set to a level, then to the reference, and the mean predicted probabilities
+compared), predicted probabilities for six named crash profiles, and three checks:
 
-**Status: done.** The five states are kept apart in every table, profiled by year on the data page, and enter the severity models as their own levels rather than being dropped; no complete-case analysis was run.
+- **Holdout**: fit on 2016–2022 without the year terms, scored on 2023–2024; area under the ROC
+  curve, Brier score against the base rate, and calibration by decile of predicted probability.
+- **Stability**: the ten largest effects refitted year by year without clustering; a level whose
+  yearly estimate leaves the full model's interval is named on the page. The 2024 change in DGT's
+  road-type coding shows up here, and the page says road type and zone must be read together.
+- **Separation**: a level with no events in a fit is left out and listed rather than estimated.
 
-A database containing only crashes conditions on crash occurrence. Comparing alcohol-positive and alcohol-negative drivers within that database can answer questions about recorded crash characteristics or severity, but not the population risk of crashing without non-crash exposure data.
+The models describe association between recorded circumstances and outcome. They carry no
+driver, vehicle, speed or impairment information, so they cannot attribute a death to a factor and
+the page does not.
 
-Missingness will be profiled by year, geography, severity and enforcement context. The following states must not be collapsed:
+## 6. Vehicles per kilometre (`vehicles.py`)
 
-- negative or absent;
-- not tested or not measured;
-- unknown;
-- not applicable; and
-- structurally unavailable in a given year.
+A 2022 cross-section. The numerator is vehicles involved in fatal crashes, from the microdata
+vehicle-type columns reconciled with table 2.3, and occupant deaths by vehicle from table 2.2 and
+the yearbook series. The denominator is DGT's ITV estimate of the registered fleet and its mean
+annual kilometres by vehicle type and age, which the methodology note derives from annualised
+odometer readings at roadworthiness inspections and which is valid for aggregates only.
 
-Complete-case analysis will not be the default if missingness is substantial or systematic. Sensitivity analyses and, where justified, multiple imputation will be considered.
+Six rate groups: motorcycles, mopeds, cars, vans with light trucks, heavy trucks, buses. Vans and
+light trucks are one group because the crash record codes most light commercial vehicles as vans
+while the register splits them, so only the sum means the same thing in numerator and denominator.
+Heavy trucks include tractor units and articulated vehicles because the kilometre table's heavy
+category is the sum of the note's "camiones de más de 3.500 kg" and "tractores industriales". Rates
+are per billion vehicle-kilometres and per 100,000 registered vehicles, with Poisson intervals. The
+seven kilometre-table types cover 91 % of the fleet; the rest has no denominator and no rate.
 
-## 5. Modelling sequence
+## 7. Interrupted time series (`policy.py`)
 
-**Status: done to step 6.** Steps 1 to 4 and 6 are the validation report, the descriptive pages, the rate pages and the severity models with calibration, holdout and per-year stability. Step 5's pre-specified interaction needed the missing person fields; step 7 was not reached, by design.
+Two policy changes with a legal date and a clean window; the page uses "coincided with" unless the
+pre-trend, the placebo distribution and the sensitivity fits agree, and it makes no claim when they
+do not.
 
-1. Validate source totals and schemas.
-2. Produce descriptive distributions and missingness profiles.
-3. Calculate exposure-adjusted rates with confidence intervals.
-4. Fit transparent baseline models.
-5. Add pre-specified interactions and nonlinear terms.
-6. Check calibration, residual patterns, influential observations and temporal/geographic stability.
-7. Compare predictive models only after a defensible baseline exists.
+**Points-based licence, 1 July 2006**: a segmented Poisson regression of the yearbook's monthly
+30-day deaths on a linear trend, eleven month-of-year terms, a level change at July 2006 and a
+slope change after it, fitted from January 2000 to November 2007 (the month before the Penal Code
+reform on driving offences) with Newey–West standard errors at twelve lags. The level change is
+reported as a percentage with its interval, together with the raw twelve-month comparison and the
+pre-trend, so the two can be read against each other. Placebos re-estimate the level change with
+the break at every month that leaves at least 24 months before it and the true post-window length
+after it, ending before July 2006, and the true estimate's rank among them is printed. Sensitivity
+fits: 24-hour deaths; interurban and urban deaths separately; a log fleet offset (registered
+vehicles interpolated between mid-years); a negative binomial whose dispersion is set by moments
+from the Poisson fit (the likelihood search did not converge reliably when the data are close to
+Poisson); and the window extended to December 2009 with a second break at the Penal Code reform.
 
-Likely methods include Poisson or negative-binomial models for counts, logistic or ordinal models for severity, multilevel models for geographic clustering and survival-style exposure models where appropriate.
+**90 km/h limit on conventional roads, 29 January 2019**: monthly deaths by road group from the
+microdata, conventional roads against motorways and dual carriageways, January 2016 to February
+2020, a Poisson regression with month-of-year terms, a group term, a post term and the post ×
+conventional interaction as the estimate, with Newey–West errors computed within each group. Two
+placebo breaks (January 2017 and 2018) test whether the two groups were already diverging; the
+extended fit through December 2024 adds lockdown (March–June 2020) and restriction (July 2020 to
+December 2021) periods as their own terms. The January 2018 placebo is as large as the estimate, so
+the page reports the numbers and draws no conclusion about the limit.
 
-## 6. Road design analysis
+## 8. Speed factor (`speed.py`, `io_reports.py`)
 
-**Status: requires road data.** No coordinates, segment identifiers, traffic volumes or road attributes beyond type, junction, alignment, surface and lighting are available; those enter the severity models as covariates. Nothing on the list below was possible.
+Two aggregate sources, neither linkable to crashes. Tables 6.1 count drivers involved by recorded
+infraction, 2014–2024, interurban and urban; the site shows the share of drivers with no speed
+record beside the share with one, and gives the infraction share both over all drivers and among
+those with a record, with Wilson intervals, because the unrecorded share changed from 17 % to 52 %
+in 2016 and a single share would hide it. The DGT speed-factor report's 61 annex tables are
+transcribed from the PDF text; every row carries the report's regional scope (Spain without
+Cataluña and País Vasco, 28 % of injury crashes), and its figures are never added to yearbook
+totals. Where the report's own unknown category dominates a breakdown (the speed limit in 2014),
+the page compares shares among the known categories and says so. "Speed factor" throughout means
+the police officer's recorded judgement of inappropriate speed, not a measurement.
 
-Road-design analysis requires a segment or junction denominator. Mapping crash points alone identifies concentrations of recorded crashes but may simply identify the busiest roads.
+## 9. Figures, pages and wording
 
-Planned approach:
+Figures are matplotlib SVG with no date metadata, so a rebuild changes nothing unless a number
+changes. One axis per chart, intervals drawn where they exist, direct labels where a legend would
+be ambiguous, colour never the only encoding. Every sentence on a page that contains a number is
+computed from the result tables at build time, including the digest on the front page, so the
+prose cannot contradict the tables; conditional sentences (a rank, a placebo that passes or fails)
+are gated on the same values. Tests check that every internal link and anchor resolves, every
+image has alt text, every page has one heading, a description and no script.
 
-- geocode or use supplied coordinates with documented accuracy;
-- map crashes to road segments and junction influence areas;
-- join traffic volume, speed limit and road attributes;
-- account for spatial clustering and regression to the mean;
-- compare observed counts with exposure-based expectations; and
-- treat before/after infrastructure evaluations separately from cross-sectional associations.
+## 10. Reproducibility
 
-## 7. Campaign and policy evaluation
+- Raw inputs immutable and manifested; interim and processed layers rebuilt from them by the
+  command sequence in the README, which was run end to end from an empty interim layer and
+  reproduced every committed table, figure and page byte for byte.
+- All logic in `src/dgt_stats/` and `scripts/`; no notebooks. No random procedure is used: the
+  fits are deterministic and need no seed.
+- 140 tests, the reconciliation checks among them; `ruff` for lint and format.
+- The Pages workflow renders the site from the committed tables and never rebuilds the data.
 
-**Status: done for two interventions.** The policy page runs an interrupted time series for the July 2006 points licence with placebo breaks and sensitivity fits, and a difference-in-differences series for the January 2019 speed limit against untreated roads, which fails its placebo. No campaign register exists, so no synthetic control or event study was attempted.
+## 11. Limits that apply throughout
 
-A simple comparison immediately before and after a campaign is vulnerable to seasonality, traffic changes and concurrent policies.
-
-Preferred designs:
-
-- interrupted time series with sufficient pre- and post-intervention observations;
-- difference-in-differences with a defensible comparison group;
-- synthetic control for a major geographically specific intervention; or
-- event-study estimates that make pre-trends visible.
-
-Each evaluation will define the intervention date, target population, expected mechanism, outcome window and possible spillovers before modelling.
-
-## 8. Reproducibility and reporting
-
-**Status: done.** Raw inputs are immutable and manifested, all logic is in `src/` and `scripts/` (no notebooks were written), 140 tests and 434 reconciliation checks run, every table and figure is generated, limitations sit beside the results, and the policy page's wording separates coincidence from attribution.
-
-- Raw inputs are immutable.
-- Cleaning logic belongs in `src/` or `scripts/`, not only in notebooks.
-- Tests will enforce schemas, key uniqueness, value ranges and reconciliation totals.
-- Random procedures use fixed seeds.
-- Tables and charts are generated from code.
-- Estimates include uncertainty and sample sizes.
-- Limitations appear beside the relevant result, not only in a final disclaimer.
-- Findings will be separated into descriptive evidence, model-based associations and causal estimates.
+- Crash-level records only: no driver age, sex, alcohol, drug, speed, belt or helmet fields, so
+  factor interactions and person-level risk are out of reach.
+- Police-recorded circumstances, whose completeness varies by year (the missingness profile) and
+  by severity.
+- All model results are associations; the case studies are coincidences in time unless the checks
+  above agree.
+- Vehicle-kilometres exist for one year; the speed report excludes two regions; the 2024
+  road-type coding differs from earlier years; two publications of the driver census by age differ
+  by up to 1.1 %.
