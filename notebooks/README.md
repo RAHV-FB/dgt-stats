@@ -1,8 +1,9 @@
 # Notebooks
 
-None were written, and none are planned. The analytics plan listed eleven explanatory notebooks
-(`00_source_audit` to `10_speed_context`, one per question). By the time the results existed, three
-things had taken their place:
+None were written, and none are planned. The analytics plan listed ten explanatory notebooks
+(`00_source_audit` to `09_speed_context`: a source audit, a validation notebook and one per
+question, with Q5 and Q7 sharing one). By the time the results existed, three things had taken
+their place:
 
 - the scripts in `scripts/` run the whole pipeline from the raw files to the site, each step
   idempotent and logged;

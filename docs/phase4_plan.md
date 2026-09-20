@@ -1,7 +1,7 @@
 # Phase 4: crash severity models
 
 Plan date: 19 September 2026. Phase 4 of [`analytics_plan.md`](analytics_plan.md) is question Q3:
-given that an injury crash happened, what makes it fatal or serious? It is the fourth of nine phases
+given that an injury crash happened, what makes it fatal or serious? It is the fifth of nine phases
 (0 to 8); after it, four remain (5 exposure case study, 6 policy case study, 7 speed and context,
 8 publish). Same working rules: Python only, one commit per step on branch `phase-4`, `ruff` and
 `pytest` before each commit, tables and figures committed, static HTML output, squash-merge at the end.
@@ -93,7 +93,7 @@ All five steps are merged. What was built, with the deviations from the design a
   `figures.py` adds forest, calibration, stability and predicted-grid figures, `site.py` adds
   `severity.html`. Eight result tables (`q3_*.csv`), five figures.
 - The fit is a hand-written IRLS with a cluster-robust sandwich (`numpy`), not `statsmodels`: the
-  GLM route was killed for memory on the 875,013-row design in a 16 GB container. The two agree on
+  GLM fits ran out of memory in `statsmodels` on the 875,013-row design. The two agree on
   synthetic data to the third decimal; the whole script runs in about two minutes.
 - Alignment code 998 (not applicable) is exactly the street zone, so it cannot be a level next to
   zone; it folds into the reference ("straight"). Levels with fewer than 500 crashes (three of them,

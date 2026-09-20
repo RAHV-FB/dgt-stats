@@ -52,13 +52,14 @@ Everything below is plain Python modules in `src/dgt_stats/` with thin scripts i
 
 ```text
 data/raw/**  (xlsx, txt, pdf)
-   │  scripts/ingest.py           (once; ~3 min for all microdata years)
+   │  scripts/ingest.py all       (once; about 6 min, most of it the nine microdata workbooks)
    ▼
 data/interim/*.parquet            harmonised names and types, original codes kept
    │  scripts/build_tables.py     (seconds)
    ▼
 data/processed/*.parquet          decoded labels, derived fields, analysis tables
-   │  scripts/analyse.py          (fits models, writes CSV results and SVG charts)
+   │  scripts/model.py            (the severity models, q3_*.csv, about 30 s)
+   │  scripts/analyse.py all      (the other result tables, rates, ITS, speed summaries; SVG charts and captions)
    ▼
 reports/tables/*.csv, reports/figures/*.svg
    │  scripts/build_site.py
@@ -78,9 +79,13 @@ site/*.html + site/style.css      static site, publishable with GitHub Pages
 | `derive.py` | `fatal`, `serious`, `hour_band`, `road_group`, `night`, `n_vulnerable_deaths`, `year` |
 | `validate.py` | reconciliation against the yearbook, key uniqueness, code domains, per-year missingness profile |
 | `rates.py` | rate and Poisson/Wilson confidence-interval helpers |
-| `models.py` | the logistic severity model and the ITS count model, returning tidy coefficient tables |
+| `models.py` | the logistic severity models (features in `features.py`); the interrupted time series are in `policy.py` |
 | `plots.py` | matplotlib defaults, one function per chart type, always writes SVG |
 | `site.py` | render pages from a small string-template layout, no external template engine required |
+
+Modules added in later phases: `labels`, `summaries`, `figures` (phase 2), `agebands`,
+`io_population`, `io_activity` (3), `features` (4), `vehicles` (5), `policy` (6), `io_reports`,
+`speed` (7).
 
 ### Derived fields
 
@@ -111,9 +116,8 @@ site/*.html + site/style.css      static site, publishable with GitHub Pages
 - One `index.html` with the headline numbers and links, one page per question in section 2, and a
   `data.html` page that reproduces the inventory and validation results.
 - Charts are SVG files produced by matplotlib, embedded with `<img>`; tables are plain `<table>` elements
-  written from pandas with `to_html`.
-- One `style.css` (readable widths, system fonts, light and dark colour scheme via
-  `prefers-color-scheme`). No JavaScript.
+  written by `site.table()`.
+- One `style.css` (readable widths, system fonts, light colour scheme only). No JavaScript.
 - Every chart and table carries: source file, year range, definition of the outcome (24 h or 30 day),
   denominator, and sample size.
 
