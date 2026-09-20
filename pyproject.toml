@@ -7,6 +7,7 @@ name = "dgt-stats"
 version = "1.0.0"
 description = "Road safety in Spain from DGT open data: a reconciled pipeline, nine analyses and a static site"
 readme = "README.md"
+license = { file = "LICENSE" }
 requires-python = ">=3.11"
 dependencies = [
   "matplotlib>=3.9",

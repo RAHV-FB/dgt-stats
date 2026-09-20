@@ -137,10 +137,18 @@ fields and validation (`derive`, `validate`), analysis (`summaries`, `rates`, `f
   them.
 - **Road design.** Coordinates or road-section identifiers, with traffic volumes, would turn the
   road-type terms into a road-design analysis and give the 2019 case study a proper control.
-- **Licence.** No licence has been chosen for the code. DGT and INE data keep their own reuse terms,
-  stated on the data page, whatever the code licence.
 
-## Data use
+## Licence and data reuse
+
+The code is released under the [MIT licence](LICENSE), which allows commercial use. The data files
+under `data/raw/` are not covered by it: each keeps the terms of the body that publishes it. DGT's
+crash microdata are catalogued on datos.gob.es under its legal notice (name the source, do not
+distort the meaning, keep the dates, imply no endorsement); the other DGT files are public-sector
+information reused under the same conditions; INE population is under Creative Commons Attribution
+4.0; the Ministerio de Transportes MOVILIA workbooks may be reused with attribution; the five
+Comunidad de Madrid MOVILIA tables may not be used directly for commercial purposes; the ESRA reports
+are cited as published. The terms and their URLs are in [`docs/data_sources.md`](docs/data_sources.md)
+and on the data page.
 
 Every result is traceable to a source file, a transformation and a defined population; source URLs,
 checksums, row counts and validation outcomes are recorded during ingestion. Published outputs are
