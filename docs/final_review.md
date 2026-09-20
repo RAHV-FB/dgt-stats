@@ -111,10 +111,13 @@ summaries that had none, and for the figure build; the synthetic model data are 
 the policy-page test pins the placebo wording to the table rather than copying the page's own
 condition; the census-age check no longer exempts the unknown band.
 
-### Licence
+### Licence and authorship
 
 The code is under the MIT licence; the data files keep their providers' terms, listed in
-[`data_sources.md`](data_sources.md). No notebooks are planned.
+[`data_sources.md`](data_sources.md). No notebooks are planned. The README and the data page
+now say how the code was written: with Claude Code, Anthropic's coding assistant, from written
+instructions and under the author's review, the sources, methods and published figures being the
+author's responsibility.
 
 ## 3. Not changed
 

@@ -2856,6 +2856,11 @@ def page_data(captions: dict[str, str]) -> str:
         "</ol>"
         "<p><code>pytest</code> runs the data-contract and code tests; the reconciliation checks above "
         "are among them.</p>"
+        "<p>The code, the documents and these pages were written with Claude Code, Anthropic's coding "
+        "assistant, from written instructions and under the author's review; the choice of sources "
+        "and methods, the reading of the results and every published figure are the author's "
+        "responsibility, and each number can be regenerated from the raw files with the sequence "
+        "above.</p>"
     )
     return render_page(
         "data",
