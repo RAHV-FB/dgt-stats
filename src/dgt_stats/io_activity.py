@@ -62,10 +62,11 @@ def _text(value: object) -> str:
 
 def read_movilia_trips() -> pd.DataFrame:
     """MOVILIA 2006 table 64: trips (thousands per day) by day type, sex, age band and main transport mode."""
-    book = pd.ExcelFile(MOVILIA_2006_PATH)
     records: list[dict[str, object]] = []
+    with pd.ExcelFile(MOVILIA_2006_PATH) as book:
+        sheets = {sheet: book.parse(sheet, header=None) for sheet in MOVILIA_SHEETS}
     for sheet, day_type in MOVILIA_SHEETS.items():
-        frame = book.parse(sheet, header=None)
+        frame = sheets[sheet]
         sex: str | None = None
         for row in frame.itertuples(index=False):
             label = _text(row[0])

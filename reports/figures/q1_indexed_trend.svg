@@ -364,7 +364,7 @@ L 432.215895 233.358725
 L 445.306804 226.438826 
 L 458.397713 224.494392 
 L 471.488622 225.180663 
-" clip-path="url(#pa41cce95e4)" style="fill: none; stroke: #eb6834; stroke-width: 2; stroke-linecap: round"/>
+" clip-path="url(#pa41cce95e4)" style="fill: none; stroke-dasharray: 7.4,3.2; stroke-dashoffset: 0; stroke: #eb6834; stroke-width: 2"/>
    </g>
    <g id="line2d_31">
     <defs>
@@ -417,7 +417,7 @@ L 432.215895 231.643048
 L 445.306804 226.89634 
 L 458.397713 221.806497 
 L 471.488622 219.862063 
-" clip-path="url(#pa41cce95e4)" style="fill: none; stroke: #1baf7a; stroke-width: 2; stroke-linecap: round"/>
+" clip-path="url(#pa41cce95e4)" style="fill: none; stroke-dasharray: 12.8,3.2,2,3.2; stroke-dashoffset: 0; stroke: #1baf7a; stroke-width: 2"/>
    </g>
    <g id="line2d_33">
     <defs>
@@ -470,7 +470,7 @@ L 432.215895 235.074402
 L 445.306804 231.128344 
 L 458.397713 229.012342 
 L 471.488622 228.612018 
-" clip-path="url(#pa41cce95e4)" style="fill: none; stroke: #eda100; stroke-width: 2; stroke-linecap: round"/>
+" clip-path="url(#pa41cce95e4)" style="fill: none; stroke-dasharray: 2,3.3; stroke-dashoffset: 0; stroke: #eda100; stroke-width: 2"/>
    </g>
    <g id="line2d_35">
     <defs>
@@ -522,7 +522,7 @@ L 71.479531 325.733599
      <path d="M 159.911563 325.733599 
 L 168.911563 325.733599 
 L 177.911563 325.733599 
-" style="fill: none; stroke: #eb6834; stroke-width: 2; stroke-linecap: round"/>
+" style="fill: none; stroke-dasharray: 7.4,3.2; stroke-dashoffset: 0; stroke: #eb6834; stroke-width: 2"/>
     </g>
     <g id="text_22">
      <text style="font-size: 9px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start; fill: #0b0b0b" x="185.111562" y="328.883599" transform="rotate(-0 185.111562 328.883599)">Deaths (30 days)</text>
@@ -531,7 +531,7 @@ L 177.911563 325.733599
      <path d="M 280.455312 325.733599 
 L 289.455312 325.733599 
 L 298.455312 325.733599 
-" style="fill: none; stroke: #1baf7a; stroke-width: 2; stroke-linecap: round"/>
+" style="fill: none; stroke-dasharray: 12.8,3.2,2,3.2; stroke-dashoffset: 0; stroke: #1baf7a; stroke-width: 2"/>
     </g>
     <g id="text_23">
      <text style="font-size: 9px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start; fill: #0b0b0b" x="305.655312" y="328.883599" transform="rotate(-0 305.655312 328.883599)">Hospitalised</text>
@@ -540,7 +540,7 @@ L 298.455312 325.733599
      <path d="M 378.816875 325.733599 
 L 387.816875 325.733599 
 L 396.816875 325.733599 
-" style="fill: none; stroke: #eda100; stroke-width: 2; stroke-linecap: round"/>
+" style="fill: none; stroke-dasharray: 2,3.3; stroke-dashoffset: 0; stroke: #eda100; stroke-width: 2"/>
     </g>
     <g id="text_24">
      <text style="font-size: 9px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start; fill: #0b0b0b" x="404.016875" y="328.883599" transform="rotate(-0 404.016875 328.883599)">Non-hospitalised injured</text>

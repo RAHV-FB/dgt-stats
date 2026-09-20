@@ -116,6 +116,11 @@ All five steps are merged. What was built, with the deviations from the design a
   carriageways in the clean window, control change +2.5 %. The design fails its placebo: a break in
   January 2018 gives −11.7 % (−18.3 to −4.5), so the divergence predates the limit; extended through
   the pandemic the term turns to +30 %. The page makes no claim about the limit.
+- The two groups were built from `road_group` (conventional against motorway and dual carriageway),
+  which puts road-type code 5 ("Carretera Convencional de doble calzada") in the control group; the
+  final review rebuilt them from the raw codes (5 and 6 against 1, 2 and 3) because most code 5
+  crashes are coded 6 from 2021, so the estimates above are those of the phase, not of the site
+  (see [`final_review.md`](final_review.md) and `methodology.md`, section 7).
 - A review pass caught the covariance of the two-group model: Newey–West on the stacked panel had
   treated the control series as the continuation of the treated one. The fit now uses the panel
   form (within-group lags), which widens the 2019 intervals slightly and changes no conclusion; the

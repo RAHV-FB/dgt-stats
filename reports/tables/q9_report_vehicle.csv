@@ -1,131 +1,131 @@
 category,year,crashes,deaths,share_of_deaths,label,region_scope
-Peatón,2014,244.0,18.0,0.0568,Pedestrians,Spain without Cataluña and País Vasco
-Bicicleta,2014,184.0,9.0,0.0284,Bicycles,Spain without Cataluña and País Vasco
+Peatón,2014,244,18,0.0568,Pedestrians,Spain without Cataluña and País Vasco
+Bicicleta,2014,184,9,0.0284,Bicycles,Spain without Cataluña and País Vasco
 VMP,2014,,,,Personal mobility vehicles,Spain without Cataluña and País Vasco
-Ciclomotor,2014,259.0,9.0,0.0284,Mopeds,Spain without Cataluña and País Vasco
-Motocicleta,2014,1080.0,77.0,0.2429,Motorcycles,Spain without Cataluña and País Vasco
-Turismo,2014,4660.0,162.0,0.511,Cars,Spain without Cataluña and País Vasco
-Furgoneta,2014,573.0,23.0,0.0726,Vans,Spain without Cataluña and País Vasco
-Camión hasta 3.500 kg,2014,109.0,4.0,0.0126,"Trucks up to 3,500 kg",Spain without Cataluña and País Vasco
-Camión más 3.500 kg,2014,368.0,10.0,0.0315,"Trucks over 3,500 kg",Spain without Cataluña and País Vasco
-Autobús,2014,46.0,1.0,0.0032,Buses,Spain without Cataluña and País Vasco
-Otro vehículo,2014,116.0,4.0,0.0126,Other vehicles,Spain without Cataluña and País Vasco
-Se desconoce,2014,0.0,0.0,0.0,Unknown,Spain without Cataluña and País Vasco
-Total,2014,7639.0,317.0,1.0,Total,Spain without Cataluña and País Vasco
-Peatón,2015,228.0,28.0,0.0946,Pedestrians,Spain without Cataluña and País Vasco
-Bicicleta,2015,207.0,9.0,0.0304,Bicycles,Spain without Cataluña and País Vasco
+Ciclomotor,2014,259,9,0.0284,Mopeds,Spain without Cataluña and País Vasco
+Motocicleta,2014,1080,77,0.2429,Motorcycles,Spain without Cataluña and País Vasco
+Turismo,2014,4660,162,0.511,Cars,Spain without Cataluña and País Vasco
+Furgoneta,2014,573,23,0.0726,Vans,Spain without Cataluña and País Vasco
+Camión hasta 3.500 kg,2014,109,4,0.0126,"Trucks up to 3,500 kg",Spain without Cataluña and País Vasco
+Camión más 3.500 kg,2014,368,10,0.0315,"Trucks over 3,500 kg",Spain without Cataluña and País Vasco
+Autobús,2014,46,1,0.0032,Buses,Spain without Cataluña and País Vasco
+Otro vehículo,2014,116,4,0.0126,Other vehicles,Spain without Cataluña and País Vasco
+Se desconoce,2014,0,0,0,Unknown,Spain without Cataluña and País Vasco
+Total,2014,7639,317,1,Total,Spain without Cataluña and País Vasco
+Peatón,2015,228,28,0.0946,Pedestrians,Spain without Cataluña and País Vasco
+Bicicleta,2015,207,9,0.0304,Bicycles,Spain without Cataluña and País Vasco
 VMP,2015,,,,Personal mobility vehicles,Spain without Cataluña and País Vasco
-Ciclomotor,2015,253.0,8.0,0.027,Mopeds,Spain without Cataluña and País Vasco
-Motocicleta,2015,1107.0,83.0,0.2804,Motorcycles,Spain without Cataluña and País Vasco
-Turismo,2015,4269.0,133.0,0.4493,Cars,Spain without Cataluña and País Vasco
-Furgoneta,2015,528.0,16.0,0.0541,Vans,Spain without Cataluña and País Vasco
-Camión hasta 3.500 kg,2015,95.0,1.0,0.0034,"Trucks up to 3,500 kg",Spain without Cataluña and País Vasco
-Camión más 3.500 kg,2015,305.0,13.0,0.0439,"Trucks over 3,500 kg",Spain without Cataluña and País Vasco
-Autobús,2015,32.0,0.0,0.0,Buses,Spain without Cataluña and País Vasco
-Otro vehículo,2015,87.0,5.0,0.0169,Other vehicles,Spain without Cataluña and País Vasco
-Se desconoce,2015,0.0,0.0,0.0,Unknown,Spain without Cataluña and País Vasco
-Total,2015,7111.0,296.0,1.0,Total,Spain without Cataluña and País Vasco
-Peatón,2016,243.0,26.0,0.0783,Pedestrians,Spain without Cataluña and País Vasco
-Bicicleta,2016,212.0,4.0,0.012,Bicycles,Spain without Cataluña and País Vasco
+Ciclomotor,2015,253,8,0.027,Mopeds,Spain without Cataluña and País Vasco
+Motocicleta,2015,1107,83,0.2804,Motorcycles,Spain without Cataluña and País Vasco
+Turismo,2015,4269,133,0.4493,Cars,Spain without Cataluña and País Vasco
+Furgoneta,2015,528,16,0.0541,Vans,Spain without Cataluña and País Vasco
+Camión hasta 3.500 kg,2015,95,1,0.0034,"Trucks up to 3,500 kg",Spain without Cataluña and País Vasco
+Camión más 3.500 kg,2015,305,13,0.0439,"Trucks over 3,500 kg",Spain without Cataluña and País Vasco
+Autobús,2015,32,0,0,Buses,Spain without Cataluña and País Vasco
+Otro vehículo,2015,87,5,0.0169,Other vehicles,Spain without Cataluña and País Vasco
+Se desconoce,2015,0,0,0,Unknown,Spain without Cataluña and País Vasco
+Total,2015,7111,296,1,Total,Spain without Cataluña and País Vasco
+Peatón,2016,243,26,0.0783,Pedestrians,Spain without Cataluña and País Vasco
+Bicicleta,2016,212,4,0.012,Bicycles,Spain without Cataluña and País Vasco
 VMP,2016,,,,Personal mobility vehicles,Spain without Cataluña and País Vasco
-Ciclomotor,2016,267.0,4.0,0.012,Mopeds,Spain without Cataluña and País Vasco
-Motocicleta,2016,1215.0,108.0,0.3253,Motorcycles,Spain without Cataluña and País Vasco
-Turismo,2016,4869.0,160.0,0.4819,Cars,Spain without Cataluña and País Vasco
-Furgoneta,2016,570.0,8.0,0.0241,Vans,Spain without Cataluña and País Vasco
-Camión hasta 3.500 kg,2016,97.0,0.0,0.0,"Trucks up to 3,500 kg",Spain without Cataluña and País Vasco
-Camión más 3.500 kg,2016,348.0,13.0,0.0392,"Trucks over 3,500 kg",Spain without Cataluña and País Vasco
-Autobús,2016,43.0,1.0,0.003,Buses,Spain without Cataluña and País Vasco
-Otro vehículo,2016,118.0,8.0,0.0241,Other vehicles,Spain without Cataluña and País Vasco
-Se desconoce,2016,0.0,0.0,0.0,Unknown,Spain without Cataluña and País Vasco
-Total,2016,7982.0,332.0,1.0,Total,Spain without Cataluña and País Vasco
-Peatón,2017,258.0,22.0,0.0531,Pedestrians,Spain without Cataluña and País Vasco
-Bicicleta,2017,237.0,13.0,0.0314,Bicycles,Spain without Cataluña and País Vasco
+Ciclomotor,2016,267,4,0.012,Mopeds,Spain without Cataluña and País Vasco
+Motocicleta,2016,1215,108,0.3253,Motorcycles,Spain without Cataluña and País Vasco
+Turismo,2016,4869,160,0.4819,Cars,Spain without Cataluña and País Vasco
+Furgoneta,2016,570,8,0.0241,Vans,Spain without Cataluña and País Vasco
+Camión hasta 3.500 kg,2016,97,0,0,"Trucks up to 3,500 kg",Spain without Cataluña and País Vasco
+Camión más 3.500 kg,2016,348,13,0.0392,"Trucks over 3,500 kg",Spain without Cataluña and País Vasco
+Autobús,2016,43,1,0.003,Buses,Spain without Cataluña and País Vasco
+Otro vehículo,2016,118,8,0.0241,Other vehicles,Spain without Cataluña and País Vasco
+Se desconoce,2016,0,0,0,Unknown,Spain without Cataluña and País Vasco
+Total,2016,7982,332,1,Total,Spain without Cataluña and País Vasco
+Peatón,2017,258,22,0.0531,Pedestrians,Spain without Cataluña and País Vasco
+Bicicleta,2017,237,13,0.0314,Bicycles,Spain without Cataluña and País Vasco
 VMP,2017,,,,Personal mobility vehicles,Spain without Cataluña and País Vasco
-Ciclomotor,2017,249.0,6.0,0.0145,Mopeds,Spain without Cataluña and País Vasco
-Motocicleta,2017,1420.0,111.0,0.2681,Motorcycles,Spain without Cataluña and País Vasco
-Turismo,2017,4635.0,225.0,0.5435,Cars,Spain without Cataluña and País Vasco
-Furgoneta,2017,601.0,13.0,0.0314,Vans,Spain without Cataluña and País Vasco
-Camión hasta 3.500 kg,2017,80.0,2.0,0.0048,"Trucks up to 3,500 kg",Spain without Cataluña and País Vasco
-Camión más 3.500 kg,2017,360.0,15.0,0.0362,"Trucks over 3,500 kg",Spain without Cataluña and País Vasco
-Autobús,2017,44.0,0.0,0.0,Buses,Spain without Cataluña and País Vasco
-Otro vehículo,2017,101.0,7.0,0.0169,Other vehicles,Spain without Cataluña and País Vasco
-Se desconoce,2017,0.0,0.0,0.0,Unknown,Spain without Cataluña and País Vasco
-Total,2017,7985.0,414.0,1.0,Total,Spain without Cataluña and País Vasco
-Peatón,2018,219.0,20.0,0.0608,Pedestrians,Spain without Cataluña and País Vasco
-Bicicleta,2018,215.0,5.0,0.0152,Bicycles,Spain without Cataluña and País Vasco
+Ciclomotor,2017,249,6,0.0145,Mopeds,Spain without Cataluña and País Vasco
+Motocicleta,2017,1420,111,0.2681,Motorcycles,Spain without Cataluña and País Vasco
+Turismo,2017,4635,225,0.5435,Cars,Spain without Cataluña and País Vasco
+Furgoneta,2017,601,13,0.0314,Vans,Spain without Cataluña and País Vasco
+Camión hasta 3.500 kg,2017,80,2,0.0048,"Trucks up to 3,500 kg",Spain without Cataluña and País Vasco
+Camión más 3.500 kg,2017,360,15,0.0362,"Trucks over 3,500 kg",Spain without Cataluña and País Vasco
+Autobús,2017,44,0,0,Buses,Spain without Cataluña and País Vasco
+Otro vehículo,2017,101,7,0.0169,Other vehicles,Spain without Cataluña and País Vasco
+Se desconoce,2017,0,0,0,Unknown,Spain without Cataluña and País Vasco
+Total,2017,7985,414,1,Total,Spain without Cataluña and País Vasco
+Peatón,2018,219,20,0.0608,Pedestrians,Spain without Cataluña and País Vasco
+Bicicleta,2018,215,5,0.0152,Bicycles,Spain without Cataluña and País Vasco
 VMP,2018,,,,Personal mobility vehicles,Spain without Cataluña and País Vasco
-Ciclomotor,2018,212.0,9.0,0.0274,Mopeds,Spain without Cataluña and País Vasco
-Motocicleta,2018,1297.0,97.0,0.2948,Motorcycles,Spain without Cataluña and País Vasco
-Turismo,2018,4790.0,165.0,0.5015,Cars,Spain without Cataluña and País Vasco
-Furgoneta,2018,579.0,11.0,0.0334,Vans,Spain without Cataluña and País Vasco
-Camión hasta 3.500 kg,2018,86.0,4.0,0.0122,"Trucks up to 3,500 kg",Spain without Cataluña and País Vasco
-Camión más 3.500 kg,2018,384.0,12.0,0.0365,"Trucks over 3,500 kg",Spain without Cataluña and País Vasco
-Autobús,2018,50.0,1.0,0.003,Buses,Spain without Cataluña and País Vasco
-Otro vehículo,2018,109.0,5.0,0.0152,Other vehicles,Spain without Cataluña and País Vasco
-Se desconoce,2018,0.0,0.0,0.0,Unknown,Spain without Cataluña and País Vasco
-Total,2018,7941.0,329.0,1.0,Total,Spain without Cataluña and País Vasco
-Peatón,2019,206.0,22.0,0.0694,Pedestrians,Spain without Cataluña and País Vasco
-Bicicleta,2019,177.0,6.0,0.0189,Bicycles,Spain without Cataluña and País Vasco
+Ciclomotor,2018,212,9,0.0274,Mopeds,Spain without Cataluña and País Vasco
+Motocicleta,2018,1297,97,0.2948,Motorcycles,Spain without Cataluña and País Vasco
+Turismo,2018,4790,165,0.5015,Cars,Spain without Cataluña and País Vasco
+Furgoneta,2018,579,11,0.0334,Vans,Spain without Cataluña and País Vasco
+Camión hasta 3.500 kg,2018,86,4,0.0122,"Trucks up to 3,500 kg",Spain without Cataluña and País Vasco
+Camión más 3.500 kg,2018,384,12,0.0365,"Trucks over 3,500 kg",Spain without Cataluña and País Vasco
+Autobús,2018,50,1,0.003,Buses,Spain without Cataluña and País Vasco
+Otro vehículo,2018,109,5,0.0152,Other vehicles,Spain without Cataluña and País Vasco
+Se desconoce,2018,0,0,0,Unknown,Spain without Cataluña and País Vasco
+Total,2018,7941,329,1,Total,Spain without Cataluña and País Vasco
+Peatón,2019,206,22,0.0694,Pedestrians,Spain without Cataluña and País Vasco
+Bicicleta,2019,177,6,0.0189,Bicycles,Spain without Cataluña and País Vasco
 VMP,2019,,,,Personal mobility vehicles,Spain without Cataluña and País Vasco
-Ciclomotor,2019,190.0,10.0,0.0315,Mopeds,Spain without Cataluña and País Vasco
-Motocicleta,2019,1355.0,113.0,0.3565,Motorcycles,Spain without Cataluña and País Vasco
-Turismo,2019,4270.0,140.0,0.4416,Cars,Spain without Cataluña and País Vasco
-Furgoneta,2019,501.0,5.0,0.0158,Vans,Spain without Cataluña and País Vasco
-Camión hasta 3.500 kg,2019,71.0,4.0,0.0126,"Trucks up to 3,500 kg",Spain without Cataluña and País Vasco
-Camión más 3.500 kg,2019,330.0,11.0,0.0347,"Trucks over 3,500 kg",Spain without Cataluña and País Vasco
-Autobús,2019,39.0,0.0,0.0,Buses,Spain without Cataluña and País Vasco
-Otro vehículo,2019,128.0,5.0,0.0158,Other vehicles,Spain without Cataluña and País Vasco
-Se desconoce,2019,0.0,1.0,0.0032,Unknown,Spain without Cataluña and País Vasco
-Total,2019,7267.0,317.0,1.0,Total,Spain without Cataluña and País Vasco
-Peatón,2020,146.0,15.0,0.054,Pedestrians,Spain without Cataluña and País Vasco
-Bicicleta,2020,208.0,7.0,0.0252,Bicycles,Spain without Cataluña and País Vasco
-VMP,2020,29.0,0.0,0.0,Personal mobility vehicles,Spain without Cataluña and País Vasco
-Ciclomotor,2020,123.0,2.0,0.0072,Mopeds,Spain without Cataluña and País Vasco
-Motocicleta,2020,1002.0,94.0,0.3381,Motorcycles,Spain without Cataluña and País Vasco
-Turismo,2020,3212.0,137.0,0.4928,Cars,Spain without Cataluña and País Vasco
-Furgoneta,2020,365.0,9.0,0.0324,Vans,Spain without Cataluña and País Vasco
-Camión hasta 3.500 kg,2020,63.0,2.0,0.0072,"Trucks up to 3,500 kg",Spain without Cataluña and País Vasco
-Camión más 3.500 kg,2020,203.0,5.0,0.018,"Trucks over 3,500 kg",Spain without Cataluña and País Vasco
-Autobús,2020,14.0,0.0,0.0,Buses,Spain without Cataluña and País Vasco
-Otro vehículo,2020,87.0,7.0,0.0252,Other vehicles,Spain without Cataluña and País Vasco
-Se desconoce,2020,0.0,0.0,0.0,Unknown,Spain without Cataluña and País Vasco
-Total,2020,5452.0,278.0,1.0,Total,Spain without Cataluña and País Vasco
-Peatón,2021,169.0,17.0,0.0616,Pedestrians,Spain without Cataluña and País Vasco
-Bicicleta,2021,195.0,9.0,0.0326,Bicycles,Spain without Cataluña and País Vasco
-VMP,2021,35.0,0.0,0.0,Personal mobility vehicles,Spain without Cataluña and País Vasco
-Ciclomotor,2021,155.0,3.0,0.0109,Mopeds,Spain without Cataluña and País Vasco
-Motocicleta,2021,1036.0,73.0,0.2645,Motorcycles,Spain without Cataluña and País Vasco
-Turismo,2021,3705.0,149.0,0.5399,Cars,Spain without Cataluña and País Vasco
-Furgoneta,2021,360.0,9.0,0.0326,Vans,Spain without Cataluña and País Vasco
-Camión hasta 3.500 kg,2021,77.0,5.0,0.0181,"Trucks up to 3,500 kg",Spain without Cataluña and País Vasco
-Camión más 3.500 kg,2021,223.0,5.0,0.0181,"Trucks over 3,500 kg",Spain without Cataluña and País Vasco
-Autobús,2021,29.0,0.0,0.0,Buses,Spain without Cataluña and País Vasco
-Otro vehículo,2021,78.0,6.0,0.0217,Other vehicles,Spain without Cataluña and País Vasco
-Se desconoce,2021,0.0,0.0,0.0,Unknown,Spain without Cataluña and País Vasco
-Total,2021,6062.0,276.0,1.0,Total,Spain without Cataluña and País Vasco
-Peatón,2022,187.0,33.0,0.0965,Pedestrians,Spain without Cataluña and País Vasco
-Bicicleta,2022,188.0,12.0,0.0351,Bicycles,Spain without Cataluña and País Vasco
-VMP,2022,101.0,1.0,0.0029,Personal mobility vehicles,Spain without Cataluña and País Vasco
-Ciclomotor,2022,171.0,3.0,0.0088,Mopeds,Spain without Cataluña and País Vasco
-Motocicleta,2022,1112.0,101.0,0.2953,Motorcycles,Spain without Cataluña and País Vasco
-Turismo,2022,3290.0,161.0,0.4708,Cars,Spain without Cataluña and País Vasco
-Furgoneta,2022,301.0,8.0,0.0234,Vans,Spain without Cataluña and País Vasco
-Camión hasta 3.500 kg,2022,48.0,2.0,0.0058,"Trucks up to 3,500 kg",Spain without Cataluña and País Vasco
-Camión más 3.500 kg,2022,208.0,8.0,0.0234,"Trucks over 3,500 kg",Spain without Cataluña and País Vasco
-Autobús,2022,34.0,9.0,0.0263,Buses,Spain without Cataluña and País Vasco
-Otro vehículo,2022,63.0,4.0,0.0117,Other vehicles,Spain without Cataluña and País Vasco
-Se desconoce,2022,0.0,0.0,0.0,Unknown,Spain without Cataluña and País Vasco
-Total,2022,5703.0,342.0,1.0,Total,Spain without Cataluña and País Vasco
-Peatón,2023,215.0,26.0,0.0815,Pedestrians,Spain without Cataluña and País Vasco
-Bicicleta,2023,199.0,8.0,0.0251,Bicycles,Spain without Cataluña and País Vasco
-VMP,2023,116.0,2.0,0.0063,Personal mobility vehicles,Spain without Cataluña and País Vasco
-Ciclomotor,2023,155.0,6.0,0.0188,Mopeds,Spain without Cataluña and País Vasco
-Motocicleta,2023,1300.0,117.0,0.3668,Motorcycles,Spain without Cataluña and País Vasco
-Turismo,2023,3519.0,142.0,0.4451,Cars,Spain without Cataluña and País Vasco
-Furgoneta,2023,342.0,9.0,0.0282,Vans,Spain without Cataluña and País Vasco
-Camión hasta 3.500 kg,2023,48.0,0.0,0.0,"Trucks up to 3,500 kg",Spain without Cataluña and País Vasco
-Camión más 3.500 kg,2023,188.0,4.0,0.0125,"Trucks over 3,500 kg",Spain without Cataluña and País Vasco
-Autobús,2023,41.0,1.0,0.0031,Buses,Spain without Cataluña and País Vasco
-Otro vehículo,2023,90.0,4.0,0.0125,Other vehicles,Spain without Cataluña and País Vasco
-Se desconoce,2023,0.0,0.0,0.0,Unknown,Spain without Cataluña and País Vasco
-Total,2023,6213.0,319.0,1.0,Total,Spain without Cataluña and País Vasco
+Ciclomotor,2019,190,10,0.0315,Mopeds,Spain without Cataluña and País Vasco
+Motocicleta,2019,1355,113,0.3565,Motorcycles,Spain without Cataluña and País Vasco
+Turismo,2019,4270,140,0.4416,Cars,Spain without Cataluña and País Vasco
+Furgoneta,2019,501,5,0.0158,Vans,Spain without Cataluña and País Vasco
+Camión hasta 3.500 kg,2019,71,4,0.0126,"Trucks up to 3,500 kg",Spain without Cataluña and País Vasco
+Camión más 3.500 kg,2019,330,11,0.0347,"Trucks over 3,500 kg",Spain without Cataluña and País Vasco
+Autobús,2019,39,0,0,Buses,Spain without Cataluña and País Vasco
+Otro vehículo,2019,128,5,0.0158,Other vehicles,Spain without Cataluña and País Vasco
+Se desconoce,2019,0,1,0.0032,Unknown,Spain without Cataluña and País Vasco
+Total,2019,7267,317,1,Total,Spain without Cataluña and País Vasco
+Peatón,2020,146,15,0.054,Pedestrians,Spain without Cataluña and País Vasco
+Bicicleta,2020,208,7,0.0252,Bicycles,Spain without Cataluña and País Vasco
+VMP,2020,29,0,0,Personal mobility vehicles,Spain without Cataluña and País Vasco
+Ciclomotor,2020,123,2,0.0072,Mopeds,Spain without Cataluña and País Vasco
+Motocicleta,2020,1002,94,0.3381,Motorcycles,Spain without Cataluña and País Vasco
+Turismo,2020,3212,137,0.4928,Cars,Spain without Cataluña and País Vasco
+Furgoneta,2020,365,9,0.0324,Vans,Spain without Cataluña and País Vasco
+Camión hasta 3.500 kg,2020,63,2,0.0072,"Trucks up to 3,500 kg",Spain without Cataluña and País Vasco
+Camión más 3.500 kg,2020,203,5,0.018,"Trucks over 3,500 kg",Spain without Cataluña and País Vasco
+Autobús,2020,14,0,0,Buses,Spain without Cataluña and País Vasco
+Otro vehículo,2020,87,7,0.0252,Other vehicles,Spain without Cataluña and País Vasco
+Se desconoce,2020,0,0,0,Unknown,Spain without Cataluña and País Vasco
+Total,2020,5452,278,1,Total,Spain without Cataluña and País Vasco
+Peatón,2021,169,17,0.0616,Pedestrians,Spain without Cataluña and País Vasco
+Bicicleta,2021,195,9,0.0326,Bicycles,Spain without Cataluña and País Vasco
+VMP,2021,35,0,0,Personal mobility vehicles,Spain without Cataluña and País Vasco
+Ciclomotor,2021,155,3,0.0109,Mopeds,Spain without Cataluña and País Vasco
+Motocicleta,2021,1036,73,0.2645,Motorcycles,Spain without Cataluña and País Vasco
+Turismo,2021,3705,149,0.5399,Cars,Spain without Cataluña and País Vasco
+Furgoneta,2021,360,9,0.0326,Vans,Spain without Cataluña and País Vasco
+Camión hasta 3.500 kg,2021,77,5,0.0181,"Trucks up to 3,500 kg",Spain without Cataluña and País Vasco
+Camión más 3.500 kg,2021,223,5,0.0181,"Trucks over 3,500 kg",Spain without Cataluña and País Vasco
+Autobús,2021,29,0,0,Buses,Spain without Cataluña and País Vasco
+Otro vehículo,2021,78,6,0.0217,Other vehicles,Spain without Cataluña and País Vasco
+Se desconoce,2021,0,0,0,Unknown,Spain without Cataluña and País Vasco
+Total,2021,6062,276,1,Total,Spain without Cataluña and País Vasco
+Peatón,2022,187,33,0.0965,Pedestrians,Spain without Cataluña and País Vasco
+Bicicleta,2022,188,12,0.0351,Bicycles,Spain without Cataluña and País Vasco
+VMP,2022,101,1,0.0029,Personal mobility vehicles,Spain without Cataluña and País Vasco
+Ciclomotor,2022,171,3,0.0088,Mopeds,Spain without Cataluña and País Vasco
+Motocicleta,2022,1112,101,0.2953,Motorcycles,Spain without Cataluña and País Vasco
+Turismo,2022,3290,161,0.4708,Cars,Spain without Cataluña and País Vasco
+Furgoneta,2022,301,8,0.0234,Vans,Spain without Cataluña and País Vasco
+Camión hasta 3.500 kg,2022,48,2,0.0058,"Trucks up to 3,500 kg",Spain without Cataluña and País Vasco
+Camión más 3.500 kg,2022,208,8,0.0234,"Trucks over 3,500 kg",Spain without Cataluña and País Vasco
+Autobús,2022,34,9,0.0263,Buses,Spain without Cataluña and País Vasco
+Otro vehículo,2022,63,4,0.0117,Other vehicles,Spain without Cataluña and País Vasco
+Se desconoce,2022,0,0,0,Unknown,Spain without Cataluña and País Vasco
+Total,2022,5703,342,1,Total,Spain without Cataluña and País Vasco
+Peatón,2023,215,26,0.0815,Pedestrians,Spain without Cataluña and País Vasco
+Bicicleta,2023,199,8,0.0251,Bicycles,Spain without Cataluña and País Vasco
+VMP,2023,116,2,0.0063,Personal mobility vehicles,Spain without Cataluña and País Vasco
+Ciclomotor,2023,155,6,0.0188,Mopeds,Spain without Cataluña and País Vasco
+Motocicleta,2023,1300,117,0.3668,Motorcycles,Spain without Cataluña and País Vasco
+Turismo,2023,3519,142,0.4451,Cars,Spain without Cataluña and País Vasco
+Furgoneta,2023,342,9,0.0282,Vans,Spain without Cataluña and País Vasco
+Camión hasta 3.500 kg,2023,48,0,0,"Trucks up to 3,500 kg",Spain without Cataluña and País Vasco
+Camión más 3.500 kg,2023,188,4,0.0125,"Trucks over 3,500 kg",Spain without Cataluña and País Vasco
+Autobús,2023,41,1,0.0031,Buses,Spain without Cataluña and País Vasco
+Otro vehículo,2023,90,4,0.0125,Other vehicles,Spain without Cataluña and País Vasco
+Se desconoce,2023,0,0,0,Unknown,Spain without Cataluña and País Vasco
+Total,2023,6213,319,1,Total,Spain without Cataluña and País Vasco

@@ -1,8 +1,9 @@
 """Chart functions for the site. Every function writes one SVG and returns its path.
 
-Rules applied throughout: one y-axis per chart, categorical hues assigned in a fixed order, a legend
-whenever there are two or more series, thin marks, recessive hairline grid, text in text colours
-rather than series colours, and SVG output without a timestamp so rebuilds are byte-stable.
+Rules applied throughout: one y-axis per chart, series colours assigned in a fixed order and paired
+with a line style or marker so colour is never the only difference between series, a legend when
+there are two or more series, thin lines, a faint grid, labels in black or grey rather than in the
+series colour, and SVG output without a timestamp so rebuilds are byte-stable.
 """
 
 from __future__ import annotations
@@ -22,7 +23,8 @@ TEXT_PRIMARY = "#0b0b0b"
 TEXT_SECONDARY = "#52514e"
 GRID = "#e6e5e1"
 
-# Fixed categorical order (validated for adjacent-pair colour-vision separation on the light surface).
+# Categorical colours in the order series take them; neighbouring pairs stay distinct under
+# red-green colour-vision deficiency.
 CATEGORICAL: tuple[str, ...] = (
     "#2a78d6",
     "#eb6834",
@@ -53,7 +55,21 @@ SEQUENTIAL: tuple[str, ...] = (
 
 SEQUENTIAL_CMAP = LinearSegmentedColormap.from_list("blue_ramp", list(SEQUENTIAL))
 
+# Line styles and marker shapes cycled alongside the colours, so that series can still be told
+# apart in greyscale or with a colour-vision deficiency. The first four series differ by dash
+# pattern alone; the next four repeat the dash patterns and add a marker on every point.
+LINE_STYLES: tuple[str, ...] = ("-", "--", "-.", ":")
+MARKERS: tuple[str, ...] = ("o", "s", "^", "D")
+
 FIGURE_WIDTH = 8.0
+
+
+def _series_style(index: int) -> dict[str, object]:
+    """Keyword arguments for ``Axes.plot`` that give series ``index`` its own dash pattern."""
+    style: dict[str, object] = {"linestyle": LINE_STYLES[index % len(LINE_STYLES)]}
+    if index >= len(LINE_STYLES):
+        style.update(marker=MARKERS[(index - len(LINE_STYLES)) % len(MARKERS)], markersize=4)
+    return style
 
 
 def apply_style() -> None:
@@ -126,9 +142,24 @@ def _integer_x(axis: plt.Axes, nbins: int | str = "auto") -> None:
     axis.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(nbins=nbins, integer=True))
 
 
-def _percent(axis: plt.Axes, decimals: int = 0) -> None:
+def _percent_text(value: float, decimals: int | None = None, signed: bool = False) -> str:
+    """A share as a percentage: fixed ``decimals`` when given, otherwise up to two and only when
+    the tick is not a whole percentage, so 2.5% and 7.5% are not both printed as 2% and 8%."""
+    scaled = value * 100
+    if decimals is not None:
+        text = f"{scaled:.{decimals}f}"
+    else:
+        text = f"{scaled:.2f}".rstrip("0").rstrip(".")
+    if float(text) == 0:
+        text = text.lstrip("-")  # never "+0%" or "-0%"
+    elif signed and not text.startswith("-"):
+        text = f"+{text}"
+    return f"{text}%"
+
+
+def _percent(axis: plt.Axes, decimals: int | None = None) -> None:
     axis.yaxis.set_major_formatter(
-        matplotlib.ticker.FuncFormatter(lambda v, _: f"{v * 100:.{decimals}f}%")
+        matplotlib.ticker.FuncFormatter(lambda v, _: _percent_text(v, decimals))
     )
 
 
@@ -164,7 +195,13 @@ def line_series(
             axis.fill_between(
                 group[x], group[band[0]], group[band[1]], color=colour, alpha=0.15, linewidth=0
             )
-        axis.plot(group[x], group[y], color=colour, label=None if name is None else str(name))
+        axis.plot(
+            group[x],
+            group[y],
+            color=colour,
+            label=None if name is None else str(name),
+            **_series_style(index),
+        )
         last = group.dropna(subset=[y]).iloc[-1] if group[y].notna().any() else None
         if last is not None:
             axis.plot(
@@ -298,7 +335,11 @@ def heatmap(
     bar = fig.colorbar(image, ax=axis, fraction=0.03, pad=0.02)
     bar.outline.set_visible(False)
     if percent:
-        bar.formatter = matplotlib.ticker.FuncFormatter(lambda v, _: f"{v * 100:.0f}%")
+        # One decimal on every tick as soon as one tick is not a whole percentage, otherwise a
+        # bar with ticks every half point would print the same label three times.
+        whole = all(round(float(t) * 100, 6).is_integer() for t in bar.get_ticks())
+        decimals = 0 if whole else 1
+        bar.formatter = matplotlib.ticker.FuncFormatter(lambda v, _: _percent_text(v, decimals))
     else:
         bar.formatter = matplotlib.ticker.FuncFormatter(_tick)
     bar.update_ticks()
@@ -349,7 +390,13 @@ def small_multiples(
                 axis.fill_between(
                     group[x], group[band[0]], group[band[1]], color=colour, alpha=0.15, linewidth=0
                 )
-            axis.plot(group[x], group[y], color=colour, label=None if name is None else str(name))
+            axis.plot(
+                group[x],
+                group[y],
+                color=colour,
+                label=None if name is None else str(name),
+                **_series_style(colour_index),
+            )
         axis.set_title(str(facet_name), fontsize=10, fontweight="normal")
         if percent:
             _percent(axis)
@@ -361,6 +408,11 @@ def small_multiples(
         axis.set_ylim(bottom=0)  # after every panel is drawn, so shared axes keep the full range
     for axis in axes[len(facets) :]:
         axis.set_visible(False)
+    # Shared x axes only label the bottom row; when the last row is incomplete, the panels above
+    # a hidden slot are the last visible ones in their column and need the x labels back.
+    for index in range(len(facets)):
+        if index + ncols >= len(facets):
+            axes[index].tick_params(labelbottom=True)
     fig.suptitle(title, x=0.01, ha="left", fontsize=12, fontweight="bold")
     if series is not None:
         handles, labels = axes[0].get_legend_handles_labels()
@@ -450,9 +502,7 @@ def dot_interval(
     if percent:
         signed = float(ordered[low].min()) < 0  # changes carry a sign, shares do not
         axis.xaxis.set_major_formatter(
-            matplotlib.ticker.FuncFormatter(
-                lambda v, _: f"{v * 100:+.0f}%" if signed else f"{v * 100:.0f}%"
-            )
+            matplotlib.ticker.FuncFormatter(lambda v, _: _percent_text(v, signed=signed))
         )
     axis.set_ylim(-0.7, len(ordered) - 0.3)
     axis.set_title(title)
@@ -521,6 +571,10 @@ def forest(
     for tick, (_, row) in zip(axis.get_yticklabels(), rows):
         if row is None:
             tick.set_fontweight("bold")
+    # Labelled ticks at each doubling either side of 1; the default log locator labels only the
+    # powers of ten, which leaves everything between 1 and 10 without a number.
+    axis.xaxis.set_major_locator(matplotlib.ticker.FixedLocator([0.1, 0.25, 0.5, 1, 2, 4, 8]))
+    axis.xaxis.set_minor_locator(matplotlib.ticker.NullLocator())
     axis.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(lambda v, _: f"{v:g}"))
     axis.grid(True, axis="x")
     axis.grid(False, axis="y")
@@ -548,8 +602,9 @@ def calibration(
         axis.plot(
             group[predicted],
             group[observed],
-            marker="o",
+            marker=MARKERS[index % len(MARKERS)],
             markersize=6,
+            linestyle=LINE_STYLES[index % len(LINE_STYLES)],
             color=CATEGORICAL[index],
             markeredgecolor=SURFACE,
             markeredgewidth=1,
@@ -770,13 +825,16 @@ def intervention(
 ) -> Path:
     """Observed monthly counts, the fitted line and the dashed counterfactual around a break.
 
-    One panel, or one panel per ``facet`` value stacked with a shared x axis. ``shaded`` marks
-    periods (for example a confounding change or the pandemic) with a labelled grey band.
+    One panel, or one panel per ``facet`` value stacked with shared x and y axes, so that the
+    groups a difference-in-differences design compares sit on one vertical scale. ``shaded``
+    marks periods (for example a confounding change or the pandemic) with a labelled grey band.
     """
     apply_style()
     facets = [None] if facet is None else (facet_order or list(dict.fromkeys(frame[facet])))
     height = height or (3.6 if facet is None else 2.6 * len(facets) + 0.8)
-    fig, axes = plt.subplots(len(facets), 1, figsize=(FIGURE_WIDTH, height), sharex=True)
+    fig, axes = plt.subplots(
+        len(facets), 1, figsize=(FIGURE_WIDTH, height), sharex=True, sharey=facet is not None
+    )
     axes = np.atleast_1d(axes)
     for axis, name in zip(axes, facets):
         panel = frame if name is None else frame[frame[facet] == name]
@@ -802,22 +860,26 @@ def intervention(
             label="Counterfactual (no change)",
         )
         axis.axvline(break_date, color=TEXT_PRIMARY, linewidth=1)
-        top = float(panel[observed].max())
-        for index, (start, end, label) in enumerate(shaded or []):
+        for start, end, _ in shaded or []:
             axis.axvspan(start, end, color=GRID, alpha=0.6, linewidth=0)
-            axis.text(
-                start,
-                top * (1 - 0.12 * index),  # stagger neighbouring labels
-                f" {label}",
-                fontsize=7,
-                color=TEXT_SECONDARY,
-                va="top",
-            )
         axis.set_ylim(bottom=0)
         _thousands(axis)
         axis.set_ylabel(ylabel, fontsize=9)
         if name is not None:
             axis.set_title(str(name), fontsize=10, fontweight="normal", loc="left")
+    # Period labels go in once every panel is drawn, so they hang from the final (shared) top,
+    # one step below the break label so the two never run into each other.
+    for axis in axes:
+        top = axis.get_ylim()[1]
+        for index, (start, _, label) in enumerate(shaded or []):
+            axis.text(
+                start,
+                top * (0.86 - 0.12 * index),  # stagger neighbouring labels
+                f" {label}",
+                fontsize=7,
+                color=TEXT_SECONDARY,
+                va="top",
+            )
     axes[0].text(
         break_date,
         axes[0].get_ylim()[1] * 0.98,

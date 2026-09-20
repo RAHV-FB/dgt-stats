@@ -30,7 +30,9 @@ def run_tables() -> dict[str, pd.DataFrame]:
     for name, builder in summaries.SUMMARIES.items():
         frame = builder()
         target = TABLES_DIR / f"{name}.csv"
-        frame.to_csv(target, index=False)
+        # Ten significant digits: enough for every number the pages print, and stable across
+        # library versions, which differ in the last bits of the fitted coefficients.
+        frame.to_csv(target, index=False, float_format="%.10g")
         frames[name] = frame
         log.info("table %-28s %6d rows -> %s", name, len(frame), target.name)
     return frames

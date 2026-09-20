@@ -19,7 +19,9 @@ MICRODATA_SOURCE = "DGT, Ficheros de microdatos de accidentes con víctimas 2016
 TABLES_SOURCE = "DGT, Accidentes con víctimas, tablas estadísticas 2014–2024"
 INE_SOURCE = "INE, Estadística Continua de Población"
 CENSUS_SOURCE = "DGT, Censo de conductores 2014–2025"
-ACTIVITY_SOURCE = "ESRA 2018 and 2023 (Spain), MOVILIA 2006"
+ACTIVITY_SOURCE = (
+    "ESRA 2018 and 2023 (Spain); MOVILIA 2006 (Ministerio de Transportes y Movilidad Sostenible)"
+)
 KM_SOURCE = "DGT, Kilómetros recorridos estimados a partir de la ITV 2022"
 SPEED_REPORT_SOURCE = (
     "DGT Observatorio Nacional de Seguridad Vial, Informe temático Factor Velocidad (March 2025); "
@@ -100,7 +102,9 @@ def build_all(
     figures_dir.mkdir(parents=True, exist_ok=True)
     captions: dict[str, str] = {}
     grid = summary("q2_hour_weekday")
-    n_crashes = int(grid.crashes.sum())
+    # Every n is counted from the frame the figure draws and says what it counts: crash records
+    # for figures of crashes, 30-day deaths for figures of deaths.
+    n_crashes = f"{int(grid.crashes.sum()):,} crashes"
 
     # ------------------------------------------------------------------ Q1 trends
     headline = summary("q1_annual_headline")
@@ -187,7 +191,7 @@ def build_all(
         ylabel="Deaths (30 days)",
     )
     captions["q1_deaths_by_zone"] = plots.caption(
-        MICRODATA_SOURCE, "2016–2024", THIRTY_DAY, n_crashes
+        MICRODATA_SOURCE, "2016–2024", THIRTY_DAY, f"{int(by_zone.deaths_30d.sum()):,} deaths"
     )
 
     # ------------------------------------------------------------------ Q2 timing
@@ -238,7 +242,7 @@ def build_all(
         MICRODATA_SOURCE,
         "2016–2024",
         "darkness = lighting codes 4–6 (no daylight, with or without street lighting); 30-day deaths",
-        n_crashes,
+        f"{int(night.deaths_30d.sum()):,} deaths",
     )
 
     bands = summary("q2_hour_band_road_group")
@@ -259,8 +263,9 @@ def build_all(
     captions["q2_hour_band_road_group"] = plots.caption(
         MICRODATA_SOURCE,
         "2016–2024 pooled",
-        "fatal crashes (30 days) divided by all injury crashes",
-        n_crashes,
+        "fatal crashes (30 days) divided by all injury crashes; crashes with an unknown hour or "
+        "road type are left out",
+        f"{int(bands.crashes.sum()):,} crashes",
     )
 
     # ------------------------------------------------------------------ Q5 road users
@@ -280,7 +285,7 @@ def build_all(
         MICRODATA_SOURCE,
         "2016–2024, all roads",
         "30-day deaths by the vehicle the person was using; trucks, buses, other and unspecified folded together; personal mobility vehicles counted separately only from 2020",
-        n_crashes,
+        f"{int(folded.deaths_30d.sum()):,} deaths",
     )
 
     drivers = summary("q5_driver_deaths_series")
@@ -334,7 +339,7 @@ def build_all(
         str(latest_year),
         "30-day deaths in the province where the crash happened, divided by residents on 1 July; "
         "exact Poisson 95% intervals, wide where deaths are few",
-        int(national.deaths_30d),
+        f"{int(national.deaths_30d):,} deaths",
     )
 
     national_rates = summary("q4_national_rates")
@@ -560,27 +565,31 @@ def _vehicle_figures(figures_dir: Path, captions: dict[str, str], summary) -> No
         "2022",
         "vehicles of each type involved in injury crashes and in 30-day fatal crashes, and their "
         "drivers and passengers killed within 30 days, divided by the type's estimated "
-        "vehicle-kilometres (registered fleet × mean annual km from ITV odometer readings); "
+        "vehicle-kilometres (circulating fleet × mean annual km from ITV odometer readings); "
         "whiskers are exact 95% Poisson intervals; rows ordered by fatal-crash involvement; "
         "trucks over 3,500 kg include tractor units and articulated vehicles",
         f"{int(rates[rates.measure == 'injury_involvement']['count'].sum()):,} vehicles involved",
     )
 
-    table = summary("q6_summary_2022")
+    # Unrounded rates, in the group order of the rates table (not the ranked `fatal` frame, whose
+    # order would reassign the row colours), so the printed values round like the page's table.
+    slope_frame = rates[rates.measure == "fatal_involvement"][
+        ["label", "per_100k_vehicles", "per_billion_km"]
+    ]
     plots.slope(
-        table,
+        slope_frame,
         "label",
-        "fatal_involvement_per_100k_vehicles",
-        "fatal_involvement_per_bn_km",
+        "per_100k_vehicles",
+        "per_billion_km",
         figures_dir / "q6_per_vehicle_vs_per_km.svg",
-        "Vehicles in fatal crashes: ranking per registered vehicle and per kilometre, 2022",
+        "Vehicles in fatal crashes: ranking per circulating vehicle and per kilometre, 2022",
         "per 100,000 vehicles",
         "per billion km",
     )
     captions["q6_per_vehicle_vs_per_km"] = plots.caption(
         f"{TABLES_SOURCE}; {KM_SOURCE}",
         "2022",
-        "vehicles of each type involved in 30-day fatal crashes per 100,000 registered vehicles "
+        "vehicles of each type involved in 30-day fatal crashes per 100,000 circulating vehicles "
         "(left) and per billion vehicle-km (right); the lines show how each type's rank moves when "
         "distance driven replaces fleet size as the denominator",
     )
@@ -600,7 +609,7 @@ def _vehicle_figures(figures_dir: Path, captions: dict[str, str], summary) -> No
         KM_SOURCE,
         "2022",
         "mean annual km per vehicle, modelled from annualised ITV odometer readings and imputed "
-        "to the registered fleet; valid for aggregates, not for individual vehicles",
+        "to the circulating fleet; valid for aggregates, not for individual vehicles",
         f"{int(by_age.n_vehicles.sum()):,} vehicles",
     )
 
@@ -660,7 +669,7 @@ def _policy_figures(figures_dir: Path, captions: dict[str, str], summary) -> Non
         f"{THIRTY_DAY}; fitted = Poisson regression with a linear trend, month terms and a level "
         "and slope change at July 2006; counterfactual = the same model with the change set to "
         "zero; the post-period ends before the Penal Code reform of December 2007",
-        int(main_window.deaths.sum()),
+        f"{int(main_window.deaths.sum()):,} deaths",
     )
     plots.intervention(
         series,
@@ -680,7 +689,7 @@ def _policy_figures(figures_dir: Path, captions: dict[str, str], summary) -> Non
         "January 2000 to December 2009, all roads",
         f"{THIRTY_DAY}; the model of the previous figure with a second level change at December "
         "2007 (shaded); the recession of 2008 is not modelled",
-        int(series.deaths.sum()),
+        f"{int(series.deaths.sum()):,} deaths",
     )
 
     placebo = summary("q8_points_placebo")
@@ -694,7 +703,7 @@ def _policy_figures(figures_dir: Path, captions: dict[str, str], summary) -> Non
         "low",
         "high",
         figures_dir / "q8_points_placebo.svg",
-        "Estimated level change with the break placed at every other month, 2002–2005",
+        "Estimated level change with the break placed at each month from January 2002 to February 2005",
         xlabel="Change in the monthly level",
         percent=True,
         reference=0,
@@ -734,8 +743,9 @@ def _policy_figures(figures_dir: Path, captions: dict[str, str], summary) -> Non
         "January 2016 to February 2020",
         f"{THIRTY_DAY} by road type of the crash; fitted = one Poisson regression for both groups "
         "with a shared trend, month terms, a group term, a post term and a post × conventional "
-        "term; counterfactual = conventional roads without their own change",
-        int(clean.deaths.sum()),
+        "term; counterfactual = conventional roads without their own change; both panels share "
+        "one vertical scale",
+        f"{int(clean.deaths.sum()):,} deaths",
     )
     plots.intervention(
         panel,
@@ -756,8 +766,9 @@ def _policy_figures(figures_dir: Path, captions: dict[str, str], summary) -> Non
         MICRODATA_SOURCE,
         "January 2016 to December 2024",
         "the model of the previous figure extended with lockdown and restriction periods (shaded), "
-        "each with its own level for both groups and for conventional roads",
-        int(panel.deaths.sum()),
+        "each with its own level for both groups and for conventional roads; both panels share "
+        "one vertical scale",
+        f"{int(panel.deaths.sum()):,} deaths",
     )
 
 
@@ -791,8 +802,10 @@ def _speed_figures(figures_dir: Path, captions: dict[str, str], summary) -> None
         )
 
     by_vehicle = summary("q9_infractions_by_vehicle")
-    latest = by_vehicle[(by_vehicle.zone == "all") & (by_vehicle.vehicle_group != "total")]
-    latest = latest[latest.vehicle_group != "unknown"]
+    all_roads = by_vehicle[by_vehicle.zone == "all"]
+    total_row = all_roads[all_roads.vehicle_group == "total"].iloc[0]
+    unknown_row = all_roads[all_roads.vehicle_group == "unknown"].iloc[0]
+    latest = all_roads[~all_roads.vehicle_group.isin(["total", "unknown"])]
     plots.dot_interval(
         latest,
         "vehicle_label",
@@ -801,13 +814,9 @@ def _speed_figures(figures_dir: Path, captions: dict[str, str], summary) -> None
         "share_among_known_high",
         figures_dir / "q9_speed_by_vehicle.svg",
         f"Share of drivers with a recorded speed infraction, among those with a record, {int(latest.year.iloc[0])}",
-        xlabel="Share of drivers with a known speed status",
+        xlabel="Share with a recorded speed infraction, among drivers with a record (95% interval)",
         percent=True,
-        reference=float(
-            by_vehicle[
-                (by_vehicle.zone == "all") & (by_vehicle.vehicle_group == "total")
-            ].share_among_known.iloc[0]
-        ),
+        reference=float(total_row.share_among_known),
         reference_label="all drivers",
     )
     captions["q9_speed_by_vehicle"] = plots.caption(
@@ -815,12 +824,20 @@ def _speed_figures(figures_dir: Path, captions: dict[str, str], summary) -> None
         str(int(latest.year.iloc[0])),
         "drivers with a speed infraction divided by drivers whose speed status was recorded "
         "(all roads); whiskers are 95% Wilson intervals; about half of all drivers have no record, "
-        "and the recorded half is not a random sample",
-        f"{int(latest.known.sum()):,} drivers with a record",
+        "and the recorded half is not a random sample; drivers of an unknown vehicle type "
+        f"({int(unknown_row.known)}, of whom {int(unknown_row.speed_infraction)} had a speed "
+        "infraction) are in the 'all drivers' reference line but not shown as a row",
+        f"{int(total_row.known):,} drivers with a record",
     )
 
     factors = summary("q9_report_factors")
     speed_factor = factors[factors.factor == "Inappropriate speed"].copy()
+    # Interurban first and urban second, so the zones keep the colours they have on every other
+    # figure; the all-roads total takes the third colour.
+    zone_rank = {"interurban": 0, "urban": 1, "all": 2}
+    speed_factor = speed_factor.sort_values(
+        ["zone", "year"], key=lambda s: s.map(zone_rank) if s.name == "zone" else s
+    )
     speed_factor["zone_label"] = speed_factor.zone.map(speed.ZONE_LABELS)
     plots.line_series(
         speed_factor,
@@ -921,7 +938,7 @@ def _severity_figures(figures_dir: Path, captions: dict[str, str]) -> None:
             "2016–2024",
             f"logistic regression of {title} on the circumstances shown plus year; odds ratios "
             "against the reference level (hollow marker) with 95% intervals clustered by province",
-            n_model,
+            f"{n_model:,} crashes",
         )
 
     cal = summaries.read_model_table("q3_calibration")
@@ -939,7 +956,7 @@ def _severity_figures(figures_dir: Path, captions: dict[str, str]) -> None:
         "fitted on 2016–2022, scored on 2023–2024",
         "crashes grouped into ten equal bands of predicted probability; the dotted line is perfect "
         "calibration",
-        int(cal[cal.outcome == "Fatal"].crashes.sum()),
+        f"{int(cal[cal.outcome == 'Fatal'].crashes.sum()):,} crashes",
     )
 
     stability = summaries.read_model_table("q3_year_stability")
@@ -956,15 +973,16 @@ def _severity_figures(figures_dir: Path, captions: dict[str, str]) -> None:
         "year",
         "odds_ratio",
         figures_dir / "q3_year_stability.svg",
-        "Odds ratios for a fatal outcome, refitted year by year",
+        "The ten largest effects excluding missing-state levels, refitted year by year",
         ncols=3,
         band=("or_low", "or_high"),
     )
     captions["q3_year_stability"] = plots.caption(
         MICRODATA_SOURCE,
         "2016–2024, one fit per year",
-        "the ten largest effects of the full fatal-outcome model, each refitted on one year of "
-        "crashes; shaded bands are 95% intervals",
+        "odds ratios for a fatal outcome: the ten largest effects of the full model excluding "
+        "missing-state levels (a 'not specified' level tracks reporting practice, not risk), "
+        "each refitted on one year of crashes; shaded bands are 95% intervals",
     )
 
     grid = summaries.read_model_table("q3_predicted_grid")

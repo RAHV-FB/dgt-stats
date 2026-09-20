@@ -28,7 +28,8 @@ All raw files live under `data/raw/`, grouped by role.
 
 - Source: Registro Nacional de Víctimas de Accidentes de Tráfico (Orden INT/2223/2014), published on
   DGT en Cifras under "Ficheros de microdatos de accidentes con víctimas". Licence: datos.gob.es aviso
-  legal. The 2020 file is served from a different directory than the other years (see manifest).
+  legal. The 2020–2023 files are served from the `24h/` directory of dgt.es, the 2016–2019 and 2024
+  files from `publicaciones/Ficheros_microdatos_de_accidentalidad_con_victimas/` (see manifest).
 - **DGT publishes only the crash-level table.** The download pages for 2019 through 2024 each list one
   accident workbook and the dictionary; there is no public vehicle-level or person-level file. Those
   tables exist in the register and are available on request to DGT's Observatorio Nacional de Seguridad
@@ -80,8 +81,15 @@ The zip archive was extracted in place and the archive itself dropped.
 | `dgt_factor_velocidad_2023.pdf` | 61 | Speed factor 2014–2023, 30-day data, **excludes Cataluña and País Vasco**. Speed present in 7% of injury crashes in 2023 (3% urban, 14% interurban); profiles by road type, speed limit, vehicle, driver | `INF_TEMA_4_Factor-Velocidad_v5_FINAL.pdf` |
 | `dgt_personas_mayores_2023.pdf` | 82 | Road users aged 65+ in 2023: 26% of all deaths; 47.8 deaths per million vs 34.4 for under-65; collision matrices; profiles | `INF_TEMA_8_PersonasMayores_v4_FINAL_nipo.pdf` |
 | `Anuario-estadistico-de-accidentes-{2015..2019}-fe-de-erratas.pdf` | — | DGT errata sheets for the 2015–2019 yearbooks; check before reconciling those years | same |
-| `esra2023countryfactsheetspain.pdf`, `esra2023thematicreportno5youngandagingdrivers.pdf`, `esra3-main-report.pdf`, `esra3-methodology-report.pdf` | — | ESRA3 (2023) Spain fact sheet (935 respondents, 75.9 % drive at least a few days a month), the young-and-ageing-drivers report and the main and methodology reports | same |
 | `dgt_semana_santa_2026.pdf` | 45 | Easter 2026 interurban fatal crashes, **24-hour provisional counts**: 28 fatal crashes, 30 deaths, 17.3 million long-distance trips; series 1995–2026 | `INF_SEMANASANTA_2026_v8_FINAL.pdf` |
+
+The ESRA reports are not archived under `data/raw/` (Vias institute offers no reproduction licence;
+see the reuse terms in `data_sources.md`). They were consulted online: the ESRA3 (2023) Spain fact
+sheet and main report (935 weighted respondents, 75.9 % drive at least a few days a month, main
+report Table 6) at `https://www.esranet.eu/storage/minisites/esra2023countryfactsheetspain.pdf` and
+`https://www.esranet.eu/storage/minisites/esra3-main-report.pdf`, and the ESRA-123 dashboard
+(`https://www.esranet.eu/en/esra-123-dashboard/`) for the 2018 share (80.2 %, weighted n 906). The
+two values are typed into `driving_activity_by_age.csv` with their URLs.
 
 ## 2. Crash microdata: schema and content
 
@@ -139,8 +147,13 @@ No duplicate identifiers were found in any year.
 | `SECUENCIAL` renamed to `ID_ACCIDENTE` | 2021+ | rename on load; ids restart at 1 each year, so the key must be `(ANYO, ID_ACCIDENTE)` |
 | `TOT_VMP_MU30DF` added | 2020+ | add as null for 2016–2019 (VMP deaths were counted under "Otro") |
 | `TOT_VMP_MU24H` present | 2020 only | drop or keep as null elsewhere; 24-hour VMP deaths are not needed |
-| `TIPO_VIA = 14` ("Otro") share rises from 2.9% to 17.2%, and `TITULARIDAD_VIA = 5` ("Otra") from 1.6% to 22.0%, while `TIPO_VIA = 9` ("Calle") falls from 59.9% to 47.5% | 2016 → 2024 | coding change, almost certainly in urban reporting; road-type trends must use a collapsed grouping (motorway / dual carriageway / conventional / urban / other) and be checked year by year |
-| `CONDICION_METEO = 999` falls from 10.0% to 0.5%; `VISIB_RESTRINGIDA_POR = 999` from 32.3% to 14.8%; `CONDICION_NIVEL_CIRCULA = 999` rises from 17.9% to 34.0% | 2016 → 2024 | missingness is year-dependent; never run complete-case trend comparisons |
+| `TIPO_VIA = 14` ("Otro") share rises from 2.9% to 17.2%, and `TITULARIDAD_VIA = 5` ("Otra") from 1.6% to 22.0%, while `TIPO_VIA = 9` ("Calle") falls from 59.9% to 47.5% | 2016 → 2024 | coding change, almost certainly in urban reporting; road-type trends must use a collapsed grouping (motorway / dual carriageway / conventional / urban / other) and be checked year by year. `TITULARIDAD_VIA = 5` dips to 7.9% in 2021, when 14.8% of rows carry 999 instead, so its jump to 22% dates from 2023, not 2021 |
+| `TIPO_VIA = 5` ("Carretera Convencional de doble calzada") falls from 6.8% to 1.8% of crashes between 2020 and 2021 while `TIPO_VIA = 6` ("Carretera Convencional de calzada única") rises from 17.9% to 21.4% and their sum stays near 23%; `TIPO_VIA = 1` ("Autopista de peaje") falls from about 1.8% to 0.4% in 2022 and 2024 while `TIPO_VIA = 2` ("Autopista libre") rises to 3.3%, with 2023 back at the earlier split and the sum stable near 3.7% | 2021, 2022, 2024 | interurban coding changes. The dual carriageway / conventional split is not comparable across 2020–2021, and the collapsed grouping does not fix it because `road_group` puts 5 in dual carriageway and 6 in conventional; the 2019 case study therefore builds its two groups from the raw codes (5 and 6 against 1, 2 and 3, `policy.py`) so that the recoding stays inside the treated group. The toll/free motorway distinction is unusable, but codes 1 and 2 are pooled into `motorway` in every use, so that group is unaffected |
+| `ZONA = 4` ("Autopista o autovía urbana") falls from 0.6–0.7% of crashes in 2016–2018 to 0.1% or less from 2019 (0.4% in 2021) | 2019+ | urban motorways are coded elsewhere from 2019 (the grouped zone is unaffected); the zone level in the severity models is mostly an early-period estimate, and the page says so |
+| `NUDO = 1` (at a junction) rises from 38–40% of crashes in 2016–2022 to 43.5–43.7% in 2023–2024, and `NUDO_INFO = 999` from 0.5–0.7% (2.8% in 2018) to 14.5% in 2023 and 15.1% in 2024, 72% of those rows in Barcelona and 99% in the four Catalan provinces | 2023+ | a reporting change in the junction fields, not a change on the roads; the junction term in the severity models pools both regimes and the stability check is where it would show; never read the junction share as a trend across 2022–2023 |
+| `VISIB_RESTRINGIDA_POR` and `CONDICION_NIVEL_CIRCULA` swap between their explicit unknown code (18 "Se desconoce", 6 "Se desconoce") and 999 in 2021, 2023 and 2024: `VISIB_RESTRINGIDA_POR = 999` is 0.3% / 0.1% / 0.0% in 2019 / 2020 / 2022 but 14.9% / 14.0% / 14.8% in 2021 / 2023 / 2024 while code 18 drops from 28–30% to 4.8–5.6%, and `VISIB_RESTRINGIDA_POR = 17` ("Otras restricciones") jumps from 0.4% to 8.7–8.9% in the same three years; `CONDICION_NIVEL_CIRCULA = 999` is 9.5–10.2% in 2019 / 2020 / 2022 but 32.2% / 32.8% / 34.0% in 2021 / 2023 / 2024 while code 6 drops from 29–31% to 6.9–7.7%. `TITULARIDAD_VIA = 999` appears in 2021 only (14.8%, 13,280 rows, all urban `ZONA 3` / `TIPO_VIA 9`) | 2021, 2023, 2024 | one reporting batch from the four Catalan provinces (Barcelona alone is 74–79% of the `VISIB_RESTRINGIDA_POR = 999` rows in those years, Barcelona, Girona, Lleida and Tarragona together 97–100%; for `CONDICION_NIVEL_CIRCULA = 999`, which has a 10% floor everywhere, the four provinces are 65–71%), which also carries the 2021 wind flag (13,412 of the 22,090 flagged rows are the same rows); missingness is province- and year-dependent, so never run complete-case trend comparisons and never read these fields as a trend |
+| `CONDICION_METEO = 999` falls from 10.0–10.4% in 2016–2018 to 0.0–0.5% from 2019 on | 2018 → 2019 | missingness is year-dependent; never run complete-case trend comparisons |
+| `VISIB_RESTRINGIDA_POR = 999` falls 32.3% → 10.2% while code 1 ("Buena visibilidad") rises 29.8% → 50.8%; `CONDICION_FIRME = 9` falls 5.5% → 2.7%; `CONDICION_NIEBLA` is flagged in 0.5% → 7.2% of crashes | 2016 → 2017 | 2016 is a separate reporting regime for the condition fields; treat 2016 as not comparable to later years |
 | `KM` null share 62% in most years but 46–48% in 2019 and 2022 | 2019, 2022 | investigate before using km-post analyses |
 | `ISLA = 0`, absent from the dictionary, appears from 2018 (7 rows) and grows to 605 rows in 2024, almost only in the Balearic and Canary provinces | 2018+ | treated as "island not specified" (`codes.UNDOCUMENTED_CODES`), distinct from empty (not an island) |
 | `CONDICION_VIENTO = 1` share jumps from about 0.3% to 24.6% in 2021 only | 2021 | reporting artefact; exclude the wind flag from cross-year comparisons |
@@ -169,7 +182,7 @@ No duplicate identifiers were found in any year.
 | Crash trends, seasonality, weekday/hour patterns 1993–2024 | Yes | series workbook plus microdata |
 | Severity of a crash given road type, zone, crash type, lighting, weather, surface, junction, alignment | Yes | crash-level outcome and context variables are complete enough |
 | Province comparisons per population, per licensed driver, per registered vehicle | Yes, with INE population added | census files give drivers by province; fleet only national in the series |
-| Vulnerable road users (pedestrians, cyclists, motorcyclists, VMP) fatality shares and trends | Yes | `TOT_*_MU30DF` columns |
+| Vulnerable road users (pedestrians, cyclists, moped riders, motorcyclists, VMP) fatality shares and trends | Yes | `TOT_*_MU30DF` columns |
 | Older road users | Partly | series has victims by age band; microdata has no age |
 | Heavy vehicles and buses per vehicle-km | Only for 2022, and only occupant deaths | involvement not in microdata; km only for 2022 |
 | Alcohol × speed interaction, distraction, fatigue, protective equipment | **No** | none of these variables exist in the crash-level file; speed only appears as aggregate infraction counts in `TABLA 6.1` and in the DGT report |
@@ -182,11 +195,11 @@ factor-interaction work can start. They are not published for download; a data r
 
 ## 5. Organisation
 
-- Raw files are tracked in Git under `data/raw/` (about 265 MB, 110 files) and are never edited in place.
-  `data/raw/manifest.csv` records path, size, SHA-256, source URL and description for each file; any
-  replacement must update the manifest entry.
+- Raw files are tracked in Git under `data/raw/` (about 260 MB, 106 files) and are never edited in place.
+  `data/raw/manifest.csv` records path, size, SHA-256, source URL, description and the date added for
+  each file; any replacement must update the manifest entry.
 - `data/interim/` and `data/processed/` stay ignored and are rebuilt from `data/raw/` by the ingestion
-  scripts. Every source is converted to Parquet on first run (`openpyxl` needs about 20 seconds per
+  scripts. Every source is converted to Parquet on first run (`openpyxl` needs about 35 seconds per
   microdata year; Parquet loads in well under a second).
 - The RDF metadata file holds the official access URL, licence and issue date for 2024 and is the template
   for the manifest entries of the other years.

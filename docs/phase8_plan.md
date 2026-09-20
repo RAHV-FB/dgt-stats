@@ -23,14 +23,14 @@ things are out of date:
   2014–2025, the yearly and chapter workbooks 2014–2023, the MOVILIA, ECEPOV and EHMA extracts and
   the driving-activity file were added later and are only in `data_inventory.md` and `data/README.md`.
 
-Two decisions belong to the user and are flagged, not taken:
+Two decisions are left open and flagged, not taken:
 
 - **Licence.** The README says none has been chosen. The code could take a permissive licence (MIT or
   Apache-2.0); the DGT and INE data keep their own reuse terms, which the README will state either
-  way. Nothing is added until the user chooses.
-- **Notebooks.** The plan's notebook sequence (`00_source_audit` to `10_speed_context`) was never
+  way. Nothing is added until one is chosen.
+- **Notebooks.** The plan's notebook sequence (`00_source_audit` to `09_speed_context`) was never
   started because the scripts, the tests and the site took their place. The default is to say so in
-  `notebooks/README.md` and the README rather than write eleven notebooks that repeat the site.
+  `notebooks/README.md` and the README rather than write ten notebooks that repeat the site.
 
 ## 2. Build steps
 
@@ -68,6 +68,8 @@ Two decisions belong to the user and are flagged, not taken:
 ### Step 3 — Documents
 - `docs/methodology.md`: an "As built" note at the top; each section keeps its text and gains a
   status line: done (with the page), reframed (with what replaced it), or requires person-level data.
+  (Later superseded: the file was rewritten as built in the final review, replacing the planning
+  text and its status lines; see [`final_review.md`](final_review.md).)
 - `docs/data_sources.md`: the register completed with every file under `data/raw/` grouped as in
   `data_inventory.md`, each with coverage, role and the page that uses it.
 - `docs/analytics_plan.md`: phase 8 row done; the notebook sequence section marked as replaced by the
@@ -85,8 +87,8 @@ Two decisions belong to the user and are flagged, not taken:
 
 ### Step 5 — PR, merge, verify
 - PR; squash merge; the Pages deploy checked; the live site fetched once to confirm the front page,
-  the digest and one figure are served; the stale branches listed for the user; the two open
-  decisions restated.
+  the digest and one figure are served; the stale branches listed; the two open decisions
+  restated.
 
 ## 3. Outcome (19 September 2026)
 
@@ -100,14 +102,23 @@ All five steps are merged.
   horizontal overflow.
 - README rewritten: what the site answers (nine questions, page, method, finding), what could not be
   done and why, the standards as applied, the data groups, the reproduce sequence, the structure,
-  what remains. `docs/methodology.md` has a status line per section, `docs/data_sources.md` lists
-  every raw file with its role and page, `docs/analytics_plan.md` is closed, `notebooks/README.md`
-  records that no notebook was written and why.
+  what remains. `docs/methodology.md` gained a status line per section (later rewritten as built in
+  the final review, [`final_review.md`](final_review.md), which replaced the planning text and its
+  status lines), `docs/data_sources.md` lists every raw file with its role and page,
+  `docs/analytics_plan.md` is closed, `notebooks/README.md` records that no notebook was written
+  and why.
 - `pyproject.toml` at 1.0.0 with the unused notebook and geo dependencies dropped.
 - The full sequence in the README was run from an empty interim layer: `ingest.py all` (314 s, 434
   checks passed), `build_tables.py`, `model.py`, `analyse.py all`, `build_site.py`. It reproduced
-  every committed table, figure and page byte for byte.
-- Two decisions stay with the user: a licence for the code, and whether notebooks are ever wanted.
+  every committed table, figure and page byte for byte in the environment that produced them
+  (Python 3.11.15, pandas 3.0.6, numpy 2.4.6, scipy 1.17.1, statsmodels 0.15.0, matplotlib 3.11.2,
+  scikit-learn 1.9.1, pyarrow 25.0.1, since recorded in `requirements.lock`); at the dependency
+  floors the numbers agree to the printed precision but every figure differs in its matplotlib
+  version string and tight-bbox geometry, as `docs/methodology.md`, section 10, records.
+- One decision was left open at merge time and taken afterwards: the code was released under the
+  MIT licence, as the README and `pyproject.toml` now record. The notebook question
+  was settled in this phase itself: `notebooks/README.md` records that none were written and none
+  are planned. Both are restated in [`final_review.md`](final_review.md).
 
 ## 4. Verification
 

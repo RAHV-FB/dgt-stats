@@ -1,9 +1,60 @@
+import json
 from pathlib import Path
 
 import pandas as pd
 import pytest
 
-from dgt_stats import plots
+from dgt_stats import figures, plots, summaries
+from dgt_stats.paths import TABLES_DIR
+
+# Every figure build_all writes from the summary tables alone; the Q3 ones need the model tables.
+EXPECTED_FIGURES = {
+    "data_missingness",
+    "q1_deaths_30d",
+    "q1_deaths_by_zone",
+    "q1_indexed_trend",
+    "q1_monthly_heatmap",
+    "q1_rates",
+    "q2_hour_band_road_group",
+    "q2_hour_weekday_crashes",
+    "q2_hour_weekday_fatal_share",
+    "q2_night_share",
+    "q4_national_rates",
+    "q4_province_deaths",
+    "q5_driver_deaths",
+    "q5_pedestrian_deaths",
+    "q5_road_user_shares",
+    "q6_km_by_age",
+    "q6_occupant_deaths",
+    "q6_per_vehicle_vs_per_km",
+    "q6_rates_per_km",
+    "q7_death_rates_by_band",
+    "q7_involvement_fragility",
+    "q7_ladder_ratio",
+    "q7_licence_travel_share",
+    "q7_victims_by_age",
+    "q8_points_placebo",
+    "q8_points_series",
+    "q8_points_series_long",
+    "q8_speed_series",
+    "q8_speed_series_long",
+    "q9_report_day_hour",
+    "q9_report_speed_limit",
+    "q9_report_speed_share",
+    "q9_speed_by_vehicle",
+    "q9_speed_status_interurban",
+    "q9_speed_status_urban",
+}
+EXPECTED_MODEL_FIGURES = {
+    "q3_calibration",
+    "q3_forest_fatal",
+    "q3_forest_serious",
+    "q3_predicted_grid",
+    "q3_year_stability",
+}
+_TABLES_PRESENT = all(
+    (TABLES_DIR / f"{name}.csv").exists() for name in (*summaries.SUMMARIES, "missingness_by_year")
+)
 
 
 def _svg_ok(path: Path) -> None:
@@ -59,6 +110,29 @@ def test_small_multiples_and_missingness(tmp_path: Path) -> None:
 def test_caption_format() -> None:
     text = plots.caption("DGT", "2016–2024", "30-day deaths", 875_013)
     assert text == "Source: DGT. Period: 2016–2024. Definition: 30-day deaths. n = 875,013."
+    text = plots.caption("DGT", "2016–2024", "30-day deaths", "15,441 deaths")
+    assert text.endswith("n = 15,441 deaths.")
+
+
+def test_percent_ticks_keep_the_decimals_they_need() -> None:
+    assert [plots._percent_text(v) for v in (0, 0.025, 0.05, 0.075, 0.2)] == [
+        "0%",
+        "2.5%",
+        "5%",
+        "7.5%",
+        "20%",
+    ]
+    assert plots._percent_text(0.05, decimals=1) == "5.0%"
+    assert [plots._percent_text(v, signed=True) for v in (-0.05, 0.0, 0.1)] == [
+        "-5%",
+        "0%",
+        "+10%",
+    ]
+
+
+def test_series_styles_differ_beyond_colour() -> None:
+    styles = [plots._series_style(i) for i in range(len(plots.CATEGORICAL))]
+    assert len({(s["linestyle"], s.get("marker")) for s in styles}) == len(styles)
 
 
 def test_line_series_with_band_and_small_multiples_with_series(tmp_path: Path) -> None:
@@ -236,3 +310,25 @@ def test_intervention_and_placebo_dots(tmp_path: Path) -> None:
         keep_order=True,
     )
     _svg_ok(out)
+
+
+@pytest.mark.skipif(not _TABLES_PRESENT, reason="run `python scripts/analyse.py tables` first")
+def test_build_all_writes_every_registered_figure(tmp_path: Path) -> None:
+    frames = {name: pd.read_csv(TABLES_DIR / f"{name}.csv") for name in summaries.SUMMARIES}
+    captions = figures.build_all(tmp_path, frames=frames)
+    expected = EXPECTED_FIGURES | (
+        EXPECTED_MODEL_FIGURES if summaries.model_tables_present() else set()
+    )
+    assert set(captions) == expected
+    assert {p.stem for p in tmp_path.glob("*.svg")} == expected
+    for name in expected:
+        _svg_ok(tmp_path / f"{name}.svg")
+    saved = json.loads((tmp_path / "captions.json").read_text(encoding="utf-8"))
+    assert saved == captions
+    # n is counted from the frame each figure draws and says what it counts.
+    n_crashes = int(frames["q2_hour_weekday"].crashes.sum())
+    assert captions["q2_hour_weekday_crashes"].endswith(f"n = {n_crashes:,} crashes.")
+    n_deaths = int(frames["q1_annual_by_zone"].deaths_30d.sum())
+    assert captions["q1_deaths_by_zone"].endswith(f"n = {n_deaths:,} deaths.")
+    n_band = int(frames["q2_hour_band_road_group"].crashes.sum())
+    assert captions["q2_hour_band_road_group"].endswith(f"n = {n_band:,} crashes.")

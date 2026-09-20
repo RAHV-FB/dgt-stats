@@ -748,9 +748,9 @@ def _rows_any(path: Path, sheet_key: str) -> list[tuple]:
     Legacy ``.xls`` workbooks (2014) go through pandas/xlrd, everything else through openpyxl.
     """
     if path.suffix == ".xls":
-        book = pd.ExcelFile(path)
-        names = {_sheet_key(name): name for name in book.sheet_names}
-        frame = book.parse(names[sheet_key], header=None)
+        with pd.ExcelFile(path) as book:
+            names = {_sheet_key(name): name for name in book.sheet_names}
+            frame = book.parse(names[sheet_key], header=None)
         return [
             tuple(None if pd.isna(value) else value for value in row)
             for row in frame.itertuples(index=False)

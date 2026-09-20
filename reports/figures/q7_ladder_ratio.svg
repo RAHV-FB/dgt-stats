@@ -424,7 +424,7 @@ L 346.87723 229.023934
 L 387.459048 228.832998 
 L 428.040866 218.24592 
 L 468.622685 218.514282 
-" clip-path="url(#p7faaca86b4)" style="fill: none; stroke: #eb6834; stroke-width: 2; stroke-linecap: round"/>
+" clip-path="url(#p7faaca86b4)" style="fill: none; stroke-dasharray: 7.4,3.2; stroke-dashoffset: 0; stroke: #eb6834; stroke-width: 2"/>
    </g>
    <g id="line2d_28">
     <defs>
@@ -456,7 +456,7 @@ L 346.87723 142.28996
 L 387.459048 138.428956 
 L 428.040866 109.11389 
 L 468.622685 106.002012 
-" clip-path="url(#p7faaca86b4)" style="fill: none; stroke: #1baf7a; stroke-width: 2; stroke-linecap: round"/>
+" clip-path="url(#p7faaca86b4)" style="fill: none; stroke-dasharray: 12.8,3.2,2,3.2; stroke-dashoffset: 0; stroke: #1baf7a; stroke-width: 2"/>
    </g>
    <g id="line2d_30">
     <defs>
@@ -488,7 +488,7 @@ L 346.87723 163.973773
 L 387.459048 168.081569 
 L 428.040866 151.116141 
 L 468.622685 150.947251 
-" clip-path="url(#p7faaca86b4)" style="fill: none; stroke: #eda100; stroke-width: 2; stroke-linecap: round"/>
+" clip-path="url(#p7faaca86b4)" style="fill: none; stroke-dasharray: 2,3.3; stroke-dashoffset: 0; stroke: #eda100; stroke-width: 2"/>
    </g>
    <g id="line2d_32">
     <defs>
@@ -540,7 +540,7 @@ L 68.613594 338.152159
      <path d="M 148.336719 338.152159 
 L 157.336719 338.152159 
 L 166.336719 338.152159 
-" style="fill: none; stroke: #eb6834; stroke-width: 2; stroke-linecap: round"/>
+" style="fill: none; stroke-dasharray: 7.4,3.2; stroke-dashoffset: 0; stroke: #eb6834; stroke-width: 2"/>
     </g>
     <g id="text_19">
      <text style="font-size: 9px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start; fill: #0b0b0b" x="173.536719" y="341.302159" transform="rotate(-0 173.536719 341.302159)">per licence holder</text>
@@ -549,7 +549,7 @@ L 166.336719 338.152159
      <path d="M 272.547969 338.152159 
 L 281.547969 338.152159 
 L 290.547969 338.152159 
-" style="fill: none; stroke: #1baf7a; stroke-width: 2; stroke-linecap: round"/>
+" style="fill: none; stroke-dasharray: 12.8,3.2,2,3.2; stroke-dashoffset: 0; stroke: #1baf7a; stroke-width: 2"/>
     </g>
     <g id="text_20">
      <text style="font-size: 9px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start; fill: #0b0b0b" x="297.747969" y="341.302159" transform="rotate(-0 297.747969 341.302159)">per travel-weighted driver</text>
@@ -558,7 +558,7 @@ L 290.547969 338.152159
      <path d="M 433.849063 338.152159 
 L 442.849063 338.152159 
 L 451.849063 338.152159 
-" style="fill: none; stroke: #eda100; stroke-width: 2; stroke-linecap: round"/>
+" style="fill: none; stroke-dasharray: 2,3.3; stroke-dashoffset: 0; stroke: #eda100; stroke-width: 2"/>
     </g>
     <g id="text_21">
      <text style="font-size: 9px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start; fill: #0b0b0b" x="459.049062" y="341.302159" transform="rotate(-0 459.049062 341.302159)">per driver involved in a crash</text>
