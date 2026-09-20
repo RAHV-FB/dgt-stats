@@ -18,6 +18,23 @@ where the file's numbers appear on the site.
 - **European Road Safety Observatory**: context only, cited in the README; nothing from it enters a
   table.
 
+## Reuse terms
+
+The code in this repository is under the MIT licence (`LICENSE`). The files under `data/raw/` are
+not: each keeps the terms of the body that published it, listed here as read on 19 September 2026.
+Whatever the provider, this project names the source, keeps every file as downloaded with its
+checksum and download date (the `added` column of the manifest) and its edition or reference year
+(the description), publishes aggregates only, and claims no endorsement from anyone.
+
+| Provider | Files | Terms as published | Notice |
+|---|---|---|---|
+| DGT, catalogued on datos.gob.es | crash microdata and dictionary (`microdata/`) | free, non-exclusive licence for commercial and non-commercial reuse: name the origin of the data, do not distort its meaning, keep the date of last update, do not suggest that the publisher endorses the reuse, keep the metadata | <https://datos.gob.es/avisolegal>, the licence named in `metadata_2024.rdf.xml` |
+| DGT, from dgt.es | series, statistical tables, driver census, kilometre estimates, thematic reports (`tables/`, `exposure/`, `reports/dgt_*.pdf`, errata) | public-sector information within the scope of Ley 37/2007. DGT's legal notice claims the portal's design and code and sets no separate conditions for its statistics; this project applies the datos.gob.es conditions above to every DGT file | <https://www.dgt.es/contenido/aviso-legal/> |
+| INE | population (`ine_poblacion_provincias_edad_sexo.csv`), ECEPOV 2021, EHMA 2008 | Creative Commons Attribution 4.0 unless a product says otherwise; processed data are cited as "Elaboración propia con datos extraídos del sitio web del INE: www.ine.es"; keep the date of last update; do not suggest that INE endorses the reuse | <https://www.ine.es/aviso_legal/> |
+| Ministerio de Transportes y Movilidad Sostenible | MOVILIA 2006 and 2007 workbooks | reusable for commercial and non-commercial purposes: cite "Origen de los datos: Ministerio de Transportes y Movilidad Sostenible", keep the date of last update, do not distort the content, do not suggest endorsement, keep the metadata | <https://www.transportes.gob.es/ministerio/aviso-legal> |
+| Comunidad de Madrid, Instituto de Estadística | five MOVILIA 2006 tables for Madrid (`exposure/movilia_madrid/`) | copying and distribution allowed provided the pages are not used directly for commercial purposes, the source is cited, the content is not altered and no sponsorship is implied. These five files carry a condition the code licence does not; a commercial reuse of them goes back to the provider | <https://www.madrid.org/iestadis/fijas/otros/avisolegal.htm> |
+| ESRA (Vias institute and partner institutes) | four published reports (`reports/esra*.pdf`) | public reports; no reuse licence is stated on the site. The two national shares used are quotations attributed to the reports; the PDFs are kept unaltered, with URL and checksum, so the quotation can be checked | <https://www.esranet.eu/en/publications/> |
+
 ## Crash microdata (`microdata/`)
 
 | File | Coverage | Role | Page |

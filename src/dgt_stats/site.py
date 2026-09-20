@@ -2397,10 +2397,22 @@ def page_data(captions: dict[str, str]) -> str:
         "who drive by age.</li>"
         "</ul>"
     )
+    body += "<h2>Reuse</h2>"
     body += (
-        "<p>All of these are published as open data by DGT (DGT en Cifras) and INE under their own "
-        "reuse terms, which this site preserves: figures are quoted with attribution, aggregated, and "
-        "never combined with anything that could identify a person.</p>"
+        f'<p>The code that builds this site is released under the <a href="{REPO_URL}/blob/main/LICENSE">'
+        "MIT licence</a>. The data are not covered by it: each provider's terms apply to its files, and "
+        "the register in the repository lists them with their URLs. DGT's crash microdata are catalogued "
+        'on datos.gob.es under its <a href="https://datos.gob.es/avisolegal">legal notice</a>, and DGT\'s '
+        "other statistics are public-sector information reused under the same conditions: the source "
+        "is named, the meaning is not distorted, the dates are kept and no endorsement is implied. INE "
+        'population is under <a href="https://www.ine.es/aviso_legal/">Creative Commons Attribution '
+        "4.0</a> (own elaboration with data extracted from www.ine.es). The MOVILIA workbooks of the "
+        '<a href="https://www.transportes.gob.es/ministerio/aviso-legal">Ministerio de Transportes</a> '
+        'may be reused with attribution; the five <a href="https://www.madrid.org/iestadis/fijas/otros/'
+        'avisolegal.htm">Comunidad de Madrid</a> MOVILIA tables may not be used directly for commercial '
+        'purposes; the <a href="https://www.esranet.eu/en/publications/">ESRA</a> reports are cited as '
+        "published. Every figure here is an aggregate, quoted with attribution, and never combined with "
+        "anything that could identify a person.</p>"
     )
     body += "<h2>Definitions</h2>"
     body += (
