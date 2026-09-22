@@ -1,7 +1,9 @@
-"""Rates with exact Poisson intervals, rate ratios and the travel-weighted driver estimate.
+"""Rates with exact Poisson intervals, rate ratios and an exploratory exposure scenario.
 
-Counts of deaths or involved drivers are treated as Poisson; the exposure (residents, licence
-holders, travel-weighted drivers) is treated as known. Intervals are 95 % unless ``alpha`` says otherwise.
+Counts of deaths or involved drivers are treated as Poisson. Observed population and licence
+denominators are treated as known; the legacy ESRA×MOVILIA exposure-equivalent denominator is a
+sensitivity construction rather than an observed driver count. Intervals are 95 % unless
+``alpha`` says otherwise.
 """
 
 from __future__ import annotations
