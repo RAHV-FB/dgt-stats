@@ -1157,7 +1157,7 @@ def page_older_drivers(captions: dict[str, str]) -> str:
         "driver crashes, the crash is far more likely to kill them. The conclusion changes with the "
         "denominator, which is why the denominator has to be stated every time.</p>"
     )
-    body += "<h2>Why the ratio climbs: exposure and fragility</h2>"
+    body += "<h2>Why the ratio changes: involvement and fragility</h2>"
     body += figure(
         "q7_involvement_fragility",
         "Crash involvement per licence holder and deaths per driver involved, by age band",
@@ -1254,14 +1254,16 @@ def page_older_drivers(captions: dict[str, str]) -> str:
         "the last national travel survey, reports car trips per person by age without separating "
         "drivers from passengers. The estimate spreads the ESRA share across ages in proportion to "
         "MOVILIA car trips per resident and caps it at the licence share; it is therefore an exploratory "
-        "exposure weight, not a head count or measured driver share. Because MOVILIA counts passengers too, it can overstate older "
-        "people's driving and so understates their per-driver rate. Two further limits fall on the "
+        "exposure weight, not a head count or measured driver share. Because MOVILIA counts passengers "
+        "too, its age pattern is not a driver-only exposure pattern; the direction and size of the "
+        "resulting bias are not identified here. Two further limits fall on the "
         "oldest band. ESRA's Spanish sample is adults aged 18–74, so carrying its share to people "
         "over 74 is an extrapolation; and MOVILIA's oldest band is 65 and over, so the 75+ band is "
         "given exactly the car-travel intensity of 65–74, which is why their scenario weights "
-        "in the table above are identical. This is one reason the scenario cannot be interpreted as " 
-        "an observed age-specific driver share. Both can overstate how much people over 74 drive, as far as "
-        f"they go, and the 75+ ratio of {ratio_value('75+', 'travel_weighted'):.2f}× cannot be read "
+        "in the table above are identical. This is one reason the scenario cannot be interpreted as "
+        "an observed age-specific driver share. The 75+ result therefore inherits two unmeasured "
+        "extrapolations, and its direction of bias is not identified. Its ratio of "
+        f"{ratio_value('75+', 'travel_weighted'):.2f}× cannot be read "
         f"against the {ratio_value('65-74', 'travel_weighted'):.2f}× of 65–74: the two bands carry "
         "the same assumed intensity. The cap is not redistributed, so the capped bands "
         f"({_join(capped_bands)}) sit at their licence share and the estimate sums to "
@@ -1283,8 +1285,9 @@ def page_older_drivers(captions: dict[str, str]) -> str:
         f"{ratio_value('65-74', 'travel_weighted') / growth['65-74']:.1f}× for 65–74 and from "
         f"{ratio_value('75+', 'travel_weighted'):.2f}× to about "
         f"{ratio_value('75+', 'travel_weighted') / growth['75+']:.1f}× for 75 and over. The "
-        "passenger bias and the frozen profile push in opposite directions and neither is measured "
-        "here, so the exploratory exposure ratio is not a bound in either direction. An age split of "
+        "passenger mix and the frozen profile introduce separate, unmeasured biases; neither "
+        "direction is guaranteed. The exploratory exposure ratio is therefore not a bound in either "
+        "direction. An age split of "
         "the ESRA question would replace the estimate directly."
     )
     body += "<h2>Sensitivity: alternative exposure denominator</h2>"
