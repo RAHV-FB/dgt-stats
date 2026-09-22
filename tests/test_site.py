@@ -183,10 +183,17 @@ def test_every_page_has_a_description_and_every_image_an_alt(built: Path) -> Non
         assert "<script" not in text
 
 
-def test_front_page_digest_links_every_content_page(built: Path) -> None:
+def test_front_page_leads_with_three_analyses_and_links_the_rest(built: Path) -> None:
     index = (built / "index.html").read_text(encoding="utf-8")
-    digest = index[index.find("What the data say") : index.find("How to read the numbers")]
+    body = index[index.find("<main>") : index.find("</main>")]
+    # The three featured analyses are set out in full; every other page is linked from the list.
+    assert body.count('<section class="feature">') == len(site.FEATURED) == 3
+    for href, (title, method) in site.FEATURED.items():
+        assert f'<h3><a href="{href}">{site.esc(title)}</a></h3>' in body
+        assert site.esc(method) in body
     for slug, _ in site.PAGES:
-        if slug in ("index", "data"):
+        if slug == "index":
             continue
-        assert f'href="{slug}.html"' in digest, slug
+        assert f'href="{slug}.html"' in body, slug
+    # The front page carries a byline and says what the project is.
+    assert "About this project" in body and site.PROFILE_URL in index
