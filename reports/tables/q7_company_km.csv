@@ -1,0 +1,16 @@
+allocation,allocation_label,band,band_label,billion_km,deaths_per_bn_km,ratio_to_reference,low,high
+excluded,Company kilometres left out (published),18-34,18–34,34.31368947,3.438860753,2.433560241,1.924202562,3.077750526
+excluded,Company kilometres left out (published),35-54,35–54,120.302993,1.413098675,1,0.8084892128,1.236874882
+excluded,Company kilometres left out (published),55-64,55–64,56.58595739,1.343089408,0.9504569152,0.7252340645,1.245623161
+excluded,Company kilometres left out (published),65-74,65–74,28.39608107,2.077751498,1.470351317,1.093462087,1.977144907
+excluded,Company kilometres left out (published),75+,75 and over,12.587693,5.640429903,3.991532935,3.025947683,5.265238147
+to_working_age,Company kilometres spread over 18–64,18-34,18–34,40.88175884,2.88637288,2.433560241,1.924202562,3.077750526
+to_working_age,Company kilometres spread over 18–64,35-54,35–54,143.3304906,1.186070035,1,0.8084892128,1.236874882
+to_working_age,Company kilometres spread over 18–64,55-64,55–64,67.41721743,1.127308467,0.9504569152,0.7252340645,1.245623161
+to_working_age,Company kilometres spread over 18–64,65-74,65–74,28.39608107,2.077751498,1.751794951,1.302764407,2.355595173
+to_working_age,Company kilometres spread over 18–64,75+,75 and over,12.587693,5.640429903,4.755562266,3.605151919,6.273070588
+to_all_bands,Company kilometres spread over every band,18-34,18–34,39.81435688,2.963755018,2.433560241,1.924202562,3.077750526
+to_all_bands,Company kilometres spread over every band,35-54,35–54,139.5882043,1.217867948,1,0.8084892128,1.236874882
+to_all_bands,Company kilometres spread over every band,55-64,55–64,65.65698813,1.157531013,0.9504569152,0.7252340645,1.245623161
+to_all_bands,Company kilometres spread over every band,65-74,65–74,32.9481243,1.790693742,1.470351317,1.093462087,1.977144907
+to_all_bands,Company kilometres spread over every band,75+,75 and over,14.60556732,4.861160027,3.991532935,3.025947683,5.265238147

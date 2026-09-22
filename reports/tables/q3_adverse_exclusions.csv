@@ -1,0 +1,5 @@
+outcome,predictor,level,excluded_provinces,n_excluded,n_crashes,n_level,odds_ratio,or_low,or_high
+fatal,weather,hail or snow,none,0,875013,1577,0.620744,0.454566,0.847672
+fatal,weather,hail or snow,28,1,741174,1415,0.61071,0.43679,0.853881
+fatal,weather,hail or snow,"28, 33",2,723657,1328,0.624714,0.439502,0.887977
+fatal,weather,hail or snow,"28, 33, 24",3,717943,1248,0.647152,0.451413,0.927765

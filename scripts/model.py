@@ -48,6 +48,20 @@ def main() -> int:
         )
         stability.append(models.year_stability(frame, fit))
 
+    adverse = pd.concat(
+        [models.adverse_conditions(frame, outcome) for outcome in features.OUTCOMES],
+        ignore_index=True,
+    )
+    log.info("adverse conditions: %d variant estimates", len(adverse))
+    composition = pd.concat(
+        [
+            models.level_composition(frame, predictor, level)
+            for predictor, level in (("weather", "hail or snow"), ("weather", "rain"))
+        ],
+        ignore_index=True,
+    )
+    exclusions = models.level_exclusions(frame, "weather", "hail or snow")
+
     outputs = {
         "q3_model_coefficients": pd.concat(coefficients, ignore_index=True),
         "q3_marginal_effects": pd.concat(effects, ignore_index=True),
@@ -55,7 +69,9 @@ def main() -> int:
         "q3_holdout_summary": pd.concat(summaries, ignore_index=True),
         "q3_year_stability": pd.concat(stability, ignore_index=True),
         "q3_profiles": models.profiles(frame, fits),
-        "q3_predicted_grid": models.predicted_grid(frame, fits["fatal"]),
+        "q3_adverse_conditions": adverse,
+        "q3_adverse_composition": composition,
+        "q3_adverse_exclusions": exclusions,
         "q3_groupings": features.grouping_table(frame),
     }
     for name, table in outputs.items():

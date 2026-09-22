@@ -5,7 +5,7 @@
   --text-2: #52514e;
   --line: #e6e5e1;
   --accent: #1d63b8;
-  --measure: 76ch;
+  --measure: 72ch;
 }
 * { box-sizing: border-box; }
 html { background: var(--surface); }
@@ -31,6 +31,7 @@ h2 { font-size: 1.35rem; margin: 40px 0 8px; }
 h3 { font-size: 1.05rem; margin: 28px 0 6px; }
 p, li { max-width: var(--measure); }
 p.lead { font-size: 1.15rem; color: var(--text-2); }
+p.answer { font-size: 1.1rem; border-left: 3px solid var(--accent); padding-left: 14px; }
 a { color: var(--accent); }
 .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin: 20px 0 8px; }
 .tile { background: var(--surface-2); border-radius: 8px; padding: 14px 16px; }
@@ -41,7 +42,7 @@ figure { margin: 20px 0 28px; }
 .figure-wrap { overflow-x: auto; }
 figure img { width: 100%; min-width: 720px; height: auto; display: block; background: var(--surface); }
 figcaption { color: var(--text-2); font-size: 0.85rem; margin-top: 6px; max-width: var(--measure); }
-.table-wrap { overflow-x: auto; margin: 12px 0 24px; }
+.table-wrap { overflow-x: auto; margin: 12px 0 8px; }
 table { border-collapse: collapse; font-size: 0.9rem; font-variant-numeric: tabular-nums; min-width: 480px; }
 th, td { padding: 6px 10px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
 th:first-child, td:first-child { text-align: left; }
@@ -50,15 +51,13 @@ thead th { color: var(--text-2); font-weight: 600; border-bottom: 2px solid var(
 tbody th { font-weight: 400; }
 .table-wrap:focus-visible, .figure-wrap:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 caption { caption-side: top; text-align: left; color: var(--text-2); font-size: 0.85rem; padding: 0 0 6px; width: fit-content; max-width: min(calc(100vw - 32px), 1008px); }
+.downloads { color: var(--text-2); font-size: 0.85rem; margin: 0 0 26px; max-width: var(--measure); }
 .note { background: var(--surface-2); border-left: 3px solid var(--accent); padding: 10px 14px; border-radius: 0 6px 6px 0; max-width: var(--measure); }
+.limit { color: var(--text-2); font-size: 0.95rem; max-width: var(--measure); }
 .feature { border-left: 3px solid var(--accent); padding-left: 14px; margin: 18px 0 22px; }
 .feature h3 { margin: 0 0 4px; }
 .feature p { margin: 0 0 4px; }
 .feature p.method { color: var(--text-2); font-size: 0.9rem; }
-.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-top: 16px; }
-.card { border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; }
-.card h3 { margin: 0 0 6px; }
-.card p { margin: 0; color: var(--text-2); font-size: 0.95rem; }
 footer { border-top: 1px solid var(--line); padding-top: 16px; padding-bottom: 32px; color: var(--text-2); font-size: 0.85rem; }
 @media print {
   nav { display: none; }
