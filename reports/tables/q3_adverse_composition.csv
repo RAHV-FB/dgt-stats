@@ -1,0 +1,29 @@
+predictor,level,dimension,category,crashes,share_of_level,share_overall
+weather,hail or snow,province,Madrid,162,0.102727,0.152957
+weather,hail or snow,province,Asturias,87,0.055168,0.0200191
+weather,hail or snow,province,León,80,0.0507292,0.00653019
+weather,hail or snow,province,Burgos,79,0.0500951,0.00670276
+weather,hail or snow,province,Barcelona,71,0.0450222,0.190258
+weather,hail or snow,zone,interurban road,1268,0.804058,0.356838
+weather,hail or snow,zone,street,297,0.188332,0.624698
+weather,hail or snow,zone,urban crossing,9,0.00570704,0.0153221
+weather,hail or snow,zone,urban motorway or dual carriageway,3,0.00190235,0.00314167
+weather,hail or snow,road,conventional,577,0.365885,0.181707
+weather,hail or snow,road,dual carriageway,529,0.335447,0.133854
+weather,hail or snow,road,urban street,291,0.184528,0.592405
+weather,hail or snow,road,motorway,150,0.0951173,0.0353629
+weather,hail or snow,road,other road,30,0.0190235,0.0566712
+weather,rain,province,Barcelona,11363,0.177947,0.190258
+weather,rain,province,Madrid,8990,0.140786,0.152957
+weather,rain,province,Asturias,2989,0.0468084,0.0200191
+weather,rain,province,Pontevedra,2965,0.0464326,0.0180866
+weather,rain,province,"Coruña, A",2962,0.0463856,0.0175586
+weather,rain,zone,street,31724,0.496805,0.624698
+weather,rain,zone,interurban road,31076,0.486657,0.356838
+weather,rain,zone,urban crossing,958,0.0150025,0.0153221
+weather,rain,zone,urban motorway or dual carriageway,98,0.0015347,0.00314167
+weather,rain,road,urban street,30019,0.470105,0.592405
+weather,rain,road,conventional,14134,0.221342,0.181707
+weather,rain,road,dual carriageway,12650,0.198102,0.133854
+weather,rain,road,other road,3694,0.0578489,0.0566712
+weather,rain,road,motorway,3359,0.0526027,0.0353629

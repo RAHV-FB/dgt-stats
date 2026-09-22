@@ -34,6 +34,10 @@ MOVILIA_2007_PATH = RAW_EXPOSURE_DIR / "movilia_2007.xls"
 ECEPOV_2021_PATH = RAW_EXPOSURE_DIR / "ine_ecepov_2021_55378.xlsx"
 EHMA_2008_KM_BY_FUEL_PATH = RAW_EXPOSURE_DIR / "ine_ehma_2008_10016.csv"
 EHMA_2008_KM_BY_VEHICLE_AGE_PATH = RAW_EXPOSURE_DIR / "ine_ehma_2008_10019.csv"
+KM_BY_OWNER_AGE_2024_PATH = RAW_EXPOSURE_DIR / "km_itv_2024" / "km_edad_propietario_2024.xlsx"
+KM_MEAN_BY_TYPE_2024_PATH = RAW_EXPOSURE_DIR / "km_itv_2024" / "km_medios_tipo_2024.xlsx"
+CORES_FUEL_PATH = RAW_EXPOSURE_DIR / "traffic" / "cores_consumos_pp.xlsx"
+TOLL_TRAFFIC_PATH = RAW_EXPOSURE_DIR / "traffic" / "peaje_trafico_total.xls"
 
 MICRODATA_YEARS = tuple(range(2016, 2025))
 CENSUS_YEARS = (2023, 2024, 2025)

@@ -14,8 +14,10 @@ from dgt_stats.paths import (
     CENSUS_TABLES_2025_PATH,
     CENSUS_YEARS,
     INTERIM_DATA_DIR,
+    KM_BY_OWNER_AGE_2024_PATH,
     KM_ESTIMATED_2022_PATH,
     KM_MEAN_2022_PATH,
+    KM_MEAN_BY_TYPE_2024_PATH,
     census_age_raw_path,
     census_raw_path,
     census_tables_raw_path,
@@ -354,6 +356,124 @@ def read_km_estimated_2022() -> pd.DataFrame:
     return out
 
 
+# DGT's 2024 kilometre release groups the fleet by the owner's age. The bands are its own; the
+# company row has no age and is kept as a row of its own rather than being spread over the others.
+KM_OWNER_CATEGORIES = {
+    "Ciclomotores": "moped",
+    "Motocicletas": "motorcycle",
+    "Turismos": "car",
+    "Furgonetas": "van",
+    "Camiones (hasta 3.500Kg MMA)": "light_truck",
+    "Camiones (desde 3.500Kg MMA)": "heavy_truck",
+    "Tractores industriales": "tractor_unit",
+    "Autobuses": "bus",
+}
+KM_OWNER_COMPANY = "Vehículo a nombre de empresa"
+KM_OWNER_TOTALS = {
+    "TURISMOS": "car",
+    "FURGONETAS": "van",
+    "CAMIONES <= 3500KG": "light_truck",
+    "CICLOMOTORES": "moped",
+    "CAMIONES > 3500KG": "heavy_truck",
+    "MOTOCICLETAS": "motorcycle",
+    "TRACTORES INDUSTRIALES": "tractor_unit",
+    "AUTOBUSES": "bus",
+}
+# The owner-age table leaves out the vehicles whose owner's age DGT could not classify; the check
+# below allows for that and no more.
+KM_OWNER_TOLERANCE = 0.005
+
+
+def read_km_by_owner_age_2024() -> pd.DataFrame:
+    """Vehicles and annual kilometres by vehicle category and the owner's age band, 2024.
+
+    DGT's *Kilómetros anualizados recorridos por el parque móvil 2024* publishes this table in its
+    additional material. It is the only Spanish source that puts distance driven and a person's age
+    in the same cell, and it does it for the whole circulating fleet rather than for a survey
+    sample. What it is not is the *driver's* age: a car registered to a person of 75 may be driven
+    by someone else, and the vehicles registered to companies carry no age at all. The reader keeps
+    the company row so that the share of kilometres it holds is visible wherever the table is used.
+
+    The parsed rows are reconciled against the same release's table 6 (vehicles and mean annual km
+    by category) within 0.5 %, the margin left by the owners DGT could not classify.
+    """
+    detail = pd.read_excel(KM_BY_OWNER_AGE_2024_PATH, sheet_name="Detalle 2024", header=0)
+    detail.columns = ["category_es", "owner_band", "n_vehicles", "total_km", "mean_km"]
+    unknown = set(detail.category_es.unique()) - set(KM_OWNER_CATEGORIES)
+    if unknown:
+        raise ValueError(f"km by owner age: unexpected vehicle categories {sorted(unknown)}")
+    out = pd.DataFrame(
+        {
+            "year": 2024,
+            "vehicle_group": detail.category_es.map(KM_OWNER_CATEGORIES),
+            "category_es": detail.category_es,
+            "owner_band": detail.owner_band.astype(str).str.strip(),
+            "n_vehicles": pd.to_numeric(detail.n_vehicles).astype("int64"),
+            "total_km": pd.to_numeric(detail.total_km).astype("int64"),
+            "mean_km": pd.to_numeric(detail.mean_km).astype("float64"),
+        }
+    )
+    out["is_company"] = out.owner_band == KM_OWNER_COMPANY
+    out["band"] = [
+        None
+        if company
+        else agebands.band_for(
+            *agebands.parse_age_label(_owner_label(label)), agebands.EXPOSURE_BANDS
+        )
+        for label, company in zip(out.owner_band, out.is_company)
+    ]
+    published = read_km_means_2024().set_index("vehicle_group")
+    parsed = out.groupby("vehicle_group")[["n_vehicles", "total_km"]].sum()
+    for group, row in parsed.iterrows():
+        for column in ("n_vehicles", "total_km"):
+            reference = float(published.loc[group, column])
+            if abs(row[column] - reference) / reference > KM_OWNER_TOLERANCE:
+                raise ValueError(
+                    f"km by owner age: {group} {column} {row[column]:,.0f} is more than "
+                    f"{KM_OWNER_TOLERANCE:.1%} from the published {reference:,.0f}"
+                )
+    return out.astype(
+        {
+            "year": "int16",
+            "vehicle_group": "string",
+            "category_es": "string",
+            "owner_band": "string",
+            "band": "string",
+        }
+    )
+
+
+def _owner_label(label: str) -> str:
+    """DGT's owner bands as an age label ``parse_age_label`` understands."""
+    text = str(label).strip()
+    if text.endswith("+"):
+        return f"{text[:-1]} y más"
+    if "-" in text:
+        low, high = text.split("-", 1)
+        return f"de {low} a {high}"
+    return f"de {text} a {text}"
+
+
+def read_km_means_2024() -> pd.DataFrame:
+    """Vehicles, total and mean annual kilometres by vehicle category, 2024 (release table 6)."""
+    frame = pd.read_excel(KM_MEAN_BY_TYPE_2024_PATH, sheet_name="Detalle 2024", header=0)
+    frame.columns = ["category_es", "n_vehicles", "total_km", "mean_km"]
+    unknown = set(frame.category_es.unique()) - set(KM_OWNER_TOTALS)
+    if unknown:
+        raise ValueError(f"km means 2024: unexpected categories {sorted(unknown)}")
+    out = pd.DataFrame(
+        {
+            "year": 2024,
+            "vehicle_group": frame.category_es.map(KM_OWNER_TOTALS),
+            "category_es": frame.category_es,
+            "n_vehicles": pd.to_numeric(frame.n_vehicles).astype("int64"),
+            "total_km": pd.to_numeric(frame.total_km).astype("int64"),
+            "mean_km": pd.to_numeric(frame.mean_km).astype("float64"),
+        }
+    )
+    return out.astype({"year": "int16", "vehicle_group": "string", "category_es": "string"})
+
+
 EXPOSURE_BUILDERS = {
     "censo_conductores": read_census_all,
     "censo_provincias_2025": read_census_province_totals_2025,
@@ -363,6 +483,8 @@ EXPOSURE_BUILDERS = {
     "poblacion_ine": io_population.read_population,
     "km_medios_2022": read_km_mean_2022,
     "km_estimados_2022": read_km_estimated_2022,
+    "km_edad_propietario_2024": read_km_by_owner_age_2024,
+    "km_medios_tipo_2024": read_km_means_2024,
 }
 
 

@@ -16,7 +16,7 @@ import numpy as np
 import pandas as pd
 from sklearn.metrics import brier_score_loss, roc_auc_score
 
-from dgt_stats import features
+from dgt_stats import codes, features
 
 log = logging.getLogger(__name__)
 
@@ -564,4 +564,171 @@ def predicted_grid(
                     "probability": probability,
                 }
             )
+    return pd.DataFrame.from_records(records)
+
+
+# --------------------------------------------------------- adverse conditions, tested
+
+# The levels the severity page leads with: conditions a reader would expect to make a crash worse,
+# whose adjusted odds of a fatal outcome are below the reference.
+ADVERSE_LEVELS: tuple[tuple[str, str], ...] = (
+    ("weather", "rain"),
+    ("weather", "hail or snow"),
+    ("surface", "wet"),
+    ("junction", "at a junction"),
+)
+
+# Model variants that test the two obvious explanations: that weather and surface are measuring
+# each other, and that the effect is really about where adverse weather falls.
+ADVERSE_VARIANTS: dict[str, dict[str, object]] = {
+    "full": {"label": "Full model", "drop": (), "subset": None},
+    "no_surface": {"label": "Without road surface", "drop": ("surface",), "subset": None},
+    "no_weather": {"label": "Without weather", "drop": ("weather",), "subset": None},
+    "no_weather_or_surface": {
+        "label": "Without weather or surface",
+        "drop": ("weather", "surface"),
+        "subset": None,
+    },
+    "no_lighting": {"label": "Without lighting", "drop": ("lighting",), "subset": None},
+    "interurban": {
+        "label": "Interurban roads only",
+        "drop": ("zone",),
+        "subset": ("zone", "interurban road"),
+    },
+    "street": {
+        "label": "Urban streets only",
+        "drop": ("zone", "road"),
+        "subset": ("zone", "street"),
+    },
+    "conventional": {
+        "label": "Conventional roads only",
+        "drop": ("zone", "road"),
+        "subset": ("road", "conventional"),
+    },
+}
+
+
+def adverse_conditions(frame: pd.DataFrame, outcome: str = "fatal") -> pd.DataFrame:
+    """The adverse-condition odds ratios refitted under each variant of ``ADVERSE_VARIANTS``.
+
+    Weather and road surface describe overlapping things — it rains, the road is wet — so a model
+    carrying both can be splitting one effect between two predictors. Dropping each in turn says
+    whether either result depends on the other. The three subsets say whether the result is really
+    about *where* adverse weather falls: a stratified fit holds the road context fixed by
+    construction instead of adjusting for it.
+    """
+    records = []
+    for key, spec in ADVERSE_VARIANTS.items():
+        drop = tuple(spec["drop"])  # type: ignore[arg-type]
+        subset = spec["subset"]
+        rows = frame
+        if subset is not None:
+            column, level = subset  # type: ignore[misc]
+            rows = frame[frame[column] == level]
+            rows = rows.assign(
+                **{
+                    name: rows[name].cat.remove_unused_categories()
+                    for name in rows.columns
+                    if isinstance(rows[name].dtype, pd.CategoricalDtype)
+                }
+            )
+        predictors = tuple(name for name in features.PREDICTORS if name not in drop)
+        fit = fit_severity(rows, outcome, predictors=predictors)
+        table = odds_ratios(fit).set_index(["predictor", "level"])
+        for predictor, level in ADVERSE_LEVELS:
+            if predictor in drop or (predictor, level) not in table.index:
+                continue
+            row = table.loc[(predictor, level)]
+            crashes = int((rows[predictor] == level).sum())
+            records.append(
+                {
+                    "outcome": outcome,
+                    "variant": key,
+                    "variant_label": spec["label"],
+                    "predictor": predictor,
+                    "predictor_label": features.PREDICTOR_LABELS[predictor],
+                    "level": level,
+                    "n_crashes": len(rows),
+                    "n_level": crashes,
+                    "odds_ratio": float(row.odds_ratio),
+                    "or_low": float(row.or_low),
+                    "or_high": float(row.or_high),
+                }
+            )
+    return pd.DataFrame.from_records(records)
+
+
+def level_composition(
+    frame: pd.DataFrame, predictor: str, level: str, top: int = 5
+) -> pd.DataFrame:
+    """Where the crashes at one level actually are: province, zone and road type shares.
+
+    Hail and snow are 1,577 crashes out of 875,013 and they do not fall evenly over Spain, so the
+    question of whether the coefficient is a weather effect or a mountain-province effect has to be
+    asked of the data rather than assumed away.
+    """
+    rows = frame[frame[predictor] == level]
+    names = codes.labels_for("COD_PROVINCIA")
+    records = []
+    for name, column in (("province", "province"), ("zone", "zone"), ("road", "road")):
+        counts = rows[column].value_counts().head(top)
+        overall = frame[column].value_counts()
+        for key, count in counts.items():
+            label = names.get(str(key).lstrip("0"), names.get(str(key), str(key)))
+            records.append(
+                {
+                    "predictor": predictor,
+                    "level": level,
+                    "dimension": name,
+                    "category": str(label) if name == "province" else str(key),
+                    "crashes": int(count),
+                    "share_of_level": float(count) / len(rows),
+                    "share_overall": float(overall.get(key, 0)) / len(frame),
+                }
+            )
+    out = pd.DataFrame.from_records(records)
+    out.attrs["n_level"] = len(rows)
+    return out
+
+
+def level_exclusions(
+    frame: pd.DataFrame, predictor: str, level: str, outcome: str = "fatal", top: int = 3
+) -> pd.DataFrame:
+    """The same odds ratio refitted with the level's most concentrated provinces left out.
+
+    If a level's effect is really the effect of the few places that record it, dropping those
+    places should move it.
+    """
+    rows = frame[frame[predictor] == level]
+    provinces = list(rows.province.value_counts().head(top).index)
+    records = []
+    for cut in range(top + 1):
+        excluded = provinces[:cut]
+        kept = frame[~frame.province.isin(excluded)]
+        kept = kept.assign(
+            **{
+                name: kept[name].cat.remove_unused_categories()
+                for name in kept.columns
+                if isinstance(kept[name].dtype, pd.CategoricalDtype)
+            }
+        )
+        fit = fit_severity(kept, outcome)
+        table = odds_ratios(fit).set_index(["predictor", "level"])
+        if (predictor, level) not in table.index:
+            continue
+        row = table.loc[(predictor, level)]
+        records.append(
+            {
+                "outcome": outcome,
+                "predictor": predictor,
+                "level": level,
+                "excluded_provinces": ", ".join(excluded) if excluded else "none",
+                "n_excluded": cut,
+                "n_crashes": len(kept),
+                "n_level": int((kept[predictor] == level).sum()),
+                "odds_ratio": float(row.odds_ratio),
+                "or_low": float(row.or_low),
+                "or_high": float(row.or_high),
+            }
+        )
     return pd.DataFrame.from_records(records)
