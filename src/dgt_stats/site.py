@@ -1225,9 +1225,8 @@ def page_older_drivers(captions: dict[str, str]) -> str:
     body += (
         "<p>The licence gap between men and women widens with age: among people aged 75 and over, "
         f"{_fmt_pct(by_sex.male.iloc[-1], 0)} of men hold a licence but only "
-        f"{_fmt_pct(by_sex.female.iloc[-1], 0)} of women, so the older driving population is mostly "
-        "male and the per-resident rates for women 75+ describe passengers and pedestrians far more "
-        "than drivers.</p>"
+        f"{_fmt_pct(by_sex.female.iloc[-1], 0)} of women. That makes the 75+ licence-holder "
+        "population heavily male, which matters when interpreting age-only driver rates.</p>"
     )
     share_2018 = float(ladder.loc[ladder.year == 2018, "esra_national_share"].iloc[0])
     share_2023 = float(ladder.loc[ladder.year == 2023, "esra_national_share"].iloc[0])
