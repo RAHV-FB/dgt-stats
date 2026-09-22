@@ -407,8 +407,10 @@ def build_all(
     captions["q7_ladder_ratio"] = plots.caption(
         f"{TABLES_SOURCE}; {INE_SOURCE}; {CENSUS_SOURCE}; {ACTIVITY_SOURCE}",
         "2014–2024",
-        "driver deaths (30 days) per unit of each denominator, 65+ divided by 35–64; shaded bands "
-        "are 95% intervals from the death counts; drivers with unknown age excluded",
+        "driver deaths (30 days) per unit of each denominator, 65+ divided by 35–64; the "
+        "ESRA×MOVILIA denominator is an exploratory sensitivity scenario rather than observed "
+        "age-specific driving exposure; shaded bands are 95% intervals from the death counts; "
+        "drivers with unknown age excluded",
     )
 
     ladder = summary("q7_driver_ladder")
