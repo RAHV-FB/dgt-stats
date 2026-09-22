@@ -115,10 +115,11 @@ condition; the census-age check no longer exempts the unknown band.
 ### Licence and authorship
 
 The code is under the MIT licence; the data files keep their providers' terms, listed in
-[`data_sources.md`](data_sources.md). No notebooks are planned. The README and the data page
-now say how the code was written: with Claude Code, Anthropic's coding assistant, from written
-instructions and under the author's review, the sources, methods and published figures being the
-author's responsibility.
+[`data_sources.md`](data_sources.md). No notebooks are planned. The README and the data page now
+set out how the work was done: where the questions came from, how the sources are tracked and
+reconciled, how the statistical design was chosen and what it refused to claim, that those choices
+and the responsibility for them are the author's, and that the code and the prose were written
+with the help of AI coding assistants.
 
 ## 3. Not changed
 
