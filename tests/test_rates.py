@@ -31,6 +31,8 @@ def test_rate_ratio_interval() -> None:
     assert ratio == 2.0 and low < 2.0 < high
     assert abs(low - 2 * np.exp(-1.96 * np.sqrt(0.15))) < 0.01
     assert np.isnan(rates.rate_ratio(0, 1000, 10, 1000)[1])
+    # A zero reference count returns the documented NaN triple instead of dividing by zero.
+    assert all(np.isnan(value) for value in rates.rate_ratio(5, 100, 0, 100))
 
 
 def test_wilson_interval_bounds() -> None:

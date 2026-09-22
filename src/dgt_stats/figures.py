@@ -293,13 +293,13 @@ def build_all(
         "group",
         "deaths_30d",
         figures_dir / "q5_road_user_shares.svg",
-        "Road deaths by type of road user",
+        "Share of road deaths by type of road user",
         order=ROAD_USER_ORDER,
     )
     captions["q5_road_user_shares"] = plots.caption(
         MICRODATA_SOURCE,
         "2016–2024, all roads",
-        "30-day deaths by the vehicle the person was using; trucks, buses, other and unspecified folded together; personal mobility vehicles counted separately only from 2020",
+        "each year's 30-day deaths as shares by the vehicle the person was using, stacked to 100%; trucks, buses, other and unspecified folded together; personal mobility vehicles counted separately only from 2020",
         f"{int(folded.deaths_30d.sum()):,} deaths",
     )
 
@@ -382,7 +382,8 @@ def build_all(
     captions["q4_national_rates"] = plots.caption(
         f"{SERIES_SOURCE}; {INE_SOURCE}; {CENSUS_SOURCE}",
         "2002–2024 (residents), 2014–2024 (licence holders)",
-        "30-day deaths of all road users; residents on 1 July; licence holders at the census date",
+        "30-day deaths of all road users; residents on 1 July; licence holders from that year's "
+        "census, which DGT publishes without a reference date",
     )
 
     # ------------------------------------------------------------------ Q7 older drivers

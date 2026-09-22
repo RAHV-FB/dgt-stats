@@ -2088,9 +2088,7 @@ def page_vehicles(captions: dict[str, str]) -> str:
         "plausible cause but the coding. Heavy trucks include tractor units and articulated vehicles "
         "because the kilometre table's heavy category is, per DGT's methodology note, the union of "
         "its trucks over 3,500 kg and its industrial tractors (the mapping table at the end gives "
-        "the counts and their reconciliation); that tractor stratum also carries agricultural "
-        "tractors, whose involvements sit in the machinery row, so the heavy-truck rate per "
-        "kilometre is a lower bound to that extent. Fourth, the two sides of the division do not "
+        "the counts and their reconciliation). Fourth, the two sides of the division do not "
         "cover the same vehicles. The yearbook counts every vehicle in a crash on a Spanish road, "
         "including foreign-registered ones, while the fleet and the kilometres come from Spanish "
         "roadworthiness inspections and so cover Spanish-registered vehicles only; the odometer "
@@ -3094,9 +3092,10 @@ def page_data(captions: dict[str, str]) -> str:
         ),
         "table_2_2_deaths": "Deaths by means of transport in the yearly tables 2.2 equal the microdata death columns for every vehicle group, 2020–2024",
         "table_6_1_drivers": (
-            "The driver-infraction tables 6.1 have one total across their blocks, within "
-            f"{_fmt_pct(validate.INFRACTION_TABLE_TOLERANCE, 1)} of the drivers involved in table "
-            "4.2, every year 2014–2024 and zone"
+            "The blocks of the driver-infraction tables 6.1 that publish a total agree with each "
+            "other, the expected number of them is present (two in 2014–2015, six from 2016), and "
+            f"the total is within {_fmt_pct(validate.INFRACTION_TABLE_TOLERANCE, 1)} of the drivers "
+            "involved in table 4.2, every year 2014–2024 and zone"
         ),
     }
     summary["What is checked"] = summary.check.map(descriptions)

@@ -141,10 +141,9 @@ GROUP_NOTES = {
     "van": "one rate group with trucks up to 3,500 kg",
     "light_truck": "one rate group with vans",
     "other": (
-        "agricultural tractors that pass roadworthiness inspection are part of the note's "
-        "'tractores industriales', and so of the heavy-truck kilometre denominator, while their "
-        "involvements sit in the machinery row here, so the heavy-truck rate per kilometre is a "
-        "lower bound to that extent; quadricycle involvement also sits here while the kilometre "
+        "agricultural-use vehicles and special vehicles are excluded from the ITV database "
+        "(methodology note, p. 7), so the machinery row has no kilometre denominator and does not "
+        "enter the heavy-truck rate; quadricycle involvement also sits here while the kilometre "
         "table counts light quadricycles (L6e) as mopeds and heavy ones (L7e) as motorcycles, so "
         "those two denominators include vehicles whose crashes are counted in this row"
     ),

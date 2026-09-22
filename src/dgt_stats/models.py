@@ -8,6 +8,7 @@ live behind ``scripts/model.py``, which writes the result tables the site reads.
 
 from __future__ import annotations
 
+import dataclasses
 import logging
 from dataclasses import dataclass
 
@@ -22,6 +23,8 @@ log = logging.getLogger(__name__)
 HOLDOUT_YEARS = (2023, 2024)
 STABILITY_TERMS = 10
 PROFILE_YEAR = "2024"
+# Road types that only exist outside towns: the predicted grid puts these on the interurban zone.
+INTERURBAN_ROAD_TYPES = ("conventional", "dual carriageway", "motorway")
 
 # Named crash profiles for the predicted-probability table; unspecified predictors sit at reference.
 PROFILES: dict[str, dict[str, str]] = {
@@ -74,6 +77,8 @@ class Fit:
     n: int
     events: int
     separated: list[str]  # levels with no events (or only events) in this fit, left out
+    # levels that repeat another column of this design exactly (a rank-deficient subset), left out
+    aliased: list[str] = dataclasses.field(default_factory=list)
 
 
 def design_matrix(frame: pd.DataFrame, predictors: tuple[str, ...]) -> pd.DataFrame:
@@ -121,20 +126,27 @@ def _irls(
         gradient = design.T @ (y - probability)
         step = np.linalg.solve(information, gradient)
         # A full Newton step can overshoot on a level with a handful of events; halve it until
-        # the likelihood improves, which leaves the converged estimate unchanged.
+        # the likelihood improves, which leaves the converged estimate unchanged. The step that is
+        # applied is the one whose likelihood was evaluated, and a step that lowers the likelihood
+        # is never taken.
+        accepted: tuple[float, float] | None = None
         scale = 1.0
         for _halving in range(12):
             candidate = log_likelihood(beta + scale * step)
-            if candidate >= current - 1e-10:
+            if candidate >= current:
+                accepted = (scale, candidate)
                 break
             scale /= 2
+        if accepted is None:
+            raise RuntimeError("IRLS line search failed to improve the likelihood")
+        scale, candidate = accepted
         beta = beta + scale * step
         improvement = candidate - current
         current = candidate
-        # Converged when the coefficients stop moving, or when the likelihood has stopped rising:
-        # two nearly coincident missing-state levels in a single year can drift apart without
-        # bound while every other coefficient, and the fit, stand still.
-        if np.max(np.abs(scale * step)) < tol or abs(improvement) < 1e-9 * max(1.0, abs(current)):
+        # Converged when the coefficients stop moving — judged on the undamped Newton step, so a
+        # small damping factor cannot pass for a small estimate — or when the likelihood has
+        # stopped rising.
+        if np.max(np.abs(step)) < tol or abs(improvement) < 1e-9 * max(1.0, abs(current)):
             converged = True
             break
     if not converged:
@@ -144,6 +156,37 @@ def _irls(
     weights = probability * (1 - probability)
     information = design.T @ (design * weights[:, None])
     return beta, probability, np.linalg.inv(information)
+
+
+def _dependent_columns(matrix: np.ndarray, names: list[str], tol: float = 1e-9) -> list[str]:
+    """Columns that are an exact linear combination of the columns before them.
+
+    Two levels can coincide inside a single year — in 2023 "lighting not specified" and "surface
+    not specified" are the same 31 crashes — and the information matrix is then singular, so the
+    iterations drift instead of converging. The later column of such a pair is dropped and reported
+    like a separated level. The test is an incremental Cholesky of the Gram matrix: a column is
+    dependent when the variance left after projecting it on the kept columns is a negligible share
+    of its own.
+    """
+    gram = matrix.T @ matrix
+    kept: list[int] = []
+    factor = np.zeros((0, 0))
+    dependent: list[str] = []
+    for index, name in enumerate(names):
+        projected = (
+            np.linalg.solve(factor, gram[np.ix_(kept, [index])]).ravel() if kept else np.zeros(0)
+        )
+        residual = float(gram[index, index] - projected @ projected)
+        if residual <= tol * float(gram[index, index]):
+            dependent.append(name)
+            continue
+        extended = np.zeros((len(kept) + 1, len(kept) + 1))
+        extended[:-1, :-1] = factor
+        extended[-1, :-1] = projected
+        extended[-1, -1] = np.sqrt(residual)
+        factor = extended
+        kept.append(index)
+    return dependent
 
 
 def _cluster_covariance(
@@ -179,6 +222,12 @@ def fit_severity(
         if column != "intercept" and (events == 0 or events == crashes)
     ]
     design = design.drop(columns=separated)
+    # A level that repeats another column exactly cannot be estimated either; it is dropped so the
+    # information matrix stays invertible and reported like a separated level.
+    aliased = _dependent_columns(design.to_numpy(dtype=float), list(design.columns))
+    if aliased:
+        log.info("%s: dropping aliased columns %s", outcome, ", ".join(aliased))
+        design = design.drop(columns=aliased)
     matrix = design.to_numpy(dtype=float)
     beta, probability, bread = _irls(matrix, y)
     if cluster is not None:
@@ -196,6 +245,7 @@ def fit_severity(
         n=len(frame),
         events=int(y.sum()),
         separated=separated,
+        aliased=aliased,
     )
 
 
@@ -253,9 +303,10 @@ def _reference_rows(frame: pd.DataFrame, fit: Fit) -> pd.DataFrame:
     return pd.DataFrame.from_records(records)
 
 
-def _separated_rows(fit: Fit) -> pd.DataFrame:
+def _left_out_rows(fit: Fit) -> pd.DataFrame:
+    """Rows for the levels the fit could not estimate: separated levels and aliased ones."""
     records = []
-    for column in fit.separated:
+    for column in [*fit.separated, *fit.aliased]:
         name, level = column.split("=", 1)
         records.append(
             {
@@ -276,9 +327,9 @@ def _separated_rows(fit: Fit) -> pd.DataFrame:
 
 
 def coefficient_table(frame: pd.DataFrame, fit: Fit) -> pd.DataFrame:
-    """Odds ratios plus the reference rows (and any level left out for having no events), in
-    predictor and level order, with level counts."""
-    parts = [_reference_rows(frame, fit), odds_ratios(fit), _separated_rows(fit)]
+    """Odds ratios plus the reference rows (and any level left out for having no events, or for
+    repeating another column), in predictor and level order, with level counts."""
+    parts = [_reference_rows(frame, fit), odds_ratios(fit), _left_out_rows(fit)]
     table = pd.concat([part for part in parts if not part.empty], ignore_index=True)
     counts = []
     shares = []
@@ -314,6 +365,8 @@ def marginal_effects(frame: pd.DataFrame, fit: Fit) -> pd.DataFrame:
 
     For each predictor and level, every crash is set to that level (all else as observed) and the
     mean predicted probability is compared with the mean when every crash is set to the reference.
+    A level the fit left out (no event of its own, or an exact repeat of another column) has no
+    effect to report and carries NaN, not zero.
     """
     design = design_matrix(frame, fit.predictors).reindex(columns=fit.params.index, fill_value=0.0)
     matrix = design.to_numpy(dtype=float)
@@ -349,6 +402,20 @@ def marginal_effects(frame: pd.DataFrame, fit: Fit) -> pd.DataFrame:
                     "is_reference": False,
                     "probability": float(p_level),
                     "effect": float(p_level - p_reference),
+                }
+            )
+        for column in [*fit.separated, *fit.aliased]:
+            if not column.startswith(f"{name}="):
+                continue
+            records.append(
+                {
+                    "outcome": fit.outcome,
+                    "predictor": name,
+                    "predictor_label": features.PREDICTOR_LABELS.get(name, name),
+                    "level": column.split("=", 1)[1],
+                    "is_reference": False,
+                    "probability": np.nan,
+                    "effect": np.nan,
                 }
             )
     return pd.DataFrame.from_records(records)
@@ -404,17 +471,19 @@ def holdout_check(
 def year_stability(frame: pd.DataFrame, full: Fit, terms: int = STABILITY_TERMS) -> pd.DataFrame:
     """Refit per year (without the year predictor) for the largest effects of the full model.
 
-    Missing-state levels are left out of the selection: their odds ratios reflect reporting
-    practice, which is exactly what changes from year to year.
+    The three missing states — not specified, not applicable and a field's explicit unknown code —
+    are left out of the selection: their odds ratios reflect reporting practice, which is exactly
+    what changes from year to year. The per-year fits are clustered by province, like the full
+    model, so the intervals are comparable.
     """
     ranked = odds_ratios(full)
-    ranked = ranked[(ranked.predictor != "year") & (ranked.level != features.NOT_SPECIFIED)]
+    ranked = ranked[(ranked.predictor != "year") & (~ranked.level.isin(features.MISSING_LEVELS))]
     ranked = ranked.reindex(ranked.log_odds.abs().sort_values(ascending=False).index)
     keep = ranked.head(terms)
     predictors = tuple(name for name in full.predictors if name != "year")
     records = []
     for year, group in frame.groupby("crash_year"):
-        fit = fit_severity(group, full.outcome, predictors, cluster=None)
+        fit = fit_severity(group, full.outcome, predictors)
         table = odds_ratios(fit).set_index(["predictor", "level"])
         for row in keep.itertuples():
             key = (row.predictor, row.level)
@@ -474,12 +543,17 @@ def profiles(frame: pd.DataFrame, fits: dict[str, Fit]) -> pd.DataFrame:
 def predicted_grid(
     frame: pd.DataFrame, fit: Fit, rows: str = "road", columns: str = "lighting"
 ) -> pd.DataFrame:
-    """Predicted probability over every combination of two predictors, others at reference."""
+    """Predicted probability over every combination of two predictors, others at reference.
+
+    The road types that only exist outside towns are placed on the interurban zone; "other road"
+    is not one of them (from 2024 most of its crashes are Barcelona streets), so it stays on the
+    zone reference.
+    """
     records = []
     for row_level in frame[rows].cat.categories:
         for column_level in frame[columns].cat.categories:
             settings = {rows: str(row_level), columns: str(column_level)}
-            if rows == "road" and row_level != "urban street":
+            if rows == "road" and row_level in INTERURBAN_ROAD_TYPES:
                 settings["zone"] = "interurban road"
             probability = float(predict(fit, _profile_design(frame, fit, settings))[0])
             records.append(

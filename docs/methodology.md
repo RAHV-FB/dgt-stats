@@ -243,7 +243,9 @@ so the estimate is diluted by the share of conventional-road deaths on roads who
 change, which the microdata cannot separate. The model is a Poisson regression with a shared linear
 trend, month-of-year terms, a group term, a post term and the post × conventional interaction as
 the estimate, so what is reported is the treated group's change relative to the control, not the
-conventional roads' own level change, with Newey–West errors computed within each group. Two
+conventional roads' own level change, with Newey–West errors computed within each group. Neither
+design applies a small-sample correction to the Newey–West covariance (`use_correction=False` in
+both), so the two sets of intervals are built the same way. Two
 placebo breaks (January 2017 and 2018) test whether the two groups were already diverging; the
 extended fit through December 2024 adds lockdown (March–June 2020) and restriction (July 2020 to
 December 2021) periods, each as a level for both groups and a further level for conventional roads.
@@ -274,7 +276,11 @@ chart, intervals drawn where they exist, direct labels where a legend would
 be ambiguous, colour never the only encoding. Every sentence on a page that contains a number is
 computed from the result tables at build time, including the digest on the front page, so the
 prose cannot contradict the tables; conditional sentences (a rank, a placebo that passes or fails)
-are gated on the same values. Two thresholds gate wording. A rate ratio between 0.95 and 1.05 reads
+are gated on the same values. The exceptions are a few figures no result table holds and the
+pages state as facts about the sources (the 61 of 64 tables of the speed report, the publisher's
+5 November 2025 update of the 2024 microdata, the share of drivers of unknown age), and the
+per-year coding shares the severity and data pages quote from the audit. Two thresholds gate
+wording. A rate ratio between 0.95 and 1.05 reads
 "about as often", outside that band "less often" or "more often" (`site.py`, `ABOUT_AS_OFTEN`);
 where the comparison carries an interval — the per-kilometre occupant-death and involvement rates —
 the wording follows the interval instead, so a ratio whose interval contains 1 reads "about as

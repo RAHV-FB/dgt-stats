@@ -91,14 +91,14 @@ def infraction_shares() -> pd.DataFrame:
     wide = wide.rename_axis(columns=None)
     wide["known"] = wide.total - wide.unknown
     for item in ("speed_infraction", "too_slow", "none", "unknown"):
-        wide[f"share_{item}"] = (wide[item] / wide.total).round(4)
-    wide["share_among_known"] = (wide.speed_infraction / wide.known).round(4)
+        wide[f"share_{item}"] = wide[item] / wide.total
+    wide["share_among_known"] = wide.speed_infraction / wide.known
     intervals = [
         rates.wilson_interval(float(s) / float(k), float(k))
         for s, k in zip(wide.speed_infraction, wide.known)
     ]
-    wide["share_among_known_low"] = [round(low, 4) for low, _ in intervals]
-    wide["share_among_known_high"] = [round(high, 4) for _, high in intervals]
+    wide["share_among_known_low"] = [low for low, _ in intervals]
+    wide["share_among_known_high"] = [high for _, high in intervals]
     wide["zone_label"] = wide.zone.map(ZONE_LABELS)
     order = {"all": 0, "interurban": 1, "urban": 2}
     wide = wide.sort_values(["year", "zone"], key=lambda s: s.map(order) if s.name == "zone" else s)
@@ -135,14 +135,14 @@ def infractions_by_vehicle(year: int = LATEST_YEAR) -> pd.DataFrame:
     ).reset_index()
     wide = wide.rename_axis(columns=None)
     wide["known"] = wide.total - wide.unknown
-    wide["share_unknown"] = (wide.unknown / wide.total).round(4)
-    wide["share_among_known"] = (wide.speed_infraction / wide.known).round(4)
+    wide["share_unknown"] = wide.unknown / wide.total
+    wide["share_among_known"] = wide.speed_infraction / wide.known
     intervals = [
         rates.wilson_interval(float(s) / float(k), float(k)) if k > 0 else (np.nan, np.nan)
         for s, k in zip(wide.speed_infraction, wide.known)
     ]
-    wide["share_among_known_low"] = [round(low, 4) for low, _ in intervals]
-    wide["share_among_known_high"] = [round(high, 4) for _, high in intervals]
+    wide["share_among_known_low"] = [low for low, _ in intervals]
+    wide["share_among_known_high"] = [high for _, high in intervals]
     wide["year"] = year
     labels = {name: vehicles.label(name) for name in vehicles.VEHICLE_GROUPS} | {
         "total": "All drivers"
@@ -189,7 +189,7 @@ def other_infractions(year: int = LATEST_YEAR) -> pd.DataFrame:
     items, keys = items[has_total].copy(), [k for k, ok in zip(keys, has_total) if ok]
     items["drivers"] = [totals[k] for k in keys]
     items["known"] = [totals[k] - unknown[k] for k in keys]
-    items["share_of_known"] = (items.value / items.known).round(4)
+    items["share_of_known"] = items.value / items.known
     items["label"] = items.item.map(io_tables.INFRACTION_ITEM_LABELS)
     items["zone_label"] = items.zone.map(ZONE_LABELS)
     items["year"] = year
@@ -259,8 +259,8 @@ def _breakdown_with_shares(breakdown: str, labels: dict[str, str] | None) -> pd.
     out = pd.concat(frames, axis=1).reset_index()
     total_rows = out[out.category == "Total"].set_index("year")
     if not total_rows.empty:
-        out["share_of_crashes"] = (out.crashes / out.year.map(total_rows.crashes)).round(4)
-        out["share_of_deaths"] = (out.deaths / out.year.map(total_rows.deaths)).round(4)
+        out["share_of_crashes"] = out.crashes / out.year.map(total_rows.crashes)
+        out["share_of_deaths"] = out.deaths / out.year.map(total_rows.deaths)
     out["label"] = out.category.map(labels) if labels else out.category
     out["label"] = out.label.fillna(out.category)
     out["year"] = out.year.astype(int)
@@ -296,7 +296,7 @@ def report_vehicle() -> pd.DataFrame:
     counts a crash once per vehicle type involved, so it exceeds the number of crashes."""
     out = _breakdown_with_shares("vehicle", REPORT_VEHICLE_LABELS)
     total_deaths = out[out.category == "Total"].set_index("year").deaths
-    out["share_of_deaths"] = (out.deaths / out.year.map(total_deaths)).round(4)
+    out["share_of_deaths"] = out.deaths / out.year.map(total_deaths)
     out = out.drop(columns=["share_of_crashes"], errors="ignore")
     order = {name: index for index, name in enumerate(REPORT_VEHICLE_LABELS)}
     out = out.sort_values(
@@ -324,9 +324,9 @@ def report_age() -> pd.DataFrame:
     out["year"] = out.year.astype(int)
     subtotal = out[out.category == "Subtotal"].set_index(["sex", "year"])
     keys = list(zip(out.sex, out.year))
-    out["share_of_crashes"] = (
-        out.crashes / np.array([subtotal.crashes.get(k, np.nan) for k in keys])
-    ).round(4)
+    out["share_of_crashes"] = out.crashes / np.array(
+        [subtotal.crashes.get(k, np.nan) for k in keys]
+    )
     out["region_scope"] = io_reports.REGION_SCOPE
     columns = [
         "year",
@@ -382,9 +382,9 @@ def report_licence() -> pd.DataFrame:
     out = out[out.year.isin(["2014", REPORT_LATEST])].copy()
     out["year"] = out.year.astype(int)
     totals = out[out.category == "Total"].set_index("year")
-    out["share_of_crashes"] = (out.crashes / out.year.map(totals.crashes)).round(4)
-    out["share_of_driver_deaths"] = (out.driver_deaths / out.year.map(totals.driver_deaths)).round(
-        4
-    )
+    out["share_of_crashes"] = out.crashes / out.year.map(totals.crashes)
+    out["share_of_driver_deaths"] = out.driver_deaths / out.year.map(totals.driver_deaths)
     out["region_scope"] = io_reports.REGION_SCOPE
-    return out.rename(columns={"category": "licence_class"}).reset_index(drop=True)
+    out = out.rename(columns={"category": "licence_class"}).reset_index(drop=True)
+    out["licence_class"] = out.licence_class.replace({"Otro": "Other", "Se desconoce": "Unknown"})
+    return out

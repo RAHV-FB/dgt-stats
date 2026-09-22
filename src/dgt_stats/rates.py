@@ -58,11 +58,17 @@ def rate_ratio(
     exposure_2: float,
     alpha: float = 0.05,
 ) -> tuple[float, float, float]:
-    """Ratio of two Poisson rates with a log-normal interval; bounds are NaN when a count is 0."""
+    """Ratio of two Poisson rates with a log-normal interval.
+
+    The bounds are NaN when either count is 0, and the ratio itself is NaN when the reference
+    count is, since there is then nothing to divide by.
+    """
     if min(exposure_1, exposure_2) <= 0 or np.isnan(count_1) or np.isnan(count_2):
         return (np.nan, np.nan, np.nan)
+    if count_2 == 0:
+        return (np.nan, np.nan, np.nan)
     ratio = (count_1 / exposure_1) / (count_2 / exposure_2)
-    if count_1 == 0 or count_2 == 0:
+    if count_1 == 0:
         return (ratio, np.nan, np.nan)
     z = stats.norm.ppf(1 - alpha / 2)
     se = np.sqrt(1 / count_1 + 1 / count_2)

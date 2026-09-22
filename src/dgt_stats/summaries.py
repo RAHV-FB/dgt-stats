@@ -665,7 +665,8 @@ def movilia_car_travel() -> pd.DataFrame:
 
 # --------------------------------------------------------------------------- Q3 severity models
 
-# Written by scripts/model.py (the fits take minutes); analyse.py and the site only read them.
+# Written by scripts/model.py (the fits take about half a minute); analyse.py and the site only
+# read them.
 MODEL_TABLES = (
     "q3_model_coefficients",
     "q3_marginal_effects",

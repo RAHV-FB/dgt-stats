@@ -1,25 +1,36 @@
 import numpy as np
 import pytest
 
-from dgt_stats import io_tables, vehicles
+from dgt_stats import io_exposure, io_tables, vehicles
 
 pytestmark = pytest.mark.skipif(
-    not io_tables.interim_path("tables_units_by_type").exists(),
-    reason="run `python scripts/ingest.py tables exposure` first",
+    not (
+        io_tables.interim_path("tables_units_by_type").exists()
+        and io_exposure.interim_path("km_medios_2022").exists()
+    ),
+    reason="run `python scripts/ingest.py tables` and `python scripts/ingest.py exposure` first",
 )
 
 
 def test_vehicle_km_sums_the_age_bands_and_shares_add_up() -> None:
     by_age = vehicles.km_by_age()
     assert len(by_age) == 35 and set(by_age.age_band) == set(vehicles.AGE_BANDS.values())
-    assert by_age.groupby("group").km_share_within_group.sum().round(3).eq(1).all()
 
     km = vehicles.vehicle_km()
+    # The age-band shares use the same group kilometres as the group table, not their own total.
+    group_km = km.set_index("group").vehicle_km
+    assert np.allclose(
+        by_age.km_share_within_group, (by_age.vehicle_km / by_age.group.map(group_km)).round(4)
+    )
     assert list(km.group) == [*vehicles.KM_GROUPS, "total"]
     total = km[km.group == "total"].iloc[0]
     assert total.n_vehicles == by_age.n_vehicles.sum() == 32_522_330
     assert total.vehicle_km == pytest.approx(by_age.vehicle_km.sum())
-    assert km[km.group != "total"].fleet_share.sum() == pytest.approx(1, abs=1e-3)
+    # Shares of the published fleet total, not of a total the table builds from its own rows.
+    assert km[km.group != "total"].n_vehicles.sum() == 32_522_330
+    assert km[km.group == "car"].fleet_share.iloc[0] == pytest.approx(
+        23_173_813 / 32_522_330, abs=5e-5
+    )
     heavy = km[km.group == "heavy_truck"].iloc[0]
     assert heavy.km_per_vehicle > 4 * km[km.group == "car"].iloc[0].km_per_vehicle
 
@@ -58,8 +69,8 @@ def test_summary_matches_the_yearbook_and_the_long_table() -> None:
     assert summary.loc["heavy_truck", "fatal_involvement"] == 83 + 2 + 57 + 142
     assert summary.loc["bus", "occupant_deaths"] == 13
     assert summary.loc["car", "injury_involvement"] == 98_475 + 131 + 1_634
-    ratio = summary.occupant_deaths / summary.fatal_involvement
-    assert np.allclose(ratio.round(3), summary.occupant_deaths_per_fatal_involvement)
+    assert summary.loc["car", "occupant_deaths"] == 681
+    assert summary.loc["car", "occupant_deaths_per_fatal_involvement"] == pytest.approx(0.524)
     assert summary.loc["heavy_truck", "occupant_deaths_per_fatal_involvement"] < 0.25
     assert summary.loc["motorcycle", "occupant_deaths_per_fatal_involvement"] > 0.9
     assert sorted(summary.rank_fatal_per_bn_km) == list(range(1, len(summary) + 1))
@@ -73,9 +84,11 @@ def test_summary_matches_the_yearbook_and_the_long_table() -> None:
 def test_involvement_by_year_and_occupant_series() -> None:
     by_year = vehicles.involvement_by_year()
     assert sorted(by_year.year.unique()) == list(io_tables.VEHICLE_TABLE_YEARS)
-    shares = by_year.groupby("year").fatal_involvement_share_of_vehicles
-    assert shares.sum().round(3).eq(1).all()
     assert by_year[by_year.group == "pedestrian"].fatal_involvement_share_of_vehicles.isna().all()
+    # Shares of the vehicles involved in fatal crashes, pedestrians excluded: pinned to TABLA 2.3.
+    cars_2022 = by_year[(by_year.year == 2022) & (by_year.group == "car")].iloc[0]
+    assert cars_2022.fatal_involvement == 1_299
+    assert cars_2022.fatal_involvement_share_of_vehicles == pytest.approx(0.5102, abs=5e-5)
 
     split = vehicles.van_light_truck_split().set_index("group")
     assert list(split.index) == ["van", "light_truck"]

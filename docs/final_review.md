@@ -31,8 +31,8 @@ were withdrawn as inaccurate, immaterial or already stated on the page.
   although it is a conventional road under the 2018 decree, and from 2021 most of its crashes are
   coded as 6, which had moved about 150 deaths a year from the control to the treated group inside
   the extended window and produced a spurious reversal of the estimate. Regrouped, the clean-window
-  estimate is −13.1 % (−19.1 to −6.8), the extended fit −15.4 % (−20.8 to −9.7), and a placebo
-  break in January 2017 gives +12.3 % (+1.3 to +24.6): the two groups did not move together before
+  estimate is −13.1 % (−18.6 to −7.3), the extended fit −15.4 % (−20.6 to −10.0), and a placebo
+  break in January 2017 gives +12.3 % (+3.1 to +22.4): the two groups did not move together before
   the limit, so the page still makes no claim, for that reason rather than the 2018 placebo it
   named before. The text of that section is now gated on the placebo intervals rather than on one
   date.

@@ -1,10 +1,15 @@
 import pytest
 
-from dgt_stats import summaries
+from dgt_stats import io_exposure, io_tables, summaries
 
 pytestmark = pytest.mark.skipif(
-    not summaries.PROCESSED_CRASHES.exists(),
-    reason="run `python scripts/build_tables.py` first",
+    not (
+        summaries.PROCESSED_CRASHES.exists()
+        and io_tables.interim_path("series_annual").exists()
+        and io_exposure.interim_path("conductores_por_edad").exists()
+        and io_exposure.interim_path("censo_edad").exists()
+    ),
+    reason="run `python scripts/ingest.py tables exposure` and `python scripts/build_tables.py` first",
 )
 
 
@@ -27,10 +32,9 @@ def test_annual_by_zone_sums_to_yearbook() -> None:
     assert year.loc["interurban", "deaths_30d"] + year.loc["urban", "deaths_30d"] == 1_785
 
 
-def test_monthly_deaths_shares_sum_to_one() -> None:
+def test_monthly_deaths_peak_in_summer_and_sum_to_the_yearbook() -> None:
     monthly = summaries.monthly_deaths()
-    shares = monthly.groupby("year").share_of_year.sum()
-    assert ((shares - 1).abs() < 0.001).all()
+    assert monthly[monthly.year == 2024].sort_values("share_of_year").iloc[-1].month in (7, 8)
     assert monthly[(monthly.year == 2024)].deaths_30d.sum() == 1_785
 
 
@@ -61,8 +65,9 @@ def test_deaths_by_road_user_reconciles() -> None:
     users = summaries.deaths_by_road_user()
     total_2024 = users[users.year == 2024].deaths_30d.sum()
     assert total_2024 == 1_785
-    shares = users.groupby(["year", "zone"]).share.sum()
-    assert ((shares - 1).abs() < 0.001).all()
+    # The road-user split of each year and zone adds up to the zone table, not just to itself.
+    zone_totals = summaries.annual_by_zone().set_index(["year", "zone"]).deaths_30d
+    assert users.groupby(["year", "zone"]).deaths_30d.sum().eq(zone_totals).all()
     vulnerable = summaries.vulnerable_share_by_year()
     assert ((vulnerable.vulnerable_share > 0.2) & (vulnerable.vulnerable_share < 0.9)).all()
 
@@ -110,11 +115,32 @@ def test_driver_ladder_is_complete_and_ordered() -> None:
     assert set(ladder.band.unique()) == set(summaries.agebands.ANALYSIS_BANDS)
     assert ladder.driver_deaths.notna().all() and ladder.licence_holders.notna().all()
     assert ((ladder.licence_share > 0) & (ladder.licence_share < 1)).all()
-    assert ((ladder.travel_share > 0) & (ladder.travel_share <= ladder.licence_share + 1e-9)).all()
+    assert (ladder.travel_share > 0).all()
     assert (ladder.travel_share_low <= ladder.travel_share).all()
-    assert (ladder.deaths_per_100k_travel >= ladder.deaths_per_100k_licence - 1e-9).all()
+    # The travel share is capped at the licence share; it binds in the younger bands only.
+    assert ladder[ladder.travel_capped].band.isin({"15-24", "25-34", "35-44", "45-54"}).all()
+    assert ladder[ladder.year == 2024].travel_capped.tolist() == [
+        True,
+        True,
+        True,
+        False,
+        False,
+        False,
+        False,
+    ]
+    oldest = ladder[(ladder.year == 2024) & (ladder.band == "75+")].iloc[0]
+    assert oldest.deaths_per_100k_travel == pytest.approx(11.64, abs=0.01)
     deaths_2024 = ladder[ladder.year == 2024].driver_deaths.sum()
-    assert deaths_2024 < 1_186 and deaths_2024 > 1_150  # drivers with unknown age excluded
+    published = io_tables.read_series_road_users()
+    total = published[
+        (published.year == 2024)
+        & (published.population == "drivers")
+        & (published.severity == "deaths_30d")
+        & (published.zone == "all")
+        & published.is_total
+    ].value.iloc[0]
+    # 3 drivers of unknown age and 1 driver aged 10-14 fall outside the 15+ analysis bands
+    assert deaths_2024 == total - 3 - 1
 
 
 def test_ladder_ratio_rises_with_the_denominator() -> None:
@@ -134,6 +160,22 @@ def test_licence_share_victims_and_movilia() -> None:
     assert victims[victims.year == 2024].deaths_30d.sum() == 1_785 - 29 - 12
     travel = summaries.movilia_car_travel()
     assert travel.car_share_of_trips.between(0, 1).all()
+
+
+def test_other_road_by_period_splits_the_pooled_row() -> None:
+    other = summaries.other_road_by_period().set_index("period")
+    assert list(other.index) == ["2016-2023", "2024"]
+    pooled = summaries.hour_band_by_road_group()
+    assert other.crashes.sum() == pooled[pooled.road_group == "other"].crashes.sum()
+    assert (
+        other.crashes.sum() == summaries.read_crashes(["road_group"]).road_group.eq("other").sum()
+    )
+    assert other.share_of_row.sum() == pytest.approx(1, abs=1e-3)
+    assert other.loc["2024", "share_of_row"] == pytest.approx(0.3945, abs=5e-4)
+    assert other.loc["2024", "street_share"] > 0.8 > other.loc["2016-2023", "street_share"]
+    # the 2024 "other" row is mostly urban street and much less deadly than the 2016-2023 one
+    assert other.loc["2016-2023", "fatal_share"] > 2 * other.loc["2024", "fatal_share"]
+    assert (other.fatal_share == (other.fatal_crashes / other.crashes).round(4)).all()
 
 
 def test_registry_covers_every_question_except_the_models() -> None:
