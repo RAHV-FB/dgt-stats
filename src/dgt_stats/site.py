@@ -41,7 +41,7 @@ PAGES: tuple[tuple[str, str], ...] = (
 DENOMINATOR_LABELS = {
     "residents": "Residents of the age band",
     "licence_holders": "Licence holders",
-    "travel_weighted": "Travel-weighted drivers (estimate)",
+    "travel_weighted": "Exploratory ESRA×MOVILIA exposure scenario",
     "drivers_involved": "Drivers involved in injury crashes",
 }
 
@@ -1045,20 +1045,35 @@ def page_older_drivers(captions: dict[str, str]) -> str:
     involvement_75 = involvement[involvement.band == "75+"].iloc[0]
 
     bands = list(agebands.ANALYSIS_BANDS)
+    licence_total = float(latest.licence_holders.sum())
+    involved_total = float(latest.drivers_involved.sum())
     shares = pd.DataFrame(
         {
             "Age band": [agebands.band_label(b) for b in bands],
             "Residents": [latest.loc[b, "residents"] for b in bands],
-            "Hold a licence": [latest.loc[b, "licence_share"] for b in bands],
-            "Travel-weighted driver share (estimate)": [
-                latest.loc[b, "travel_share"] for b in bands
+            "Licence holders": [latest.loc[b, "licence_holders"] for b in bands],
+            "Licence-holding rate": [latest.loc[b, "licence_share"] for b in bands],
+            "Share of all licence holders": [
+                latest.loc[b, "licence_holders"] / licence_total for b in bands
+            ],
+            "Drivers involved in injury crashes": [
+                latest.loc[b, "drivers_involved"] for b in bands
+            ],
+            "Share of crash-involved drivers": [
+                latest.loc[b, "drivers_involved"] / involved_total for b in bands
             ],
             "Driver deaths": [latest.loc[b, "driver_deaths"] for b in bands],
             "Per million residents": [latest.loc[b, "deaths_per_million_residents"] for b in bands],
             "Per 100,000 licence holders": [
                 latest.loc[b, "deaths_per_100k_licence"] for b in bands
             ],
-            "Per 100,000 travel-weighted drivers": [
+        }
+    )
+    exposure_scenario = pd.DataFrame(
+        {
+            "Age band": [agebands.band_label(b) for b in bands],
+            "ESRA×MOVILIA exposure weight": [latest.loc[b, "travel_share"] for b in bands],
+            "Deaths per 100,000 exposure-equivalents": [
                 latest.loc[b, "deaths_per_100k_travel"] for b in bands
             ],
         }
@@ -1094,9 +1109,9 @@ def page_older_drivers(captions: dict[str, str]) -> str:
                 "same deaths, licence holders as the denominator",
             ),
             (
-                "Per travel-weighted driver",
-                f"{ratio_value('75+', 'travel_weighted'):.2f}×",
-                "same deaths, drivers weighted by how much they travel by car",
+                "Per driver involved in an injury crash",
+                f"{ratio_value('75+', 'drivers_involved'):.2f}×",
+                "same deaths, observed crash-involved drivers as the denominator",
             ),
         ]
     )
@@ -1104,14 +1119,15 @@ def page_older_drivers(captions: dict[str, str]) -> str:
     body += (
         "<p>DGT reports deaths of people aged 65 and over per million inhabitants of that age. That "
         "answers how often an older resident dies on the road, not how risky it is for an older person "
-        "to drive: fewer older people hold a licence, and those who do drive less. The ladder below "
-        "keeps the numerator fixed (drivers killed within 30 days, interurban and urban roads, all "
+        "to drive. Fewer older people hold a licence, but the sources available here do not measure "
+        "2024 distance driven or driving frequency by age. The ladder below keeps the numerator fixed "
+        "(drivers killed within 30 days, interurban and urban roads, all "
         "vehicle types) and changes only the denominator.</p>"
     )
     body += (
         "<p>DGT counts the rider of a bicycle or a personal mobility vehicle as a driver, and these "
-        "tables follow it. Neither rider needs a licence, and neither is in the car-travel "
-        "denominator, so the licence-holder and travel-weighted rungs divide by populations that "
+        "tables follow it. Neither rider needs a licence, and neither is represented by the "
+        "car-based ESRA×MOVILIA sensitivity denominator, so the licence-holder and exploratory rungs divide by populations that "
         "leave out part of their own numerator. The published driver-victim tables here carry no "
         "split by vehicle, so how much that matters at each age cannot be shown on this page.</p>"
     )
@@ -1119,9 +1135,10 @@ def page_older_drivers(captions: dict[str, str]) -> str:
     body += table(
         ladder_table,
         f"Driver death rate ratio against drivers aged 35–64, {latest_year} (95% intervals from the "
-        "death counts only; the travel-weighted denominator carries a survey band of its own, which "
-        "these intervals leave out). Sources: DGT statistical tables and driver census; INE; ESRA "
-        "and MOVILIA 2006 (Ministerio de Transportes) for the travel weight",
+        "death counts only. The ESRA×MOVILIA row is an exploratory sensitivity scenario, not "
+        "observed age-specific driving exposure, and its source uncertainty is not included in these "
+        "intervals). Sources: DGT statistical tables and driver census; INE; ESRA and MOVILIA 2006 "
+        "(Ministerio de Transportes) for the exploratory scenario",
         {
             "Denominator": None,
             "65–74 vs 35–64": None,
@@ -1133,8 +1150,9 @@ def page_older_drivers(captions: dict[str, str]) -> str:
     body += (
         f"<p>Per resident, drivers aged 75 and over die {_compare(per_resident)} drivers aged 35–64 "
         f"({per_resident:.2f}×). Per licence holder the ratio is "
-        f"{ratio_value('75+', 'licence_holders'):.2f}×. Weighted by how much each age travels by "
-        f"car it is {ratio_value('75+', 'travel_weighted'):.2f}×, and per driver actually involved "
+        f"{ratio_value('75+', 'licence_holders'):.2f}×. Under the exploratory ESRA×MOVILIA "
+        f"exposure scenario it is {ratio_value('75+', 'travel_weighted'):.2f}×; that is a "
+        "sensitivity result, not a measured per-driver rate. Per driver actually involved "
         f"in an injury crash it is {ratio_value('75+', 'drivers_involved'):.2f}×: when an older "
         "driver crashes, the crash is far more likely to kill them. The conclusion changes with the "
         "denominator, which is why the denominator has to be stated every time.</p>"
@@ -1147,40 +1165,62 @@ def page_older_drivers(captions: dict[str, str]) -> str:
     )
     body += (
         f"<p>Two things happen at once. Licence holders aged 75 and over are involved in injury crashes "
-        f"about {_fmt_pct(involvement_75.ratio, 0)} as often as licence holders aged 35–64 (left panel), "
-        "which mostly reflects how much less they drive. But when they are involved, the crash kills "
+        f"about {_fmt_pct(involvement_75.ratio, 0)} as often as licence holders aged 35–64 (left panel). "
+        "That difference can reflect driving exposure and/or crash involvement risk per unit of "
+        "exposure; this dataset cannot separate them without age-specific distance or time driven. "
+        "But when they are involved, the crash kills "
         f"them {ratio_value('75+', 'drivers_involved'):.2f} times as often (right panel), which "
         "mixes fragility with whatever differs about the crashes themselves; these tables carry no "
         "driver age by crash type, so the two cannot be separated here. The per-licence rate hides "
         "the second effect behind the first.</p>"
     )
-    body += "<h2>Who holds a licence, who drives</h2>"
+    body += "<h2>Who holds a licence, who appears in injury crashes</h2>"
     body += figure(
         "q7_licence_travel_share",
-        f"Share of residents with a licence and travel-weighted driver share, {latest_year}",
+        f"Age distribution of licence holders and crash-involved drivers, {latest_year}",
         captions,
     )
     body += table(
         shares,
-        f"Residents, licence holders, driver deaths and rates by age band, {latest_year}. Sources: "
-        "DGT statistical tables and driver census; INE, Estadística Continua de Población; ESRA and "
-        "MOVILIA 2006 (Ministerio de Transportes) for the travel-weighted share",
+        f"Residents, licence holders, crash-involved drivers, driver deaths and rates by age band, "
+        f"{latest_year}. Sources: DGT statistical tables and driver census; INE, Estadística "
+        "Continua de Población",
         {
             "Age band": None,
             "Residents": "int",
-            "Hold a licence": "pct",
-            "Travel-weighted driver share (estimate)": "pct",
+            "Licence holders": "int",
+            "Licence-holding rate": "pct",
+            "Share of all licence holders": "pct",
+            "Drivers involved in injury crashes": "int",
+            "Share of crash-involved drivers": "pct",
             "Driver deaths": "int",
             "Per million residents": "dec",
             "Per 100,000 licence holders": "dec2",
-            "Per 100,000 travel-weighted drivers": "dec2",
         },
+    )
+    body += (
+        "<p>The chart above is a composition chart: the licence-holder bars sum to 100%, and the "
+        "crash-involved-driver bars separately sum to 100%. The licence-holding rate in the table "
+        "is a different quantity — licence holders divided by residents within each age band — so "
+        "those within-band rates are not supposed to add to 100%. The crash-involved distribution "
+        "is descriptive and should not be read as risk without an exposure denominator.</p>"
     )
     body += table(
         by_sex_table,
         f"Share of residents holding a licence by sex, {latest_year}. Sources: DGT driver census; "
         "INE, Estadística Continua de Población",
         {"Age band": None, "Men": "pct", "Women": "pct", "All": "pct"},
+    )
+    body += table(
+        exposure_scenario,
+        "Exploratory ESRA×MOVILIA exposure scenario by age band. Retained for reproducibility and "
+        "sensitivity analysis only; these values are not observed shares of people who drive. "
+        "Sources: ESRA 2018/2023; MOVILIA 2006; DGT driver census",
+        {
+            "Age band": None,
+            "ESRA×MOVILIA exposure weight": "pct",
+            "Deaths per 100,000 exposure-equivalents": "dec2",
+        },
     )
     body += (
         "<p>The licence gap between men and women widens with age: among people aged 75 and over, "
@@ -1205,19 +1245,22 @@ def page_older_drivers(captions: dict[str, str]) -> str:
         b: float(totals[(latest_year, b)] / totals[(first_year, b)]) for b in ("65-74", "75+")
     }
     body += note(
-        "<strong>What the travel-weighted estimate is, and is not.</strong> No Spanish source says what "
-        "share of people of each age actually drive. ESRA, the European road-user survey in which DGT "
+        "<strong>Exploratory ESRA×MOVILIA scenario retained for reproducibility.</strong> The previous "
+        "presentation labelled this construction a travel-weighted driver share. That label was too "
+        "strong. No Spanish source in this project says what share of people of each age actually "
+        "drive in 2024. ESRA, the European road-user survey in which DGT "
         f"takes part, gives a national figure only ({_fmt_pct(share_2018, 0)} of adults drove a car "
         f"at least a few days a month in 2018, {_fmt_pct(share_2023, 0)} in 2023), and MOVILIA 2006, "
         "the last national travel survey, reports car trips per person by age without separating "
         "drivers from passengers. The estimate spreads the ESRA share across ages in proportion to "
-        "MOVILIA car trips per resident and caps it at the licence share; it is therefore an exposure "
-        "weight, not a head count. Because MOVILIA counts passengers too, it overstates older "
+        "MOVILIA car trips per resident and caps it at the licence share; it is therefore an exploratory "
+        "exposure weight, not a head count or measured driver share. Because MOVILIA counts passengers too, it can overstate older "
         "people's driving and so understates their per-driver rate. Two further limits fall on the "
         "oldest band. ESRA's Spanish sample is adults aged 18–74, so carrying its share to people "
         "over 74 is an extrapolation; and MOVILIA's oldest band is 65 and over, so the 75+ band is "
-        "given exactly the car-travel intensity of 65–74, which is why their travel-weighted shares "
-        "in the table above are identical. Both overstate how much people over 74 drive, as far as "
+        "given exactly the car-travel intensity of 65–74, which is why their scenario weights "
+        "in the table above are identical. This is one reason the scenario cannot be interpreted as " 
+        "an observed age-specific driver share. Both can overstate how much people over 74 drive, as far as "
         f"they go, and the 75+ ratio of {ratio_value('75+', 'travel_weighted'):.2f}× cannot be read "
         f"against the {ratio_value('65-74', 'travel_weighted'):.2f}× of 65–74: the two bands carry "
         "the same assumed intensity. The cap is not redistributed, so the capped bands "
@@ -1244,10 +1287,10 @@ def page_older_drivers(captions: dict[str, str]) -> str:
         "here, so the travel-weighted ratio is not a bound in either direction. An age split of "
         "the ESRA question would replace the estimate directly."
     )
-    body += "<h2>Rates by age band over time</h2>"
+    body += "<h2>Sensitivity: alternative exposure denominator</h2>"
     body += figure(
         "q7_death_rates_by_band",
-        "Driver deaths per 100,000 licence holders and per 100,000 travel-weighted drivers",
+        "Driver deaths per 100,000 licence holders and exploratory exposure-equivalents",
         captions,
     )
     per_licence = ladder.pivot(index="year", columns="band", values="deaths_per_100k_licence")
@@ -1284,8 +1327,8 @@ def page_older_drivers(captions: dict[str, str]) -> str:
         )
         + ". "
         + (
-            "Per travel-weighted driver the older bands are above every younger band in all "
-            f"{len(gap)} years"
+            "Under the exploratory ESRA×MOVILIA exposure scenario the older bands are above every "
+            f"younger band in all {len(gap)} years"
             + (
                 f", but the margin narrows to about {(gap.min() - 1) * 100:.0f}% in "
                 f"{_join(narrow_years)}"
@@ -1293,8 +1336,8 @@ def page_older_drivers(captions: dict[str, str]) -> str:
                 else ""
             )
             if gap.min() > 1
-            else "Per travel-weighted driver the older bands are above every younger band in "
-            f"{int((gap > 1).sum())} of the {len(gap)} years"
+            else "Under the exploratory ESRA×MOVILIA exposure scenario the older bands are above "
+            f"every younger band in {int((gap > 1).sum())} of the {len(gap)} years"
         )
         + ".</p>"
     )
