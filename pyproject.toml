@@ -40,3 +40,8 @@ addopts = "-m 'not slow'"
 [tool.ruff]
 line-length = 100
 target-version = "py311"
+
+# Named rather than left to the default, so that a new ruff release cannot change what the
+# repository is checked against: pycodestyle errors, the pyflakes set and import sorting.
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I"]

@@ -295,8 +295,10 @@ resolves, every image has alt text, every page has one heading, a description an
   command sequence in the README, which was run end to end from an empty interim layer and
   reproduced every committed table, figure and page byte for byte with Python 3.11.15 and the
   library versions recorded in `requirements.lock` (pandas 3.0.6, numpy 2.4.6, scipy 1.17.1,
-  statsmodels 0.15.0, matplotlib 3.11.2, scikit-learn 1.9.1, pyarrow 25.0.1); the lock file records
-  the libraries, not the interpreter, which `pyproject.toml` only bounds at 3.11 or later. At the
+  statsmodels 0.15.0, matplotlib 3.11.2, scikit-learn 1.9.1, pyarrow 25.0.1). The lock file is
+  compiled from `pyproject.toml` with `uv pip compile --extra dev --generate-hashes`, so it pins
+  every transitive dependency with its hash for Linux and Python 3.11; it records the libraries,
+  not the interpreter, which `pyproject.toml` only bounds at 3.11 or later. At the
   dependency floors in `pyproject.toml` the numbers agree to the precision printed on the pages,
   but every figure differs, because matplotlib writes its own version into the SVG and the
   tight-bbox geometry changes with it; where that geometry crosses a rounding boundary it also

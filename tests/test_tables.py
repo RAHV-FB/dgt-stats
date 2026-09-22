@@ -1,7 +1,7 @@
 import pytest
 
-from dgt_stats import vehicles
 from dgt_stats import io_tables as tables
+from dgt_stats import vehicles
 
 
 @pytest.fixture(scope="module")
