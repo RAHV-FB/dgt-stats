@@ -106,15 +106,19 @@ def travel_weighted_share(
     profile: pd.Series,
     licence_share: pd.Series,
 ) -> pd.DataFrame:
-    """Car-travel-weighted share of residents, by band, for one year ("driver-equivalents").
+    """Exploratory ESRA×MOVILIA age-allocation scenario retained for reproducibility.
 
-    ``profile`` is the relative car-travel intensity by band (population-weighted mean of 1 over the
-    analysis bands 15–74); the national survey share of adults who drive is spread across bands in
-    proportion to it and capped at the licence-holding share of the band. The cap is not
-    redistributed, so the capped bands sit at their licence share and the population-weighted mean
-    of the result falls below the survey level. It is not the share of people who drive (no
-    Spanish source gives that by age); it is the survey level weighted by how much each band
-    travels by car. Columns: ``band, share, share_low, share_high, national_share, capped``.
+    This is *not* an observed share of residents who drive and must not be presented as one.
+    ``profile`` is historical MOVILIA 2006 car-or-motorcycle trip intensity per resident, where
+    drivers and passengers are not separated. The national ESRA share of adults aged 18–74 who
+    report driving a car at least a few days a month is allocated across age bands in proportion
+    to that profile and capped at each band's licence-holding share. The cap is not redistributed.
+
+    The two inputs therefore measure different objects, cover different age ranges and refer to
+    different years. The output is useful only as a sensitivity denominator ("exposure-
+    equivalents"), not as a head count, a 2024 age-specific driver share or measured distance
+    driven. The function name and columns are retained so historical result tables remain
+    reproducible. Columns: ``band, share, share_low, share_high, national_share, capped``.
     """
     national, low, high = interpolate_share(year, waves)
     records = []
