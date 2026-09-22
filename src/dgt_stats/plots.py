@@ -88,8 +88,8 @@ def apply_style() -> None:
             "axes.linewidth": 1,
             "axes.spines.top": False,
             "axes.spines.right": False,
-            "axes.titlesize": 12,
-            "axes.titleweight": "bold",
+            "axes.titlesize": 10.5,
+            "axes.titleweight": "normal",
             "axes.titlelocation": "left",
             "axes.titlepad": 12,
             "axes.grid": True,
@@ -415,7 +415,7 @@ def small_multiples(
     for index in range(len(facets)):
         if index + ncols >= len(facets):
             axes[index].tick_params(labelbottom=True)
-    fig.suptitle(title, x=0.01, ha="left", fontsize=12, fontweight="bold")
+    fig.suptitle(title, x=0.01, ha="left", fontsize=10.5, fontweight="normal")
     if series is not None:
         handles, labels = axes[0].get_legend_handles_labels()
         legend_rows = int(np.ceil(len(names) / 4))
@@ -727,7 +727,7 @@ def dot_interval_panels(
     """Side-by-side dot-and-whisker panels sharing one row order (``order``, top to bottom).
 
     Each panel has its own x scale from zero, so the panels compare rankings, not magnitudes.
-    ``reference`` draws the same dotted vertical line on every panel — the null value a ratio is
+    ``reference`` draws the same dotted vertical line on every panel: the null value a ratio is
     read against. The axis label is written once, under the middle panel.
     """
     apply_style()
@@ -767,7 +767,7 @@ def dot_interval_panels(
         axes[len(axes) // 2].set_xlabel(xlabel, fontsize=8)
     axes[0].set_yticks(positions, [str(v) for v in labels_order], fontsize=8)
     axes[0].set_ylim(-0.7, len(labels_order) - 0.3)
-    fig.suptitle(title, x=0.01, ha="left", fontsize=12, fontweight="bold")
+    fig.suptitle(title, x=0.01, ha="left", fontsize=10.5, fontweight="normal")
     return save(fig, path)
 
 
@@ -918,6 +918,6 @@ def intervention(
     axes[-1].legend(
         loc="upper left", bbox_to_anchor=(0, -0.15), ncol=3 if alternative is None else 2
     )
-    fig.suptitle(title, x=0.01, ha="left", fontsize=12, fontweight="bold")
+    fig.suptitle(title, x=0.01, ha="left", fontsize=10.5, fontweight="normal")
     fig.tight_layout()
     return save(fig, path)

@@ -2,7 +2,7 @@
 
 An audit of the published site and repository against one question: **does a reader learn something
 here that DGT's own tables do not already tell them?** Everything user-facing is placed in one of
-four classes — original analytical value, necessary support, reference material, redundant — and
+four classes (original analytical value, necessary support, reference material, redundant) and
 then given a disposition: KEEP, MERGE, DEMOTE (to the repository), or DELETE.
 
 The project had ten pages, forty figures and about sixty tables, built to answer nine questions.
@@ -15,9 +15,9 @@ above.
 
 Four analyses answer a question DGT does not answer, and survive being pushed on:
 
-- **Crash severity given an injury crash.** The interesting result is not that head-on collisions
-  kill — it is that rain, snow and wet road surfaces are associated with *lower* conditional
-  severity, and that junctions are too. That was buried in row 30 of a 50-row coefficient table.
+- **Crash severity given an injury crash.** Head-on collisions kill, which surprises nobody. The
+  result worth a page is that rain, snow and wet road surfaces go with *lower* conditional
+  severity, and that junctions do too. It was buried in row 30 of a 50-row coefficient table.
 - **Age against driving exposure.** The answer changes sign with the denominator. That is the
   point, and it needed a denominator that is actually kilometres.
 - **Vehicle risk per kilometre.** A heavy truck looks ten times a car per vehicle and 2.5 times per
@@ -31,75 +31,75 @@ One further thing is worth a reader's time and is not an analysis but a measurem
 **the share of drivers with no recorded speed status jumps from 17 % to 52 % in 2016**, which
 changes how DGT's own published speed series must be read.
 
-Everything else — long-run trends, hour-by-weekday grids, road-user distributions, province league
-tables, the transcribed speed report, the 2019 speed-limit study — is either context for the above
-or a republication of DGT's annual report in a different typeface.
+The rest is either context for the above or a republication of DGT's annual report in a different
+typeface: long-run trends, hour-by-weekday grids, road-user distributions, province league tables,
+the transcribed speed report, the 2019 speed-limit study.
 
 ## 2. Page-by-page classification
 
 | Section | Class | Disposition | Why |
 |---|---|---|---|
-| **Home** — four headline tiles | support | KEEP, shortened | Orients the reader in one screen. |
-| **Home** — "Where to start", three featured analyses | support | MERGE into one findings list | Two competing summaries of the same analyses (the features and "the other six") on one page. |
-| **Home** — "The other six analyses" | redundant | DELETE | A second navigation bar written as prose. |
-| **Home** — "How to read the numbers" | support | KEEP, one sentence | "Counts are not risks" is said here, on trends, on geography, on older drivers and in the README. Once is enough. |
-| **Trends** — 1993–2024 deaths and indexed series | support | MERGE into Context | Two figures of genuine context for everything else; the rest of the page is not. |
-| **Trends** — "Injury crashes and victims per year" table | redundant | DEMOTE to CSV | Twelve rows of the figure above it. |
-| **Trends** — rates per vehicle and per resident | reference | DELETE | DGT publishes both. The rate that changes an answer is on the vehicles page, per kilometre. |
-| **Trends** — deaths by zone table | reference | DEMOTE to CSV | |
-| **Trends** — seasonality heatmap | reference | MERGE into Policy | Its only real use is as the backdrop to the July 2006 question; that is where it now sits, rebuilt as a falsification test rather than a picture. |
-| **Timing** — hour × weekday crash counts | reference | DELETE | DGT's annual report has this. |
-| **Timing** — hour × weekday fatal share | original, weak | DELETE | The page itself admits the top cells are not resolvable and that the cause is unobservable. A finding that cannot be interpreted is not a finding. |
-| **Timing** — road type × hour band | reference | DELETE | Subsumed by the severity model, which estimates the same thing with everything else held constant. |
-| **Timing** — darkness by zone | support | MERGE into Context, one sentence | Real, small, and already a term in the severity model. |
-| **Road users** — deaths by road-user type, shares by zone | support | MERGE into Context, one figure | Needed to know who the deaths are; does not need a page. |
-| **Road users** — driver deaths by vehicle since 1993 | reference | MERGE into Context as one line | The motorcycle series is the only surprise and it is one sentence. |
-| **Road users** — pedestrian series | reference | DELETE | |
-| **Geography** — province ranking, 52 rows, two denominators | reference | DELETE | A map of deaths per resident is the canonical example of a table that looks analytical and is not: the page's own text says the ranking is driven by through-traffic on rural motorways and that the intervals overlap. It reaches no conclusion, and the CSV stays in the repository. |
-| **Geography** — national rates over time | reference | DELETE | Same series as Trends, different denominator. |
-| **Older drivers** — four-denominator ladder | original | REBUILD | The idea is right and the denominator was not kilometres. See §3. |
-| **Older drivers** — licence-holding by sex and age | support | MERGE into two sentences | It explains why the per-resident rate is misleading; the seven-row table said it no better than a sentence with the two numbers that matter, and its bands did not match the rest of the page. |
-| **Older drivers** — "What the travel-weighted estimate is, and is not" | support | DELETE with the estimate | A 400-word disclaimer is a sign the measure should not have been published. |
-| **Older drivers** — rates by band over time, per licence holder | reference | DEMOTE to CSV | |
-| **Older drivers** — all road users by age since 2002 | reference | DELETE | DGT's own thematic report on older road users publishes this. |
-| **Severity** — the two models, odds-ratio forests | original | KEEP, lead with the counterintuitive result | |
-| **Severity** — full coefficient tables, 50 rows × 2 | reference | DEMOTE to CSV + appendix | Shown as two complete tables *and* two forest plots *and* narrated. |
-| **Severity** — predicted-probability profiles | support | KEEP, trimmed to four rows | The only place the model becomes concrete. |
-| **Severity** — year effects table | support | MERGE into one sentence | Its message is "the serious model's year terms track how injuries were coded", which is a sentence. |
-| **Severity** — holdout and calibration | support | KEEP as three numbers, figure DEMOTED | A reader needs to know it validates; the decile plot belongs in the appendix. |
-| **Severity** — year-by-year stability figure and paragraph | support | KEEP, compressed | The 2024 road-type coding break is a real caveat. |
-| **Severity** — "How the codes were grouped", 120 rows | reference | DEMOTE to repository | Reproducibility material on a public page. |
-| **Vehicles** — per-vehicle vs per-kilometre | original | KEEP, lead with it | |
-| **Vehicles** — three-rate table by type | support | KEEP, one table | |
-| **Vehicles** — who dies in the crash | original | KEEP | The 0.18-vs-0.93 contrast is the second half of the finding. |
-| **Vehicles** — fleet and kilometres by type | reference | DEMOTE to CSV | |
-| **Vehicles** — units involved 2020–2024 | reference | DEMOTE to CSV | |
-| **Vehicles** — occupant deaths since 1993 | reference | DELETE | Yearbook series, republished. |
-| **Vehicles** — van/light-truck split table | support | MERGE into the limits paragraph | |
-| **Vehicles** — 22-type mapping table | reference | DEMOTE to repository | |
-| **Policy** — 2006 points licence | original | REBUILD | See §4. |
-| **Policy** — 2019 speed limit | redundant | DEMOTE to a paragraph | See §5. |
-| **Policy** — "What an interrupted series can and cannot show" | support | KEEP, two sentences | |
-| **Policy** — confounder table | support | KEEP | Short, and it is the honest part of the page. |
-| **Speed** — recording discontinuity | original | KEEP, make it the page | |
-| **Speed** — driver tables 6.1 by year | support | KEEP, one table | |
-| **Speed** — speed status by vehicle | reference | DEMOTE to CSV | |
-| **Speed** — infraction ranking | reference | DELETE | |
-| **Speed** — report tables by road type, limit, transport, age, licence, day × hour | reference | DELETE from the site | Six tables and two figures transcribing DGT's thematic report. The transcription stays in the repository, where it is a reproducibility asset; on the site it is someone else's report. |
-| **Data** — sources | support | KEEP, compressed | |
-| **Data** — reuse and licensing, ~300 words | reference | DEMOTE to repository | Data-governance detail on a public page. One paragraph and a link is enough. |
-| **Data** — definitions | support | KEEP | |
-| **Data** — reconciliation check table | support | KEEP as a total plus a link | 434 checks is the number that matters; the twelve-row breakdown is repository material. |
-| **Data** — missingness figure and coding breaks | original, small | KEEP | The 2024 Barcelona recoding is a real trap for anyone using these files. |
-| **Data** — reproduce steps | support | MERGE into README | Duplicated verbatim from the README. |
-| **README** — nine-question table | redundant | DELETE | The site's navigation, restated. |
-| **README** — "Standards, as applied", 6 bullets × 5 lines | reference | DEMOTE to methodology | |
-| **README** — data group table, project structure, module roles | reference | DEMOTE to docs | |
-| **README** — "How it was built" AI-tooling sentence | — | REWRITE | See §6. |
+| **Home**: four headline tiles | support | KEEP, shortened | Orients the reader in one screen. |
+| **Home**: "Where to start", three featured analyses | support | MERGE into one findings list | Two competing summaries of the same analyses (the features and "the other six") on one page. |
+| **Home**: "The other six analyses" | redundant | DELETE | A second navigation bar written as prose. |
+| **Home**: "How to read the numbers" | support | KEEP, one sentence | "Counts are not risks" is said here, on trends, on geography, on older drivers and in the README. Once is enough. |
+| **Trends**: 1993–2024 deaths and indexed series | support | MERGE into Context | Two figures of genuine context for everything else; the rest of the page is not. |
+| **Trends**: "Injury crashes and victims per year" table | redundant | DEMOTE to CSV | Twelve rows of the figure above it. |
+| **Trends**: rates per vehicle and per resident | reference | DELETE | DGT publishes both. The rate that changes an answer is on the vehicles page, per kilometre. |
+| **Trends**: deaths by zone table | reference | DEMOTE to CSV | |
+| **Trends**: seasonality heatmap | reference | MERGE into Policy | Its only real use is as the backdrop to the July 2006 question; that is where it now sits, rebuilt as a falsification test rather than a picture. |
+| **Timing**: hour × weekday crash counts | reference | DELETE | DGT's annual report has this. |
+| **Timing**: hour × weekday fatal share | original, weak | DELETE | The page itself admitted that the top cells are not resolvable and that the cause is unobservable, which leaves nothing to report. |
+| **Timing**: road type × hour band | reference | DELETE | Subsumed by the severity model, which estimates the same thing with everything else held constant. |
+| **Timing**: darkness by zone | support | MERGE into Context, one sentence | Real, small, and already a term in the severity model. |
+| **Road users**: deaths by road-user type, shares by zone | support | MERGE into Context, one figure | Needed to know who the deaths are; does not need a page. |
+| **Road users**: driver deaths by vehicle since 1993 | reference | MERGE into Context as one line | The motorcycle series is the only surprise and it is one sentence. |
+| **Road users**: pedestrian series | reference | DELETE | |
+| **Geography**: province ranking, 52 rows, two denominators | reference | DELETE | A map of deaths per resident is the canonical example of a table that looks analytical and is not: the page's own text says the ranking is driven by through-traffic on rural motorways and that the intervals overlap. It reaches no conclusion, and the CSV stays in the repository. |
+| **Geography**: national rates over time | reference | DELETE | Same series as Trends, different denominator. |
+| **Older drivers**: four-denominator ladder | original | REBUILD | The idea is right and the denominator was not kilometres. See §3. |
+| **Older drivers**: licence-holding by sex and age | support | MERGE into two sentences | It explains why the per-resident rate is misleading; the seven-row table said it no better than a sentence with the two numbers that matter, and its bands did not match the rest of the page. |
+| **Older drivers**: "What the travel-weighted estimate is, and is not" | support | DELETE with the estimate | A 400-word disclaimer is a sign the measure should not have been published. |
+| **Older drivers**: rates by band over time, per licence holder | reference | DEMOTE to CSV | |
+| **Older drivers**: all road users by age since 2002 | reference | DELETE | DGT's own thematic report on older road users publishes this. |
+| **Severity**: the two models, odds-ratio forests | original | KEEP, lead with the counterintuitive result | |
+| **Severity**: full coefficient tables, 50 rows × 2 | reference | DEMOTE to CSV + appendix | Shown as two complete tables *and* two forest plots *and* narrated. |
+| **Severity**: predicted-probability profiles | support | KEEP, trimmed to four rows | The only place the model becomes concrete. |
+| **Severity**: year effects table | support | MERGE into one sentence | Its message is "the serious model's year terms track how injuries were coded", which is a sentence. |
+| **Severity**: holdout and calibration | support | KEEP as three numbers, figure DEMOTED | A reader needs to know it validates; the decile plot belongs in the appendix. |
+| **Severity**: year-by-year stability figure and paragraph | support | KEEP, compressed | The 2024 road-type coding break is a real caveat. |
+| **Severity**: "How the codes were grouped", 120 rows | reference | DEMOTE to repository | Reproducibility material on a public page. |
+| **Vehicles**: per-vehicle vs per-kilometre | original | KEEP, lead with it | |
+| **Vehicles**: three-rate table by type | support | KEEP, one table | |
+| **Vehicles**: who dies in the crash | original | KEEP | The 0.18-vs-0.93 contrast is the second half of the finding. |
+| **Vehicles**: fleet and kilometres by type | reference | DEMOTE to CSV | |
+| **Vehicles**: units involved 2020–2024 | reference | DEMOTE to CSV | |
+| **Vehicles**: occupant deaths since 1993 | reference | DELETE | Yearbook series, republished. |
+| **Vehicles**: van/light-truck split table | support | MERGE into the limits paragraph | |
+| **Vehicles**: 22-type mapping table | reference | DEMOTE to repository | |
+| **Policy**: 2006 points licence | original | REBUILD | See §4. |
+| **Policy**: 2019 speed limit | redundant | DEMOTE to a paragraph | See §5. |
+| **Policy**: "What an interrupted series can and cannot show" | support | KEEP, two sentences | |
+| **Policy**: confounder table | support | KEEP | Short, and it is the honest part of the page. |
+| **Speed**: recording discontinuity | original | KEEP, make it the page | |
+| **Speed**: driver tables 6.1 by year | support | KEEP, one table | |
+| **Speed**: speed status by vehicle | reference | DEMOTE to CSV | |
+| **Speed**: infraction ranking | reference | DELETE | |
+| **Speed**: report tables by road type, limit, transport, age, licence, day × hour | reference | DELETE from the site | Six tables and two figures transcribing DGT's thematic report. The transcription stays in the repository, where it is a reproducibility asset; on the site it is someone else's report. |
+| **Data**: sources | support | KEEP, compressed | |
+| **Data**: reuse and licensing, ~300 words | reference | DEMOTE to repository | Data-governance detail on a public page. One paragraph and a link is enough. |
+| **Data**: definitions | support | KEEP | |
+| **Data**: reconciliation check table | support | KEEP as a total plus a link | 434 checks is the number that matters; the twelve-row breakdown is repository material. |
+| **Data**: missingness figure and coding breaks | original, small | KEEP | The 2024 Barcelona recoding is a real trap for anyone using these files. |
+| **Data**: reproduce steps | support | MERGE into README | Duplicated verbatim from the README. |
+| **README**: nine-question table | redundant | DELETE | The site's navigation, restated. |
+| **README**: "Standards, as applied", 6 bullets × 5 lines | reference | DEMOTE to methodology | |
+| **README**: data group table, project structure, module roles | reference | DEMOTE to docs | |
+| **README**: "How it was built" AI-tooling sentence | support | REWRITE | See §6. |
 
 Net effect, as built: **ten pages become seven** (four analyses, context, data, overview),
 **forty figures become eleven**, and the tables printed on the site fall from about sixty to
-**eleven** — with every full result table one click away as a CSV download from the page that uses
+**eleven**, with every full result table one click away as a CSV download from the page that uses
 it. The site's HTML drops from 190 KB to 74 KB. The repository loses eight planning documents that
 described the structure being replaced; `refocus_audit.md`, `methodology.md`, `data_sources.md` and
 `data_inventory.md` are what remain.
@@ -121,8 +121,8 @@ to companies). For cars in 2024 that is 23.8 million vehicles and 293 billion ki
 reconciles with DGT's published fleet total to within 0.1 %.
 
 That gives a denominator with the properties the old one lacked: it is kilometres, it is national,
-it is the same year as the crash counts, it has a 75+ band, and — the point the previous version
-missed — **the same construction applies to the middle-aged baseline as to the older group**.
+it is the same year as the crash counts, it has a 75+ band, and, the point the previous version
+missed, **the same construction applies to the middle-aged baseline as to the older group**.
 Pairing it with the car rows of DGT's driver tables 4.1.1 and 4.2 separates the two questions that
 the denominator ladder conflated:
 
@@ -154,10 +154,10 @@ says so:
   kink in 2003 by about 16 points of AIC. Under the trend they prefer, the July 2006 level change
   is **−7.1 % (−13.2 to −0.5)**, not −12.0 %.
 - Placed at 1 July of every year with a clean window, the same model ranks 2006 **first of
-  fifteen** — but the runner-up (July 2004) is close, so the one-sided empirical p-value is about
+  fifteen**, but the runner-up (July 2004) is close, so the one-sided empirical p-value is about
   0.07.
-- The twelve months from July 2006 divided by the twelve before — a statistic in which seasonality
-  cancels exactly — fall 11.4 %, the **fourth largest** of the 27 measurable years.
+- The twelve months from July 2006 divided by the twelve before, a statistic in which seasonality
+  cancels exactly, fall 11.4 %, the **fourth largest** of the 27 measurable years.
 - A forecast fitted before each July and run forward 17 months puts 2006 **fourth of fifteen**:
   three other Julys undershot their own forecast by more. This is the test that most damages the
   original claim.
@@ -165,8 +165,8 @@ says so:
   estimate by less than a percentage point, so a fall in traffic is not the explanation.
 
 Four of the thirteen specifications now give an interval that includes zero. The page reports
-about seven per cent with a wide interval, says which tests it failed, and keeps the two claims —
-that the series changed, and that the licence changed it — apart.
+about seven per cent with a wide interval, says which tests it failed, and keeps two claims apart:
+that the series changed, and that the licence changed it.
 
 ## 5. Policy, 2019: Option B
 
@@ -180,16 +180,16 @@ network. Nothing available closes that gap, and the current aggregate design alr
 placebo: a false break in January 2017 produces a divergence of +12 % with an interval that
 excludes zero.
 
-So: demoted to a paragraph under "what we could not establish". An elaborate section reporting that
-the answer is inconclusive is not analytical value; it is analytical throat-clearing.
+So it is demoted to a paragraph under "what we could not establish". A long section whose
+conclusion is that the answer is inconclusive is throat-clearing.
 
 ## 6. Public site versus repository
 
 The rule applied throughout: the site answers *what was asked, what was found, why it matters, how
-confident to be, and what the main limitation is*. Everything else — the full methodology, the
-source register with URLs and checksums, the reuse terms, the 434 reconciliation checks one by one,
-the coding-break inventory, every coefficient, every sensitivity fit, the code-grouping tables —
-lives in `docs/` and `reports/` and is linked, not printed.
+confident to be, and what the main limitation is*. Everything else lives in `docs/` and `reports/` and is
+linked rather than printed: the full methodology, the source register with URLs and checksums, the
+reuse terms, the 434 reconciliation checks one by one, the coding-break inventory, every
+coefficient, every sensitivity fit, the code-grouping tables.
 
 The AI-assistance note is rewritten. The old wording ("the code and the prose were written with the
 help of AI coding assistants") both overstates the tools' role in the decisions and understates the
@@ -199,6 +199,6 @@ README and on the data page, and does not make the tooling a feature of the land
 ## 7. Writing standards applied
 
 Every page now opens with its answer. Limitations are stated once, where the result is. The
-generic reminders that were repeated on four pages — counts are not risks, unknown is not no,
-association is not causation — appear once each, in the place where they change how a number should
+generic reminders that were repeated on four pages (counts are not risks, unknown is not no,
+association is not causation) appear once each, in the place where they change how a number should
 be read. Prose that narrated the cells of a table has gone with the table.

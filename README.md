@@ -17,14 +17,14 @@ will tell you how many people died last year on each kind of road, at what hour 
 province. It will not tell you whether older drivers are actually riskier once you know how far
 they drive, or whether a policy effect survives a falsification test built for the season it
 happened in. This project takes four such questions and follows each until the evidence either
-holds or breaks — and says which.
+holds or breaks, and says which.
 
 ## The findings
 
 | | Finding |
 |---|---|
 | **[Crash severity](https://rahv-fb.github.io/dgt-stats/severity.html)** | Given that an injury crash has happened, a wet road carries **0.56×** the odds of a death of a dry one, and a junction 0.75×. Rain and wet surface are one effect split between two correlated predictors; the result survives dropping either and fitting urban and interurban roads separately. It is about severity *given* a crash, not about crashing. |
-| **[Age and exposure](https://rahv-fb.github.io/dgt-stats/older-drivers.html)** | Car drivers aged 75+ are involved in injury crashes **1.02×** as often per kilometre driven as drivers aged 35–54 — the same — but are killed **3.9×** as often once involved. The apparent excess risk of older drivers is almost entirely what happens after the crash. |
+| **[Age and exposure](https://rahv-fb.github.io/dgt-stats/older-drivers.html)** | Car drivers aged 75+ are involved in injury crashes **1.02×** as often per kilometre driven as drivers aged 35–54, which is to say about as often, but are killed **3.9×** as often once involved. The apparent excess risk of older drivers is almost entirely what happens after the crash. |
 | **[Vehicles per km](https://rahv-fb.github.io/dgt-stats/vehicles.html)** | A heavy truck is in a fatal crash **10.3×** as often as a car per circulating vehicle and **2.5×** per kilometre driven. Motorcycles move the other way. The denominator, not the vehicle, does most of the work. |
 | **[The 2006 break](https://rahv-fb.github.io/dgt-stats/policy.html)** | Monthly deaths stepped down around the points-based licence, by **12%** under a straight pre-trend and **7%** under the pre-trend the earlier months actually prefer. Placed at July of other years the model ranks 2006 first of 15; an out-of-sample forecast ranks it only fourth. The headline did not survive the right test, and the page says so. |
 
@@ -36,7 +36,7 @@ published speed column now move in opposite directions
 ## Why you can believe the numbers
 
 - **Reconciled before analysed.** 434 checks tie the crash microdata, the yearbook tables and the
-  driver census to DGT's published totals — crashes and victims per year, deaths by province and
+  driver census to DGT's published totals: crashes and victims per year, deaths by province and
   month, driver deaths by zone, vehicles involved by type, every code against the dictionary. The
   microdata match the yearbook exactly, year by year. Nothing is computed until they pass
   (`src/dgt_stats/validate.py`, enforced by `tests/test_validate.py`).
@@ -45,8 +45,8 @@ published speed column now move in opposite directions
 - **Claims are tested, not asserted.** The severity finding is refitted eight ways; the 2006 break
   is put through calendar-matched placebos, a seasonality-free transition statistic, out-of-sample
   forecasts, a pre-trend chosen on the pre-period alone and two monthly traffic series. Results
-  that failed their checks — a 2019 speed-limit study whose control group fails a placebo break —
-  are reported as failures, in a paragraph, not as pages.
+  that failed their checks are reported as failures, in a paragraph rather than a page. The 2019
+  speed-limit study is the one that failed: its control group does not survive a placebo break.
 - **Uncertainty is visible** where it means something: exact Poisson intervals on rates built
   against a counted denominator, log-normal intervals on ratios, province-clustered intervals on
   the models, empirical distributions on the time series.
@@ -88,7 +88,7 @@ pytest -m slow                      # SHA-256 of every raw file against data/raw
 Raw files are tracked under `data/raw/` with their size, SHA-256 and source URL in
 `data/raw/manifest.csv`; result tables and figures under `reports/` and the site's HTML and CSS are
 committed, so the pages can be read and reviewed without rebuilding. `site/figures/` and
-`site/tables/` are not committed — `scripts/build_site.py` copies them in from `reports/`, so run
+`site/tables/` are not committed; `scripts/build_site.py` copies them in from `reports/`, so run
 it once before opening the pages locally.
 
 Every push and pull request runs [`ci.yml`](.github/workflows/ci.yml): Ruff over `src`, `scripts`
@@ -133,4 +133,4 @@ aggregate and nothing on the site identifies a person.
 
 ---
 
-An independent analysis by [RAHV-FB](https://github.com/RAHV-FB) — Russell Howard.
+An independent analysis by Russell Howard ([RAHV-FB](https://github.com/RAHV-FB)).

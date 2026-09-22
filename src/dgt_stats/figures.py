@@ -2,7 +2,7 @@
 
 Eleven figures, one per idea. A figure earns its place by showing something a sentence cannot:
 a ranking that reverses, a distribution a single estimate has to be read against, a discontinuity
-in the data themselves. Tables that a figure already says are not drawn twice — they are written
+in the data themselves. Tables that a figure already says are not drawn twice; they are written
 to ``reports/tables`` and linked from the page as CSV.
 """
 
@@ -415,8 +415,8 @@ def _data_figures(figures_dir: Path, captions: dict[str, str]) -> None:
         MICRODATA_SOURCE,
         "2016–2024",
         "observed = not empty, not 999 (not specified), not 998 (not applicable) and not an "
-        "explicit unknown code; the fields that carry no code list count their placeholder values "
-        "as not observed too — KM 9999 (and 1000 in 2019, the year DGT used it), CARRETERA 'No "
+        "explicit unknown code. The fields that carry no code list count their placeholder values "
+        "as not observed too: KM 9999 (and 1000 in 2019, the year DGT used it), CARRETERA 'No "
         "inventariada' and COD_MUNICIPIO 00000",
         f"{int(profile.groupby('year').rows.first().sum()):,} crashes",
     )

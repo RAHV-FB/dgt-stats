@@ -25,8 +25,8 @@ All raw files live under `data/raw/`, grouped by role.
 | `accidentes_2022.xlsx` | 2022 | 97,916 | 73 | `TABLA_ACCIDENTES_22.xlsx` |
 | `accidentes_2023.xlsx` | 2023 | 101,306 | 73 | `TABLA_ACCIDENTES_23.XLSX` |
 | `accidentes_2024.xlsx` | 2024 | 101,996 | 73 | `TABLA_ACCIDENTES_24.XLSX` |
-| `diccionario.xlsx` | all | 38 sheets, 33 of them code lists | — | `Diccionario_Tabla_Accidentes.xlsx` |
-| `metadata_2024.rdf.xml` | 2024 | DCAT record | — | datos.gob.es catalogue export |
+| `diccionario.xlsx` | all | 38 sheets, 33 of them code lists | n/a | `Diccionario_Tabla_Accidentes.xlsx` |
+| `metadata_2024.rdf.xml` | 2024 | DCAT record | n/a | datos.gob.es catalogue export |
 
 - Source: Registro Nacional de Víctimas de Accidentes de Tráfico (Orden INT/2223/2014), published on
   DGT en Cifras under "Ficheros de microdatos de accidentes con víctimas". Licence: datos.gob.es aviso
@@ -86,7 +86,7 @@ The zip archive was extracted in place and the archive itself dropped.
 |---|---:|---|---|
 | `dgt_factor_velocidad_2023.pdf` | 61 | Speed factor 2014–2023, 30-day data, **excludes Cataluña and País Vasco**. Speed present in 7% of injury crashes in 2023 (3% urban, 14% interurban); profiles by road type, speed limit, vehicle, driver | `INF_TEMA_4_Factor-Velocidad_v5_FINAL.pdf` |
 | `dgt_personas_mayores_2023.pdf` | 82 | Road users aged 65+ in 2023: 26% of all deaths; 47.8 deaths per million vs 34.4 for under-65; collision matrices; profiles | `INF_TEMA_8_PersonasMayores_v4_FINAL_nipo.pdf` |
-| `Anuario-estadistico-de-accidentes-{2015..2019}-fe-de-erratas.pdf` | — | DGT errata sheets for the 2015–2019 yearbooks; check before reconciling those years | same |
+| `Anuario-estadistico-de-accidentes-{2015..2019}-fe-de-erratas.pdf` | n/a | DGT errata sheets for the 2015–2019 yearbooks; check before reconciling those years | same |
 | `dgt_semana_santa_2026.pdf` | 45 | Easter 2026 interurban fatal crashes, **24-hour provisional counts**: 28 fatal crashes, 30 deaths, 17.3 million long-distance trips; series 1995–2026 | `INF_SEMANASANTA_2026_v8_FINAL.pdf` |
 
 The ESRA reports are not archived under `data/raw/` (Vias institute offers no reproduction licence;
@@ -196,7 +196,7 @@ No duplicate identifiers were found in any year.
   dieselises, so the level drifts relative to kilometres even though the month-to-month shape does
   not. Seasonal peak: July.
 - The toll-motorway series measures vehicle-kilometres directly, but on 1,400–2,500 km of motorway
-  (roughly 5 % of Spanish traffic) whose length changes as concessions expire — 2,362 km in 2019,
+  (roughly 5 % of Spanish traffic) whose length changes as concessions expire: 2,362 km in 2019,
   1,894 km in 2020, 1,416 km from 2022. Seasonal peak: August, and far sharper than CORES's,
   because it is a holiday network. The two seasonal profiles correlate at about 0.75 over
   2000–2007, which is why both are reported rather than one.

@@ -7,13 +7,13 @@ a measure of what happens *after* the crash, not of how often one happens.
 
 What was missing was kilometres. DGT's 2024 release of *Kilómetros anualizados recorridos por el
 parque móvil* publishes vehicles and annual kilometres by vehicle category and by the owner's age
-band, which — paired with the car rows of DGT's driver tables for the same year — gives the two
+band. Paired with the car rows of DGT's driver tables for the same year it gives the two
 quantities that matter, on the same bands, with the same construction for the middle-aged baseline
 as for the older groups:
 
-* **involvement per kilometre** — how often a driver of this age is in an injury crash per
+* **involvement per kilometre**: how often a driver of this age is in an injury crash per
   kilometre driven, which is about crashing;
-* **fatality given involvement** — how often an involved driver of this age is killed, which is
+* **fatality given involvement**: how often an involved driver of this age is killed, which is
   about what a crash does to a body.
 
 Their product is driver deaths per kilometre. Separating them is the point: the two answers are
@@ -177,7 +177,7 @@ def company_km_sensitivity(year: int = KM_YEAR) -> pd.DataFrame:
     Company cars have no owner age, so they leave the denominator; their drivers do not leave the
     numerator. Three treatments bound the effect: leaving those kilometres out (the published
     rates), spreading them over the bands from 18 to 64 in proportion to their private kilometres
-    — the assumption that a company car is driven by someone of working age — and spreading them
+    (the assumption that a company car is driven by someone of working age) and spreading them
     over every band. The first two bracket the answer and the third is the neutral case.
     """
     counts = car_driver_counts(year).set_index("band")
