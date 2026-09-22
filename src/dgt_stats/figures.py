@@ -37,7 +37,7 @@ THIRTY_DAY = "deaths within 30 days of the crash"
 LADDER_LABELS = {
     "residents": "per resident",
     "licence_holders": "per licence holder",
-    "travel_weighted": "per travel-weighted driver",
+    "travel_weighted": "exploratory ESRA×MOVILIA exposure scenario",
     "drivers_involved": "per driver involved in a crash",
 }
 
@@ -413,32 +413,44 @@ def build_all(
 
     ladder = summary("q7_driver_ladder")
     ladder["band_label"] = ladder.band.map(agebands.band_label)
-    latest = ladder[ladder.year == ladder.year.max()]
-    shares = latest.melt(
+    latest = ladder[ladder.year == ladder.year.max()].copy()
+
+    # Keep the historical figure key/path stable, but plot two genuine compositions.  The previous
+    # version mixed a within-age licence rate with a synthetic ESRA×MOVILIA exposure weight, which
+    # looked like two parts-of-a-whole percentages even though neither series had that meaning.
+    composition = latest[["band_label", "licence_holders", "drivers_involved"]].copy()
+    composition["licence_holders"] /= composition.licence_holders.sum()
+    composition["drivers_involved"] /= composition.drivers_involved.sum()
+    composition = composition.melt(
         id_vars="band_label",
-        value_vars=["licence_share", "travel_share"],
+        value_vars=["licence_holders", "drivers_involved"],
         var_name="measure",
         value_name="share",
     )
-    shares["measure"] = shares.measure.map(
-        {"licence_share": "Hold a licence", "travel_share": "Travel-weighted driver share"}
+    composition["measure"] = composition.measure.map(
+        {
+            "licence_holders": "Licence holders",
+            "drivers_involved": "Drivers involved in injury crashes",
+        }
     )
     plots.grouped_bars(
-        shares,
+        composition,
         "band_label",
         "measure",
         "share",
         figures_dir / "q7_licence_travel_share.svg",
-        f"Share of residents with a licence and travel-weighted driver share, {int(latest.year.iloc[0])}",
+        f"Age distribution of licence holders and crash-involved drivers, {int(latest.year.iloc[0])}",
         order=[agebands.band_label(b) for b in agebands.ANALYSIS_BANDS],
+        series_order=["Licence holders", "Drivers involved in injury crashes"],
         percent=True,
-        ylabel="Share of residents",
+        ylabel="Share of each total",
     )
     captions["q7_licence_travel_share"] = plots.caption(
-        f"{CENSUS_SOURCE}; {INE_SOURCE}; {ACTIVITY_SOURCE}",
+        f"{CENSUS_SOURCE}; {TABLES_SOURCE}",
         str(int(latest.year.iloc[0])),
-        "licence holders divided by residents; travel-weighted share = ESRA national share of "
-        "adults who drive spread by the MOVILIA 2006 car-travel profile, capped at the licence share",
+        "each series is normalised separately across the seven age bands and sums to 100%; "
+        "drivers involved in injury crashes are an observed crash population, not a measure of "
+        "distance driven or of crash risk",
     )
 
     rate_long = ladder.melt(
@@ -450,7 +462,7 @@ def build_all(
     rate_long["denominator"] = rate_long.denominator.map(
         {
             "deaths_per_100k_licence": "per 100,000 licence holders",
-            "deaths_per_100k_travel": "per 100,000 travel-weighted drivers",
+            "deaths_per_100k_travel": "per 100,000 exploratory exposure-equivalents",
         }
     )
     plots.small_multiples(
@@ -459,7 +471,7 @@ def build_all(
         "year",
         "rate",
         figures_dir / "q7_death_rates_by_band.svg",
-        "Driver deaths per 100,000, by age band and denominator",
+        "Driver deaths by age band: licence holders vs exploratory exposure scenario",
         ncols=4,
         order=[agebands.band_label(b) for b in agebands.ANALYSIS_BANDS],
         series="denominator",
@@ -468,8 +480,9 @@ def build_all(
     captions["q7_death_rates_by_band"] = plots.caption(
         f"{TABLES_SOURCE}; {INE_SOURCE}; {CENSUS_SOURCE}; {ACTIVITY_SOURCE}",
         "2014–2024",
-        "driver deaths within 30 days (interurban and urban) divided by licence holders and by "
-        "travel-weighted drivers of the same age band; same scale on every panel",
+        "driver deaths within 30 days (interurban and urban) divided by licence holders and by the "
+        "exploratory ESRA×MOVILIA exposure-equivalent denominator; the latter is a sensitivity "
+        "scenario, not observed age-specific driving exposure; same scale on every panel",
     )
 
     decomposition = ladder.melt(
