@@ -446,6 +446,7 @@ def build_all(
         series_order=["Licence holders", "Drivers involved in injury crashes"],
         percent=True,
         ylabel="Share of each total",
+        full_scale=False,
     )
     captions["q7_licence_travel_share"] = plots.caption(
         f"{CENSUS_SOURCE}; {TABLES_SOURCE}",
