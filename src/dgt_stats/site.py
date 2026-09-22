@@ -22,6 +22,7 @@ from dgt_stats.summaries import BASE_YEAR, read_model_table
 
 SITE_DIR = PROJECT_ROOT / "site"
 REPO_URL = "https://github.com/RAHV-FB/dgt-stats"
+PROFILE_URL = "https://github.com/RAHV-FB"
 
 PAGES: tuple[tuple[str, str], ...] = (
     ("index", "Overview"),
@@ -98,6 +99,10 @@ tbody th { font-weight: 400; }
 .table-wrap:focus-visible, .figure-wrap:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 caption { caption-side: top; text-align: left; color: var(--text-2); font-size: 0.85rem; padding: 0 0 6px; width: fit-content; max-width: min(calc(100vw - 32px), 1008px); }
 .note { background: var(--surface-2); border-left: 3px solid var(--accent); padding: 10px 14px; border-radius: 0 6px 6px 0; max-width: var(--measure); }
+.feature { border-left: 3px solid var(--accent); padding-left: 14px; margin: 18px 0 22px; }
+.feature h3 { margin: 0 0 4px; }
+.feature p { margin: 0 0 4px; }
+.feature p.method { color: var(--text-2); font-size: 0.9rem; }
 .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-top: 16px; }
 .card { border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; }
 .card h3 { margin: 0 0 6px; }
@@ -330,7 +335,7 @@ def render_page(slug: str, title: str, lead: str, body: str) -> str:
 {body}
 </main>
 <footer>
-<p>Built from Dirección General de Tráfico (DGT) open data (crash microdata 2016–2024, the Anuario de
+<p>An independent analysis by <a href="{PROFILE_URL}">RAHV-FB</a>, built from Dirección General de Tráfico (DGT) open data (crash microdata 2016–2024, the Anuario de
 Accidentes 2024 series, statistical tables 2014–2024, the driver census 2014–2025, the ITV kilometre
 estimates 2022 and the ONSV speed-factor report), INE resident population 2002–2025 (CC BY 4.0) and the
 ESRA and MOVILIA surveys; sources and licences are on the data page. Every number is reproducible from
@@ -344,8 +349,30 @@ the <a href="{REPO_URL}">repository</a>; see the data page for the checks.</p>
 # --------------------------------------------------------------------------- pages
 
 
-def _digest() -> str:
-    """One computed line per page, in navigation order, for a reader who stops at the front page."""
+# The three analyses the front page leads with, in the order it shows them: the page, the heading
+# it is given there, and what the analysis does. The finding under each is computed like every
+# other line, in ``_page_findings``.
+FEATURED: dict[str, tuple[str, str]] = {
+    "severity.html": (
+        "What makes a crash fatal",
+        "Two logistic regressions on every injury crash since 2016, with province-clustered "
+        "intervals, average marginal effects, a 2023–2024 holdout and a refit for every year.",
+    ),
+    "older-drivers.html": (
+        "Whether older drivers are riskier depends on the denominator",
+        "The same driver deaths divided by residents, by licence holders, by a travel-weighted "
+        "estimate of who actually drives, and by drivers involved in crashes.",
+    ),
+    "policy.html": (
+        "Two policy changes, one claim withheld",
+        "Segmented Poisson regressions with placebo breaks, a control group of roads and "
+        "sensitivity fits; the wording follows what those checks support, not the headline.",
+    ),
+}
+
+
+def _page_findings() -> list[tuple[str, str, str]]:
+    """One computed finding per content page, in navigation order: ``(href, title, finding)``."""
     headline = read_table("q1_annual_headline").set_index("year")
     first, latest = int(headline.index.min()), int(headline.index.max())
     deaths_change = headline.deaths_30d[latest] / headline.deaths_30d[first] - 1
@@ -475,14 +502,7 @@ def _digest() -> str:
             f"{_fmt_pct(unknown.share_unknown.iloc[0], 0)} of drivers have no speed record at all.",
         ),
     ]
-    return (
-        "<ul>"
-        + "".join(
-            f'<li><strong><a href="{esc(href)}">{esc(title)}</a></strong>: {esc(text)}</li>'
-            for href, title, text in items
-        )
-        + "</ul>"
-    )
+    return items
 
 
 def page_index(captions: dict[str, str]) -> str:
@@ -508,67 +528,58 @@ def page_index(captions: dict[str, str]) -> str:
         ]
     )
     body += figure("q1_indexed_trend", "Injury crashes and victims indexed to 2019", captions)
-    body += "<h2>What is here</h2>" + cards(
-        [
-            (
-                "trends.html",
-                "Trends",
-                "Crashes and victims since 1993, rates per vehicle and per inhabitant, the 2020 dip, urban versus interurban, and the summer peak.",
-            ),
-            (
-                "timing.html",
-                "Timing",
-                "When crashes happen and when they turn fatal: hour, weekday, darkness, road type.",
-            ),
-            (
-                "road-users.html",
-                "Road users",
-                "Who dies on the road: pedestrians, cyclists, motorcyclists, car occupants and others, and how that mix is changing.",
-            ),
-            (
-                "geography.html",
-                "Geography",
-                "Deaths and crashes by province per resident, deaths per licence holder, with intervals, and Spain's rates since 2002.",
-            ),
-            (
-                "older-drivers.html",
-                "Older drivers",
-                "The same driver deaths against four denominators: residents, licence holders, travel-weighted drivers and drivers involved in crashes.",
-            ),
-            (
-                "severity.html",
-                "Severity",
-                "Given that a crash happened, which circumstances make it fatal or serious: two logistic models with odds ratios, marginal effects, calibration and stability.",
-            ),
-            (
-                "vehicles.html",
-                "Vehicles per km",
-                "Mopeds, motorcycles, cars, vans, heavy trucks and buses in 2022: vehicles in injury and fatal crashes and occupants killed, per circulating vehicle and per kilometre driven.",
-            ),
-            (
-                "policy.html",
-                "Policy",
-                "Did the 2006 points-based licence and the 2019 conventional-road speed limit coincide with a break in monthly deaths: two interrupted time series with placebo checks.",
-            ),
-            (
-                "speed.html",
-                "Speed",
-                "What the sources record about speed: drivers with a recorded speed infraction since 2014, with the unknown share in view, and the profile of speed-factor crashes from DGT's report.",
-            ),
-            (
-                "data.html",
-                "Data and checks",
-                f"Sources, definitions, the {len(validation)} reconciliation checks against DGT's published totals, and what is missing.",
-            ),
-        ]
+    findings = _page_findings()
+    by_href = {href: text for href, _, text in findings}
+    rest = [item for item in findings if item[0] not in FEATURED]
+
+    body += "<h2>Where to start</h2>"
+    body += (
+        "<p>Three of the nine analyses, chosen because between them they show what these sources "
+        "carry and where they stop: a model with its validation, a measurement that changes answer "
+        "with its denominator, and a case where the checks did not support the claim.</p>"
     )
-    body += "<h2>What the data say</h2>" + _digest()
+    for href, (title, method) in FEATURED.items():
+        finding = by_href[href]
+        body += (
+            f'<section class="feature"><h3><a href="{esc(href)}">{esc(title)}</a></h3>'
+            f"<p>{esc(finding)}</p>"
+            f'<p class="method">{esc(method)}</p></section>'
+        )
+
+    body += "<h2>The other six analyses</h2>"
+    body += (
+        "<ul>"
+        + "".join(
+            f'<li><strong><a href="{esc(href)}">{esc(title)}</a></strong>: {esc(text)}</li>'
+            for href, title, text in rest
+        )
+        + "</ul>"
+    )
+    body += (
+        f'<p><a href="data.html">Data and checks</a> lists the sources and their reuse terms, the '
+        f"definitions, and the {len(validation)} reconciliation checks that run before any analysis "
+        "does.</p>"
+    )
+
     body += "<h2>How to read the numbers</h2>" + note(
-        "Counts are DGT's consolidated figures: an injury crash is one with at least one person killed or "
-        "injured, and deaths are counted within 30 days of the crash unless a chart says otherwise. Crash "
-        "counts describe what the police recorded, not the risk of travelling; rates on the trends page "
-        "divide by the vehicle fleet or the population."
+        "Counts are DGT's consolidated figures: an injury crash is one with at least one person "
+        "killed or injured, and deaths are counted within 30 days of the crash unless a chart says "
+        "otherwise. Crash counts describe what the police recorded, not the risk of travelling; "
+        "rates on the trends page divide by the vehicle fleet or the population."
     )
+
+    body += "<h2>About this project</h2>"
+    body += (
+        f'<p>An independent analysis of Spanish road-safety open data by <a href="{PROFILE_URL}">'
+        "RAHV-FB</a>. The questions, the choice of sources, the statistical design and the reading "
+        "of the results are the author's, as is responsibility for what is published here; the "
+        f'methods are set out in the <a href="{REPO_URL}/blob/main/docs/methodology.md">methodology '
+        "note</a>, and every number on these pages is regenerated from the raw files by the scripts "
+        f'in the <a href="{REPO_URL}">repository</a>, written with the help of AI coding assistants. '
+        "The code is under the MIT licence; the data keep the terms of the bodies that publish "
+        "them.</p>"
+    )
+
     return render_page(
         "index",
         "Road safety in Spain",
@@ -3228,11 +3239,12 @@ def page_data(captions: dict[str, str]) -> str:
         "</ol>"
         "<p><code>pytest</code> runs the data-contract and code tests; the reconciliation checks above "
         "are among them.</p>"
-        "<p>The code, the documents and these pages were written with Claude Code, Anthropic's coding "
-        "assistant, from written instructions and under the author's review; the choice of sources "
-        "and methods, the reading of the results and every published figure are the author's "
-        "responsibility, and each number can be regenerated from the raw files with the sequence "
-        "above.</p>"
+        "<p>The questions, the choice of sources, the statistical design and the reading of the "
+        "results are the author's, as is responsibility for what is published: the denominators, "
+        "the intervals and the model specifications are set out in the methodology note, the "
+        "sources and their reuse terms above, and the limits beside each result. Every number is "
+        "regenerated from the raw files by the sequence above, which anyone can rerun. The code and "
+        "the prose were written with the help of AI coding assistants.</p>"
     )
     return render_page(
         "data",
