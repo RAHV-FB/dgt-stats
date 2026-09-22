@@ -360,8 +360,8 @@ FEATURED: dict[str, tuple[str, str]] = {
     ),
     "older-drivers.html": (
         "Whether older drivers are riskier depends on the denominator",
-        "The same driver deaths divided by residents, by licence holders, by a travel-weighted "
-        "estimate of who actually drives, and by drivers involved in crashes.",
+        "The same driver deaths divided by residents, by licence holders, by an explicitly "
+        "exploratory ESRA×MOVILIA exposure scenario, and by drivers involved in crashes.",
     ),
     "policy.html": (
         "Two policy changes, one claim withheld",
@@ -1284,7 +1284,7 @@ def page_older_drivers(captions: dict[str, str]) -> str:
         f"{ratio_value('75+', 'travel_weighted'):.2f}× to about "
         f"{ratio_value('75+', 'travel_weighted') / growth['75+']:.1f}× for 75 and over. The "
         "passenger bias and the frozen profile push in opposite directions and neither is measured "
-        "here, so the travel-weighted ratio is not a bound in either direction. An age split of "
+        "here, so the exploratory exposure ratio is not a bound in either direction. An age split of "
         "the ESRA question would replace the estimate directly."
     )
     body += "<h2>Sensitivity: alternative exposure denominator</h2>"
