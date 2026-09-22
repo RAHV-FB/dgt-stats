@@ -448,13 +448,14 @@ def _movilia_intensity(sex: str) -> dict[str, float]:
 
 
 def car_travel_profile(year: int, sex: str = "total") -> pd.Series:
-    """Relative car-travel intensity by analysis band, from MOVILIA 2006 trips per resident.
+    """Historical MOVILIA 2006 car-or-motorcycle trip intensity by analysis band.
 
-    Trips by "coche o moto" per resident are computed for the MOVILIA bands (2006 population), given
-    to every five-year INE group inside them, averaged into the analysis bands with ``year``'s
-    population, and scaled so the population-weighted mean over 15–74 is 1 (the analysis bands that
-    overlap the ESRA range of 18–74; the 15–24 band includes three ages below it, and its share is
-    capped by the licence share). The 75+ band inherits the 65+ intensity, MOVILIA's oldest band.
+    Trips by "coche o moto" per resident are computed for the MOVILIA bands (2006 population),
+    assigned to the nested INE age groups, averaged into the analysis bands with ``year``'s
+    population, and scaled so the population-weighted mean over 15–74 is 1. MOVILIA does not
+    separate drivers from passengers in this mode, so this is a historical travel-intensity
+    profile, not a driver-frequency profile. The 75+ band inherits the 65+ intensity because 65+
+    is MOVILIA's oldest band. It is used only by the exploratory ESRA×MOVILIA sensitivity scenario.
     """
     intensity = _movilia_intensity(sex)
     groups = io_population.population(year, sex=sex)
@@ -480,8 +481,12 @@ def car_travel_profile(year: int, sex: str = "total") -> pd.Series:
 
 @cache
 def _ladder(sex: str) -> pd.DataFrame:
-    """The denominator ladder: year × band with residents, licence holders, travel-weighted
-    drivers (driver-equivalents), involved drivers, driver deaths and the rate against each."""
+    """The denominator ladder by year and age band.
+
+    It contains observed residents, licence holders, crash-involved drivers and driver deaths, plus
+    the legacy ESRA×MOVILIA exposure-equivalent sensitivity denominator. The latter is not an
+    observed driver count; its historical column names are retained for reproducibility.
+    """
     residents = _residents(LADDER_YEARS, sex)
     licences = _licence_holders(sex)
     counts = _driver_counts(sex)
