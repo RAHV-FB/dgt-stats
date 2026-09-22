@@ -27,82 +27,153 @@ DOCS_URL = f"{REPO_URL}/blob/main/docs"
 
 PAGES: tuple[tuple[str, str], ...] = (
     ("index", "Overview"),
-    ("severity", "Crash severity"),
-    ("older-drivers", "Age and exposure"),
-    ("vehicles", "Vehicles per km"),
-    ("policy", "The 2006 break"),
+    ("severity", "Severity"),
+    ("older-drivers", "Age"),
+    ("vehicles", "Vehicles"),
+    ("policy", "2006"),
     ("context", "Context"),
     ("data", "Data"),
 )
 
 STYLE = """
+/* A statistical bulletin, not a dashboard: serif for reading, sans for furniture and figures,
+   hairline rules instead of boxes, and a text column narrower than the charts so that a figure
+   or a table always breaks out of the prose. The paper colour is the same one the SVGs are drawn
+   on, so a chart sits on the page with no visible edge. */
 :root {
-  --surface: #fcfcfb;
-  --surface-2: #f3f2ef;
-  --text: #0b0b0b;
-  --text-2: #52514e;
-  --line: #e6e5e1;
-  --accent: #1d63b8;
-  --measure: 72ch;
+  --paper: #fcfcfb;
+  --ink: #191817;
+  --ink-2: #57544e;
+  --rule: #ddd9d1;
+  --rule-strong: #b4afa4;
+  --accent: #1b5fae;
+  --wash: #f4f2ec;
+  --serif: Charter, "Bitstream Charter", "Sitka Text", Cambria, "Source Serif 4", Georgia, serif;
+  --sans: "Helvetica Neue", Helvetica, Arial, system-ui, sans-serif;
+  --measure: 34rem;
+  --wide: 52rem;
 }
 * { box-sizing: border-box; }
-html { background: var(--surface); }
+html { background: var(--paper); }
 body {
   margin: 0;
-  color: var(--text);
-  background: var(--surface);
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  font-size: 17px;
-  line-height: 1.55;
+  color: var(--ink);
+  background: var(--paper);
+  font-family: var(--serif);
+  font-size: 19px;
+  line-height: 1.62;
+  -webkit-font-smoothing: antialiased;
 }
-header, main, footer { max-width: 1040px; margin: 0 auto; padding: 0 16px; }
-header { padding-top: 20px; }
-header .brand { font-weight: 700; text-decoration: none; color: var(--text); font-size: 1.05rem; }
-header .brand span { color: var(--text-2); font-weight: 400; }
-nav { margin: 12px 0 0; border-bottom: 1px solid var(--line); }
-nav ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 20px; }
-nav a { display: inline-block; padding: 8px 0 10px; color: var(--text-2); text-decoration: none; }
-nav a[aria-current="page"] { color: var(--text); border-bottom: 2px solid var(--accent); }
-main { padding-top: 24px; padding-bottom: 48px; }
-h1 { font-size: 1.9rem; line-height: 1.2; margin: 0 0 12px; }
-h2 { font-size: 1.35rem; margin: 40px 0 8px; }
-h3 { font-size: 1.05rem; margin: 28px 0 6px; }
+header, main, footer { max-width: var(--wide); margin: 0 auto; padding: 0 24px; }
+
+/* Masthead */
+header { padding-top: 28px; }
+.masthead { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; }
+.masthead a { color: var(--ink); text-decoration: none; font-weight: 600; font-size: 1.05rem; letter-spacing: 0.01em; }
+.masthead .strap { font-family: var(--sans); font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-2); }
+nav { margin: 14px 0 0; border-top: 1px solid var(--ink); border-bottom: 1px solid var(--rule); }
+nav ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0 22px; }
+nav a {
+  display: inline-block; padding: 9px 0 8px; color: var(--ink-2); text-decoration: none;
+  font-family: var(--sans); font-size: 0.78rem; letter-spacing: 0.06em; text-transform: uppercase;
+}
+nav a:hover { color: var(--ink); }
+nav a[aria-current="page"] { color: var(--ink); box-shadow: inset 0 -2px 0 var(--accent); }
+
+main { padding-top: 34px; padding-bottom: 56px; }
+h1 { font-size: 2.35rem; line-height: 1.12; margin: 0 0 14px; letter-spacing: -0.012em; font-weight: 600; max-width: var(--measure); }
+h2 {
+  font-size: 1.28rem; font-weight: 600; margin: 46px 0 10px; padding-top: 12px;
+  border-top: 1px solid var(--rule); max-width: var(--wide); letter-spacing: -0.005em;
+}
+h3 { font-size: 1.05rem; font-weight: 600; margin: 30px 0 6px; max-width: var(--measure); }
 p, li { max-width: var(--measure); }
-p.lead { font-size: 1.15rem; color: var(--text-2); }
-p.answer { font-size: 1.1rem; border-left: 3px solid var(--accent); padding-left: 14px; }
-a { color: var(--accent); }
-.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin: 20px 0 8px; }
-.tile { background: var(--surface-2); border-radius: 8px; padding: 14px 16px; }
-.tile .label { color: var(--text-2); font-size: 0.9rem; }
-.tile .value { font-size: 2rem; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.15; margin: 4px 0; }
-.tile .tile-note { color: var(--text-2); font-size: 0.85rem; }
-figure { margin: 20px 0 28px; }
+p { margin: 0 0 1em; }
+p.lead { font-size: 1.12rem; color: var(--ink-2); line-height: 1.5; margin-bottom: 26px; }
+p.answer { font-size: 1.18rem; line-height: 1.5; margin: 0 0 1.2em; }
+p.answer strong, p.answer em { font-weight: 600; font-style: normal; }
+a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+
+/* Key figures: a bulletin's indicator strip, ruled rather than boxed. */
+.figures + h2, .figures + p + h2 { border-top: 0; padding-top: 0; margin-top: 34px; }
+.figures { display: flex; flex-wrap: wrap; margin: 0 0 32px; border-top: 2px solid var(--ink); border-bottom: 1px solid var(--rule); }
+.keyfig { flex: 1 1 11rem; padding: 12px 18px 13px 0; margin-right: 18px; border-right: 1px solid var(--rule); }
+.keyfig:last-child { border-right: 0; margin-right: 0; }
+.keyfig .label {
+  font-family: var(--sans); font-size: 0.7rem; letter-spacing: 0.07em; text-transform: uppercase;
+  color: var(--ink-2); line-height: 1.35; min-height: 2.7em;
+}
+.keyfig .value { font-size: 1.95rem; font-weight: 600; font-variant-numeric: tabular-nums lining-nums; line-height: 1.1; margin: 5px 0 3px; letter-spacing: -0.02em; }
+.keyfig .gloss { font-family: var(--sans); font-size: 0.76rem; line-height: 1.35; color: var(--ink-2); }
+
+/* Findings: a numbered editorial list on the front page. */
+.finding { max-width: var(--measure); margin: 0 0 30px; }
+.finding h3 { margin: 0 0 6px; font-size: 1.12rem; line-height: 1.3; }
+.finding h3 .num { font-family: var(--sans); font-size: 0.72rem; letter-spacing: 0.08em; color: var(--accent); display: block; margin-bottom: 3px; }
+.finding h3 a { color: var(--ink); text-decoration: none; box-shadow: inset 0 -1px 0 var(--rule-strong); }
+.finding h3 a:hover { box-shadow: inset 0 -2px 0 var(--accent); }
+.finding p { margin: 0 0 6px; }
+.finding p.method { font-family: var(--sans); font-size: 0.81rem; line-height: 1.45; color: var(--ink-2); }
+
+/* Figures and tables break out of the text column. */
+figure { margin: 26px 0 30px; max-width: var(--wide); }
 .figure-wrap { overflow-x: auto; }
-figure img { width: 100%; min-width: 720px; height: auto; display: block; background: var(--surface); }
-figcaption { color: var(--text-2); font-size: 0.85rem; margin-top: 6px; max-width: var(--measure); }
-.table-wrap { overflow-x: auto; margin: 12px 0 8px; }
-table { border-collapse: collapse; font-size: 0.9rem; font-variant-numeric: tabular-nums; min-width: 480px; }
-th, td { padding: 6px 10px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
-th:first-child, td:first-child { text-align: left; }
-th.wrap, td.wrap { white-space: normal; min-width: 24ch; max-width: 44ch; text-align: left; }
-thead th { color: var(--text-2); font-weight: 600; border-bottom: 2px solid var(--line); }
-tbody th { font-weight: 400; }
-.table-wrap:focus-visible, .figure-wrap:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-caption { caption-side: top; text-align: left; color: var(--text-2); font-size: 0.85rem; padding: 0 0 6px; width: fit-content; max-width: min(calc(100vw - 32px), 1008px); }
-.downloads { color: var(--text-2); font-size: 0.85rem; margin: 0 0 26px; max-width: var(--measure); }
-.note { background: var(--surface-2); border-left: 3px solid var(--accent); padding: 10px 14px; border-radius: 0 6px 6px 0; max-width: var(--measure); }
-.limit { color: var(--text-2); font-size: 0.95rem; max-width: var(--measure); }
-.feature { border-left: 3px solid var(--accent); padding-left: 14px; margin: 18px 0 22px; }
-.feature h3 { margin: 0 0 4px; }
-.feature p { margin: 0 0 4px; }
-.feature p.method { color: var(--text-2); font-size: 0.9rem; }
-footer { border-top: 1px solid var(--line); padding-top: 16px; padding-bottom: 32px; color: var(--text-2); font-size: 0.85rem; }
+figure img { width: 100%; min-width: 660px; height: auto; display: block; background: var(--paper); }
+figcaption {
+  font-family: var(--sans); font-size: 0.78rem; line-height: 1.5; color: var(--ink-2);
+  margin-top: 8px; padding-top: 7px; border-top: 1px solid var(--rule); max-width: 46rem;
+}
+.table-wrap { overflow-x: auto; margin: 24px 0 8px; max-width: var(--wide); }
+table {
+  border-collapse: collapse; font-family: var(--sans); font-size: 0.82rem;
+  font-variant-numeric: tabular-nums lining-nums; min-width: 460px;
+}
+caption {
+  caption-side: top; text-align: left; font-family: var(--sans); font-size: 0.78rem;
+  line-height: 1.5; color: var(--ink-2); padding: 0 0 9px; max-width: 46rem;
+}
+thead th {
+  font-weight: 600; color: var(--ink); text-align: right; vertical-align: bottom;
+  padding: 0 14px 6px 0; border-bottom: 1px solid var(--ink);
+  border-top: 2px solid var(--ink);
+  font-size: 0.74rem; letter-spacing: 0.03em;
+}
+thead th:first-child { text-align: left; }
+tbody th, tbody td { padding: 5px 14px 5px 0; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--rule); }
+tbody th { font-weight: 400; text-align: left; }
+tbody tr:last-child th, tbody tr:last-child td { border-bottom: 1px solid var(--rule-strong); }
+th.wrap, td.wrap { white-space: normal; min-width: 22ch; max-width: 40ch; text-align: left; }
+.table-wrap:focus-visible, .figure-wrap:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+.downloads { font-family: var(--sans); font-size: 0.78rem; color: var(--ink-2); margin: 0 0 30px; max-width: 46rem; }
+.note { background: var(--wash); padding: 14px 18px; margin: 22px 0; max-width: var(--measure); }
+.note p { margin: 0; }
+.limit {
+  font-family: var(--sans); font-size: 0.83rem; line-height: 1.55; color: var(--ink-2);
+  max-width: 44rem; margin: 26px 0 0; padding-top: 12px; border-top: 1px solid var(--rule);
+}
+.limit strong { color: var(--ink); }
+.conclusion { max-width: var(--measure); margin: 26px 0 0; padding-left: 16px; border-left: 3px solid var(--accent); }
+.conclusion p { margin: 0; }
+
+footer {
+  border-top: 1px solid var(--rule); margin-top: 20px; padding-top: 18px; padding-bottom: 40px;
+  font-family: var(--sans); font-size: 0.78rem; line-height: 1.55; color: var(--ink-2);
+}
+footer p { max-width: 46rem; }
+
+@media (max-width: 640px) {
+  body { font-size: 18px; }
+  h1 { font-size: 1.85rem; }
+  .keyfig { flex-basis: 100%; border-right: 0; border-bottom: 1px solid var(--rule); margin-right: 0; padding-right: 0; }
+  .keyfig:last-child { border-bottom: 0; }
+}
 @media print {
-  nav { display: none; }
-  figure, .figure-wrap { break-inside: avoid; overflow: visible; }
+  nav, .downloads { display: none; }
+  body { font-size: 11pt; }
+  figure, .figure-wrap, .table-wrap { break-inside: avoid; overflow: visible; }
   figure img { min-width: 0; }
-  .table-wrap { overflow: visible; }
-  table { min-width: 0; font-size: 0.75rem; }
+  table { min-width: 0; font-size: 8pt; }
   th, td { white-space: normal; }
   a[href^="http"]::after { content: " (" attr(href) ")"; }
 }
@@ -112,20 +183,30 @@ footer { border-top: 1px solid var(--line); padding-top: 16px; padding-bottom: 3
 # --------------------------------------------------------------------------- formatting
 
 
+# House style for numbers: a typographic minus rather than a hyphen, so a negative figure in a
+# table or in a sentence is not mistaken for a range or a dash.
+MINUS = "\u2212"
+
+
+def _minus(text: str) -> str:
+    return text.replace("-", MINUS)
+
+
 def _fmt_int(value: object) -> str:
-    return "" if pd.isna(value) else f"{float(value):,.0f}"
+    return "" if pd.isna(value) else _minus(f"{float(value):,.0f}")
 
 
 def _fmt_pct(value: object, decimals: int = 1) -> str:
-    return "" if pd.isna(value) else f"{float(value) * 100:.{decimals}f}%"
+    return "" if pd.isna(value) else _minus(f"{float(value) * 100:.{decimals}f}%")
 
 
 def _fmt_dec(value: object, decimals: int = 1) -> str:
-    return "" if pd.isna(value) else f"{float(value):,.{decimals}f}"
+    return "" if pd.isna(value) else _minus(f"{float(value):,.{decimals}f}")
 
 
 def _signed_pct(value: float, decimals: int = 0) -> str:
-    return f"{value * 100:+.{decimals}f}%"
+    """A signed percentage, so a fall reads as −7% and a rise as +7%."""
+    return _minus(f"{value * 100:+.{decimals}f}%")
 
 
 def _join(items: list[str]) -> str:
@@ -269,17 +350,32 @@ def downloads(items: list[tuple[str, str]]) -> str:
     return f'<p class="downloads">Full results: {links} (CSV).</p>'
 
 
-def tiles(items: list[tuple[str, str, str]]) -> str:
-    cards = "".join(
-        f'<div class="tile"><div class="label">{esc(label)}</div>'
-        f'<div class="value">{esc(value)}</div><div class="tile-note">{esc(note)}</div></div>'
-        for label, value, note in items
+def key_figures(items: list[tuple[str, str, str]]) -> str:
+    """The indicator strip at the head of a page: label, figure, one line of gloss."""
+    cells = "".join(
+        f'<div class="keyfig"><div class="label">{esc(label)}</div>'
+        f'<div class="value">{esc(value)}</div><div class="gloss">{esc(gloss)}</div></div>'
+        for label, value, gloss in items
     )
-    return f'<div class="tiles">{cards}</div>'
+    return f'<div class="figures">{cells}</div>'
+
+
+def finding(number: int, href: str, heading: str, text: str, method: str) -> str:
+    """One numbered finding on the front page."""
+    return (
+        f'<div class="finding"><h3><span class="num">Finding {number}</span>'
+        f'<a href="{esc(href)}">{esc(heading)}</a></h3>'
+        f'<p>{esc(text)}</p><p class="method">{esc(method)}</p></div>'
+    )
 
 
 def note(text: str) -> str:
-    return f'<p class="note">{text}</p>'
+    return f'<div class="note"><p>{text}</p></div>'
+
+
+def conclusion(text: str) -> str:
+    """The flat statement of what the page has established, at the foot of the argument."""
+    return f'<div class="conclusion"><p>{text}</p></div>'
 
 
 def limits(text: str) -> str:
@@ -307,7 +403,10 @@ def render_page(slug: str, title: str, lead: str, body: str) -> str:
 </head>
 <body>
 <header>
-<a class="brand" href="index.html">Road safety in Spain <span>· four analyses of DGT open data</span></a>
+<div class="masthead">
+<a href="index.html">Road safety in Spain</a>
+<span class="strap">Four analyses of DGT open data</span>
+</div>
 <nav aria-label="Sections"><ul>{nav_items}</ul></nav>
 </header>
 <main>
@@ -383,131 +482,137 @@ def page_index(captions: dict[str, str]) -> str:
     vehicles = read_table("q6_summary_2022").set_index("group")
     truck, car = vehicles.loc["heavy_truck"], vehicles.loc["car"]
 
-    wet_alone = severity["adverse"].loc[("no_weather", "wet"), "odds_ratio"]
+    wet_alone = float(severity["adverse"].loc[("no_weather", "wet"), "odds_ratio"])
+    junction = float(severity["adverse"].loc[("full", "at a junction"), "odds_ratio"])
     deaths_ratio = age["ratios"].loc[("deaths_per_bn_km", "75+")]
     involved_ratio = age["ratios"].loc[("involved_per_bn_km", "75+")]
     fatality_ratio = age["ratios"].loc[("deaths_per_1000_involved", "75+")]
     calendar = policy_numbers["true_calendar"]
     forecast = policy_numbers["true_forecast"]
+    per_vehicle = float(
+        truck.fatal_involvement_per_100k_vehicles / car.fatal_involvement_per_100k_vehicles
+    )
+    per_km = float(truck.fatal_involvement_per_bn_km / car.fatal_involvement_per_bn_km)
     speed = read_table("q9_infraction_shares")
     speed_all = speed[speed.zone == "all"].set_index("year")
     first_year, last_year = int(speed_all.index.min()), int(speed_all.index.max())
 
-    body = tiles(
+    body = key_figures(
         [
             (
-                "Wet road, fatal outcome",
-                _times(float(wet_alone)),
-                "the odds of a death given an injury crash, against a dry road",
+                "Wet road, fatal odds",
+                _times(wet_alone),
+                "against a dry road, given that an injury crash happened",
             ),
             (
                 "Drivers 75+, per kilometre",
                 _times(float(deaths_ratio.ratio)),
-                "killed as often as drivers 35–54, per kilometre driven",
+                "killed as often as drivers aged 35 to 54",
             ),
             (
-                "Heavy truck vs car",
-                f"{float(truck.fatal_involvement_per_100k_vehicles / car.fatal_involvement_per_100k_vehicles):.0f}× / "
-                f"{float(truck.fatal_involvement_per_bn_km / car.fatal_involvement_per_bn_km):.1f}×",
-                "in a fatal crash, per vehicle and per kilometre",
+                "Heavy truck against car",
+                f"{per_vehicle:.0f}× / {per_km:.1f}×",
+                "in a fatal crash, per vehicle then per kilometre",
             ),
             (
                 "Drivers with no speed record",
                 _fmt_pct(float(speed_all.loc[last_year, "share_unknown"]), 0),
-                f"in {last_year}; {_fmt_pct(float(speed_all.loc[first_year, 'share_unknown']), 0)} in {first_year}",
+                f"in {last_year}, against "
+                f"{_fmt_pct(float(speed_all.loc[first_year, 'share_unknown']), 0)} in {first_year}",
             ),
         ]
     )
 
-    body += "<h2>Four things worth knowing</h2>"
     body += (
-        "<p>Spain publishes a great deal of road-safety data and very little analysis of it. "
-        "These four pages each take one question the published tables do not answer, and follow "
-        "it until the evidence either holds or breaks.</p>"
+        '<p class="answer">Spain publishes a great deal of road-safety data and very little '
+        "analysis of it. These four pages each take a question the published tables leave open, "
+        "and follow it until the evidence either holds or breaks. Two of the four answers came "
+        "out weaker than they first looked, and both pages say so.</p>"
     )
 
-    features = [
+    findings = [
         (
             "severity.html",
-            "Conditions that look dangerous go with less severe crashes",
-            f"Given that an injury crash has happened, a wet road carries {_times(float(wet_alone))} "
-            f"the odds of a death of a dry one, and a junction {_times(float(severity['adverse'].loc[('full', 'at a junction'), 'odds_ratio']))}. "
-            "The result survives dropping each correlated predictor and fitting urban and "
-            "interurban roads separately. It is about severity given a crash, not about how "
-            "likely a crash is.",
-            f"Two logistic models of all {severity['n']:,} injury crashes since 2016, "
-            f"province-clustered intervals, a 2023–2024 holdout (AUC {severity['auc_fatal']:.2f}) "
-            "and eight sensitivity fits.",
+            "Dangerous-looking conditions go with less severe crashes",
+            f"Once an injury crash has happened, a wet road carries {_times(wet_alone)} the odds "
+            f"of a death of a dry one, and a junction {_times(junction)}. Dropping either of the "
+            "two correlated predictors leaves the result standing, and so does fitting urban and "
+            "interurban roads separately. This is about how badly a crash ends, not about how "
+            "often one happens.",
+            f"Two logistic models of all {severity['n']:,} injury crashes since 2016, with "
+            f"province-clustered intervals, a 2023 to 2024 holdout (AUC "
+            f"{severity['auc_fatal']:.2f}) and eight sensitivity fits.",
         ),
         (
             "older-drivers.html",
-            "Older drivers do not crash more per kilometre — they die more when they do",
+            "Older drivers crash no more per kilometre; they die far more often when they do",
             f"Car drivers aged 75 and over are involved in injury crashes "
             f"{_times(float(involved_ratio.ratio))} as often per kilometre driven as drivers aged "
-            f"35–54, but are killed {_times(float(fatality_ratio.ratio))} as often once involved. "
-            f"Per kilometre their death rate is {_times(float(deaths_ratio.ratio))} the middle-aged one, and "
-            "almost all of that is the second effect.",
-            "Car-driver deaths and involvements from DGT's driver tables against DGT's 2024 "
-            "estimate of kilometres driven by owner age band — the same construction for the "
-            "baseline as for the older groups.",
+            f"35 to 54, which is to say about as often. Once involved they are killed "
+            f"{_times(float(fatality_ratio.ratio))} as often. Their death rate per kilometre is "
+            f"{_times(float(deaths_ratio.ratio))} the middle-aged rate, and nearly all of that "
+            "comes from the second figure rather than the first.",
+            "Car-driver deaths and involvements from DGT's driver tables, divided by DGT's 2024 "
+            "estimate of kilometres driven by owner age band. The baseline is built the same way "
+            "as the older groups.",
         ),
         (
             "vehicles.html",
-            "A heavy truck looks ten times a car, or two and a half times, depending on the divisor",
-            f"Per circulating vehicle a heavy truck is in a fatal crash "
-            f"{float(truck.fatal_involvement_per_100k_vehicles / car.fatal_involvement_per_100k_vehicles):.1f} "
-            f"times as often as a car; per kilometre driven, "
-            f"{float(truck.fatal_involvement_per_bn_km / car.fatal_involvement_per_bn_km):.1f} times. "
-            f"And for every fatal crash it is in, only "
-            f"{float(truck.occupant_deaths_per_fatal_involvement):.2f} of its own occupants die, "
-            "against 0.93 for a motorcycle: most of the danger is to other people.",
+            "A heavy truck is ten times a car, or two and a half times, depending on the divisor",
+            f"Per circulating vehicle a heavy truck is in a fatal crash {per_vehicle:.1f} times as "
+            f"often as a car. Per kilometre driven it is {per_km:.1f} times. For every fatal crash "
+            f"a truck is in, {float(truck.occupant_deaths_per_fatal_involvement):.2f} of its own "
+            "occupants die, against 0.93 for a motorcycle, so most of the danger a truck carries "
+            "is to other people.",
             "DGT's 2022 kilometre estimates divided into the same year's involvement counts, with "
             "exact Poisson intervals.",
         ),
         (
             "policy.html",
-            "A twelve per cent policy effect that falls to about seven when the test is right",
-            f"Monthly deaths dropped at July 2006, when the points licence came in. Under a "
-            f"straight pre-trend that drop is {_signed_pct(float(policy_numbers['linear'].level_change))}; "
-            "under the pre-trend the earlier months actually prefer it is "
-            f"{_signed_pct(float(policy_numbers['main'].level_change))}. Placed at July of other years the "
-            f"same model ranks 2006 {int(calendar['rank'])} of {int(calendar.n_fits)}, and a forecast "
-            f"made before each July finds 2006 only the {_ordinal(int(forecast['rank']))} most "
-            "abnormal of those years.",
-            "Segmented Poisson regression on monthly deaths 1993–2024, with calendar-matched "
+            "A twelve per cent policy effect falls to about seven under the right test",
+            "Monthly deaths stepped down at July 2006, when the points licence came in. A "
+            "straight pre-trend puts the step at "
+            f"{_signed_pct(float(policy_numbers['linear'].level_change))}. The pre-trend the "
+            "earlier months actually prefer puts it at "
+            f"{_signed_pct(float(policy_numbers['main'].level_change))}. Placed at July of other "
+            f"years the same model ranks 2006 {_ordinal(int(calendar['rank']))} of "
+            f"{int(calendar.n_fits)}, but a forecast made before each July finds 2006 only the "
+            f"{_ordinal(int(forecast['rank']))} most abnormal of them.",
+            "Segmented Poisson regression on monthly deaths, 1993 to 2024, with calendar-matched "
             "placebos, seasonality-free summer transitions, out-of-sample forecasts and two "
             "monthly traffic series as exposure.",
         ),
     ]
-    for href, title, finding, method in features:
-        body += (
-            f'<div class="feature"><h3><a href="{href}">{esc(title)}</a></h3>'
-            f'<p>{esc(finding)}</p><p class="method">{esc(method)}</p></div>'
-        )
+    body += "".join(
+        finding(index, href, heading, text, method)
+        for index, (href, heading, text, method) in enumerate(findings, start=1)
+    )
 
-    body += "<h2>And one about the data</h2>"
+    body += "<h2>A warning about one published series</h2>"
     body += (
-        f"<p>The share of drivers in an injury crash with no recorded speed status went from "
+        "<p>The share of drivers in an injury crash with no recorded speed status went from "
         f"{_fmt_pct(float(speed_all.loc[first_year, 'share_unknown']), 0)} in {first_year} to "
-        f"{_fmt_pct(float(speed_all.loc[2016, 'share_unknown']), 0)} in 2016 and has stayed there. "
-        "Any trend read off DGT's published speed-infraction column crosses that break, which is "
-        f'reason enough to read the <a href="context.html">context page</a> before quoting it.</p>'
+        f"{_fmt_pct(float(speed_all.loc[2016, 'share_unknown']), 0)} in 2016 and has stayed "
+        "there. Any trend read off DGT's published speed-infraction column crosses that break. "
+        'The <a href="context.html">context page</a> shows what it does to the two obvious '
+        "readings of the same table.</p>"
     )
 
     body += "<h2>How to read the numbers</h2>"
     body += (
-        "<p>Counts are DGT's consolidated figures: an injury crash is one with at least one "
-        "person killed or injured, and deaths are counted within 30 days. Every rate on this site "
-        "names its denominator, because the denominator is usually where the answer comes from. "
-        "Model results are associations, and the policy page says <em>coincided with</em> unless "
-        'its falsification tests agree. The <a href="data.html">data page</a> has the sources, '
-        "the definitions and the checks.</p>"
+        "<p>Counts are DGT's consolidated figures. An injury crash is one with at least one "
+        "person killed or injured, and deaths are counted within 30 days. Every rate names its "
+        "denominator, because the denominator is usually where the answer comes from. Model "
+        "results are associations. The 2006 page says <em>coincided with</em> rather than "
+        "<em>caused</em>, because its falsification tests do not support the stronger word. "
+        "Sources, definitions and the 434 reconciliation checks are on the "
+        '<a href="data.html">data page</a>.</p>'
     )
     return render_page(
         "index",
         "Road safety in Spain",
-        "Four analyses of Spanish road-crash data that answer questions the published tables do "
-        "not, and say plainly where the evidence stops.",
+        "Four analyses of Spanish crash data that answer questions the published tables leave "
+        "open, and say where the evidence stops.",
         body,
     )
 
@@ -572,7 +677,7 @@ def page_severity(captions: dict[str, str]) -> str:
     wet_alone = float(adverse.loc[("no_weather", "wet"), "odds_ratio"])
     junction_full = float(adverse.loc[("full", "at a junction"), "odds_ratio"])
 
-    body = tiles(
+    body = key_figures(
         [
             ("Injury crashes modelled", f"{numbers['n']:,}", "2016–2024, none dropped"),
             ("Fatal", _fmt_pct(numbers["fatal_share"], 2), "at least one death within 30 days"),
@@ -590,34 +695,37 @@ def page_severity(captions: dict[str, str]) -> str:
     )
 
     body += (
-        '<p class="answer">Given that an injury crash has already happened, the conditions a '
-        "driver would call dangerous — rain, a wet road, a junction — go with a <em>lower</em> "
-        "chance that someone dies. Rain and a wet surface are the same effect counted twice: on "
-        f"its own either one gives about {wet_alone:.2f}. The result is not about whether a crash "
-        "happens. It is about what a crash does once it has happened.</p>"
+        '<p class="answer">Once an injury crash has happened, the conditions a driver would '
+        "call dangerous go with a <em>lower</em> chance that someone dies. A wet road carries "
+        f"{wet_alone:.2f} times the odds of a death of a dry one, a junction {junction_full:.2f} "
+        "times the odds of a stretch away from one. Rain and a wet surface are one effect counted "
+        "twice, worth about "
+        f"{wet_alone:.2f} on its own. All of this concerns how badly a crash ends, given that one "
+        "has happened. It says nothing about how often crashes happen.</p>"
     )
 
-    body += "<h2>The finding, and eight ways of trying to break it</h2>"
+    body += "<h2>Testing the finding</h2>"
     body += (
-        "<p>Two logistic regressions on every injury crash of 2016–2024 — one for a death, one "
-        "for a death or a hospitalisation — using the circumstances the police record: zone, road "
-        "type, crash type, junction, lighting, weather, surface, alignment, time of day, weekend, "
-        "number of vehicles and year. The obvious objection is that weather and road surface "
-        "measure the same thing, so a model carrying both splits one effect between two columns. "
-        f"It does: with surface dropped, rain moves from {orr('full', 'rain')} to "
-        f"{orr('no_surface', 'rain')}; with weather dropped, a wet surface moves from "
-        f"{orr('full', 'wet')} to {orr('no_weather', 'wet')}. Read them as one wet-conditions "
-        f"effect of about {wet_alone:.2f}, not as two small ones.</p>"
+        "<p>The models are two logistic regressions on every injury crash of 2016 to 2024, "
+        "one for a death and one for a death or a hospitalisation. The predictors are the "
+        "circumstances the police record: zone, road type, crash type, junction, lighting, "
+        "weather, surface, alignment, time of day, weekend, number of vehicles and year.</p>"
+        "<p>The first objection is that weather and road surface measure much the same thing, so "
+        "a model carrying both splits one effect between two columns. That is what happens. With "
+        f"surface dropped, rain moves from {orr('full', 'rain')} to {orr('no_surface', 'rain')}. "
+        f"With weather dropped, a wet surface moves from {orr('full', 'wet')} to "
+        f"{orr('no_weather', 'wet')}. The right reading is a single wet-conditions effect of "
+        f"about {wet_alone:.2f}.</p>"
     )
     body += (
         "<p>The second objection is that adverse weather falls in particular places. Fitting "
         "interurban roads and urban streets separately holds the road context fixed instead of "
-        f"adjusting for it, and the wet-surface effect stays: {orr('interurban', 'wet')} on "
-        f"interurban roads, {orr('street', 'wet')} on urban streets. The junction effect "
-        f"({orr('full', 'at a junction')} overall) is also present in every stratum. Hail and snow "
-        f"are the exception and the page reports it as such: {orr('full', 'hail or snow')} in the "
-        f"full model, but {orr('conventional', 'hail or snow')} on conventional roads alone, where "
-        "the interval covers no effect at all.</p>"
+        f"adjusting for it. The wet-surface effect stays: {orr('interurban', 'wet')} on interurban "
+        f"roads and {orr('street', 'wet')} on urban streets. The junction effect, "
+        f"{orr('full', 'at a junction')} overall, is present in every stratum too. Hail and snow "
+        f"behave differently. They give {orr('full', 'hail or snow')} in the full model but "
+        f"{orr('conventional', 'hail or snow')} on conventional roads alone, where the interval "
+        "covers no effect at all.</p>"
     )
     body += figure(
         "s2_adverse_conditions",
@@ -654,7 +762,7 @@ def page_severity(captions: dict[str, str]) -> str:
     body += downloads(
         [
             ("q3_adverse_conditions", "sensitivity fits"),
-            ("q3_adverse_composition", "where hail and snow crashes are"),
+            ("q3_adverse_composition", "where hail and snow crashes happen"),
             ("q3_adverse_exclusions", "hail and snow with the top provinces removed"),
         ]
     )
@@ -665,13 +773,13 @@ def page_severity(captions: dict[str, str]) -> str:
     exclusions = read_table("q3_adverse_exclusions")
     widest = exclusions.iloc[-1]
     body += (
-        f"<p>Hail and snow are {int(adverse.loc[('full', 'hail or snow'), 'n_level']):,} crashes and "
-        f"{interurban_share:.0%} of them are on interurban roads, so the worry that the coefficient "
-        "is really a few mountain provinces is a fair one. It is not that: dropping the three "
-        f"provinces that record most of them moves the odds ratio only to "
-        f"{widest.odds_ratio:.2f} ({widest.or_low:.2f}–{widest.or_high:.2f}). What does move it is "
-        "the road: on conventional roads alone there is no effect. Treat the snow result as "
-        "suggestive and the wet-conditions result as established.</p>"
+        f"<p>Hail and snow are only "
+        f"{int(adverse.loc[('full', 'hail or snow'), 'n_level']):,} crashes, and "
+        f"{interurban_share:.0%} of them are on interurban roads, so it is fair to suspect a few "
+        "mountain provinces. That is not the explanation. Dropping the three provinces that "
+        f"record most of them moves the odds ratio only to {widest.odds_ratio:.2f} "
+        f"({widest.or_low:.2f}–{widest.or_high:.2f}). The road type is what moves it, and on "
+        "conventional roads alone the effect disappears.</p>"
     )
 
     body += "<h2>Why might visibly dangerous conditions produce less severe crashes?</h2>"
@@ -692,15 +800,14 @@ def page_severity(captions: dict[str, str]) -> str:
         "braking when the impact happens.</p>"
     )
     body += (
-        "<p>Compensation is not the only candidate. Which trips are made changes with the weather, "
-        "and so does who makes them; traffic is denser and slower; the mix of vehicles and of road "
-        "types differs; and a police officer's judgement of the conditions is recorded after the "
-        f"event. The review literature on weather and road safety treats all of these as live "
-        f"({_cite('theofilatos')}). The honest summary is that the association is robust and the "
-        "mechanism is not identified.</p>"
+        "<p>Compensation is not the only candidate. Which trips are made changes with the "
+        "weather, and so does who makes them. Traffic is denser and slower. The mix of vehicles "
+        "and of road types differs. A police officer's judgement of the conditions is recorded "
+        "after the event. The review literature on weather and road safety treats all of these as "
+        f"open ({_cite('theofilatos')}).</p>"
     )
 
-    body += "<h2>The rest of the model</h2>"
+    body += "<h2>The other coefficients</h2>"
     body += figure(
         "s1_forest_fatal",
         "Odds ratios for a fatal outcome by crash circumstance, with 95% intervals",
@@ -709,12 +816,12 @@ def page_severity(captions: dict[str, str]) -> str:
     head_on = fatal.loc[("crash_type", "head-on collision")]
     pedestrian = fatal.loc[("crash_type", "pedestrian struck")]
     body += (
-        f"<p>The large effects are the expected ones: a head-on collision carries "
-        f"{head_on.odds_ratio:.1f} times the odds of a death of a side collision and a pedestrian "
+        "<p>The large effects are the expected ones. A head-on collision carries "
+        f"{head_on.odds_ratio:.1f} times the odds of a death of a side collision, and a pedestrian "
         f"struck {pedestrian.odds_ratio:.1f} times, against {junction_full:.2f} for a junction and "
-        f"{wet_alone:.2f} for a wet road. Fitted on 2016–2022 and scored on 2023–2024 the fatal "
-        f"model reaches an area under the ROC curve of {numbers['auc_fatal']:.2f} and the serious "
-        f"model {numbers['auc_serious']:.2f}.</p>"
+        f"{wet_alone:.2f} for a wet road. Fitted on 2016 to 2022 and scored on 2023 and 2024, the "
+        f"fatal model reaches an area under the ROC curve of {numbers['auc_fatal']:.2f} and the "
+        f"serious model {numbers['auc_serious']:.2f}.</p>"
     )
     profiles = read_table("q3_profiles").rename(
         columns={"profile": "Crash profile", "fatal": "Fatal", "serious": "Serious"}
@@ -733,6 +840,16 @@ def page_severity(captions: dict[str, str]) -> str:
             ("q3_year_stability", "year-by-year refits"),
             ("q3_groupings", "how DGT's codes map to model levels"),
         ]
+    )
+
+    body += "<h2>Conclusion</h2>"
+    body += conclusion(
+        "Wet conditions and junctions are associated with materially lower odds that an injury "
+        f"crash kills someone: about {wet_alone:.2f} and {junction_full:.2f} times the reference "
+        "odds, holding the other recorded circumstances constant. Both survive every sensitivity "
+        "fit run here, so treat them as established associations. The hail and snow result does "
+        "not survive, so treat it as unresolved. None of this identifies a mechanism, and none of "
+        "it says anything about how likely a crash is in the first place."
     )
 
     stability = read_table("q3_year_stability")
@@ -755,8 +872,8 @@ def page_severity(captions: dict[str, str]) -> str:
     return render_page(
         "severity",
         "Crash severity",
-        "Given that an injury crash happened, which recorded circumstances make it fatal — and "
-        "why do the dangerous-looking ones point the wrong way?",
+        "Which recorded circumstances make an injury crash fatal, and why the "
+        "dangerous-looking ones point the wrong way.",
         body,
     )
 
@@ -783,7 +900,7 @@ def page_older_drivers(captions: dict[str, str]) -> str:
     involved_75 = ratios.loc[("involved_per_bn_km", "75+")]
     fatality_75 = ratios.loc[("deaths_per_1000_involved", "75+")]
 
-    body = tiles(
+    body = key_figures(
         [
             (
                 "Crashes per kilometre, 75+",
@@ -809,14 +926,14 @@ def page_older_drivers(captions: dict[str, str]) -> str:
     )
 
     body += (
-        '<p class="answer">Older drivers are not crashing more often for the distance they drive. '
-        f"Per kilometre, car drivers aged 75 and over are involved in injury crashes "
-        f"{ratio_text('involved_per_bn_km', '75+')} as often as drivers aged 35–54 — that is, "
-        "about the same. What is different is the consequence: once involved, they are killed "
-        f"{ratio_text('deaths_per_1000_involved', '75+')} as often. Young drivers are the mirror "
-        f"image: {ratio_text('involved_per_bn_km', '18-34')} the involvement rate per kilometre, "
-        f"and {ratio_text('deaths_per_1000_involved', '18-34')} the chance of dying once "
-        "involved.</p>"
+        '<p class="answer">Older drivers are not crashing more often for the distance they '
+        "drive. Per kilometre, car drivers aged 75 and over are involved in injury crashes "
+        f"{ratio_text('involved_per_bn_km', '75+')} as often as drivers aged 35 to 54, which is "
+        "to say about as often. The difference is in the consequence. Once involved, they are "
+        f"killed {ratio_text('deaths_per_1000_involved', '75+')} as often. Young drivers are the "
+        f"mirror image, with {ratio_text('involved_per_bn_km', '18-34')} the involvement rate per "
+        f"kilometre and {ratio_text('deaths_per_1000_involved', '18-34')} the chance of dying "
+        "once involved.</p>"
     )
 
     body += figure(
@@ -867,7 +984,7 @@ def page_older_drivers(captions: dict[str, str]) -> str:
         },
     )
 
-    body += "<h2>Why the denominator decides the answer</h2>"
+    body += "<h2>Residents, licences, crashes, kilometres</h2>"
     body += figure(
         "a2_denominator_contrast",
         "The same car-driver deaths under four denominators, as ratios to drivers aged 35–54",
@@ -877,15 +994,16 @@ def page_older_drivers(captions: dict[str, str]) -> str:
     licence_75 = contrast.loc[("licence_holders", "75+")]
     involved_75_contrast = contrast.loc[("drivers_involved", "75+")]
     body += (
-        f"<p>DGT reports road deaths of people 65 and over per million inhabitants of that age. "
+        "<p>DGT reports road deaths of people 65 and over per million inhabitants of that age. "
         f"On that denominator drivers 75 and over die {residents_75.ratio:.2f} times as often as "
-        "drivers aged 35–54 — barely more — because most people over 75 do not drive at all. Per "
-        f"licence holder the ratio is {licence_75.ratio:.2f}, because a licence is not mileage. "
+        "drivers aged 35 to 54, barely more, because most people over 75 do not drive at all. Per "
+        f"licence holder the ratio is {licence_75.ratio:.2f}, because holding a licence is not "
+        "the same as driving. "
         f"Per driver already in a crash it is {involved_75_contrast.ratio:.2f} and per kilometre "
         f"{deaths_75.ratio:.2f}. The numerator is identical in all four; the denominator is the "
         "entire difference, which is why it has to be named every time. The last two agree because "
-        "involvement per kilometre is about the same at both ages — the finding above, seen from "
-        "the other side.</p>"
+        "involvement per kilometre is about the same at both ages. That is the finding above, "
+        "seen from the other side.</p>"
     )
     licence = read_table("q7_licence_share")
     latest_licence = licence[licence.year == licence.year.max()].set_index(["band", "sex"])
@@ -912,7 +1030,7 @@ def page_older_drivers(captions: dict[str, str]) -> str:
         ]
     )
 
-    body += "<h2>What the kilometres are</h2>"
+    body += "<h2>What the denominator measures</h2>"
     company_share = float(km.loc[driver_risk.COMPANY_BAND, "share_of_km"])
     working = company.loc[("to_working_age", "75+")]
     body += (
@@ -929,6 +1047,18 @@ def page_older_drivers(captions: dict[str, str]) -> str:
         f"would raise the 75-and-over ratio from {deaths_75.ratio:.2f} to "
         f"{float(working.ratio_to_reference):.2f}.</p>"
     )
+    body += "<h2>Conclusion</h2>"
+    body += conclusion(
+        "Splitting the question in two changes the answer. Older car drivers are not more likely "
+        "to crash for the distance they cover; drivers aged 75 and over are involved "
+        f"{ratio_text('involved_per_bn_km', '75+')} as often per kilometre as drivers aged 35 to "
+        f"54. They are {ratio_text('deaths_per_1000_involved', '75+')} as likely to be killed "
+        "once involved, and that alone accounts for nearly all of their higher death rate per "
+        "kilometre. A policy aimed at stopping older people driving is aimed at the wrong half of "
+        "the problem; one aimed at what happens to a body in a collision is aimed at the right "
+        "half. This is a single year and the age is the car owner's, not the driver's."
+    )
+
     body += limits(
         "Owner age is a proxy for driver age, and the two diverge most in the households where a "
         "car is shared. The kilometres are modelled from roadworthiness-inspection odometer "
@@ -960,7 +1090,7 @@ def page_vehicles(captions: dict[str, str]) -> str:
     per_km = float(truck.fatal_involvement_per_bn_km / car.fatal_involvement_per_bn_km)
     bike_per_km = float(bike.fatal_involvement_per_bn_km / car.fatal_involvement_per_bn_km)
 
-    body = tiles(
+    body = key_figures(
         [
             ("Heavy truck vs car, per vehicle", f"{per_vehicle:.1f}×", "in a fatal crash, 2022"),
             (
@@ -979,10 +1109,10 @@ def page_vehicles(captions: dict[str, str]) -> str:
     body += (
         f'<p class="answer">A heavy truck is in a fatal crash {per_vehicle:.1f} times as often as '
         f"a car per vehicle on the road, and {per_km:.1f} times as often per kilometre driven. "
-        "The gap between those two numbers is not a subtlety: it is the difference between "
-        "blaming the vehicle and describing how much it is used. Motorcycles move the other way — "
-        "little used, and "
-        f"{bike_per_km:.0f} times a car's rate once distance is the divisor.</p>"
+        "The gap between those two numbers is the difference between blaming the vehicle and "
+        "describing how much it is used. Motorcycles move the other way. "
+        f"They are driven little, so a modest rate per vehicle becomes {bike_per_km:.0f} times a "
+        "car's rate once distance is the divisor.</p>"
     )
     body += figure(
         "v1_per_vehicle_vs_per_km",
@@ -1053,12 +1183,23 @@ def page_vehicles(captions: dict[str, str]) -> str:
         split.loc["light_truck", "fatal_involvement_per_bn_km"]
         / split.loc["van", "fatal_involvement_per_bn_km"]
     )
+    body += "<h2>Conclusion</h2>"
+    body += conclusion(
+        "Which vehicle looks most dangerous depends entirely on the divisor. Buses and heavy "
+        "trucks lead per vehicle on the road; motorcycles and mopeds lead per kilometre driven, "
+        "and by a wide margin. Neither ranking is wrong, but they answer different questions: "
+        "per vehicle asks what a fleet of that size costs in fatal crashes, per kilometre asks "
+        "what a journey of a given length costs. For heavy trucks the two rankings disagree "
+        f"by a factor of {per_vehicle / per_km:.1f}, and most of the people killed are outside "
+        "the truck."
+    )
+
     body += limits(
         "Kilometres exist for 2022 only, so this is a cross-section, not a trend. They are "
-        "modelled from inspection odometer readings — DGT's own note says they are valid for "
-        "aggregates and not for individual vehicles — and they are annualised over readings taken "
-        "across 2014–2023, so they describe a normal year imputed to the 2022 fleet rather than "
-        "2022 travel. The two sides of the division do not cover quite the same vehicles: the "
+        "modelled from inspection odometer readings, and DGT's own note says they are valid for "
+        "aggregates rather than for individual vehicles. They are annualised over readings taken "
+        "across 2014 to 2023, so they describe a normal year imputed to the 2022 fleet rather "
+        "than 2022 travel. The two sides of the division do not cover quite the same vehicles: the "
         "crash counts include foreign-registered vehicles, and the kilometres include the "
         "distance Spanish vehicles drive abroad. Vans and light trucks are one group because the "
         f"crash record and the register split them differently; taken apart, light trucks would "
@@ -1079,7 +1220,7 @@ def page_vehicles(captions: dict[str, str]) -> str:
 CONFOUNDERS = [
     ("2003–2004", "The decline in road deaths steepens, before any of the measures below"),
     ("2005–2008", "Road-safety plan: automatic speed cameras rolled out on the main network"),
-    ("1 July 2006", "Points-based driving licence in force (Ley 17/2005) — the intervention"),
+    ("1 July 2006", "Points-based driving licence in force (Ley 17/2005); the intervention"),
     (
         "2 December 2007",
         "Penal Code reform: speeding and drink-driving thresholds become offences (LO 15/2007)",
@@ -1100,7 +1241,7 @@ def page_policy(captions: dict[str, str]) -> str:
     true_forecast = numbers["true_forecast"]
     true_transition = transitions[transitions.year == 2006].iloc[0]
 
-    body = tiles(
+    body = key_figures(
         [
             (
                 "Level change at July 2006",
@@ -1137,7 +1278,7 @@ def page_policy(captions: dict[str, str]) -> str:
         "cent that no single measure can be credited with.</p>"
     )
 
-    body += "<h2>The pre-trend does most of the work</h2>"
+    body += "<h2>How the pre-trend was chosen, and why it matters</h2>"
     body += figure(
         "p1_points_series",
         "Monthly road deaths 2000–2007 with the fitted model and two counterfactuals",
@@ -1147,8 +1288,9 @@ def page_policy(captions: dict[str, str]) -> str:
         "<p>An interrupted time series fits the months before a change, projects them forward and "
         "asks whether the months after sit below. Everything therefore depends on what is "
         "projected. Earlier versions of this study used one straight trend through 2000–2006. "
-        "Tested on the pre-intervention months alone — no post-period involved — that straight "
-        f"line is worse than a trend with a single kink by {float(straight.delta_aic):.0f} points "
+        "Tested on the pre-intervention months alone, with no post-period involved, that "
+        "straight line is worse than a trend with a single kink by "
+        f"{float(straight.delta_aic):.0f} points "
         f"of AIC, and the kink the data pick is at {chosen.label.replace('knot at ', '')}, where "
         "the decline steepened. Put that kink in and the estimated step at July 2006 falls by "
         f"about {abs(float(linear.level_change) - float(main.level_change)) * 100:.0f} percentage "
@@ -1180,7 +1322,7 @@ def page_policy(captions: dict[str, str]) -> str:
     others = calendar[~calendar.is_true].sort_values("level_change")
     runner_up = others.iloc[0]
     body += (
-        f"<p>July 2006 is the largest fall of the {int(true_calendar.n_fits)} — but only just. "
+        f"<p>July 2006 is the largest fall of the {int(true_calendar.n_fits)}, but only just. "
         f"July {int(runner_up.year)} gives {_signed_pct(float(runner_up.level_change), 1)} and "
         f"July {int(others.iloc[1].year)} {_signed_pct(float(others.iloc[1].level_change), 1)}, "
         f"and the intervals overlap. Rank 1 of {int(true_calendar.n_fits)} is a one-sided "
@@ -1188,14 +1330,14 @@ def page_policy(captions: dict[str, str]) -> str:
         "decisive.</p>"
     )
 
-    body += "<h2>Two tests that need no model at all</h2>"
+    body += "<h2>Two tests without a model</h2>"
     ranked = transitions[transitions["rank"].notna()]
     body += (
         "<p>Take the twelve months from each July and divide by the twelve months before it. Both "
         "sides then contain one of every calendar month, so seasonality cancels exactly and no "
         "model is involved. Across July 2006 that ratio is "
         f"{_signed_pct(math.expm1(float(true_transition.twelve_month_ratio)), 1)}"
-        f" — large, and the {_ordinal(int(true_transition['rank']))} largest fall of the "
+        f", a large fall, and the {_ordinal(int(true_transition['rank']))} largest of the "
         f"{int(true_transition.n_ranked)} years that can be measured. Three years in the recession "
         "that followed were larger. The series was falling steeply either side of 2006, which is "
         "the same problem the pre-trend test found, seen without a regression.</p>"
@@ -1233,8 +1375,9 @@ def page_policy(captions: dict[str, str]) -> str:
         },
     )
     body += (
-        "<p>The second test fits the 60 months before each July — trend and seasonality, no "
-        "intervention term — and forecasts the 17 months after it. The question is how far the "
+        "<p>The second test fits the 60 months before each July, with a trend and seasonality "
+        "and no intervention term, then forecasts the 17 months after it. The question is how far "
+        "the "
         f"observed months fall below that forecast. After July 2006 they fall "
         f"{abs(float(true_forecast.log_ratio)) * 100:.0f}% below, which sounds decisive until the "
         f"same exercise is run at the other Julys: 2006 comes "
@@ -1262,9 +1405,9 @@ def page_policy(captions: dict[str, str]) -> str:
         "back past 2006: CORES's national road-fuel consumption, which covers every road, and the "
         "Ministerio de Transportes' vehicle-kilometres on the state toll-motorway network, which "
         "is a direct traffic measurement on a small and changing part of it. Adding either as a "
-        f"covariate barely moves the estimate — {_signed_pct(float(fuel.level_change))} with fuel, "
-        f"{_signed_pct(float(toll.level_change))} with toll traffic, against "
-        f"{_signed_pct(float(main.level_change))} without. Neither is vehicle-kilometres on all "
+        f"covariate barely moves the estimate: {_signed_pct(float(fuel.level_change))} with "
+        f"fuel and {_signed_pct(float(toll.level_change))} with toll traffic, against "
+        f"{_signed_pct(float(main.level_change))} without either. Neither is vehicle-kilometres on all "
         "Spanish roads by month, which does not exist, so they rule out a traffic-volume "
         "explanation rather than measuring exposure properly.</p>"
     )
@@ -1296,11 +1439,11 @@ def page_policy(captions: dict[str, str]) -> str:
         shown, "The July 2006 level change under every specification", {"Dispersion": "dec2"}
     )
 
-    body += "<h2>What this does and does not show</h2>"
+    body += "<h2>Conclusion</h2>"
     crosses = numbers["sensitivity"][numbers["sensitivity"].level_high > 0]
-    body += note(
+    body += conclusion(
         "Two different claims have to be kept apart. <strong>That the death series changed "
-        f"unusually around July 2006</strong>: partly supported — a step of about "
+        f"unusually around July 2006</strong>: partly supported. A step of about "
         f"{abs(float(main.level_change)) * 100:.0f}% survives the specification the pre-period "
         "prefers and the largest of the calendar-matched July placebos, but the out-of-sample "
         "test and the seasonality-free transition both put 2006 inside the range of ordinary "
@@ -1354,7 +1497,7 @@ def page_context(captions: dict[str, str]) -> str:
     peak = int(headline.deaths_30d.idxmax())
     latest = int(headline.index.max())
 
-    body = tiles(
+    body = key_figures(
         [
             (
                 "Deaths, 2024",
@@ -1389,8 +1532,8 @@ def page_context(captions: dict[str, str]) -> str:
     floor_year = int(headline.loc[2005:].deaths_30d.idxmin())
     body += (
         f"<p>Deaths fell from {_fmt_int(headline.loc[peak, 'deaths_30d'])} in {peak} to "
-        f"{_fmt_int(headline.loc[2013, 'deaths_30d'])} in 2013 — a fall of "
-        f"{1 - float(headline.loc[2013, 'deaths_30d'] / headline.loc[peak, 'deaths_30d']):.0%} — and "
+        f"{_fmt_int(headline.loc[2013, 'deaths_30d'])} in 2013, a fall of "
+        f"{1 - float(headline.loc[2013, 'deaths_30d'] / headline.loc[peak, 'deaths_30d']):.0%}, and "
         f"have moved sideways since, reaching {_fmt_int(headline.loc[latest, 'deaths_30d'])} in "
         f"{latest} with the lockdown year {floor_year} as the only real interruption. Deaths per "
         "100 injury crashes have been flat for a decade too. This plateau is the backdrop to the "
@@ -1422,7 +1565,7 @@ def page_context(captions: dict[str, str]) -> str:
     top = latest_users.sort_values("deaths_30d", ascending=False).head(4)
     body += (
         f"<p>Pedestrians, cyclists, moped riders, motorcyclists and personal-mobility-vehicle "
-        f"users — the road users with no protective shell — are {vulnerable:.0%} of deaths. "
+        f"users, the road users with no protective shell, are {vulnerable:.0%} of deaths. "
         "The four largest groups in "
         f"{int(users.year.max())} were "
         + _join(
@@ -1498,6 +1641,15 @@ def page_context(captions: dict[str, str]) -> str:
             ("q2_night_share", "darkness by year and zone"),
         ]
     )
+    body += "<h2>Conclusion</h2>"
+    body += conclusion(
+        "Spain's road deaths fell by three quarters between 1993 and 2013 and have been flat "
+        "since, so the analyses on this site are about a plateau rather than a decline. Most "
+        "deaths are on interurban roads, and half of them are of road users with no protective "
+        "shell. And one of DGT's own published series changes meaning in 2016: the speed-"
+        "infraction column cannot be read as a trend across that break."
+    )
+
     body += limits(
         "None of these series is a risk. They count what the police recorded, not how much "
         "travelling was done, which is why the analyses that matter on this site divide by "
@@ -1508,8 +1660,8 @@ def page_context(captions: dict[str, str]) -> str:
     return render_page(
         "context",
         "Context and data quality",
-        "The background the analyses assume — and one discontinuity in DGT's own published "
-        "series that changes how it must be read.",
+        "The background the four analyses assume, and a discontinuity in one of DGT's published "
+        "series that changes how it has to be read.",
         body,
     )
 
@@ -1525,7 +1677,7 @@ def page_data(captions: dict[str, str]) -> str:
     n_crashes = int(coefficients.n.iloc[0])
     other = read_table("q2_other_road_by_period").set_index("period")
 
-    body = tiles(
+    body = key_figures(
         [
             ("Injury crashes", f"{n_crashes:,}", "2016–2024 microdata, one row per crash"),
             ("Reconciliation checks", f"{passed} / {total}", "run before any analysis"),
@@ -1597,7 +1749,7 @@ def page_data(captions: dict[str, str]) -> str:
         "<strong>Death</strong>: within 30 days of the crash, DGT's consolidated definition. "
         "<strong>Serious</strong>: a death or a person admitted to hospital for more than 24 "
         "hours. <strong>Zone</strong>: interurban roads against urban streets and crossings, as "
-        "DGT groups them. Missing states are kept apart everywhere — “not specified”, “not "
+        "DGT groups them. Missing states are kept apart everywhere: “not specified”, “not "
         "applicable” and a field's own unknown code are three different things, and none of them "
         "means no.</p>"
     )
@@ -1633,7 +1785,7 @@ def page_data(captions: dict[str, str]) -> str:
         f'<p>The code is under the <a href="{REPO_URL}/blob/main/LICENSE">MIT licence</a>. The '
         "data are not: each file keeps the terms of the body that publishes it, and DGT's "
         "statistics are reused here as public-sector information under Ley 37/2007 with the "
-        "datos.gob.es conditions applied — the source is named, the meaning is not distorted, the "
+        "datos.gob.es conditions applied: the source is named, the meaning is not distorted, the "
         "dates are kept and no endorsement is implied. INE population is CC BY 4.0. Every figure "
         "published here is an aggregate and nothing identifies a person. The file-by-file terms, "
         f'with URLs and checksums, are in the <a href="{DOCS_URL}/data_sources.md">source '

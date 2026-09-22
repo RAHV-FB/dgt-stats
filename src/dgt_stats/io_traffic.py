@@ -6,7 +6,7 @@ monthly too. Two published Spanish series are monthly and reach back past 2006:
 * **CORES** (*Corporación de Reservas Estratégicas de Productos Petrolíferos*, the body that keeps
   Spain's compulsory oil stocks and publishes the official petroleum statistics under Ley 34/1998)
   reports consumption in tonnes by product and month from January 1996. Adding the two automotive
-  subtotals — ``Subtotal gasolinas auto`` and ``Subtotal gasóleos auto`` — gives national road-fuel
+  subtotals, ``Subtotal gasolinas auto`` and ``Subtotal gasóleos auto``, gives national road-fuel
   consumption, which covers all roads and all vehicles.
 * The **Ministerio de Transportes** publishes monthly average daily intensity and
   vehicle-kilometres on the network of state toll motorways from January 1990. That is a direct

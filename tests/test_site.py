@@ -88,7 +88,7 @@ def test_severity_page_leads_with_the_adverse_finding(built: Path) -> None:
     assert 'src="figures/s1_forest_fatal.svg"' in text
     # The distinction the finding depends on is made explicitly.
     assert "given an injury crash" in text
-    assert "not about whether a crash happens" in text
+    assert "It says nothing about how often crashes happen" in text
     # Mechanisms are labelled as proposals and cited to original research.
     assert "mechanisms the literature proposes, not results this analysis demonstrates" in text
     for _, url in site.LITERATURE.values():
@@ -127,7 +127,10 @@ def test_policy_page_reports_the_falsification_not_the_headline(built: Path) -> 
     sensitivity = pd.read_csv(TABLES_DIR / "q8_points_sensitivity.csv").set_index("variant")
     main = float(sensitivity.loc["main", "level_change"])
     linear = float(sensitivity.loc["linear_trend", "level_change"])
-    assert f"{main * 100:+.0f}%" in text and f"{linear * 100:+.0f}%" in text
+    # Signed percentages are typeset with a real minus sign, not a hyphen.
+    signed = lambda v: f"{v * 100:+.0f}%".replace("-", "\u2212")  # noqa: E731
+    assert signed(main) in text and signed(linear) in text
+    assert "-7%" not in text and "-12%" not in text
     assert main > linear  # the preferred specification gives the smaller drop
     calendar = pd.read_csv(TABLES_DIR / "q8_points_calendar_placebo.csv")
     true = calendar[calendar.is_true].iloc[0]
@@ -198,12 +201,31 @@ def test_every_page_has_a_description_and_every_image_an_alt(built: Path) -> Non
 def test_front_page_leads_with_the_four_analyses(built: Path) -> None:
     index = (built / "index.html").read_text(encoding="utf-8")
     body = index[index.find("<main>") : index.find("</main>")]
-    assert body.count('<div class="feature">') == 4
+    assert body.count('<div class="finding">') == 4
+    assert body.count('<div class="keyfig">') == 4
     for slug in ("severity", "older-drivers", "vehicles", "policy"):
         assert f'href="{slug}.html"' in body, slug
     assert site.PROFILE_URL in index and "Russell Howard" in index
-    # The front page is short: one screen of tiles, four findings and two short notes.
+    # The front page is short: one strip of key figures, four findings and two short notes.
     assert len(body) < 7_000
+
+
+def test_every_analysis_page_ends_on_a_stated_conclusion(built: Path) -> None:
+    for slug in ("severity", "older-drivers", "vehicles", "policy"):
+        text = (built / f"{slug}.html").read_text(encoding="utf-8")
+        assert text.count('<div class="conclusion">') == 1, slug
+        body = text[text.find("<main>") : text.find("</main>")]
+        # The conclusion is the last thing in the argument, not a box in the middle of it.
+        assert body.rfind('<div class="conclusion">') > body.rfind("<table>"), slug
+
+
+def test_no_page_uses_an_em_dash(built: Path) -> None:
+    # House style: colons, commas, brackets and full stops instead. Checked on the rendered
+    # pages because the prose is assembled from many fragments.
+    for page in sorted(built.glob("*.html")):
+        text = page.read_text(encoding="utf-8")
+        assert "\u2014" not in text, page.name
+        assert "&mdash;" not in text, page.name
 
 
 def test_the_development_note_is_professional_and_present(built: Path) -> None:

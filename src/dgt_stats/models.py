@@ -143,8 +143,8 @@ def _irls(
         beta = beta + scale * step
         improvement = candidate - current
         current = candidate
-        # Converged when the coefficients stop moving — judged on the undamped Newton step, so a
-        # small damping factor cannot pass for a small estimate — or when the likelihood has
+        # Converged when the coefficients stop moving, judged on the undamped Newton step so that
+        # a small damping factor cannot pass for a small estimate, or when the likelihood has
         # stopped rising.
         if np.max(np.abs(step)) < tol or abs(improvement) < 1e-9 * max(1.0, abs(current)):
             converged = True
@@ -161,8 +161,8 @@ def _irls(
 def _dependent_columns(matrix: np.ndarray, names: list[str], tol: float = 1e-9) -> list[str]:
     """Columns that are an exact linear combination of the columns before them.
 
-    Two levels can coincide inside a single year — in 2023 "lighting not specified" and "surface
-    not specified" are the same 31 crashes — and the information matrix is then singular, so the
+    Two levels can coincide inside a single year (in 2023 "lighting not specified" and "surface
+    not specified" are the same 31 crashes) and the information matrix is then singular, so the
     iterations drift instead of converging. The later column of such a pair is dropped and reported
     like a separated level. The test is an incremental Cholesky of the Gram matrix: a column is
     dependent when the variance left after projecting it on the kept columns is a negligible share
@@ -471,7 +471,7 @@ def holdout_check(
 def year_stability(frame: pd.DataFrame, full: Fit, terms: int = STABILITY_TERMS) -> pd.DataFrame:
     """Refit per year (without the year predictor) for the largest effects of the full model.
 
-    The three missing states — not specified, not applicable and a field's explicit unknown code —
+    The three missing states, not specified, not applicable and a field's explicit unknown code,
     are left out of the selection: their odds ratios reflect reporting practice, which is exactly
     what changes from year to year. The per-year fits are clustered by province, like the full
     model, so the intervals are comparable.
@@ -611,7 +611,7 @@ ADVERSE_VARIANTS: dict[str, dict[str, object]] = {
 def adverse_conditions(frame: pd.DataFrame, outcome: str = "fatal") -> pd.DataFrame:
     """The adverse-condition odds ratios refitted under each variant of ``ADVERSE_VARIANTS``.
 
-    Weather and road surface describe overlapping things — it rains, the road is wet — so a model
+    Weather and road surface describe overlapping things (it rains, the road is wet), so a model
     carrying both can be splitting one effect between two predictors. Dropping each in turn says
     whether either result depends on the other. The three subsets say whether the result is really
     about *where* adverse weather falls: a stratified fit holds the road context fixed by

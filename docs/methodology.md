@@ -73,8 +73,8 @@ used.
 - **Missing states**. Four are kept apart everywhere: not specified (999), not applicable (998), a
   field's explicit unknown code (six fields have one) and an empty cell. Each condition column has
   a `status_*` companion that names the state, and the data page profiles them by year. Fields that
-  carry no code list use a placeholder instead of an empty cell — `KM` 9999 (and 1000 in 2019),
-  `CARRETERA` "No inventariada", `COD_MUNICIPIO` 00000 — and the missingness profile counts those
+  carry no code list use a placeholder instead of an empty cell (`KM` 9999, and 1000 in 2019;
+  `CARRETERA` "No inventariada"; `COD_MUNICIPIO` 00000), and the missingness profile counts those
   as not observed, so a year that swapped an empty cell for a placeholder does not read as an
   improvement in recording. Two undocumented quirks are handled as the data page states: code 0 in
   the island field from 2018, and the strong-wind flag in 2021.
@@ -87,7 +87,7 @@ recorridos por el parque móvil*, whose additional material gives vehicles, tota
 and mean annual kilometres **by vehicle category and by the age band of the registered owner**.
 
 - **Numerator**: car drivers involved in injury crashes (table 4.2) and killed within 30 days
-  (table 4.1.1), car rows only, both zones and both sexes, 2024 — the same year as the kilometres.
+  (table 4.1.1), car rows only, both zones and both sexes, 2024, the same year as the kilometres.
 - **Denominator**: kilometres driven in 2024 by cars whose registered owner is in the band.
 - **Bands** (`agebands.EXPOSURE_BANDS`): 18–34, 35–54 (the baseline), 55–64, 65–74, 75+. They nest
   both DGT's driver bands and the owner bands of the kilometre release exactly, so numerator and
@@ -97,11 +97,11 @@ and mean annual kilometres **by vehicle category and by the age band of the regi
 
 Three quantities, reported separately because they answer different questions:
 
-1. `involved_per_bn_km` — how often a driver of this age is in an injury crash per kilometre
+1. `involved_per_bn_km`: how often a driver of this age is in an injury crash per kilometre
    driven. This is about crashing.
-2. `deaths_per_1000_involved` — how often an involved driver of this age is killed. This needs no
+2. `deaths_per_1000_involved`: how often an involved driver of this age is killed. This needs no
    exposure at all, so the kilometre estimate cannot affect it.
-3. `deaths_per_bn_km` — the product of the two.
+3. `deaths_per_bn_km`: the product of the two.
 
 Intervals are exact Poisson on the count with the kilometres treated as known; ratios to the
 baseline carry log-normal intervals.
@@ -110,8 +110,8 @@ What the denominator is not: it is the **owner's** age, not the driver's, and ca
 companies carry no age at all (2.2 million cars, 40 billion km in 2024). Those kilometres leave the
 denominator while their drivers stay in the numerator. `company_km_sensitivity` brackets the
 effect: spreading them over every band cannot change a ratio between two bands, and spreading them
-over the bands from 18 to 64 — the assumption that a company car is driven by someone of working
-age — raises the 75-and-over ratio, so the published figure is the conservative end.
+over the bands from 18 to 64, on the assumption that a company car is driven by someone of
+working age, raises the 75-and-over ratio, so the published figure is the conservative end.
 
 `denominator_contrast` puts the same deaths over residents, licence holders, drivers involved and
 kilometres, as ratios to the 35–54 band, because the movement between them is the point. Residents
@@ -146,8 +146,8 @@ separation.
 
 ### 5.1 The adverse-conditions sensitivity (`models.adverse_conditions`)
 
-The finding the page leads with — rain, a wet road and junctions going with *lower* odds of a death
-— is tested rather than asserted. Four levels (`ADVERSE_LEVELS`) are refitted under eight variants
+The finding the page leads with, that rain, a wet road and junctions go with *lower* odds of a
+death, is tested rather than asserted. Four levels (`ADVERSE_LEVELS`) are refitted under eight variants
 (`ADVERSE_VARIANTS`):
 
 - **Collinearity.** Weather and road surface describe overlapping states, so the full model can be
@@ -156,8 +156,8 @@ The finding the page leads with — rain, a wet road and junctions going with *l
   full model reports 0.86 for rain and 0.62 for wet. The page reports the single wet-conditions
   effect and says why.
 - **Road context.** Three stratified fits (interurban roads, urban streets, conventional roads)
-  hold the road context fixed by construction instead of adjusting for it, with the zone — and, in
-  the two road-specific fits, the road predictor — dropped as constant. This is what shows that the
+  hold the road context fixed by construction instead of adjusting for it, with the zone dropped as constant, and
+  the road predictor too in the two road-specific fits. This is what shows that the
   hail-and-snow coefficient is not stable: it disappears on conventional roads alone.
 - **Composition** (`level_composition`) reports where a level's crashes actually are, by province,
   zone and road type; `level_exclusions` refits with the level's most concentrated provinces
@@ -197,9 +197,9 @@ Four falsification tests, each aimed at a specific alternative explanation:
 
 - **Calendar-matched placebos** (`calendar_placebo_fits`). Spanish road deaths peak every July and
   August, so moving the break to arbitrary months does not answer whether the summer of 2006 was
-  unusual. The same model is refitted with the break at 1 July of every year whose window is clean
-  — 60 months before, 17 after, never containing the true intervention or the pandemic — and the
-  true break is refitted on the same shape. July 2006 ranks first of fifteen, but the runner-up is
+  unusual. The same model is refitted with the break at 1 July of every year whose window is clean:
+  60 months before, 17 after, never containing the true intervention or the pandemic. The true
+  break is refitted on the same shape. July 2006 ranks first of fifteen, but the runner-up is
   close, so the one-sided empirical p-value is about 0.07.
 - **Seasonality-free transitions** (`seasonal_transitions`). For each year, the log change from
   June to July, July to August and August to September, and the log ratio of the twelve months from
@@ -216,8 +216,8 @@ Four falsification tests, each aimed at a specific alternative explanation:
   national road-fuel consumption (petrol plus road diesel, tonnes, from 1996), which covers every
   road, and the Ministerio de Transportes' vehicle-kilometres on the state toll-motorway network
   (from 1990), a direct traffic measurement on a small and changing part of the network. Each is
-  added as the centred log of the series — a free covariate rather than an offset, so the data say
-  how much of the movement it explains. Neither moves the estimate materially, which rules out a
+  added as the centred log of the series, as a free covariate rather than an offset, so the data
+  say how much of the movement it explains. Neither moves the estimate materially, which rules out a
   traffic-volume explanation without pretending to measure exposure properly. Neither is
   vehicle-kilometres on all Spanish roads by month, which does not exist.
 
@@ -226,14 +226,14 @@ and urban deaths separately; a level change without the slope term; a registered
 negative binomial whose dispersion is set by moments from the Poisson fit; and the window extended
 to December 2009 with a second break at the Penal Code reform.
 
-**The 2019 speed-limit study is not published.** Its design — conventional roads (raw codes 5 and
-6) against motorways and dual carriageways (codes 1 to 3), month by month from the microdata — fails
+**The 2019 speed-limit study is not published.** Its design, conventional roads (raw codes 5 and 6)
+against motorways and dual carriageways (codes 1 to 3), month by month from the microdata, fails
 its own falsification check: a break placed in January 2017 makes the two groups diverge by +12 %
 with an interval that excludes zero, so a divergence at February 2019 cannot be told from the
 ordinary divergence of the two series. Improving it would need road-section identifiers, section
 limits, measured speeds and traffic volumes, none of which is published (see
 [`data_sources.md`](data_sources.md), "Not available"). `speed_limit_fits` keeps the two tables that
-record the negative result — the placebos and the sensitivity fits — and nothing else.
+record the negative result, the placebos and the sensitivity fits, and nothing else.
 
 ## 8. Speed status (`speed.py`, `io_reports.py`)
 
@@ -253,8 +253,8 @@ totals.
 ## 9. Rates and intervals (`rates.py`)
 
 Counts of deaths, crashes or involved drivers are treated as Poisson with a known denominator, and
-every rate built against a counted denominator — residents, licence holders, drivers involved,
-circulating vehicles, vehicle-kilometres — carries an exact 95 % (Garwood) interval. Ratios of two
+every rate built against a counted denominator (residents, licence holders, drivers involved,
+circulating vehicles, vehicle-kilometres) carries an exact 95 % (Garwood) interval. Ratios of two
 such rates carry a log-normal interval. The speed-infraction share among drivers whose status is
 known carries a Wilson interval. Shares taken entirely within one source's own counts (road-user
 shares, the night shares, deaths per 100 crashes, occupant deaths per fatal involvement) are

@@ -528,8 +528,8 @@ def calendar_placebo_fits(
     The generic placebo distribution (``placebo_fits``) moves the break to arbitrary months, which
     answers "is a drop this size unusual for this series?" but not the question a sceptic asks of a
     July intervention: Spanish road deaths peak every July and August, so is the summer 2006
-    movement unusual *for a July*? Each fit here uses a window of the same shape — 60 months before
-    the break, 17 after — placed at July of a year the points licence cannot have affected, and
+    movement unusual *for a July*? Each fit here uses a window of the same shape, 60 months before
+    the break and 17 after, placed at July of a year the points licence cannot have affected, and
     the true break is refitted on that same shape so the comparison is like for like.
     """
     post = intervention.post_months
@@ -566,7 +566,7 @@ def seasonal_transitions(series: pd.DataFrame) -> pd.DataFrame:
     """Year-by-year summer transitions in monthly deaths, with no model between them.
 
     For every year the frame carries the log change from June to July, July to August and August to
-    September, and — the statistic that answers the question directly — the log ratio of the twelve
+    September, and, the statistic that answers the question directly, the log ratio of the twelve
     months from July to the twelve months before July. The last one has the same number of each
     calendar month on both sides, so seasonality cancels exactly and what is left is the level
     change across that July. ``rank`` orders the years by that statistic, smallest first.
@@ -610,8 +610,8 @@ def forecast_validation(
 ) -> pd.DataFrame:
     """How far the months after each July fall below a model fitted only on the months before it.
 
-    For each break date the model — linear trend and month-of-year terms, no intervention term at
-    all — is fitted on the 60 months before it and used to predict the 17 months after it. The
+    For each break date the model (linear trend and month-of-year terms, no intervention term at
+    all) is fitted on the 60 months before it and used to predict the 17 months after it. The
     statistic is the log ratio of observed to predicted deaths over the forecast window, with a
     z score that scales it by the Poisson standard error inflated by the fit's own dispersion.
     Running the same exercise at July of other years turns the true year's forecast error into a
@@ -1008,8 +1008,8 @@ def speed_limit_fits() -> dict[str, pd.DataFrame]:
     """The 2019 conventional-road speed limit: the two tables that record why no claim is made.
 
     The design compares conventional roads with motorways and dual carriageways month by month.
-    It fails its own falsification check — a break placed in January 2017 makes the two groups
-    diverge by +12 % with an interval that excludes zero — so the estimate is reported nowhere on
+    It fails its own falsification check (a break placed in January 2017 makes the two groups
+    diverge by +12 % with an interval that excludes zero), so the estimate is reported nowhere on
     the site except as a negative result. These two tables are kept so that the negative result is
     reproducible; the fitted series and coefficient table that only ever fed figures are not.
     """
