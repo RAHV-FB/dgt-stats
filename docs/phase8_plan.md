@@ -111,10 +111,11 @@ All five steps are merged.
 - The full sequence in the README was run from an empty interim layer: `ingest.py all` (314 s, 434
   checks passed), `build_tables.py`, `model.py`, `analyse.py all`, `build_site.py`. It reproduced
   every committed table, figure and page byte for byte in the environment that produced them
-  (Python 3.11.15, pandas 3.0.6, numpy 2.4.6, scipy 1.17.1, statsmodels 0.15.0, matplotlib 3.11.2,
-  scikit-learn 1.9.1, pyarrow 25.0.1, since recorded in `requirements.lock`); at the dependency
-  floors the numbers agree to the printed precision but every figure differs in its matplotlib
-  version string and tight-bbox geometry, as `docs/methodology.md`, section 10, records.
+  (Python 3.11.15 and the library versions since recorded in `requirements.lock`: pandas 3.0.6,
+  numpy 2.4.6, scipy 1.17.1, statsmodels 0.15.0, matplotlib 3.11.2, scikit-learn 1.9.1,
+  pyarrow 25.0.1); at the dependency floors the numbers agree to the printed precision but every
+  figure differs in its matplotlib version string and tight-bbox geometry, as
+  `docs/methodology.md`, section 10, records.
 - One decision was left open at merge time and taken afterwards: the code was released under the
   MIT licence, as the README and `pyproject.toml` now record. The notebook question
   was settled in this phase itself: `notebooks/README.md` records that none were written and none

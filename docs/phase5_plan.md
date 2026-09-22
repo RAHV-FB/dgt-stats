@@ -31,7 +31,7 @@ Three limits are stated on the page and drive the design:
   valid for aggregates only). They exist for one year and for seven types; buses, heavy trucks and
   light trucks are separate, but tractors, quadricycles and "other" have no denominator.
 - **Rates per kilometre and per vehicle answer different questions.** A heavy truck drives about ten
-  times the kilometres of a car, so ranking by registered vehicle and ranking by vehicle-km disagree;
+  times the kilometres of a car, so ranking by circulating vehicle and ranking by vehicle-km disagree;
   both are shown, with the kilometres per vehicle that explain the gap.
 
 The type mapping between the km table and the yearbook tables (kept in one dictionary so the page can
@@ -45,7 +45,7 @@ Measures, each for 2022 and each with an exact Poisson interval (`rates.poisson_
 
 | Measure | Numerator | Denominator |
 |---|---|---|
-| Involvement in injury crashes | vehicles of the type involved (TABLA 2.3) | billion vehicle-km; 100,000 registered vehicles |
+| Involvement in injury crashes | vehicles of the type involved (TABLA 2.3) | billion vehicle-km; 100,000 circulating vehicles |
 | Involvement in fatal crashes | vehicles of the type involved in 30-day fatal crashes (TABLA 2.3) | same |
 | Occupant deaths | drivers and passengers of the type killed within 30 days (TABLA 2.2) | same |
 | Occupant death share | occupant deaths ÷ vehicles involved in fatal crashes | (a ratio, not a rate: how often the fatal crash a vehicle is in kills its own occupants) |
@@ -112,17 +112,18 @@ All five steps are merged. What was built, with the deviations from the design a
   reads tables 2.3 and 2.2 for 2020–2024 (`tables_units_by_type`, `tables_victims_by_mode`);
   `validate.py` gains two checks (390 in all): vehicles involved within 0.1 % of the microdata (exact
   in 2020–2022, 48 and 66 vehicles short in 2023 and 2024) and occupant deaths by group equal to the
-  microdata death columns in every year. Seven `q6_*` tables, four figures, `vehicles.html`.
+  microdata death columns in every year. Eight `q6_*` tables, four figures, `vehicles.html`.
 - **Six rate groups, not seven.** Taken separately, trucks up to 3,500 kg showed a fifth of the van
   rate: the crash record codes most light commercial vehicles as "Furgoneta" while the register
   splits them, so only the sum has the same meaning in numerator and denominator. Vans and light
   trucks are one group on the page, as they are in the series.
 - Results, 2022: per billion km, motorcycles are in a fatal crash 43.5 times, mopeds 20.7, buses
-  15.7, heavy trucks 10.7, vans and light trucks 4.5, cars 4.3. Per 100,000 registered vehicles the
-  order is buses 73, heavy trucks 58, motorcycles 12, vans and light trucks 6.6, cars 5.6, mopeds 3.6;
-  a heavy truck drives 53,600 km a year against 13,100 for a car. Occupant deaths per fatal-crash
-  involvement: motorcycles 0.93, mopeds 0.92, cars 0.52, vans and light trucks 0.35, buses 0.31,
-  heavy trucks 0.18. The seven km-table types cover 91 % of the registered fleet.
+  15.7, heavy trucks 10.7, vans and light trucks 4.5, cars 4.3. Per 100,000 circulating vehicles
+  (DGT's parque circulante) the order is buses 73, heavy trucks 58, motorcycles 12, vans and light
+  trucks 6.6, cars 5.6, mopeds 3.6; a heavy truck drives 53,600 km a year against 13,100 for a car.
+  Occupant deaths per fatal-crash involvement: motorcycles 0.93, mopeds 0.92, cars 0.52, vans and
+  light trucks 0.35, buses 0.31, heavy trucks 0.18. The seven km-table types are the whole
+  circulating fleet and add up to 91 % of the vehicles on the register.
 - **Heavy trucks include tractor units.** The published kilometre table has seven types, but the
   methodology note (`km_itv_2022/metodologia.pdf`) models eight: its "camiones de más de 3.500 kg"
   (272,157 vehicles, 6.9 bn km) and "tractores industriales" (222,594 vehicles, 19.7 bn km) add up to
@@ -135,6 +136,11 @@ All five steps are merged. What was built, with the deviations from the design a
 - The verification item comparing a fleet-wide rate with `Tasas_Acc_Vic` was dropped: the yearbook
   rate counts all deaths per registered vehicle of every kind, which is not the quantity any row of
   this page estimates. The reconciliation is the two validation checks instead.
+- The final review renamed the per-vehicle denominator: the fleet in the kilometre table is DGT's
+  circulating fleet ("parque circulante"), not the register, so the rates above are per 100,000
+  circulating vehicles, while the 91 % coverage is a share of the register, against which it was
+  computed ([`final_review.md`](final_review.md) and [`methodology.md`](methodology.md), section 6).
+  The wording of this section was brought into line afterwards; the numbers never changed.
 
 ## 4. Verification
 

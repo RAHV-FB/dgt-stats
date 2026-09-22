@@ -2,8 +2,10 @@
 
 Road safety in Spain, analysed from the open data of the Dirección General de Tráfico (DGT): 875,013
 injury crashes from the 2016–2024 microdata, the yearbook series since 1993, the yearly statistical
-tables, the driver census, the 2022 kilometre estimates and INE population. Every number on the site
-is reconciled against DGT's published totals and reproducible from this repository with Python alone.
+tables, the driver census, the 2022 kilometre estimates and INE population. The crash microdata,
+DGT's yearly tables and the driver census are reconciled against DGT's published totals by 434
+checks before any analysis runs, and every number on the site is reproducible from this repository
+with Python alone.
 
 **The results are a static site:** <https://rahv-fb.github.io/dgt-stats/> (HTML and CSS, no
 JavaScript; built by `scripts/build_site.py` from the committed tables and figures in `reports/`).
@@ -16,19 +18,21 @@ audit of the data. Each has a page.
 | Question | Page | Method | Finding |
 |---|---|---|---|
 | How have crashes, deaths and injuries evolved since 1993? | [Trends](https://rahv-fb.github.io/dgt-stats/trends.html) | yearbook series, indexed lines, rates per vehicle and per resident | 1,785 deaths in 2024, 72 % fewer than in 1993; the fall stopped around 2013 |
-| When do crashes happen, and when do they kill? | [Timing](https://rahv-fb.github.io/dgt-stats/timing.html) | hour × weekday and month × zone grids from the microdata | crashes in darkness are a quarter of interurban crashes but a third of interurban deaths |
+| When do crashes happen, and when do they kill? | [Timing](https://rahv-fb.github.io/dgt-stats/timing.html) | hour × weekday and road-type × hour-band grids from the microdata, with darkness by zone | crashes in darkness are a quarter of interurban crashes but a third of interurban deaths |
 | Who dies on the road? | [Road users](https://rahv-fb.github.io/dgt-stats/road-users.html) | death columns by road-user type, series since 1993 | vulnerable road users are 79 % of urban deaths; motorcyclist deaths (415 in 2024) are above their late-1990s average |
 | Which provinces have high rates once exposure is considered? | [Geography](https://rahv-fb.github.io/dgt-stats/geography.html) | deaths per 100,000 residents and licence holders with exact Poisson intervals | rates run from 1.2 (Melilla) to 14.5 (Zamora) per 100,000, most intervals overlapping |
 | Are older drivers at higher risk? | [Older drivers](https://rahv-fb.github.io/dgt-stats/older-drivers.html) | the same driver deaths against four denominators | 75+ drivers die 0.7 times as often as 35–64 per resident, 1.6 per licence holder, 3 per driver involved |
-| Given a crash, what makes it fatal or serious? | [Severity](https://rahv-fb.github.io/dgt-stats/severity.html) | two logistic models on all 875,013 crashes, province-clustered intervals, 2023–2024 holdout | head-on collisions and pedestrian strikes carry six times the odds of a death; holdout AUC 0.80 |
+| Given a crash, what makes it fatal or serious? | [Severity](https://rahv-fb.github.io/dgt-stats/severity.html) | two logistic models on all 875,013 crashes, province-clustered intervals, 2023–2024 holdout | a pedestrian struck carries 6.4 times, and a head-on collision 5.8 times, the odds of a death of a side collision; holdout AUC 0.80 |
 | How dangerous are heavy vehicles per kilometre? | [Vehicles per km](https://rahv-fb.github.io/dgt-stats/vehicles.html) | 2022 involvement and occupant deaths over the ITV kilometre estimates | a heavy truck is in a fatal crash 10× a car per vehicle, 2.5× per km; four in five of those killed are outside it |
 | Did a policy change coincide with a break in monthly deaths? | [Policy](https://rahv-fb.github.io/dgt-stats/policy.html) | segmented Poisson regression with placebo breaks; a two-group design for 2019 | July 2006 coincided with a 12 % drop beyond the trend (placebo rank 1 of 39); the 2019 limit fails its placebo, no claim |
-| How large is the speed factor and where does it concentrate? | [Speed](https://rahv-fb.github.io/dgt-stats/speed.html) | driver tables 6.1 with the unknown share in view; DGT's speed report transcribed | 52 % of drivers have no speed record since 2016; the report puts speed in 7 % of crashes, two thirds of its deaths on interurban roads other than motorways and dual carriageways |
+| How large is the speed factor and where does it concentrate? | [Speed](https://rahv-fb.github.io/dgt-stats/speed.html) | driver tables 6.1 with the unknown share in view; DGT's speed report transcribed | 52 % of drivers have no speed record since 2016; the report puts speed in 7 % of injury crashes in 2023 and two thirds of its deaths on interurban roads other than motorways and dual carriageways (Spain without Cataluña and País Vasco) |
 
 The [data page](https://rahv-fb.github.io/dgt-stats/data.html) lists the sources, the definitions
-and the 434 reconciliation checks. Each phase has a plan with an outcome section that records what
-was built and what deviated from the design: [`docs/phase3_plan.md`](docs/phase3_plan.md) to
-[`docs/phase8_plan.md`](docs/phase8_plan.md).
+and the 434 reconciliation checks. Phases 3 to 8 each have a plan with an outcome section that
+records what was built and what deviated from the design,
+[`docs/phase3_plan.md`](docs/phase3_plan.md) to [`docs/phase8_plan.md`](docs/phase8_plan.md); the
+first three phases are recorded in the delivery table of
+[`docs/analytics_plan.md`](docs/analytics_plan.md).
 
 ## What could not be done, and why
 
@@ -65,15 +69,18 @@ The project was framed around factor interactions, road design and campaign eval
   circulating vehicles, vehicle-kilometres, drivers involved), log-normal intervals on the ratios
   between them, Wilson intervals on the speed-infraction share among drivers whose status is
   known, province-clustered intervals on the models and placebo distributions on the time series.
-  Shares and ratios computed entirely within the microdata (the fatal share by hour and road
-  group, the night shares, the vulnerable and road-user shares, deaths per 100 crashes, occupant
-  deaths per fatal involvement and the raw speed-status shares) are shown without intervals.
+  Shares and ratios taken entirely within one source's own counts (the fatal share by hour and
+  road group, the night shares and the vulnerable and road-user shares from the microdata; deaths
+  per 100 crashes from the yearbook series; occupant deaths per fatal involvement from tables 2.2
+  and 2.3; the raw speed-status shares from tables 6.1) are population counts, not samples, and are
+  shown without intervals.
 - Association is not causation: model results are associations, and the policy page says
   "coincided with" unless the pre-trend, the placebos and the sensitivity fits agree.
 - Transparent models first: descriptive tables, then interpretable regressions with their
   calibration and stability reported; no machine learning.
-- Every number reconciles: 434 checks tie the interim data to DGT's published totals before any
-  analysis runs, and the microdata match the yearbook exactly, year by year.
+- Every number reconciles: 434 checks tie the crash microdata, the yearbook tables and the driver
+  census to DGT's published totals before any analysis runs, and the microdata match the yearbook
+  exactly, year by year.
 
 The methods as built, with the module that implements each, are in
 [`docs/methodology.md`](docs/methodology.md); the methods the data could not support are in "What
@@ -121,17 +128,19 @@ pages can be read and reviewed without rebuilding; `site/figures/` is not commit
 `python scripts/build_site.py` copies the SVGs from `reports/figures/` into it, so run it once
 before opening the pages locally. The committed outputs were produced with the versions in
 `requirements.lock`; with the dependency floors of `pyproject.toml` alone the numbers agree to the
-precision printed on the pages but the SVG metadata and layout differ (`docs/methodology.md`,
-section 10). A push to
-`main` runs `.github/workflows/pages.yml`, which only renders `site/` from the committed tables and
-deploys it; the data never rebuild in CI. Lint with `ruff check` and `ruff format --check` over
+precision printed on the pages but the SVG metadata and layout differ, and with them the image
+dimensions written into some pages (`docs/methodology.md`, section 10). A push to `main` that
+touches `site/`, `reports/`, `src/dgt_stats/`, `scripts/build_site.py` or the workflow file runs
+`.github/workflows/pages.yml`, which only renders `site/` from the committed tables and deploys it;
+the data never rebuild in CI. Lint with `ruff check` and `ruff format --check` over
 `src`, `scripts` and `tests`.
 
 ## Project structure
 
 ```text
 data/                  raw/ is tracked with a manifest; interim/ and processed/ are rebuilt
-docs/                  analytics plan, source register, audit, methodology, one plan per phase
+docs/                  analytics plan, source register, audit, methodology, the plans of phases 3
+                       to 8 and the final review
 notebooks/             not used: the scripts, tests and site replaced the planned notebooks
 reports/               result tables (CSV), figures (SVG) and captions, all committed
 scripts/               ingest, build_tables, model, analyse, build_site; fetch_ine rebuilds the
@@ -143,9 +152,10 @@ requirements.lock      the exact library versions behind the committed tables, f
 ```
 
 Package modules by role: readers (`io_microdata`, `io_tables`, `io_exposure`, `io_population`,
-`io_activity`, `io_reports`), codes and labels (`codes`, `labels`, `agebands`, `vehicles`), derived
-fields and validation (`derive`, `validate`), analysis (`summaries`, `rates`, `features`, `models`,
-`policy`, `speed`), output (`plots`, `figures`, `site`).
+`io_activity`, `io_reports`), codes and labels (`codes`, `labels`, `agebands`), derived fields and
+validation (`derive`, `validate`), analysis (`summaries`, `rates`, `features`, `models`,
+`vehicles`, `policy`, `speed`), output (`plots`, `figures`, `site`), and `paths` for the file
+locations shared by all of them.
 
 ## How it was built
 
@@ -176,10 +186,11 @@ licence for its other files, which are redistributed here as public-sector infor
 37/2007 with the datos.gob.es conditions applied by this project's choice; INE population is under
 Creative Commons Attribution 4.0; the Ministerio de Transportes MOVILIA workbooks may be reused with
 attribution; the five Comunidad de Madrid MOVILIA tables may not be used directly for commercial
-purposes; the ESRA reports offer no reuse licence, so none is archived here and the two shares
-taken from them are short quotations with attribution. The terms and their URLs are in
-[`docs/data_sources.md`](docs/data_sources.md) and on the data page.
+purposes; ESRA offers no reuse licence for its reports or its dashboard, so none of their content
+is archived here, and the 2023 share is a short quotation from the ESRA3 main report and the Spain
+country fact sheet, the 2018 share from the ESRA-123 online dashboard, both with attribution;
+Fundación MAPFRE is a private foundation offering no reuse licence, and the three driving-frequency
+shares typed from its report are short quotations with attribution. The terms and their URLs are in
+[`docs/data_sources.md`](docs/data_sources.md) and on the data page. Every published number is an
+aggregate; nothing on the site identifies a person.
 
-Every result is traceable to a source file, a transformation and a defined population; source URLs,
-checksums, row counts and validation outcomes are recorded during ingestion. Published outputs are
-aggregated, non-identifying, and preserve the limitations stated by the original providers.
