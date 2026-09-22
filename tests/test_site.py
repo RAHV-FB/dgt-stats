@@ -4,13 +4,14 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from dgt_stats import site
+from dgt_stats import site, summaries
 from dgt_stats.paths import FIGURES_DIR, TABLES_DIR
 
 pytestmark = pytest.mark.skipif(
     not (FIGURES_DIR / "captions.json").exists()
-    or not (TABLES_DIR / "q1_annual_headline.csv").exists(),
-    reason="run `python scripts/analyse.py all` first",
+    or not (TABLES_DIR / "q1_annual_headline.csv").exists()
+    or not summaries.model_tables_present(),
+    reason="run `python scripts/model.py` and `python scripts/analyse.py all` first",
 )
 
 
@@ -57,12 +58,10 @@ def test_figures_are_copied_and_captioned(built: Path) -> None:
     for name in captions:
         assert (built / "figures" / f"{name}.svg").exists(), name
     text = (built / "trends.html").read_text(encoding="utf-8")
-    assert captions["q1_deaths_30d"] in text or site.esc(captions["q1_deaths_30d"]) in text
+    assert site.mark_spanish(site.esc(captions["q1_deaths_30d"])) in text
 
 
 def test_table_formats_numbers() -> None:
-    import pandas as pd
-
     frame = pd.DataFrame({"Year": [2024], "Crashes": [101996], "Share": [0.1234]})
     out = site.table(frame, "Caption", {"Crashes": "int", "Share": "pct"})
     assert "<td>101,996</td>" in out
@@ -149,17 +148,23 @@ def test_speed_page_keeps_the_two_sources_apart(built: Path) -> None:
 
 def test_every_internal_link_and_anchor_resolves(built: Path) -> None:
     pages = {p.name for p in built.glob("*.html")}
+    ids = {
+        p.name: set(re.findall(r'\sid="([^"]+)"', p.read_text(encoding="utf-8")))
+        for p in built.glob("*.html")
+    }
     for page in sorted(built.glob("*.html")):
         text = page.read_text(encoding="utf-8")
-        ids = set(re.findall(r'\sid="([^"]+)"', text))
         for href in re.findall(r'href="([^"]+)"', text):
             if href.startswith(("http://", "https://", "mailto:")):
                 continue
             target, _, anchor = href.partition("#")
             if target:
                 assert target in pages or (built / target).exists(), (page.name, href)
-            if anchor and not target:
-                assert anchor in ids, (page.name, href)
+            if anchor:
+                # A fragment must name a built page and an id on it, on this page or another.
+                host = target or page.name
+                assert host in ids, (page.name, href)
+                assert anchor in ids[host], (page.name, href)
 
 
 def test_every_page_has_a_description_and_every_image_an_alt(built: Path) -> None:

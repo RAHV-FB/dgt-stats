@@ -107,9 +107,38 @@ def test_model_frame_levels_and_groupings() -> None:
     assert groupings.groupby("predictor").reference.any().all()
     crash_type = groupings[groupings.predictor == "Crash type"]
     assert len(crash_type) == 23  # 20 dictionary codes, 999, 998 and the fallback row
-    assert set(crash_type.code.tail(3)) == {"999", "998", "any other value or empty"}
+    assert set(crash_type.code.tail(3)) == {"999", "998", features.FALLBACK_CODE}
+    # A count and the year are not coded fields, so they carry no 999 or 998 row.
+    vehicles = groupings[groupings.predictor == "Vehicles involved"]
+    assert list(vehicles.code) == ["0", "1", "2", features.FALLBACK_CODE]
+    assert list(groupings[groupings.predictor == "Year"].code) == [
+        *(str(year) for year in range(2016, 2025)),
+        features.FALLBACK_CODE,
+    ]
     merged = features.grouping_table(frame)
     assert merged.columns.tolist() == groupings.columns.tolist()
+
+
+def test_a_repeated_column_is_dropped_and_reported() -> None:
+    """Two levels that mark the same crashes make the design singular; the later one is dropped."""
+    frame = _synthetic(5_000)
+    frame = frame.assign(
+        x3=pd.Categorical(
+            np.where(frame.x1 == "c", "same", "base"), categories=["base", "same"], ordered=True
+        )
+    )
+    fit = models.fit_severity(frame, "fatal", ("x1", "x3"), cluster=None)
+    assert fit.aliased == ["x3=same"]
+    assert "x3=same" not in fit.params.index
+    table = models.coefficient_table(frame, fit)
+    left_out = table[table.level == "same"].iloc[0]
+    assert np.isnan(left_out.odds_ratio) and np.isnan(left_out.or_low)
+    effects = models.marginal_effects(frame, fit).set_index(["predictor", "level"])
+    # A level the fit left out carries NaN in the marginal effects, not a zero effect.
+    assert np.isnan(effects.loc[("x3", "same"), "effect"])
+    assert models.odds_ratios(fit).set_index("level").loc["c", "odds_ratio"] == pytest.approx(
+        0.5, rel=0.3
+    )
 
 
 def test_every_predictor_level_list_starts_with_its_reference() -> None:
@@ -147,7 +176,14 @@ def test_small_levels_merge_into_the_reference() -> None:
     groupings = features.grouping_table(frame).set_index(["predictor", "code"])
     merged = groupings.loc[("Crash type", "999")]
     assert (
-        merged.level == "side collision (merged: 10 crashes, fewer than 500)" and merged.reference
+        merged.level
+        == "side collision (merged: the not specified level's 10 crashes, fewer than 500)"
+        and merged.reference
+    )
+    # No crash reaches the fallback row, so it says so instead of repeating the merged count.
+    fallback = groupings.loc[("Crash type", features.FALLBACK_CODE)]
+    assert fallback.level == (
+        "side collision (the not specified level was merged; no crash takes this code)"
     )
     absent = groupings.loc[("Crash type", "1")]
     assert absent.level == "head-on collision (no crash takes this value)" and not absent.reference

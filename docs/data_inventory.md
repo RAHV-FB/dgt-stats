@@ -1,10 +1,11 @@
 # Data inventory and audit
 
-Audit date: 2026-09-18. Every source file was opened and profiled with Python (`openpyxl`, `pandas`,
-`pymupdf`). This document records what each file contains, how the files group together, what was
-verified, and what must be handled before analysis. It complements the source register in
-[`data_sources.md`](data_sources.md). Checksums, sizes and source URLs for every file are in
-[`data/raw/manifest.csv`](../data/raw/manifest.csv).
+Audit date: 2026-09-18, extended on 19 and 20 September 2026 for the files added later and the
+coding breaks found in the final review. Every source file was opened and profiled with Python
+(`openpyxl`, `pandas`, `pymupdf`). This document records what each file contains, how the files
+group together, what was verified, and what must be handled before analysis. It complements the
+source register in [`data_sources.md`](data_sources.md). Checksums, sizes and source URLs for every
+file are in [`data/raw/manifest.csv`](../data/raw/manifest.csv).
 
 ## 1. Files by category
 
@@ -23,7 +24,7 @@ All raw files live under `data/raw/`, grouped by role.
 | `accidentes_2022.xlsx` | 2022 | 97,916 | 73 | `TABLA_ACCIDENTES_22.xlsx` |
 | `accidentes_2023.xlsx` | 2023 | 101,306 | 73 | `TABLA_ACCIDENTES_23.XLSX` |
 | `accidentes_2024.xlsx` | 2024 | 101,996 | 73 | `TABLA_ACCIDENTES_24.XLSX` |
-| `diccionario.xlsx` | all | 38 code sheets | — | `Diccionario_Tabla_Accidentes.xlsx` |
+| `diccionario.xlsx` | all | 38 sheets, 33 of them code lists | — | `Diccionario_Tabla_Accidentes.xlsx` |
 | `metadata_2024.rdf.xml` | 2024 | DCAT record | — | datos.gob.es catalogue export |
 
 - Source: Registro Nacional de Víctimas de Accidentes de Tráfico (Orden INT/2223/2014), published on
@@ -54,9 +55,9 @@ A second copy of the series workbook (`...2024(1).xlsx`, byte-identical, same MD
 
 | File | Coverage | Content | Original name |
 |---|---|---|---|
-| `censo_conductores_2023.txt` | 2023 | 8,405 rows, pipe-delimited: province × sex × licence class × licence year → drivers. Total 27,914,572 drivers | `conductores_censo_2023_censo_prov_sexo_clase_antig_2023.txt` |
-| `censo_conductores_2024.txt` | 2024 | 9,227 rows, total 28,142,470 drivers | `conductores_censo_2024_...txt` |
-| `censo_conductores_2025.txt` | 2025 | 9,224 rows, total 28,472,636 drivers, UTF-8 BOM | `conductores_censo_2025_...txt` |
+| `censo_conductores_2023.txt` | 2023 | 8,405 rows, pipe-delimited: province × sex × licence class × licence year → drivers. Total 27,914,572 drivers | `censo_prov_sexo_clase_antig_2023.txt` |
+| `censo_conductores_2024.txt` | 2024 | 9,227 rows, total 28,142,470 drivers | `censo_prov_sexo_clase_antig_2024.txt` |
+| `censo_conductores_2025.txt` | 2025 | 9,224 rows, total 28,472,636 drivers, UTF-8 BOM | `censo_prov_sexo_clase_antig_2025.txt` |
 | `censo_tablas_2025.xlsx` | 2025 | 10 published tables: drivers by province/community of residence and first issue, by licence class × age, by licence class × year of issue, split by sex | `Censo-de-conductores-Tablas-estadisticas-2025.xlsx` |
 | `km_itv_2022/km_recorridos_estimados_2022.xlsx` | 2022 | Estimated annual km per vehicle by vehicle type × Euro class × age band × engine size × (payload) × fuel; 6 sheets, 8,254 strata | `Km_recorridos_anuales_estimados.xlsx` (from `KM_ITV_2022.zip`) |
 | `km_itv_2022/media_km_antiguedad_tipo_2022.xlsx` | 2022 | Mean annual km and fleet size by vehicle type (7) × age band (5) | `Media_km_recorridos_ antiguedad_tipo de vehículo.xlsx` |
@@ -104,7 +105,7 @@ age, no coordinates, and no day of month.
 | Crash type and severity | `TIPO_ACCIDENTE` (20 codes), `TOTAL_MU24H/HG24H/HL24H/VICTIMAS_24H`, `TOTAL_MU30DF/HG30DF/HL30DF/VICTIMAS_30DF`, `TOTAL_VEHICULOS` | Both 24-hour and 30-day counts present, so definitions can be kept separate |
 | Fatalities by road-user type | `TOT_PEAT/BICI/CICLO/MOTO/TUR/FURG/CAM_MENOS3500/CAM_MAS3500/BUS/OTRO/SINESPECIF_MU24H` and `_MU30DF` | Deaths only; involvement of a vehicle type in a crash is **not** recorded. `TOT_VMP_MU30DF` (personal mobility vehicles) exists from 2020; `TOT_VMP_MU24H` only in 2020 |
 | Junction and priority | `NUDO`, `NUDO_INFO`, `CARRETERA_CRUCE`, 13 `PRIORI_*` flags | `PRIORI_*` are 999 "Sin especificar" for about 60% of rows, including many junction crashes |
-| Conditions | `CONDICION_NIVEL_CIRCULA`, `_FIRME`, `_ILUMINACION`, `_METEO`, `_NIEBLA`, `_VIENTO`, `VISIB_RESTRINGIDA_POR`, `ACERA`, `TRAZADO_PLANTA` | `ACERA` and `TRAZADO_PLANTA` are 998 "No aplica" for 62–87% of rows; fog and wind are null when absent. The dictionary's `.` code for "no strong wind" never occurs; strong wind is flagged in about 0.3% of crashes except 2021, where it is flagged in 24.6% (22,090 rows), a reporting artefact to keep out of trend comparisons |
+| Conditions | `CONDICION_NIVEL_CIRCULA`, `_FIRME`, `_ILUMINACION`, `_METEO`, `_NIEBLA`, `_VIENTO`, `VISIB_RESTRINGIDA_POR`, `ACERA`, `TRAZADO_PLANTA` | `ACERA` and `TRAZADO_PLANTA` are 998 "No aplica" for 62–87% of rows; fog and wind are null when absent. The dictionary's `.` code for "no strong wind" never occurs; strong wind is flagged in between 0.2% and 1.2% of crashes (1.1% in 2017, 1.2% in 2018, 0.5% in 2020, 0.2–0.3% in the other years) except 2021, where it is flagged in 24.6% (22,090 rows), a reporting artefact to keep out of trend comparisons |
 
 ### Missing-value states that must stay distinct
 
@@ -113,7 +114,7 @@ age, no coordinates, and no day of month.
 | Not specified / not reported | `999` | weather, priority regulation, traffic level |
 | Not applicable | `998` | sidewalk on interurban road, alignment on urban street |
 | Explicitly unknown | a named code: `6` in traffic level, `9` in surface, `7` in weather, `18` in visibility, `4` in alignment and direction | police attended but could not determine |
-| Empty | `None` | island (not an island), km (not inventoried), fog and wind (absent), junction detail (not at a junction) |
+| Empty | `None` | island (usually not an island province, but also unrecorded inside them), km (not inventoried), fog and wind (absent), junction detail (not at a junction) |
 
 ## 3. Verification results
 
@@ -136,7 +137,10 @@ sheets `Acc_Vict` and `Vict_I-U`. All nine years match to the unit.
 
 Additional checks on 2024: province totals in `TABLA 1.1` and monthly totals in `TABLA 3.1` sum to the same
 101,996 crashes and 1,785 deaths. `TOTAL_VEHICULOS` sums to 176,332 versus 176,398 implied by `TABLA 2.3`
-(190,508 units minus 14,110 pedestrians), a difference of 66 to be explained during ingestion.
+(190,508 units minus 14,110 pedestrians), a difference of 66; the 2023 table is 48 vehicles above the
+microdata in the same way and 2020–2022 are exact, so the reconciliation check (`table_2_3_vehicles`)
+accepts those two years within its 0.1% tolerance: the microdata carry no vehicle-level rows that could
+locate the missing units.
 
 No duplicate identifiers were found in any year.
 
@@ -151,12 +155,12 @@ No duplicate identifiers were found in any year.
 | `TIPO_VIA = 5` ("Carretera Convencional de doble calzada") falls from 6.8% to 1.8% of crashes between 2020 and 2021 while `TIPO_VIA = 6` ("Carretera Convencional de calzada única") rises from 17.9% to 21.4% and their sum stays near 23%; `TIPO_VIA = 1` ("Autopista de peaje") falls from about 1.8% to 0.4% in 2022 and 2024 while `TIPO_VIA = 2` ("Autopista libre") rises to 3.3%, with 2023 back at the earlier split and the sum stable near 3.7% | 2021, 2022, 2024 | interurban coding changes. The dual carriageway / conventional split is not comparable across 2020–2021, and the collapsed grouping does not fix it because `road_group` puts 5 in dual carriageway and 6 in conventional; the 2019 case study therefore builds its two groups from the raw codes (5 and 6 against 1, 2 and 3, `policy.py`) so that the recoding stays inside the treated group. The toll/free motorway distinction is unusable, but codes 1 and 2 are pooled into `motorway` in every use, so that group is unaffected |
 | `ZONA = 4` ("Autopista o autovía urbana") falls from 0.6–0.7% of crashes in 2016–2018 to 0.1% or less from 2019 (0.4% in 2021) | 2019+ | urban motorways are coded elsewhere from 2019 (the grouped zone is unaffected); the zone level in the severity models is mostly an early-period estimate, and the page says so |
 | `NUDO = 1` (at a junction) rises from 38–40% of crashes in 2016–2022 to 43.5–43.7% in 2023–2024, and `NUDO_INFO = 999` from 0.5–0.7% (2.8% in 2018) to 14.5% in 2023 and 15.1% in 2024, 72% of those rows in Barcelona and 99% in the four Catalan provinces | 2023+ | a reporting change in the junction fields, not a change on the roads; the junction term in the severity models pools both regimes and the stability check is where it would show; never read the junction share as a trend across 2022–2023 |
-| `VISIB_RESTRINGIDA_POR` and `CONDICION_NIVEL_CIRCULA` swap between their explicit unknown code (18 "Se desconoce", 6 "Se desconoce") and 999 in 2021, 2023 and 2024: `VISIB_RESTRINGIDA_POR = 999` is 0.3% / 0.1% / 0.0% in 2019 / 2020 / 2022 but 14.9% / 14.0% / 14.8% in 2021 / 2023 / 2024 while code 18 drops from 28–30% to 4.8–5.6%, and `VISIB_RESTRINGIDA_POR = 17` ("Otras restricciones") jumps from 0.4% to 8.7–8.9% in the same three years; `CONDICION_NIVEL_CIRCULA = 999` is 9.5–10.2% in 2019 / 2020 / 2022 but 32.2% / 32.8% / 34.0% in 2021 / 2023 / 2024 while code 6 drops from 29–31% to 6.9–7.7%. `TITULARIDAD_VIA = 999` appears in 2021 only (14.8%, 13,280 rows, all urban `ZONA 3` / `TIPO_VIA 9`) | 2021, 2023, 2024 | one reporting batch from the four Catalan provinces (Barcelona alone is 74–79% of the `VISIB_RESTRINGIDA_POR = 999` rows in those years, Barcelona, Girona, Lleida and Tarragona together 97–100%; for `CONDICION_NIVEL_CIRCULA = 999`, which has a 10% floor everywhere, the four provinces are 65–71%), which also carries the 2021 wind flag (13,412 of the 22,090 flagged rows are the same rows); missingness is province- and year-dependent, so never run complete-case trend comparisons and never read these fields as a trend |
+| `VISIB_RESTRINGIDA_POR` and `CONDICION_NIVEL_CIRCULA` swap between their explicit unknown code (18 "Se desconoce", 6 "Se desconoce") and 999 in 2021, 2023 and 2024: `VISIB_RESTRINGIDA_POR = 999` is 0.3% / 0.1% / 0.0% in 2019 / 2020 / 2022 but 14.9% / 14.0% / 14.8% in 2021 / 2023 / 2024 while code 18 drops from 28–30% to 4.8–5.6%, and `VISIB_RESTRINGIDA_POR = 17` ("Otras restricciones") jumps from 0.4% to 8.7–8.9% in the same three years; `CONDICION_NIVEL_CIRCULA = 999` is 9.5–10.2% in 2019 / 2020 / 2022 but 32.2% / 32.8% / 34.0% in 2021 / 2023 / 2024 while code 6 drops from 29–31% to 6.9–7.7%. `TITULARIDAD_VIA = 999` appears in 2021 (14.8%, 13,280 rows, all urban `ZONA 3` / `TIPO_VIA 9`) and in 28 rows of 2024 (0.03%, also all `ZONA 3`) | 2021, 2023, 2024 | one reporting batch from the four Catalan provinces (Barcelona alone is 74–79% of the `VISIB_RESTRINGIDA_POR = 999` rows in those years, Barcelona, Girona, Lleida and Tarragona together 97–100%; for `CONDICION_NIVEL_CIRCULA = 999`, which has a 10% floor everywhere, the four provinces are 65–71%), which also carries the 2021 wind flag (13,412 of the 22,090 flagged rows are the same rows); missingness is province- and year-dependent, so never run complete-case trend comparisons and never read these fields as a trend |
 | `CONDICION_METEO = 999` falls from 10.0–10.4% in 2016–2018 to 0.0–0.5% from 2019 on | 2018 → 2019 | missingness is year-dependent; never run complete-case trend comparisons |
-| `VISIB_RESTRINGIDA_POR = 999` falls 32.3% → 10.2% while code 1 ("Buena visibilidad") rises 29.8% → 50.8%; `CONDICION_FIRME = 9` falls 5.5% → 2.7%; `CONDICION_NIEBLA` is flagged in 0.5% → 7.2% of crashes | 2016 → 2017 | 2016 is a separate reporting regime for the condition fields; treat 2016 as not comparable to later years |
-| `KM` null share 62% in most years but 46–48% in 2019 and 2022 | 2019, 2022 | investigate before using km-post analyses |
-| `ISLA = 0`, absent from the dictionary, appears from 2018 (7 rows) and grows to 605 rows in 2024, almost only in the Balearic and Canary provinces | 2018+ | treated as "island not specified" (`codes.UNDOCUMENTED_CODES`), distinct from empty (not an island) |
-| `CONDICION_VIENTO = 1` share jumps from about 0.3% to 24.6% in 2021 only | 2021 | reporting artefact; exclude the wind flag from cross-year comparisons |
+| `VISIB_RESTRINGIDA_POR = 999` falls 32.3% → 10.2% while code 1 ("Buena visibilidad") rises 29.8% → 50.8%; `CONDICION_FIRME = 9` falls 5.5% → 2.7%; `CONDICION_NIEBLA` is flagged in 0.6% → 7.3% of crashes | 2016 → 2017 | 2016 is a separate reporting regime for the condition fields; treat 2016 as not comparable to later years |
+| `KM` null share 62% in most years but 46–48% in 2019, 2020 and 2022, where a placeholder stands in the empty cell's place (1000 in 2019, 9999 in 2020 and 2022) | 2019, 2020, 2022 | counting the placeholder, the km post is unrecorded in about 62% of crashes in every year; `validate.missingness_profile` counts it as not observed, so the profile shows no improvement where there was none. Investigate before using km-post analyses |
+| `ISLA = 0`, absent from the dictionary, appears from 2018 (7 rows) and grows to 605 rows in 2024, almost only in the Balearic and Canary provinces | 2018+ | treated as "island not specified" (`codes.UNDOCUMENTED_CODES`); an empty island field usually means the crash was not in an island province, but 11,430 empty rows are in the Balearic and Canary provinces themselves (376 in 2016 rising to 2,371 in 2024), so empty is not evidence of a mainland crash |
+| `CONDICION_VIENTO = 1` share jumps from 0.2–1.2% in every other year (1.1–1.2% in 2017 and 2018) to 24.6% in 2021 only | 2021 | reporting artefact; exclude the wind flag from cross-year comparisons |
 
 ### Driver census text files
 

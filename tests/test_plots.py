@@ -7,7 +7,8 @@ import pytest
 from dgt_stats import figures, plots, summaries
 from dgt_stats.paths import TABLES_DIR
 
-# Every figure build_all writes from the summary tables alone; the Q3 ones need the model tables.
+# build_all writes these from the summary tables plus missingness_by_year.csv; the Q3 ones need
+# the model tables.
 EXPECTED_FIGURES = {
     "data_missingness",
     "q1_deaths_30d",
@@ -61,7 +62,7 @@ def _svg_ok(path: Path) -> None:
     assert path.exists() and path.suffix == ".svg"
     text = path.read_text(encoding="utf-8")
     assert "<svg" in text and len(text) > 1_000
-    assert "dc:date" not in text  # no timestamp, rebuilds stay byte-stable
+    assert "dc:date" not in text  # no date stamp, so an unchanged figure does not churn on rebuild
 
 
 def test_line_series_single_and_multi(tmp_path: Path) -> None:
@@ -210,6 +211,37 @@ def test_forest_and_calibration(tmp_path: Path) -> None:
     _svg_ok(out)
     text = out.read_text(encoding="utf-8")
     assert "interurban" in text and "Lighting" in text
+    # A level with no odds ratio (no crash of the outcome) is left out, not drawn as an empty row.
+    separated = pd.concat(
+        [
+            frame,
+            pd.DataFrame(
+                [
+                    {
+                        "predictor": "Lighting",
+                        "level": "not specified",
+                        "odds_ratio": float("nan"),
+                        "or_low": float("nan"),
+                        "or_high": float("nan"),
+                        "is_reference": False,
+                    }
+                ]
+            ),
+        ]
+    )
+    out = plots.forest(
+        separated,
+        "predictor",
+        "level",
+        "odds_ratio",
+        "or_low",
+        "or_high",
+        tmp_path / "forest_separated.svg",
+        "Forest",
+        reference_flag="is_reference",
+    )
+    _svg_ok(out)
+    assert "not specified" not in out.read_text(encoding="utf-8")
     cal = pd.DataFrame(
         {
             "outcome": ["fatal"] * 3 + ["serious"] * 3,

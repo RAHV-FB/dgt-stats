@@ -86,7 +86,7 @@ What was checked and what each gives:
 
 | # | Source | What it gives | Status |
 |---|---|---|---|
-| 1 | **ESRA3 (2023) and ESRA2 (2018)**, E-Survey of Road users' Attitudes, Spain sample 935 adults 18+ in 2023 (DGT and Fundación MAPFRE are the Spanish partners) | Question: how often did you use each transport mode in the last 12 months; "car driver at least a few days a month" is the frequent-driver definition. National 2023 value for Spain: 75.9 % of adults; the 2023 country fact sheet is at `https://www.esranet.eu/storage/minisites/esra2023countryfactsheetspain.pdf` (the URL is on the ESRA3 row of `data/raw/exposure/driving_activity_by_age.csv`; the report itself is not archived, see `data_sources.md`). The ESRA dashboards (Power BI, linked from `https://www.esranet.eu/en/publications/esra3-publications/` for 2023 and `https://www.esranet.eu/en/esra-123-dashboard/` for the 2018 wave) were checked for the age split (18–24 … 65–74, 75+) with country = Spain, indicator = use of transport modes: they expose the Spain national totals only (2018: 80.2 %, n 906 weighted; 2023: 75.9 %, n 935 weighted), both typed into the CSV. A data request to Vias institute (ESRA coordinator) is the only route to the age split. | national values in the CSV; age split unavailable |
+| 1 | **ESRA3 (2023) and ESRA2 (2018)**, E-Survey of Road users' Attitudes, Spain sample 935 adults aged 18–74 in 2023 (DGT and Fundación MAPFRE are the Spanish partners) | Question: how often did you use each transport mode in the last 12 months; "car driver at least a few days a month" is the frequent-driver definition. National 2023 value for Spain: 75.9 % of adults; the 2023 country fact sheet is at `https://www.esranet.eu/storage/minisites/esra2023countryfactsheetspain.pdf` (the URL is on the ESRA3 row of `data/raw/exposure/driving_activity_by_age.csv`; the report itself is not archived, see `data_sources.md`). The ESRA dashboards (Power BI, linked from `https://www.esranet.eu/en/publications/esra3-publications/` for 2023 and `https://www.esranet.eu/en/esra-123-dashboard/` for the 2018 wave) were checked for the age split (18–24 … 65–74; the survey stops at 74, so there is no 75+ band and no ESRA value for it at all) with country = Spain, indicator = use of transport modes: they expose the Spain national totals only (2018: 80.2 %, n 906 weighted; 2023: 75.9 %, n 935 weighted), both typed into the CSV. A data request to Vias institute (ESRA coordinator) is the only route to the age split. | national values in the CSV; age split unavailable |
 | 2 | **MOVILIA 2006/07** (Ministerio de Transportes, national travel survey, ~49,000 households) | Persons making at least one trip as car driver on an average weekday, by age band and sex; also trips per person as driver. Old, but the only Spanish travel survey with driver status by age. In the repo as `movilia_2006.xls` and `movilia_2007.xls`. Checked: tables 63–64 give trips by main mode × sex × age, but the mode is "coche o moto" with no driver/passenger split, so it is a car-travel intensity curve by age, not a driver share. | in the repo; weaker than hoped |
 | 3 | **INE Encuesta de Hogares y Medio Ambiente 2008**, tables 10016 and 10019 | Mean kilometres per year of household cars by age of the reference person; a km-by-age curve for rung 3b/5 | in the repo (`ine_ehma_2008_10016.csv`, `ine_ehma_2008_10019.csv`) |
 | 4 | **Fundación MAPFRE, "Mayores de 65 años y seguridad vial"** (300 drivers aged 65+, Comunidad de Madrid, quota sample, about 2008) | Among older drivers: 55.9 % drive fewer than 3 days a week, 30.3 % 3–5 days, 13.8 % more; `https://app.mapfre.com/ccm/content/documentos/fundacion/seg-vial/investigacion/mayores-y-seguridad-vial.pdf` | read and typed into the CSV; conditional on being a driver and regional, used for rung 3b only |
@@ -98,9 +98,12 @@ Survey values go in one hand-typed CSV, `data/raw/exposure/driving_activity_by_a
 the ESRA3 national value and the MAPFRE rows; the manifest row must be refreshed after each edit), with
 columns `source, wave, question, definition, age_low, age_high, sex, share, n, url, notes`:
 `share` is the fraction of residents of that age band who drive under `definition` (for example
-"car driver at least a few days a month"), `n` the unweighted respondents behind it, `sex` one of
-`Total`, `Men`, `Women`. Rows enter the rate tables as a multiplier with a visible uncertainty band
-(binomial on n), never as a precise number. Anything that cannot be traced to a page and a question is
+"car driver at least a few days a month"), `n` the sample size behind the value as the source
+publishes it (ESRA's dashboard n is a weighted sample size, the MAPFRE n an unweighted quota
+sample), `sex` one of `Total`, `Men`, `Women`. Rows enter the rate tables as a multiplier with a
+visible uncertainty band (binomial on n; for the ESRA rows this Wilson interval treats a weighted n
+as independent respondents, so it ignores the design effect and is a lower bound on the survey
+uncertainty), never as a precise number. Anything that cannot be traced to a page and a question is
 not entered.
 
 Notes: EHMA 2008 tables are at `https://www.ine.es/jaxi/Tabla.htm?path=/t25/p500/2008/p10/l0/&file=10016.px&L=0`
@@ -174,8 +177,8 @@ at the end. Analysis age bands are 15–24, 25–34, 35–44, 45–54, 55–64, 
 
 ### Step 5 — Summaries
 - Q4: `province_rates()` for 2024 (crashes, deaths, hospitalised per 100,000 residents on 1 July 2024
-  and per 10,000 licence holders, with intervals and ranks; small-province caution) and
-  `national_rates_by_year()` (deaths per 100,000 residents 2002–2024, per 10,000 licence holders
+  and per 100,000 licence holders, with intervals and ranks; small-province caution) and
+  `national_rates_by_year()` (deaths per 100,000 residents 2002–2024, per 100,000 licence holders
   2014–2024).
 - Q7: `driver_ladder()` (year × band: residents, licence holders, active-driver estimate, drivers
   involved, driver deaths; deaths per million residents, per 100,000 licence holders, per 100,000

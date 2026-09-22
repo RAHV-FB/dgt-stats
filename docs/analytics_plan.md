@@ -30,7 +30,7 @@ JavaScript frameworks, no machine learning before a defensible descriptive and r
 | Q1 | How have injury crashes, deaths and hospitalisations evolved since 1993, and what did 2020 do to the trend? | series workbook (`Acc_Vict`, `Vict_I-U`, `Tasas_Acc_Vic`, monthly sheets) | line charts, indexed series, rates per 10,000 vehicles and per 100,000 population | trend page |
 | Q2 | When do crashes and fatal crashes happen? | microdata 2016–2024 | hour × weekday heatmaps, monthly seasonality, night share, urban vs interurban | time-patterns page |
 | Q3 | Given that a crash occurred, what makes it fatal or serious? | microdata | logistic regression: `fatal ~ zone + road_type + crash_type + lighting + weather + surface + junction + alignment + hour_band + weekday + year`; same for `serious` | severity page with odds ratios and 95% CIs |
-| Q4 | Which provinces have high crash and death rates once exposure is considered? | 2024 tables, series province sheets, driver census 2023–2025, INE population (table 56947, in the repo) | rates per 100,000 population and per 10,000 licensed drivers, with Poisson CIs; ranking tables and bar charts | geography page |
+| Q4 | Which provinces have high crash and death rates once exposure is considered? | 2024 tables, series province sheets, driver census 2023–2025, INE population (table 56947, in the repo) | rates per 100,000 residents and per 100,000 licence holders, with Poisson CIs; ranking tables and bar charts | geography page |
 | Q5 | How are deaths distributed across road-user types and how is that changing? | `TOT_*_MU30DF` columns, series `Cond_*` and `Pea_Vic` sheets | stacked shares by year, urban vs interurban, motorcycle and VMP trends | vulnerable-users page |
 | Q6 | How dangerous are heavy vehicles and buses per kilometre driven? | 2022 yearbook tables 2.3 (vehicles involved by type) and 2.2 (occupants killed), `Media_km_...` fleet × mean km | vehicles in injury and fatal crashes and occupant deaths per billion vehicle-km and per 100,000 vehicles, 2022, with exact intervals; the occupant-death share of fatal involvements | vehicles page |
 | Q7 | Are older road users at higher risk, and is that changing? | series `Vict_ED_*` sheets, DGT older-users report, INE population by age (to be added) | deaths per million by age band 2014–2024; replicate the DGT 47.8 vs 34.4 figure | older-users page |
@@ -71,7 +71,7 @@ site/*.html + site/style.css      static site, publishable with GitHub Pages
 
 | Module | Responsibility |
 |---|---|
-| `paths.py` | already exists; add `SITE_DIR` |
+| `paths.py` | already exists; extended with the raw-file and per-phase path constants — `SITE_DIR` ended up in `site.py` instead |
 | `io_microdata.py` | read one year with `openpyxl` read-only mode, rename `SECUENCIAL`, add missing `TOT_VMP_MU30DF`, cast types, write Parquet |
 | `io_tables.py` | read named sheets of the series and 2024 tables into tidy long frames |
 | `io_exposure.py` | read census text files (strip padding, handle BOM, map `V/M`), the census workbook and the km workbooks |
@@ -111,8 +111,9 @@ Modules added in later phases: `labels`, `summaries`, `figures` (phase 2), `ageb
 
 ## 4. Site
 
-- Generated entirely by `scripts/build_site.py` into `site/`; committed output can be served from
-  GitHub Pages without a build step.
+- Generated entirely by `scripts/build_site.py` into `site/`; the HTML and CSS are committed but
+  `site/figures/` is not, so the Pages workflow reruns `build_site.py` to copy the committed SVGs
+  from `reports/figures/` before deploying `site/`.
 - One `index.html` with the headline numbers and links, one page per question in section 2, and a
   `data.html` page that reproduces the inventory and validation results.
 - Charts are SVG files produced by matplotlib, embedded with `<img>`; tables are plain `<table>` elements
@@ -127,11 +128,11 @@ Modules added in later phases: `labels`, `summaries`, `figures` (phase 2), `ageb
 |---|---|---|
 | 0. Organise | done: files under `data/raw/`, duplicate removed, `manifest.csv` written | tests pass on the new layout |
 | 1. Ingest and validate | done: `codes`, `io_microdata`, `io_tables`, `io_exposure`, `validate`; Parquet outputs; checks 1–6 | all 277 checks pass; `reports/tables/validation.csv` and `missingness_by_year.csv` committed |
-| 2. Descriptives | done: `derive`, `labels`, `summaries`, `plots`, `figures`, `site`; 12 result tables, 13 SVG figures, five pages | site built into `site/` and deployed by `.github/workflows/pages.yml` |
+| 2. Descriptives | done: `derive`, `labels`, `summaries`, `plots`, `figures`, `site`; 13 result tables (`q2_other_road_by_period` added in the final review), 13 SVG figures, five pages | site built into `site/` and deployed by `.github/workflows/pages.yml` |
 | 3. Rates | done: `agebands`, `io_population`, census by age (2014–2025), driver tables 4.1.1 and 4.2 (2014–2024), `io_activity`, `rates`; Q4 province and national rates, Q7 denominator ladder; two new checks (325 in all); seven tables, seven figures, two pages | rate tables with exact intervals on the geography and older-drivers pages; every rate names its denominator |
 | 4. Severity model | done: `features`, `models`, `scripts/model.py`; fatal and serious logistic models on 875,013 crashes with province-clustered intervals, average marginal effects, a 2016–2022 fit scored on 2023–2024 (fatal AUC 0.80, serious 0.69, calibrated by decile), per-year refits; eight tables, five figures, the severity page | odds-ratio tables and forest plots on the site with calibration and stability reported |
-| 5. Exposure case study | done: `vehicles`, yearbook tables 2.2 and 2.3 for 2020–2024, two new checks (390 in all); six vehicle groups with rates per billion km and per 100,000 vehicles for 2022; seven tables, four figures, the vehicles page | vehicles page with stated limits |
-| 6. Policy case study | done: `policy`; segmented regression for the 2006 points licence with 39 placebo breaks and nine sensitivity variants; difference-in-differences series for the 2019 speed limit with 2017 and 2018 placebos; eight tables, five figures, the policy page | ITS charts with pre-trend, coefficients and CIs |
+| 5. Exposure case study | done: `vehicles`, yearbook tables 2.2 and 2.3 for 2020–2024, two new checks (390 in all); six vehicle groups with rates per billion km and per 100,000 vehicles for 2022; eight tables, four figures, the vehicles page | vehicles page with stated limits |
+| 6. Policy case study | done: `policy`; segmented regression for the 2006 points licence with 38 placebo breaks (the true date ranks 1 of 39 fits) and nine sensitivity variants; difference-in-differences series for the 2019 speed limit with 2017 and 2018 placebos; eight tables, five figures, the policy page | ITS charts with pre-trend, coefficients and CIs |
 | 7. Speed and context | done: `io_reports`, `speed`; tables 6.1 for 2014–2024 with one validation check (434 in all), the speed report transcribed, ten tables, six figures, the speed page | speed page |
 | 8. Publish | done: front-page digest, computed long-run sentences, link and alt-text tests, README rewritten, methodology and source register brought into line, version 1.0.0 | GitHub Pages live at https://rahv-fb.github.io/dgt-stats/ |
 

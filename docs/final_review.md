@@ -31,8 +31,8 @@ were withdrawn as inaccurate, immaterial or already stated on the page.
   although it is a conventional road under the 2018 decree, and from 2021 most of its crashes are
   coded as 6, which had moved about 150 deaths a year from the control to the treated group inside
   the extended window and produced a spurious reversal of the estimate. Regrouped, the clean-window
-  estimate is −13.1 % (−19.1 to −6.8), the extended fit −15.4 % (−20.8 to −9.7), and a placebo
-  break in January 2017 gives +12.3 % (+1.3 to +24.6): the two groups did not move together before
+  estimate is −13.1 % (−18.6 to −7.3), the extended fit −15.4 % (−20.6 to −10.0), and a placebo
+  break in January 2017 gives +12.3 % (+3.1 to +22.4): the two groups did not move together before
   the limit, so the page still makes no claim, for that reason rather than the 2018 placebo it
   named before. The text of that section is now gated on the placebo intervals rather than on one
   date.
@@ -103,18 +103,22 @@ documents lost the sentences that addressed a reader instead of describing the w
 
 ### Code and tests
 
-Result tables are written with ten significant digits so that library versions do not change
-them; the dependency floors exclude a `pymupdf` without the import name used and a `statsmodels`
+The descriptive result tables are written with ten significant digits (`analyse.py`) and the model
+tables with six (`model.py`), so that library versions do not change them; the dependency floors
+exclude a `pymupdf` without the import name used and a `statsmodels`
 that does not import against `numpy` 2; two workbooks are closed after reading. Tests were added
 for the profile table and predicted grid, for the assembly of every policy table, for the two
 summaries that had none, and for the figure build; the synthetic model data are seeded per test;
 the policy-page test pins the placebo wording to the table rather than copying the page's own
 condition; the census-age check no longer exempts the unknown band.
 
-### Licence
+### Licence and authorship
 
 The code is under the MIT licence; the data files keep their providers' terms, listed in
-[`data_sources.md`](data_sources.md). No notebooks are planned.
+[`data_sources.md`](data_sources.md). No notebooks are planned. The README and the data page
+now say how the code was written: with Claude Code, Anthropic's coding assistant, from written
+instructions and under the author's review, the sources, methods and published figures being the
+author's responsibility.
 
 ## 3. Not changed
 
@@ -126,10 +130,56 @@ The code is under the MIT licence; the data files keep their providers' terms, l
 
 ## 4. Verification
 
-- `ruff check` and `ruff format --check` clean; `pytest` 147 passed, the slow manifest check
+- `ruff check` and `ruff format --check` clean; the test suite passes, the slow manifest check
   deselected as usual.
 - `build_tables.py`, `model.py`, `analyse.py all` and `build_site.py` rerun from the interim
   layer; the committed tables, figures and pages are their output.
 - Every page measured at 390 px and 1,280 px: no horizontal overflow, no caption wider than the
   viewport.
-- The tracked files and the commit messages contain no tool attribution.
+- The tool the code was written with is named in three places by design: the README's "How it was
+  built", the last paragraph of the data page's Reproduce section (and the string in
+  `src/dgt_stats/site.py` that renders it) and the "Licence and authorship" paragraph above. No
+  other tracked file names it, the history of `main` names none, and no commit carries a
+  generated-by or co-author trailer.
+
+## 5. Second review, 22 September 2026
+
+A second pass over the same ground and in the same shape as the first: the statistical methods and
+the assumptions under them, the pages against their tables, the figures one by one, the readers and
+every code-to-label map, the documents against each other and against the code, the manifest and
+the reuse notices, the writing, the site's markup and stylesheet, the tests, the dependency floors
+and the deploy workflow. Of 273 findings raised, 220 stood after re-checking each one against the
+code, the tables or the raw files; the rest were withdrawn as inaccurate, immaterial or already
+stated where they belonged. All 220 were fixed.
+
+What that changed, in outline. The 2019 difference-in-differences columns and labels now say that
+the estimate is the treated group's change relative to the control, which is what the interaction
+is; no number moved. The severity page and section 5 of the methodology name all three exceptions
+to keeping every level as its own: a level under 500 crashes merged into its reference, the
+alignment "not applicable" code folded into "straight" because it is exactly the urban-street zone
+and would otherwise duplicate the zone predictor, and a level with no event in a fit left out
+instead of estimated — the last of which had been printing an empty estimate as text and a missing
+marginal effect as zero. The year-stability selection now leaves out every missing-state level and
+its per-year refits are clustered by province like the full model, so the figure's bands and the
+counts in `q3_year_stability.csv` moved. The missingness profile counts the placeholders of the
+fields that carry no code list — `KM` 9999 and, in 2019, 1000; `CARRETERA` "No inventariada"; the
+`COD_MUNICIPIO` placeholder — as not observed, which removes an apparent improvement in km-post
+recording in 2019, 2020 and 2022. The speed shares are no longer rounded before they are written,
+so the pages format full precision. The 75+ travel-weighted ratio is no longer called a lower
+bound, which supersedes the second item of section 3: counting passengers pushes it down, but the
+2006 travel profile is frozen across the whole period and could move it either way, so the
+direction of the net bias is not established and the page says that instead. The kilometre-table
+coverage is stated against the register, where it was computed. The dependency floors are now a set
+that can be installed together, and the
+Pages workflow installs the locked versions on the interpreter the pages were built with. The
+package version matches `pyproject.toml`. Three manifest rows cite the file URLs that serve the
+bytes they describe, each downloaded and matched by SHA-256 before the row was touched, and the
+reuse table gained the row for Fundación MAPFRE it was missing.
+
+What stays unchanged. No analysis was added and nothing was recomputed for its own sake: the
+full-model odds ratios are the same to the precision shown, and the 2006 and 2019 estimates are
+the same numbers under better labels. The phase plans keep their dated records and were corrected
+only where they state something the repository never did. The raw files are untouched, and so are
+the `bytes` and `sha256` columns of the manifest: one candidate source URL was left as it was,
+because the file behind it could not be fetched and checked. The checks in section 4 were run again
+on the result.

@@ -19,8 +19,8 @@ fatal,motorway,dusk or dawn,0.030148
 fatal,motorway,"dark, street lighting",0.0287945
 fatal,motorway,"dark, no lighting",0.0356409
 fatal,motorway,not specified,0.0112887
-fatal,other road,daylight,0.0200594
-fatal,other road,dusk or dawn,0.0232001
-fatal,other road,"dark, street lighting",0.0221514
-fatal,other road,"dark, no lighting",0.0274629
-fatal,other road,not specified,0.00864833
+fatal,other road,daylight,0.00638253
+fatal,other road,dusk or dawn,0.00739799
+fatal,other road,"dark, street lighting",0.00705843
+fatal,other road,"dark, no lighting",0.00878341
+fatal,other road,not specified,0.00273006

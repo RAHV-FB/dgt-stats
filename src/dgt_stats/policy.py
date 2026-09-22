@@ -41,7 +41,9 @@ class Intervention:
     ``date`` is the first month treated as post-intervention. ``pre_start`` opens the fitting
     window, ``post_end`` closes the clean post-period, ``long_post_end`` the extended one used in
     the sensitivity fit, and ``second_break`` marks a confounding change inside that extended
-    window. ``placebo_pre`` and ``placebo_post`` are the months a placebo break needs on each side.
+    window. ``placebo_pre`` is how many months of pre-period a placebo break needs before it, and
+    the placebo post-window is as long as the true one (``post_months``); ``placebo_dates`` lists
+    the explicit placebo break months used by the difference-in-differences design.
     """
 
     key: str
@@ -52,9 +54,6 @@ class Intervention:
     design: str  # "segmented" or "did"
     long_post_end: pd.Timestamp | None = None
     second_break: pd.Timestamp | None = None
-    second_break_label: str = ""
-    exclude_from: pd.Timestamp | None = None
-    exclude_label: str = ""
     placebo_pre: int = 24
     placebo_dates: tuple[pd.Timestamp, ...] = field(default_factory=tuple)
 
@@ -77,7 +76,6 @@ INTERVENTIONS: dict[str, Intervention] = {
         design="segmented",
         long_post_end=pd.Timestamp("2009-12-01"),
         second_break=pd.Timestamp("2007-12-01"),
-        second_break_label="Penal Code reform on driving offences, 2 December 2007",
     ),
     "speed_limit_90": Intervention(
         key="speed_limit_90",
@@ -87,8 +85,6 @@ INTERVENTIONS: dict[str, Intervention] = {
         post_end=pd.Timestamp("2020-02-01"),
         design="did",
         long_post_end=pd.Timestamp("2024-12-01"),
-        exclude_from=pd.Timestamp("2020-03-01"),
-        exclude_label="pandemic restrictions from March 2020",
         placebo_dates=(pd.Timestamp("2017-01-01"), pd.Timestamp("2018-01-01")),
     ),
 }
@@ -242,10 +238,17 @@ def _segmented_design(
 
 
 def _hac(groups: np.ndarray | None = None) -> dict[str, object]:
-    """Newey–West covariance with 12 lags; within each group when ``groups`` is given (a panel)."""
+    """Newey–West covariance with 12 lags; within each group when ``groups`` is given (a panel).
+
+    The small-sample correction is off in both designs, stated rather than left to two different
+    library defaults (none for the series fit, the panel's own for the panel fit).
+    """
     if groups is None:
-        return {"cov_type": "HAC", "cov_kwds": {"maxlags": HAC_LAGS}}
-    return {"cov_type": "hac-panel", "cov_kwds": {"groups": groups, "maxlags": HAC_LAGS}}
+        return {"cov_type": "HAC", "cov_kwds": {"maxlags": HAC_LAGS, "use_correction": False}}
+    return {
+        "cov_type": "hac-panel",
+        "cov_kwds": {"groups": groups, "maxlags": HAC_LAGS, "use_correction": False},
+    }
 
 
 def _fit(
@@ -687,7 +690,10 @@ def speed_limit_fits() -> dict[str, pd.DataFrame]:
     long["group_label"] = long.group.map(GROUP_LABELS)
     coefficients = main.coefficients.assign(
         label=main.coefficients.term.map(
-            {"post_treated": "level change, conventional roads", "post": "level change, control"}
+            {
+                "post_treated": "level change, conventional roads vs control",
+                "post": "level change, control",
+            }
         ).fillna(main.coefficients.term)
     )
     return {

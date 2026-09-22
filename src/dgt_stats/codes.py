@@ -35,6 +35,27 @@ NOT_CODE_SHEETS = frozenset(
 UNDOCUMENTED_CODES: dict[str, dict[str, str]] = {"ISLA": {"0": "Isla sin especificar"}}
 UNDOCUMENTED_NOT_SPECIFIED: dict[str, str] = {"ISLA": "0"}
 
+# The four non-coded fields have no code list, so they carry no 999 or 998; each uses a placeholder
+# of its own instead, and the missingness profile counts these as not observed:
+#   CARRETERA   "No inventariada" is the dictionary sheet's own label for a crash with no road
+#               (an urban street), so it is "not applicable", like the empty KM in the same rows.
+#   COD_MUNICIPIO "00000" is documented as "Municipio menos de 5000 habitantes", a deliberate
+#               coarsening of the identifier, so it is "not specified", like ISLA 0.
+#   KM          9999 (and 1000 in 2019, the year DGT used that value) is a fill value written
+#               instead of an empty km post. It is inferred, not documented: the KM sheet gives
+#               only a number format. It counts as a placeholder only where there is no road,
+#               because km 1000 is a real km post on a long N-road.
+# CARRETERA_CRUCE needs no placeholder: it is simply empty when there is no junction.
+NO_ROAD = "No inventariada"
+TEXT_PLACEHOLDERS: dict[str, dict[str, str]] = {
+    "CARRETERA": {NO_ROAD: "not_applicable"},
+    "COD_MUNICIPIO": {"00000": "not_specified"},
+}
+# KM is a float column, so its placeholders are compared as numbers, not as text.
+NUMERIC_PLACEHOLDERS: dict[str, dict[float, str]] = {
+    "KM": {1000.0: "not_specified", 9999.0: "not_specified"}
+}
+
 # Code that means "unknown" inside a column's own code list.
 EXPLICIT_UNKNOWN: dict[str, int] = {
     "SENTIDO_1F": 4,

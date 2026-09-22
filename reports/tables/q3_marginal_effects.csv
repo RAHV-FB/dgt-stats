@@ -33,6 +33,7 @@ fatal,surface,Road surface,dry,True,0.0172573,0
 fatal,surface,Road surface,wet,False,0.0109286,-0.00632867
 fatal,surface,Road surface,other surface,False,0.0156025,-0.00165474
 fatal,surface,Road surface,unknown,False,0.0201183,0.00286099
+fatal,surface,Road surface,not specified,False,,
 fatal,alignment,Alignment,straight,True,0.018992,0
 fatal,alignment,Alignment,curve,False,0.0210597,0.00206766
 fatal,alignment,Alignment,unknown,False,0.00226348,-0.0167286

@@ -15,18 +15,18 @@ analytics plan reframed it, and every table says what the judgement is and how o
 
 | Input | Source | What it gives |
 |---|---|---|
-| Driver infractions | yearbook tables 6.1.I and 6.1.U, 2014–2024 (chapter workbooks to 2019, one workbook per year from 2020) | drivers involved in injury crashes by vehicle type × infraction, in three blocks: speed (infraction, driving too slowly, none, unknown), other infractions (priority, wrong side, overtaking, safety distance, other, none, unknown) and a summary (any, none, unknown); interurban and urban separately |
+| Driver infractions | yearbook tables 6.1.I and 6.1.U, 2014–2024 (chapter workbooks to 2019, one workbook per year from 2020) | drivers involved in injury crashes by vehicle type × infraction, in six blocks: speed (infraction, driving too slowly, none, unknown), driver infractions (stop sign, pedestrian crossing, other priority, wrong way, partly invading the opposite lane, overtaking, safety distance, other, none, unknown), door opening, lighting, load and a summary (any, none, unknown); interurban and urban separately |
 | The DGT speed report | `dgt_factor_velocidad_2023.pdf` (Observatorio Nacional de Seguridad Vial, March 2025) | crashes, deaths, hospitalised and non-hospitalised with the speed factor, 2014–2023, **without Cataluña or País Vasco**: by zone, road type, speed limit of the road, functional class, vehicle, engine power or size, driver age and sex, licence class, and a day × hour grid for the pooled decade; 57 tables in the annex |
 | Context already on the site | trends, timing, severity and policy pages | the 2019 speed-limit case study (no claim), the severity model (no speed term), the hour × weekday grids |
 
 Two facts shape the design:
 
 - **The unknown share moved.** In the interurban table 6.1, "unknown" speed status covers 17 % of
-  drivers in 2014 and 40–50 % from 2016 on; in the urban table it is above 50 % throughout. A share of
-  drivers "with a speed infraction" over all drivers therefore falls for reasons that have nothing
-  to do with speed. The page shows three series side by side: infraction, none and unknown, as
-  shares of all drivers, and the infraction share among drivers whose status is known, with the
-  caveat that the known ones are not a random sample.
+  drivers in 2014 and 40–50 % from 2016 on; in the urban table it is 18–20 % in 2014–2015 and above
+  50 % from 2016. A share of drivers "with a speed infraction" over all drivers therefore falls for
+  reasons that have nothing to do with speed. The page shows three series side by side: infraction,
+  none and unknown, as shares of all drivers, and the infraction share among drivers whose status
+  is known, with the caveat that the known ones are not a random sample.
 - **The report and the tables count different things.** The report counts crashes and victims in
   which any road user was judged to have the speed factor, in fifteen of seventeen regions; the
   tables count drivers with a speed infraction, in all of Spain. The 2023 figures (5,070 crashes with
@@ -38,7 +38,7 @@ Two facts shape the design:
 ### Step 1 — Driver-infraction tables (`io_tables.py`, `validate.py`)
 - `read_table_6_1(year, zone)` for 2014–2024: rows located by normalised label (the 2014 `.xls`
   has block headings as rows, 2015–2016 prefix the block name in the label cell, 2019 onwards are
-  plain), the three blocks kept as a `block` column, vehicle columns mapped to the groups of
+  plain), the six blocks kept as a `block` column, vehicle columns mapped to the groups of
   `vehicles.py` (VMP appears from 2020). Interim `tables_driver_infractions`.
 - One validation check: the total of every block equals the drivers involved in table 4.2 for the
   same year and zone (already ingested as `tables_drivers_involved`), so the two tables describe the
@@ -90,14 +90,17 @@ Two facts shape the design:
 All five steps are merged. What was built, with the deviations from the design above:
 
 - `io_tables.read_table_6_1` parses the four layouts by locating rows by label with a small state
-  machine (a repeated item advances the block), `io_reports.py` transcribes all 61 annex tables of
-  the speed report (the plan said 57; the PDF numbers some tables twice and three age-by-sex tables
-  share one caption, so their sex is taken from the header cell glued to the first row), `speed.py`
-  holds the ten `q9_*` summaries, and `speed.html` is the page. `pymupdf` joins the dependencies and
-  `ingest.py reports` the CLI.
+  machine (a repeated item advances the block), `io_reports.py` transcribes 61 of the report's 64
+  tables, of which the 12 day-and-hour tables, Tablas 50 to 61, are its Anexo I (the plan said 57;
+  the PDF numbers some tables twice and three age-by-sex tables share one caption, so their sex is
+  taken from the header cell glued to the first row), `speed.py` holds the ten `q9_*` summaries, and
+  `speed.html` is the page. `pymupdf` joins the dependencies and `ingest.py reports` the CLI. The
+  ten are not quite the ten the plan listed: `q9_report_by_zone` was never written, because
+  `q9_report_factors` already carries the zone split, and `q9_report_licence` took its place.
 - Table 6.1 does not equal table 4.2 exactly: the totals match in 2014–2015 and sit 0.2–1.1 % below
-  from 2016, so the check (44 rows, 434 in all) uses a 1.5 % tolerance and also requires one total
-  across the six blocks.
+  from 2016, so the check (44 rows, 434 in all) uses a 1.5 % tolerance and also requires the
+  blocks that publish a total to agree, and the expected number of them to be present: two in
+  2014–2015, where the source totals only the speed block and the table as a whole, six from 2016.
 - Results, driver tables: the share of drivers with no speed record jumps from 17 % (2014) to 52 %
   (2016) and stays there (52 % in 2024); the infraction share over all drivers falls from 6.7 % to
   4.3 % while the share among recorded drivers moves from 8.1 % to 9.1 % (14.3 % interurban, 5.8 %
@@ -121,5 +124,5 @@ All five steps are merged. What was built, with the deviations from the design a
   day × hour rows add up to its totals.
 - Table 6.1 block totals equal each other and sit within 1.5 % of table 4.2's drivers involved,
   every year and zone.
-- `pytest` (137), `ruff`, idempotent `ingest.py tables reports`, `analyse.py all` and
+- `pytest` (137), `ruff`, idempotent `ingest.py tables`, `ingest.py reports`, `analyse.py all` and
   `build_site.py`, headless screenshots at 1280 px and 390 px with no horizontal overflow.

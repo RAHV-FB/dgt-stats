@@ -1,9 +1,11 @@
 """Chart functions for the site. Every function writes one SVG and returns its path.
 
 Rules applied throughout: one y-axis per chart, series colours assigned in a fixed order and paired
-with a line style or marker so colour is never the only difference between series, a legend when
-there are two or more series, thin lines, a faint grid, labels in black or grey rather than in the
-series colour, and SVG output without a timestamp so rebuilds are byte-stable.
+with a line style or marker on every line chart, so that colour is never the only difference
+between lines; the bar charts separate their series by colour and by position in a fixed order; a
+legend when there are two or more series, thin lines, a faint grid, labels in black or grey rather
+than in the series colour, and SVG output without a timestamp, so an unchanged figure does not
+churn on rebuild.
 """
 
 from __future__ import annotations
@@ -524,9 +526,15 @@ def forest(
 ) -> Path:
     """Odds ratios on a log axis, one row per level, grouped by predictor with group headings.
 
-    Rows flagged by ``reference_flag`` are drawn as hollow markers at 1 with no whisker.
+    Rows flagged by ``reference_flag`` are drawn as hollow markers at 1 with no whisker. A level
+    the fit could not estimate (no crashes of the modelled outcome, so no odds ratio) is left out
+    of the plot altogether rather than drawn as a labelled but empty row; the caption names it.
     """
     apply_style()
+    estimable = frame[value].notna()
+    if reference_flag is not None:
+        estimable = estimable | frame[reference_flag].astype(bool)
+    frame = frame[estimable]
     rows: list[tuple[str, pd.Series | None]] = []
     for name, block in frame.groupby(group, sort=False):
         rows.append((str(name), None))

@@ -24,6 +24,10 @@ CENSUS_TOLERANCE = 0.005
 CENSUS_AGE_TOLERANCE = 0.02
 VEHICLE_TABLE_TOLERANCE = 0.001
 INFRACTION_TABLE_TOLERANCE = 0.015
+# Blocks of table 6.1 that publish a total: only speed and the table itself in 2014–2015, all six
+# from 2016 (the four remaining blocks are listed under one heading in the early years).
+INFRACTION_BLOCKS = 6
+EARLY_INFRACTION_BLOCKS = 2
 
 VICTIM_COLUMNS = {
     "deaths_30d": "TOTAL_MU30DF",
@@ -316,8 +320,35 @@ PROFILE_COLUMNS = codes.CATEGORICAL_COLUMNS + (
 )
 
 
+def _placeholder_states(column: str, group: pd.DataFrame) -> pd.Series:
+    """Missing state of each row of a non-coded field; ``observed`` where no placeholder is used.
+
+    The four non-coded fields carry no 999 or 998 (see ``codes.TEXT_PLACEHOLDERS``). ``KM``'s fill
+    values count only where there is no road: km 1000 is a real km post on a long N-road, and 110
+    of the 43,470 rows carrying 1000 or 9999 sit on an inventoried road.
+    """
+    series = group[column]
+    states = pd.Series("observed", index=series.index, dtype="object")
+    text = series.astype("string").str.strip()
+    for value, state in codes.TEXT_PLACEHOLDERS.get(column, {}).items():
+        states[text.eq(value)] = state
+    numeric = pd.to_numeric(series, errors="coerce")
+    for value, state in codes.NUMERIC_PLACEHOLDERS.get(column, {}).items():
+        placeholder = numeric.eq(value)
+        if column == "KM":
+            placeholder &= group["CARRETERA"].astype("string").str.strip().eq(codes.NO_ROAD)
+        states[placeholder] = state
+    states[series.isna()] = "empty"
+    return states
+
+
 def missingness_profile(crashes: pd.DataFrame) -> pd.DataFrame:
-    """Share of empty / 999 / 998 / explicit-unknown values per year and column."""
+    """Share of empty / 999 / 998 / explicit-unknown values per year and column.
+
+    The coded columns are classified by their code list. The four non-coded columns have no code
+    list and use placeholders instead, which count as not observed: see ``codes.TEXT_PLACEHOLDERS``
+    and ``codes.NUMERIC_PLACEHOLDERS``.
+    """
     records = []
     for year, group in crashes.groupby("ANYO"):
         n = len(group)
@@ -338,14 +369,15 @@ def missingness_profile(crashes: pd.DataFrame) -> pd.DataFrame:
                     }
                 )
             else:
+                counts = _placeholder_states(column, group).value_counts()
                 records.append(
                     {
                         "year": int(year),
                         "column": column,
                         "rows": n,
-                        "share_empty": series.isna().mean(),
-                        "share_not_specified": 0.0,
-                        "share_not_applicable": 0.0,
+                        "share_empty": counts.get("empty", 0) / n,
+                        "share_not_specified": counts.get("not_specified", 0) / n,
+                        "share_not_applicable": counts.get("not_applicable", 0) / n,
                         "share_unknown": 0.0,
                     }
                 )
@@ -362,8 +394,9 @@ def check_vehicle_tables(
     """Checks 9 and 10: the yearbook vehicle tables against the microdata, 2020–2024.
 
     TABLA 2.3 vehicles involved (its total less pedestrians) must be within 0.1 % of the microdata
-    ``TOTAL_VEHICULOS`` sum (exact in 2020–2022; 2023 and 2024 are published 48 and 66 vehicles
-    short). TABLA 2.2 deaths by means of transport, summed over drivers, passengers and pedestrians
+    ``TOTAL_VEHICULOS`` sum (exact in 2020–2022; in 2023 and 2024 the microdata sum is 48 and 66
+    vehicles below the published table). TABLA 2.2 deaths by means of transport, summed over
+    drivers, passengers and pedestrians
     and over both zones, must equal the microdata ``TOT_*_MU30DF`` columns exactly for every vehicle
     group.
     """
@@ -407,14 +440,17 @@ def check_driver_infractions(
 ) -> list[Result]:
     """Check 11: the driver-infraction table 6.1 describes the drivers of table 4.2.
 
-    Every block of table 6.1 has the same total, and that total is within 1.5 % of the drivers
-    involved in table 4.2 for the same year and zone (equal in 2014–2015, 0.2–1.1 % lower after).
+    The blocks that publish a total agree with each other, and the expected number of them is
+    present: two in 2014–2015, where the source gives a total only for the speed block and for the
+    table as a whole, six from 2016. That total is within 1.5 % of the drivers involved in table
+    4.2 for the same year and zone (equal in 2014–2015, 0.2–1.1 % lower after).
     """
     results: list[Result] = []
     totals = infractions[(infractions.item == "total") & (infractions.vehicle_group == "total")]
     involved = drivers_involved[drivers_involved.is_total].groupby(["year", "zone"]).value.sum()
     for (year, zone), block in totals.groupby(["year", "zone"]):
         values = block.set_index("block").value
+        expected_blocks = EARLY_INFRACTION_BLOCKS if year <= 2015 else INFRACTION_BLOCKS
         results.append(
             Result(
                 "table_6_1_drivers",
@@ -422,7 +458,8 @@ def check_driver_infractions(
                 f"{zone}:blocks_agree",
                 float(values.iloc[0]),
                 float(values.max()),
-                bool(values.nunique() == 1),
+                bool(values.nunique() == 1 and len(values) == expected_blocks),
+                f"{len(values)} of {expected_blocks} blocks publish a total",
             )
         )
         expected = float(involved.get((year, zone), float("nan")))

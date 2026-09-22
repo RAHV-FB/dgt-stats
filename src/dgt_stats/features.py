@@ -19,9 +19,15 @@ PROCESSED_CRASHES = PROCESSED_DATA_DIR / "accidentes.parquet"
 OUTCOMES = ("fatal", "serious")
 NOT_SPECIFIED = "not specified"
 NOT_APPLICABLE = "not applicable"
+# The label a field's explicit unknown code takes (weather 7, surface 9, alignment 4).
+UNKNOWN = "unknown"
+# The three missing states together: levels that record what the form says, not what happened.
+MISSING_LEVELS = frozenset({NOT_SPECIFIED, NOT_APPLICABLE, UNKNOWN})
 # A level with fewer crashes than this is merged into the reference level: it cannot be estimated
 # (several such levels have no events at all) and would only add noise to the table.
 MIN_LEVEL_CRASHES = 500
+# The grouping table's last row per predictor: every value the map does not list, and empty cells.
+FALLBACK_CODE = "any other value or empty"
 
 # Each predictor: source column, ordered levels (reference first) and a code -> level map.
 # Codes not listed fall to ``fallback`` (the missing markers 999/998 are handled first).
@@ -221,6 +227,25 @@ def _level_series(values: pd.Series, spec: dict[str, object]) -> pd.Series:
     return out
 
 
+def _code_keys(values: pd.Series, spec: dict[str, object]) -> pd.Series:
+    """The grouping table's code for each row: a listed code, 999, 998, or the fallback row.
+
+    Mirrors :func:`_level_series` so the counts describe exactly the rows the grouping table shows.
+    """
+    mapping: dict = spec["map"]  # type: ignore[assignment]
+    out = pd.Series(FALLBACK_CODE, index=values.index, dtype="object")
+    numeric = pd.to_numeric(values, errors="coerce") if values.dtype != bool else values
+    if values.dtype != bool and numeric.notna().any():
+        for code in (codes.NOT_APPLICABLE_CODE, codes.NOT_SPECIFIED_CODE):
+            out[numeric == code] = str(code)
+        for code in mapping:
+            out[numeric == code] = str(code)
+    else:
+        for code in mapping:
+            out[values == code] = str(code)
+    return out
+
+
 def levels(predictor: str) -> list[str]:
     """Ordered levels of a predictor including the missing states it can take."""
     spec = PREDICTORS[predictor]
@@ -240,8 +265,12 @@ def model_frame(crashes: pd.DataFrame | None = None) -> pd.DataFrame:
     for outcome in OUTCOMES:
         out[outcome] = crashes[outcome].astype(bool)
     merged: dict[str, dict[str, int]] = {}
+    code_counts: dict[str, dict[str, int]] = {}
     for name, spec in PREDICTORS.items():
         raw = crashes[str(spec["source"])]
+        code_counts[name] = {
+            str(code): int(count) for code, count in _code_keys(raw, spec).value_counts().items()
+        }
         mapped = _level_series(raw, spec)
         reference = str(list(spec["levels"])[0])  # type: ignore[index]
         for source_level, target in dict(spec.get("fold", {})).items():  # type: ignore[union-attr]
@@ -257,8 +286,10 @@ def model_frame(crashes: pd.DataFrame | None = None) -> pd.DataFrame:
             merged[name] = small
         used = [level for level in levels(name) if (mapped == level).any()]
         out[name] = pd.Categorical(mapped, categories=used, ordered=True)
-    # Which levels were merged, and how many crashes each had, for the grouping table.
+    # Which levels were merged, how many crashes each had, and how many crashes carry each code:
+    # the grouping table needs all three to describe the model that was actually fitted.
     out.attrs["merged_levels"] = merged
+    out.attrs["code_counts"] = code_counts
     return out
 
 
@@ -266,9 +297,9 @@ def grouping_table(frame: pd.DataFrame | None = None) -> pd.DataFrame:
     """Every original code with its model level, for the severity page.
 
     Includes the missing markers and the "any other value" fallback. When ``frame`` (from
-    :func:`model_frame`) is given, the table describes the model that was actually fitted: a level
-    merged into the reference for having fewer than ``MIN_LEVEL_CRASHES`` crashes says so with its
-    count, and a level that no crash takes is marked as absent.
+    :func:`model_frame`) is given, the table describes the model that was actually fitted: a code
+    whose level was merged into the reference for having fewer than ``MIN_LEVEL_CRASHES`` crashes
+    says so with the level's count, and a code no crash carries is marked as absent.
     """
     records = []
     for name, spec in PREDICTORS.items():
@@ -277,20 +308,39 @@ def grouping_table(frame: pd.DataFrame | None = None) -> pd.DataFrame:
         fold: dict = spec.get("fold", {})  # type: ignore[assignment]
         reference = str(list(spec["levels"])[0])  # type: ignore[index]
         rows: list[tuple[str, str]] = [(str(code), level) for code, level in mapping.items()]
-        if source not in ("hour_band", "weekend", "road_group"):
+        # The missing markers belong to the coded source columns only: a count (TOTAL_VEHICULOS)
+        # and the year never carry 999 or 998, and neither do the derived columns.
+        if source not in ("hour_band", "weekend", "road_group", "TOTAL_VEHICULOS", "ANYO"):
             rows.append((str(codes.NOT_SPECIFIED_CODE), NOT_SPECIFIED))
-            rows.append((str(codes.NOT_APPLICABLE_CODE), fold.get(NOT_APPLICABLE, NOT_APPLICABLE)))
-        rows.append(("any other value or empty", str(spec["fallback"])))
-        present = None if frame is None else set(frame[name].cat.categories)
+            rows.append(
+                (
+                    str(codes.NOT_APPLICABLE_CODE),
+                    f"{fold[NOT_APPLICABLE]} (folded: code 998 is exactly the street zone)"
+                    if NOT_APPLICABLE in fold
+                    else NOT_APPLICABLE,
+                )
+            )
+        rows.append((FALLBACK_CODE, str(spec["fallback"])))
+        counts: dict[str, int] | None = (
+            None if frame is None else frame.attrs.get("code_counts", {}).get(name, {})
+        )
         merged: dict[str, int] = (
             {} if frame is None else frame.attrs.get("merged_levels", {}).get(name, {})
         )
         for code, level in rows:
             shown, is_reference = level, level == reference
+            # A code no crash carries says so; the merged annotation belongs to the codes that
+            # actually brought the crashes, and counts the level, not the code.
+            taken = counts is None or counts.get(code, 0) > 0
             if level in merged:
-                shown = f"{reference} (merged: {merged[level]:,} crashes, fewer than {MIN_LEVEL_CRASHES})"
                 is_reference = True
-            elif present is not None and level not in present:
+                shown = (
+                    f"{reference} (merged: the {level} level's {merged[level]:,} crashes, "
+                    f"fewer than {MIN_LEVEL_CRASHES})"
+                    if taken
+                    else f"{reference} (the {level} level was merged; no crash takes this code)"
+                )
+            elif not taken:
                 shown = f"{level} (no crash takes this value)"
             records.append(
                 {

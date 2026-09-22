@@ -42,8 +42,10 @@ def run_reports(force: bool) -> None:
     io_reports.build_reports(force=force)
 
 
-def run_validate() -> None:
-    validate.run_all()
+def run_validate() -> int:
+    """Run the reconciliation checks; returns how many failed, so the CLI can stop the pipeline."""
+    results, _ = validate.run_all()
+    return int((~results.passed).sum())
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -74,6 +76,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     started = time.perf_counter()
     steps = STEPS if args.step == "all" else (args.step,)
+    failed = 0
     for step in steps:
         if step == "microdata":
             run_microdata(tuple(args.years), args.force)
@@ -84,8 +87,15 @@ def main(argv: list[str] | None = None) -> int:
         elif step == "reports":
             run_reports(args.force)
         elif step == "validate":
-            run_validate()
+            failed = run_validate()
     log.info("done in %.1f s", time.perf_counter() - started)
+    if failed:
+        log.error(
+            "validation failed: %d reconciliation checks did not pass; see %s",
+            failed,
+            validate.VALIDATION_PATH,
+        )
+        return 1
     return 0
 
 

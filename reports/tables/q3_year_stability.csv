@@ -1,181 +1,181 @@
 outcome,year,predictor,predictor_label,level,odds_ratio,or_low,or_high,full_model_odds_ratio,full_model_or_low,full_model_or_high,within_full_interval
-fatal,2016,alignment,Alignment,unknown,0.110472,0.0809307,0.150797,0.112856,0.0673373,0.189146,True
-fatal,2016,crash_type,Crash type,pedestrian struck,5.70932,4.42529,7.3659,6.37687,5.35573,7.5927,True
-fatal,2016,crash_type,Crash type,head-on collision,5.29452,4.33828,6.46153,5.75883,5.21252,6.36239,True
-fatal,2016,zone,Zone,urban crossing,4.0081,2.3399,6.86564,4.24715,2.3997,7.51687,True
-fatal,2016,zone,Zone,interurban road,2.96176,1.90555,4.6034,3.18673,1.74926,5.80546,True
-fatal,2016,road,Road type,dual carriageway,2.63832,1.66522,4.18007,2.35035,1.64462,3.35891,True
-fatal,2016,road,Road type,motorway,2.21238,1.32197,3.70251,2.33282,1.74611,3.11666,True
-fatal,2016,crash_type,Crash type,run-off or overturn,1.61215,1.26135,2.06052,2.08475,1.72078,2.52569,False
-fatal,2016,crash_type,Crash type,rear-end or chain collision,0.437895,0.347899,0.551172,0.497143,0.442836,0.55811,False
-fatal,2016,road,Road type,conventional,2.17764,1.38413,3.42606,2.00153,1.35919,2.94743,True
-fatal,2017,alignment,Alignment,unknown,0.0965119,0.069446,0.134126,0.112856,0.0673373,0.189146,True
-fatal,2017,crash_type,Crash type,pedestrian struck,5.42291,4.19672,7.00737,6.37687,5.35573,7.5927,True
-fatal,2017,crash_type,Crash type,head-on collision,6.12579,5.04594,7.43673,5.75883,5.21252,6.36239,True
-fatal,2017,zone,Zone,urban crossing,2.97502,1.76618,5.01123,4.24715,2.3997,7.51687,True
-fatal,2017,zone,Zone,interurban road,1.59768,1.03614,2.46354,3.18673,1.74926,5.80546,False
-fatal,2017,road,Road type,dual carriageway,4.2766,2.7209,6.72179,2.35035,1.64462,3.35891,False
-fatal,2017,road,Road type,motorway,3.807,2.31032,6.27326,2.33282,1.74611,3.11666,False
-fatal,2017,crash_type,Crash type,run-off or overturn,1.94497,1.5282,2.47541,2.08475,1.72078,2.52569,True
-fatal,2017,crash_type,Crash type,rear-end or chain collision,0.391331,0.309436,0.4949,0.497143,0.442836,0.55811,False
-fatal,2017,road,Road type,conventional,3.3382,2.14151,5.20361,2.00153,1.35919,2.94743,False
-fatal,2018,alignment,Alignment,unknown,0.0909985,0.0659101,0.125637,0.112856,0.0673373,0.189146,True
-fatal,2018,crash_type,Crash type,pedestrian struck,7.01917,5.46771,9.01084,6.37687,5.35573,7.5927,True
-fatal,2018,crash_type,Crash type,head-on collision,5.47401,4.49293,6.66932,5.75883,5.21252,6.36239,True
-fatal,2018,zone,Zone,urban crossing,4.0498,2.33056,7.0373,4.24715,2.3997,7.51687,True
-fatal,2018,zone,Zone,interurban road,2.49997,1.57439,3.96971,3.18673,1.74926,5.80546,True
-fatal,2018,road,Road type,dual carriageway,3.36903,2.08883,5.43384,2.35035,1.64462,3.35891,False
-fatal,2018,road,Road type,motorway,2.80119,1.65631,4.73744,2.33282,1.74611,3.11666,True
-fatal,2018,crash_type,Crash type,run-off or overturn,2.0076,1.58247,2.54694,2.08475,1.72078,2.52569,True
-fatal,2018,crash_type,Crash type,rear-end or chain collision,0.419408,0.332845,0.528484,0.497143,0.442836,0.55811,False
-fatal,2018,road,Road type,conventional,2.48371,1.54922,3.98189,2.00153,1.35919,2.94743,True
-fatal,2019,alignment,Alignment,unknown,0.0905973,0.0658477,0.124649,0.112856,0.0673373,0.189146,True
-fatal,2019,crash_type,Crash type,pedestrian struck,7.03025,5.42259,9.11452,6.37687,5.35573,7.5927,True
-fatal,2019,crash_type,Crash type,head-on collision,5.649,4.62437,6.90065,5.75883,5.21252,6.36239,True
-fatal,2019,zone,Zone,urban crossing,3.42922,1.92781,6.09995,4.24715,2.3997,7.51687,True
-fatal,2019,zone,Zone,interurban road,1.77183,1.09859,2.85764,3.18673,1.74926,5.80546,True
-fatal,2019,road,Road type,dual carriageway,4.99707,3.05697,8.16845,2.35035,1.64462,3.35891,False
-fatal,2019,road,Road type,motorway,4.66643,2.73725,7.95524,2.33282,1.74611,3.11666,False
-fatal,2019,crash_type,Crash type,run-off or overturn,2.0586,1.6159,2.62259,2.08475,1.72078,2.52569,True
-fatal,2019,crash_type,Crash type,rear-end or chain collision,0.451037,0.358095,0.568103,0.497143,0.442836,0.55811,True
-fatal,2019,road,Road type,conventional,2.95246,1.81465,4.8037,2.00153,1.35919,2.94743,False
-fatal,2020,alignment,Alignment,unknown,0.0975592,0.0651035,0.146195,0.112856,0.0673373,0.189146,True
-fatal,2020,crash_type,Crash type,pedestrian struck,6.41351,4.80664,8.55756,6.37687,5.35573,7.5927,True
-fatal,2020,crash_type,Crash type,head-on collision,5.08979,4.042,6.40921,5.75883,5.21252,6.36239,False
-fatal,2020,zone,Zone,urban crossing,3.81844,1.96917,7.4044,4.24715,2.3997,7.51687,True
-fatal,2020,zone,Zone,interurban road,2.85757,1.67895,4.8636,3.18673,1.74926,5.80546,True
-fatal,2020,road,Road type,dual carriageway,2.1822,1.25938,3.78123,2.35035,1.64462,3.35891,True
-fatal,2020,road,Road type,motorway,2.44171,1.34396,4.4361,2.33282,1.74611,3.11666,True
-fatal,2020,crash_type,Crash type,run-off or overturn,2.28577,1.75642,2.97465,2.08475,1.72078,2.52569,True
-fatal,2020,crash_type,Crash type,rear-end or chain collision,0.534853,0.410384,0.697072,0.497143,0.442836,0.55811,True
-fatal,2020,road,Road type,conventional,1.82753,1.06438,3.13785,2.00153,1.35919,2.94743,True
-fatal,2021,alignment,Alignment,unknown,0.120528,0.0867223,0.167512,0.112856,0.0673373,0.189146,True
-fatal,2021,crash_type,Crash type,pedestrian struck,6.02992,4.75591,7.64522,6.37687,5.35573,7.5927,True
-fatal,2021,crash_type,Crash type,head-on collision,4.79156,3.86227,5.94444,5.75883,5.21252,6.36239,False
-fatal,2021,zone,Zone,urban crossing,2.56645,1.48991,4.42084,4.24715,2.3997,7.51687,True
-fatal,2021,zone,Zone,interurban road,2.16358,1.41806,3.30104,3.18673,1.74926,5.80546,True
-fatal,2021,road,Road type,dual carriageway,3.60606,2.30748,5.63545,2.35035,1.64462,3.35891,False
-fatal,2021,road,Road type,motorway,3.9917,2.4359,6.54119,2.33282,1.74611,3.11666,False
-fatal,2021,crash_type,Crash type,run-off or overturn,1.81656,1.44066,2.29053,2.08475,1.72078,2.52569,True
-fatal,2021,crash_type,Crash type,rear-end or chain collision,0.480764,0.376423,0.614028,0.497143,0.442836,0.55811,True
-fatal,2021,road,Road type,conventional,3.46392,2.24572,5.34292,2.00153,1.35919,2.94743,False
-fatal,2022,alignment,Alignment,unknown,0.116727,0.0848873,0.160509,0.112856,0.0673373,0.189146,True
-fatal,2022,crash_type,Crash type,pedestrian struck,6.38688,4.93682,8.26284,6.37687,5.35573,7.5927,True
-fatal,2022,crash_type,Crash type,head-on collision,6.0684,4.94065,7.45357,5.75883,5.21252,6.36239,True
-fatal,2022,zone,Zone,urban crossing,3.04293,1.71426,5.40144,4.24715,2.3997,7.51687,True
-fatal,2022,zone,Zone,interurban road,3.26998,2.07778,5.14626,3.18673,1.74926,5.80546,True
-fatal,2022,road,Road type,dual carriageway,2.31799,1.44263,3.72449,2.35035,1.64462,3.35891,True
-fatal,2022,road,Road type,motorway,2.68903,1.61582,4.47506,2.33282,1.74611,3.11666,True
-fatal,2022,crash_type,Crash type,run-off or overturn,2.21928,1.747,2.81925,2.08475,1.72078,2.52569,True
-fatal,2022,crash_type,Crash type,rear-end or chain collision,0.589111,0.465358,0.745773,0.497143,0.442836,0.55811,False
-fatal,2022,road,Road type,conventional,2.41051,1.51893,3.8254,2.00153,1.35919,2.94743,True
-fatal,2023,alignment,Alignment,unknown,0.127859,0.0930595,0.175671,0.112856,0.0673373,0.189146,True
-fatal,2023,crash_type,Crash type,pedestrian struck,8.10073,6.38143,10.2833,6.37687,5.35573,7.5927,False
-fatal,2023,crash_type,Crash type,head-on collision,5.54849,4.55122,6.76429,5.75883,5.21252,6.36239,True
-fatal,2023,zone,Zone,urban crossing,1.59005,0.938726,2.6933,4.24715,2.3997,7.51687,False
-fatal,2023,zone,Zone,interurban road,1.66225,1.13289,2.43897,3.18673,1.74926,5.80546,False
-fatal,2023,road,Road type,dual carriageway,3.90165,2.59462,5.8671,2.35035,1.64462,3.35891,False
-fatal,2023,road,Road type,motorway,4.6273,2.9625,7.22766,2.33282,1.74611,3.11666,False
-fatal,2023,crash_type,Crash type,run-off or overturn,2.7333,2.2021,3.39263,2.08475,1.72078,2.52569,False
-fatal,2023,crash_type,Crash type,rear-end or chain collision,0.580254,0.462827,0.727474,0.497143,0.442836,0.55811,False
-fatal,2023,road,Road type,conventional,4.2858,2.89284,6.3495,2.00153,1.35919,2.94743,False
-fatal,2024,alignment,Alignment,unknown,0.0931227,0.0658458,0.131699,0.112856,0.0673373,0.189146,True
-fatal,2024,crash_type,Crash type,pedestrian struck,5.10101,3.95003,6.58737,6.37687,5.35573,7.5927,False
-fatal,2024,crash_type,Crash type,head-on collision,6.92705,5.68451,8.4412,5.75883,5.21252,6.36239,False
-fatal,2024,zone,Zone,urban crossing,5.69609,3.64335,8.90539,4.24715,2.3997,7.51687,True
-fatal,2024,zone,Zone,interurban road,5.47837,4.0743,7.36629,3.18673,1.74926,5.80546,True
-fatal,2024,road,Road type,dual carriageway,1.23278,0.88586,1.71557,2.35035,1.64462,3.35891,False
-fatal,2024,road,Road type,motorway,1.33275,0.907934,1.95633,2.33282,1.74611,3.11666,False
-fatal,2024,crash_type,Crash type,run-off or overturn,2.10559,1.6636,2.665,2.08475,1.72078,2.52569,True
-fatal,2024,crash_type,Crash type,rear-end or chain collision,0.648763,0.518125,0.81234,0.497143,0.442836,0.55811,False
-fatal,2024,road,Road type,conventional,1.21071,0.885062,1.65617,2.00153,1.35919,2.94743,False
-serious,2016,alignment,Alignment,unknown,0.126598,0.110589,0.144924,0.164407,0.111615,0.24217,True
-serious,2016,zone,Zone,urban crossing,2.72929,2.13348,3.4915,3.44875,1.7846,6.66471,True
-serious,2016,crash_type,Crash type,head-on collision,3.05727,2.77042,3.37382,3.06307,2.8397,3.30401,True
-serious,2016,crash_type,Crash type,pedestrian struck,2.68663,2.41642,2.98706,2.42381,2.06292,2.84783,True
-serious,2016,crash_type,Crash type,rear-end or chain collision,0.416573,0.383137,0.452927,0.437114,0.392483,0.48682,True
-serious,2016,zone,Zone,interurban road,1.92552,1.60822,2.30543,2.14742,1.38615,3.32678,True
-serious,2016,surface,Road surface,wet,0.583597,0.524673,0.649137,0.620973,0.486382,0.792807,True
-serious,2016,weather,Weather,hail or snow,0.754933,0.47422,1.20181,0.714392,0.566874,0.900298,True
-serious,2016,zone,Zone,urban motorway or dual carriageway,0.406539,0.274096,0.602978,0.726762,0.465245,1.13528,False
-serious,2016,hour_band,Time of day,00-06,1.33958,1.201,1.49415,1.36669,1.21084,1.54261,True
-serious,2017,alignment,Alignment,unknown,0.0995909,0.0853897,0.116154,0.164407,0.111615,0.24217,False
-serious,2017,zone,Zone,urban crossing,2.9982,2.33289,3.85323,3.44875,1.7846,6.66471,True
-serious,2017,crash_type,Crash type,head-on collision,3.26977,2.96571,3.605,3.06307,2.8397,3.30401,True
-serious,2017,crash_type,Crash type,pedestrian struck,2.53304,2.27385,2.82177,2.42381,2.06292,2.84783,True
-serious,2017,crash_type,Crash type,rear-end or chain collision,0.417216,0.38372,0.453637,0.437114,0.392483,0.48682,True
-serious,2017,zone,Zone,interurban road,1.67151,1.36824,2.042,2.14742,1.38615,3.32678,True
-serious,2017,surface,Road surface,wet,0.666884,0.590732,0.752854,0.620973,0.486382,0.792807,True
-serious,2017,weather,Weather,hail or snow,0.460569,0.249764,0.849296,0.714392,0.566874,0.900298,False
-serious,2017,zone,Zone,urban motorway or dual carriageway,0.339605,0.219891,0.524493,0.726762,0.465245,1.13528,False
-serious,2017,hour_band,Time of day,00-06,1.38523,1.24233,1.54457,1.36669,1.21084,1.54261,True
-serious,2018,alignment,Alignment,unknown,0.136518,0.118623,0.157112,0.164407,0.111615,0.24217,True
-serious,2018,zone,Zone,urban crossing,3.39631,2.63125,4.38383,3.44875,1.7846,6.66471,True
-serious,2018,crash_type,Crash type,head-on collision,3.4647,3.13715,3.82646,3.06307,2.8397,3.30401,False
-serious,2018,crash_type,Crash type,pedestrian struck,2.61906,2.34351,2.92701,2.42381,2.06292,2.84783,True
-serious,2018,crash_type,Crash type,rear-end or chain collision,0.47035,0.431643,0.512529,0.437114,0.392483,0.48682,True
-serious,2018,zone,Zone,interurban road,1.6589,1.34939,2.0394,2.14742,1.38615,3.32678,True
-serious,2018,surface,Road surface,wet,0.591691,0.532452,0.657522,0.620973,0.486382,0.792807,True
-serious,2018,weather,Weather,hail or snow,0.881362,0.619559,1.25379,0.714392,0.566874,0.900298,True
-serious,2018,zone,Zone,urban motorway or dual carriageway,0.445332,0.29136,0.680674,0.726762,0.465245,1.13528,False
-serious,2018,hour_band,Time of day,00-06,1.40594,1.25997,1.56882,1.36669,1.21084,1.54261,True
-serious,2019,alignment,Alignment,unknown,0.168621,0.147493,0.192777,0.164407,0.111615,0.24217,True
-serious,2019,zone,Zone,urban crossing,2.38274,1.81726,3.12418,3.44875,1.7846,6.66471,True
-serious,2019,crash_type,Crash type,head-on collision,3.16933,2.87787,3.49031,3.06307,2.8397,3.30401,True
-serious,2019,crash_type,Crash type,pedestrian struck,2.49112,2.22862,2.78454,2.42381,2.06292,2.84783,True
-serious,2019,crash_type,Crash type,rear-end or chain collision,0.390919,0.356866,0.428222,0.437114,0.392483,0.48682,False
-serious,2019,zone,Zone,interurban road,1.40089,1.13984,1.72174,2.14742,1.38615,3.32678,True
-serious,2019,surface,Road surface,wet,0.573421,0.500916,0.65642,0.620973,0.486382,0.792807,True
-serious,2019,weather,Weather,hail or snow,0.874999,0.499627,1.53239,0.714392,0.566874,0.900298,True
-serious,2019,zone,Zone,urban motorway or dual carriageway,0.832889,0.348596,1.98999,0.726762,0.465245,1.13528,True
-serious,2019,hour_band,Time of day,00-06,1.41353,1.26526,1.57918,1.36669,1.21084,1.54261,True
-serious,2020,alignment,Alignment,unknown,0.166632,0.142125,0.195365,0.164407,0.111615,0.24217,True
-serious,2020,zone,Zone,urban crossing,3.22938,2.4253,4.30003,3.44875,1.7846,6.66471,True
-serious,2020,crash_type,Crash type,head-on collision,2.78131,2.4882,3.10895,3.06307,2.8397,3.30401,False
-serious,2020,crash_type,Crash type,pedestrian struck,2.13124,1.87988,2.41622,2.42381,2.06292,2.84783,True
-serious,2020,crash_type,Crash type,rear-end or chain collision,0.431069,0.388402,0.478423,0.437114,0.392483,0.48682,True
-serious,2020,zone,Zone,interurban road,1.71151,1.38175,2.11996,2.14742,1.38615,3.32678,True
-serious,2020,surface,Road surface,wet,0.627176,0.542747,0.724739,0.620973,0.486382,0.792807,True
-serious,2020,weather,Weather,hail or snow,0.664644,0.329299,1.34149,0.714392,0.566874,0.900298,True
-serious,2020,zone,Zone,urban motorway or dual carriageway,0.917056,0.354591,2.37172,0.726762,0.465245,1.13528,True
-serious,2020,hour_band,Time of day,00-06,1.47625,1.30364,1.67172,1.36669,1.21084,1.54261,True
-serious,2021,alignment,Alignment,unknown,0.15461,0.133817,0.178635,0.164407,0.111615,0.24217,True
-serious,2021,zone,Zone,urban crossing,2.0038,1.54416,2.60027,3.44875,1.7846,6.66471,True
-serious,2021,crash_type,Crash type,head-on collision,2.74033,2.47179,3.03803,3.06307,2.8397,3.30401,False
-serious,2021,crash_type,Crash type,pedestrian struck,2.19876,1.99814,2.41954,2.42381,2.06292,2.84783,True
-serious,2021,crash_type,Crash type,rear-end or chain collision,0.38881,0.352372,0.429017,0.437114,0.392483,0.48682,False
-serious,2021,zone,Zone,interurban road,1.49123,1.2264,1.81325,2.14742,1.38615,3.32678,True
-serious,2021,surface,Road surface,wet,0.6767,0.591374,0.774337,0.620973,0.486382,0.792807,True
-serious,2021,weather,Weather,hail or snow,0.586054,0.354484,0.968901,0.714392,0.566874,0.900298,True
-serious,2021,zone,Zone,urban motorway or dual carriageway,0.634275,0.377214,1.06652,0.726762,0.465245,1.13528,True
-serious,2021,hour_band,Time of day,00-06,1.43774,1.27701,1.6187,1.36669,1.21084,1.54261,True
-serious,2022,alignment,Alignment,unknown,0.1842,0.161785,0.20972,0.164407,0.111615,0.24217,True
-serious,2022,zone,Zone,urban crossing,3.07316,2.40384,3.92885,3.44875,1.7846,6.66471,True
-serious,2022,crash_type,Crash type,head-on collision,2.86506,2.595,3.16322,3.06307,2.8397,3.30401,True
-serious,2022,crash_type,Crash type,pedestrian struck,2.35373,2.11298,2.62192,2.42381,2.06292,2.84783,True
-serious,2022,crash_type,Crash type,rear-end or chain collision,0.451538,0.411289,0.495725,0.437114,0.392483,0.48682,True
-serious,2022,zone,Zone,interurban road,1.93906,1.59834,2.35241,2.14742,1.38615,3.32678,True
-serious,2022,surface,Road surface,wet,0.708082,0.622353,0.80562,0.620973,0.486382,0.792807,True
-serious,2022,weather,Weather,hail or snow,1.04504,0.51065,2.13866,0.714392,0.566874,0.900298,False
-serious,2022,zone,Zone,urban motorway or dual carriageway,3.07957,1.43954,6.58805,0.726762,0.465245,1.13528,False
-serious,2022,hour_band,Time of day,00-06,1.32836,1.1921,1.4802,1.36669,1.21084,1.54261,True
-serious,2023,alignment,Alignment,unknown,0.165442,0.145073,0.188671,0.164407,0.111615,0.24217,True
-serious,2023,zone,Zone,urban crossing,2.03183,1.59722,2.58469,3.44875,1.7846,6.66471,True
-serious,2023,crash_type,Crash type,head-on collision,2.91728,2.6499,3.21164,3.06307,2.8397,3.30401,True
-serious,2023,crash_type,Crash type,pedestrian struck,2.58496,2.33265,2.86457,2.42381,2.06292,2.84783,True
-serious,2023,crash_type,Crash type,rear-end or chain collision,0.477499,0.437585,0.521054,0.437114,0.392483,0.48682,True
-serious,2023,zone,Zone,interurban road,1.48924,1.24712,1.77837,2.14742,1.38615,3.32678,True
-serious,2023,surface,Road surface,wet,0.638856,0.559993,0.728824,0.620973,0.486382,0.792807,True
-serious,2023,weather,Weather,hail or snow,0.304507,0.122568,0.756517,0.714392,0.566874,0.900298,False
-serious,2023,zone,Zone,urban motorway or dual carriageway,3.1795,1.37424,7.35621,0.726762,0.465245,1.13528,False
-serious,2023,hour_band,Time of day,00-06,1.21446,1.09223,1.35037,1.36669,1.21084,1.54261,True
-serious,2024,alignment,Alignment,unknown,0.156965,0.138162,0.178327,0.164407,0.111615,0.24217,True
-serious,2024,zone,Zone,urban crossing,4.52864,3.7282,5.50092,3.44875,1.7846,6.66471,True
-serious,2024,crash_type,Crash type,head-on collision,2.91081,2.64678,3.20117,3.06307,2.8397,3.30401,True
-serious,2024,crash_type,Crash type,pedestrian struck,2.24638,2.02832,2.48787,2.42381,2.06292,2.84783,True
-serious,2024,crash_type,Crash type,rear-end or chain collision,0.480934,0.441376,0.524038,0.437114,0.392483,0.48682,True
-serious,2024,zone,Zone,interurban road,3.1217,2.75188,3.54121,2.14742,1.38615,3.32678,True
-serious,2024,surface,Road surface,wet,0.598679,0.529708,0.676631,0.620973,0.486382,0.792807,True
-serious,2024,weather,Weather,hail or snow,0.912905,0.536631,1.55301,0.714392,0.566874,0.900298,False
-serious,2024,zone,Zone,urban motorway or dual carriageway,3.45346,1.41926,8.40323,0.726762,0.465245,1.13528,False
-serious,2024,hour_band,Time of day,00-06,1.33726,1.20549,1.48343,1.36669,1.21084,1.54261,True
+fatal,2016,crash_type,Crash type,pedestrian struck,5.70932,4.5038,7.2375,6.37687,5.35573,7.5927,True
+fatal,2016,crash_type,Crash type,head-on collision,5.29452,4.25165,6.5932,5.75883,5.21252,6.36239,True
+fatal,2016,zone,Zone,urban crossing,4.0081,2.3067,6.96445,4.24715,2.3997,7.51687,True
+fatal,2016,zone,Zone,interurban road,2.96176,1.86499,4.7035,3.18673,1.74926,5.80546,True
+fatal,2016,road,Road type,dual carriageway,2.63832,1.45512,4.78362,2.35035,1.64462,3.35891,True
+fatal,2016,road,Road type,motorway,2.21238,1.01265,4.83349,2.33282,1.74611,3.11666,True
+fatal,2016,crash_type,Crash type,run-off or overturn,1.61215,1.23186,2.10985,2.08475,1.72078,2.52569,False
+fatal,2016,crash_type,Crash type,rear-end or chain collision,0.437895,0.345833,0.554464,0.497143,0.442836,0.55811,False
+fatal,2016,road,Road type,conventional,2.17764,1.22311,3.8771,2.00153,1.35919,2.94743,True
+fatal,2016,road,Road type,other road,1.8509,1.20778,2.83648,1.78243,1.25513,2.53125,True
+fatal,2017,crash_type,Crash type,pedestrian struck,5.42291,4.05559,7.25122,6.37687,5.35573,7.5927,True
+fatal,2017,crash_type,Crash type,head-on collision,6.12579,4.59772,8.16173,5.75883,5.21252,6.36239,True
+fatal,2017,zone,Zone,urban crossing,2.97502,1.60139,5.52692,4.24715,2.3997,7.51687,True
+fatal,2017,zone,Zone,interurban road,1.59768,0.94262,2.70795,3.18673,1.74926,5.80546,False
+fatal,2017,road,Road type,dual carriageway,4.2766,2.2,8.3133,2.35035,1.64462,3.35891,False
+fatal,2017,road,Road type,motorway,3.807,1.66621,8.69833,2.33282,1.74611,3.11666,False
+fatal,2017,crash_type,Crash type,run-off or overturn,1.94497,1.34415,2.81435,2.08475,1.72078,2.52569,True
+fatal,2017,crash_type,Crash type,rear-end or chain collision,0.391331,0.302998,0.505416,0.497143,0.442836,0.55811,False
+fatal,2017,road,Road type,conventional,3.3382,1.93305,5.76477,2.00153,1.35919,2.94743,False
+fatal,2017,road,Road type,other road,2.8901,1.77461,4.70675,1.78243,1.25513,2.53125,False
+fatal,2018,crash_type,Crash type,pedestrian struck,7.01917,5.03313,9.78888,6.37687,5.35573,7.5927,True
+fatal,2018,crash_type,Crash type,head-on collision,5.47401,4.46774,6.70694,5.75883,5.21252,6.36239,True
+fatal,2018,zone,Zone,urban crossing,4.0498,2.02443,8.10145,4.24715,2.3997,7.51687,True
+fatal,2018,zone,Zone,interurban road,2.49997,1.52265,4.1046,3.18673,1.74926,5.80546,True
+fatal,2018,road,Road type,dual carriageway,3.36903,1.64722,6.8906,2.35035,1.64462,3.35891,False
+fatal,2018,road,Road type,motorway,2.80119,1.30058,6.03319,2.33282,1.74611,3.11666,True
+fatal,2018,crash_type,Crash type,run-off or overturn,2.0076,1.37814,2.92457,2.08475,1.72078,2.52569,True
+fatal,2018,crash_type,Crash type,rear-end or chain collision,0.419408,0.324652,0.54182,0.497143,0.442836,0.55811,False
+fatal,2018,road,Road type,conventional,2.48371,1.41567,4.35753,2.00153,1.35919,2.94743,True
+fatal,2018,road,Road type,other road,2.49405,1.57453,3.95057,1.78243,1.25513,2.53125,True
+fatal,2019,crash_type,Crash type,pedestrian struck,7.03025,5.27301,9.37309,6.37687,5.35573,7.5927,True
+fatal,2019,crash_type,Crash type,head-on collision,5.649,4.62509,6.89958,5.75883,5.21252,6.36239,True
+fatal,2019,zone,Zone,urban crossing,3.42922,1.92537,6.1077,4.24715,2.3997,7.51687,True
+fatal,2019,zone,Zone,interurban road,1.77183,1.08073,2.90487,3.18673,1.74926,5.80546,True
+fatal,2019,road,Road type,dual carriageway,4.99707,2.93166,8.51761,2.35035,1.64462,3.35891,False
+fatal,2019,road,Road type,motorway,4.66643,2.38658,9.12414,2.33282,1.74611,3.11666,False
+fatal,2019,crash_type,Crash type,run-off or overturn,2.0586,1.59802,2.65192,2.08475,1.72078,2.52569,True
+fatal,2019,crash_type,Crash type,rear-end or chain collision,0.451037,0.355,0.573056,0.497143,0.442836,0.55811,True
+fatal,2019,road,Road type,conventional,2.95246,1.85317,4.70384,2.00153,1.35919,2.94743,False
+fatal,2019,road,Road type,other road,2.58121,1.64704,4.04521,1.78243,1.25513,2.53125,False
+fatal,2020,crash_type,Crash type,pedestrian struck,6.41351,4.29521,9.57651,6.37687,5.35573,7.5927,True
+fatal,2020,crash_type,Crash type,head-on collision,5.08979,4.03471,6.42079,5.75883,5.21252,6.36239,False
+fatal,2020,zone,Zone,urban crossing,3.81844,1.78698,8.15931,4.24715,2.3997,7.51687,True
+fatal,2020,zone,Zone,interurban road,2.85757,1.55782,5.24177,3.18673,1.74926,5.80546,True
+fatal,2020,road,Road type,dual carriageway,2.1822,1.14967,4.14207,2.35035,1.64462,3.35891,True
+fatal,2020,road,Road type,motorway,2.44171,1.26949,4.69634,2.33282,1.74611,3.11666,True
+fatal,2020,crash_type,Crash type,run-off or overturn,2.28577,1.61611,3.23291,2.08475,1.72078,2.52569,True
+fatal,2020,crash_type,Crash type,rear-end or chain collision,0.534853,0.414782,0.689682,0.497143,0.442836,0.55811,True
+fatal,2020,road,Road type,conventional,1.82753,0.996198,3.3526,2.00153,1.35919,2.94743,True
+fatal,2020,road,Road type,other road,1.89795,1.19436,3.01603,1.78243,1.25513,2.53125,True
+fatal,2021,crash_type,Crash type,pedestrian struck,6.02992,4.50865,8.06448,6.37687,5.35573,7.5927,True
+fatal,2021,crash_type,Crash type,head-on collision,4.79156,3.89192,5.89917,5.75883,5.21252,6.36239,False
+fatal,2021,zone,Zone,urban crossing,2.56645,1.42473,4.6231,4.24715,2.3997,7.51687,True
+fatal,2021,zone,Zone,interurban road,2.16358,1.30699,3.58157,3.18673,1.74926,5.80546,True
+fatal,2021,road,Road type,dual carriageway,3.60606,2.12562,6.1176,2.35035,1.64462,3.35891,False
+fatal,2021,road,Road type,motorway,3.9917,1.82844,8.71437,2.33282,1.74611,3.11666,False
+fatal,2021,crash_type,Crash type,run-off or overturn,1.81656,1.38167,2.38832,2.08475,1.72078,2.52569,True
+fatal,2021,crash_type,Crash type,rear-end or chain collision,0.480764,0.344724,0.670491,0.497143,0.442836,0.55811,True
+fatal,2021,road,Road type,conventional,3.46392,2.02745,5.91812,2.00153,1.35919,2.94743,False
+fatal,2021,road,Road type,other road,3.12337,2.09399,4.65879,1.78243,1.25513,2.53125,False
+fatal,2022,crash_type,Crash type,pedestrian struck,6.38688,4.81744,8.46761,6.37687,5.35573,7.5927,True
+fatal,2022,crash_type,Crash type,head-on collision,6.0684,4.82078,7.6389,5.75883,5.21252,6.36239,True
+fatal,2022,zone,Zone,urban crossing,3.04293,1.36351,6.79087,4.24715,2.3997,7.51687,True
+fatal,2022,zone,Zone,interurban road,3.26998,1.89138,5.65343,3.18673,1.74926,5.80546,True
+fatal,2022,road,Road type,dual carriageway,2.31799,1.34439,3.99666,2.35035,1.64462,3.35891,True
+fatal,2022,road,Road type,motorway,2.68903,1.36757,5.2874,2.33282,1.74611,3.11666,True
+fatal,2022,crash_type,Crash type,run-off or overturn,2.21928,1.62719,3.02682,2.08475,1.72078,2.52569,True
+fatal,2022,crash_type,Crash type,rear-end or chain collision,0.589111,0.461521,0.751974,0.497143,0.442836,0.55811,False
+fatal,2022,road,Road type,conventional,2.41051,1.38136,4.20639,2.00153,1.35919,2.94743,True
+fatal,2022,road,Road type,other road,2.11623,1.33463,3.35556,1.78243,1.25513,2.53125,True
+fatal,2023,crash_type,Crash type,pedestrian struck,8.10073,6.30178,10.4132,6.37687,5.35573,7.5927,False
+fatal,2023,crash_type,Crash type,head-on collision,5.54849,4.71883,6.52402,5.75883,5.21252,6.36239,True
+fatal,2023,zone,Zone,urban crossing,1.59005,0.774613,3.26391,4.24715,2.3997,7.51687,False
+fatal,2023,zone,Zone,interurban road,1.66225,0.975032,2.83383,3.18673,1.74926,5.80546,False
+fatal,2023,road,Road type,dual carriageway,3.90165,2.26878,6.70973,2.35035,1.64462,3.35891,False
+fatal,2023,road,Road type,motorway,4.6273,2.55299,8.38702,2.33282,1.74611,3.11666,False
+fatal,2023,crash_type,Crash type,run-off or overturn,2.7333,2.20211,3.39262,2.08475,1.72078,2.52569,False
+fatal,2023,crash_type,Crash type,rear-end or chain collision,0.580254,0.388941,0.86567,0.497143,0.442836,0.55811,False
+fatal,2023,road,Road type,conventional,4.2858,2.4824,7.39931,2.00153,1.35919,2.94743,False
+fatal,2023,road,Road type,other road,3.5512,2.18715,5.76596,1.78243,1.25513,2.53125,False
+fatal,2024,crash_type,Crash type,pedestrian struck,5.10101,3.69881,7.03477,6.37687,5.35573,7.5927,False
+fatal,2024,crash_type,Crash type,head-on collision,6.92705,5.59255,8.57999,5.75883,5.21252,6.36239,False
+fatal,2024,zone,Zone,urban crossing,5.69609,2.38958,13.5779,4.24715,2.3997,7.51687,True
+fatal,2024,zone,Zone,interurban road,5.47837,2.57856,11.6392,3.18673,1.74926,5.80546,True
+fatal,2024,road,Road type,dual carriageway,1.23278,0.644704,2.35729,2.35035,1.64462,3.35891,False
+fatal,2024,road,Road type,motorway,1.33275,0.665201,2.67019,2.33282,1.74611,3.11666,False
+fatal,2024,crash_type,Crash type,run-off or overturn,2.10559,1.54662,2.86658,2.08475,1.72078,2.52569,True
+fatal,2024,crash_type,Crash type,rear-end or chain collision,0.648763,0.502979,0.836802,0.497143,0.442836,0.55811,False
+fatal,2024,road,Road type,conventional,1.21071,0.595688,2.46071,2.00153,1.35919,2.94743,False
+fatal,2024,road,Road type,other road,1.03171,0.538336,1.97725,1.78243,1.25513,2.53125,False
+serious,2016,zone,Zone,urban crossing,2.72929,1.56636,4.75565,3.44875,1.7846,6.66471,True
+serious,2016,crash_type,Crash type,head-on collision,3.05727,2.70696,3.45291,3.06307,2.8397,3.30401,True
+serious,2016,crash_type,Crash type,pedestrian struck,2.68663,2.34745,3.07482,2.42381,2.06292,2.84783,True
+serious,2016,crash_type,Crash type,rear-end or chain collision,0.416573,0.34607,0.501438,0.437114,0.392483,0.48682,True
+serious,2016,zone,Zone,interurban road,1.92552,1.55749,2.38052,2.14742,1.38615,3.32678,True
+serious,2016,surface,Road surface,wet,0.583597,0.415532,0.819636,0.620973,0.486382,0.792807,True
+serious,2016,weather,Weather,hail or snow,0.754933,0.452131,1.26053,0.714392,0.566874,0.900298,True
+serious,2016,zone,Zone,urban motorway or dual carriageway,0.406539,0.233579,0.707572,0.726762,0.465245,1.13528,False
+serious,2016,hour_band,Time of day,00-06,1.33958,1.20931,1.48389,1.36669,1.21084,1.54261,True
+serious,2016,road,Road type,other road,1.5311,1.11996,2.09317,1.30072,1.098,1.54087,True
+serious,2017,zone,Zone,urban crossing,2.9982,1.83571,4.89684,3.44875,1.7846,6.66471,True
+serious,2017,crash_type,Crash type,head-on collision,3.26977,2.72822,3.91881,3.06307,2.8397,3.30401,True
+serious,2017,crash_type,Crash type,pedestrian struck,2.53304,2.08488,3.07753,2.42381,2.06292,2.84783,True
+serious,2017,crash_type,Crash type,rear-end or chain collision,0.417216,0.324192,0.536934,0.437114,0.392483,0.48682,True
+serious,2017,zone,Zone,interurban road,1.67151,1.28045,2.18199,2.14742,1.38615,3.32678,True
+serious,2017,surface,Road surface,wet,0.666884,0.535142,0.831058,0.620973,0.486382,0.792807,True
+serious,2017,weather,Weather,hail or snow,0.460569,0.231157,0.917661,0.714392,0.566874,0.900298,False
+serious,2017,zone,Zone,urban motorway or dual carriageway,0.339605,0.165267,0.697847,0.726762,0.465245,1.13528,False
+serious,2017,hour_band,Time of day,00-06,1.38523,1.24425,1.54219,1.36669,1.21084,1.54261,True
+serious,2017,road,Road type,other road,1.59459,1.18659,2.14287,1.30072,1.098,1.54087,False
+serious,2018,zone,Zone,urban crossing,3.39631,2.26563,5.09128,3.44875,1.7846,6.66471,True
+serious,2018,crash_type,Crash type,head-on collision,3.4647,2.98022,4.02795,3.06307,2.8397,3.30401,False
+serious,2018,crash_type,Crash type,pedestrian struck,2.61906,1.97244,3.47765,2.42381,2.06292,2.84783,True
+serious,2018,crash_type,Crash type,rear-end or chain collision,0.47035,0.363578,0.608478,0.437114,0.392483,0.48682,True
+serious,2018,zone,Zone,interurban road,1.6589,1.28432,2.14273,2.14742,1.38615,3.32678,True
+serious,2018,surface,Road surface,wet,0.591691,0.45158,0.775276,0.620973,0.486382,0.792807,True
+serious,2018,weather,Weather,hail or snow,0.881362,0.545849,1.4231,0.714392,0.566874,0.900298,True
+serious,2018,zone,Zone,urban motorway or dual carriageway,0.445332,0.24232,0.818425,0.726762,0.465245,1.13528,False
+serious,2018,hour_band,Time of day,00-06,1.40594,1.21578,1.62585,1.36669,1.21084,1.54261,True
+serious,2018,road,Road type,other road,1.68317,1.32411,2.1396,1.30072,1.098,1.54087,False
+serious,2019,zone,Zone,urban crossing,2.38274,1.80985,3.13696,3.44875,1.7846,6.66471,True
+serious,2019,crash_type,Crash type,head-on collision,3.16933,2.82831,3.55147,3.06307,2.8397,3.30401,True
+serious,2019,crash_type,Crash type,pedestrian struck,2.49112,2.04349,3.03681,2.42381,2.06292,2.84783,True
+serious,2019,crash_type,Crash type,rear-end or chain collision,0.390919,0.329323,0.464037,0.437114,0.392483,0.48682,False
+serious,2019,zone,Zone,interurban road,1.40089,1.12807,1.7397,2.14742,1.38615,3.32678,True
+serious,2019,surface,Road surface,wet,0.573421,0.412157,0.797781,0.620973,0.486382,0.792807,True
+serious,2019,weather,Weather,hail or snow,0.874999,0.472291,1.62108,0.714392,0.566874,0.900298,True
+serious,2019,zone,Zone,urban motorway or dual carriageway,0.832889,0.326871,2.12225,0.726762,0.465245,1.13528,True
+serious,2019,hour_band,Time of day,00-06,1.41353,1.2398,1.61161,1.36669,1.21084,1.54261,True
+serious,2019,road,Road type,other road,1.92873,1.48471,2.50553,1.30072,1.098,1.54087,False
+serious,2020,zone,Zone,urban crossing,3.22938,1.54593,6.74601,3.44875,1.7846,6.66471,True
+serious,2020,crash_type,Crash type,head-on collision,2.78131,2.49239,3.10371,3.06307,2.8397,3.30401,False
+serious,2020,crash_type,Crash type,pedestrian struck,2.13124,1.66412,2.72948,2.42381,2.06292,2.84783,True
+serious,2020,crash_type,Crash type,rear-end or chain collision,0.431069,0.378094,0.491466,0.437114,0.392483,0.48682,True
+serious,2020,zone,Zone,interurban road,1.71151,1.07631,2.72159,2.14742,1.38615,3.32678,True
+serious,2020,surface,Road surface,wet,0.627176,0.484635,0.811641,0.620973,0.486382,0.792807,True
+serious,2020,weather,Weather,hail or snow,0.664644,0.364833,1.21083,0.714392,0.566874,0.900298,True
+serious,2020,zone,Zone,urban motorway or dual carriageway,0.917056,0.338151,2.48703,0.726762,0.465245,1.13528,True
+serious,2020,hour_band,Time of day,00-06,1.47625,1.25575,1.73547,1.36669,1.21084,1.54261,True
+serious,2020,road,Road type,other road,1.83004,1.50896,2.21943,1.30072,1.098,1.54087,False
+serious,2021,zone,Zone,urban crossing,2.0038,1.41445,2.83872,3.44875,1.7846,6.66471,True
+serious,2021,crash_type,Crash type,head-on collision,2.74033,2.43243,3.08719,3.06307,2.8397,3.30401,False
+serious,2021,crash_type,Crash type,pedestrian struck,2.19876,1.93477,2.49878,2.42381,2.06292,2.84783,True
+serious,2021,crash_type,Crash type,rear-end or chain collision,0.38881,0.311721,0.484964,0.437114,0.392483,0.48682,False
+serious,2021,zone,Zone,interurban road,1.49123,1.11775,1.98952,2.14742,1.38615,3.32678,True
+serious,2021,surface,Road surface,wet,0.6767,0.532458,0.860017,0.620973,0.486382,0.792807,True
+serious,2021,weather,Weather,hail or snow,0.586054,0.378121,0.908332,0.714392,0.566874,0.900298,True
+serious,2021,zone,Zone,urban motorway or dual carriageway,0.634275,0.342662,1.17406,0.726762,0.465245,1.13528,True
+serious,2021,hour_band,Time of day,00-06,1.43774,1.17896,1.75334,1.36669,1.21084,1.54261,True
+serious,2021,road,Road type,other road,1.64177,1.32397,2.03586,1.30072,1.098,1.54087,False
+serious,2022,zone,Zone,urban crossing,3.07316,1.80509,5.23204,3.44875,1.7846,6.66471,True
+serious,2022,crash_type,Crash type,head-on collision,2.86506,2.56133,3.2048,3.06307,2.8397,3.30401,True
+serious,2022,crash_type,Crash type,pedestrian struck,2.35373,1.99629,2.77518,2.42381,2.06292,2.84783,True
+serious,2022,crash_type,Crash type,rear-end or chain collision,0.451538,0.399283,0.51063,0.437114,0.392483,0.48682,True
+serious,2022,zone,Zone,interurban road,1.93906,1.41716,2.65315,2.14742,1.38615,3.32678,True
+serious,2022,surface,Road surface,wet,0.708082,0.560662,0.894265,0.620973,0.486382,0.792807,True
+serious,2022,weather,Weather,hail or snow,1.04504,0.53102,2.05662,0.714392,0.566874,0.900298,False
+serious,2022,zone,Zone,urban motorway or dual carriageway,3.07957,1.61965,5.85542,0.726762,0.465245,1.13528,False
+serious,2022,hour_band,Time of day,00-06,1.32836,1.11921,1.57659,1.36669,1.21084,1.54261,True
+serious,2022,road,Road type,other road,1.48788,1.18775,1.86386,1.30072,1.098,1.54087,True
+serious,2023,zone,Zone,urban crossing,2.03224,1.23011,3.35743,3.44875,1.7846,6.66471,True
+serious,2023,crash_type,Crash type,head-on collision,2.91728,2.62017,3.24808,3.06307,2.8397,3.30401,True
+serious,2023,crash_type,Crash type,pedestrian struck,2.58484,2.11129,3.1646,2.42381,2.06292,2.84783,True
+serious,2023,crash_type,Crash type,rear-end or chain collision,0.477494,0.410989,0.554761,0.437114,0.392483,0.48682,True
+serious,2023,zone,Zone,interurban road,1.48954,0.998358,2.22239,2.14742,1.38615,3.32678,True
+serious,2023,surface,Road surface,wet,0.638863,0.522203,0.781585,0.620973,0.486382,0.792807,True
+serious,2023,weather,Weather,hail or snow,0.304498,0.11402,0.813184,0.714392,0.566874,0.900298,False
+serious,2023,zone,Zone,urban motorway or dual carriageway,3.18012,1.68139,6.01473,0.726762,0.465245,1.13528,False
+serious,2023,hour_band,Time of day,00-06,1.21444,1.01327,1.45556,1.36669,1.21084,1.54261,True
+serious,2023,road,Road type,other road,1.87641,1.34228,2.62308,1.30072,1.098,1.54087,False
+serious,2024,zone,Zone,urban crossing,4.52864,2.06831,9.91558,3.44875,1.7846,6.66471,True
+serious,2024,crash_type,Crash type,head-on collision,2.91081,2.48848,3.40481,3.06307,2.8397,3.30401,True
+serious,2024,crash_type,Crash type,pedestrian struck,2.24638,1.80994,2.78804,2.42381,2.06292,2.84783,True
+serious,2024,crash_type,Crash type,rear-end or chain collision,0.480934,0.390131,0.592872,0.437114,0.392483,0.48682,True
+serious,2024,zone,Zone,interurban road,3.1217,1.92926,5.05115,2.14742,1.38615,3.32678,True
+serious,2024,surface,Road surface,wet,0.598679,0.449612,0.79717,0.620973,0.486382,0.792807,True
+serious,2024,weather,Weather,hail or snow,0.912905,0.52719,1.58082,0.714392,0.566874,0.900298,False
+serious,2024,zone,Zone,urban motorway or dual carriageway,3.45346,1.24882,9.5501,0.726762,0.465245,1.13528,False
+serious,2024,hour_band,Time of day,00-06,1.33726,1.09885,1.62741,1.36669,1.21084,1.54261,True
+serious,2024,road,Road type,other road,0.940185,0.706985,1.25031,1.30072,1.098,1.54087,False

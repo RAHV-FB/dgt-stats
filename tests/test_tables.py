@@ -194,6 +194,26 @@ def test_vehicle_tables_2020_to_2024_and_both_2_2_layouts() -> None:
     assert (roles.driver + roles.passenger + roles.pedestrian == roles.total).all()
     assert set(single.unit_type) - {"Total"} == set(vehicles.UNIT_TO_GROUP)
 
+    victims = tables.read_victims_by_mode_all()
+    assert sorted(victims.year.unique()) == list(tables.VEHICLE_TABLE_YEARS)
+    totals = (
+        victims[victims.is_total & (victims.metric == "deaths_30d") & (victims.role == "total")]
+        .set_index(["year", "zone"])
+        .value.to_dict()
+    )
+    assert totals == {
+        (2020, "interurban"): 975.0,
+        (2020, "urban"): 395.0,
+        (2021, "interurban"): 1_116.0,
+        (2021, "urban"): 417.0,
+        (2022, "interurban"): 1_273.0,
+        (2022, "urban"): 473.0,
+        (2023, "interurban"): 1_288.0,
+        (2023, "urban"): 518.0,
+        (2024, "interurban"): 1_291.0,
+        (2024, "urban"): 494.0,
+    }
+
 
 def test_vehicle_groups_cover_every_source_once() -> None:
     units = [unit for spec in vehicles.VEHICLE_GROUPS.values() for unit in spec["units"]]

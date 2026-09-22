@@ -1,8 +1,9 @@
+import openpyxl
 import pandas as pd
 import pytest
 
 from dgt_stats import io_microdata as io
-from dgt_stats.paths import MICRODATA_YEARS
+from dgt_stats.paths import MICRODATA_YEARS, microdata_raw_path
 
 EXPECTED_ROWS = {
     2016: 102_362,
@@ -68,6 +69,29 @@ def test_harmonise_rejects_unknown_columns() -> None:
 def test_harmonise_rejects_wrong_year() -> None:
     with pytest.raises(ValueError, match="ANYO"):
         io.harmonise(_synthetic(2016, "SECUENCIAL", {}), 2017)
+
+
+def _raw_header(year: int) -> list[str]:
+    workbook = openpyxl.load_workbook(microdata_raw_path(year), read_only=True)
+    header = [
+        str(cell).strip() for cell in next(workbook.worksheets[0].iter_rows(values_only=True))
+    ]
+    workbook.close()
+    return header
+
+
+@pytest.mark.skipif(
+    not all(microdata_raw_path(year).exists() for year in MICRODATA_YEARS),
+    reason="download the raw microdata workbooks first",
+)
+def test_canonical_columns_match_the_raw_headers() -> None:
+    """The schema is pinned to the published files, not to the constant the fixtures build on."""
+    assert len(io.CANONICAL_COLUMNS) == 74
+    assert io.CANONICAL_COLUMNS[0] == "ID_ACCIDENTE"
+    for year in MICRODATA_YEARS:
+        header = set(_raw_header(year))
+        rebuilt = (header - {io.LEGACY_ID_COLUMN}) | {io.ID_COLUMN} | set(io.OPTIONAL_COLUMNS)
+        assert rebuilt == set(io.CANONICAL_COLUMNS), year
 
 
 @pytest.mark.skipif(

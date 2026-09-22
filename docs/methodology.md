@@ -16,8 +16,8 @@ vehicle and recorded infraction but cannot be linked to crashes.
 
 | Source | Unit | Years | Used for |
 |---|---|---|---|
-| crash microdata | injury crash | 2016–2024 | timing, road users, severity models, 2019 case study, occupant deaths by vehicle |
-| yearbook series | year, month or province totals | 1993–2024 | trends, 2006 case study, reference totals for reconciliation |
+| crash microdata | injury crash | 2016–2024 | timing, road users, severity models, 2019 case study |
+| yearbook series | year, month or province totals | 1993–2024 | trends, occupant deaths by vehicle, 2006 case study, reference totals for reconciliation |
 | yearly statistical tables | aggregate cells | 2014–2024 | vehicles involved, victims by mode, drivers by age, sex and infraction |
 | driver census | licence holders by province, sex, age | 2014–2025 | denominators |
 | INE population | residents by province, age, sex | 2002–2025 | denominators |
@@ -31,8 +31,9 @@ derived fields (`data/processed/`), and every result table and figure is written
 
 ## 2. Reconciliation before analysis
 
-No summary is published until the interim layer reconciles with DGT's own totals
-(`validate.py`, 434 checks, all enforced by `tests/test_validate.py`):
+No summary is published until the crash microdata, the yearbook tables and the driver census
+reconcile with DGT's own totals (`validate.py`, 434 checks, all enforced by
+`tests/test_validate.py`):
 
 | Check | What must agree | Tolerance |
 |---|---|---|
@@ -43,7 +44,12 @@ No summary is published until the interim layer reconciles with DGT's own totals
 | table_2_2_deaths | deaths by means of transport in tables 2.2 against the microdata death columns, 2020–2024 | exact |
 | table_2_3_vehicles | vehicles involved in tables 2.3 against the microdata vehicle count, 2020–2024 | 0.1 % |
 | census_2025, census_age_2023 | the census text files against the published census tables | 0.5 % and 2 % |
-| table_6_1_drivers | the six blocks of table 6.1 share one total, within 1.5 % of table 4.2 | 1.5 % |
+| table_6_1_drivers | the blocks of table 6.1 that publish a total agree (two in 2014–2015, six from 2016), within 1.5 % of table 4.2 | 1.5 % |
+
+The other interim inputs have no row in `validation.csv`, because DGT publishes no total to check
+them against: the INE population, the 2022 ITV kilometre tables, the transcribed speed-factor
+report and the MOVILIA and ESRA shares are covered by unit tests (`tests/test_population.py`,
+`test_exposure.py`, `test_reports.py`, `test_activity.py`) that check their internal totals instead.
 
 Where two publications of the same quantity differ, one is kept for as long as it exists rather
 than mixing them: licence holders by age come from the published class-by-age tables to 2023 and
@@ -72,20 +78,32 @@ used.
   mobility vehicle users, summed from the death columns by type.
 - **Missing states**. Four are kept apart in every table: not specified (999), not applicable (998),
   an explicit unknown code (six fields have one) and an empty cell. Each condition column has a
-  `status_*` companion that names the state, the data page profiles them by year, and no analysis
-  drops a row for a missing value. Two undocumented quirks are handled as stated on the data page:
-  code 0 in the island field from 2018 and the strong-wind flag in 2021.
+  `status_*` companion that names the state, and the data page profiles them by year. The fields
+  that carry no code list use a placeholder instead of an empty cell — `KM` 9999, and 1000 in 2019,
+  the year DGT used it; `CARRETERA` "No inventariada"; `COD_MUNICIPIO` 00000 for towns under 5,000
+  inhabitants — and the missingness profile counts those values as not observed (`validate.py`,
+  `codes.TEXT_PLACEHOLDERS` and `codes.NUMERIC_PLACEHOLDERS`; the km fill value counts only where
+  the road is not inventoried, because km 1000 is a real post on a long N-road), so a year that
+  swapped an empty cell for a placeholder does not read as an improvement in recording. No analysis
+  drops a row for a missing value except in two places, each stated where it is used: the hour-band
+  by road-group table leaves out the 85 crashes (39 in 2017, 46 in 2018) whose road type is an
+  empty cell, as its caption says, and the driver age-band rates leave out drivers of unknown age
+  (section 4). Two undocumented quirks are handled as stated on the data page: code 0 in the island
+  field from 2018 and the strong-wind flag in 2021.
 
 ## 4. Rates and intervals (`rates.py`, `summaries.py`)
 
 Counts of deaths, crashes or involved drivers are treated as Poisson with a known denominator, and
-every rate built against one of the denominators listed below carries an exact 95 % interval
-(Garwood, from the chi-square quantiles). Ratios of two such rates carry a log-normal interval. The
-survey shares and the speed-infraction share among drivers whose status is known carry Wilson
-intervals. Shares and ratios taken entirely within the microdata (the fatal share by hour and road
-group, the night shares, the vulnerable and road-user shares, deaths per 100 crashes, occupant
-deaths per fatal involvement and the raw speed-status shares) are population counts, not samples,
-and are reported without intervals.
+every rate built against a counted denominator — residents, licence holders, drivers involved,
+circulating vehicles, vehicle-kilometres — carries an exact 95 % interval (Garwood, from the
+chi-square quantiles); the travel-weighted rate is the exception, and its bullet below says what it
+carries instead. Ratios of two such rates carry a log-normal interval. The survey shares and the
+speed-infraction share among drivers whose status is known carry Wilson intervals. Shares and
+ratios taken entirely within one source's own counts (the fatal share by hour and road group, the
+night shares and the vulnerable and road-user shares from the microdata; deaths per 100 crashes
+from the yearbook series; occupant deaths per fatal involvement from tables 2.2 and 2.3; the raw
+speed-status shares from tables 6.1) are population counts, not samples, and are reported without
+intervals.
 
 Denominators, each named on the page that uses it:
 
@@ -103,20 +121,26 @@ Denominators, each named on the page that uses it:
   so its residents-weighted mean over the analysis bands 15–74 is 1;
   MOVILIA's top band is 65 and over, so 75+ inherits the 65+ intensity. The cap is not
   redistributed, so the estimate no longer reproduces the ESRA level: over 2014–2024 it sums to
-  roughly 60–66 % of residents aged 15–74 against an ESRA share of 76–80 %, and the 15–44 bands,
-  including 35–44, about a third of the 35–64 reference group, sit at their licence share rather
-  than a travel weight. It is a weight for how much each band travels by car, not a count of
-  drivers. MOVILIA counts passengers as well as drivers, so the estimate overstates older people's
-  driving and the per-driver ratio it yields is a lower bound; the page says so.
+  roughly 60–66 % of residents aged 15–74 against an ESRA share of 76–80 %, and the 15–44 bands
+  throughout, plus 45–54 through 2020, sit at their licence share rather than a travel weight —
+  about a third of the 35–64 reference group from 2021 and roughly 70 % of it before that. It is a
+  weight for how much each band travels by car, not a count of drivers. MOVILIA counts passengers
+  as well as drivers, which overstates older people's driving and pushes the ratio down, while its
+  2006 profile is frozen across 2014–2024 and could move it either way, so the direction of the net
+  bias is not established; the page says so. The travel-weighted rate is published as a point
+  estimate only: the `deaths_per_100k_travel_low` and `_high` columns of `q7_driver_ladder.csv` are
+  an envelope, the Poisson bound of the death count divided by the opposite bound of the
+  survey-based exposure, not an exact interval, and no page or figure reads them.
 - **Drivers involved in injury crashes**: from tables 4.2, giving deaths per 1,000 involved drivers
   (fatality given involvement) and involvement per 10,000 licence holders. Drivers of unknown age
-  (about 3 % of those involved, 0.4 % of those killed) are left out of the age-band rates.
+  (about 3 % of those involved, 0.4 % of those killed) and the few recorded in DGT's 0–14 band
+  (0.3 % and 0.2 %) are left out of the age-band rates.
 - **Circulating vehicles and vehicle-kilometres**: section 6.
 
-Province rates are shown with their intervals and ranked; small provinces are flagged where their
-intervals span most of the range. Age comparisons are ratios of the 65+ and 75+ bands to 35–64
-under each denominator in turn, because the answer changes with the denominator and the page is
-built to show that.
+Province rates are shown with their intervals and ranked, and the page states how far one death
+more or less would move the two smallest provinces in the ranking. Age comparisons are ratios of
+the 65+ and 75+ bands to 35–64 under each denominator in turn, because the answer changes with the
+denominator and the page is built to show that.
 
 ## 5. Severity models (`features.py`, `models.py`, `scripts/model.py`)
 
@@ -127,9 +151,12 @@ Each is an ordered categorical whose reference is its most common level, so an o
 "relative to the typical crash". The missing states are separate levels, as in section 3: "not
 specified" (999), "not applicable" (998) and, where the field has one, its explicit unknown code
 (weather 7, surface 9, alignment 4) each stand on their own and are never pooled with each other or
-with a recorded value. A level with fewer than 500 crashes is merged into its reference and the
-grouping table on the page records it; the "not applicable" alignment code, which is exactly the
-street zone, folds into "straight" for the same reason.
+with a recorded value. Three things are exceptions to keeping every level, and the page names all
+three. A level with fewer than 500 crashes is merged into its reference and the grouping table on
+the page records it. The "not applicable" alignment code folds into "straight" for a different
+reason: it is exactly the urban-street zone (546,619 crashes, every one of them zone 3 and no zone-3
+crash coded otherwise), so as a level of its own it would duplicate the zone predictor. And a level
+with no event in a fit is left out rather than estimated, as the separation check below says.
 
 The fit is main effects only, by iteratively reweighted least squares written in `numpy` (the
 `statsmodels` route ran out of memory on the design), with a cluster-robust sandwich covariance by
@@ -139,12 +166,15 @@ compared), predicted probabilities for six named crash profiles, and three check
 
 - **Holdout**: fit on 2016–2022 without the year terms, scored on 2023–2024; area under the ROC
   curve, Brier score against the base rate, and calibration by decile of predicted probability.
-- **Stability**: the ten largest effects refitted year by year without clustering; a level whose
-  yearly estimate leaves the full model's interval is named on the page. The 2024 change in DGT's
+- **Stability**: the ten largest effects, missing-state levels excluded from the choice, refitted
+  year by year with the same clustering by province as the full model; a level whose yearly
+  estimate leaves the full model's interval is named on the page, and the count of such estimates
+  is the `within_full_interval` column of `q3_year_stability.csv`. The 2024 change in DGT's
   urban road-type coding shows up here, and the page says road type and zone must be read
   together; the 2021 interurban change (code 5 collapsing into code 6, `data_inventory.md`) means
   the pooled dual-carriageway and conventional odds ratios span two coding regimes.
-- **Separation**: a level with no events in a fit is left out and listed rather than estimated.
+- **Separation**: a level with no events in a fit is left out and listed rather than estimated, and
+  so is a column that a per-year subset makes a linear combination of the others.
 
 The models describe association between recorded circumstances and outcome. They carry no
 driver, vehicle, speed or impairment information, so they cannot attribute a death to a factor and
@@ -171,8 +201,12 @@ while the register splits them, so only the sum means the same thing in numerato
 Heavy trucks include tractor units and articulated vehicles because the kilometre table's heavy
 category is the sum of the note's "camiones de más de 3.500 kg" and "tractores industriales". Rates
 are per billion vehicle-kilometres and per 100,000 circulating vehicles, with Poisson intervals. The
-seven kilometre-table types cover 91 % of the circulating fleet; the rest has no denominator and no
-rate.
+seven kilometre-table types are DGT's whole circulating fleet, 32,522,330 vehicles, and add up to
+91 % of the 35,668,443 on the register in 2022; the two totals are not nested, since the register
+also holds machinery, trailers and other types with no kilometre estimate while the circulating
+fleet leaves out registered vehicles with no record in ten years. Everything outside the table —
+bicycles, personal mobility vehicles, machinery, unknown vehicles and pedestrians — has no
+denominator and no rate.
 
 ## 7. Interrupted time series (`policy.py`)
 
@@ -208,11 +242,15 @@ deaths a year) is in neither group. The treated group mixes roads the decree cut
 so the estimate is diluted by the share of conventional-road deaths on roads whose limit did not
 change, which the microdata cannot separate. The model is a Poisson regression with a shared linear
 trend, month-of-year terms, a group term, a post term and the post × conventional interaction as
-the estimate, with Newey–West errors computed within each group. Two placebo breaks (January 2017
-and 2018) test whether the two groups were already diverging; the extended fit through December
-2024 adds lockdown (March–June 2020) and restriction (July 2020 to December 2021) periods as their
-own terms. The page reports the estimate, the placebos and the sensitivity fits together and draws
-no conclusion about the limit unless they agree.
+the estimate, so what is reported is the treated group's change relative to the control, not the
+conventional roads' own level change, with Newey–West errors computed within each group. Neither
+design applies a small-sample correction to the Newey–West covariance (`use_correction=False` in
+both), so the two sets of intervals are built the same way. Two
+placebo breaks (January 2017 and 2018) test whether the two groups were already diverging; the
+extended fit through December 2024 adds lockdown (March–June 2020) and restriction (July 2020 to
+December 2021) periods, each as a level for both groups and a further level for conventional roads.
+The page reports the estimate, the placebos and the sensitivity fits together and draws no
+conclusion about the limit unless they agree.
 
 ## 8. Speed factor (`speed.py`, `io_reports.py`)
 
@@ -238,20 +276,35 @@ chart, intervals drawn where they exist, direct labels where a legend would
 be ambiguous, colour never the only encoding. Every sentence on a page that contains a number is
 computed from the result tables at build time, including the digest on the front page, so the
 prose cannot contradict the tables; conditional sentences (a rank, a placebo that passes or fails)
-are gated on the same values. Tests check that every internal link and anchor resolves, every
-image has alt text, every page has one heading, a description and no script.
+are gated on the same values. The exceptions are a few figures no result table holds and the
+pages state as facts about the sources (the 61 of 64 tables of the speed report, the publisher's
+5 November 2025 update of the 2024 microdata, the share of drivers of unknown age), and the
+per-year coding shares the severity and data pages quote from the audit. Two thresholds gate
+wording. A rate ratio between 0.95 and 1.05 reads
+"about as often", outside that band "less often" or "more often" (`site.py`, `ABOUT_AS_OFTEN`);
+where the comparison carries an interval — the per-kilometre occupant-death and involvement rates —
+the wording follows the interval instead, so a ratio whose interval contains 1 reads "about as
+often". The 2024 road-type paragraph on the severity page appears only when every 2024 road-type
+odds ratio falls below the full model's interval and inside 0.67–1.5 (`COLLAPSE_BAND`) while every
+zone odds ratio is above its full-model estimate. Tests check that every internal link and anchor
+resolves, every image has alt text, every page has one heading, a description and no script.
 
 ## 10. Reproducibility
 
 - Raw inputs immutable and manifested; interim and processed layers rebuilt from them by the
   command sequence in the README, which was run end to end from an empty interim layer and
-  reproduced every committed table, figure and page byte for byte with Python 3.11.15, pandas
-  3.0.6, numpy 2.4.6, scipy 1.17.1, statsmodels 0.15.0, matplotlib 3.11.2, scikit-learn 1.9.1 and
-  pyarrow 25.0.1, the versions recorded in `requirements.lock`. At the dependency floors in
-  `pyproject.toml` the numbers agree to the precision printed on the pages, but every figure
-  differs, because matplotlib writes its own version into the SVG and the tight-bbox geometry
-  changes with it; the result tables are written with ten significant digits (`analyse.py`,
-  `float_format="%.10g"`) so that last-bit differences between library versions in the fitted
+  reproduced every committed table, figure and page byte for byte with Python 3.11.15 and the
+  library versions recorded in `requirements.lock` (pandas 3.0.6, numpy 2.4.6, scipy 1.17.1,
+  statsmodels 0.15.0, matplotlib 3.11.2, scikit-learn 1.9.1, pyarrow 25.0.1); the lock file records
+  the libraries, not the interpreter, which `pyproject.toml` only bounds at 3.11 or later. At the
+  dependency floors in `pyproject.toml` the numbers agree to the precision printed on the pages,
+  but every figure differs, because matplotlib writes its own version into the SVG and the
+  tight-bbox geometry changes with it; where that geometry crosses a rounding boundary it also
+  changes the `width` and `height` attributes the pages give the images (`site.py`,
+  `_svg_dimensions`), so some pages differ in those two attributes and in nothing else. The
+  descriptive result tables are written with ten significant digits (`analyse.py`,
+  `float_format="%.10g"`) and the severity-model tables with six (`model.py`,
+  `float_format="%.6g"`), so that last-bit differences between library versions in the fitted
   coefficients do not reach the committed files.
 - All logic in `src/dgt_stats/` and `scripts/`; no notebooks. No random procedure is used: the
   fits are deterministic and need no seed.

@@ -1,5 +1,5 @@
 label,variant,family,window,n_months,level_change,level_low,level_high,slope_change_annual,slope_low,slope_high,dispersion,control_change
-"Main: conventional against motorways and dual carriageways, Poisson",main,poisson,Jan 2016 to Feb 2020,50,-0.1313297485,-0.190768503,-0.067525166,,,,1.147054902,0.04874111926
-With a slope change for the treated group,slope,poisson,Jan 2016 to Feb 2020,50,-0.1000363923,-0.2291665265,0.05072564054,-0.06830182471,-0.3018422281,0.2433600609,1.172479092,0.03384831857
-Negative binomial,negative_binomial,negative_binomial,Jan 2016 to Feb 2020,50,-0.1304519776,-0.1902714548,-0.06621327894,,,,1.012968259,0.05178350226
-Post-period to December 2024 with pandemic periods,long,poisson,Jan 2016 to Dec 2024,108,-0.1543855126,-0.208162637,-0.09695614954,,,,1.251381253,0.08093819172
+"Main: conventional against motorways and dual carriageways, Poisson",main,poisson,Jan 2016 to Feb 2020,50,-0.1313297485,-0.1859658524,-0.07302659474,,,,1.147054902,0.04874111926
+With a slope change for the treated group,slope,poisson,Jan 2016 to Feb 2020,50,-0.1000363923,-0.217806038,0.03546503108,-0.06830182471,-0.2825499867,0.2099260906,1.172479092,0.03384831857
+Negative binomial,negative_binomial,negative_binomial,Jan 2016 to Feb 2020,50,-0.1304519776,-0.1854389299,-0.07175313067,,,,1.012968259,0.05178350226
+Post-period to December 2024 with pandemic periods,long,poisson,Jan 2016 to Dec 2024,108,-0.1543855126,-0.2056915071,-0.09976556009,,,,1.251381253,0.08093819172

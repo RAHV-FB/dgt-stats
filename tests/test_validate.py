@@ -14,20 +14,22 @@ def results() -> pd.DataFrame:
     return validate.run_checks()
 
 
-def test_every_check_family_present(results: pd.DataFrame) -> None:
-    assert set(results.check) == {
-        "row_count",
-        "victim_total",
-        "table_1_1_province",
-        "table_3_1_month",
-        "unique_key",
-        "code_domain",
-        "census_2025",
-        "driver_deaths",
-        "census_age_2023",
-        "table_2_3_vehicles",
-        "table_2_2_deaths",
-        "table_6_1_drivers",
+def test_every_check_family_is_present_and_complete(results: pd.DataFrame) -> None:
+    # The published count of checks: a family that shrank would otherwise pass unnoticed.
+    assert len(results) == 434
+    assert results.groupby("check").size().to_dict() == {
+        "census_2025": 53,
+        "census_age_2023": 15,
+        "code_domain": 33,
+        "driver_deaths": 33,
+        "row_count": 9,
+        "table_1_1_province": 104,
+        "table_2_2_deaths": 60,
+        "table_2_3_vehicles": 5,
+        "table_3_1_month": 24,
+        "table_6_1_drivers": 44,
+        "unique_key": 9,
+        "victim_total": 45,
     }
 
 

@@ -2,11 +2,11 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from dgt_stats import io_tables, policy
+from dgt_stats import io_tables, policy, summaries
 
 pytestmark = pytest.mark.skipif(
-    not io_tables.interim_path("series_monthly").exists(),
-    reason="run `python scripts/ingest.py tables` first",
+    not (io_tables.interim_path("series_monthly").exists() and policy.PROCESSED_CRASHES.exists()),
+    reason="run `python scripts/ingest.py tables` and `python scripts/build_tables.py` first",
 )
 
 
@@ -35,9 +35,30 @@ def test_road_group_panel_covers_every_month_and_sums_to_the_microdata() -> None
     assert set(panel.group) == {policy.TREATED, policy.CONTROL}
     assert panel.groupby("group").size().eq(9 * 12).all()
     treated = panel[panel.group == policy.TREATED].set_index("period").deaths
-    assert treated.loc["2016-01-01"] == 67 and treated.loc["2016-07-01"] == 110
     control = panel[panel.group == policy.CONTROL].set_index("period").deaths
+    # Snapshots of the two series, kept as a tripwire on the shape of the panel.
+    assert treated.loc["2016-01-01"] == 67 and treated.loc["2016-07-01"] == 110
     assert control.loc["2016-01-01"] == 24 and control.loc["2016-07-01"] == 30
+    # The panel reconciles to the microdata for the road-type codes methodology section 7 names.
+    crashes = summaries.read_crashes(["TIPO_VIA", "TOTAL_MU30DF"])
+    codes = [*policy.TREATED_CODES, *policy.CONTROL_CODES]
+    assert panel.deaths.sum() == crashes[crashes.TIPO_VIA.isin(codes)].TOTAL_MU30DF.sum() == 10_741
+    assert (
+        panel[panel.group == policy.TREATED].deaths.sum()
+        == crashes[crashes.TIPO_VIA.isin(policy.TREATED_CODES)].TOTAL_MU30DF.sum()
+    )
+    micro = pd.read_parquet(
+        summaries.PROCESSED_CRASHES, columns=["ANYO", "MES", "TIPO_VIA", "TOTAL_MU30DF"]
+    )
+    by_year = panel.groupby([panel.period.dt.year, "group"]).deaths.sum().unstack()
+    treated_raw = (
+        micro[micro.TIPO_VIA.isin(policy.TREATED_CODES)].groupby("ANYO").TOTAL_MU30DF.sum()
+    )
+    control_raw = (
+        micro[micro.TIPO_VIA.isin(policy.CONTROL_CODES)].groupby("ANYO").TOTAL_MU30DF.sum()
+    )
+    assert (by_year[policy.TREATED] == treated_raw.loc[by_year.index]).all()
+    assert (by_year[policy.CONTROL] == control_raw.loc[by_year.index]).all()
     raw = pd.DataFrame(
         {
             "ANYO": [2016, 2016, 2016, 2016, 2016],
