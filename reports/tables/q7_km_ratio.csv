@@ -1,0 +1,16 @@
+measure,measure_label,band,band_label,is_reference,ratio,low,high
+involved_per_bn_km,"Drivers involved in an injury crash, per billion km",18-34,18–34,False,2.573632161,2.536035428,2.611786266
+involved_per_bn_km,"Drivers involved in an injury crash, per billion km",35-54,35–54,True,1,0.9865504215,1.013632936
+involved_per_bn_km,"Drivers involved in an injury crash, per billion km",55-64,55–64,False,0.7222041387,0.7086014266,0.7360679761
+involved_per_bn_km,"Drivers involved in an injury crash, per billion km",65-74,65–74,False,0.7095722718,0.6918595175,0.7277385021
+involved_per_bn_km,"Drivers involved in an injury crash, per billion km",75+,75 and over,False,1.016343981,0.9854358832,1.048221508
+deaths_per_1000_involved,"Drivers killed per 1,000 drivers involved",18-34,18–34,False,0.945574227,0.7476602878,1.195878173
+deaths_per_1000_involved,"Drivers killed per 1,000 drivers involved",35-54,35–54,True,1,0.8084892128,1.236874882
+deaths_per_1000_involved,"Drivers killed per 1,000 drivers involved",55-64,55–64,False,1.316050219,1.004195387,1.724752178
+deaths_per_1000_involved,"Drivers killed per 1,000 drivers involved",65-74,65–74,False,2.072165692,1.541015807,2.786389753
+deaths_per_1000_involved,"Drivers killed per 1,000 drivers involved",75+,75 and over,False,3.927344493,2.977286963,5.180567059
+deaths_per_bn_km,Drivers killed per billion km,18-34,18–34,False,2.433560241,1.924202562,3.077750526
+deaths_per_bn_km,Drivers killed per billion km,35-54,35–54,True,1,0.8084892128,1.236874882
+deaths_per_bn_km,Drivers killed per billion km,55-64,55–64,False,0.9504569152,0.7252340645,1.245623161
+deaths_per_bn_km,Drivers killed per billion km,65-74,65–74,False,1.470351317,1.093462087,1.977144907
+deaths_per_bn_km,Drivers killed per billion km,75+,75 and over,False,3.991532935,3.025947683,5.265238147

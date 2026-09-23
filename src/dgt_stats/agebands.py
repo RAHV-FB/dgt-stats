@@ -41,6 +41,19 @@ DGT_BANDS: dict[str, Band] = {
     "75+": (75, None),
 }
 
+# Bands for the kilometre-based driver-risk comparison: they nest both DGT's driver bands and
+# the owner-age bands of its kilometre release, so numerator and denominator use the same cuts.
+# 15-17 exists only in the driver tables (no car licence before 18, and no owner band below 18),
+# and is reported but never compared.
+EXPOSURE_BANDS: dict[str, Band] = {
+    "15-17": (15, 17),
+    "18-34": (18, 34),
+    "35-54": (35, 54),
+    "55-64": (55, 64),
+    "65-74": (65, 74),
+    "75+": (75, None),
+}
+
 # MOVILIA 2006 bands.
 MOVILIA_BANDS: dict[str, Band] = {
     "0-14": (0, 14),
@@ -62,6 +75,9 @@ BAND_LABELS: dict[str, str] = {
     "65-69": "65–69",
     "70-74": "70–74",
     "65-74": "65–74",
+    "18-34": "18–34",
+    "35-54": "35–54",
+    "15-17": "15–17",
     "75+": "75 and over",
     "65+": "65 and over",
     UNKNOWN: "Age not recorded",

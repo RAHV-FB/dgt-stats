@@ -240,3 +240,92 @@ def test_predicted_grid_pins_zone_to_the_road_type() -> None:
     assert got[("urban street", "daylight")] == pytest.approx(float(models.predict(fit, urban)[0]))
     with pytest.raises(ValueError):
         models._profile_design(frame, fit, {"road": "no such road"})
+
+
+def _adverse_frame(n: int = 60_000, seed: int = 11) -> pd.DataFrame:
+    """Weather and surface that partly measure the same thing, with a known joint effect.
+
+    Rain drives the surface wet nine times in ten, and only the *wet conditions* state lowers the
+    odds. A model carrying both predictors has to split one effect; dropping either must recover
+    it. That is the sensitivity the severity page reports, so it is tested on data whose answer
+    is known.
+    """
+    rng = np.random.default_rng(seed)
+    rain = rng.random(n) < 0.15
+    wet = rain & (rng.random(n) < 0.9) | (~rain & (rng.random(n) < 0.02))
+    zone = rng.choice(["street", "interurban road"], size=n)
+    log_odds = -3.0 + np.log(0.5) * wet + 0.5 * (zone == "interurban road")
+    y = rng.random(n) < 1 / (1 + np.exp(-log_odds))
+    return pd.DataFrame(
+        {
+            "crash_year": rng.choice([2016, 2024], size=n),
+            "province": rng.choice([str(i) for i in range(1, 11)], size=n),
+            "fatal": y,
+            "serious": y,
+            "weather": pd.Categorical(
+                np.where(rain, "rain", "clear"), categories=["clear", "rain"], ordered=True
+            ),
+            "surface": pd.Categorical(
+                np.where(wet, "wet", "dry"), categories=["dry", "wet"], ordered=True
+            ),
+            "zone": pd.Categorical(zone, categories=["street", "interurban road"], ordered=True),
+        }
+    )
+
+
+def test_adverse_conditions_separates_two_collinear_predictors(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    frame = _adverse_frame()
+    monkeypatch.setattr(
+        features, "PREDICTORS", {"weather": {}, "surface": {}, "zone": {}}, raising=False
+    )
+    monkeypatch.setattr(
+        features,
+        "PREDICTOR_LABELS",
+        {"weather": "Weather", "surface": "Road surface", "zone": "Zone"},
+        raising=False,
+    )
+    monkeypatch.setattr(
+        models,
+        "ADVERSE_LEVELS",
+        (("weather", "rain"), ("surface", "wet")),
+        raising=False,
+    )
+    monkeypatch.setattr(
+        models,
+        "ADVERSE_VARIANTS",
+        {
+            "full": {"label": "Full model", "drop": (), "subset": None},
+            "no_surface": {"label": "Without road surface", "drop": ("surface",), "subset": None},
+            "no_weather": {"label": "Without weather", "drop": ("weather",), "subset": None},
+            "interurban": {
+                "label": "Interurban roads only",
+                "drop": ("zone",),
+                "subset": ("zone", "interurban road"),
+            },
+        },
+        raising=False,
+    )
+    out = models.adverse_conditions(frame, "fatal").set_index(["variant", "level"])
+    # With both predictors in, the rain coefficient is pulled towards no effect, because the
+    # surface column is carrying what rain does; on its own rain recovers the true effect.
+    assert out.loc[("full", "rain"), "odds_ratio"] > out.loc[("no_surface", "rain"), "odds_ratio"]
+    # Dropping either predictor recovers roughly the whole 0.5.
+    assert out.loc[("no_weather", "wet"), "odds_ratio"] == pytest.approx(0.5, abs=0.08)
+    assert out.loc[("no_surface", "rain"), "odds_ratio"] == pytest.approx(0.5, abs=0.08)
+    # A level a variant does not contain is absent rather than silently reported.
+    assert ("no_weather", "rain") not in out.index
+    assert ("no_surface", "wet") not in out.index
+    # A stratified fit uses only its own rows.
+    assert out.loc[("interurban", "wet"), "n_crashes"] < len(frame)
+
+
+def test_level_composition_and_exclusions_describe_where_a_level_is() -> None:
+    frame = _adverse_frame()
+    frame["road"] = frame.zone  # the composition helper looks at province, zone and road
+    frame.loc[frame.index[:1_000], "province"] = "99"
+    composition = models.level_composition(frame, "surface", "wet", top=3)
+    assert set(composition.dimension) == {"province", "zone", "road"}
+    assert composition.share_of_level.between(0, 1).all()
+    assert composition.attrs["n_level"] == int((frame.surface == "wet").sum())

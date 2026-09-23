@@ -88,8 +88,8 @@ def apply_style() -> None:
             "axes.linewidth": 1,
             "axes.spines.top": False,
             "axes.spines.right": False,
-            "axes.titlesize": 12,
-            "axes.titleweight": "bold",
+            "axes.titlesize": 10.5,
+            "axes.titleweight": "normal",
             "axes.titlelocation": "left",
             "axes.titlepad": 12,
             "axes.grid": True,
@@ -415,7 +415,7 @@ def small_multiples(
     for index in range(len(facets)):
         if index + ncols >= len(facets):
             axes[index].tick_params(labelbottom=True)
-    fig.suptitle(title, x=0.01, ha="left", fontsize=12, fontweight="bold")
+    fig.suptitle(title, x=0.01, ha="left", fontsize=10.5, fontweight="normal")
     if series is not None:
         handles, labels = axes[0].get_legend_handles_labels()
         legend_rows = int(np.ceil(len(names) / 4))
@@ -722,10 +722,13 @@ def dot_interval_panels(
     order: list[str] | None = None,
     panel_order: list[str] | None = None,
     xlabel: str = "",
+    reference: float | None = None,
 ) -> Path:
     """Side-by-side dot-and-whisker panels sharing one row order (``order``, top to bottom).
 
     Each panel has its own x scale from zero, so the panels compare rankings, not magnitudes.
+    ``reference`` draws the same dotted vertical line on every panel: the null value a ratio is
+    read against. The axis label is written once, under the middle panel.
     """
     apply_style()
     labels_order = order or list(dict.fromkeys(frame[label]))
@@ -758,10 +761,13 @@ def dot_interval_panels(
         axis.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(_tick))
         axis.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(nbins=4))
         axis.tick_params(labelsize=8)
-        axis.set_xlabel(xlabel, fontsize=8)
+        if reference is not None:
+            axis.axvline(reference, color=TEXT_SECONDARY, linewidth=1, linestyle=":")
+    if xlabel:
+        axes[len(axes) // 2].set_xlabel(xlabel, fontsize=8)
     axes[0].set_yticks(positions, [str(v) for v in labels_order], fontsize=8)
     axes[0].set_ylim(-0.7, len(labels_order) - 0.3)
-    fig.suptitle(title, x=0.01, ha="left", fontsize=12, fontweight="bold")
+    fig.suptitle(title, x=0.01, ha="left", fontsize=10.5, fontweight="normal")
     return save(fig, path)
 
 
@@ -830,12 +836,15 @@ def intervention(
     shaded: list[tuple[pd.Timestamp, pd.Timestamp, str]] | None = None,
     ylabel: str = "",
     height: float | None = None,
+    alternative: tuple[str, str] | None = None,
 ) -> Path:
     """Observed monthly counts, the fitted line and the dashed counterfactual around a break.
 
     One panel, or one panel per ``facet`` value stacked with shared x and y axes, so that the
     groups a difference-in-differences design compares sit on one vertical scale. ``shaded``
     marks periods (for example a confounding change or the pandemic) with a labelled grey band.
+    ``alternative`` is ``(column, label)`` for a second counterfactual drawn dotted beside the
+    first, which is how two trend specifications are compared on one picture.
     """
     apply_style()
     facets = [None] if facet is None else (facet_order or list(dict.fromkeys(frame[facet])))
@@ -867,6 +876,16 @@ def intervention(
             linestyle="--",
             label="Counterfactual (no change)",
         )
+        if alternative is not None:
+            column, alt_label = alternative
+            axis.plot(
+                post[x],
+                post[column],
+                color=CATEGORICAL[2],
+                linewidth=1.8,
+                linestyle=":",
+                label=alt_label,
+            )
         axis.axvline(break_date, color=TEXT_PRIMARY, linewidth=1)
         for start, end, _ in shaded or []:
             axis.axvspan(start, end, color=GRID, alpha=0.6, linewidth=0)
@@ -896,7 +915,9 @@ def intervention(
         color=TEXT_PRIMARY,
         va="top",
     )
-    axes[-1].legend(loc="upper left", bbox_to_anchor=(0, -0.15), ncol=3)
-    fig.suptitle(title, x=0.01, ha="left", fontsize=12, fontweight="bold")
+    axes[-1].legend(
+        loc="upper left", bbox_to_anchor=(0, -0.15), ncol=3 if alternative is None else 2
+    )
+    fig.suptitle(title, x=0.01, ha="left", fontsize=10.5, fontweight="normal")
     fig.tight_layout()
     return save(fig, path)

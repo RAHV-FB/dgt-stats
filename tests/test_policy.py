@@ -184,33 +184,137 @@ def test_points_licence_fits_assembles_the_published_tables() -> None:
     assert set(tables) == {
         "q8_points_fit",
         "q8_points_series",
-        "q8_points_placebo",
         "q8_points_sensitivity",
+        "q8_points_trend_choice",
+        "q8_points_placebo",
+        "q8_points_calendar_placebo",
+        "q8_points_transitions",
+        "q8_points_forecast",
     }
     sens = tables["q8_points_sensitivity"]
-    it = policy.INTERVENTIONS["points_licence"]
-    main = policy.segmented_fit(policy.monthly_series(), it)
     assert sens.variant.iloc[0] == "main"
-    assert sens.level_change.iloc[0] == pytest.approx(main.level_change)
-    assert set(sens.variant) >= {"main", "24h", "interurban", "urban", "long", "fleet_offset"}
+    assert set(sens.variant) >= {
+        "main",
+        "linear_trend",
+        "quadratic",
+        "knot_2004",
+        "fuel",
+        "toll",
+        "24h",
+        "interurban",
+        "urban",
+        "long",
+        "fleet_offset",
+    }
     long_row = sens[sens.variant == "long"].iloc[0]
     assert long_row.n_months > sens[sens.variant == "main"].iloc[0].n_months
     assert np.isfinite(long_row.second_break_change)
     assert sens[sens.variant != "long"].second_break_change.isna().all()
+    # The main specification is the piecewise one and it gives a smaller drop than the straight
+    # line: that difference is the finding the page reports, so it is asserted here.
+    main = sens[sens.variant == "main"].iloc[0]
+    linear = sens[sens.variant == "linear_trend"].iloc[0]
+    assert main.level_change < 0 and linear.level_change < main.level_change
+    trend = tables["q8_points_trend_choice"]
+    assert trend.chosen.sum() == 1
+    straight = trend[trend.label == "one linear trend"].iloc[0]
+    assert straight.delta_aic > 2  # the pre-period rejects one straight line
+    assert trend[trend.chosen].delta_aic.iloc[0] == 0
+    series = tables["q8_points_series"]
+    assert {"fitted_main", "counterfactual_main", "counterfactual_linear"} <= set(series.columns)
     placebo = tables["q8_points_placebo"]
     assert placebo.is_true.sum() == 1 and int(placebo[placebo.is_true]["rank"].iloc[0]) >= 1
-    series = tables["q8_points_series"]
-    assert {"fitted_main", "counterfactual_main"} <= set(series.columns)
 
 
-def test_speed_limit_fits_assembles_the_published_tables() -> None:
+def test_calendar_placebos_use_clean_windows_at_the_same_month() -> None:
+    it = policy.INTERVENTIONS["points_licence"]
+    series = policy.monthly_series()
+    dates = policy.calendar_placebo_years(series, it)
+    assert dates and all(date.month == 7 for date in dates)
+    assert it.date not in dates
+    for date in dates:
+        start = date - pd.DateOffset(months=policy.CALENDAR_PRE_MONTHS)
+        end = date + pd.DateOffset(months=it.post_months - 1)
+        assert start >= series.period.min() and end <= series.period.max()
+        assert not (start <= it.date <= end)  # never contains the real intervention
+        assert not (start < policy.EXCLUDED_WINDOW[1] and end > policy.EXCLUDED_WINDOW[0])
+    fits = policy.calendar_placebo_fits(series, it)
+    assert fits.is_true.sum() == 1 and len(fits) == len(dates) + 1
+    true = fits[fits.is_true].iloc[0]
+    assert true.level_change == fits.level_change.min()
+    assert int(true["rank"]) == 1 and int(true.n_fits) == len(fits)
+    # The point of the test is that rank 1 is not the same as "outside the distribution".
+    runner_up = fits[~fits.is_true].level_change.min()
+    assert runner_up < 0 and abs(runner_up - true.level_change) < 0.05
+
+
+def test_seasonal_transitions_cancel_seasonality_and_rank_2006() -> None:
+    series = policy.monthly_series()
+    transitions = policy.seasonal_transitions(series)
+    assert set(transitions.year) == set(series.period.dt.year)
+    # The first and last years cannot have a twelve-month ratio on both sides.
+    assert transitions.twelve_month_ratio.isna().sum() == 2
+    assert transitions[transitions.year.isin((2019, 2020, 2021))].excluded.all()
+    assert transitions[transitions.excluded]["rank"].isna().all()
+    ranked = transitions[transitions["rank"].notna()]
+    assert len(ranked) == int(transitions.n_ranked.iloc[0])
+    row = transitions[transitions.year == 2006].iloc[0]
+    assert row.deaths_before > row.deaths_after > 0
+    assert row.twelve_month_ratio == pytest.approx(
+        float(np.log(row.deaths_after / row.deaths_before))
+    )
+    assert 1 < row["rank"] <= 6  # a large fall, but not the largest in the series
+
+
+def test_forecast_validation_compares_like_with_like() -> None:
+    it = policy.INTERVENTIONS["points_licence"]
+    series = policy.monthly_series()
+    forecast = policy.forecast_validation(series, it)
+    assert forecast.is_true.sum() == 1
+    assert len(forecast) == len(policy.calendar_placebo_years(series, it)) + 1
+    assert (forecast.predicted > 0).all() and (forecast.observed > 0).all()
+    assert np.allclose(forecast.log_ratio, np.log(forecast.observed / forecast.predicted))
+    true = forecast[forecast.is_true].iloc[0]
+    assert true.log_ratio < 0 and true.z < 0  # fewer deaths than the pre-July fit projects
+    assert int(true["rank"]) > 1  # other Julys undershot their own forecast by more
+
+
+def test_flexible_pre_trend_is_chosen_on_the_pre_period_only() -> None:
+    it = policy.INTERVENTIONS["points_licence"]
+    series = policy.monthly_series()
+    knot, table = policy.choose_trend_knot(series, it)
+    assert knot is not None and it.pre_start < knot < it.date
+    assert table.aic.is_monotonic_increasing and table.delta_aic.iloc[0] == 0
+    assert (table.label == "one linear trend").sum() == 1
+    piecewise = policy.segmented_fit(series, it, trend="piecewise", knots=(knot,))
+    linear = policy.segmented_fit(series, it)
+    assert piecewise.level_change > linear.level_change
+    # A knot placed anywhere reasonable gives the same story, which is what makes it reportable.
+    for month in ("2003-01-01", "2004-01-01", "2005-01-01"):
+        alternative = policy.segmented_fit(
+            series, it, trend="piecewise", knots=(pd.Timestamp(month),)
+        )
+        assert -0.11 < alternative.level_change < -0.05
+
+
+def test_exposure_covariate_is_a_centred_log_series() -> None:
+    it = policy.INTERVENTIONS["points_licence"]
+    series = policy.window(policy.monthly_series(), it.pre_start, it.post_end)
+    for name in policy.EXPOSURE_SERIES:
+        column = policy.exposure_covariate(series.period, name)
+        assert list(column.columns) == [f"log_{name}"]
+        assert column.iloc[:, 0].mean() == pytest.approx(0.0, abs=1e-12)
+        assert column.notna().all().all()
+    with pytest.raises(ValueError):
+        policy.exposure_covariate(series.period, "not a series")
+    # Fuel consumption starts in 1996, so a window that reaches 1993 has to raise rather than fill.
+    with pytest.raises(ValueError):
+        policy.exposure_covariate(policy.monthly_series().period.head(24), "fuel")
+
+
+def test_speed_limit_fits_keep_only_the_negative_result_tables() -> None:
     tables = policy.speed_limit_fits()
-    assert set(tables) == {
-        "q8_speed_fit",
-        "q8_speed_series",
-        "q8_speed_placebo",
-        "q8_speed_sensitivity",
-    }
+    assert set(tables) == {"q8_speed_placebo", "q8_speed_sensitivity"}
     sens = tables["q8_speed_sensitivity"]
     it = policy.INTERVENTIONS["speed_limit_90"]
     main = policy.did_fit(policy.monthly_by_road_group(), it)
@@ -220,5 +324,6 @@ def test_speed_limit_fits_assembles_the_published_tables() -> None:
     placebo = tables["q8_speed_placebo"]
     assert placebo.is_true.sum() == 1
     assert sorted(pd.to_datetime(placebo.break_date)) == sorted([*it.placebo_dates, it.date])
-    series = tables["q8_speed_series"]
-    assert set(series.group) == {policy.TREATED, policy.CONTROL}
+    # The design fails: at least one placebo break moves the two groups apart on its own.
+    fake = placebo[~placebo.is_true]
+    assert ((fake.low > 0) | (fake.high < 0)).any()

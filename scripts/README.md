@@ -7,7 +7,8 @@ below:
   files to `data/interim/`, the speed report transcribed, and the 434 reconciliation checks (about
   six minutes for `all`);
 - `build_tables.py [--force]`: `data/interim/` to `data/processed/` (derived fields and labels);
-- `model.py`: the severity models, written to `reports/tables/q3_*.csv` (about 30 seconds);
+- `model.py`: the severity models, their adverse-conditions sensitivity fits and the holdout,
+  written to `reports/tables/q3_*.csv` (about a minute and a half);
 - `analyse.py {tables,figures,all}`: the other result tables, the figures and their captions;
 - `build_site.py`: `site/`;
 - `fetch_ine.py [--from-file CSV]`: rebuilds the committed INE population extract

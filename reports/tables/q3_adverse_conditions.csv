@@ -1,0 +1,52 @@
+outcome,variant,variant_label,predictor,predictor_label,level,n_crashes,n_level,odds_ratio,or_low,or_high
+fatal,full,Full model,weather,Weather,rain,875013,63856,0.856914,0.722127,1.01686
+fatal,full,Full model,weather,Weather,hail or snow,875013,1577,0.620744,0.454566,0.847672
+fatal,full,Full model,surface,Road surface,wet,875013,94216,0.618911,0.5182,0.739194
+fatal,full,Full model,junction,Junction,at a junction,875013,349670,0.74966,0.691082,0.813203
+fatal,no_surface,Without road surface,weather,Weather,rain,875013,63856,0.560567,0.489132,0.642434
+fatal,no_surface,Without road surface,weather,Weather,hail or snow,875013,1577,0.531711,0.392951,0.71947
+fatal,no_surface,Without road surface,junction,Junction,at a junction,875013,349670,0.750043,0.691331,0.813741
+fatal,no_weather,Without weather,surface,Road surface,wet,875013,94216,0.557148,0.48492,0.640134
+fatal,no_weather,Without weather,junction,Junction,at a junction,875013,349670,0.750855,0.692318,0.814342
+fatal,no_weather_or_surface,Without weather or surface,junction,Junction,at a junction,875013,349670,0.755476,0.696421,0.819539
+fatal,no_lighting,Without lighting,weather,Weather,rain,875013,63856,0.861279,0.728993,1.01757
+fatal,no_lighting,Without lighting,weather,Weather,hail or snow,875013,1577,0.631048,0.462238,0.861508
+fatal,no_lighting,Without lighting,surface,Road surface,wet,875013,94216,0.626471,0.518746,0.756567
+fatal,no_lighting,Without lighting,junction,Junction,at a junction,875013,349670,0.744683,0.685551,0.808915
+fatal,interurban,Interurban roads only,weather,Weather,rain,312238,31076,0.815273,0.702148,0.946625
+fatal,interurban,Interurban roads only,weather,Weather,hail or snow,312238,1268,0.722779,0.531244,0.98337
+fatal,interurban,Interurban roads only,surface,Road surface,wet,312238,45075,0.631108,0.541911,0.734987
+fatal,interurban,Interurban roads only,junction,Junction,at a junction,312238,87508,0.705084,0.622744,0.798311
+fatal,street,Urban streets only,weather,Weather,rain,546619,31724,1.03375,0.69659,1.5341
+fatal,street,Urban streets only,surface,Road surface,wet,546619,47362,0.567796,0.391801,0.822846
+fatal,street,Urban streets only,junction,Junction,at a junction,546619,255644,0.816836,0.751478,0.887879
+fatal,conventional,Conventional roads only,weather,Weather,rain,158996,14134,0.875667,0.730051,1.05033
+fatal,conventional,Conventional roads only,weather,Weather,hail or snow,158996,577,1.14911,0.733849,1.79934
+fatal,conventional,Conventional roads only,surface,Road surface,wet,158996,21817,0.751495,0.658317,0.857861
+fatal,conventional,Conventional roads only,junction,Junction,at a junction,158996,49879,0.653224,0.556898,0.766212
+serious,full,Full model,weather,Weather,rain,875013,63856,0.923899,0.766315,1.11389
+serious,full,Full model,weather,Weather,hail or snow,875013,1577,0.714392,0.566874,0.900298
+serious,full,Full model,surface,Road surface,wet,875013,94216,0.620973,0.486382,0.792807
+serious,full,Full model,junction,Junction,at a junction,875013,349670,0.910584,0.86426,0.95939
+serious,no_surface,Without road surface,weather,Weather,rain,875013,63856,0.603534,0.561969,0.648174
+serious,no_surface,Without road surface,weather,Weather,hail or snow,875013,1577,0.595316,0.475757,0.74492
+serious,no_surface,Without road surface,junction,Junction,at a junction,875013,349670,0.911328,0.865988,0.959043
+serious,no_weather,Without weather,surface,Road surface,wet,875013,94216,0.593438,0.513701,0.685551
+serious,no_weather,Without weather,junction,Junction,at a junction,875013,349670,0.910966,0.865687,0.958613
+serious,no_weather_or_surface,Without weather or surface,junction,Junction,at a junction,875013,349670,0.918649,0.875173,0.964284
+serious,no_lighting,Without lighting,weather,Weather,rain,875013,63856,0.926789,0.769226,1.11663
+serious,no_lighting,Without lighting,weather,Weather,hail or snow,875013,1577,0.715914,0.568896,0.900925
+serious,no_lighting,Without lighting,surface,Road surface,wet,875013,94216,0.623672,0.484988,0.802014
+serious,no_lighting,Without lighting,junction,Junction,at a junction,875013,349670,0.912719,0.865813,0.962166
+serious,interurban,Interurban roads only,weather,Weather,rain,312238,31076,0.809748,0.698001,0.939385
+serious,interurban,Interurban roads only,weather,Weather,hail or snow,312238,1268,0.678525,0.523822,0.878917
+serious,interurban,Interurban roads only,surface,Road surface,wet,312238,45075,0.574974,0.445275,0.742451
+serious,interurban,Interurban roads only,junction,Junction,at a junction,312238,87508,0.810032,0.70921,0.925186
+serious,street,Urban streets only,weather,Weather,rain,546619,31724,1.05863,0.847284,1.32269
+serious,street,Urban streets only,weather,Weather,hail or snow,546619,297,0.869374,0.400743,1.88602
+serious,street,Urban streets only,surface,Road surface,wet,546619,47362,0.693641,0.553249,0.869658
+serious,street,Urban streets only,junction,Junction,at a junction,546619,255644,0.98464,0.928352,1.04434
+serious,conventional,Conventional roads only,weather,Weather,rain,158996,14134,0.844084,0.769253,0.926194
+serious,conventional,Conventional roads only,weather,Weather,hail or snow,158996,577,0.730956,0.500499,1.06753
+serious,conventional,Conventional roads only,surface,Road surface,wet,158996,21817,0.680311,0.609156,0.759778
+serious,conventional,Conventional roads only,junction,Junction,at a junction,158996,49879,0.753497,0.661658,0.858085

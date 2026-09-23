@@ -1,7 +1,8 @@
 # Data inventory and audit
 
-Audit date: 2026-09-18, extended on 19 and 20 September 2026 for the files added later and the
-coding breaks found in the final review. Every source file was opened and profiled with Python
+Audit date: 2026-09-18, extended on 19, 20 and 22 September 2026 for the files added later, the
+coding breaks found in review, and the exposure sources added when the project was refocused
+([`refocus_audit.md`](refocus_audit.md)). Every source file was opened and profiled with Python
 (`openpyxl`, `pandas`, `pymupdf`). This document records what each file contains, how the files
 group together, what was verified, and what must be handled before analysis. It complements the
 source register in [`data_sources.md`](data_sources.md). Checksums, sizes and source URLs for every
@@ -24,8 +25,8 @@ All raw files live under `data/raw/`, grouped by role.
 | `accidentes_2022.xlsx` | 2022 | 97,916 | 73 | `TABLA_ACCIDENTES_22.xlsx` |
 | `accidentes_2023.xlsx` | 2023 | 101,306 | 73 | `TABLA_ACCIDENTES_23.XLSX` |
 | `accidentes_2024.xlsx` | 2024 | 101,996 | 73 | `TABLA_ACCIDENTES_24.XLSX` |
-| `diccionario.xlsx` | all | 38 sheets, 33 of them code lists | — | `Diccionario_Tabla_Accidentes.xlsx` |
-| `metadata_2024.rdf.xml` | 2024 | DCAT record | — | datos.gob.es catalogue export |
+| `diccionario.xlsx` | all | 38 sheets, 33 of them code lists | n/a | `Diccionario_Tabla_Accidentes.xlsx` |
+| `metadata_2024.rdf.xml` | 2024 | DCAT record | n/a | datos.gob.es catalogue export |
 
 - Source: Registro Nacional de Víctimas de Accidentes de Tráfico (Orden INT/2223/2014), published on
   DGT en Cifras under "Ficheros de microdatos de accidentes con víctimas". Licence: datos.gob.es aviso
@@ -61,6 +62,10 @@ A second copy of the series workbook (`...2024(1).xlsx`, byte-identical, same MD
 | `censo_tablas_2025.xlsx` | 2025 | 10 published tables: drivers by province/community of residence and first issue, by licence class × age, by licence class × year of issue, split by sex | `Censo-de-conductores-Tablas-estadisticas-2025.xlsx` |
 | `km_itv_2022/km_recorridos_estimados_2022.xlsx` | 2022 | Estimated annual km per vehicle by vehicle type × Euro class × age band × engine size × (payload) × fuel; 6 sheets, 8,254 strata | `Km_recorridos_anuales_estimados.xlsx` (from `KM_ITV_2022.zip`) |
 | `km_itv_2022/media_km_antiguedad_tipo_2022.xlsx` | 2022 | Mean annual km and fleet size by vehicle type (7) × age band (5) | `Media_km_recorridos_ antiguedad_tipo de vehículo.xlsx` |
+| `km_itv_2024/km_edad_propietario_2024.xlsx` | 2024 | 115 rows: vehicle category (8) × owner age band (18–20, 21–24, then five-year bands to 70–74, 75+, plus "Vehículo a nombre de empresa") → vehicles, total annual km, mean annual km. The only Spanish source that puts distance driven and a person's age in the same cell, for the whole circulating fleet rather than a survey sample. The age is the **registered owner's**, not the driver's | `KM_Edad_Propietario.xlsx` (from `KM_Recorridos_2024_Material_Adicional.zip`) |
+| `km_itv_2024/km_medios_tipo_2024.xlsx` | 2022–2024 | The same release's table 6: vehicles and mean annual km by category, with a 2024 detail sheet. Used only to check the owner-age table against the published fleet | `TAB_06-KM_Medios.xlsx` (same zip) |
+| `traffic/cores_consumos_pp.xlsx` | 1996–2026 | CORES monthly consumption of petroleum products, tonnes, 8 sheets. The `Gasolinas` and `Gasoleos` sheets carry `Subtotal gasolinas auto` and `Subtotal gasóleos auto`; their sum is national road-fuel consumption, complete monthly from January 1996 | `consumos-pp.xlsx` |
+| `traffic/peaje_trafico_total.xls` | 1990–2026 | Ministerio de Transportes, Boletín Estadístico Online: annual and monthly average daily intensity and vehicle-kilometres on the whole state toll-motorway network. Complete monthly from January 1990; the `LONGITUD` column records the network length in service, which falls as concessions expire | `06010000.XLS` |
 | `km_itv_2022/metodologia.pdf` | 2014–2023 ITV | Methodology: gamma-regression (LightGBM) imputation of annualised odometer readings; explains 19–45% of variance per vehicle, valid only for aggregates | `KM_Recorridos_ITV_Parque.pdf` |
 
 | `censo_conductores_edad_{2023,2024,2025}.txt` | 2023–2025 | Pipe-delimited: province × sex × age band (15–17, 18–20, 21–24, then five-year bands to 70–74, "Más de 74", "Se desconoce") → permits, licences and permits by class. 2023 and 2024 are Latin-1, 2025 is UTF-8 with BOM | `censo_prov_sexo_clase_edad_YYYY.txt` |
@@ -81,7 +86,7 @@ The zip archive was extracted in place and the archive itself dropped.
 |---|---:|---|---|
 | `dgt_factor_velocidad_2023.pdf` | 61 | Speed factor 2014–2023, 30-day data, **excludes Cataluña and País Vasco**. Speed present in 7% of injury crashes in 2023 (3% urban, 14% interurban); profiles by road type, speed limit, vehicle, driver | `INF_TEMA_4_Factor-Velocidad_v5_FINAL.pdf` |
 | `dgt_personas_mayores_2023.pdf` | 82 | Road users aged 65+ in 2023: 26% of all deaths; 47.8 deaths per million vs 34.4 for under-65; collision matrices; profiles | `INF_TEMA_8_PersonasMayores_v4_FINAL_nipo.pdf` |
-| `Anuario-estadistico-de-accidentes-{2015..2019}-fe-de-erratas.pdf` | — | DGT errata sheets for the 2015–2019 yearbooks; check before reconciling those years | same |
+| `Anuario-estadistico-de-accidentes-{2015..2019}-fe-de-erratas.pdf` | n/a | DGT errata sheets for the 2015–2019 yearbooks; check before reconciling those years | same |
 | `dgt_semana_santa_2026.pdf` | 45 | Easter 2026 interurban fatal crashes, **24-hour provisional counts**: 28 fatal crashes, 30 deaths, 17.3 million long-distance trips; series 1995–2026 | `INF_SEMANASANTA_2026_v8_FINAL.pdf` |
 
 The ESRA reports are not archived under `data/raw/` (Vias institute offers no reproduction licence;
@@ -178,20 +183,39 @@ No duplicate identifiers were found in any year.
   denominator in the repository.
 - The methodology report warns that predictions are valid in aggregate, not per vehicle, and that 2020 and
   2021 were excluded from model fitting.
+- `km_itv_2024/km_edad_propietario_2024.xlsx` gives the same estimate broken down by the owner's age
+  band. Summed over the bands it reproduces the release's own published fleet and kilometres per
+  category to within 0.1 % for every category; the residual is the vehicles whose owner's age DGT
+  could not classify, and the reader enforces a 0.5 % tolerance. Cars registered to companies are a
+  row of their own (2,176,619 vehicles, 40.4 bn km in 2024) and carry no age.
+
+### Monthly traffic series
+
+- CORES's automotive subtotals are complete monthly from January 1996 with no gaps. They measure
+  fuel **sold**, not distance: the petrol/diesel mix shifts sharply over the 2000s as the fleet
+  dieselises, so the level drifts relative to kilometres even though the month-to-month shape does
+  not. Seasonal peak: July.
+- The toll-motorway series measures vehicle-kilometres directly, but on 1,400–2,500 km of motorway
+  (roughly 5 % of Spanish traffic) whose length changes as concessions expire: 2,362 km in 2019,
+  1,894 km in 2020, 1,416 km from 2022. Seasonal peak: August, and far sharper than CORES's,
+  because it is a holiday network. The two seasonal profiles correlate at about 0.75 over
+  2000–2007, which is why both are reported rather than one.
 
 ## 4. What the data can and cannot support
 
-| Question in the README | Feasible with current files? | Why |
+| Question | Feasible with current files? | Why |
 |---|---|---|
 | Crash trends, seasonality, weekday/hour patterns 1993–2024 | Yes | series workbook plus microdata |
 | Severity of a crash given road type, zone, crash type, lighting, weather, surface, junction, alignment | Yes | crash-level outcome and context variables are complete enough |
 | Province comparisons per population, per licensed driver, per registered vehicle | Yes, with INE population added | census files give drivers by province; fleet only national in the series |
 | Vulnerable road users (pedestrians, cyclists, moped riders, motorcyclists, VMP) fatality shares and trends | Yes | `TOT_*_MU30DF` columns |
-| Older road users | Partly | series has victims by age band; microdata has no age |
+| Older road users, per unit of driving | Yes, for 2024 | DGT's 2024 kilometre release gives km by the **owner's** age band; the driver tables give car-driver deaths and involvements by age. Earlier years have no age-specific kilometres |
 | Heavy vehicles and buses per vehicle-km | Only for 2022, and only occupant deaths | involvement not in microdata; km only for 2022 |
 | Alcohol × speed interaction, distraction, fatigue, protective equipment | **No** | none of these variables exist in the crash-level file; speed only appears as aggregate infraction counts in `TABLA 6.1` and in the DGT report |
 | Driver age, sex, licence seniority effects | Only descriptively for 2024 | aggregate `TABLA 4.x`, not linkable to crashes |
 | Campaign or policy evaluation with daily resolution | **No** | no calendar day in microdata; monthly evaluation is possible |
+| A monthly exposure series for the policy study | Partly | CORES fuel (all roads, but litres not km) and toll-motorway veh-km (km, but 5 % of the network) are the only monthly series reaching past 2006 |
+| The 2019 conventional-road speed limit | **No** | the aggregate two-group design fails its own placebo, and section identifiers, limits, speeds and volumes are not published |
 | Road geometry, speed limits, traffic volume, coordinates | **No** | not in any file |
 
 Vehicle-level and person-level records are the single most valuable addition and are required before any
@@ -199,7 +223,7 @@ factor-interaction work can start. They are not published for download; a data r
 
 ## 5. Organisation
 
-- Raw files are tracked in Git under `data/raw/` (about 260 MB, 106 files) and are never edited in place.
+- Raw files are tracked in Git under `data/raw/` (about 260 MB, 110 files) and are never edited in place.
   `data/raw/manifest.csv` records path, size, SHA-256, source URL, description and the date added for
   each file; any replacement must update the manifest entry.
 - `data/interim/` and `data/processed/` stay ignored and are rebuilt from `data/raw/` by the ingestion

@@ -31,6 +31,9 @@ def test_every_page_is_written_with_one_heading(built: Path) -> None:
         assert "<script" not in text, slug
         assert 'lang="en"' in text
         assert f'href="{slug}.html" aria-current="page"' in text
+    # Six pages and no more: the four analyses, their context and the data behind them.
+    assert len(site.PAGES) == 7
+    assert {slug for slug, _ in site.PAGES} == {p.stem for p in built.glob("*.html")}
 
 
 def test_referenced_assets_exist(built: Path) -> None:
@@ -38,17 +41,21 @@ def test_referenced_assets_exist(built: Path) -> None:
         text = page.read_text(encoding="utf-8")
         for src in re.findall(r'src="([^"]+)"', text):
             assert (built / src).exists(), (page.name, src)
-        for href in re.findall(r'href="([^"]+\.css)"', text):
+        for href in re.findall(r'href="([^"]+\.(?:css|csv))"', text):
             assert (built / href).exists(), (page.name, href)
         for href in re.findall(r'href="([a-z-]+\.html)"', text):
             assert (built / href).exists(), (page.name, href)
 
 
-def test_index_shows_the_validated_headline_numbers(built: Path) -> None:
-    text = (built / "index.html").read_text(encoding="utf-8")
-    assert "101,996" in text
-    assert "1,785" in text
-    assert "9,561" in text
+def test_full_result_tables_are_published_as_csv(built: Path) -> None:
+    published = {p.name for p in (built / "tables").glob("*.csv")}
+    assert {f"{name}.csv" for name in summaries.SUMMARIES} <= published
+    assert {f"{name}.csv" for name in summaries.MODEL_TABLES} <= published
+    assert "validation.csv" in published
+    # Every page that shows a headline number also links the table it came from.
+    for slug in ("severity", "older-drivers", "vehicles", "policy", "context"):
+        text = (built / f"{slug}.html").read_text(encoding="utf-8")
+        assert 'href="tables/' in text, slug
 
 
 def test_figures_are_copied_and_captioned(built: Path) -> None:
@@ -57,8 +64,8 @@ def test_figures_are_copied_and_captioned(built: Path) -> None:
     captions = site.read_captions()
     for name in captions:
         assert (built / "figures" / f"{name}.svg").exists(), name
-    text = (built / "trends.html").read_text(encoding="utf-8")
-    assert site.mark_spanish(site.esc(captions["q1_deaths_30d"])) in text
+    text = (built / "context.html").read_text(encoding="utf-8")
+    assert site.mark_spanish(site.esc(captions["c1_deaths_per_year"])) in text
 
 
 def test_table_formats_numbers() -> None:
@@ -69,81 +76,91 @@ def test_table_formats_numbers() -> None:
     assert "<caption>Caption</caption>" in out
 
 
-def test_severity_page_reports_the_models(built: Path) -> None:
+def test_severity_page_leads_with_the_adverse_finding(built: Path) -> None:
     text = (built / "severity.html").read_text(encoding="utf-8")
-    assert "Odds ratio (95% interval)" in text
-    assert "1 (reference)" in text
-    assert "Area under the ROC curve" in text
-    assert 'href="figures/q3_forest_fatal.svg"' not in text  # figures are images, not links
-    assert 'src="figures/q3_forest_fatal.svg"' in text
+    adverse = pd.read_csv(TABLES_DIR / "q3_adverse_conditions.csv")
+    fatal = adverse[adverse.outcome == "fatal"].set_index(["variant", "level"])
+    wet_alone = float(fatal.loc[("no_weather", "wet"), "odds_ratio"])
+    # The headline number is computed from the table, not typed.
+    assert f"{wet_alone:.2f}×" in text
+    assert "Odds ratios for the adverse conditions under every model variant" in text
+    assert 'src="figures/s2_adverse_conditions.svg"' in text
+    assert 'src="figures/s1_forest_fatal.svg"' in text
+    # The distinction the finding depends on is made explicitly.
+    assert "given an injury crash" in text
+    assert "It says nothing about how often crashes happen" in text
+    # Mechanisms are labelled as proposals and cited to original research.
+    assert "mechanisms the literature proposes, not results this analysis demonstrates" in text
+    for _, url in site.LITERATURE.values():
+        assert url in text
+    assert "doi.org" in text
+    # The full coefficient table is linked, not printed.
+    assert 'href="tables/q3_model_coefficients.csv"' in text
+    assert text.count("<table>") <= 3
 
 
-def test_vehicles_page_reports_the_rates(built: Path) -> None:
-    text = (built / "vehicles.html").read_text(encoding="utf-8")
-    assert "per billion km" in text
-    assert "Heavy trucks vs cars, per kilometre" in text
-    assert 'src="figures/q6_rates_per_km.svg"' in text
-    assert "Trucks over 3,500 kg" in text and "Vans and trucks up to 3,500 kg" in text
-    assert "1993" in text and "Has a km denominator" in text
-    summary = pd.read_csv(TABLES_DIR / "q6_summary_2022.csv").set_index("group")
-    ratio = (
-        summary.loc["heavy_truck", "fatal_involvement_per_bn_km"]
-        / summary.loc["car", "fatal_involvement_per_bn_km"]
-    )
-    assert f"{ratio:.1f}×" in text  # the per-kilometre tile is computed, not typed
-    assert "yet their occupants die less often" not in text
-    index = (built / "index.html").read_text(encoding="utf-8")
-    assert 'href="vehicles.html"' in index
-    data = (built / "data.html").read_text(encoding="utf-8")
-    assert "yearly tables 2.3" in data and "yearly tables 2.2" in data
-
-
-def test_policy_page_reports_both_interventions(built: Path) -> None:
-    text = (built / "policy.html").read_text(encoding="utf-8")
-    assert 'src="figures/q8_points_series.svg"' in text
-    assert 'src="figures/q8_speed_series.svg"' in text
-    sensitivity = pd.read_csv(TABLES_DIR / "q8_points_sensitivity.csv")
-    level = sensitivity.level_change.iloc[0]
-    assert f"{level * 100:+.1f}%" in text  # the 2006 estimate is computed, not typed
-    placebo = pd.read_csv(TABLES_DIR / "q8_points_placebo.csv")
-    rank = int(placebo[placebo.is_true]["rank"].iloc[0])
-    assert f"placebo rank {rank} of {len(placebo)}" in text
-    assert "coincided" in text and "Penal Code" in text
-    speed = pd.read_csv(TABLES_DIR / "q8_speed_placebo.csv")
-    fakes = speed[~speed.is_true]
-    # Both placebo estimates are quoted on the page, whichever branch its wording takes, and the
-    # design is said to fail when a placebo interval excludes zero in either direction.
-    for value in fakes.level_change:
-        assert f"{value * 100:+.1f}%" in text
-    fails = bool(((fakes.low > 0) | (fakes.high < 0)).any())
-    assert ("The design fails its own check" in text) == fails
-    # The 2006 sensitivity list follows the sign of each variant's upper bound.
-    phrases = {
-        "24h": "the 24-hour definition",
-        "interurban": "the interurban series",
-        "fleet_offset": "the fleet offset",
-        "negative_binomial": "a negative-binomial fit",
+def test_older_drivers_page_separates_the_two_questions(built: Path) -> None:
+    text = (built / "older-drivers.html").read_text(encoding="utf-8")
+    ratios = pd.read_csv(TABLES_DIR / "q7_km_ratio.csv").set_index(["measure", "band"])
+    involved = ratios.loc[("involved_per_bn_km", "75+")]
+    fatality = ratios.loc[("deaths_per_1000_involved", "75+")]
+    assert f"{involved.ratio:.2f}× ({involved.low:.2f}–{involved.high:.2f})" in text
+    assert f"{fatality.ratio:.2f}× ({fatality.low:.2f}–{fatality.high:.2f})" in text
+    # The exposure is kilometres and the page says whose age it is.
+    assert "kilometres" in text and "owner" in text.lower()
+    assert "travel-weighted" not in text  # the synthetic denominator is gone
+    contrast = pd.read_csv(TABLES_DIR / "q7_denominator_contrast.csv")
+    assert set(contrast.denominator) == {
+        "residents",
+        "licence_holders",
+        "drivers_involved",
+        "kilometres",
     }
-    for row in sensitivity.itertuples():
-        if row.variant in phrases:
-            assert (phrases[row.variant] in text) == bool(row.level_high < 0)
-    index = (built / "index.html").read_text(encoding="utf-8")
-    assert 'href="policy.html"' in index
+    assert 'src="figures/a1_km_risk_by_age.svg"' in text
+    company = pd.read_csv(TABLES_DIR / "q7_company_km.csv").set_index(["allocation", "band"])
+    working = float(company.loc[("to_working_age", "75+"), "ratio_to_reference"])
+    assert f"{working:.2f}" in text  # the company-car sensitivity is quoted, not hidden
 
 
-def test_speed_page_keeps_the_two_sources_apart(built: Path) -> None:
-    text = (built / "speed.html").read_text(encoding="utf-8")
-    assert 'src="figures/q9_speed_status_interurban.svg"' in text
-    assert 'src="figures/q9_report_day_hour.svg"' in text
+def test_policy_page_reports_the_falsification_not_the_headline(built: Path) -> None:
+    text = (built / "policy.html").read_text(encoding="utf-8")
+    sensitivity = pd.read_csv(TABLES_DIR / "q8_points_sensitivity.csv").set_index("variant")
+    main = float(sensitivity.loc["main", "level_change"])
+    linear = float(sensitivity.loc["linear_trend", "level_change"])
+    # Signed percentages are typeset with a real minus sign, not a hyphen.
+    signed = lambda v: f"{v * 100:+.0f}%".replace("-", "\u2212")  # noqa: E731
+    assert signed(main) in text and signed(linear) in text
+    assert "-7%" not in text and "-12%" not in text
+    assert main > linear  # the preferred specification gives the smaller drop
+    calendar = pd.read_csv(TABLES_DIR / "q8_points_calendar_placebo.csv")
+    true = calendar[calendar.is_true].iloc[0]
+    assert f"{int(true['rank'])} of {int(true.n_fits)}" in text
+    forecast = pd.read_csv(TABLES_DIR / "q8_points_forecast.csv")
+    true_forecast = forecast[forecast.is_true].iloc[0]
+    assert f"{int(true_forecast['rank'])} of {int(true_forecast.n_fits)}" in text
+    assert 'src="figures/p2_july_placebos.svg"' in text
+    # The two claims are kept apart, and the 2019 study is a paragraph, not a section.
+    assert "That the points licence caused it" in text
+    assert "2019" in text and 'src="figures/q8_speed_series.svg"' not in text
+    # The exposure series are named and their effect reported.
+    assert "CORES" in text and "toll" in text
+
+
+def test_context_page_carries_the_recording_discontinuity(built: Path) -> None:
+    text = (built / "context.html").read_text(encoding="utf-8")
     shares = pd.read_csv(TABLES_DIR / "q9_infraction_shares.csv")
-    latest = shares[(shares.zone == "all") & (shares.year == shares.year.max())].iloc[0]
-    assert f"{latest.share_unknown * 100:.0f}%" in text  # the unknown share is computed
-    assert "without Cataluña and País Vasco" in text
-    assert "never adds them together" in text
-    index = (built / "index.html").read_text(encoding="utf-8")
-    assert 'href="speed.html"' in index
-    data = (built / "data.html").read_text(encoding="utf-8")
-    assert "speed-factor report" in data and "tables 6.1" in data
+    all_roads = shares[shares.zone == "all"].set_index("year")
+    for year in (2014, 2016, int(all_roads.index.max())):
+        assert f"{all_roads.loc[year, 'share_unknown'] * 100:.0f}%" in text
+    assert 'src="figures/c3_speed_status.svg"' in text
+    assert "point in opposite directions" in text
+    # The transcribed speed report is not republished on the site: no table of the report's
+    # breakdowns by limit, vehicle, licence class or hour survives anywhere.
+    for page in built.parent.glob("site*/*.html"):
+        page_text = page.read_text(encoding="utf-8")
+        assert "by the road's speed limit" not in page_text, page.name
+        assert "licence class" not in page_text, page.name
+    assert "fifteen of seventeen regions" in text
 
 
 def test_every_internal_link_and_anchor_resolves(built: Path) -> None:
@@ -161,7 +178,6 @@ def test_every_internal_link_and_anchor_resolves(built: Path) -> None:
             if target:
                 assert target in pages or (built / target).exists(), (page.name, href)
             if anchor:
-                # A fragment must name a built page and an id on it, on this page or another.
                 host = target or page.name
                 assert host in ids, (page.name, href)
                 assert anchor in ids[host], (page.name, href)
@@ -173,27 +189,51 @@ def test_every_page_has_a_description_and_every_image_an_alt(built: Path) -> Non
         description = re.search(r'<meta name="description" content="([^"]*)"', text)
         assert description and len(description.group(1)) > 40, page.name
         if page.name == "index.html":
-            assert "<title>Road safety in Spain · DGT crash data" in text
+            assert "<title>Road safety in Spain · four analyses" in text
         else:
             assert re.search(r"<title>[^<]+ · Road safety in Spain</title>", text), page.name
-        images = re.findall(r"<img[^>]*>", text)
-        for image in images:
+        for image in re.findall(r"<img[^>]*>", text):
             alt = re.search(r'alt="([^"]*)"', image)
             assert alt and alt.group(1).strip(), (page.name, image[:80])
         assert "<script" not in text
 
 
-def test_front_page_leads_with_three_analyses_and_links_the_rest(built: Path) -> None:
+def test_front_page_leads_with_the_four_analyses(built: Path) -> None:
     index = (built / "index.html").read_text(encoding="utf-8")
     body = index[index.find("<main>") : index.find("</main>")]
-    # The three featured analyses are set out in full; every other page is linked from the list.
-    assert body.count('<section class="feature">') == len(site.FEATURED) == 3
-    for href, (title, method) in site.FEATURED.items():
-        assert f'<h3><a href="{href}">{site.esc(title)}</a></h3>' in body
-        assert site.esc(method) in body
-    for slug, _ in site.PAGES:
-        if slug == "index":
-            continue
+    assert body.count('<div class="finding">') == 4
+    assert body.count('<div class="keyfig">') == 4
+    for slug in ("severity", "older-drivers", "vehicles", "policy"):
         assert f'href="{slug}.html"' in body, slug
-    # The front page carries a byline and says what the project is.
-    assert "About this project" in body and site.PROFILE_URL in index
+    assert site.PROFILE_URL in index and "Russell Howard" in index
+    # The front page is short: one strip of key figures, four findings and two short notes.
+    assert len(body) < 7_000
+
+
+def test_every_analysis_page_ends_on_a_stated_conclusion(built: Path) -> None:
+    for slug in ("severity", "older-drivers", "vehicles", "policy"):
+        text = (built / f"{slug}.html").read_text(encoding="utf-8")
+        assert text.count('<div class="conclusion">') == 1, slug
+        body = text[text.find("<main>") : text.find("</main>")]
+        # The conclusion is the last thing in the argument, not a box in the middle of it.
+        assert body.rfind('<div class="conclusion">') > body.rfind("<table>"), slug
+
+
+def test_no_page_uses_an_em_dash(built: Path) -> None:
+    # House style: colons, commas, brackets and full stops instead. Checked on the rendered
+    # pages because the prose is assembled from many fragments.
+    for page in sorted(built.glob("*.html")):
+        text = page.read_text(encoding="utf-8")
+        assert "\u2014" not in text, page.name
+        assert "&mdash;" not in text, page.name
+
+
+def test_the_development_note_is_professional_and_present(built: Path) -> None:
+    data = (built / "data.html").read_text(encoding="utf-8")
+    assert "reproducible, source-driven workflow" in data
+    assert "AI coding assistants were used during implementation" in data
+    assert "are the author's" in data
+    for page in built.glob("*.html"):
+        text = page.read_text(encoding="utf-8")
+        if page.name != "data.html":
+            assert "Claude Code" not in text
