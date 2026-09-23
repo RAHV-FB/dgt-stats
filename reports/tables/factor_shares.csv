@@ -1,0 +1,151 @@
+year,zone,factor,crashes,all_crashes,share,zone_label,segment
+2014,all,Alcohol,2045,63062,0.03242840379,All roads,0
+2015,all,Alcohol,2082,67920,0.03065371025,All roads,0
+2016,all,Alcohol,2739,70502,0.0388499617,All roads,1
+2017,all,Alcohol,2797,70458,0.03969740839,All roads,1
+2018,all,Alcohol,2892,70640,0.04093997735,All roads,1
+2019,all,Alcohol,3161,72652,0.04350878159,All roads,1
+2020,all,Alcohol,2488,51374,0.0484291665,All roads,1
+2021,all,Alcohol,3180,63508,0.05007243182,All roads,1
+2022,all,Alcohol,3414,70399,0.04849500703,All roads,1
+2023,all,Alcohol,3609,73249,0.04927029721,All roads,1
+2014,all,Distraction or inattention,13948,63062,0.221179157,All roads,0
+2015,all,Distraction or inattention,13360,67920,0.1967020024,All roads,0
+2016,all,Distraction or inattention,18910,70502,0.2682193413,All roads,1
+2017,all,Distraction or inattention,19658,70458,0.279003094,All roads,1
+2018,all,Distraction or inattention,18591,70640,0.2631795017,All roads,1
+2019,all,Distraction or inattention,11942,72652,0.1643726257,All roads,2
+2020,all,Distraction or inattention,8759,51374,0.1704948028,All roads,2
+2021,all,Distraction or inattention,10186,63508,0.1603892423,All roads,2
+2022,all,Distraction or inattention,11692,70399,0.1660819046,All roads,2
+2023,all,Distraction or inattention,12475,73249,0.1703094923,All roads,2
+2014,all,Drugs,69,63062,0.001094161302,All roads,0
+2015,all,Drugs,181,67920,0.002664899882,All roads,1
+2016,all,Drugs,283,70502,0.004014070523,All roads,2
+2017,all,Drugs,425,70458,0.006031962304,All roads,3
+2018,all,Drugs,838,70640,0.01186296716,All roads,4
+2019,all,Drugs,683,72652,0.009400980014,All roads,5
+2020,all,Drugs,99,51374,0.001927044809,All roads,6
+2021,all,Drugs,87,63508,0.001369906154,All roads,7
+2022,all,Drugs,94,70399,0.001335246239,All roads,8
+2023,all,Drugs,85,73249,0.001160425398,All roads,9
+2014,all,Illegal manoeuvres,17584,63062,0.2788367004,All roads,0
+2015,all,Illegal manoeuvres,19656,67920,0.2893992933,All roads,0
+2016,all,Illegal manoeuvres,23104,70502,0.3277070154,All roads,0
+2017,all,Illegal manoeuvres,24603,70458,0.3491867496,All roads,0
+2018,all,Illegal manoeuvres,23548,70640,0.3333522084,All roads,0
+2019,all,Illegal manoeuvres,22716,72652,0.312668612,All roads,0
+2020,all,Illegal manoeuvres,15311,51374,0.298030132,All roads,0
+2021,all,Illegal manoeuvres,18600,63508,0.292876488,All roads,0
+2022,all,Illegal manoeuvres,20690,70399,0.2938962201,All roads,0
+2023,all,Illegal manoeuvres,22252,73249,0.3037857172,All roads,0
+2014,all,Inappropriate speed,6295,63062,0.09982239701,All roads,0
+2015,all,Inappropriate speed,5896,67920,0.08680800942,All roads,0
+2016,all,Inappropriate speed,6634,70502,0.09409662137,All roads,0
+2017,all,Inappropriate speed,6507,70458,0.09235289108,All roads,0
+2018,all,Inappropriate speed,6604,70640,0.09348810872,All roads,0
+2019,all,Inappropriate speed,6049,72652,0.08325992402,All roads,0
+2020,all,Inappropriate speed,4578,51374,0.08911122358,All roads,0
+2021,all,Inappropriate speed,5034,63508,0.07926560433,All roads,0
+2022,all,Inappropriate speed,4716,70399,0.06698958792,All roads,0
+2023,all,Inappropriate speed,5070,73249,0.06921596199,All roads,0
+2014,interurban,Alcohol,1405,25598,0.05488710055,Interurban roads,0
+2015,interurban,Alcohol,1398,24529,0.05699376249,Interurban roads,0
+2016,interurban,Alcohol,1628,25738,0.06325277799,Interurban roads,0
+2017,interurban,Alcohol,1677,26526,0.06322099073,Interurban roads,0
+2018,interurban,Alcohol,1752,26781,0.06541951383,Interurban roads,0
+2019,interurban,Alcohol,2012,26659,0.07547169811,Interurban roads,0
+2020,interurban,Alcohol,1553,19409,0.0800144263,Interurban roads,0
+2021,interurban,Alcohol,1937,22877,0.08467019277,Interurban roads,0
+2022,interurban,Alcohol,2029,23735,0.08548556983,Interurban roads,0
+2023,interurban,Alcohol,2064,25053,0.08238534307,Interurban roads,0
+2014,interurban,Distraction or inattention,6354,25598,0.2482225174,Interurban roads,0
+2015,interurban,Distraction or inattention,6145,24529,0.2505197929,Interurban roads,0
+2016,interurban,Distraction or inattention,6440,25738,0.2502136918,Interurban roads,0
+2017,interurban,Distraction or inattention,7634,26526,0.2877931086,Interurban roads,0
+2018,interurban,Distraction or inattention,7294,26781,0.2723572682,Interurban roads,0
+2019,interurban,Distraction or inattention,6916,26659,0.2594245846,Interurban roads,0
+2020,interurban,Distraction or inattention,5328,19409,0.2745118244,Interurban roads,0
+2021,interurban,Distraction or inattention,6233,22877,0.2724570529,Interurban roads,0
+2022,interurban,Distraction or inattention,6273,23735,0.2642932378,Interurban roads,0
+2023,interurban,Distraction or inattention,6592,25053,0.263122181,Interurban roads,0
+2014,interurban,Drugs,47,25598,0.001836080944,Interurban roads,0
+2015,interurban,Drugs,142,24529,0.005789066004,Interurban roads,1
+2016,interurban,Drugs,222,25738,0.008625378817,Interurban roads,2
+2017,interurban,Drugs,343,26526,0.01293070949,Interurban roads,3
+2018,interurban,Drugs,746,26781,0.02785556925,Interurban roads,4
+2019,interurban,Drugs,558,26659,0.02093101767,Interurban roads,5
+2020,interurban,Drugs,72,19409,0.003709619249,Interurban roads,6
+2021,interurban,Drugs,68,22877,0.002972417712,Interurban roads,7
+2022,interurban,Drugs,67,23735,0.002822835475,Interurban roads,8
+2023,interurban,Drugs,62,25053,0.002474753523,Interurban roads,9
+2014,interurban,Illegal manoeuvres,6495,25598,0.2537307602,Interurban roads,0
+2015,interurban,Illegal manoeuvres,7060,24529,0.2878225774,Interurban roads,0
+2016,interurban,Illegal manoeuvres,8211,25738,0.3190224571,Interurban roads,0
+2017,interurban,Illegal manoeuvres,10353,26526,0.3902963131,Interurban roads,0
+2018,interurban,Illegal manoeuvres,10156,26781,0.3792240768,Interurban roads,0
+2019,interurban,Illegal manoeuvres,10206,26659,0.3828350651,Interurban roads,0
+2020,interurban,Illegal manoeuvres,6757,19409,0.348137462,Interurban roads,0
+2021,interurban,Illegal manoeuvres,8366,22877,0.3656948026,Interurban roads,0
+2022,interurban,Illegal manoeuvres,8720,23735,0.3673899305,Interurban roads,0
+2023,interurban,Illegal manoeuvres,9463,25053,0.3777192352,Interurban roads,0
+2014,interurban,Inappropriate speed,4766,25598,0.1861864208,Interurban roads,0
+2015,interurban,Inappropriate speed,4340,24529,0.1769334257,Interurban roads,0
+2016,interurban,Inappropriate speed,4955,25738,0.1925169011,Interurban roads,0
+2017,interurban,Inappropriate speed,4902,26526,0.184799819,Interurban roads,0
+2018,interurban,Inappropriate speed,5221,26781,0.1949516448,Interurban roads,0
+2019,interurban,Inappropriate speed,4669,26659,0.1751378521,Interurban roads,0
+2020,interurban,Inappropriate speed,3599,19409,0.18542944,Interurban roads,0
+2021,interurban,Inappropriate speed,3770,22877,0.1647943349,Interurban roads,0
+2022,interurban,Inappropriate speed,3411,23735,0.143711818,Interurban roads,0
+2023,interurban,Inappropriate speed,3580,25053,0.1428970582,Interurban roads,0
+2014,urban,Alcohol,640,37464,0.01708306641,Urban streets,0
+2015,urban,Alcohol,684,43391,0.01576363762,Urban streets,0
+2016,urban,Alcohol,1111,44764,0.02481905102,Urban streets,1
+2017,urban,Alcohol,1120,43932,0.02549394519,Urban streets,1
+2018,urban,Alcohol,1140,43859,0.02599238469,Urban streets,1
+2019,urban,Alcohol,1149,45993,0.02498206249,Urban streets,1
+2020,urban,Alcohol,935,31965,0.029250743,Urban streets,1
+2021,urban,Alcohol,1243,40631,0.03059240481,Urban streets,1
+2022,urban,Alcohol,1385,46664,0.02968026744,Urban streets,1
+2023,urban,Alcohol,1545,48196,0.03205660221,Urban streets,1
+2014,urban,Distraction or inattention,7594,37464,0.2027012599,Urban streets,0
+2015,urban,Distraction or inattention,7215,43391,0.1662787214,Urban streets,0
+2016,urban,Distraction or inattention,12470,44764,0.2785720668,Urban streets,1
+2017,urban,Distraction or inattention,12024,43932,0.2736957116,Urban streets,1
+2018,urban,Distraction or inattention,11297,43859,0.2575754121,Urban streets,1
+2019,urban,Distraction or inattention,5026,45993,0.1092774987,Urban streets,2
+2020,urban,Distraction or inattention,3431,31965,0.1073361489,Urban streets,2
+2021,urban,Distraction or inattention,3953,40631,0.09729024636,Urban streets,2
+2022,urban,Distraction or inattention,5419,46664,0.1161280645,Urban streets,2
+2023,urban,Distraction or inattention,5883,48196,0.1220640717,Urban streets,2
+2014,urban,Drugs,22,37464,0.0005872304079,Urban streets,0
+2015,urban,Drugs,39,43391,0.0008988038994,Urban streets,1
+2016,urban,Drugs,61,44764,0.001362702171,Urban streets,2
+2017,urban,Drugs,82,43932,0.001866520987,Urban streets,3
+2018,urban,Drugs,92,43859,0.002097631045,Urban streets,4
+2019,urban,Drugs,125,45993,0.002717804883,Urban streets,5
+2020,urban,Drugs,27,31965,0.000844673862,Urban streets,6
+2021,urban,Drugs,19,40631,0.0004676232433,Urban streets,7
+2022,urban,Drugs,27,46664,0.0005786044917,Urban streets,8
+2023,urban,Drugs,23,48196,0.0004772180264,Urban streets,9
+2014,urban,Illegal manoeuvres,11089,37464,0.2959908179,Urban streets,0
+2015,urban,Illegal manoeuvres,12596,43391,0.2902906133,Urban streets,0
+2016,urban,Illegal manoeuvres,14893,44764,0.3327003842,Urban streets,0
+2017,urban,Illegal manoeuvres,14250,43932,0.3243649276,Urban streets,0
+2018,urban,Illegal manoeuvres,13392,43859,0.3053421191,Urban streets,0
+2019,urban,Illegal manoeuvres,12510,45993,0.2719979127,Urban streets,0
+2020,urban,Illegal manoeuvres,8554,31965,0.2676051932,Urban streets,0
+2021,urban,Illegal manoeuvres,10234,40631,0.2518766459,Urban streets,0
+2022,urban,Illegal manoeuvres,11970,46664,0.256514658,Urban streets,0
+2023,urban,Illegal manoeuvres,12789,48196,0.2653539713,Urban streets,0
+2014,urban,Inappropriate speed,1529,37464,0.04081251335,Urban streets,0
+2015,urban,Inappropriate speed,1556,43391,0.03585997096,Urban streets,0
+2016,urban,Inappropriate speed,1679,44764,0.03750781878,Urban streets,0
+2017,urban,Inappropriate speed,1605,43932,0.03653373395,Urban streets,0
+2018,urban,Inappropriate speed,1383,43859,0.03153286669,Urban streets,0
+2019,urban,Inappropriate speed,1380,45993,0.03000456591,Urban streets,0
+2020,urban,Inappropriate speed,979,31965,0.03062724855,Urban streets,0
+2021,urban,Inappropriate speed,1264,40631,0.03110925156,Urban streets,0
+2022,urban,Inappropriate speed,1305,46664,0.02796588376,Urban streets,0
+2023,urban,Inappropriate speed,1490,48196,0.03091542867,Urban streets,0

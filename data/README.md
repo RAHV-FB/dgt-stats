@@ -22,9 +22,9 @@ python scripts/ingest.py validate
 |---|---|---|
 | `microdata` | `microdata/accidentes_YYYY.parquet` (9 files) and `microdata/accidentes_all.parquet` (875,013 rows, 74 columns) | one row per injury crash; codes kept as integers, `SECUENCIAL` renamed to `ID_ACCIDENTE`, VMP death columns added as missing where a year lacks them; about 35 s per year |
 | `tables` | `series_annual`, `series_monthly`, `series_province`, `series_age`, `series_sex`, `series_road_users`, `series_pedestrians`, `tables_2024_province`, `tables_2024_month`, `tables_2024_vehicles_involved`, `tables_units_by_type` (2.3, 2020–2024), `tables_victims_by_mode` (2.2, 2020–2024), `tables_driver_victims` (4.1.1, 2014–2024), `tables_drivers_involved` (4.2, 2014–2024), `tables_driver_infractions` (6.1, 2014–2024) | tidy long frames with a `source_sheet` column; `.` cells become missing; the driver tables carry a `band` column on the DGT age bands |
-| `exposure` | `censo_conductores` (2023–2025 stacked), `censo_provincias_2025`, `censo_edad` (2023–2025 by province, sex and age band), `censo_edad_tablas` (published class × age totals 2014–2023), `conductores_por_edad` (2014–2025 stitched), `poblacion_ine` (INE residents 2002–2025), `km_medios_2022`, `km_estimados_2022` | census `licence_class` is the driver's highest class; `conductores_por_edad` uses the published tables to 2023 and the text files from 2024 |
+| `exposure` | `censo_conductores` (2023–2025 stacked), `censo_provincias_2025`, `censo_edad` (2023–2025 by province, sex and age band), `censo_edad_tablas` (published class × age totals 2014–2023), `conductores_por_edad` (2014–2025 stitched), `poblacion_ine` (INE residents 2002–2025), `km_medios_2022`, `km_estimados_2022`, `km_edad_propietario_2024` (vehicles and km by category and owner age band), `km_medios_tipo_2024` (the same release's totals, used to check it) | census `licence_class` is the driver's highest class; `conductores_por_edad` uses the published tables to 2023 and the text files from 2024 |
 | `reports` | `speed_report` | 61 of the 64 tables of the DGT speed-factor report (2014–2023, without Cataluña or País Vasco; all but the three year-on-year variation tables) transcribed from the PDF text with `pymupdf`; long format with the table's metric, zone, breakdown and a `region_scope` column on every row |
-| `validate` | `reports/tables/validation.csv`, `reports/tables/missingness_by_year.csv` (both committed) | reconciliation against the yearbook and 2024 tables, key uniqueness, code domains, census cross-check, driver deaths in the yearly tables against the series (2014–2024), 2023 census by age against the published table, vehicles involved and deaths by means of transport in the yearly tables 2.3 and 2.2 against the microdata (2020–2024), the driver-infraction tables 6.1 against the drivers involved in table 4.2 within 1.5 % with one agreed total across the blocks that publish one, two in 2014–2015 and six from 2016 (2014–2024, both zones), per-year missingness (434 checks). The missingness profile counts the placeholders of the fields that carry no code list — `KM` 9999 and, in 2019, 1000; `CARRETERA` "No inventariada"; the `COD_MUNICIPIO` placeholder — as not observed |
+| `validate` | `reports/tables/validation.csv`, `reports/tables/missingness_by_year.csv` (both committed) | reconciliation against the yearbook and 2024 tables, key uniqueness, code domains, census cross-check, driver deaths in the yearly tables against the series (2014–2024), 2023 census by age against the published table, vehicles involved and deaths by means of transport in the yearly tables 2.3 and 2.2 against the microdata (2020–2024), the driver-infraction tables 6.1 against the drivers involved in table 4.2 within 1.5 % with one agreed total across the blocks that publish one, two in 2014–2015 and six from 2016 (2014–2024, both zones), the speed report's scope totals against the microdata restricted to its provinces (2016–2023), per-year missingness (482 checks). The missingness profile counts the placeholders of the fields that carry no code list — `KM` 9999 and, in 2019, 1000; `CARRETERA` "No inventariada"; the `COD_MUNICIPIO` placeholder — as not observed |
 
 Existing outputs are skipped unless `--force` is given. Tests that need the interim layer skip themselves with a message until it has been built.
 
@@ -49,14 +49,15 @@ The full audit is in [`docs/data_inventory.md`](../docs/data_inventory.md).
 
 | Group | Files | Used for |
 |---|---|---|
-| Crash microdata 2016–2024 | nine yearly workbooks, the code dictionary | timing, road users, severity, the 2019 case study, monthly deaths by road type |
-| Yearbook series 1993–2024 | one workbook, 69 sheets | trends, occupant deaths by vehicle, the 2006 case study |
+| Crash microdata 2016–2024 | nine yearly workbooks, the code dictionary | the speed report's scope totals by road type, darkness shares, the severity model and the 2019 case study (supporting) |
+| Yearbook series 1993–2024 | one workbook, 69 sheets | 2019–2024 risk, the long run, seasonality, the 2006 case study (supporting) |
 | Statistical tables 2014–2024 | chapter workbooks to 2019, one workbook per year from 2020 | province and month totals, vehicles involved, victims by mode, drivers by age, sex and infraction |
-| Driver census 2014–2025 | text extracts and published tables | licence-holder denominators by province and age |
-| INE population 2002–2025 | one CSV | resident denominators by province and age |
-| ITV kilometre estimates 2022 | two workbooks and the methodology note | vehicle-kilometres by type and age; the circulating fleet |
-| Travel and driving surveys | MOVILIA 2006–2007, ECEPOV 2021, EHMA 2008, ESRA shares | the travel-weighted driver denominator (MOVILIA 2006 and the ESRA shares); the others are registered for context |
-| DGT thematic reports | speed factor, older road users, Easter 2026 | the speed page (transcribed), definitions |
+| Driver census 2014–2025 | text extracts and published tables | licence-holder denominators by year, sex and age |
+| INE population 2002–2025 | one CSV | resident denominators by year, sex and age |
+| ITV kilometre estimates 2022 and 2024 | four workbooks and the methodology note | vehicle-kilometres by type (2022) and by owner age (2024); the circulating fleet |
+| Monthly traffic | CORES road fuel, state toll-motorway traffic | the traffic denominators of the risk, long-run and seasonality pages |
+| Travel and driving surveys | MOVILIA 2006–2007, ECEPOV 2021, EHMA 2008, ESRA shares | MOVILIA 2006 bounds the travel gap between the sexes; the others are registered for context |
+| DGT thematic reports | speed factor, older road users, Easter 2026 | speed as a severity factor and the recorded-factor series (transcribed, reconciled against the microdata), definitions |
 
 The driver-census text files use a pipe delimiter. The census-by-class files
 (`censo_conductores_YYYY.txt`) carry five fields:

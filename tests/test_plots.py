@@ -10,48 +10,26 @@ from dgt_stats.paths import TABLES_DIR
 # build_all writes these from the summary tables plus missingness_by_year.csv; the Q3 ones need
 # the model tables.
 EXPECTED_FIGURES = {
-    "data_missingness",
-    "q1_deaths_30d",
-    "q1_deaths_by_zone",
-    "q1_indexed_trend",
-    "q1_monthly_heatmap",
-    "q1_rates",
-    "q2_hour_band_road_group",
-    "q2_hour_weekday_crashes",
-    "q2_hour_weekday_fatal_share",
-    "q2_night_share",
-    "q4_national_rates",
-    "q4_province_deaths",
-    "q5_driver_deaths",
-    "q5_pedestrian_deaths",
-    "q5_road_user_shares",
-    "q6_km_by_age",
-    "q6_occupant_deaths",
-    "q6_per_vehicle_vs_per_km",
-    "q6_rates_per_km",
-    "q7_death_rates_by_band",
-    "q7_involvement_fragility",
-    "q7_ladder_ratio",
-    "q7_licence_travel_share",
-    "q7_victims_by_age",
-    "q8_points_placebo",
-    "q8_points_series",
-    "q8_points_series_long",
-    "q8_speed_series",
-    "q8_speed_series_long",
-    "q9_report_day_hour",
-    "q9_report_speed_limit",
-    "q9_report_speed_share",
-    "q9_speed_by_vehicle",
-    "q9_speed_status_interurban",
-    "q9_speed_status_urban",
+    "r1_risk_change",
+    "l1_trend_projection",
+    "l2_observed_over_trend",
+    "m1_season_profile",
+    "m2_month_effects",
+    "m3_lockdown",
+    "a3_sex_ratios",
+    "f1_speed_severity",
+    "f2_factor_shares",
+    "c3_speed_status",
+    "a1_km_risk_by_age",
+    "a2_denominator_contrast",
+    "v1_per_vehicle_vs_per_km",
+    "p1_points_series",
+    "p2_july_placebos",
+    "d1_missingness",
 }
 EXPECTED_MODEL_FIGURES = {
-    "q3_calibration",
-    "q3_forest_fatal",
-    "q3_forest_serious",
-    "q3_predicted_grid",
-    "q3_year_stability",
+    "s1_forest_fatal",
+    "s2_adverse_conditions",
 }
 _TABLES_PRESENT = all(
     (TABLES_DIR / f"{name}.csv").exists() for name in (*summaries.SUMMARIES, "missingness_by_year")
@@ -358,9 +336,18 @@ def test_build_all_writes_every_registered_figure(tmp_path: Path) -> None:
     saved = json.loads((tmp_path / "captions.json").read_text(encoding="utf-8"))
     assert saved == captions
     # n is counted from the frame each figure draws and says what it counts.
-    n_crashes = int(frames["q2_hour_weekday"].crashes.sum())
-    assert captions["q2_hour_weekday_crashes"].endswith(f"n = {n_crashes:,} crashes.")
-    n_deaths = int(frames["q1_annual_by_zone"].deaths_30d.sum())
-    assert captions["q1_deaths_by_zone"].endswith(f"n = {n_deaths:,} deaths.")
-    n_band = int(frames["q2_hour_band_road_group"].crashes.sum())
-    assert captions["q2_hour_band_road_group"].endswith(f"n = {n_band:,} crashes.")
+    n_speed = int(frames["speed_severity_pooled"].speed_crashes.sum())
+    assert captions["f1_speed_severity"].endswith(f"n = {n_speed:,} speed-related crashes.")
+    n_drivers = int(frames["q9_infraction_shares"].query("zone == 'all'").total.sum())
+    assert captions["c3_speed_status"].endswith(f"n = {n_drivers:,} drivers.")
+    n_involved = int(frames["q7_km_rates"].drivers_involved.sum())
+    assert captions["a1_km_risk_by_age"].endswith(f"n = {n_involved:,} drivers involved.")
+
+
+@pytest.mark.skipif(not _TABLES_PRESENT, reason="run `python scripts/analyse.py tables` first")
+def test_build_all_removes_a_figure_that_is_no_longer_registered(tmp_path: Path) -> None:
+    stale = tmp_path / "q9_report_day_hour.svg"
+    stale.write_text("<svg></svg>", encoding="utf-8")
+    frames = {name: pd.read_csv(TABLES_DIR / f"{name}.csv") for name in summaries.SUMMARIES}
+    figures.build_all(tmp_path, frames=frames)
+    assert not stale.exists()

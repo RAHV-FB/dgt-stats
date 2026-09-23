@@ -1,0 +1,49 @@
+zone,zone_label,factor,first_year,last_year,n_years,too_few,share_first,share_last,change_in_share
+all,All roads,Alcohol,2014,2015,2,False,0.03242840379,0.03065371025,-0.05472651559
+all,All roads,Alcohol,2016,2023,8,False,0.0388499617,0.04927029721,0.2682199684
+all,All roads,Distraction or inattention,2014,2015,2,False,0.221179157,0.1967020024,-0.1106666423
+all,All roads,Distraction or inattention,2016,2018,3,False,0.2682193413,0.2631795017,-0.01878999319
+all,All roads,Distraction or inattention,2019,2023,5,False,0.1643726257,0.1703094923,0.03611834141
+all,All roads,Drugs,2014,2014,1,True,0.001094161302,0.001094161302,0
+all,All roads,Drugs,2015,2015,1,True,0.002664899882,0.002664899882,0
+all,All roads,Drugs,2016,2016,1,False,0.004014070523,0.004014070523,0
+all,All roads,Drugs,2017,2017,1,False,0.006031962304,0.006031962304,0
+all,All roads,Drugs,2018,2018,1,False,0.01186296716,0.01186296716,0
+all,All roads,Drugs,2019,2019,1,False,0.009400980014,0.009400980014,0
+all,All roads,Drugs,2020,2020,1,True,0.001927044809,0.001927044809,0
+all,All roads,Drugs,2021,2021,1,True,0.001369906154,0.001369906154,0
+all,All roads,Drugs,2022,2022,1,True,0.001335246239,0.001335246239,0
+all,All roads,Drugs,2023,2023,1,True,0.001160425398,0.001160425398,0
+all,All roads,Illegal manoeuvres,2014,2023,10,False,0.2788367004,0.3037857172,0.08947536958
+all,All roads,Inappropriate speed,2014,2023,10,False,0.09982239701,0.06921596199,-0.3066088967
+interurban,Interurban roads,Alcohol,2014,2023,10,False,0.05488710055,0.08238534307,0.5009964498
+interurban,Interurban roads,Distraction or inattention,2014,2023,10,False,0.2482225174,0.263122181,0.06002543101
+interurban,Interurban roads,Drugs,2014,2014,1,True,0.001836080944,0.001836080944,0
+interurban,Interurban roads,Drugs,2015,2015,1,True,0.005789066004,0.005789066004,0
+interurban,Interurban roads,Drugs,2016,2016,1,False,0.008625378817,0.008625378817,0
+interurban,Interurban roads,Drugs,2017,2017,1,False,0.01293070949,0.01293070949,0
+interurban,Interurban roads,Drugs,2018,2018,1,False,0.02785556925,0.02785556925,0
+interurban,Interurban roads,Drugs,2019,2019,1,False,0.02093101767,0.02093101767,0
+interurban,Interurban roads,Drugs,2020,2020,1,True,0.003709619249,0.003709619249,0
+interurban,Interurban roads,Drugs,2021,2021,1,True,0.002972417712,0.002972417712,0
+interurban,Interurban roads,Drugs,2022,2022,1,True,0.002822835475,0.002822835475,0
+interurban,Interurban roads,Drugs,2023,2023,1,True,0.002474753523,0.002474753523,0
+interurban,Interurban roads,Illegal manoeuvres,2014,2023,10,False,0.2537307602,0.3777192352,0.4886615832
+interurban,Interurban roads,Inappropriate speed,2014,2023,10,False,0.1861864208,0.1428970582,-0.232505477
+urban,Urban streets,Alcohol,2014,2015,2,False,0.01708306641,0.01576363762,-0.07723606278
+urban,Urban streets,Alcohol,2016,2023,8,False,0.02481905102,0.03205660221,0.2916127284
+urban,Urban streets,Distraction or inattention,2014,2015,2,False,0.2027012599,0.1662787214,-0.1796858022
+urban,Urban streets,Distraction or inattention,2016,2018,3,False,0.2785720668,0.2575754121,-0.075372434
+urban,Urban streets,Distraction or inattention,2019,2023,5,False,0.1092774987,0.1220640717,0.1170101174
+urban,Urban streets,Drugs,2014,2014,1,True,0.0005872304079,0.0005872304079,0
+urban,Urban streets,Drugs,2015,2015,1,True,0.0008988038994,0.0008988038994,0
+urban,Urban streets,Drugs,2016,2016,1,True,0.001362702171,0.001362702171,0
+urban,Urban streets,Drugs,2017,2017,1,True,0.001866520987,0.001866520987,0
+urban,Urban streets,Drugs,2018,2018,1,True,0.002097631045,0.002097631045,0
+urban,Urban streets,Drugs,2019,2019,1,True,0.002717804883,0.002717804883,0
+urban,Urban streets,Drugs,2020,2020,1,True,0.000844673862,0.000844673862,0
+urban,Urban streets,Drugs,2021,2021,1,True,0.0004676232433,0.0004676232433,0
+urban,Urban streets,Drugs,2022,2022,1,True,0.0005786044917,0.0005786044917,0
+urban,Urban streets,Drugs,2023,2023,1,True,0.0004772180264,0.0004772180264,0
+urban,Urban streets,Illegal manoeuvres,2014,2023,10,False,0.2959908179,0.2653539713,-0.1035060709
+urban,Urban streets,Inappropriate speed,2014,2023,10,False,0.04081251335,0.03091542867,-0.2425012299

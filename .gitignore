@@ -32,12 +32,11 @@ reports/figures/**
 !reports/figures/captions.json
 reports/tables/**
 !reports/tables/.gitkeep
-!reports/tables/validation.csv
-!reports/tables/missingness_by_year.csv
-!reports/tables/q*.csv
+!reports/tables/*.csv
 
-# Site figures are copied from reports/figures at build time
+# The site's figures and downloadable tables are copied from reports/ at build time
 site/figures/
+site/tables/
 
 # Build and coverage outputs
 build/
