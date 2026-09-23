@@ -1,0 +1,136 @@
+zone,zone_label,factor,from_year,to_year,share_from,share_to,share_ratio,too_few,jump,is_break
+all,All roads,Alcohol,2014,2015,0.03242840379,0.03065371025,0.9452734844,False,False,False
+all,All roads,Alcohol,2015,2016,0.03065371025,0.0388499617,1.267382036,False,True,True
+all,All roads,Alcohol,2016,2017,0.0388499617,0.03969740839,1.021813321,False,False,False
+all,All roads,Alcohol,2017,2018,0.03969740839,0.04093997735,1.03130101,False,False,False
+all,All roads,Alcohol,2018,2019,0.04093997735,0.04350878159,1.062745619,False,False,False
+all,All roads,Alcohol,2019,2020,0.04350878159,0.0484291665,1.113089467,False,False,False
+all,All roads,Alcohol,2020,2021,0.0484291665,0.05007243182,1.033931315,False,False,False
+all,All roads,Alcohol,2021,2022,0.05007243182,0.04849500703,0.9684971404,False,False,False
+all,All roads,Alcohol,2022,2023,0.04849500703,0.04927029721,1.01598701,False,False,False
+all,All roads,Distraction or inattention,2014,2015,0.221179157,0.1967020024,0.8893333577,False,False,False
+all,All roads,Distraction or inattention,2015,2016,0.1967020024,0.2682193413,1.36358216,False,True,True
+all,All roads,Distraction or inattention,2016,2017,0.2682193413,0.279003094,1.040204978,False,False,False
+all,All roads,Distraction or inattention,2017,2018,0.279003094,0.2631795017,0.9432852442,False,False,False
+all,All roads,Distraction or inattention,2018,2019,0.2631795017,0.1643726257,0.6245646967,False,True,True
+all,All roads,Distraction or inattention,2019,2020,0.1643726257,0.1704948028,1.037245722,False,False,False
+all,All roads,Distraction or inattention,2020,2021,0.1704948028,0.1603892423,0.9407280436,False,False,False
+all,All roads,Distraction or inattention,2021,2022,0.1603892423,0.1660819046,1.035492794,False,False,False
+all,All roads,Distraction or inattention,2022,2023,0.1660819046,0.1703094923,1.025454836,False,False,False
+all,All roads,Drugs,2014,2015,0.001094161302,0.002664899882,2.435564005,True,False,True
+all,All roads,Drugs,2015,2016,0.002664899882,0.004014070523,1.506274419,True,False,True
+all,All roads,Drugs,2016,2017,0.004014070523,0.006031962304,1.502704616,False,True,True
+all,All roads,Drugs,2017,2018,0.006031962304,0.01186296716,1.966684565,False,True,True
+all,All roads,Drugs,2018,2019,0.01186296716,0.009400980014,0.7924644728,False,True,True
+all,All roads,Drugs,2019,2020,0.009400980014,0.001927044809,0.204983396,True,False,True
+all,All roads,Drugs,2020,2021,0.001927044809,0.001369906154,0.7108844316,True,False,True
+all,All roads,Drugs,2021,2022,0.001369906154,0.001335246239,0.9746990594,True,False,True
+all,All roads,Drugs,2022,2023,0.001335246239,0.001160425398,0.8690722087,True,False,True
+all,All roads,Illegal manoeuvres,2014,2015,0.2788367004,0.2893992933,1.037880928,False,False,False
+all,All roads,Illegal manoeuvres,2015,2016,0.2893992933,0.3277070154,1.132369785,False,False,False
+all,All roads,Illegal manoeuvres,2016,2017,0.3277070154,0.3491867496,1.065545543,False,False,False
+all,All roads,Illegal manoeuvres,2017,2018,0.3491867496,0.3333522084,0.9546530869,False,False,False
+all,All roads,Illegal manoeuvres,2018,2019,0.3333522084,0.312668612,0.9379527243,False,False,False
+all,All roads,Illegal manoeuvres,2019,2020,0.312668612,0.298030132,0.9531821249,False,False,False
+all,All roads,Illegal manoeuvres,2020,2021,0.298030132,0.292876488,0.9827076412,False,False,False
+all,All roads,Illegal manoeuvres,2021,2022,0.292876488,0.2938962201,1.003481782,False,False,False
+all,All roads,Illegal manoeuvres,2022,2023,0.2938962201,0.3037857172,1.033649623,False,False,False
+all,All roads,Inappropriate speed,2014,2015,0.09982239701,0.08680800942,0.8696245735,False,False,False
+all,All roads,Inappropriate speed,2015,2016,0.08680800942,0.09409662137,1.083962436,False,False,False
+all,All roads,Inappropriate speed,2016,2017,0.09409662137,0.09235289108,0.9814687258,False,False,False
+all,All roads,Inappropriate speed,2017,2018,0.09235289108,0.09348810872,1.012292172,False,False,False
+all,All roads,Inappropriate speed,2018,2019,0.09348810872,0.08325992402,0.890593736,False,False,False
+all,All roads,Inappropriate speed,2019,2020,0.08325992402,0.08911122358,1.070277503,False,False,False
+all,All roads,Inappropriate speed,2020,2021,0.08911122358,0.07926560433,0.8895131405,False,False,False
+all,All roads,Inappropriate speed,2021,2022,0.07926560433,0.06698958792,0.845128079,False,False,False
+all,All roads,Inappropriate speed,2022,2023,0.06698958792,0.06921596199,1.033234629,False,False,False
+interurban,Interurban roads,Alcohol,2014,2015,0.05488710055,0.05699376249,1.038381731,False,False,False
+interurban,Interurban roads,Alcohol,2015,2016,0.05699376249,0.06325277799,1.109819307,False,False,False
+interurban,Interurban roads,Alcohol,2016,2017,0.06325277799,0.06322099073,0.9994974566,False,False,False
+interurban,Interurban roads,Alcohol,2017,2018,0.06322099073,0.06541951383,1.034775208,False,False,False
+interurban,Interurban roads,Alcohol,2018,2019,0.06541951383,0.07547169811,1.153657276,False,False,False
+interurban,Interurban roads,Alcohol,2019,2020,0.07547169811,0.0800144263,1.060191148,False,False,False
+interurban,Interurban roads,Alcohol,2020,2021,0.0800144263,0.08467019277,1.058186588,False,False,False
+interurban,Interurban roads,Alcohol,2021,2022,0.08467019277,0.08548556983,1.009630037,False,False,False
+interurban,Interurban roads,Alcohol,2022,2023,0.08548556983,0.08238534307,0.9637339171,False,False,False
+interurban,Interurban roads,Distraction or inattention,2014,2015,0.2482225174,0.2505197929,1.009254904,False,False,False
+interurban,Interurban roads,Distraction or inattention,2015,2016,0.2505197929,0.2502136918,0.9987781361,False,False,False
+interurban,Interurban roads,Distraction or inattention,2016,2017,0.2502136918,0.2877931086,1.15018929,False,False,False
+interurban,Interurban roads,Distraction or inattention,2017,2018,0.2877931086,0.2723572682,0.9463648018,False,False,False
+interurban,Interurban roads,Distraction or inattention,2018,2019,0.2723572682,0.2594245846,0.9525157389,False,False,False
+interurban,Interurban roads,Distraction or inattention,2019,2020,0.2594245846,0.2745118244,1.058156554,False,False,False
+interurban,Interurban roads,Distraction or inattention,2020,2021,0.2745118244,0.2724570529,0.9925148161,False,False,False
+interurban,Interurban roads,Distraction or inattention,2021,2022,0.2724570529,0.2642932378,0.9700363231,False,False,False
+interurban,Interurban roads,Distraction or inattention,2022,2023,0.2642932378,0.263122181,0.9955691002,False,False,False
+interurban,Interurban roads,Drugs,2014,2015,0.001836080944,0.005789066004,3.152947054,True,False,True
+interurban,Interurban roads,Drugs,2015,2016,0.005789066004,0.008625378817,1.489943078,True,False,True
+interurban,Interurban roads,Drugs,2016,2017,0.008625378817,0.01293070949,1.499146851,False,True,True
+interurban,Interurban roads,Drugs,2017,2018,0.01293070949,0.02785556925,2.154218163,False,True,True
+interurban,Interurban roads,Drugs,2018,2019,0.02785556925,0.02093101767,0.7514123112,False,True,True
+interurban,Interurban roads,Drugs,2019,2020,0.02093101767,0.003709619249,0.177230716,True,False,True
+interurban,Interurban roads,Drugs,2020,2021,0.003709619249,0.002972417712,0.8012729913,True,False,True
+interurban,Interurban roads,Drugs,2021,2022,0.002972417712,0.002822835475,0.9496765759,True,False,True
+interurban,Interurban roads,Drugs,2022,2023,0.002822835475,0.002474753523,0.8766906695,True,False,True
+interurban,Interurban roads,Illegal manoeuvres,2014,2015,0.2537307602,0.2878225774,1.134362176,False,False,False
+interurban,Interurban roads,Illegal manoeuvres,2015,2016,0.2878225774,0.3190224571,1.108399695,False,False,False
+interurban,Interurban roads,Illegal manoeuvres,2016,2017,0.3190224571,0.3902963131,1.223413288,False,False,False
+interurban,Interurban roads,Illegal manoeuvres,2017,2018,0.3902963131,0.3792240768,0.9716312045,False,False,False
+interurban,Interurban roads,Illegal manoeuvres,2018,2019,0.3792240768,0.3828350651,1.009522044,False,False,False
+interurban,Interurban roads,Illegal manoeuvres,2019,2020,0.3828350651,0.348137462,0.9093667058,False,False,False
+interurban,Interurban roads,Illegal manoeuvres,2020,2021,0.348137462,0.3656948026,1.050432207,False,False,False
+interurban,Interurban roads,Illegal manoeuvres,2021,2022,0.3656948026,0.3673899305,1.004635362,False,False,False
+interurban,Interurban roads,Illegal manoeuvres,2022,2023,0.3673899305,0.3777192352,1.028115372,False,False,False
+interurban,Interurban roads,Inappropriate speed,2014,2015,0.1861864208,0.1769334257,0.9503025246,False,False,False
+interurban,Interurban roads,Inappropriate speed,2015,2016,0.1769334257,0.1925169011,1.088075361,False,False,False
+interurban,Interurban roads,Inappropriate speed,2016,2017,0.1925169011,0.184799819,0.9599147816,False,False,False
+interurban,Interurban roads,Inappropriate speed,2017,2018,0.184799819,0.1949516448,1.054934176,False,False,False
+interurban,Interurban roads,Inappropriate speed,2018,2019,0.1949516448,0.1751378521,0.8983656039,False,False,False
+interurban,Interurban roads,Inappropriate speed,2019,2020,0.1751378521,0.18542944,1.058762784,False,False,False
+interurban,Interurban roads,Inappropriate speed,2020,2021,0.18542944,0.1647943349,0.8887172121,False,False,False
+interurban,Interurban roads,Inappropriate speed,2021,2022,0.1647943349,0.143711818,0.8720677083,False,False,False
+interurban,Interurban roads,Inappropriate speed,2022,2023,0.143711818,0.1428970582,0.9943306002,False,False,False
+urban,Urban streets,Alcohol,2014,2015,0.01708306641,0.01576363762,0.9227639372,False,False,False
+urban,Urban streets,Alcohol,2015,2016,0.01576363762,0.02481905102,1.574449478,False,True,True
+urban,Urban streets,Alcohol,2016,2017,0.02481905102,0.02549394519,1.027192585,False,False,False
+urban,Urban streets,Alcohol,2017,2018,0.02549394519,0.02599238469,1.019551289,False,False,False
+urban,Urban streets,Alcohol,2018,2019,0.02599238469,0.02498206249,0.961130069,False,False,False
+urban,Urban streets,Alcohol,2019,2020,0.02498206249,0.029250743,1.17086982,False,False,False
+urban,Urban streets,Alcohol,2020,2021,0.029250743,0.03059240481,1.045867615,False,False,False
+urban,Urban streets,Alcohol,2021,2022,0.03059240481,0.02968026744,0.9701841887,False,False,False
+urban,Urban streets,Alcohol,2022,2023,0.02968026744,0.03205660221,1.080064466,False,False,False
+urban,Urban streets,Distraction or inattention,2014,2015,0.2027012599,0.1662787214,0.8203141978,False,False,False
+urban,Urban streets,Distraction or inattention,2015,2016,0.1662787214,0.2785720668,1.675332024,False,True,True
+urban,Urban streets,Distraction or inattention,2016,2017,0.2785720668,0.2736957116,0.982495175,False,False,False
+urban,Urban streets,Distraction or inattention,2017,2018,0.2736957116,0.2575754121,0.941101381,False,False,False
+urban,Urban streets,Distraction or inattention,2018,2019,0.2575754121,0.1092774987,0.4242543877,False,True,True
+urban,Urban streets,Distraction or inattention,2019,2020,0.1092774987,0.1073361489,0.9822346791,False,False,False
+urban,Urban streets,Distraction or inattention,2020,2021,0.1073361489,0.09729024636,0.9064070898,False,False,False
+urban,Urban streets,Distraction or inattention,2021,2022,0.09729024636,0.1161280645,1.19362494,False,False,False
+urban,Urban streets,Distraction or inattention,2022,2023,0.1161280645,0.1220640717,1.051116044,False,False,False
+urban,Urban streets,Drugs,2014,2015,0.0005872304079,0.0008988038994,1.530581331,True,False,True
+urban,Urban streets,Drugs,2015,2016,0.0008988038994,0.001362702171,1.516128459,True,False,True
+urban,Urban streets,Drugs,2016,2017,0.001362702171,0.001866520987,1.369720417,True,False,True
+urban,Urban streets,Drugs,2017,2018,0.001866520987,0.002097631045,1.123818623,True,False,True
+urban,Urban streets,Drugs,2018,2019,0.002097631045,0.002717804883,1.295654395,True,False,True
+urban,Urban streets,Drugs,2019,2020,0.002717804883,0.000844673862,0.3107926795,True,False,True
+urban,Urban streets,Drugs,2020,2021,0.000844673862,0.0004676232433,0.553613962,True,False,True
+urban,Urban streets,Drugs,2021,2022,0.0004676232433,0.0005786044917,1.237330479,True,False,True
+urban,Urban streets,Drugs,2022,2023,0.0005786044917,0.0004772180264,0.8247741475,True,False,True
+urban,Urban streets,Illegal manoeuvres,2014,2015,0.2959908179,0.2902906133,0.9807419547,False,False,False
+urban,Urban streets,Illegal manoeuvres,2015,2016,0.2902906133,0.3327003842,1.146094186,False,False,False
+urban,Urban streets,Illegal manoeuvres,2016,2017,0.3327003842,0.3243649276,0.9749460565,False,False,False
+urban,Urban streets,Illegal manoeuvres,2017,2018,0.3243649276,0.3053421191,0.9413536824,False,False,False
+urban,Urban streets,Illegal manoeuvres,2018,2019,0.3053421191,0.2719979127,0.8907972263,False,False,False
+urban,Urban streets,Illegal manoeuvres,2019,2020,0.2719979127,0.2676051932,0.9838501719,False,False,False
+urban,Urban streets,Illegal manoeuvres,2020,2021,0.2676051932,0.2518766459,0.9412248055,False,False,False
+urban,Urban streets,Illegal manoeuvres,2021,2022,0.2518766459,0.256514658,1.018413823,False,False,False
+urban,Urban streets,Illegal manoeuvres,2022,2023,0.256514658,0.2653539713,1.034459291,False,False,False
+urban,Urban streets,Inappropriate speed,2014,2015,0.04081251335,0.03585997096,0.8786513748,False,False,False
+urban,Urban streets,Inappropriate speed,2015,2016,0.03585997096,0.03750781878,1.045952291,False,False,False
+urban,Urban streets,Inappropriate speed,2016,2017,0.03750781878,0.03653373395,0.9740298193,False,False,False
+urban,Urban streets,Inappropriate speed,2017,2018,0.03653373395,0.03153286669,0.8631164481,False,False,False
+urban,Urban streets,Inappropriate speed,2018,2019,0.03153286669,0.03000456591,0.9515330848,False,False,False
+urban,Urban streets,Inappropriate speed,2019,2020,0.03000456591,0.03062724855,1.020752929,False,False,False
+urban,Urban streets,Inappropriate speed,2020,2021,0.03062724855,0.03110925156,1.015737718,False,False,False
+urban,Urban streets,Inappropriate speed,2021,2022,0.03110925156,0.02796588376,0.8989571386,False,False,False
+urban,Urban streets,Inappropriate speed,2022,2023,0.02796588376,0.03091542867,1.105469397,False,False,False

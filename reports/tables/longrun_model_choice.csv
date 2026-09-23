@@ -1,0 +1,13 @@
+measure,measure_label,n_breaks,breaks,deviance,qbic,chosen
+count,Deaths,0,,2772.039592,547.9974828,False
+count,Deaths,1,2002,903.8150174,222.023067,False
+count,Deaths,2,2003 2013,165.8285393,97.2444116,True
+count,Deaths,3,2003 2007 2013,123.3268674,96.2702846,False
+vehicles,Deaths per registered vehicle,0,,1914.983422,478.7635213,False
+vehicles,Deaths per registered vehicle,1,2001,1059.148744,300.3566589,False
+vehicles,Deaths per registered vehicle,2,2003 2012,112.1380885,102.2410572,True
+vehicles,Deaths per registered vehicle,3,2003 2013 2016,101.6149139,106.5580254,False
+road_fuel,Deaths per tonne of road fuel,0,,768.9619933,493.47002,False
+road_fuel,Deaths per tonne of road fuel,1,2013,405.6549169,324.0426953,False
+road_fuel,Deaths per tonne of road fuel,2,2002 2011,56.07214985,161.2557758,True
+road_fuel,Deaths per tonne of road fuel,3,2000 2003 2011,39.25822149,159.476589,False

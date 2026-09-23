@@ -1,0 +1,49 @@
+month,month_label,series,index,series_label
+1,Jan,deaths_all,90.04503589,"Deaths, all roads"
+2,Feb,deaths_all,83.89311258,"Deaths, all roads"
+3,Mar,deaths_all,91.25982442,"Deaths, all roads"
+4,Apr,deaths_all,89.36112225,"Deaths, all roads"
+5,May,deaths_all,93.33269394,"Deaths, all roads"
+6,Jun,deaths_all,99.60895371,"Deaths, all roads"
+7,Jul,deaths_all,121.3889538,"Deaths, all roads"
+8,Aug,deaths_all,113.3669936,"Deaths, all roads"
+9,Sep,deaths_all,108.4792474,"Deaths, all roads"
+10,Oct,deaths_all,104.9604079,"Deaths, all roads"
+11,Nov,deaths_all,99.79270501,"Deaths, all roads"
+12,Dec,deaths_all,104.5109495,"Deaths, all roads"
+1,Jan,road_fuel_tonnes,90.78768688,Road fuel (petrol + diesel)
+2,Feb,road_fuel_tonnes,91.2609455,Road fuel (petrol + diesel)
+3,Mar,road_fuel_tonnes,100.0897444,Road fuel (petrol + diesel)
+4,Apr,road_fuel_tonnes,99.1956093,Road fuel (petrol + diesel)
+5,May,road_fuel_tonnes,102.782798,Road fuel (petrol + diesel)
+6,Jun,road_fuel_tonnes,103.2809557,Road fuel (petrol + diesel)
+7,Jul,road_fuel_tonnes,109.104635,Road fuel (petrol + diesel)
+8,Aug,road_fuel_tonnes,104.6385391,Road fuel (petrol + diesel)
+9,Sep,road_fuel_tonnes,99.32902725,Road fuel (petrol + diesel)
+10,Oct,road_fuel_tonnes,102.09702,Road fuel (petrol + diesel)
+11,Nov,road_fuel_tonnes,97.19762909,Road fuel (petrol + diesel)
+12,Dec,road_fuel_tonnes,100.2354098,Road fuel (petrol + diesel)
+1,Jan,petrol_tonnes,86.34207255,Petrol only
+2,Feb,petrol_tonnes,85.08183924,Petrol only
+3,Mar,petrol_tonnes,95.97284781,Petrol only
+4,Apr,petrol_tonnes,97.89873606,Petrol only
+5,May,petrol_tonnes,100.7807921,Petrol only
+6,Jun,petrol_tonnes,103.699281,Petrol only
+7,Jul,petrol_tonnes,114.6217397,Petrol only
+8,Aug,petrol_tonnes,116.0672811,Petrol only
+9,Sep,petrol_tonnes,101.8591273,Petrol only
+10,Oct,petrol_tonnes,102.5475978,Petrol only
+11,Nov,petrol_tonnes,93.35078403,Petrol only
+12,Dec,petrol_tonnes,101.7779013,Petrol only
+1,Jan,toll_intensity,77.17237723,Toll-motorway traffic per km
+2,Feb,toll_intensity,82.73078069,Toll-motorway traffic per km
+3,Mar,toll_intensity,89.03361586,Toll-motorway traffic per km
+4,Apr,toll_intensity,100.3771887,Toll-motorway traffic per km
+5,May,toll_intensity,96.76361876,Toll-motorway traffic per km
+6,Jun,toll_intensity,104.9725073,Toll-motorway traffic per km
+7,Jul,toll_intensity,128.1578366,Toll-motorway traffic per km
+8,Aug,toll_intensity,139.8489443,Toll-motorway traffic per km
+9,Sep,toll_intensity,105.3109464,Toll-motorway traffic per km
+10,Oct,toll_intensity,96.36266476,Toll-motorway traffic per km
+11,Nov,toll_intensity,88.80029205,Toll-motorway traffic per km
+12,Dec,toll_intensity,90.46922736,Toll-motorway traffic per km

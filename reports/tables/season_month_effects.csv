@@ -1,0 +1,49 @@
+exposure,exposure_label,month,month_label,rate_ratio,low,high,dispersion
+none,No exposure (raw deaths),1,Jan,0.9060063442,0.8520880486,0.9633364733,1.287940761
+none,No exposure (raw deaths),2,Feb,0.8445950355,0.7927353069,0.899847361,1.287940761
+none,No exposure (raw deaths),3,Mar,0.918136973,0.8638185743,0.9758710061,1.287940761
+none,No exposure (raw deaths),4,Apr,0.8984247011,0.844757528,0.9555013325,1.287940761
+none,No exposure (raw deaths),5,May,0.9370910807,0.8821515974,0.9954521377,1.287940761
+none,No exposure (raw deaths),6,Jun,1.002293211,0.9452531255,1.062775307,1.287940761
+none,No exposure (raw deaths),7,Jul,1.220644531,1.156915837,1.287883719,1.287940761
+none,No exposure (raw deaths),8,Aug,1.140279114,1.078956463,1.205087048,1.287940761
+none,No exposure (raw deaths),9,Sep,1.089482106,1.029712282,1.152721279,1.287940761
+none,No exposure (raw deaths),10,Oct,1.056881041,0.9981219601,1.119099247,1.287940761
+none,No exposure (raw deaths),11,Nov,1.002293211,0.9452531255,1.062775307,1.287940761
+none,No exposure (raw deaths),12,Dec,1.050057562,0.9915114977,1.112060613,1.287940761
+road_fuel_tonnes,Road fuel (petrol + diesel),1,Jan,0.9970745285,0.9362275999,1.061875996,1.356329185
+road_fuel_tonnes,Road fuel (petrol + diesel),2,Feb,0.9241190072,0.8659361748,0.9862111832,1.356329185
+road_fuel_tonnes,Road fuel (petrol + diesel),3,Mar,0.9157986149,0.8602408996,0.9749444643,1.356329185
+road_fuel_tonnes,Road fuel (petrol + diesel),4,Apr,0.9047810065,0.8493612344,0.9638168503,1.356329185
+road_fuel_tonnes,Road fuel (petrol + diesel),5,May,0.9103871973,0.8556566824,0.9686184495,1.356329185
+road_fuel_tonnes,Road fuel (petrol + diesel),6,Jun,0.9688764292,0.912333955,1.028923159,1.356329185
+road_fuel_tonnes,Road fuel (petrol + diesel),7,Jul,1.117883141,1.058029935,1.181122268,1.356329185
+road_fuel_tonnes,Road fuel (petrol + diesel),8,Aug,1.08803551,1.028031265,1.151542091,1.356329185
+road_fuel_tonnes,Road fuel (petrol + diesel),9,Sep,1.095488579,1.033858356,1.160792695,1.356329185
+road_fuel_tonnes,Road fuel (petrol + diesel),10,Oct,1.034155993,0.9751958614,1.096680842,1.356329185
+road_fuel_tonnes,Road fuel (petrol + diesel),11,Nov,1.029514553,0.9694348115,1.093317677,1.356329185
+road_fuel_tonnes,Road fuel (petrol + diesel),12,Dec,1.046744317,0.9868961573,1.110221837,1.356329185
+petrol_tonnes,Petrol only,1,Jan,1.045767709,0.9819045093,1.113784579,1.358218793
+petrol_tonnes,Petrol only,2,Feb,0.9886465603,0.9263591173,1.055122147,1.358218793
+petrol_tonnes,Petrol only,3,Mar,0.9525442367,0.8947184921,1.014107265,1.358218793
+petrol_tonnes,Petrol only,4,Apr,0.9142549455,0.8582173985,0.9739514799,1.358218793
+petrol_tonnes,Petrol only,5,May,0.9259869711,0.8702815433,0.9852580206,1.358218793
+petrol_tonnes,Petrol only,6,Jun,0.9622259289,0.906034223,1.021902611,1.358218793
+petrol_tonnes,Petrol only,7,Jul,1.060785127,1.003951393,1.120836221,1.358218793
+petrol_tonnes,Petrol only,8,Aug,0.9780157466,0.9240418177,1.03514233,1.358218793
+petrol_tonnes,Petrol only,9,Sep,1.065175328,1.005210429,1.128717378,1.358218793
+petrol_tonnes,Petrol only,10,Oct,1.026501357,0.9679386545,1.088607249,1.358218793
+petrol_tonnes,Petrol only,11,Nov,1.068969218,1.00654475,1.135265161,1.358218793
+petrol_tonnes,Petrol only,12,Dec,1.027945795,0.9691322169,1.090328583,1.358218793
+toll_intensity,Toll-motorway traffic per km,1,Jan,1.15771551,1.0879756,1.231925791,1.320592624
+toll_intensity,Toll-motorway traffic per km,2,Feb,1.006768398,0.9441952218,1.073488389,1.320592624
+toll_intensity,Toll-motorway traffic per km,3,Mar,1.016426642,0.9555545897,1.081176449,1.320592624
+toll_intensity,Toll-motorway traffic per km,4,Apr,0.8831152909,0.8297132508,0.9399543953,1.320592624
+toll_intensity,Toll-motorway traffic per km,5,May,0.9551848524,0.8985002289,1.015445598,1.320592624
+toll_intensity,Toll-motorway traffic per km,6,Jun,0.9416511196,0.8874064793,0.9992115808,1.320592624
+toll_intensity,Toll-motorway traffic per km,7,Jul,0.9392323071,0.8895925108,0.9916420338,1.320592624
+toll_intensity,Toll-motorway traffic per km,8,Aug,0.8046821537,0.7608712774,0.851015655,1.320592624
+toll_intensity,Toll-motorway traffic per km,9,Sep,1.020180899,0.9635275757,1.080165315,1.320592624
+toll_intensity,Toll-motorway traffic per km,10,Oct,1.081611577,1.020741145,1.14611193,1.320592624
+toll_intensity,Toll-motorway traffic per km,11,Nov,1.113009522,1.048892771,1.181045605,1.320592624
+toll_intensity,Toll-motorway traffic per km,12,Dec,1.144861335,1.080247327,1.21334017,1.320592624

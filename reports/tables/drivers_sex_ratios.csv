@@ -1,0 +1,37 @@
+scope,scope_label,band,band_label,measure,measure_label,ratio,low,high
+motor,Drivers of motor vehicles,18-34,18–34,involved_per_1000_licences,"Involved in an injury crash, per 1,000 licence holders",2.009101379,1.986511766,2.03194787
+motor,Drivers of motor vehicles,18-34,18–34,deaths_per_million_licences,"Killed, per million licence holders",6.089557924,4.917426363,7.541082057
+motor,Drivers of motor vehicles,18-34,18–34,deaths_per_1000_involved,"Killed, per 1,000 drivers involved",3.030985886,2.447575028,3.753460196
+motor,Drivers of motor vehicles,35-54,35–54,involved_per_1000_licences,"Involved in an injury crash, per 1,000 licence holders",2.112263555,2.091931376,2.132793349
+motor,Drivers of motor vehicles,35-54,35–54,deaths_per_million_licences,"Killed, per million licence holders",7.209772501,6.025378369,8.626980139
+motor,Drivers of motor vehicles,35-54,35–54,deaths_per_1000_involved,"Killed, per 1,000 drivers involved",3.413292097,2.852569394,4.084234715
+motor,Drivers of motor vehicles,55-64,55–64,involved_per_1000_licences,"Involved in an injury crash, per 1,000 licence holders",2.526822125,2.480967627,2.573524129
+motor,Drivers of motor vehicles,55-64,55–64,deaths_per_million_licences,"Killed, per million licence holders",7.154049419,5.456621213,9.37950814
+motor,Drivers of motor vehicles,55-64,55–64,deaths_per_1000_involved,"Killed, per 1,000 drivers involved",2.831243778,2.159479751,3.711978002
+motor,Drivers of motor vehicles,65-74,65–74,involved_per_1000_licences,"Involved in an injury crash, per 1,000 licence holders",2.338742377,2.268824083,2.410815342
+motor,Drivers of motor vehicles,65-74,65–74,deaths_per_million_licences,"Killed, per million licence holders",4.866010093,3.409128068,6.945486869
+motor,Drivers of motor vehicles,65-74,65–74,deaths_per_1000_involved,"Killed, per 1,000 drivers involved",2.080609707,1.457675758,2.969752862
+motor,Drivers of motor vehicles,75+,75 and over,involved_per_1000_licences,"Involved in an injury crash, per 1,000 licence holders",1.594997009,1.520402372,1.67325144
+motor,Drivers of motor vehicles,75+,75 and over,deaths_per_million_licences,"Killed, per million licence holders",4.313588548,2.516070061,7.395281416
+motor,Drivers of motor vehicles,75+,75 and over,deaths_per_1000_involved,"Killed, per 1,000 drivers involved",2.704449302,1.57747635,4.636548767
+motor,Drivers of motor vehicles,18+,18 and over,involved_per_1000_licences,"Involved in an injury crash, per 1,000 licence holders",1.986142554,1.973144543,1.99922619
+motor,Drivers of motor vehicles,18+,18 and over,deaths_per_million_licences,"Killed, per million licence holders",6.422628915,5.735700078,7.191826911
+motor,Drivers of motor vehicles,18+,18 and over,deaths_per_1000_involved,"Killed, per 1,000 drivers involved",3.233720007,2.887859215,3.621002377
+car,Car drivers,18-34,18–34,involved_per_1000_licences,"Involved in an injury crash, per 1,000 licence holders",1.451042567,1.431777294,1.470567064
+car,Car drivers,18-34,18–34,deaths_per_million_licences,"Killed, per million licence holders",4.398014056,3.363958022,5.749931336
+car,Car drivers,18-34,18–34,deaths_per_1000_involved,"Killed, per 1,000 drivers involved",3.030933866,2.318304162,3.962620717
+car,Car drivers,35-54,35–54,involved_per_1000_licences,"Involved in an injury crash, per 1,000 licence holders",1.425416994,1.409281816,1.441736906
+car,Car drivers,35-54,35–54,deaths_per_million_licences,"Killed, per million licence holders",3.47671613,2.784903693,4.340385299
+car,Car drivers,35-54,35–54,deaths_per_1000_involved,"Killed, per 1,000 drivers involved",2.43908705,1.953746662,3.044993372
+car,Car drivers,55-64,55–64,involved_per_1000_licences,"Involved in an injury crash, per 1,000 licence holders",1.674201363,1.639589514,1.709543871
+car,Car drivers,55-64,55–64,deaths_per_million_licences,"Killed, per million licence holders",2.934952092,2.135822022,4.033081265
+car,Car drivers,55-64,55–64,deaths_per_1000_involved,"Killed, per 1,000 drivers involved",1.753046053,1.275725889,2.408958297
+car,Car drivers,65-74,65–74,involved_per_1000_licences,"Involved in an injury crash, per 1,000 licence holders",1.85351799,1.79492894,1.91401947
+car,Car drivers,65-74,65–74,deaths_per_million_licences,"Killed, per million licence holders",2.849598616,1.897303718,4.279869477
+car,Car drivers,65-74,65–74,deaths_per_1000_involved,"Killed, per 1,000 drivers involved",1.537400031,1.023623039,2.30905203
+car,Car drivers,75+,75 and over,involved_per_1000_licences,"Involved in an injury crash, per 1,000 licence holders",1.43003182,1.361274083,1.5022625
+car,Car drivers,75+,75 and over,deaths_per_million_licences,"Killed, per million licence holders",3.039532859,1.761853954,5.243771756
+car,Car drivers,75+,75 and over,deaths_per_1000_involved,"Killed, per 1,000 drivers involved",2.125500157,1.232038287,3.66689166
+car,Car drivers,18+,18 and over,involved_per_1000_licences,"Involved in an injury crash, per 1,000 licence holders",1.413859914,1.403133241,1.424668591
+car,Car drivers,18+,18 and over,deaths_per_million_licences,"Killed, per million licence holders",3.62711076,3.166302328,4.154983038
+car,Car drivers,18+,18 and over,deaths_per_1000_involved,"Killed, per 1,000 drivers involved",2.565396135,2.239473865,2.938751566
