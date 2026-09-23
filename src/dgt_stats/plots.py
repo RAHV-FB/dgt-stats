@@ -723,10 +723,12 @@ def dot_interval_panels(
     panel_order: list[str] | None = None,
     xlabel: str = "",
     reference: float | None = None,
+    from_zero: bool = True,
 ) -> Path:
     """Side-by-side dot-and-whisker panels sharing one row order (``order``, top to bottom).
 
-    Each panel has its own x scale from zero, so the panels compare rankings, not magnitudes.
+    Each panel has its own x scale, from zero unless ``from_zero`` is False (ratios read against
+    ``reference``), so the panels compare rankings, not magnitudes.
     ``reference`` draws the same dotted vertical line on every panel: the null value a ratio is
     read against. The axis label is written once, under the middle panel.
     """
@@ -757,7 +759,8 @@ def dot_interval_panels(
         axis.set_title(str(name), fontsize=10, fontweight="normal", loc="left")
         axis.grid(True, axis="x")
         axis.grid(False, axis="y")
-        axis.set_xlim(left=0)
+        if from_zero:
+            axis.set_xlim(left=0)
         axis.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(_tick))
         axis.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(nbins=4))
         axis.tick_params(labelsize=8)
@@ -920,4 +923,179 @@ def intervention(
     )
     fig.suptitle(title, x=0.01, ha="left", fontsize=10.5, fontweight="normal")
     fig.tight_layout()
+    return save(fig, path)
+
+
+def trend_projection(
+    frame: pd.DataFrame,
+    facet: str,
+    x: str,
+    observed: str,
+    expected: str,
+    low: str,
+    high: str,
+    path: Path,
+    title: str,
+    last_fitted: int,
+    order: list[str] | None = None,
+    ylabel: str = "",
+) -> Path:
+    """Observed counts against a fitted trend and its projection, one panel per facet.
+
+    The trend is solid up to ``last_fitted`` and dashed after it, with the prediction interval
+    shaded only over the projected years; a thin vertical rule marks where fitting stopped. All
+    panels share one y scale, because every facet is expressed in the same unit.
+    """
+    apply_style()
+    facets = order or list(dict.fromkeys(frame[facet]))
+    fig, axes = plt.subplots(
+        1, len(facets), figsize=(FIGURE_WIDTH, 3.4), sharey=True, constrained_layout=True
+    )
+    axes = np.atleast_1d(axes)
+    for axis, name in zip(axes, facets):
+        panel = frame[frame[facet] == name].sort_values(x)
+        fitted = panel[panel[x] <= last_fitted]
+        projected = panel[panel[x] >= last_fitted]
+        after = panel[panel[x] > last_fitted]
+        axis.fill_between(
+            after[x], after[low], after[high], color=CATEGORICAL[1], alpha=0.15, linewidth=0
+        )
+        axis.plot(fitted[x], fitted[expected], color=CATEGORICAL[0], linewidth=2, label="Trend")
+        axis.plot(
+            projected[x],
+            projected[expected],
+            color=CATEGORICAL[1],
+            linewidth=2,
+            linestyle="--",
+            label="Trend projected",
+        )
+        axis.plot(
+            panel[x],
+            panel[observed],
+            color=TEXT_PRIMARY,
+            linewidth=0,
+            marker="o",
+            markersize=3.5,
+            label="Observed",
+        )
+        axis.axvline(last_fitted + 0.5, color=TEXT_SECONDARY, linewidth=1, linestyle=":")
+        axis.set_title(str(name), fontsize=9.5, fontweight="normal", loc="left")
+        axis.set_ylim(bottom=0)
+        _thousands(axis)
+        _integer_x(axis, nbins=4)
+        axis.tick_params(labelsize=8)
+    axes[0].set_ylabel(ylabel, fontsize=9)
+    axes[0].legend(loc="lower left", fontsize=8)
+    fig.suptitle(title, x=0.01, ha="left", fontsize=10.5, fontweight="normal")
+    return save(fig, path)
+
+
+MONTH_TICKS = ("J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D")
+
+
+def month_lines(
+    frame: pd.DataFrame,
+    series: str,
+    value: str,
+    path: Path,
+    title: str,
+    order: list[str] | None = None,
+    reference: float | None = None,
+    percent: bool = False,
+    ylabel: str = "",
+    zero_based: bool = False,
+) -> Path:
+    """One line per series across the twelve months (``month`` column, 1–12), on one axis.
+
+    Used for seasonal indices, where ``reference`` (100 for an index, 0 for a change) is the
+    average month, and for month-by-month changes.
+    """
+    apply_style()
+    names = order or list(dict.fromkeys(frame[series]))
+    if len(names) > len(CATEGORICAL):
+        raise ValueError("more series than fixed colours; fold to 'Other' or facet")
+    fig, axis = plt.subplots(figsize=(FIGURE_WIDTH, 3.8))
+    for index, name in enumerate(names):
+        group = frame[frame[series] == name].sort_values("month")
+        axis.plot(
+            group["month"],
+            group[value],
+            color=CATEGORICAL[index],
+            label=str(name),
+            marker="o",
+            markersize=3.5,
+            **{k: v for k, v in _series_style(index).items() if k == "linestyle"},
+        )
+    if reference is not None:
+        axis.axhline(reference, color=TEXT_SECONDARY, linewidth=1, linestyle=":")
+    if zero_based:
+        axis.set_ylim(bottom=0)
+    if percent:
+        signed = float(frame[value].min()) < 0
+        axis.yaxis.set_major_formatter(
+            matplotlib.ticker.FuncFormatter(lambda v, _: _percent_text(v, signed=signed))
+        )
+    axis.set_xticks(range(1, 13), MONTH_TICKS)
+    axis.set_xlim(0.6, 12.4)
+    axis.set_title(title)
+    axis.set_ylabel(ylabel)
+    axis.legend(loc="upper left", bbox_to_anchor=(0, -0.1), ncol=min(len(names), 4))
+    return save(fig, path)
+
+
+def segmented_small_multiples(
+    frame: pd.DataFrame,
+    facet: str,
+    x: str,
+    y: str,
+    series: str,
+    segment: str,
+    path: Path,
+    title: str,
+    order: list[str] | None = None,
+    series_order: list[str] | None = None,
+    ncols: int = 3,
+) -> Path:
+    """Small multiples of shares whose lines break wherever ``segment`` changes.
+
+    Each (series, segment) run is drawn as its own line in the series colour, so a recording
+    break shows as a gap: the eye is not invited to read a trend across it. Each panel has its
+    own percentage scale from zero.
+    """
+    apply_style()
+    facets = order or list(dict.fromkeys(frame[facet]))
+    names = series_order or list(dict.fromkeys(frame[series]))
+    nrows = int(np.ceil(len(facets) / ncols))
+    fig, axes = plt.subplots(nrows, ncols, figsize=(FIGURE_WIDTH, 2.3 * nrows + 0.7), sharex=True)
+    axes = np.atleast_1d(axes).ravel()
+    for index, facet_name in enumerate(facets):
+        axis = axes[index]
+        panel = frame[frame[facet] == facet_name]
+        for colour_index, name in enumerate(names):
+            group = panel[panel[series] == name]
+            for run_index, (_, run) in enumerate(group.groupby(segment, sort=True)):
+                run = run.sort_values(x)
+                axis.plot(
+                    run[x],
+                    run[y],
+                    color=CATEGORICAL[colour_index],
+                    marker="o",
+                    markersize=3,
+                    label=str(name) if run_index == 0 else None,
+                    **{k: v for k, v in _series_style(colour_index).items() if k == "linestyle"},
+                )
+        axis.set_title(str(facet_name), fontsize=9.5, fontweight="normal")
+        axis.set_ylim(bottom=0)
+        _percent(axis)
+        _integer_x(axis, nbins=4)
+        axis.tick_params(labelsize=8)
+    for axis in axes[len(facets) :]:
+        axis.set_visible(False)
+    for index in range(len(facets)):
+        if index + ncols >= len(facets):
+            axes[index].tick_params(labelbottom=True)
+    fig.suptitle(title, x=0.01, ha="left", fontsize=10.5, fontweight="normal")
+    handles, labels = axes[0].get_legend_handles_labels()
+    fig.legend(handles, labels, loc="lower left", bbox_to_anchor=(0.01, 0.0), ncol=len(names))
+    fig.tight_layout(rect=(0, 0.07, 1, 1))
     return save(fig, path)

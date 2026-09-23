@@ -19,11 +19,14 @@ import pandas as pd
 from dgt_stats import (
     agebands,
     driver_risk,
+    factors,
     io_exposure,
     io_population,
     io_tables,
     labels,
     policy,
+    risk_trends,
+    seasonality,
     speed,
     vehicles,
 )
@@ -249,12 +252,37 @@ def _policy_table(name: str):
 # --------------------------------------------------------------------------- registry
 
 SUMMARIES = {
-    # Context
+    # 2019 to 2024: counts against exposure
+    "risk_annual_panel": risk_trends.annual_panel,
+    "risk_index": risk_trends.risk_index,
+    "risk_fuel_efficiency": risk_trends.fuel_efficiency_sensitivity,
+    "risk_km_crosscheck": risk_trends.km_crosscheck,
+    # The long run and the pandemic
+    "longrun_series": risk_trends.long_run_series,
+    "longrun_segments": risk_trends.long_run_segments,
+    "longrun_model_choice": risk_trends.long_run_model_choice,
+    "longrun_efficiency": risk_trends.long_run_efficiency_sensitivity,
+    # Seasonality and mobility
+    "season_profile": seasonality.seasonal_profile,
+    "season_profile_long": seasonality.seasonal_profile_long,
+    "season_month_effects": seasonality.month_effects,
+    "season_lockdown": seasonality.lockdown_months,
+    "season_lockdown_long": seasonality.lockdown_long,
+    # Drivers by sex
+    "drivers_sex_rates": driver_risk.sex_age_rates,
+    "drivers_sex_ratios": driver_risk.sex_ratios,
+    "drivers_sex_trend": driver_risk.sex_trend,
+    "drivers_sex_travel": driver_risk.sex_travel_bracket,
+    # Speed as a severity factor, and the other concurrent factors
+    "speed_severity": factors.speed_severity,
+    "speed_severity_pooled": factors.speed_severity_pooled,
+    "factor_shares": factors.factor_shares_segmented,
+    "factor_changes": factors.factor_consistency,
+    "factor_windows": factors.comparable_windows,
+    # Context: the long-run headline series, darkness by zone and the 2024 road-type recoding
     "q1_annual_headline": annual_headline,
-    "q1_annual_by_zone": annual_by_zone,
     "q2_night_share": night_share_by_year_zone,
     "q2_other_road_by_period": other_road_by_period,
-    "q5_deaths_by_road_user": deaths_by_road_user,
     "q9_infraction_shares": speed.infraction_shares,
     # Age and driving exposure
     "q7_km_by_owner_age": driver_risk.car_kilometres,

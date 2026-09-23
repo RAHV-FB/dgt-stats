@@ -25,37 +25,15 @@ MICRODATA_SOURCE = "DGT, Ficheros de microdatos de accidentes con víctimas 2016
 TABLES_SOURCE = "DGT, Accidentes con víctimas, tablas estadísticas 2014–2024"
 KM_SOURCE = "DGT, Kilómetros recorridos estimados a partir de la ITV 2022"
 KM_2024_SOURCE = "DGT, Kilómetros anualizados recorridos por el parque móvil 2024"
+SPEED_REPORT_SOURCE = "DGT, Informe temático Factor Velocidad 2014–2023"
+POPULATION_SOURCE = "INE, Estadística Continua de Población"
+CENSUS_SOURCE = "DGT, Censo de conductores 2014–2025"
+FUEL_SOURCE = "CORES, consumo de productos petrolíferos"
 TRAFFIC_SOURCE = (
     "CORES, consumo de productos petrolíferos; Ministerio de Transportes y Movilidad Sostenible, "
     "tráfico en autopistas estatales de peaje"
 )
 THIRTY_DAY = "deaths within 30 days of the crash"
-
-# Twelve road-user death columns folded to eight series (the fixed categorical limit).
-ROAD_USER_FOLD = {
-    "Pedestrians": "Pedestrians",
-    "Cyclists": "Cyclists",
-    "Moped riders": "Moped riders",
-    "Motorcyclists": "Motorcyclists",
-    "Personal mobility vehicles": "Personal mobility vehicles",
-    "Car occupants": "Car occupants",
-    "Van occupants": "Van occupants",
-    "Light truck occupants (≤3.5 t)": "Trucks, buses and other",
-    "Heavy truck occupants (>3.5 t)": "Trucks, buses and other",
-    "Bus occupants": "Trucks, buses and other",
-    "Other vehicles": "Trucks, buses and other",
-    "Unspecified vehicle": "Trucks, buses and other",
-}
-ROAD_USER_ORDER = [
-    "Pedestrians",
-    "Cyclists",
-    "Moped riders",
-    "Motorcyclists",
-    "Personal mobility vehicles",
-    "Car occupants",
-    "Van occupants",
-    "Trucks, buses and other",
-]
 
 # The three rates the older-driver page separates, in the order they are read.
 AGE_RATE_PANELS = {
@@ -88,7 +66,12 @@ def build_all(
 
     figures_dir.mkdir(parents=True, exist_ok=True)
     captions: dict[str, str] = {}
-    _context_figures(figures_dir, captions, summary)
+    _trend_figures(figures_dir, captions, summary)
+    _long_run_figures(figures_dir, captions, summary)
+    _season_figures(figures_dir, captions, summary)
+    _sex_figures(figures_dir, captions, summary)
+    _factor_figures(figures_dir, captions, summary)
+    _speed_status_figure(figures_dir, captions, summary)
     if summaries.model_tables_present():
         _severity_figures(figures_dir, captions)
     else:
@@ -110,41 +93,7 @@ def build_all(
 # --------------------------------------------------------------------------- context
 
 
-def _context_figures(figures_dir: Path, captions: dict[str, str], summary) -> None:
-    headline = summary("q1_annual_headline")
-    plots.line_series(
-        headline,
-        "year",
-        "deaths_30d",
-        figures_dir / "c1_deaths_per_year.svg",
-        "Road deaths per year, Spain 1993–2024",
-        ylabel="Deaths (30 days)",
-    )
-    captions["c1_deaths_per_year"] = plots.caption(
-        SERIES_SOURCE, "1993–2024, all roads", THIRTY_DAY
-    )
-
-    users = summary("q5_deaths_by_road_user")
-    users["group"] = users.road_user.map(ROAD_USER_FOLD)
-    folded = users.groupby(["year", "group"], observed=True).deaths_30d.sum().reset_index()
-    plots.bar_shares(
-        folded,
-        "year",
-        "group",
-        "deaths_30d",
-        figures_dir / "c2_road_user_shares.svg",
-        "Share of road deaths by type of road user",
-        order=ROAD_USER_ORDER,
-    )
-    captions["c2_road_user_shares"] = plots.caption(
-        MICRODATA_SOURCE,
-        "2016–2024, all roads",
-        "each year's 30-day deaths as shares by the vehicle the person was using, stacked to "
-        "100%; trucks, buses, other and unspecified folded together; personal mobility vehicles "
-        "counted separately only from 2020",
-        f"{int(folded.deaths_30d.sum()):,} deaths",
-    )
-
+def _speed_status_figure(figures_dir: Path, captions: dict[str, str], summary) -> None:
     shares = summary("q9_infraction_shares")
     block = shares[shares.zone == "all"]
     long = block.melt(
@@ -170,6 +119,275 @@ def _context_figures(figures_dir: Path, captions: dict[str, str], summary) -> No
         "(yearbook tables 6.1); the top band is the share for which no judgement was recorded at "
         "all, which changes in 2016 and changes the meaning of every share below it",
         f"{int(block.total.sum()):,} drivers",
+    )
+
+
+# --------------------------------------------------------------------------- counts and risk
+
+
+SHORT_DENOMINATORS = {
+    "count": "Count",
+    "residents": "Per resident",
+    "licence_holders": "Per licence holder",
+    "vehicles": "Per registered vehicle",
+    "road_fuel": "Per unit of road fuel",
+}
+
+
+def _trend_figures(figures_dir: Path, captions: dict[str, str], summary) -> None:
+    index = summary("risk_index")
+    last = int(index.year.max())
+    latest = index[index.year == last].assign(
+        denominator_short=lambda f: f.denominator.map(SHORT_DENOMINATORS)
+    )
+    plots.dot_interval_panels(
+        latest,
+        "outcome_label",
+        "denominator_short",
+        "ratio_to_base",
+        "ratio_low",
+        "ratio_high",
+        figures_dir / "r1_risk_change.svg",
+        f"{last} against 2019: the same outcomes under five denominators",
+        order=list(SHORT_DENOMINATORS.values()),
+        panel_order=list(dict.fromkeys(latest.outcome_label)),
+        xlabel=f"Ratio, {last} to 2019 (dotted line: no change)",
+        reference=1.0,
+        from_zero=False,
+    )
+    captions["r1_risk_change"] = plots.caption(
+        f"{SERIES_SOURCE}; {POPULATION_SOURCE} (1 July); {CENSUS_SOURCE}; DGT registered "
+        f"vehicle fleet; {FUEL_SOURCE}",
+        f"2019 and {last}, all roads",
+        "each outcome divided by each denominator in turn, as the ratio of the "
+        f"{last} rate to the 2019 rate, with 95% log-normal intervals that treat both counts as "
+        "Poisson and the denominators as known; count is the outcome with no denominator; road "
+        "fuel is automotive petrol plus diesel in tonnes, a proxy for vehicle-kilometres; each "
+        "panel has its own scale",
+    )
+
+
+def _long_run_figures(figures_dir: Path, captions: dict[str, str], summary) -> None:
+    series = summary("longrun_series")
+    order = list(dict.fromkeys(series.measure_label))
+    plots.trend_projection(
+        series,
+        "measure_label",
+        "year",
+        "observed",
+        "expected",
+        "low",
+        "high",
+        figures_dir / "l1_trend_projection.svg",
+        "Road deaths against the pre-pandemic trend, under three measures",
+        last_fitted=2019,
+        order=order,
+        ylabel="Deaths (30 days)",
+    )
+    segments = summary("longrun_segments")
+    breaks = {
+        label: ", ".join(str(int(v)) for v in group.start.iloc[1:])
+        for label, group in segments.groupby("measure_label", sort=False)
+    }
+    zoom = series[series.year >= 2010].assign(
+        ratio_low=lambda f: f.observed / f.high, ratio_high=lambda f: f.observed / f.low
+    )
+    plots.line_series(
+        zoom,
+        "year",
+        "ratio",
+        figures_dir / "l2_observed_over_trend.svg",
+        "Observed deaths as a share of the pre-pandemic trend, 2010–2024",
+        series="measure_label",
+        ylabel="Observed ÷ trend",
+        zero_based=False,
+        reference=1.0,
+        band=("ratio_low", "ratio_high"),
+        end_labels=False,
+    )
+    captions["l2_observed_over_trend"] = plots.caption(
+        f"{SERIES_SOURCE}; DGT registered vehicle fleet; {FUEL_SOURCE}",
+        "2010–2024",
+        "30-day deaths divided by the fitted (to 2019) or projected (from 2020) trend of each "
+        "measure; 1 means on trend; shaded: the range of the ratio that the trend's 95% "
+        "prediction interval allows, which is narrow where the trend was fitted and widens as "
+        "the projection runs on",
+    )
+    captions["l1_trend_projection"] = plots.caption(
+        f"{SERIES_SOURCE}; DGT registered vehicle fleet; {FUEL_SOURCE}",
+        "1993–2024 (road fuel from 1996)",
+        "segmented log-linear (joinpoint) quasi-Poisson trends fitted to 30-day deaths up to 2019, "
+        "turning points chosen by QBIC ("
+        + "; ".join(f"{label.lower()}: {years}" for label, years in breaks.items())
+        + "); the per-vehicle and per-fuel trends are multiplied back by each year's fleet or "
+        "fuel so that all three panels are in deaths; shaded: 95% prediction interval of the "
+        "projection",
+    )
+
+
+def _season_figures(figures_dir: Path, captions: dict[str, str], summary) -> None:
+    profile = summary("season_profile_long")
+    plots.month_lines(
+        profile,
+        "series_label",
+        "index",
+        figures_dir / "m1_season_profile.svg",
+        "Deaths and three measures of traffic by month (average month = 100)",
+        order=list(dict.fromkeys(profile.series_label)),
+        reference=100,
+    )
+    years = "2014–2019 and 2022–2024"
+    captions["m1_season_profile"] = plots.caption(
+        f"{SERIES_SOURCE}; {TRAFFIC_SOURCE}",
+        f"{years} (2020 and 2021 left out)",
+        "each month's 30-day deaths, road fuel (petrol plus diesel), petrol alone and toll-motorway "
+        "average daily traffic per kilometre, divided by the mean month of the same year and "
+        "averaged across years",
+    )
+
+    effects = summary("season_month_effects")
+    short = {
+        "none": "Raw deaths",
+        "road_fuel_tonnes": "Per road fuel",
+        "petrol_tonnes": "Per petrol",
+        "toll_intensity": "Per toll traffic",
+    }
+    effects = effects.assign(panel=effects.exposure.map(short))
+    plots.dot_interval_panels(
+        effects,
+        "panel",
+        "month_label",
+        "rate_ratio",
+        "low",
+        "high",
+        figures_dir / "m2_month_effects.svg",
+        "How much riskier is each month, before and after allowing for traffic",
+        order=list(dict.fromkeys(effects.month_label)),
+        panel_order=list(short.values()),
+        xlabel="Deaths against the average month (dotted line: the same)",
+        reference=1.0,
+        from_zero=False,
+    )
+    captions["m2_month_effects"] = plots.caption(
+        f"{SERIES_SOURCE}; {TRAFFIC_SOURCE}",
+        f"{years}",
+        "month effects from quasi-Poisson models of monthly 30-day deaths with year effects; the "
+        "first panel has no exposure, the others take the log of one traffic series as an offset, "
+        "so their month effects are deaths per unit of that traffic against the average month; "
+        "whiskers are 95% intervals on the overdispersed scale",
+    )
+
+    lockdown = summary("season_lockdown_long")
+    plots.month_lines(
+        lockdown,
+        "series_label",
+        "change",
+        figures_dir / "m3_lockdown.svg",
+        "2020 against the same month of 2017–2019: deaths and traffic",
+        order=list(dict.fromkeys(lockdown.series_label)),
+        reference=0,
+        percent=True,
+    )
+    captions["m3_lockdown"] = plots.caption(
+        f"{SERIES_SOURCE}; {TRAFFIC_SOURCE}",
+        "2020 against the 2017–2019 mean of each month",
+        "proportional change in 30-day deaths and in each traffic series; the state of alarm "
+        "began on 14 March 2020 and the strictest restrictions ran to early May",
+    )
+
+
+def _sex_figures(figures_dir: Path, captions: dict[str, str], summary) -> None:
+    ratios = summary("drivers_sex_ratios")
+    short = {
+        "involved_per_1000_licences": "Involved, per licence holder",
+        "deaths_per_million_licences": "Killed, per licence holder",
+        "deaths_per_1000_involved": "Killed, once involved",
+    }
+    cars = ratios[ratios.scope == "car"].assign(panel=lambda f: f.measure.map(short))
+    plots.dot_interval_panels(
+        cars,
+        "panel",
+        "band_label",
+        "ratio",
+        "low",
+        "high",
+        figures_dir / "a3_sex_ratios.svg",
+        "Men against women, car drivers: crashing, and dying (2022–2024)",
+        order=list(dict.fromkeys(cars.band_label)),
+        panel_order=list(short.values()),
+        xlabel="Ratio, men to women (dotted line: the same rate)",
+        reference=1.0,
+    )
+    rates_table = summary("drivers_sex_rates")
+    adults = rates_table[(rates_table.scope == "car") & (rates_table.band == "18+")]
+    captions["a3_sex_ratios"] = plots.caption(
+        f"{TABLES_SOURCE}; {CENSUS_SOURCE}",
+        "2022–2024 pooled",
+        "car drivers involved in injury crashes and killed within 30 days (DGT tables 4.2 and "
+        "4.1.1, car rows), against licence-holder-years from the driver census and against the "
+        "drivers involved; each row is the male rate divided by the female rate, with 95% "
+        "log-normal intervals; drivers of unknown sex or age left out",
+        f"{int(adults.drivers_involved.sum()):,} drivers involved",
+    )
+
+
+def _factor_figures(figures_dir: Path, captions: dict[str, str], summary) -> None:
+    pooled = summary("speed_severity_pooled")
+    shown = pooled.assign(
+        label=pooled.road_type_label.where(
+            pooled.road_type != "adjusted", "All roads, adjusted for road type and year"
+        )
+    )
+    plots.dot_interval(
+        shown,
+        "label",
+        "rate_ratio",
+        "ratio_low",
+        "ratio_high",
+        figures_dir / "f1_speed_severity.svg",
+        "Deaths per crash when speed is recorded, against other crashes",
+        xlabel="Ratio of deaths per 100 crashes (dotted line: the same)",
+        reference=1.0,
+        keep_order=True,
+    )
+    captions["f1_speed_severity"] = plots.caption(
+        f"{SPEED_REPORT_SOURCE}; {MICRODATA_SOURCE}",
+        "2016–2023 pooled, Spain without Cataluña and País Vasco",
+        "deaths within 30 days per 100 injury crashes in which the police recorded inappropriate "
+        "speed as a concurrent factor, divided by the same ratio for the other injury crashes of "
+        "the same road type and scope (totals from the microdata restricted to the report's "
+        "provinces); 95% log-normal intervals; the adjusted row is a quasi-Poisson model with road "
+        "type and year",
+        f"{int(pooled.speed_crashes.sum()):,} speed-related crashes",
+    )
+
+    shares = summary("factor_shares")
+    shares = shares[shares.zone != "all"]
+    plots.segmented_small_multiples(
+        shares,
+        "factor",
+        "year",
+        "share",
+        "zone_label",
+        "segment",
+        figures_dir / "f2_factor_shares.svg",
+        "Share of injury crashes with each factor recorded; gaps are recording breaks",
+        order=[
+            "Alcohol",
+            "Inappropriate speed",
+            "Distraction or inattention",
+            "Illegal manoeuvres",
+            "Drugs",
+        ],
+        series_order=["Interurban roads", "Urban streets"],
+    )
+    captions["f2_factor_shares"] = plots.caption(
+        SPEED_REPORT_SOURCE,
+        "2014–2023, Spain without Cataluña and País Vasco",
+        "injury crashes in which the police recorded each concurrent factor, as a share of all "
+        "injury crashes in the zone; a line is broken wherever the share jumps or falls by more "
+        "than 25% in one year (a recording break), so each unbroken run can be compared within "
+        "itself; each panel has its own scale",
     )
 
 

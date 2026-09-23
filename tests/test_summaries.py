@@ -74,9 +74,23 @@ def test_other_road_by_period_splits_the_pooled_row() -> None:
 
 def test_registry_holds_only_tables_the_site_or_a_figure_uses() -> None:
     names = set(summaries.SUMMARIES)
-    # One entry per analysis plus the context tables; the severity models are written by
-    # scripts/model.py and are not in this registry.
-    assert {name.split("_")[0] for name in names} == {"q1", "q2", "q5", "q6", "q7", "q8", "q9"}
+    # One prefix per page: the six pillars (risk, longrun, season, drivers, speed, factor), the
+    # earlier analyses they keep (q6 vehicles, q7 age, q8 policy, q9 speed status) and the context
+    # tables (q1, q2). The severity models are written by scripts/model.py and are not here.
+    assert {name.split("_")[0] for name in names} == {
+        "risk",
+        "longrun",
+        "season",
+        "drivers",
+        "speed",
+        "factor",
+        "q1",
+        "q2",
+        "q6",
+        "q7",
+        "q8",
+        "q9",
+    }
     assert not any(name.startswith("q3_") for name in names)
     assert "q4_province_rates" not in names  # the province ranking was dropped, not hidden
     assert {"q7_km_rates", "q7_km_ratio", "q7_denominator_contrast"} <= names

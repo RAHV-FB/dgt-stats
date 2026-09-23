@@ -133,3 +133,38 @@ def test_rates_are_written_to_the_result_tables() -> None:
         pytest.skip("run `python scripts/analyse.py tables` first")
     published = pd.read_csv(path)
     assert list(published.band) == list(driver_risk.COMPARED_BANDS)
+
+
+def test_sex_rates_leave_out_unlicensed_modes_and_add_up() -> None:
+    rates = driver_risk.sex_age_rates().set_index(["scope", "band", "sex"])
+    for scope in driver_risk.VEHICLE_SCOPES:
+        for sex in driver_risk.SEX_LABELS:
+            bands = rates.loc[(scope, list(driver_risk.SEX_BANDS), sex)]
+            adult = rates.loc[(scope, driver_risk.ADULT_BAND, sex)]
+            for column in ("drivers_involved", "driver_deaths", "licence_holder_years"):
+                assert bands[column].sum() == adult[column]
+    # Cars are a subset of motor vehicles, and cyclists are in neither.
+    assert (
+        rates.xs("car", level="scope").drivers_involved
+        <= rates.xs("motor", level="scope").drivers_involved
+    ).all()
+    assert not driver_risk._in_scope(pd.Series(["Bicicleta", "VMP", "BICICLETA"]), "motor").any()
+    assert driver_risk._in_scope(pd.Series(["Motocicleta", "Turismo sin remolque"]), "motor").all()
+
+
+def test_sex_ratios_separate_crashing_from_dying() -> None:
+    ratios = driver_risk.sex_ratios().set_index(["scope", "band", "measure"])
+    involved = ratios.loc[("car", "18+", "involved_per_1000_licences")]
+    fatality = ratios.loc[("car", "18+", "deaths_per_1000_involved")]
+    deaths = ratios.loc[("car", "18+", "deaths_per_million_licences")]
+    # Deaths per licence holder are involvement per licence holder times fatality once involved.
+    assert deaths.ratio == pytest.approx(involved.ratio * fatality.ratio, rel=1e-9)
+    assert fatality.low > 1 and involved.low > 1
+
+
+def test_travel_bracket_divides_by_the_2006_trip_ratio() -> None:
+    travel = driver_risk.sex_travel_bracket()
+    assert list(travel.band) == ["15-29", "30-39", "40-49", "50-64", "65+"]
+    assert (travel.trip_ratio_2006 > 1).all()  # men made more car-or-motorcycle trips
+    per_trip = travel.involved_ratio_per_resident / travel.trip_ratio_2006
+    assert per_trip.to_numpy() == pytest.approx(travel.involved_ratio_per_trip.to_numpy())

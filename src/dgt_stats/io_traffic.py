@@ -14,7 +14,7 @@ monthly too. Two published Spanish series are monthly and reach back past 2006:
   deaths happen, and the network itself changes as concessions expire.
 
 Neither is vehicle-kilometres on all Spanish roads by month, which does not exist. What each is
-and is not is set out in ``docs/methodology.md`` §7; here they are only parsed.
+and is not is set out in ``docs/methodology.md`` §§4–6 and §12; here they are only parsed.
 """
 
 from __future__ import annotations

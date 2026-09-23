@@ -12,7 +12,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from dgt_stats import codes, io_exposure, io_microdata, io_tables, vehicles
+from dgt_stats import codes, io_exposure, io_microdata, io_reports, io_tables, vehicles
 from dgt_stats.paths import MICRODATA_YEARS, TABLES_DIR
 
 log = logging.getLogger(__name__)
@@ -478,6 +478,53 @@ def check_driver_infractions(
     return results
 
 
+# Provinces outside DGT's speed-factor report: the four of Cataluña and the three of País Vasco.
+SPEED_REPORT_EXCLUDED_PROVINCES = frozenset({8, 17, 25, 43, 1, 20, 48})
+SPEED_REPORT_METRICS = {"Siniestros con víctimas": "crashes", "Personas fallecidas": "deaths"}
+
+
+def check_speed_report_scope(crashes: pd.DataFrame, report: pd.DataFrame) -> list[Result]:
+    """Check 12: the microdata without Cataluña and País Vasco equal the speed report's totals.
+
+    The speed report publishes its own totals of injury crashes and 30-day deaths per year and
+    zone for its scope. Where the microdata cover the same years, restricting them to the same
+    provinces must reproduce those totals exactly; that is what licenses dividing the report's
+    speed-related counts by microdata totals for road types the report does not total.
+    """
+    series = report[(report.breakdown == "series") & report.category.isin(SPEED_REPORT_METRICS)]
+    province = pd.to_numeric(crashes.COD_PROVINCIA, errors="coerce")
+    scoped = crashes[~province.isin(SPEED_REPORT_EXCLUDED_PROVINCES)]
+    zone = pd.to_numeric(scoped.ZONA_AGRUPADA, errors="coerce").map({1: "interurban", 2: "urban"})
+    deaths = pd.to_numeric(scoped.TOTAL_MU30DF, errors="coerce").fillna(0)
+    frame = pd.DataFrame({"year": scoped.ANYO.astype(int), "zone": zone, "deaths": deaths})
+    by_zone = frame.groupby(["year", "zone"]).agg(
+        crashes=("deaths", "size"), deaths=("deaths", "sum")
+    )
+    totals = frame.groupby("year").agg(crashes=("deaths", "size"), deaths=("deaths", "sum"))
+    results: list[Result] = []
+    for row in series.itertuples(index=False):
+        year = int(row.column)
+        if year not in set(frame.year):
+            continue
+        metric = SPEED_REPORT_METRICS[row.category]
+        if row.zone == "all":
+            actual = float(totals.loc[year, metric])
+        else:
+            actual = float(by_zone.loc[(year, row.zone), metric])
+        results.append(
+            Result(
+                "speed_report_scope",
+                year,
+                f"{row.zone}:{metric}",
+                float(row.value),
+                actual,
+                actual == float(row.value),
+                "Spain without Cataluña and País Vasco",
+            )
+        )
+    return results
+
+
 # --------------------------------------------------------------------------- runner
 
 
@@ -498,6 +545,7 @@ def run_checks(crashes: pd.DataFrame | None = None) -> pd.DataFrame:
     victims = io_tables.read_table("tables_victims_by_mode")
     infractions = io_tables.read_table("tables_driver_infractions")
     drivers_involved = io_tables.read_table("tables_drivers_involved")
+    speed_report = io_reports.read_report()
 
     results: list[Result] = []
     results += check_row_counts(crashes, annual)
@@ -510,6 +558,7 @@ def run_checks(crashes: pd.DataFrame | None = None) -> pd.DataFrame:
     results += check_census_age(census_age_tables, census_age_text)
     results += check_vehicle_tables(crashes, units, victims)
     results += check_driver_infractions(infractions, drivers_involved)
+    results += check_speed_report_scope(crashes, speed_report)
     return pd.DataFrame([asdict(result) for result in results])
 
 

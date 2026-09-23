@@ -70,27 +70,27 @@ published in the records held for 2016–2023, and the record gives the dictiona
 
 | File | Coverage | Role | Page |
 |---|---|---|---|
-| `series_historicas_2024.xlsx` | 1993–2024, 69 sheets | crashes and victims by year, month, province, sex, age, pedestrians, drivers and passengers by vehicle, fleet and rates | trends, road users, geography, older drivers, vehicles, policy (2006) |
-| `tablas_estadisticas_2020.xlsx` … `_2024.xlsx` | one workbook per year | province and month totals (validation), vehicles involved by type (2.3), victims by mode (2.2), drivers by age and sex (4.1.1, 4.2), driver infractions (6.1) | data (checks), vehicles, older drivers, speed |
-| `chapters/2014/grupo_1.xls` … `chapters/2019/grupo_8.xlsx` | 2014–2019, eight chapters a year | the same tables 4.1.1, 4.2 and 6.1 for the earlier years | older drivers, speed |
+| `series_historicas_2024.xlsx` | 1993–2024, 69 sheets | crashes and victims by year, month, province, sex, age, pedestrians, drivers and passengers by vehicle, fleet and rates | 2019–2024 risk, long run, seasons, vehicles, 2006 break (supporting) |
+| `tablas_estadisticas_2020.xlsx` … `_2024.xlsx` | one workbook per year | province and month totals (validation), vehicles involved by type (2.3), victims by mode (2.2), drivers by age and sex (4.1.1, 4.2), driver infractions (6.1) | data (checks), vehicles, age and sex, speed |
+| `chapters/2014/grupo_1.xls` … `chapters/2019/grupo_8.xlsx` | 2014–2019, eight chapters a year | the same tables 4.1.1, 4.2 and 6.1 for the earlier years | age and sex, speed |
 
 ## Exposure and denominators (`exposure/`)
 
 | File | Coverage | Role | Page |
 |---|---|---|---|
-| `censo_conductores_{2023,2024,2025}.txt` | 2023–2025 | licence holders by province, sex, class and seniority | geography, data (check) |
-| `censo_conductores_edad_{2023,2024,2025}.txt` | 2023–2025 | licence holders by province, sex and age band | older drivers |
-| `censo_tablas_2014.xlsx` … `censo_tablas_2025.xlsx` | 2014–2025 | published census tables: class by age 2014–2023 (the 2024 workbook has no class-by-age sheet and the 2025 ones are left unused so the 2024–2025 segment keeps a single source); province totals from the 2025 workbook only, so `censo_tablas_2024.xlsx` is archived but read by no script | older drivers, data (checks) |
-| `ine_poblacion_provincias_edad_sexo.csv` | 2002–2025 | residents by province, five-year age group and sex, 1 January and 1 July | geography, older drivers |
+| `censo_conductores_{2023,2024,2025}.txt` | 2023–2025 | licence holders by province, sex, class and seniority | data (check) |
+| `censo_conductores_edad_{2023,2024,2025}.txt` | 2023–2025 | licence holders by province, sex and age band | 2019–2024 risk, age and sex |
+| `censo_tablas_2014.xlsx` … `censo_tablas_2025.xlsx` | 2014–2025 | published census tables: class by age 2014–2023 (the 2024 workbook has no class-by-age sheet and the 2025 ones are left unused so the 2024–2025 segment keeps a single source); province totals from the 2025 workbook only, so `censo_tablas_2024.xlsx` is archived but read by no script | 2019–2024 risk, age and sex, data (checks) |
+| `ine_poblacion_provincias_edad_sexo.csv` | 2002–2025 | residents by province, five-year age group and sex, 1 January and 1 July | 2019–2024 risk, age and sex |
 | `km_itv_2022/media_km_antiguedad_tipo_2022.xlsx` | 2022 | circulating fleet ("parque circulante": vehicles with an ITV, insurance, ownership-change, re-registration or fine record in the previous ten years) and mean annual km by vehicle type and age | vehicles |
 | `km_itv_2022/km_recorridos_estimados_2022.xlsx` | 2022 | km per vehicle by stratum (type, Euro class, age, engine, fuel) | parsed; not on the site |
-| `km_itv_2024/km_edad_propietario_2024.xlsx` | 2024 | vehicles, total and mean annual km by vehicle category **and by the age band of the registered owner**; the denominator of the age-and-exposure analysis | older drivers |
-| `km_itv_2024/km_medios_tipo_2024.xlsx` | 2024 | vehicles and mean annual km by category (the release's table 6), used to reconcile the owner-age table against the published fleet | older drivers (check) |
-| `traffic/cores_consumos_pp.xlsx` | 1996–2026, monthly | national consumption of petroleum products; the automotive petrol and diesel subtotals are the road-traffic exposure proxy | policy |
-| `traffic/peaje_trafico_total.xls` | 1990–2026, monthly | average daily intensity and vehicle-kilometres on the state toll-motorway network | policy |
+| `km_itv_2024/km_edad_propietario_2024.xlsx` | 2024 | vehicles, total and mean annual km by vehicle category **and by the age band of the registered owner**; the denominator of the age-and-exposure analysis | age and sex |
+| `km_itv_2024/km_medios_tipo_2024.xlsx` | 2024 | vehicles and mean annual km by category (the release's table 6), used to reconcile the owner-age table against the published fleet, and compared with fuel on the 2019–2024 page | age and sex (check), 2019–2024 |
+| `traffic/cores_consumos_pp.xlsx` | 1996–2026, monthly | national consumption of petroleum products; the automotive petrol and diesel subtotals are the road-traffic exposure proxy, annual and monthly | 2019–2024, long run, seasons, 2006 break |
+| `traffic/peaje_trafico_total.xls` | 1990–2026, monthly | average daily intensity and vehicle-kilometres on the state toll-motorway network | seasons (intensity), 2006 break |
 | `km_itv_2022/metodologia.pdf` | 2014–2023 ITV | how the kilometres are modelled; the definition of the circulating fleet (Anexo III) and the category definitions that settle the heavy-truck mapping | vehicles (limits) |
 | `driving_activity_by_age.csv` | 2008, 2018, 2023 | hand-typed survey register: ESRA national shares of adults who drive (Spain) and three Fundación MAPFRE rows on driving days per week among Madrid drivers 65+. Registered and kept as the record of what was searched; **no page reads them any more**, since DGT's 2024 kilometres by owner age replaced the survey-based driving denominator | none |
-| `movilia_2006.xls` | 2006 | table 64, trips by main mode × sex × age; the basis of the retired travel-weighted denominator. Its car-or-motorcycle column counts passengers as well as drivers and its top band is 65+, which is why it was replaced | none |
+| `movilia_2006.xls` | 2006 | table 64, trips by main mode × sex × age. Once the basis of the retired travel-weighted age denominator, which it could not support (its car-or-motorcycle column counts passengers as well as drivers and its top band is 65+). Now used only for the male-to-female trip ratio by age, read as a lower bound on the travel gap between the sexes | age and sex (bracket) |
 | `movilia_2007.xls`, `movilia_madrid/*.xls` | 2006–2007 | long-distance and Madrid extracts, inspected; not read by any script | none |
 | `ine_ecepov_2021_55378.xlsx` | 2021 | commuters by main vehicle, sex and age | registered and checked in the audit; not read by the code and not on the site |
 | `ine_ehma_2008_10016.csv`, `ine_ehma_2008_10019.csv` | 2008 | household km per vehicle by fuel and vehicle age | registered and checked in the audit; not read by the code and not on the site |
@@ -99,8 +99,8 @@ published in the records held for 2016–2023, and the record gives the dictiona
 
 | File | Coverage | Role | Page |
 |---|---|---|---|
-| `dgt_factor_velocidad_2023.pdf` | 2014–2023, without Cataluña or País Vasco | 61 of its 64 tables (all but the three year-on-year variation tables; Tablas 50–61 are its Anexo I), transcribed by `io_reports.py` | speed |
-| `dgt_personas_mayores_2023.pdf` | 2023 | the per-inhabitant framing for older road users that the older-drivers page reinterprets against four denominators; none of its figures is reproduced | older drivers (context) |
+| `dgt_factor_velocidad_2023.pdf` | 2014–2023, without Cataluña or País Vasco | 61 of its 64 tables (all but the three year-on-year variation tables; Tablas 50–61 are its Anexo I), transcribed by `io_reports.py`. Its scope totals (Tablas 1–3), speed-related crashes and deaths by road type, and crashes by concurrent factor are inputs to analyses; its scope totals are reconciled against the microdata (`speed_report_scope`); none of its breakdowns is republished | speed, factors |
+| `dgt_personas_mayores_2023.pdf` | 2023 | the per-inhabitant framing for older road users that the age-and-sex page reinterprets against four denominators; none of its figures is reproduced | age and sex (context) |
 | `dgt_semana_santa_2026.pdf` | Easter 2026 | provisional holiday figures; not used | none |
 | `Anuario-estadistico-de-accidentes-201{5,6,7,8,9}-fe-de-erratas.pdf` | 2015–2019 | errata to the yearbooks, checked when the series and the tables disagreed | none (consulted by hand while reconciling 2015–2019; no number on the site) |
 

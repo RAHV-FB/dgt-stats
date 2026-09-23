@@ -10,8 +10,15 @@ from dgt_stats.paths import TABLES_DIR
 # build_all writes these from the summary tables plus missingness_by_year.csv; the Q3 ones need
 # the model tables.
 EXPECTED_FIGURES = {
-    "c1_deaths_per_year",
-    "c2_road_user_shares",
+    "r1_risk_change",
+    "l1_trend_projection",
+    "l2_observed_over_trend",
+    "m1_season_profile",
+    "m2_month_effects",
+    "m3_lockdown",
+    "a3_sex_ratios",
+    "f1_speed_severity",
+    "f2_factor_shares",
     "c3_speed_status",
     "a1_km_risk_by_age",
     "a2_denominator_contrast",
@@ -329,8 +336,8 @@ def test_build_all_writes_every_registered_figure(tmp_path: Path) -> None:
     saved = json.loads((tmp_path / "captions.json").read_text(encoding="utf-8"))
     assert saved == captions
     # n is counted from the frame each figure draws and says what it counts.
-    n_deaths = int(frames["q5_deaths_by_road_user"].deaths_30d.sum())
-    assert captions["c2_road_user_shares"].endswith(f"n = {n_deaths:,} deaths.")
+    n_speed = int(frames["speed_severity_pooled"].speed_crashes.sum())
+    assert captions["f1_speed_severity"].endswith(f"n = {n_speed:,} speed-related crashes.")
     n_drivers = int(frames["q9_infraction_shares"].query("zone == 'all'").total.sum())
     assert captions["c3_speed_status"].endswith(f"n = {n_drivers:,} drivers.")
     n_involved = int(frames["q7_km_rates"].drivers_involved.sum())

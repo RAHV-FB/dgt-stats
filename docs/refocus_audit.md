@@ -1,5 +1,10 @@
 # Refocus audit
 
+> Superseded as the project's direction by [`goal_alignment_audit.md`](goal_alignment_audit.md),
+> which re-centres the site on measuring risk rather than counting crashes. This record of the
+> earlier refocus is kept because its corrections (the older-driver denominator, the 2006
+> falsification tests) still stand.
+
 An audit of the published site and repository against one question: **does a reader learn something
 here that DGT's own tables do not already tell them?** Everything user-facing is placed in one of
 four classes (original analytical value, necessary support, reference material, redundant) and

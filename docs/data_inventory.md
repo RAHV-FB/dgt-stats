@@ -211,10 +211,12 @@ No duplicate identifiers were found in any year.
 | Vulnerable road users (pedestrians, cyclists, moped riders, motorcyclists, VMP) fatality shares and trends | Yes | `TOT_*_MU30DF` columns |
 | Older road users, per unit of driving | Yes, for 2024 | DGT's 2024 kilometre release gives km by the **owner's** age band; the driver tables give car-driver deaths and involvements by age. Earlier years have no age-specific kilometres |
 | Heavy vehicles and buses per vehicle-km | Only for 2022, and only occupant deaths | involvement not in microdata; km only for 2022 |
-| Alcohol × speed interaction, distraction, fatigue, protective equipment | **No** | none of these variables exist in the crash-level file; speed only appears as aggregate infraction counts in `TABLA 6.1` and in the DGT report |
-| Driver age, sex, licence seniority effects | Only descriptively for 2024 | aggregate `TABLA 4.x`, not linkable to crashes |
+| Alcohol, distraction, drugs, speed and illegal manoeuvres as recorded concurrent factors, year to year | Partly | DGT's speed report counts injury crashes with each factor, 2014–2023, for Spain without Cataluña and País Vasco; comparable only within runs of years without a recording break (urban distraction breaks in 2016 and 2019, urban alcohol in 2016, drugs throughout); deaths by factor are published for speed only |
+| Speed as a severity factor | Yes, as an association | the speed report's speed-related crashes and deaths by road type against microdata totals for the same provinces, which reproduce the report's totals exactly |
+| Alcohol × speed interaction, fatigue, protective equipment | **No** | none of these variables exist in the crash-level file, and the report gives no cross-tabulation of factors |
+| Driver age and sex risk | Yes, per licence holder and per crash, 2014–2024; per km by age for 2024 only | aggregate tables 4.1.1 and 4.2 with the driver census; no source gives kilometres by sex, so the sex comparison uses licences and a bounded travel proxy (MOVILIA 2006) |
 | Campaign or policy evaluation with daily resolution | **No** | no calendar day in microdata; monthly evaluation is possible |
-| A monthly exposure series for the policy study | Partly | CORES fuel (all roads, but litres not km) and toll-motorway veh-km (km, but 5 % of the network) are the only monthly series reaching past 2006 |
+| Annual and monthly exposure for risk trends and seasonality | Partly | CORES road fuel (all roads, but tonnes not km, with a fuel-economy drift bounded by a sensitivity), petrol alone (private cars) and toll-motorway intensity (measured, but long-distance routes) are the only monthly series; DGT's 2022 and 2024 kilometre estimates cannot be chained |
 | The 2019 conventional-road speed limit | **No** | the aggregate two-group design fails its own placebo, and section identifiers, limits, speeds and volumes are not published |
 | Road geometry, speed limits, traffic volume, coordinates | **No** | not in any file |
 

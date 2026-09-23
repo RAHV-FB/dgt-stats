@@ -287,3 +287,231 @@ def denominator_contrast(year: int = KM_YEAR) -> pd.DataFrame:
                 }
             )
     return pd.DataFrame.from_records(records)
+
+
+# --------------------------------------------------------------------------- sex
+
+
+SEX_BANDS = ("18-34", "35-54", "55-64", "65-74", "75+")
+ADULT_BAND = "18+"
+# Three years pooled, so that the rates for women over 65, a few deaths a year, are readable.
+SEX_POOL_YEARS = (2022, 2023, 2024)
+SEX_LABELS = {"male": "Men", "female": "Women"}
+VEHICLE_SCOPES = {"motor": "Drivers of motor vehicles", "car": "Car drivers"}
+# Rows of DGT's driver tables that are not a licensed motor vehicle: cyclists and personal
+# mobility vehicles need no licence, and the rest are not vehicles or not known.
+NOT_MOTOR = frozenset(
+    {
+        "bicicleta",
+        "vmp",
+        "peatón",
+        "tren/metro/tranvía",
+        "tren/metro",
+        "tranvía",
+        "se desconoce",
+        "sin especificar",
+        "otras categorías",
+        "total",
+    }
+)
+SEX_MEASURES = {
+    "involved_per_1000_licences": ("drivers_involved", "licence_holder_years", 1000),
+    "deaths_per_million_licences": ("driver_deaths", "licence_holder_years", 1e6),
+    "deaths_per_1000_involved": ("driver_deaths", "drivers_involved", 1000),
+}
+SEX_MEASURE_LABELS = {
+    "involved_per_1000_licences": "Involved in an injury crash, per 1,000 licence holders",
+    "deaths_per_million_licences": "Killed, per million licence holders",
+    "deaths_per_1000_involved": "Killed, per 1,000 drivers involved",
+}
+
+
+def _in_scope(vehicle_type: pd.Series, scope: str) -> pd.Series:
+    if scope == "car":
+        return vehicle_type.isin(CAR_VEHICLE_TYPES)
+    return ~vehicle_type.str.casefold().isin(NOT_MOTOR)
+
+
+def _exposure_band_key(band: str) -> str | None:
+    if band not in agebands.DGT_BANDS:
+        return None
+    return agebands.band_for(*agebands.DGT_BANDS[band], agebands.EXPOSURE_BANDS)
+
+
+def driver_counts_by_sex(years: tuple[int, ...], scope: str) -> pd.DataFrame:
+    """Drivers involved and killed, and licence holders, by sex and exposure band, summed over years.
+
+    Licence holders summed over the years are licence-holder-years, the denominator for a pooled
+    rate. Drivers of unknown sex or age are left out here and counted in ``unknown_share``.
+    """
+    victims = io_tables.read_table("tables_driver_victims")
+    involved = io_tables.read_table("tables_drivers_involved")
+    licences = io_exposure.read_exposure("conductores_por_edad")
+    victims = victims[
+        victims.year.isin(years)
+        & (victims.severity == "deaths_30d")
+        & _in_scope(victims.vehicle_type, scope)
+    ]
+    involved = involved[involved.year.isin(years) & _in_scope(involved.vehicle_type, scope)]
+    licences = licences[licences.year.isin(years)]
+    frames = {}
+    for name, frame, value in (
+        ("driver_deaths", victims, "value"),
+        ("drivers_involved", involved, "value"),
+        ("licence_holder_years", licences, "n_drivers"),
+    ):
+        keyed = frame.assign(exposure_band=frame.band.map(_exposure_band_key))
+        keyed = keyed[keyed.sex.isin(SEX_LABELS) & keyed.exposure_band.isin(SEX_BANDS)]
+        frames[name] = keyed.groupby(["sex", "exposure_band"])[value].sum()
+    out = pd.DataFrame(frames).fillna(0.0)
+    out.index.names = ["sex", "band"]
+    adult = out.groupby(level="sex").sum()
+    adult.index = pd.MultiIndex.from_product([adult.index, [ADULT_BAND]], names=["sex", "band"])
+    return pd.concat([out, adult]).reset_index()
+
+
+def sex_age_rates(years: tuple[int, ...] = SEX_POOL_YEARS) -> pd.DataFrame:
+    """The three driver rates by sex and age band, for motor-vehicle drivers and car drivers."""
+    frames = []
+    for scope, scope_label in VEHICLE_SCOPES.items():
+        counts = driver_counts_by_sex(years, scope)
+        for measure, (count, exposure, per) in SEX_MEASURES.items():
+            counts = rates.add_rate(counts, count, exposure, measure, per=per)
+        counts.insert(0, "scope", scope)
+        counts.insert(1, "scope_label", scope_label)
+        counts["sex_label"] = counts.sex.map(SEX_LABELS)
+        counts["band_label"] = [
+            "18 and over" if band == ADULT_BAND else agebands.band_label(band)
+            for band in counts.band
+        ]
+        counts["years"] = f"{min(years)}-{max(years)}"
+        frames.append(counts)
+    return pd.concat(frames, ignore_index=True)
+
+
+def sex_ratios(years: tuple[int, ...] = SEX_POOL_YEARS) -> pd.DataFrame:
+    """Men against women on each measure, by band, with 95 % log-normal intervals."""
+    table = sex_age_rates(years).set_index(["scope", "band", "sex"])
+    records = []
+    for scope, scope_label in VEHICLE_SCOPES.items():
+        for band in (*SEX_BANDS, ADULT_BAND):
+            men, women = table.loc[(scope, band, "male")], table.loc[(scope, band, "female")]
+            for measure, (count, exposure, _) in SEX_MEASURES.items():
+                ratio, low, high = rates.rate_ratio(
+                    float(men[count]),
+                    float(men[exposure]),
+                    float(women[count]),
+                    float(women[exposure]),
+                )
+                records.append(
+                    {
+                        "scope": scope,
+                        "scope_label": scope_label,
+                        "band": band,
+                        "band_label": men.band_label,
+                        "measure": measure,
+                        "measure_label": SEX_MEASURE_LABELS[measure],
+                        "ratio": ratio,
+                        "low": low,
+                        "high": high,
+                    }
+                )
+    return pd.DataFrame.from_records(records)
+
+
+def sex_trend(first: int = 2014, last: int = KM_YEAR) -> pd.DataFrame:
+    """The three rates for drivers aged 18 and over, by sex and year, for both scopes."""
+    frames = []
+    for year in range(first, last + 1):
+        table = sex_age_rates((year,))
+        table = table[table.band == ADULT_BAND].assign(year=year)
+        frames.append(table)
+    return pd.concat(frames, ignore_index=True)
+
+
+def sex_travel_bracket(years: tuple[int, ...] = SEX_POOL_YEARS) -> pd.DataFrame:
+    """How large a travel gap would have to be, set against the only travel-by-sex survey.
+
+    For each MOVILIA 2006 age band, the male-to-female ratio of car-or-motorcycle trips per
+    resident (weekday × 5 + weekend day × 2) is set beside the male-to-female ratios of car drivers
+    involved and killed per resident in ``years``. Dividing the second by the first gives the ratio
+    per trip *if* the 2006 travel gap still held and every trip were a driving trip. MOVILIA counts
+    passengers with drivers, and women are more often the passenger, so its ratio understates the
+    driving gap; the bracket is read as a lower bound on how much of the crash gap travel could
+    explain. The fatality ratio once involved needs no travel data and is given for comparison.
+    """
+    from dgt_stats import io_activity
+
+    trips = io_activity.read_movilia_trips()
+    trips = trips[(trips.transport_mode == "car_or_motorcycle") & trips.sex.isin(SEX_LABELS)]
+    weights = {"weekday": 5.0, "weekend": 2.0}
+    trips = trips.assign(weekly=trips.trips_thousands * trips.day_type.map(weights) * 1000)
+    weekly = trips.groupby(["sex", "band"]).weekly.sum()
+    movilia_bands = {
+        "15-29": (15, 29),
+        "30-39": (30, 39),
+        "40-49": (40, 49),
+        "50-64": (50, 64),
+        "65+": (65, None),
+    }
+    residents_2006 = {
+        sex: io_population.population_by_band(2006, bands=movilia_bands, sex=sex).set_index("band")
+        for sex in SEX_LABELS
+    }
+    victims = io_tables.read_table("tables_driver_victims")
+    involved = io_tables.read_table("tables_drivers_involved")
+    victims = victims[
+        victims.year.isin(years)
+        & (victims.severity == "deaths_30d")
+        & victims.vehicle_type.isin(CAR_VEHICLE_TYPES)
+    ]
+    involved = involved[involved.year.isin(years) & involved.vehicle_type.isin(CAR_VEHICLE_TYPES)]
+
+    def to_movilia(band: str) -> str | None:
+        if band not in agebands.DGT_BANDS:
+            return None
+        low, high = agebands.DGT_BANDS[band]
+        return agebands.band_for(low, high, movilia_bands)
+
+    crash = {}
+    for name, frame in (("deaths", victims), ("involved", involved)):
+        keyed = frame.assign(movilia_band=frame.band.map(to_movilia))
+        keyed = keyed[keyed.sex.isin(SEX_LABELS) & keyed.movilia_band.notna()]
+        crash[name] = keyed.groupby(["sex", "movilia_band"]).value.sum()
+    residents_now = {
+        sex: sum(
+            io_population.population_by_band(year, bands=movilia_bands, sex=sex)
+            .set_index("band")
+            .population
+            for year in years
+        )
+        for sex in SEX_LABELS
+    }
+    records = []
+    for band in movilia_bands:
+        trip_ratio = (weekly[("male", band)] / residents_2006["male"].population[band]) / (
+            weekly[("female", band)] / residents_2006["female"].population[band]
+        )
+        record = {"band": band, "trip_ratio_2006": float(trip_ratio)}
+        for name in ("involved", "deaths"):
+            ratio, low, high = rates.rate_ratio(
+                float(crash[name].get(("male", band), 0.0)),
+                float(residents_now["male"][band]),
+                float(crash[name].get(("female", band), 0.0)),
+                float(residents_now["female"][band]),
+            )
+            record[f"{name}_ratio_per_resident"] = ratio
+            record[f"{name}_ratio_low"] = low
+            record[f"{name}_ratio_high"] = high
+            record[f"{name}_ratio_per_trip"] = ratio / trip_ratio
+        fatality, low, high = rates.rate_ratio(
+            float(crash["deaths"].get(("male", band), 0.0)),
+            float(crash["involved"].get(("male", band), 0.0)),
+            float(crash["deaths"].get(("female", band), 0.0)),
+            float(crash["involved"].get(("female", band), 0.0)),
+        )
+        record["fatality_ratio"] = fatality
+        record["fatality_low"] = low
+        record["fatality_high"] = high
+        records.append(record)
+    return pd.DataFrame.from_records(records).assign(years=f"{min(years)}-{max(years)}")

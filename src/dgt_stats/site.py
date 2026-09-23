@@ -1,9 +1,12 @@
 """Static site builder: plain HTML and one CSS file rendered from the result tables and figures.
 
-No template engine and no JavaScript. Six pages: four analyses, the context they need and the data
-behind them. Every sentence that carries a number computes it from a committed result table at
-build time, so the prose cannot drift from the tables; full tables are copied into ``site/tables``
-and linked as CSV rather than printed.
+No template engine and no JavaScript. The site answers one question, what changes when road risk
+is measured rather than counted, in seven analysis pages (2019–2024, the long run, seasons, age
+and sex, vehicles, speed, other factors), an overview and a data page, with two supporting
+analyses (the severity model and the 2006 break) kept outside the main navigation. Every sentence
+that carries a number computes it from a committed result table at build time, so the prose cannot
+drift from the tables; full tables are copied into ``site/tables`` and linked as CSV rather than
+printed.
 """
 
 from __future__ import annotations
@@ -27,13 +30,40 @@ DOCS_URL = f"{REPO_URL}/blob/main/docs"
 
 PAGES: tuple[tuple[str, str], ...] = (
     ("index", "Overview"),
-    ("severity", "Severity"),
-    ("older-drivers", "Age"),
+    ("trends", "2019–2024"),
+    ("long-run", "Long run"),
+    ("seasons", "Seasons"),
+    ("drivers", "Age and sex"),
     ("vehicles", "Vehicles"),
-    ("policy", "2006"),
-    ("context", "Context"),
+    ("speed", "Speed"),
+    ("factors", "Factors"),
     ("data", "Data"),
 )
+# Careful analyses outside the central question, linked from a second, quieter row.
+SUPPORTING_PAGES: tuple[tuple[str, str], ...] = (
+    ("severity", "Severity model"),
+    ("policy", "The 2006 break"),
+)
+ALL_PAGES = PAGES + SUPPORTING_PAGES
+SUPPORTING_NOTES = {
+    "severity": (
+        "<strong>Supporting analysis.</strong> This model explains the outcome of a crash from "
+        "where, when and how it happened. It is kept because it is careful and because it shows "
+        "which recorded circumstances go with a fatal outcome, but a multivariate model of crash "
+        "causation is not "
+        "what these data are best at: they have no driver, vehicle or speed records. The central "
+        'question of the site is on the <a href="index.html">overview</a>.'
+    ),
+    "policy": (
+        "<strong>Supporting analysis.</strong> A dated policy change is the only kind of "
+        "intervention the monthly series can test, and this page shows how weak even that test "
+        "is: the headline effect did not survive its falsification checks. The site makes no "
+        "causal claim about policies or campaigns. For what the pandemic and traffic did to the "
+        'same series, see the <a href="long-run.html">long-run page</a>.'
+    ),
+}
+# Pages that existed under another name, kept as pointers so old links still arrive somewhere.
+MOVED_PAGES = {"older-drivers": "drivers", "context": "long-run"}
 
 STYLE = """
 /* A statistical bulletin, not a dashboard: serif for reading, sans for furniture and figures,
@@ -79,6 +109,8 @@ nav a {
 }
 nav a:hover { color: var(--ink); }
 nav a[aria-current="page"] { color: var(--ink); box-shadow: inset 0 -2px 0 var(--accent); }
+nav ul.supporting { border-top: 1px solid var(--rule); }
+nav ul.supporting li:first-child { font-family: var(--sans); font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-2); padding: 8px 0; }
 
 main { padding-top: 34px; padding-bottom: 56px; }
 h1 { font-size: 2.35rem; line-height: 1.12; margin: 0 0 14px; letter-spacing: -0.012em; font-weight: 600; max-width: var(--measure); }
@@ -382,13 +414,18 @@ def limits(text: str) -> str:
     return f'<p class="limit"><strong>Limits.</strong> {text}</p>'
 
 
-def render_page(slug: str, title: str, lead: str, body: str) -> str:
-    nav_items = ""
-    for s, name in PAGES:
-        current = ' aria-current="page"' if s == slug else ""
-        nav_items += f'<li><a href="{s}.html"{current}>{esc(name)}</a></li>'
+def render_page(slug: str, title: str, lead: str, body: str, head: str = "") -> str:
+    def items(pages: tuple[tuple[str, str], ...]) -> str:
+        out = ""
+        for s, name in pages:
+            current = ' aria-current="page"' if s == slug else ""
+            out += f'<li><a href="{s}.html"{current}>{esc(name)}</a></li>'
+        return out
+
+    nav_items = items(PAGES)
+    supporting_items = "<li>Supporting analyses</li>" + items(SUPPORTING_PAGES)
     page_title = (
-        "Road safety in Spain · four analyses of DGT crash data"
+        "Road safety in Spain · measuring risk, not counting crashes"
         if slug == "index"
         else esc(title) + " · Road safety in Spain"
     )
@@ -399,15 +436,15 @@ def render_page(slug: str, title: str, lead: str, body: str) -> str:
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{page_title}</title>
 <meta name="description" content="{esc(lead)}">
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css">{head}
 </head>
 <body>
 <header>
 <div class="masthead">
 <a href="index.html">Road safety in Spain</a>
-<span class="strap">Four analyses of DGT open data</span>
+<span class="strap">Measuring risk, not counting crashes</span>
 </div>
-<nav aria-label="Sections"><ul>{nav_items}</ul></nav>
+<nav aria-label="Sections"><ul>{nav_items}</ul><ul class="supporting">{supporting_items}</ul></nav>
 </header>
 <main>
 <h1>{esc(title)}</h1>
@@ -472,89 +509,207 @@ def _policy_numbers() -> dict[str, object]:
     }
 
 
+# --------------------------------------------------------------------------- shared numbers
+
+
+def _ratio_ci(ratio: float, low: float, high: float) -> str:
+    return f"{ratio:.2f}× ({low:.2f}–{high:.2f})"
+
+
+def _change(ratio: float, decimals: int = 1) -> str:
+    """A ratio to a base as a signed percentage change: 1.035 reads +3.5%."""
+    return _signed_pct(float(ratio) - 1, decimals)
+
+
+def _risk_numbers() -> dict[str, object]:
+    index = read_table("risk_index")
+    last = int(index.year.max())
+    latest = index[index.year == last].set_index(["outcome", "denominator"])
+    return {"index": index, "last": last, "latest": latest}
+
+
+def _long_run_numbers() -> dict[str, object]:
+    series = read_table("longrun_series")
+    segments = read_table("longrun_segments")
+    efficiency = read_table("longrun_efficiency")
+    projected = series[series.period == "projected"].set_index(["measure", "year"])
+    return {
+        "series": series,
+        "segments": segments,
+        "efficiency": efficiency,
+        "projected": projected,
+        "last": int(series.year.max()),
+    }
+
+
+def _season_numbers() -> dict[str, object]:
+    effects = read_table("season_month_effects").set_index(["exposure", "month"])
+    lockdown = read_table("season_lockdown").set_index("month")
+    return {"effects": effects, "lockdown": lockdown}
+
+
+def _sex_numbers() -> dict[str, object]:
+    ratios = read_table("drivers_sex_ratios").set_index(["scope", "band", "measure"])
+    rates = read_table("drivers_sex_rates").set_index(["scope", "band", "sex"])
+    travel = read_table("drivers_sex_travel").set_index("band")
+    return {"ratios": ratios, "rates": rates, "travel": travel}
+
+
+def _speed_numbers() -> dict[str, object]:
+    pooled = read_table("speed_severity_pooled").set_index("road_type")
+    yearly = read_table("speed_severity")
+    all_roads = yearly[yearly.road_type == "all"].set_index("year")
+    return {"pooled": pooled, "yearly": yearly, "all_roads": all_roads}
+
+
+def _factor_numbers() -> dict[str, object]:
+    windows = read_table("factor_windows")
+    changes = read_table("factor_changes")
+    shares = read_table("factor_shares").set_index(["zone", "factor", "year"])
+    return {"windows": windows, "changes": changes, "shares": shares}
+
+
+def _window(windows: pd.DataFrame, zone: str, factor: str, year: int) -> pd.Series:
+    """The comparable window of ``factor`` in ``zone`` that contains ``year``."""
+    match = windows[
+        (windows.zone == zone)
+        & (windows.factor == factor)
+        & (windows.first_year <= year)
+        & (windows.last_year >= year)
+    ]
+    return match.iloc[0]
+
+
 # --------------------------------------------------------------------------- overview
 
 
 def page_index(captions: dict[str, str]) -> str:
-    severity = _severity_numbers()
+    risk = _risk_numbers()
+    latest, last = risk["latest"], risk["last"]
+    long_run = _long_run_numbers()
+    projected = long_run["projected"]
+    season = _season_numbers()
+    effects = season["effects"]
+    sex = _sex_numbers()
     age = _age_numbers()
-    policy_numbers = _policy_numbers()
+    speed = _speed_numbers()
+    factor = _factor_numbers()
     vehicles = read_table("q6_summary_2022").set_index("group")
     truck, car = vehicles.loc["heavy_truck"], vehicles.loc["car"]
 
-    wet_alone = float(severity["adverse"].loc[("no_weather", "wet"), "odds_ratio"])
-    junction = float(severity["adverse"].loc[("full", "at a junction"), "odds_ratio"])
-    deaths_ratio = age["ratios"].loc[("deaths_per_bn_km", "75+")]
-    involved_ratio = age["ratios"].loc[("involved_per_bn_km", "75+")]
-    fatality_ratio = age["ratios"].loc[("deaths_per_1000_involved", "75+")]
-    calendar = policy_numbers["true_calendar"]
-    forecast = policy_numbers["true_forecast"]
+    deaths_count = latest.loc[("deaths_30d", "count")]
+    deaths_fuel = latest.loc[("deaths_30d", "road_fuel")]
+    deaths_vehicle = latest.loc[("deaths_30d", "vehicles")]
+    deaths_resident = latest.loc[("deaths_30d", "residents")]
+    hosp = latest.xs("hospitalised_30d", level="outcome")
+    fuel_last = projected.loc[("road_fuel", last)]
+    fuel_prev = projected.loc[("road_fuel", last - 1)]
+    count_2020 = projected.loc[("count", 2020)]
+    fuel_2020 = projected.loc[("road_fuel", 2020)]
+    fuel_segment = long_run["segments"][long_run["segments"].measure == "road_fuel"].iloc[-1]
+    july_raw = effects.loc[("none", 7)]
+    july_petrol = effects.loc[("petrol_tonnes", 7)]
+    august_raw = effects.loc[("none", 8)]
+    august_petrol = effects.loc[("petrol_tonnes", 8)]
+    april = season["lockdown"].loc[4]
+    ratios_sex = sex["ratios"]
+    men_involved = ratios_sex.loc[("car", "18+", "involved_per_1000_licences")]
+    men_fatality = ratios_sex.loc[("car", "18+", "deaths_per_1000_involved")]
+    involved_75 = age["ratios"].loc[("involved_per_bn_km", "75+")]
+    fatality_75 = age["ratios"].loc[("deaths_per_1000_involved", "75+")]
+    adjusted = speed["pooled"].loc["adjusted"]
     per_vehicle = float(
         truck.fatal_involvement_per_100k_vehicles / car.fatal_involvement_per_100k_vehicles
     )
     per_km = float(truck.fatal_involvement_per_bn_km / car.fatal_involvement_per_bn_km)
-    speed = read_table("q9_infraction_shares")
-    speed_all = speed[speed.zone == "all"].set_index("year")
-    first_year, last_year = int(speed_all.index.min()), int(speed_all.index.max())
+    windows = factor["windows"]
+    alcohol = _window(windows, "interurban", "Alcohol", 2014)
+    speed_share = _window(windows, "all", "Inappropriate speed", 2014)
 
     body = key_figures(
         [
             (
-                "Wet road, fatal odds",
-                _times(wet_alone),
-                "against a dry road, given that an injury crash happened",
+                "Deaths per unit of traffic",
+                _change(float(fuel_last.ratio), 0),
+                f"per tonne of fuel, above the pre-2020 trend in {last}; the count is on trend",
             ),
             (
-                "Drivers 75+, per kilometre",
-                _times(float(deaths_ratio.ratio)),
-                "killed as often as drivers aged 35 to 54",
+                "August peak, per unit of traffic",
+                _times(float(august_petrol.rate_ratio)),
+                f"the average month; {_times(float(august_raw.rate_ratio))} as a raw count",
             ),
             (
-                "Heavy truck against car",
-                f"{per_vehicle:.0f}× / {per_km:.1f}×",
-                "in a fatal crash, per vehicle then per kilometre",
+                "Killed once in a crash",
+                _times(float(men_fatality.ratio)),
+                "male against female car drivers",
             ),
             (
-                "Drivers with no speed record",
-                _fmt_pct(float(speed_all.loc[last_year, "share_unknown"]), 0),
-                f"in {last_year}, against "
-                f"{_fmt_pct(float(speed_all.loc[first_year, 'share_unknown']), 0)} in {first_year}",
+                "Deaths per crash with speed",
+                _times(float(adjusted.rate_ratio)),
+                "against other crashes on the same kind of road",
             ),
         ]
     )
-
     body += (
-        '<p class="answer">Spain publishes a great deal of road-safety data and very little '
-        "analysis of it. These four pages each take a question the published tables leave open, "
-        "and follow it until the evidence either holds or breaks. Two of the four answers came "
-        "out weaker than they first looked, and both pages say so.</p>"
+        '<p class="answer">A count of crashes or deaths says how many. It does not say how '
+        "dangerous the roads were, because it moves with how much people drove, who was driving "
+        "and in what. This site divides the same DGT counts by residents, licence holders, "
+        "vehicles, kilometres and road fuel, and asks what changes. On every question below the "
+        "answer changes size, and on several it changes sign.</p>"
     )
 
     findings = [
         (
-            "severity.html",
-            "Dangerous-looking conditions go with less severe crashes",
-            f"Once an injury crash has happened, a wet road carries {_times(wet_alone)} the odds "
-            f"of a death of a dry one, and a junction {_times(junction)}. Dropping either of the "
-            "two correlated predictors leaves the result standing, and so does fitting urban and "
-            "interurban roads separately. This is about how badly a crash ends, not about how "
-            "often one happens.",
-            f"Two logistic models of all {severity['n']:,} injury crashes since 2016, with "
-            f"province-clustered intervals, a 2023 to 2024 holdout (AUC "
-            f"{severity['auc_fatal']:.2f}) and eight sensitivity fits.",
+            "trends.html",
+            "Since 2019, whether death risk rose or fell depends on the denominator",
+            f"Deaths in {last} were {_change(float(deaths_count.ratio_to_base))} on 2019 as a "
+            f"count, {_change(float(deaths_resident.ratio_to_base))} per resident, "
+            f"{_change(float(deaths_vehicle.ratio_to_base))} per registered vehicle and "
+            f"{_change(float(deaths_fuel.ratio_to_base))} per tonne of road fuel, none of it "
+            "beyond chance. Injury crashes fell per person and per vehicle but not per unit of "
+            "traffic, and people admitted to hospital rose under every denominator, by "
+            f"{_change(float(hosp.ratio_to_base.min()))} to "
+            f"{_change(float(hosp.ratio_to_base.max()))}.",
+            "Annual DGT totals over INE residents, the driver census, the registered fleet and "
+            "CORES road-fuel consumption, each indexed to 2019 with Poisson intervals.",
         ),
         (
-            "older-drivers.html",
-            "Older drivers crash no more per kilometre; they die far more often when they do",
-            f"Car drivers aged 75 and over are involved in injury crashes "
-            f"{_times(float(involved_ratio.ratio))} as often per kilometre driven as drivers aged "
-            f"35 to 54, which is to say about as often. Once involved they are killed "
-            f"{_times(float(fatality_ratio.ratio))} as often. Their death rate per kilometre is "
-            f"{_times(float(deaths_ratio.ratio))} the middle-aged rate, and nearly all of that "
-            "comes from the second figure rather than the first.",
-            "Car-driver deaths and involvements from DGT's driver tables, divided by DGT's 2024 "
-            "estimate of kilometres driven by owner age band. The baseline is built the same way "
-            "as the older groups.",
+            "long-run.html",
+            "The pandemic dip was less driving; the plateau since is worse than it looks",
+            f"As a count, 2020 deaths were {_change(float(count_2020.ratio), 0)} against the "
+            "pre-pandemic trend and were back on it by 2022. Per tonne of road fuel, 2020 was on "
+            f"trend ({_times(float(fuel_2020.ratio))}): the fall was the traffic. And per tonne of "
+            f"fuel, {last - 1} and {last} ran {_change(float(fuel_prev.ratio), 0)} and "
+            f"{_change(float(fuel_last.ratio), 0)} above where the {int(fuel_segment.start)}–"
+            f"{int(fuel_segment.end)} trend was heading, unless fuel economy improved much "
+            "faster after 2020 than before.",
+            "Segmented (joinpoint) quasi-Poisson trends fitted to 1993–2019 with turning points "
+            "chosen by QBIC, projected through 2020–2024 with prediction intervals, and a "
+            "sensitivity for faster fuel-economy gains.",
+        ),
+        (
+            "seasons.html",
+            "The summer peak is mostly traffic; the autumn excess is not",
+            f"Raw deaths in July are {_times(float(july_raw.rate_ratio))} and in August "
+            f"{_times(float(august_raw.rate_ratio))} the average month. Per unit of petrol, the "
+            f"car fuel, they are {_times(float(july_petrol.rate_ratio))} and "
+            f"{_times(float(august_petrol.rate_ratio))}. In the April 2020 lockdown deaths fell "
+            f"{_fmt_pct(-float(april.deaths_change), 0)} and petrol sales "
+            f"{_fmt_pct(-float(april.petrol_tonnes_change), 0)}: fewer deaths, not safer roads.",
+            "Monthly deaths since 2014 against monthly road fuel, petrol and toll-motorway "
+            "traffic, in quasi-Poisson models with year and month effects.",
+        ),
+        (
+            "drivers.html",
+            "Older and male drivers crash little more for their driving; they die more when they do",
+            f"Per kilometre, car drivers aged 75 and over are involved in injury crashes "
+            f"{_times(float(involved_75.ratio))} as often as those aged 35 to 54, but are killed "
+            f"{_times(float(fatality_75.ratio))} as often once involved. Male car drivers are "
+            f"involved {_times(float(men_involved.ratio))} as often as women per licence holder, "
+            "about what the only Spanish travel survey by sex implies, and killed "
+            f"{_times(float(men_fatality.ratio))} as often once involved.",
+            "DGT driver tables over the driver census and DGT's 2024 kilometres by owner age; "
+            "MOVILIA trips by sex as a bounded travel proxy.",
         ),
         (
             "vehicles.html",
@@ -562,25 +717,34 @@ def page_index(captions: dict[str, str]) -> str:
             f"Per circulating vehicle a heavy truck is in a fatal crash {per_vehicle:.1f} times as "
             f"often as a car. Per kilometre driven it is {per_km:.1f} times. For every fatal crash "
             f"a truck is in, {float(truck.occupant_deaths_per_fatal_involvement):.2f} of its own "
-            "occupants die, against 0.93 for a motorcycle, so most of the danger a truck carries "
-            "is to other people.",
-            "DGT's 2022 kilometre estimates divided into the same year's involvement counts, with "
-            "exact Poisson intervals.",
+            "occupants die, so most of the danger a truck carries is to other people.",
+            "DGT's 2022 kilometre estimates divided into the same year's involvement counts, "
+            "with exact Poisson intervals.",
         ),
         (
-            "policy.html",
-            "A twelve per cent policy effect falls to about seven under the right test",
-            "Monthly deaths stepped down at July 2006, when the points licence came in. A "
-            "straight pre-trend puts the step at "
-            f"{_signed_pct(float(policy_numbers['linear'].level_change))}. The pre-trend the "
-            "earlier months actually prefer puts it at "
-            f"{_signed_pct(float(policy_numbers['main'].level_change))}. Placed at July of other "
-            f"years the same model ranks 2006 {_ordinal(int(calendar['rank']))} of "
-            f"{int(calendar.n_fits)}, but a forecast made before each July finds 2006 only the "
-            f"{_ordinal(int(forecast['rank']))} most abnormal of them.",
-            "Segmented Poisson regression on monthly deaths, 1993 to 2024, with calendar-matched "
-            "placebos, seasonality-free summer transitions, out-of-sample forecasts and two "
-            "monthly traffic series as exposure.",
+            "speed.html",
+            "Where speed is recorded, a crash is twice as likely to kill",
+            "Injury crashes in which the police recorded inappropriate speed kill "
+            f"{_times(float(adjusted.crude_ratio))} as many people per crash as the rest, and "
+            f"{_times(float(adjusted.rate_ratio))} once the comparison is made on the same kind "
+            "of road in the same year. That is an association: the record is written after the "
+            "fact, and is likelier to be written when someone has died.",
+            "DGT's speed-factor report against totals from the microdata for the same provinces, "
+            "which reproduce the report's own totals exactly.",
+        ),
+        (
+            "factors.html",
+            "Alcohol is rising on interurban roads; distraction cannot be trended in towns",
+            "Recorded alcohol went from "
+            f"{_fmt_pct(float(alcohol.share_first))} to {_fmt_pct(float(alcohol.share_last))} of "
+            f"interurban injury crashes between {int(alcohol.first_year)} and "
+            f"{int(alcohol.last_year)}, and inappropriate speed from "
+            f"{_fmt_pct(float(speed_share.share_first))} to "
+            f"{_fmt_pct(float(speed_share.share_last))} of all of them, both on a consistent "
+            "record. Urban distraction jumps and falls by half in single years, and drugs are too "
+            "few to compare.",
+            "DGT's concurrent-factor tables, with a recording-break rule applied to every "
+            "year-to-year change before any trend is read.",
         ),
     ]
     body += "".join(
@@ -588,31 +752,908 @@ def page_index(captions: dict[str, str]) -> str:
         for index, (href, heading, text, method) in enumerate(findings, start=1)
     )
 
-    body += "<h2>A warning about one published series</h2>"
+    body += "<h2>What this site does not claim</h2>"
     body += (
-        "<p>The share of drivers in an injury crash with no recorded speed status went from "
-        f"{_fmt_pct(float(speed_all.loc[first_year, 'share_unknown']), 0)} in {first_year} to "
-        f"{_fmt_pct(float(speed_all.loc[2016, 'share_unknown']), 0)} in 2016 and has stayed "
-        "there. Any trend read off DGT's published speed-infraction column crosses that break. "
-        'The <a href="context.html">context page</a> shows what it does to the two obvious '
-        "readings of the same table.</p>"
+        "<p>It attributes no cause. The public microdata have one row per crash and no driver, "
+        "vehicle or person records, so every factor here is an association, and a policy or "
+        "campaign effect is never read off a time series. Two analyses built earlier in the "
+        "project are kept as supporting material because they are careful but outside this "
+        'question: a <a href="severity.html">model of crash severity</a> and a '
+        '<a href="policy.html">test of the 2006 points licence</a> whose headline did not '
+        "survive its own falsification tests. Road design and municipal hotspots are not "
+        "analysed: the files carry no road geometry, traffic volume or coordinates.</p>"
     )
-
     body += "<h2>How to read the numbers</h2>"
     body += (
         "<p>Counts are DGT's consolidated figures. An injury crash is one with at least one "
         "person killed or injured, and deaths are counted within 30 days. Every rate names its "
-        "denominator, because the denominator is usually where the answer comes from. Model "
-        "results are associations. The 2006 page says <em>coincided with</em> rather than "
-        "<em>caused</em>, because its falsification tests do not support the stronger word. "
-        "Sources, definitions and the 434 reconciliation checks are on the "
+        "denominator, because the denominator is usually where the answer comes from. Sources, "
+        "definitions and the reconciliation checks are on the "
         '<a href="data.html">data page</a>.</p>'
     )
     return render_page(
         "index",
         "Road safety in Spain",
-        "Four analyses of Spanish crash data that answer questions the published tables leave "
-        "open, and say where the evidence stops.",
+        "What changes when you stop counting crashes and start measuring road risk: seven "
+        "questions answered from DGT data, each with the denominator that decides it.",
+        body,
+    )
+
+
+# --------------------------------------------------------------------------- 2019 to 2024
+
+
+DENOMINATOR_NOTES = {
+    "count": "The outcome itself.",
+    "residents": "Everyone living in Spain, most of whom are not driving at any moment.",
+    "licence_holders": "Everyone allowed to drive, including those who rarely do.",
+    "vehicles": "Every registered vehicle, including the many that are rarely used.",
+    "road_fuel": "Petrol and diesel sold for road use: the closest annual measure of traffic.",
+}
+
+
+def page_trends(captions: dict[str, str]) -> str:
+    risk = _risk_numbers()
+    latest, last = risk["latest"], risk["last"]
+    efficiency = read_table("risk_fuel_efficiency")
+    crosscheck = read_table("risk_km_crosscheck").set_index("measure")
+    deaths = latest.xs("deaths_30d", level="outcome")
+    hosp = latest.xs("hospitalised_30d", level="outcome")
+    crashes = latest.xs("crashes", level="outcome")
+
+    body = key_figures(
+        [
+            (
+                f"Deaths, {last} against 2019",
+                _change(float(deaths.loc["count", "ratio_to_base"])),
+                "as a count",
+            ),
+            (
+                "Per registered vehicle",
+                _change(float(deaths.loc["vehicles", "ratio_to_base"])),
+                "the same deaths",
+            ),
+            (
+                "Per tonne of road fuel",
+                _change(float(deaths.loc["road_fuel", "ratio_to_base"])),
+                "the same deaths",
+            ),
+            (
+                "Hospitalised, as a count",
+                _change(float(hosp.loc["count", "ratio_to_base"])),
+                "up under every denominator",
+            ),
+        ]
+    )
+    body += (
+        '<p class="answer">Whether Spain\'s roads became more or less dangerous after 2019 '
+        f"depends on what the deaths are divided by. In {last} there were "
+        f"{_fmt_int(deaths.loc['count', 'count'])} deaths, "
+        f"{_change(float(deaths.loc['count', 'ratio_to_base']))} on 2019. Per resident that is "
+        f"{_change(float(deaths.loc['residents', 'ratio_to_base']))}, per licence holder "
+        f"{_change(float(deaths.loc['licence_holders', 'ratio_to_base']))}, per registered "
+        f"vehicle {_change(float(deaths.loc['vehicles', 'ratio_to_base']))} and per tonne of "
+        f"road fuel {_change(float(deaths.loc['road_fuel', 'ratio_to_base']))}. The population "
+        "and the fleet grew faster than the deaths; traffic did not. None of the five changes "
+        "in deaths is distinguishable from chance. The two larger counts are: injury crashes "
+        "fell per person and per vehicle and held level per unit of traffic, and the number of "
+        "people injured and admitted to hospital rose under every denominator, by "
+        f"{_change(float(hosp.ratio_to_base.min()))} to "
+        f"{_change(float(hosp.ratio_to_base.max()))}.</p>"
+    )
+    body += figure(
+        "r1_risk_change",
+        f"Deaths, hospitalised and injury crashes in {last} against 2019 under five denominators",
+        captions,
+    )
+
+    rows = []
+    for key, note_text in DENOMINATOR_NOTES.items():
+        for outcome_frame, name in ((deaths, "Deaths"), (hosp, "Hospitalised")):
+            row = outcome_frame.loc[key]
+            rows.append(
+                {
+                    "Denominator": row.denominator_label,
+                    "Outcome": name,
+                    f"Change {last} on 2019": _change(float(row.ratio_to_base)),
+                    "95% interval": f"{_change(float(row.ratio_low))} to "
+                    f"{_change(float(row.ratio_high))}",
+                    "What it counts": note_text,
+                }
+            )
+    body += table(
+        pd.DataFrame(rows),
+        f"Deaths and hospitalised injured, {last} against 2019, under each denominator",
+    )
+    body += (
+        "<p>Injury crashes, a count large enough to show small changes, moved "
+        f"{_change(float(crashes.loc['count', 'ratio_to_base']))} as a count, "
+        f"{_change(float(crashes.loc['residents', 'ratio_to_base']))} per resident, "
+        f"{_change(float(crashes.loc['vehicles', 'ratio_to_base']))} per vehicle and "
+        f"{_change(float(crashes.loc['road_fuel', 'ratio_to_base']))} per tonne of fuel: fewer "
+        "crashes for each person and each vehicle, the same number for the traffic. Together "
+        "with the rise in hospital admissions that means more people admitted per crash, "
+        "which is either more serious crashes or more complete tracing of admissions. "
+        "Against 2019 alone, the per-fuel rise in deaths is within chance. Against the "
+        'direction the pre-2020 trend was taking, it is not; the <a href="long-run.html">long-run '
+        "page</a> sets that out.</p>"
+    )
+
+    body += "<h2>Fuel is a proxy for kilometres, and it drifts</h2>"
+    last_rows = efficiency[(efficiency.year == last) & (efficiency.outcome == "deaths_30d")]
+    by_gain = last_rows.set_index("annual_efficiency_gain")
+    body += (
+        "<p>No Spanish source counts vehicle-kilometres every year. Road fuel is the closest "
+        "substitute, and it is biased in one known direction: a fleet that burns less per "
+        "kilometre each year, and a growing share of electric kilometres that burn none, drive "
+        "further per tonne. If kilometres per tonne improved by 1% a year after 2019, deaths per "
+        f"kilometre moved {_change(float(by_gain.loc[0.01, 'ratio_to_base']))} rather than "
+        f"{_change(float(by_gain.loc[0.0, 'ratio_to_base']))}; at 2% a year, "
+        f"{_change(float(by_gain.loc[0.02, 'ratio_to_base']))}. So per kilometre, deaths were "
+        "roughly flat between 2019 and "
+        f"{last}, while the population and the fleet both grew.</p>"
+    )
+    all_types = crosscheck.loc["All vehicle types"]
+    cars_row = crosscheck.loc["Cars"]
+    body += (
+        "<p>DGT has published two estimates of vehicle-kilometres, for 2022 and for 2024. They "
+        "cannot replace fuel as a series: they are built differently, and between them the "
+        f"total moves {_change(float(all_types.km_ratio_2024_to_2022))} (cars "
+        f"{_change(float(cars_row.km_ratio_2024_to_2022))}) while road fuel moves "
+        f"{_change(float(all_types.fuel_ratio_2024_to_2022))}. They are used where a single "
+        'year is enough: <a href="vehicles.html">vehicle types</a> and '
+        '<a href="drivers.html">driver age</a>.</p>'
+    )
+    body += downloads(
+        [
+            ("risk_index", "every outcome, denominator and year"),
+            ("risk_annual_panel", "outcomes and denominators, 1993 onwards"),
+            ("risk_fuel_efficiency", "fuel-economy sensitivity"),
+            ("risk_km_crosscheck", "DGT kilometre estimates against fuel"),
+        ]
+    )
+    body += "<h2>Conclusion</h2>"
+    body += conclusion(
+        f"Measured as a count, road deaths in {last} were slightly above 2019. Measured per "
+        "resident, per licence holder or per vehicle they were slightly below; measured per "
+        "unit of traffic, slightly above, or flat once better fuel economy is allowed for. None "
+        "of those differences is larger than a year's chance variation, so the honest summary "
+        "is that death risk did not measurably change against 2019. Crash risk fell per person "
+        "and per vehicle and held level per unit of traffic. Serious injury rose: more people "
+        f"were admitted to hospital after a crash in {last} than in 2019 under every "
+        "denominator."
+    )
+    body += limits(
+        "The denominators are totals for Spain and treat every resident, licence, vehicle and "
+        "tonne of fuel alike. Fuel sold is not fuel burnt on Spanish roads, and it mixes freight "
+        "with private travel. The intervals cover the chance variation in the counts only. The "
+        "hospitalised count depends on how completely admissions are traced back to crashes, and "
+        "a change in that tracing would move the series without any change on the road; these "
+        "tables cannot tell the two apart."
+    )
+    return render_page(
+        "trends",
+        "2019 to 2024: counts against risk",
+        "Did the roads get safer or more dangerous after the pandemic? For deaths the count "
+        "and four denominators disagree, within chance; for crashes and serious injuries they "
+        "do not.",
+        body,
+    )
+
+
+# --------------------------------------------------------------------------- long run
+
+
+MEASURE_SHORT = {
+    "count": "Deaths",
+    "vehicles": "Deaths per vehicle",
+    "road_fuel": "Deaths per tonne of fuel",
+}
+
+
+def page_long_run(captions: dict[str, str]) -> str:
+    numbers = _long_run_numbers()
+    segments, projected = numbers["segments"], numbers["projected"]
+    efficiency, last = numbers["efficiency"], numbers["last"]
+    headline = read_table("q1_annual_headline").set_index("year")
+    peak = int(headline.deaths_30d.idxmax())
+    count_segments = segments[segments.measure == "count"].reset_index(drop=True)
+    fuel_segments = segments[segments.measure == "road_fuel"].reset_index(drop=True)
+    steep, flat = count_segments.iloc[1], count_segments.iloc[2]
+    fuel_flat = fuel_segments.iloc[-1]
+    count_2020 = projected.loc[("count", 2020)]
+    fuel_2020 = projected.loc[("road_fuel", 2020)]
+    fuel_last = projected.loc[("road_fuel", last)]
+    fuel_prev = projected.loc[("road_fuel", last - 1)]
+    count_last = projected.loc[("count", last)]
+    plateau_start = int(flat.start)
+
+    body = key_figures(
+        [
+            (
+                f"Deaths, {peak} to {plateau_start}",
+                _fmt_pct(
+                    1
+                    - float(headline.loc[plateau_start, "deaths_30d"])
+                    / float(headline.loc[peak, "deaths_30d"]),
+                    0,
+                ),
+                "fewer",
+            ),
+            (
+                f"Annual change, {int(steep.start)}–{int(steep.end)}",
+                _signed_pct(float(steep.annual_change), 1),
+                "deaths per year, the steep segment",
+            ),
+            (
+                f"Annual change, {int(flat.start)}–{int(flat.end)}",
+                _signed_pct(float(flat.annual_change), 1),
+                "the plateau",
+            ),
+            (
+                f"Per unit of fuel, {last}",
+                _change(float(fuel_last.ratio), 0),
+                "above the pre-2020 trend",
+            ),
+        ]
+    )
+    body += (
+        '<p class="answer">Spain\'s road deaths fell slowly until '
+        f"{int(steep.start)}, steeply for a decade, and have not fallen since "
+        f"{plateau_start}. The pandemic looks like a dip in that plateau and a recovery. Measured "
+        "against traffic it was neither: per tonne of road fuel, 2020 and 2021 were on the "
+        "pre-pandemic trend, so the fall in deaths was the fall in driving. The recovery is the "
+        f"part that changed. By {last - 1} and {last}, deaths per tonne of fuel were "
+        f"{_change(float(fuel_prev.ratio), 0)} and {_change(float(fuel_last.ratio), 0)} above "
+        "where the pre-2020 decline was heading, outside the trend's prediction interval.</p>"
+    )
+    body += figure(
+        "l1_trend_projection",
+        "Deaths, 1993–2024, against segmented trends fitted to 2019 and projected on",
+        captions,
+    )
+    shown = segments.assign(
+        Measure=segments.measure.map(MEASURE_SHORT),
+        Years=[f"{int(a)}–{int(b)}" for a, b in zip(segments.start, segments.end)],
+        Change=[_signed_pct(float(v), 1) for v in segments.annual_change],
+        Interval=[
+            f"{_signed_pct(float(lo), 1)} to {_signed_pct(float(hi), 1)}"
+            for lo, hi in zip(segments.low, segments.high)
+        ],
+    )[["Measure", "Years", "Change", "Interval"]].rename(
+        columns={"Change": "Annual change", "Interval": "95% interval"}
+    )
+    body += table(
+        shown,
+        "Segments of the 1993–2019 trend, turning points chosen by the data. Sources: DGT "
+        "yearbook series, registered fleet and CORES road fuel",
+    )
+    body += (
+        "<p>The three measures find the same history. The turning points are placed by the data "
+        "(every combination of up to three is fitted and the simplest adequate model kept), and "
+        "they land within two years of each other: a slow decline to about 2003, a fall of "
+        "around a tenth a year for a decade, then a halt. Per vehicle and per tonne of fuel the "
+        "last segment still slopes down "
+        f"({_signed_pct(float(fuel_flat.annual_change), 1)} a year per tonne of fuel), because "
+        "traffic kept growing while deaths held steady.</p>"
+    )
+
+    body += "<h2>2020 to 2024: distortion or trend?</h2>"
+    body += figure(
+        "l2_observed_over_trend",
+        "Observed deaths divided by each measure's pre-pandemic trend, 2010–2024",
+        captions,
+    )
+    rows = []
+    for year in range(2020, last + 1):
+        record = {"Year": year}
+        for measure, label in MEASURE_SHORT.items():
+            row = projected.loc[(measure, year)]
+            flag = " (outside)" if bool(row.outside_interval) else ""
+            record[label] = f"{float(row.ratio):.2f}{flag}"
+        rows.append(record)
+    body += table(
+        pd.DataFrame(rows),
+        "Observed deaths as a multiple of each projected trend; outside: beyond the 95% "
+        "prediction interval",
+        {"Year": "year"},
+    )
+
+    def excess(gain: float) -> str:
+        rows = efficiency[
+            (efficiency.extra_annual_efficiency_gain == gain) & (efficiency.year >= last - 1)
+        ].set_index("year")
+        parts = []
+        for year in (last - 1, last):
+            row = rows.loc[year]
+            where = "outside" if float(row.ratio_low) > 1 else "inside"
+            parts.append(f"{_change(float(row.ratio), 0)} in {year} ({where} the interval)")
+        return _join(parts)
+
+    body += (
+        f"<p>As a count, 2020 was {_change(float(count_2020.ratio), 0)} against trend and "
+        f"{last} {_change(float(count_last.ratio), 0)}: a dip and a return. Per tonne of fuel, "
+        f"2020 was {_change(float(fuel_2020.ratio), 0)}, inside the interval. The per-fuel trend "
+        "already carries the fuel-economy gains of 1996–2019, so projecting it assumes they "
+        "continued at that pace. If kilometres per tonne improved an extra 1% a year from 2020, "
+        f"the excess is {excess(0.01)}; at an extra 2% a year it is {excess(0.02)}. So the "
+        "excess is clear if fuel economy kept its pre-2020 pace, and within the trend's "
+        "uncertainty only if it improved about two points a year faster than before.</p>"
+    )
+    body += downloads(
+        [
+            ("longrun_series", "observed against trend, every year"),
+            ("longrun_segments", "segments and annual changes"),
+            ("longrun_model_choice", "the turning-point search"),
+            ("longrun_efficiency", "fuel-economy sensitivity"),
+        ]
+    )
+    body += "<h2>Conclusion</h2>"
+    body += conclusion(
+        "The large structural change in Spanish road deaths happened between about 2003 and "
+        f"{plateau_start} and has not resumed. The pandemic did not interrupt it: 2020 and 2021 "
+        "deaths fell in line with traffic, so they are a distortion of the count, not of the "
+        "risk. What the count hides is that since 2022 deaths per unit of traffic have run "
+        "above the pre-pandemic decline, and in the last two years beyond its prediction "
+        "interval unless fuel economy improved much faster than before: the plateau in deaths "
+        "is a plateau at a level of risk the trend had been leaving behind."
+    )
+    body += limits(
+        "The trends are statistical descriptions, not explanations, and a projection assumes "
+        "the last segment would have continued. Road fuel is a proxy for traffic whose "
+        "relation to kilometres drifts, bounded above by a sensitivity. The registered fleet "
+        "counts idle vehicles and grows as the fleet ages. The 30-day death series is taken as "
+        "DGT publishes it for every year since 1993."
+    )
+    return render_page(
+        "long-run",
+        "1993 to 2024: structural change and the pandemic",
+        "Which changes in thirty years of road deaths are structural, and which are the "
+        "pandemic? Fit the trend before 2020, project it, and measure against traffic.",
+        body,
+    )
+
+
+# --------------------------------------------------------------------------- seasons
+
+
+def page_seasons(captions: dict[str, str]) -> str:
+    numbers = _season_numbers()
+    effects, lockdown = numbers["effects"], numbers["lockdown"]
+    profile = read_table("season_profile").set_index("month")
+    night = read_table("q2_night_share")
+    night_year = int(night.year.max())
+    night_inter = night[(night.year == night_year) & (night.zone == "interurban")].iloc[0]
+
+    def effect(exposure: str, month: int) -> pd.Series:
+        return effects.loc[(exposure, month)]
+
+    july, august = effect("none", 7), effect("none", 8)
+    july_petrol, august_petrol = effect("petrol_tonnes", 7), effect("petrol_tonnes", 8)
+    july_fuel, august_fuel = effect("road_fuel_tonnes", 7), effect("road_fuel_tonnes", 8)
+    august_toll = effect("toll_intensity", 8)
+    april = lockdown.loc[4]
+    exposures = ("road_fuel_tonnes", "petrol_tonnes", "toll_intensity")
+    spring = [float(effect(e, m).rate_ratio) for e in exposures for m in (4, 5)]
+    dark = [
+        month
+        for month in (1, 9, 10, 11, 12)
+        if sum(float(effect(e, month).low) > 1 for e in exposures) >= 2
+    ]
+    month_names = {1: "January", 9: "September", 10: "October", 11: "November", 12: "December"}
+
+    body = key_figures(
+        [
+            ("July deaths", _times(float(july.rate_ratio)), "the average month, as a count"),
+            (
+                "July, per unit of petrol",
+                _times(float(july_petrol.rate_ratio)),
+                "the average month",
+            ),
+            (
+                "August, per unit of petrol",
+                _times(float(august_petrol.rate_ratio)),
+                f"{_times(float(august.rate_ratio))} as a count",
+            ),
+            (
+                "Deaths, April 2020",
+                _fmt_pct(float(april.deaths_change), 0),
+                f"petrol {_fmt_pct(float(april.petrol_tonnes_change), 0)}",
+            ),
+        ]
+    )
+    body += (
+        '<p class="answer">The summer rise in road deaths is mostly more driving. Deaths in July '
+        f"and August run {_times(float(july.rate_ratio))} and {_times(float(august.rate_ratio))} "
+        "the average month. Per unit of petrol, which in Spain is burnt mostly by private cars "
+        f"and motorcycles, they are {_times(float(july_petrol.rate_ratio))} and "
+        f"{_times(float(august_petrol.rate_ratio))}: August's excess disappears and July's "
+        "shrinks to a few per cent. What survives the allowance for traffic is elsewhere in the "
+        "year: spring has fewer deaths per unit of traffic under every measure, and "
+        + _join([month_names[m] for m in dark])
+        + " more under at least two of the three.</p>"
+    )
+    body += figure(
+        "m1_season_profile",
+        "Deaths and three traffic series by month, average month = 100",
+        captions,
+    )
+    body += (
+        "<p>No series counts kilometres on all Spanish roads month by month, so three stand in "
+        "for it, each wrong in a known direction. Road fuel includes freight diesel, which slows "
+        f"in the August industrial holiday, so it rises only to {float(profile.loc[8, 'road_fuel_tonnes']):.0f} "
+        "in August. Traffic on the state toll motorways, mostly long-distance holiday routes, "
+        f"rises to {float(profile.loc[8, 'toll_intensity']):.0f}. Petrol sits between them at "
+        f"{float(profile.loc[8, 'petrol_tonnes']):.0f}. The truth for the whole network lies "
+        "somewhere in that range, which is why the answer is given under all three.</p>"
+    )
+    body += figure(
+        "m2_month_effects",
+        "Month effects on deaths with no exposure and per unit of each traffic series",
+        captions,
+    )
+    body += (
+        "<p>With year effects taking out the trend, July's deaths are "
+        f"{_times(float(july.rate_ratio))} the average month as a count, "
+        f"{_times(float(july_fuel.rate_ratio))} per unit of road fuel and "
+        f"{_times(float(july_petrol.rate_ratio))} per unit of petrol; August's are "
+        f"{_times(float(august.rate_ratio))}, {_times(float(august_fuel.rate_ratio))} and "
+        f"{_times(float(august_petrol.rate_ratio))}, and per unit of toll-motorway traffic "
+        f"{_times(float(august_toll.rate_ratio))}. April and May run between "
+        f"{min(spring):.2f} and {max(spring):.2f} under every proxy. "
+        + _join([month_names[m] for m in dark])
+        + " carry more deaths per unit of traffic under at least two of the three, and the "
+        "winter months under some. That is consistent with longer hours of darkness: in the "
+        f"microdata for {night_year}, darkness holds "
+        f"{_fmt_pct(float(night_inter.night_crash_share), 0)} of interurban injury crashes but "
+        f"{_fmt_pct(float(night_inter.night_death_share), 0)} of interurban deaths. These series "
+        "do not show darkness to be the cause.</p>"
+    )
+
+    body += "<h2>The lockdown as a natural experiment</h2>"
+    body += figure(
+        "m3_lockdown", "2020 against 2017–2019, month by month: deaths and traffic", captions
+    )
+    body += (
+        f"<p>In April 2020, the one full month of the strictest lockdown, deaths fell "
+        f"{_fmt_pct(-float(april.deaths_change), 0)} on the 2017–2019 average. Road fuel fell "
+        f"{_fmt_pct(-float(april.road_fuel_tonnes_change), 0)}, petrol "
+        f"{_fmt_pct(-float(april.petrol_tonnes_change), 0)} and toll-motorway traffic "
+        f"{_fmt_pct(-float(april.toll_intensity_change), 0)}. The fall in deaths was the size of "
+        "the fall in traffic. Whether each remaining kilometre became more or less dangerous "
+        "depends on which proxy is believed: per unit of road fuel deaths fell "
+        f"{_fmt_pct(-float(april.risk_change_road_fuel_tonnes), 0)}, per unit of petrol they "
+        f"rose {_fmt_pct(float(april.risk_change_petrol_tonnes), 0)}. The data cannot settle "
+        "it, and this page does not claim either.</p>"
+    )
+    body += downloads(
+        [
+            ("season_profile", "monthly indices"),
+            ("season_month_effects", "month effects under each exposure"),
+            ("season_lockdown", "2020 month by month"),
+        ]
+    )
+    body += "<h2>Conclusion</h2>"
+    body += conclusion(
+        "Most of the summer peak in road deaths is a peak in driving: per unit of private-car "
+        "fuel, August is an ordinary month and July only slightly worse. The seasonal pattern "
+        "that is not explained by volume runs the other way from the headlines: spring is "
+        "safer per unit of traffic and autumn riskier. The 2020 collapse in "
+        "deaths was a collapse in traffic, and is not evidence that the roads became safer."
+    )
+    body += limits(
+        "The traffic series are proxies: fuel sales by month, not fuel burnt, and toll traffic "
+        "on a network that shrank as concessions expired, which is why intensity per kilometre "
+        "is used rather than vehicle-kilometres. Monthly deaths are small counts, about 100 to "
+        "200, so single months carry wide intervals; the month effects pool nine years."
+    )
+    return render_page(
+        "seasons",
+        "Seasonality and mobility",
+        "Is the summer peak in road deaths a peak in danger, or in driving? Divide each month by "
+        "three measures of traffic and see what is left.",
+        body,
+    )
+
+
+# --------------------------------------------------------------------------- drivers: sex
+
+
+def _sex_section(captions: dict[str, str]) -> tuple[str, dict[str, pd.Series]]:
+    numbers = _sex_numbers()
+    ratios, rates_table, travel = numbers["ratios"], numbers["rates"], numbers["travel"]
+    involved = ratios.loc[("car", "18+", "involved_per_1000_licences")]
+    killed = ratios.loc[("car", "18+", "deaths_per_million_licences")]
+    fatality = ratios.loc[("car", "18+", "deaths_per_1000_involved")]
+    motor_fatality = ratios.loc[("motor", "18+", "deaths_per_1000_involved")]
+    motor_killed = ratios.loc[("motor", "18+", "deaths_per_million_licences")]
+    years = str(rates_table.years.iloc[0]).replace("-", "–")
+    under_65 = travel.loc[["15-29", "30-39", "40-49", "50-64"]]
+
+    section = "<h2>Men and women</h2>"
+    section += (
+        f"<p>Per licence holder, in {years}, male car drivers were involved in injury crashes "
+        f"{_ratio_ci(float(involved.ratio), float(involved.low), float(involved.high))} as often "
+        "as female ones and killed "
+        f"{_ratio_ci(float(killed.ratio), float(killed.low), float(killed.high))} as often. The "
+        "first ratio includes how much each group drives; the census counts licences, not "
+        "kilometres. The second divides into two parts that exposure affects very differently. "
+        "Once involved in a crash, a male car driver was killed "
+        f"{_ratio_ci(float(fatality.ratio), float(fatality.low), float(fatality.high))} as often "
+        "as a female one, a ratio that needs no measure of driving at all.</p>"
+    )
+    section += figure(
+        "a3_sex_ratios",
+        "Men against women, car drivers, by age: involvement and deaths per licence holder, and "
+        "deaths once involved",
+        captions,
+    )
+    section += (
+        "<p>How much of the involvement gap is driving? No Spanish source measures kilometres "
+        "by sex. The national travel survey MOVILIA (2006) counts trips by car or motorcycle, as "
+        "driver or passenger, by sex and age. Under 65, men made "
+        f"{under_65.trip_ratio_2006.min():.1f} to {under_65.trip_ratio_2006.max():.1f} times as "
+        "many such trips per head as women; car-driver involvement per head in "
+        f"{years} runs "
+        f"{under_65.involved_ratio_per_resident.min():.1f} to "
+        f"{under_65.involved_ratio_per_resident.max():.1f} times. Per trip, that leaves "
+        f"{under_65.involved_ratio_per_trip.min():.1f} to "
+        f"{under_65.involved_ratio_per_trip.max():.1f}: about equal. The survey is old and counts "
+        "passengers, who are more often women, so it understates the driving gap; the "
+        "conclusion it supports is only that the involvement gap is of the size a travel gap "
+        f"could produce. The fatality gap is not: per trip, deaths still run "
+        f"{under_65.deaths_ratio_per_trip.min():.1f} to "
+        f"{under_65.deaths_ratio_per_trip.max():.1f} times.</p>"
+    )
+    rows = []
+    for scope, label in (("car", "Car drivers"), ("motor", "All motor-vehicle drivers")):
+        for sex, sex_label in (("male", "Men"), ("female", "Women")):
+            row = rates_table.loc[(scope, "18+", sex)]
+            rows.append(
+                {
+                    "Drivers": label,
+                    "Sex": sex_label,
+                    "Involved per 1,000 licence holders": row.involved_per_1000_licences,
+                    "Killed per million licence holders": row.deaths_per_million_licences,
+                    "Killed per 1,000 involved": row.deaths_per_1000_involved,
+                    "Drivers killed": row.driver_deaths,
+                }
+            )
+    section += table(
+        pd.DataFrame(rows),
+        f"Drivers aged 18 and over, {years} pooled. Sources: DGT driver tables 4.1.1 and 4.2, "
+        "Censo de conductores 2014–2025",
+        {
+            "Involved per 1,000 licence holders": "dec2",
+            "Killed per million licence holders": "dec",
+            "Killed per 1,000 involved": "dec2",
+            "Drivers killed": "int",
+        },
+    )
+    section += (
+        "<p>Across all motor vehicles the gaps are wider, "
+        f"{_times(float(motor_killed.ratio))} per licence holder and "
+        f"{_times(float(motor_fatality.ratio))} once involved, because men ride most of the "
+        "motorcycles. Cyclists and personal-mobility-vehicle riders are left out of both, since "
+        "they need no licence.</p>"
+    )
+    section += downloads(
+        [
+            ("drivers_sex_rates", "rates by sex and age"),
+            ("drivers_sex_ratios", "men against women"),
+            ("drivers_sex_trend", "by year, 2014–2024"),
+            ("drivers_sex_travel", "the MOVILIA travel bracket"),
+        ]
+    )
+    return section, {"involved": involved, "fatality": fatality}
+
+
+# --------------------------------------------------------------------------- speed
+
+
+def page_speed(captions: dict[str, str]) -> str:
+    numbers = _speed_numbers()
+    pooled, all_roads = numbers["pooled"], numbers["all_roads"]
+    adjusted = pooled.loc["adjusted"]
+    last = int(all_roads.index.max())
+    latest = all_roads.loc[last]
+    shares = read_table("q9_infraction_shares")
+    status = shares[shares.zone == "all"].set_index("year")
+    first_status, last_status = int(status.index.min()), int(status.index.max())
+
+    body = key_figures(
+        [
+            (
+                f"Share of crashes, {last}",
+                _fmt_pct(float(latest.share_of_crashes), 0),
+                "with inappropriate speed recorded",
+            ),
+            (
+                f"Share of deaths, {last}",
+                _fmt_pct(float(latest.share_of_deaths), 0),
+                "in those crashes",
+            ),
+            (
+                "Deaths per crash, same road",
+                _times(float(adjusted.rate_ratio)),
+                f"{_times(float(adjusted.crude_ratio))} before road type is allowed for",
+            ),
+            (
+                "Drivers with no speed record",
+                _fmt_pct(float(status.loc[last_status, "share_unknown"]), 0),
+                f"{_fmt_pct(float(status.loc[first_status, 'share_unknown']), 0)} in "
+                f"{first_status}",
+            ),
+        ]
+    )
+    urban = pooled.loc["urban"]
+    other = pooled.loc["other_interurban"]
+    dual = pooled.loc["dual_carriageway"]
+    body += (
+        '<p class="answer">Crashes in which the police recorded inappropriate speed are a small '
+        f"share of injury crashes, {_fmt_pct(float(latest.share_of_crashes), 0)} in {last}, and "
+        f"a large share of deaths, {_fmt_pct(float(latest.share_of_deaths), 0)}. Per crash they "
+        f"kill {_times(float(adjusted.crude_ratio))} as many people as the rest. About half of "
+        "that is where they happen: speed crashes concentrate on conventional interurban roads, "
+        "where every crash is more often fatal. Compared on the same kind of road in the same "
+        f"year the ratio is {_ratio_ci(float(adjusted.rate_ratio), float(adjusted.ratio_low), float(adjusted.ratio_high))}.</p>"
+    )
+    body += figure(
+        "f1_speed_severity",
+        "Ratio of deaths per 100 injury crashes, speed recorded against not, by road type",
+        captions,
+    )
+    rows = []
+    for key in ("urban", "motorway", "dual_carriageway", "other_interurban"):
+        row = pooled.loc[key]
+        rows.append(
+            {
+                "Road type": row.road_type_label,
+                "Speed crashes": row.speed_crashes,
+                "Deaths per 100, speed recorded": row.speed_deaths_per_100,
+                "Deaths per 100, other crashes": row.other_deaths_per_100,
+                "Ratio": _ratio_ci(
+                    float(row.rate_ratio), float(row.ratio_low), float(row.ratio_high)
+                ),
+            }
+        )
+    body += table(
+        pd.DataFrame(rows),
+        "Injury crashes 2016–2023 in Spain without Cataluña and País Vasco. Sources: DGT "
+        "Informe temático Factor Velocidad and crash microdata for the same provinces",
+        {
+            "Speed crashes": "int",
+            "Deaths per 100, speed recorded": "dec2",
+            "Deaths per 100, other crashes": "dec2",
+        },
+    )
+    body += (
+        "<p>The ratio is not the same everywhere. On urban streets, where an ordinary injury "
+        "crash rarely kills, a crash with speed recorded kills "
+        f"{_times(float(urban.rate_ratio))} as often; on conventional interurban roads "
+        f"{_times(float(other.rate_ratio))}; on dual carriageways "
+        f"{_times(float(dual.rate_ratio))}. The single adjusted ratio averages over that "
+        "variation, and the page leads with it only because it is the fairest one-number "
+        "answer.</p>"
+    )
+
+    body += "<h2>What the ratio can and cannot mean</h2>"
+    body += (
+        "<p>Speed here is a concurrent factor written by a police officer after the crash, not a "
+        "measured speed. Two biases pull on the ratio in opposite directions. A fatal crash is "
+        "investigated more thoroughly, so speed is more likely to be found and recorded when "
+        "someone has died: that inflates the ratio. Speed that was present but not recorded "
+        "sits in the comparison group: that deflates it. Neither can be measured from these "
+        "tables. What the data do support is the direction and rough size: where speed is "
+        "judged to have played a part, a crash is about twice as likely to kill, on the same "
+        "kind of road. That is consistent with what the physics of impact energy predicts. It is "
+        "not an estimate of how many deaths speed caused.</p>"
+    )
+    body += (
+        "<p>The report covers Spain without Cataluña and País Vasco, which keep their own "
+        "records. Its totals for that scope are reproduced exactly by the crash microdata "
+        "restricted to the same provinces, every year from 2016 to 2023; that check is what "
+        "allows the report's speed-related crashes to be set against microdata totals for road "
+        "types the report does not total.</p>"
+    )
+
+    body += "<h2>A published series that changes meaning in 2016</h2>"
+    body += figure(
+        "c3_speed_status",
+        f"Drivers in injury crashes by recorded speed status, {first_status}–{last_status}",
+        captions,
+    )
+    known_first = float(status.loc[first_status, "share_among_known"])
+    known_last = float(status.loc[last_status, "share_among_known"])
+    all_first = float(status.loc[first_status, "share_speed_infraction"])
+    all_last = float(status.loc[last_status, "share_speed_infraction"])
+    body += (
+        "<p>DGT's driver tables record, for each driver in an injury crash, whether the police "
+        f"noted a speed infraction. In {first_status}, "
+        f"{_fmt_pct(status.loc[first_status, 'share_unknown'], 0)} of drivers had no speed "
+        f"status recorded. In 2016 that jumped to {_fmt_pct(status.loc[2016, 'share_unknown'], 0)} "
+        "and it has stayed there. The two obvious readings of the table now point in opposite "
+        "directions: the share of <em>all</em> drivers with a speed infraction fell from "
+        f"{_fmt_pct(all_first)} to {_fmt_pct(all_last)}, while the share among drivers with a "
+        f"record <em>rose</em> from {_fmt_pct(known_first)} to {_fmt_pct(known_last)}. Neither is "
+        "a trend in speeding. The report's concurrent-factor series, used above, shows no break "
+        'of that kind; the <a href="factors.html">factors page</a> tests it.</p>'
+    )
+    body += downloads(
+        [
+            ("speed_severity", "by year and road type"),
+            ("speed_severity_pooled", "pooled 2016–2023 and adjusted"),
+            ("q9_infraction_shares", "speed status in the driver tables"),
+        ]
+    )
+    body += "<h2>Conclusion</h2>"
+    body += conclusion(
+        "Speed is recorded in a small share of injury crashes and a large share of deaths. On "
+        "the same kind of road in the same year, a crash with speed recorded kills about twice "
+        "as often as one without, and on urban streets far more. The data support speed as a "
+        "severity factor of that order. They do not support a count of deaths caused by speed, "
+        "because the record is a judgement made after the fact, and they do not support a "
+        "trend in speeding from DGT's driver tables, which change meaning in 2016."
+    )
+    body += limits(
+        "The concurrent-factor record is the police's judgement, may name several factors for "
+        "one crash, and is not a measured speed. The report excludes Cataluña and País Vasco. "
+        "The road-type comparison starts in 2016, where the microdata start, and the adjusted "
+        "ratio is overdispersed because the urban ratio is so different from the rest."
+    )
+    return render_page(
+        "speed",
+        "Speed as a severity factor",
+        "How much deadlier is a crash when speed is involved, on the same kind of road? About "
+        "twice, with two biases the data cannot measure pulling in opposite directions.",
+        body,
+    )
+
+
+# --------------------------------------------------------------------------- factors
+
+
+FACTOR_ORDER = (
+    "Alcohol",
+    "Inappropriate speed",
+    "Distraction or inattention",
+    "Illegal manoeuvres",
+    "Drugs",
+)
+
+
+def page_factors(captions: dict[str, str]) -> str:
+    numbers = _factor_numbers()
+    windows, changes = numbers["windows"], numbers["changes"]
+    alcohol_inter = _window(windows, "interurban", "Alcohol", 2023)
+    alcohol_urban = _window(windows, "urban", "Alcohol", 2023)
+    speed_all = _window(windows, "all", "Inappropriate speed", 2023)
+    distraction_inter = _window(windows, "interurban", "Distraction or inattention", 2023)
+    urban_distraction = changes[
+        (changes.zone == "urban") & (changes.factor == "Distraction or inattention") & changes.jump
+    ]
+    manoeuvres = _window(windows, "interurban", "Illegal manoeuvres", 2023)
+    n_breaks = int(changes.is_break.sum())
+    drugs = numbers["shares"].xs(("all", "Drugs"), level=["zone", "factor"]).crashes
+    drugs_peak_year = int(drugs.idxmax())
+    drugs_multiple = float(drugs.max() / drugs.loc[drugs.index.min()])
+
+    body = key_figures(
+        [
+            (
+                "Alcohol, interurban",
+                f"{_fmt_pct(float(alcohol_inter.share_first))} → "
+                f"{_fmt_pct(float(alcohol_inter.share_last))}",
+                f"of injury crashes, {int(alcohol_inter.first_year)}–"
+                f"{int(alcohol_inter.last_year)}, no break",
+            ),
+            (
+                "Inappropriate speed, all roads",
+                f"{_fmt_pct(float(speed_all.share_first))} → "
+                f"{_fmt_pct(float(speed_all.share_last))}",
+                f"{int(speed_all.first_year)}–{int(speed_all.last_year)}, no break",
+            ),
+            (
+                "Urban distraction",
+                f"{len(urban_distraction)} breaks",
+                "in "
+                + _join([str(int(year)) for year in urban_distraction.to_year])
+                + ": not comparable across",
+            ),
+            ("Drugs", "not comparable", "too few crashes and a collapse in 2020"),
+        ]
+    )
+    body += (
+        '<p class="answer">DGT publishes, for each year, how many injury crashes had each of '
+        "five concurrent factors recorded by the police. Before any trend is read, every "
+        "year-to-year change in each factor's share is tested for a recording break: a jump or "
+        "fall of more than a quarter in a single year, which no change in behaviour produces "
+        f"across tens of thousands of crashes. {n_breaks} of the "
+        f"{len(changes)} year-to-year changes fail that test or are too small to test. Within "
+        "the runs that pass, two trends are clear. Recorded alcohol rose on interurban roads, "
+        f"from {_fmt_pct(float(alcohol_inter.share_first))} to "
+        f"{_fmt_pct(float(alcohol_inter.share_last))} of crashes between "
+        f"{int(alcohol_inter.first_year)} and {int(alcohol_inter.last_year)}, and recorded "
+        f"inappropriate speed fell, from {_fmt_pct(float(speed_all.share_first))} to "
+        f"{_fmt_pct(float(speed_all.share_last))} of all injury crashes.</p>"
+    )
+    body += figure(
+        "f2_factor_shares",
+        "Share of injury crashes with each factor recorded, broken at recording breaks",
+        captions,
+    )
+    shown = windows[(windows.zone != "all") & (windows.n_years >= 3)].copy()
+    shown["order"] = shown.factor.map({name: i for i, name in enumerate(FACTOR_ORDER)})
+    shown = shown.sort_values(["order", "zone", "first_year"])
+    rows = [
+        {
+            "Factor": row.factor,
+            "Zone": row.zone_label,
+            "Comparable years": f"{int(row.first_year)}–{int(row.last_year)}",
+            "Share, first year": row.share_first,
+            "Share, last year": row.share_last,
+            "Change in share": _signed_pct(float(row.change_in_share), 0),
+        }
+        for row in shown.itertuples(index=False)
+    ]
+    body += table(
+        pd.DataFrame(rows),
+        "Runs of three or more comparable years, by factor and zone. Source: DGT Informe "
+        "temático Factor Velocidad, Spain without Cataluña and País Vasco",
+        {"Share, first year": "pct", "Share, last year": "pct"},
+    )
+    body += (
+        "<p>The alcohol rise on interurban roads runs across the whole decade without a break, "
+        "and the urban series rises too once its own 2016 break is set aside, from "
+        f"{_fmt_pct(float(alcohol_urban.share_first))} in {int(alcohol_urban.first_year)} to "
+        f"{_fmt_pct(float(alcohol_urban.share_last))}. More recorded alcohol can mean more "
+        "drinking drivers or more testing after a crash; DGT's enforcement statistics, which "
+        "would tell the two apart, are not in these files. Interurban distraction is stable at "
+        f"about {_fmt_pct(float(distraction_inter.share_last), 0)} of crashes. Illegal "
+        "manoeuvres, a composite of priority, distance, overtaking and negligent driving, rose "
+        f"on interurban roads from {_fmt_pct(float(manoeuvres.share_first), 0)} to "
+        f"{_fmt_pct(float(manoeuvres.share_last), 0)}, most of it before 2018, which passes "
+        "the rule but is the kind of drift a gradual change in recording also produces.</p>"
+    )
+    body += (
+        "<p>Three series fail. Urban distraction jumps by two thirds in 2016 and falls by more "
+        "than half in 2019, while the interurban series barely moves: those are changes in how "
+        "town police forces recorded it. Urban alcohol has the same 2016 jump. Drugs are "
+        f"recorded in at most {_fmt_int(drugs.max())} crashes a year, climb "
+        f"{drugs_multiple:.0f}-fold from {int(drugs.index.min())} to {drugs_peak_year} and "
+        "collapse in 2020: nothing about drug-driving can be read from them. 2016 is also the year the "
+        "driver tables stop recording a speed status for half of all drivers, which is why it "
+        "keeps appearing.</p>"
+    )
+    body += downloads(
+        [
+            ("factor_shares", "shares by year, zone and factor"),
+            ("factor_changes", "every year-to-year change and the break test"),
+            ("factor_windows", "comparable runs"),
+        ]
+    )
+    body += "<h2>Conclusion</h2>"
+    body += conclusion(
+        "Of DGT's five recorded factors, three can be compared across years once recording "
+        "breaks are taken out: recorded alcohol has risen on interurban roads, recorded "
+        "inappropriate speed has fallen, and interurban distraction has held steady. Urban "
+        "distraction and urban alcohol can only be compared within their own runs of years, and "
+        "drugs cannot be compared at all. None of these shares is a measure of how often "
+        "drivers drink, speed or look at a phone; each is how often the police recorded it in a "
+        "crash that injured someone."
+    )
+    body += limits(
+        "A crash can have several factors recorded, so the shares do not add up. The rule for "
+        "a break is a threshold, not a test with a known error rate; every change is published "
+        "so another threshold can be applied. The report covers Spain without Cataluña and País "
+        "Vasco and ends in 2023. It gives crashes by factor but not deaths, so the severity of "
+        "alcohol or distraction crashes cannot be compared the way speed is."
+    )
+    return render_page(
+        "factors",
+        "Alcohol, distraction and other recorded factors",
+        "Which of DGT's recorded crash factors can be compared from year to year, and what do "
+        "the comparable ones show?",
         body,
     )
 
@@ -874,14 +1915,14 @@ def page_severity(captions: dict[str, str]) -> str:
         "Crash severity",
         "Which recorded circumstances make an injury crash fatal, and why the "
         "dangerous-looking ones point the wrong way.",
-        body,
+        note(SUPPORTING_NOTES["severity"]) + body,
     )
 
 
 # --------------------------------------------------------------------------- older drivers
 
 
-def page_older_drivers(captions: dict[str, str]) -> str:
+def page_drivers(captions: dict[str, str]) -> str:
     numbers = _age_numbers()
     ratios, rates, contrast, company = (
         numbers["ratios"],
@@ -899,6 +1940,8 @@ def page_older_drivers(captions: dict[str, str]) -> str:
     deaths_75 = ratios.loc[("deaths_per_bn_km", "75+")]
     involved_75 = ratios.loc[("involved_per_bn_km", "75+")]
     fatality_75 = ratios.loc[("deaths_per_1000_involved", "75+")]
+    sex_section, sex = _sex_section(captions)
+    men_involved, men_fatality = sex["involved"], sex["fatality"]
 
     body = key_figures(
         [
@@ -913,14 +1956,14 @@ def page_older_drivers(captions: dict[str, str]) -> str:
                 "killed per 1,000 drivers involved, against 35–54",
             ),
             (
-                "Deaths per kilometre, 75+",
-                _times(float(deaths_75.ratio)),
-                "the product of the two",
+                "Crashes per licence, men",
+                _times(float(men_involved.ratio)),
+                "male against female car drivers",
             ),
             (
-                "Deaths per resident, 75+",
-                _times(float(contrast.loc[("residents", "75+"), "ratio"])),
-                "the denominator DGT reports",
+                "Deaths per crash, men",
+                _times(float(men_fatality.ratio)),
+                "killed once involved, against women",
             ),
         ]
     )
@@ -933,7 +1976,10 @@ def page_older_drivers(captions: dict[str, str]) -> str:
         f"killed {ratio_text('deaths_per_1000_involved', '75+')} as often. Young drivers are the "
         f"mirror image, with {ratio_text('involved_per_bn_km', '18-34')} the involvement rate per "
         f"kilometre and {ratio_text('deaths_per_1000_involved', '18-34')} the chance of dying "
-        "once involved.</p>"
+        "once involved. Sex splits the same way: male car drivers are in injury crashes "
+        f"{_times(float(men_involved.ratio))} as often as women per licence holder, a gap of the "
+        "size a difference in driving could produce, and are killed "
+        f"{_times(float(men_fatality.ratio))} as often once they are.</p>"
     )
 
     body += figure(
@@ -1047,16 +2093,20 @@ def page_older_drivers(captions: dict[str, str]) -> str:
         f"would raise the 75-and-over ratio from {deaths_75.ratio:.2f} to "
         f"{float(working.ratio_to_reference):.2f}.</p>"
     )
+    body += sex_section
     body += "<h2>Conclusion</h2>"
     body += conclusion(
-        "Splitting the question in two changes the answer. Older car drivers are not more likely "
-        "to crash for the distance they cover; drivers aged 75 and over are involved "
-        f"{ratio_text('involved_per_bn_km', '75+')} as often per kilometre as drivers aged 35 to "
-        f"54. They are {ratio_text('deaths_per_1000_involved', '75+')} as likely to be killed "
-        "once involved, and that alone accounts for nearly all of their higher death rate per "
-        "kilometre. A policy aimed at stopping older people driving is aimed at the wrong half of "
-        "the problem; one aimed at what happens to a body in a collision is aimed at the right "
-        "half. This is a single year and the age is the car owner's, not the driver's."
+        "Splitting the question in two changes the answer, for age and for sex alike. Older car "
+        "drivers are not more likely to crash for the distance they cover; drivers aged 75 and "
+        f"over are involved {ratio_text('involved_per_bn_km', '75+')} as often per kilometre as "
+        f"drivers aged 35 to 54, and are {ratio_text('deaths_per_1000_involved', '75+')} as "
+        "likely to be killed once involved. Men crash somewhat more often per licence, by about "
+        "as much as the one travel survey by sex suggests they drive more, and are killed "
+        f"{_times(float(men_fatality.ratio))} as often once in a crash. In both cases the excess "
+        "in deaths comes from what a crash does to the driver, not from how often the driver "
+        "crashes. The data show that split, not its causes: physical frailty for older drivers, "
+        "and for men the roads, hours and speeds at which they crash, are candidate "
+        "explanations these tables cannot separate."
     )
 
     body += limits(
@@ -1065,14 +2115,15 @@ def page_older_drivers(captions: dict[str, str]) -> str:
         "readings and are valid for aggregates only; the intervals here come from the crash "
         "counts and treat them as known. The numerator counts drivers of cars on Spanish roads, "
         "including foreign-registered ones, while the denominator covers Spanish-registered cars "
-        "only. And this is one year: it says how the age groups compare in "
-        f"{year}, not how that comparison has moved."
+        f"only. The kilometre comparison is one year, {year}. No source measures kilometres by "
+        "sex, so the sex comparison uses licences and a 2006 travel survey that counts "
+        "passengers; only the fatality ratio once involved is free of that limit."
     )
     return render_page(
-        "older-drivers",
-        "Age and driving exposure",
-        "Are older drivers more dangerous? Split the question into crashing per kilometre and "
-        "dying once the crash happens, and the two halves give opposite answers.",
+        "drivers",
+        "Age and sex: crashing, and dying once it happens",
+        "Are older drivers, or male drivers, more dangerous? Split the question into crashing "
+        "for the driving done and dying once the crash happens, and the halves disagree.",
         body,
     )
 
@@ -1479,191 +2530,11 @@ def page_policy(captions: dict[str, str]) -> str:
         "The July 2006 break",
         "Monthly road deaths fell around the points-based licence. How much of that was the "
         "policy, how much the trend already under way, and how much July?",
-        body,
+        note(SUPPORTING_NOTES["policy"]) + body,
     )
 
 
 # --------------------------------------------------------------------------- context
-
-
-def page_context(captions: dict[str, str]) -> str:
-    headline = read_table("q1_annual_headline").set_index("year")
-    by_zone = read_table("q1_annual_by_zone")
-    night = read_table("q2_night_share")
-    users = read_table("q5_deaths_by_road_user")
-    speed = read_table("q9_infraction_shares")
-    all_roads = speed[speed.zone == "all"].set_index("year")
-    first, last = int(all_roads.index.min()), int(all_roads.index.max())
-    peak = int(headline.deaths_30d.idxmax())
-    latest = int(headline.index.max())
-
-    body = key_figures(
-        [
-            (
-                "Deaths, 2024",
-                _fmt_int(headline.loc[latest, "deaths_30d"]),
-                f"{_fmt_int(headline.loc[peak, 'deaths_30d'])} in {peak}",
-            ),
-            (
-                "Injury crashes, 2024",
-                _fmt_int(headline.loc[latest, "crashes"]),
-                "at least one person killed or injured",
-            ),
-            (
-                "Deaths per 100 crashes",
-                _fmt_dec(headline.loc[latest, "deaths_per_100_crashes"], 2),
-                f"{_fmt_dec(headline.loc[2013, 'deaths_per_100_crashes'], 2)} in 2013",
-            ),
-            (
-                "Drivers with no speed record",
-                _fmt_pct(all_roads.loc[last, "share_unknown"], 0),
-                f"{_fmt_pct(all_roads.loc[first, 'share_unknown'], 0)} in {first}",
-            ),
-        ]
-    )
-    body += (
-        '<p class="answer">Everything the four analyses rest on, in three charts: how far road '
-        "deaths fell and when they stopped falling, who the dead are, and one place where DGT's "
-        "own published series changes meaning halfway through.</p>"
-    )
-
-    body += "<h2>Twenty years of decline, then a plateau</h2>"
-    body += figure("c1_deaths_per_year", "Road deaths per year, 1993–2024", captions)
-    floor_year = int(headline.loc[2005:].deaths_30d.idxmin())
-    body += (
-        f"<p>Deaths fell from {_fmt_int(headline.loc[peak, 'deaths_30d'])} in {peak} to "
-        f"{_fmt_int(headline.loc[2013, 'deaths_30d'])} in 2013, a fall of "
-        f"{1 - float(headline.loc[2013, 'deaths_30d'] / headline.loc[peak, 'deaths_30d']):.0%}, and "
-        f"have moved sideways since, reaching {_fmt_int(headline.loc[latest, 'deaths_30d'])} in "
-        f"{latest} with the lockdown year {floor_year} as the only real interruption. Deaths per "
-        "100 injury crashes have been flat for a decade too. This plateau is the backdrop to the "
-        "policy page: the large gains were made before 2013."
-    )
-    latest_zone = by_zone[by_zone.year == by_zone.year.max()].set_index("zone")
-    interurban_share = float(
-        latest_zone.loc["interurban", "deaths_30d"] / latest_zone.deaths_30d.sum()
-    )
-    night_latest = night[(night.year == night.year.max()) & (night.zone == "interurban")].iloc[0]
-    body += (
-        f" Roughly {interurban_share:.0%} of deaths are on interurban roads although most crashes "
-        f"are in towns, and darkness holds {float(night_latest.night_crash_share):.0%} of "
-        f"interurban injury crashes but {float(night_latest.night_death_share):.0%} of interurban "
-        "deaths.</p>"
-    )
-
-    body += "<h2>Who dies</h2>"
-    body += figure(
-        "c2_road_user_shares", "Share of road deaths by type of road user, 2016–2024", captions
-    )
-    latest_users = (
-        users[users.year == users.year.max()]
-        .groupby(["road_user", "vulnerable"], as_index=False)
-        .deaths_30d.sum()
-    )
-    latest_users["share"] = latest_users.deaths_30d / latest_users.deaths_30d.sum()
-    vulnerable = float(latest_users[latest_users.vulnerable.astype(bool)].share.sum())
-    top = latest_users.sort_values("deaths_30d", ascending=False).head(4)
-    body += (
-        f"<p>Pedestrians, cyclists, moped riders, motorcyclists and personal-mobility-vehicle "
-        f"users, the road users with no protective shell, are {vulnerable:.0%} of deaths. "
-        "The four largest groups in "
-        f"{int(users.year.max())} were "
-        + _join(
-            [f"{row.road_user.lower()} ({_fmt_int(row.deaths_30d)})" for row in top.itertuples()]
-        )
-        + ". Motorcyclists are the group that has not followed the general decline, which is why "
-        "the vehicles page reports their rate per kilometre.</p>"
-    )
-    shown = (
-        latest_users[["road_user", "deaths_30d", "share"]]
-        .sort_values("deaths_30d", ascending=False)
-        .rename(columns={"road_user": "Road user", "deaths_30d": "Deaths", "share": "Share"})
-    )
-    body += table(
-        shown,
-        f"Deaths within 30 days by road-user type, {int(users.year.max())}",
-        {"Deaths": "int", "Share": "pct"},
-    )
-
-    body += "<h2>A published series that changes meaning in 2016</h2>"
-    body += figure(
-        "c3_speed_status",
-        "Drivers in injury crashes by recorded speed status, 2014–2024",
-        captions,
-    )
-    known_first = float(all_roads.loc[first, "share_among_known"])
-    known_last = float(all_roads.loc[last, "share_among_known"])
-    all_first = float(all_roads.loc[first, "share_speed_infraction"])
-    all_last = float(all_roads.loc[last, "share_speed_infraction"])
-    body += (
-        f"<p>DGT's driver tables record, for each driver in an injury crash, whether the police "
-        f"noted a speed infraction. In {first}, {_fmt_pct(all_roads.loc[first, 'share_unknown'], 0)} "
-        f"of drivers had no speed status recorded at all. In 2016 that jumped to "
-        f"{_fmt_pct(all_roads.loc[2016, 'share_unknown'], 0)} and it has stayed there. The "
-        "consequence is that the two obvious ways of reading the same table now point in opposite "
-        f"directions: the share of <em>all</em> drivers with a speed infraction fell from "
-        f"{_fmt_pct(all_first)} to {_fmt_pct(all_last)}, while the share among drivers who have a "
-        f"record <em>rose</em> from {_fmt_pct(known_first)} to {_fmt_pct(known_last)}. The first "
-        "series is mostly measuring how many judgements were written down. The second is a "
-        "proportion of a group that is not a random sample of drivers, since an infraction is "
-        "more likely to be recorded than its absence.</p>"
-    )
-    shown = all_roads.reset_index()[
-        ["year", "total", "unknown", "share_unknown", "share_speed_infraction", "share_among_known"]
-    ].rename(
-        columns={
-            "year": "Year",
-            "total": "Drivers involved",
-            "unknown": "No speed status",
-            "share_unknown": "Share with no status",
-            "share_speed_infraction": "Infraction, share of all drivers",
-            "share_among_known": "Infraction, share of those with a status",
-        }
-    )
-    body += table(
-        shown,
-        "Drivers involved in injury crashes by recorded speed status, all roads. Source: DGT "
-        "statistical tables 6.1",
-        {
-            "Year": "year",
-            "Drivers involved": "int",
-            "No speed status": "int",
-            "Share with no status": "pct",
-            "Infraction, share of all drivers": "pct",
-            "Infraction, share of those with a status": "pct",
-        },
-    )
-    body += downloads(
-        [
-            ("q9_infraction_shares", "speed status by year and zone"),
-            ("q1_annual_headline", "crashes and victims per year"),
-            ("q5_deaths_by_road_user", "deaths by road-user type"),
-            ("q2_night_share", "darkness by year and zone"),
-        ]
-    )
-    body += "<h2>Conclusion</h2>"
-    body += conclusion(
-        "Spain's road deaths fell by three quarters between 1993 and 2013 and have been flat "
-        "since, so the analyses on this site are about a plateau rather than a decline. Most "
-        "deaths are on interurban roads, and half of them are of road users with no protective "
-        "shell. And one of DGT's own published series changes meaning in 2016: the speed-"
-        "infraction column cannot be read as a trend across that break."
-    )
-
-    body += limits(
-        "None of these series is a risk. They count what the police recorded, not how much "
-        "travelling was done, which is why the analyses that matter on this site divide by "
-        "something. Neither speed source measures speed: both record an officer's judgement after "
-        "the event, and DGT's separate speed-factor report covers fifteen of seventeen regions, so "
-        "its figures are never added to these."
-    )
-    return render_page(
-        "context",
-        "Context and data quality",
-        "The background the four analyses assume, and a discontinuity in one of DGT's published "
-        "series that changes how it has to be read.",
-        body,
-    )
 
 
 # --------------------------------------------------------------------------- data
@@ -1682,7 +2553,7 @@ def page_data(captions: dict[str, str]) -> str:
             ("Injury crashes", f"{n_crashes:,}", "2016–2024 microdata, one row per crash"),
             ("Reconciliation checks", f"{passed} / {total}", "run before any analysis"),
             ("Series", "1993–2024", "the yearbook monthly and annual series"),
-            ("Kilometre estimates", "2022 and 2024", "DGT's ITV-based vehicle-km"),
+            ("Traffic series", "1990–2025", "monthly road fuel and toll-motorway traffic"),
         ]
     )
     body += (
@@ -1708,7 +2579,7 @@ def page_data(captions: dict[str, str]) -> str:
                 "Yearbook series 1993–2024",
                 "DGT",
                 "Annual, monthly and provincial totals; the reference the microdata are checked "
-                "against, and the series the policy page fits.",
+                "against, and the series the long-run and seasons pages fit.",
             ),
             (
                 "Statistical tables 2014–2024",
@@ -1735,8 +2606,15 @@ def page_data(captions: dict[str, str]) -> str:
             (
                 "Monthly traffic and fuel",
                 "Ministerio de Transportes; CORES",
-                "Vehicle-kilometres on state toll motorways from 1990 and national road-fuel "
-                "consumption from 1996, used as exposure controls on the policy page.",
+                "Traffic on state toll motorways from 1990 and national road-fuel consumption "
+                "from 1996: the traffic denominators of the 2019–2024, long-run and seasons pages.",
+            ),
+            (
+                "Speed-factor report 2014–2023",
+                "DGT",
+                "Injury crashes with each recorded concurrent factor, and deaths in those with "
+                "speed, for Spain without Cataluña and País Vasco; used on the speed and factors "
+                "pages, never added to national totals.",
             ),
         ],
         columns=["Source", "Published by", "What it carries"],
@@ -1759,7 +2637,8 @@ def page_data(captions: dict[str, str]) -> str:
         f"<p>{passed} checks tie the crash microdata, the yearbook tables and the driver census to "
         "DGT's published totals: crashes and victims per year, deaths by province and by month, "
         "driver deaths by zone, vehicles involved by type, the census against its published "
-        "tables, and every code against the dictionary. All of them pass, and the microdata match "
+        "tables, every code against the dictionary, and the speed report's own totals against "
+        "the microdata restricted to its provinces. All of them pass, and the microdata match "
         "the yearbook exactly, year by year. The kilometre table by owner age reconciles with the "
         "same release's published fleet to within 0.5%, the margin left by owners DGT could not "
         f'classify. The <a href="tables/validation.csv">full list is a CSV</a>.</p>'
@@ -1822,13 +2701,30 @@ def page_data(captions: dict[str, str]) -> str:
 
 PAGE_BUILDERS = {
     "index": page_index,
-    "severity": page_severity,
-    "older-drivers": page_older_drivers,
+    "trends": page_trends,
+    "long-run": page_long_run,
+    "seasons": page_seasons,
+    "drivers": page_drivers,
     "vehicles": page_vehicles,
-    "policy": page_policy,
-    "context": page_context,
+    "speed": page_speed,
+    "factors": page_factors,
     "data": page_data,
+    "severity": page_severity,
+    "policy": page_policy,
 }
+
+
+def page_moved(old: str, new: str) -> str:
+    """A pointer page for a slug that was renamed, refreshing to its successor."""
+    title = dict(ALL_PAGES)[new]
+    return render_page(
+        old,
+        "This page has moved",
+        f"This page is now {title}; the site was reorganised around measuring road risk.",
+        f'<p>Its content is now on <a href="{new}.html">{esc(title)}</a>.</p>',
+        head=f'\n<meta http-equiv="refresh" content="0; url={new}.html">'
+        f'\n<link rel="canonical" href="{new}.html">',
+    )
 
 
 def build(site_dir: Path = SITE_DIR) -> list[Path]:
@@ -1851,5 +2747,9 @@ def build(site_dir: Path = SITE_DIR) -> list[Path]:
     for slug, builder in PAGE_BUILDERS.items():
         target = site_dir / f"{slug}.html"
         target.write_text(builder(captions), encoding="utf-8")
+        written.append(target)
+    for old, new in MOVED_PAGES.items():
+        target = site_dir / f"{old}.html"
+        target.write_text(page_moved(old, new), encoding="utf-8")
         written.append(target)
     return written

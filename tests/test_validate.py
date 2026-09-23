@@ -16,13 +16,14 @@ def results() -> pd.DataFrame:
 
 def test_every_check_family_is_present_and_complete(results: pd.DataFrame) -> None:
     # The published count of checks: a family that shrank would otherwise pass unnoticed.
-    assert len(results) == 434
+    assert len(results) == 482
     assert results.groupby("check").size().to_dict() == {
         "census_2025": 53,
         "census_age_2023": 15,
         "code_domain": 33,
         "driver_deaths": 33,
         "row_count": 9,
+        "speed_report_scope": 48,
         "table_1_1_province": 104,
         "table_2_2_deaths": 60,
         "table_2_3_vehicles": 5,

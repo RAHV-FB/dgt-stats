@@ -7,6 +7,9 @@ import pytest
 from dgt_stats import site, summaries
 from dgt_stats.paths import FIGURES_DIR, TABLES_DIR
 
+# The analysis pages in navigation order: everything in the main row but the overview and data.
+ANALYSIS_PAGES = tuple(slug for slug, _ in site.PAGES if slug not in ("index", "data"))
+
 pytestmark = pytest.mark.skipif(
     not (FIGURES_DIR / "captions.json").exists()
     or not (TABLES_DIR / "q1_annual_headline.csv").exists()
@@ -23,7 +26,7 @@ def built(tmp_path_factory: pytest.TempPathFactory) -> Path:
 
 
 def test_every_page_is_written_with_one_heading(built: Path) -> None:
-    for slug, _ in site.PAGES:
+    for slug, _ in site.ALL_PAGES:
         page = built / f"{slug}.html"
         assert page.exists(), slug
         text = page.read_text(encoding="utf-8")
@@ -31,9 +34,23 @@ def test_every_page_is_written_with_one_heading(built: Path) -> None:
         assert "<script" not in text, slug
         assert 'lang="en"' in text
         assert f'href="{slug}.html" aria-current="page"' in text
-    # Six pages and no more: the four analyses, their context and the data behind them.
-    assert len(site.PAGES) == 7
-    assert {slug for slug, _ in site.PAGES} == {p.stem for p in built.glob("*.html")}
+    # Seven analyses, the overview and the data in the main navigation; two supporting analyses
+    # in a second row; and a pointer for each page that was renamed, and nothing else.
+    assert len(site.PAGES) == 9 and len(site.SUPPORTING_PAGES) == 2
+    expected = {slug for slug, _ in site.ALL_PAGES} | set(site.MOVED_PAGES)
+    assert expected == {p.stem for p in built.glob("*.html")}
+
+
+def test_moved_pages_point_to_their_successors(built: Path) -> None:
+    for old, new in site.MOVED_PAGES.items():
+        text = (built / f"{old}.html").read_text(encoding="utf-8")
+        assert f'content="0; url={new}.html"' in text
+        assert f'href="{new}.html">' in text
+    # No live page links to a moved slug: the pointers are for old bookmarks, not navigation.
+    for slug, _ in site.ALL_PAGES:
+        text = (built / f"{slug}.html").read_text(encoding="utf-8")
+        for moved in site.MOVED_PAGES:
+            assert f'href="{moved}.html"' not in text, (slug, moved)
 
 
 def test_referenced_assets_exist(built: Path) -> None:
@@ -53,7 +70,7 @@ def test_full_result_tables_are_published_as_csv(built: Path) -> None:
     assert {f"{name}.csv" for name in summaries.MODEL_TABLES} <= published
     assert "validation.csv" in published
     # Every page that shows a headline number also links the table it came from.
-    for slug in ("severity", "older-drivers", "vehicles", "policy", "context"):
+    for slug in ANALYSIS_PAGES + ("severity", "policy"):
         text = (built / f"{slug}.html").read_text(encoding="utf-8")
         assert 'href="tables/' in text, slug
 
@@ -64,8 +81,8 @@ def test_figures_are_copied_and_captioned(built: Path) -> None:
     captions = site.read_captions()
     for name in captions:
         assert (built / "figures" / f"{name}.svg").exists(), name
-    text = (built / "context.html").read_text(encoding="utf-8")
-    assert site.mark_spanish(site.esc(captions["c1_deaths_per_year"])) in text
+    text = (built / "long-run.html").read_text(encoding="utf-8")
+    assert site.mark_spanish(site.esc(captions["l1_trend_projection"])) in text
 
 
 def test_table_formats_numbers() -> None:
@@ -99,8 +116,8 @@ def test_severity_page_leads_with_the_adverse_finding(built: Path) -> None:
     assert text.count("<table>") <= 3
 
 
-def test_older_drivers_page_separates_the_two_questions(built: Path) -> None:
-    text = (built / "older-drivers.html").read_text(encoding="utf-8")
+def test_drivers_page_separates_the_two_questions(built: Path) -> None:
+    text = (built / "drivers.html").read_text(encoding="utf-8")
     ratios = pd.read_csv(TABLES_DIR / "q7_km_ratio.csv").set_index(["measure", "band"])
     involved = ratios.loc[("involved_per_bn_km", "75+")]
     fatality = ratios.loc[("deaths_per_1000_involved", "75+")]
@@ -120,6 +137,15 @@ def test_older_drivers_page_separates_the_two_questions(built: Path) -> None:
     company = pd.read_csv(TABLES_DIR / "q7_company_km.csv").set_index(["allocation", "band"])
     working = float(company.loc[("to_working_age", "75+"), "ratio_to_reference"])
     assert f"{working:.2f}" in text  # the company-car sensitivity is quoted, not hidden
+    # Sex: the fatality ratio once involved is quoted with its interval, and the travel proxy is
+    # named as what it is.
+    ratios = pd.read_csv(TABLES_DIR / "drivers_sex_ratios.csv").set_index(
+        ["scope", "band", "measure"]
+    )
+    fatality_men = ratios.loc[("car", "18+", "deaths_per_1000_involved")]
+    assert f"{fatality_men.ratio:.2f}× ({fatality_men.low:.2f}–{fatality_men.high:.2f})" in text
+    assert "MOVILIA" in text and "passengers" in text
+    assert 'src="figures/a3_sex_ratios.svg"' in text
 
 
 def test_policy_page_reports_the_falsification_not_the_headline(built: Path) -> None:
@@ -146,8 +172,17 @@ def test_policy_page_reports_the_falsification_not_the_headline(built: Path) -> 
     assert "CORES" in text and "toll" in text
 
 
-def test_context_page_carries_the_recording_discontinuity(built: Path) -> None:
-    text = (built / "context.html").read_text(encoding="utf-8")
+def test_speed_page_carries_severity_and_the_recording_discontinuity(built: Path) -> None:
+    text = (built / "speed.html").read_text(encoding="utf-8")
+    pooled = pd.read_csv(TABLES_DIR / "speed_severity_pooled.csv").set_index("road_type")
+    adjusted = pooled.loc["adjusted"]
+    assert (
+        f"{adjusted.rate_ratio:.2f}× ({adjusted.ratio_low:.2f}–{adjusted.ratio_high:.2f})" in text
+    )
+    assert f"{adjusted.crude_ratio:.2f}×" in text  # the unadjusted ratio is shown beside it
+    # The two biases are named, and no causal count is claimed.
+    assert "inflates the ratio" in text and "deflates it" in text
+    assert "not an estimate of how many deaths speed caused" in text
     shares = pd.read_csv(TABLES_DIR / "q9_infraction_shares.csv")
     all_roads = shares[shares.zone == "all"].set_index("year")
     for year in (2014, 2016, int(all_roads.index.max())):
@@ -156,11 +191,38 @@ def test_context_page_carries_the_recording_discontinuity(built: Path) -> None:
     assert "point in opposite directions" in text
     # The transcribed speed report is not republished on the site: no table of the report's
     # breakdowns by limit, vehicle, licence class or hour survives anywhere.
-    for page in built.parent.glob("site*/*.html"):
+    for page in built.glob("*.html"):
         page_text = page.read_text(encoding="utf-8")
         assert "by the road's speed limit" not in page_text, page.name
         assert "licence class" not in page_text, page.name
-    assert "fifteen of seventeen regions" in text
+
+
+def test_factors_page_reads_trends_only_within_comparable_runs(built: Path) -> None:
+    text = (built / "factors.html").read_text(encoding="utf-8")
+    windows = pd.read_csv(TABLES_DIR / "factor_windows.csv")
+    alcohol = windows[(windows.zone == "interurban") & (windows.factor == "Alcohol")]
+    assert len(alcohol) == 1  # no recording break in the interurban alcohol series
+    assert f"{alcohol.share_first.iloc[0] * 100:.1f}%" in text
+    assert f"{alcohol.share_last.iloc[0] * 100:.1f}%" in text
+    assert 'src="figures/f2_factor_shares.svg"' in text
+    assert "recording break" in text and "Drugs" in text
+
+
+def test_trend_pages_show_every_denominator_and_the_projection(built: Path) -> None:
+    trends = (built / "trends.html").read_text(encoding="utf-8")
+    index = pd.read_csv(TABLES_DIR / "risk_index.csv")
+    for label in index.denominator_label.unique():
+        assert site.esc(label) in trends, label
+    assert 'src="figures/r1_risk_change.svg"' in trends
+    long_run = (built / "long-run.html").read_text(encoding="utf-8")
+    assert 'src="figures/l2_observed_over_trend.svg"' in long_run
+    series = pd.read_csv(TABLES_DIR / "longrun_series.csv")
+    fuel = series[(series.measure == "road_fuel") & (series.period == "projected")]
+    last = fuel[fuel.year == fuel.year.max()].iloc[0]
+    assert site._signed_pct(float(last.ratio) - 1, 0) in long_run
+    seasons = (built / "seasons.html").read_text(encoding="utf-8")
+    for name in ("m1_season_profile", "m2_month_effects", "m3_lockdown"):
+        assert f'src="figures/{name}.svg"' in seasons
 
 
 def test_every_internal_link_and_anchor_resolves(built: Path) -> None:
@@ -189,7 +251,7 @@ def test_every_page_has_a_description_and_every_image_an_alt(built: Path) -> Non
         description = re.search(r'<meta name="description" content="([^"]*)"', text)
         assert description and len(description.group(1)) > 40, page.name
         if page.name == "index.html":
-            assert "<title>Road safety in Spain · four analyses" in text
+            assert "<title>Road safety in Spain · measuring risk, not counting crashes" in text
         else:
             assert re.search(r"<title>[^<]+ · Road safety in Spain</title>", text), page.name
         for image in re.findall(r"<img[^>]*>", text):
@@ -198,25 +260,36 @@ def test_every_page_has_a_description_and_every_image_an_alt(built: Path) -> Non
         assert "<script" not in text
 
 
-def test_front_page_leads_with_the_four_analyses(built: Path) -> None:
+def test_front_page_leads_with_the_central_question(built: Path) -> None:
     index = (built / "index.html").read_text(encoding="utf-8")
     body = index[index.find("<main>") : index.find("</main>")]
-    assert body.count('<div class="finding">') == 4
+    # One finding per analysis page, in navigation order, and four key figures.
+    assert body.count('<div class="finding">') == len(ANALYSIS_PAGES)
     assert body.count('<div class="keyfig">') == 4
-    for slug in ("severity", "older-drivers", "vehicles", "policy"):
-        assert f'href="{slug}.html"' in body, slug
+    positions = [body.find(f'href="{slug}.html"') for slug in ANALYSIS_PAGES]
+    assert all(p > 0 for p in positions) and positions == sorted(positions)
+    # The supporting analyses are linked from a paragraph that says why they are not central.
+    assert "does not claim" in body
+    for slug in ("severity", "policy"):
+        assert f'href="{slug}.html"' in body
     assert site.PROFILE_URL in index and "Russell Howard" in index
-    # The front page is short: one strip of key figures, four findings and two short notes.
-    assert len(body) < 7_000
+    assert len(body) < 10_000
 
 
 def test_every_analysis_page_ends_on_a_stated_conclusion(built: Path) -> None:
-    for slug in ("severity", "older-drivers", "vehicles", "policy"):
+    for slug in ANALYSIS_PAGES + ("severity", "policy"):
         text = (built / f"{slug}.html").read_text(encoding="utf-8")
         assert text.count('<div class="conclusion">') == 1, slug
         body = text[text.find("<main>") : text.find("</main>")]
         # The conclusion is the last thing in the argument, not a box in the middle of it.
         assert body.rfind('<div class="conclusion">') > body.rfind("<table>"), slug
+
+
+def test_supporting_pages_say_they_are_supporting(built: Path) -> None:
+    for slug in ("severity", "policy"):
+        text = (built / f"{slug}.html").read_text(encoding="utf-8")
+        body = text[text.find("<main>") : text.find("</main>")]
+        assert body.find("Supporting analysis.") < body.find("<h2>"), slug
 
 
 def test_no_page_uses_an_em_dash(built: Path) -> None:
