@@ -23,8 +23,6 @@ log = logging.getLogger(__name__)
 HOLDOUT_YEARS = (2023, 2024)
 STABILITY_TERMS = 10
 PROFILE_YEAR = "2024"
-# Road types that only exist outside towns: the predicted grid puts these on the interurban zone.
-INTERURBAN_ROAD_TYPES = ("conventional", "dual carriageway", "motorway")
 
 # Named crash profiles for the predicted-probability table; unspecified predictors sit at reference.
 PROFILES: dict[str, dict[str, str]] = {
@@ -537,33 +535,6 @@ def profiles(frame: pd.DataFrame, fits: dict[str, Fit]) -> pd.DataFrame:
         for outcome, fit in fits.items():
             record[outcome] = float(predict(fit, _profile_design(frame, fit, settings))[0])
         records.append(record)
-    return pd.DataFrame.from_records(records)
-
-
-def predicted_grid(
-    frame: pd.DataFrame, fit: Fit, rows: str = "road", columns: str = "lighting"
-) -> pd.DataFrame:
-    """Predicted probability over every combination of two predictors, others at reference.
-
-    The road types that only exist outside towns are placed on the interurban zone; "other road"
-    is not one of them (from 2024 most of its crashes are Barcelona streets), so it stays on the
-    zone reference.
-    """
-    records = []
-    for row_level in frame[rows].cat.categories:
-        for column_level in frame[columns].cat.categories:
-            settings = {rows: str(row_level), columns: str(column_level)}
-            if rows == "road" and row_level in INTERURBAN_ROAD_TYPES:
-                settings["zone"] = "interurban road"
-            probability = float(predict(fit, _profile_design(frame, fit, settings))[0])
-            records.append(
-                {
-                    "outcome": fit.outcome,
-                    rows: str(row_level),
-                    columns: str(column_level),
-                    "probability": probability,
-                }
-            )
     return pd.DataFrame.from_records(records)
 
 

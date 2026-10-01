@@ -2,11 +2,12 @@
 
 Audit date: 2026-09-18, extended on 19, 20 and 22 September 2026 for the files added later, the
 coding breaks found in review, and the exposure sources added when the project was refocused
-([`refocus_audit.md`](refocus_audit.md)). Every source file was opened and profiled with Python
-(`openpyxl`, `pandas`, `pymupdf`). This document records what each file contains, how the files
-group together, what was verified, and what must be handled before analysis. It complements the
-source register in [`data_sources.md`](data_sources.md). Checksums, sizes and source URLs for every
-file are in [`data/raw/manifest.csv`](../data/raw/manifest.csv).
+([`refocus_audit.md`](refocus_audit.md)), and in October 2026 for the Ministry's kilometres by
+type of road and the simulator's evidence register. Every source file was opened and profiled with
+Python (`openpyxl`, `pandas`, `pymupdf`). This document records what each file contains, how the
+files group together, what was verified, and what must be handled before analysis. It complements
+the source register in [`data_sources.md`](data_sources.md). Checksums, sizes and source URLs for
+every file are in [`data/raw/manifest.csv`](../data/raw/manifest.csv).
 
 ## 1. Files by category
 
@@ -64,8 +65,9 @@ A second copy of the series workbook (`...2024(1).xlsx`, byte-identical, same MD
 | `km_itv_2022/media_km_antiguedad_tipo_2022.xlsx` | 2022 | Mean annual km and fleet size by vehicle type (7) × age band (5) | `Media_km_recorridos_ antiguedad_tipo de vehículo.xlsx` |
 | `km_itv_2024/km_edad_propietario_2024.xlsx` | 2024 | 115 rows: vehicle category (8) × owner age band (18–20, 21–24, then five-year bands to 70–74, 75+, plus "Vehículo a nombre de empresa") → vehicles, total annual km, mean annual km. The only Spanish source that puts distance driven and a person's age in the same cell, for the whole circulating fleet rather than a survey sample. The age is the **registered owner's**, not the driver's | `KM_Edad_Propietario.xlsx` (from `KM_Recorridos_2024_Material_Adicional.zip`) |
 | `km_itv_2024/km_medios_tipo_2024.xlsx` | 2022–2024 | The same release's table 6: vehicles and mean annual km by category, with a 2024 detail sheet. Used only to check the owner-age table against the published fleet | `TAB_06-KM_Medios.xlsx` (same zip) |
-| `traffic/cores_consumos_pp.xlsx` | 1996–2026 | CORES monthly consumption of petroleum products, tonnes, 8 sheets. The `Gasolinas` and `Gasoleos` sheets carry `Subtotal gasolinas auto` and `Subtotal gasóleos auto`; their sum is national road-fuel consumption, complete monthly from January 1996 | `consumos-pp.xlsx` |
+| `traffic/cores_consumos_pp.xlsx` | 1996–2026 | CORES monthly consumption of petroleum products, tonnes, 8 sheets. The `Gasolinas` and `Gasoleos` sheets carry `Subtotal gasolinas auto` and `Subtotal gasóleos auto`; their sum is national road-fuel consumption, complete monthly from January 1996. Each subtotal is the sum of the product columns before it (bioethanol, biodiesel and blends included), and each sheet gives the mass share of biofuel in its subtotal (`% biocomb. en gasolinas`, `% biocomb. en gasóleos`) | `consumos-pp.xlsx` |
 | `traffic/peaje_trafico_total.xls` | 1990–2026 | Ministerio de Transportes, Boletín Estadístico Online: annual and monthly average daily intensity and vehicle-kilometres on the whole state toll-motorway network. Complete monthly from January 1990; the `LONGITUD` column records the network length in service, which falls as concessions expire | `06010000.XLS` |
+| `traffic/anuario_carreteras_2023.pdf` | 2004–2023 | Ministerio de Transportes, Anuario Estadístico 2023, roads chapter (13 pages). Table 1.2.14: vehicle-kilometres and the share of heavy vehicles by type of road (toll motorways; autovías and free motorways; multi-lane; conventional) on the State, regional and provincial interurban networks; see section 3 | `carreteras_2023.pdf` |
 | `km_itv_2022/metodologia.pdf` | 2014–2023 ITV | Methodology: gamma-regression (LightGBM) imputation of annualised odometer readings; explains 19–45% of variance per vehicle, valid only for aggregates | `KM_Recorridos_ITV_Parque.pdf` |
 
 | `censo_conductores_edad_{2023,2024,2025}.txt` | 2023–2025 | Pipe-delimited: province × sex × age band (15–17, 18–20, 21–24, then five-year bands to 70–74, "Más de 74", "Se desconoce") → permits, licences and permits by class. 2023 and 2024 are Latin-1, 2025 is UTF-8 with BOM | `censo_prov_sexo_clase_edad_YYYY.txt` |
@@ -96,6 +98,12 @@ report Table 6) at `https://www.esranet.eu/storage/minisites/esra2023countryfact
 `https://www.esranet.eu/storage/minisites/esra3-main-report.pdf`, and the ESRA-123 dashboard
 (`https://www.esranet.eu/en/esra-123-dashboard/`) for the 2018 share (80.2 %, weighted n 906). The
 two values are typed into `driving_activity_by_age.csv` with their URLs.
+
+### E. Evidence for the simulator (`data/raw/evidence/`)
+
+| File | Rows | Content | Original name |
+|---|---:|---|---|
+| `simulator_parameters.csv` | 33 | Hand-typed register of every published value the simulator uses: Power Model exponents, the response of mean speed to a new limit, car speeds measured in Spain in 2022, the legal limits and DGT's values of a casualty, each with its source, its place in the source, the URL and a verbatim quote; see section 3 | compiled by this project |
 
 ## 2. Crash microdata: schema and content
 
@@ -157,7 +165,7 @@ No duplicate identifiers were found in any year.
 | `TOT_VMP_MU30DF` added | 2020+ | add as null for 2016–2019 (VMP deaths were counted under "Otro") |
 | `TOT_VMP_MU24H` present | 2020 only | drop or keep as null elsewhere; 24-hour VMP deaths are not needed |
 | `TIPO_VIA = 14` ("Otro") share rises from 2.9% to 17.2%, and `TITULARIDAD_VIA = 5` ("Otra") from 1.6% to 22.0%, while `TIPO_VIA = 9` ("Calle") falls from 59.9% to 47.5% | 2016 → 2024 | coding change, almost certainly in urban reporting; road-type trends must use a collapsed grouping (motorway / dual carriageway / conventional / urban / other) and be checked year by year. `TITULARIDAD_VIA = 5` dips to 7.9% in 2021, when 14.8% of rows carry 999 instead, so its jump to 22% dates from 2023, not 2021 |
-| `TIPO_VIA = 5` ("Carretera Convencional de doble calzada") falls from 6.8% to 1.8% of crashes between 2020 and 2021 while `TIPO_VIA = 6` ("Carretera Convencional de calzada única") rises from 17.9% to 21.4% and their sum stays near 23%; `TIPO_VIA = 1` ("Autopista de peaje") falls from about 1.8% to 0.4% in 2022 and 2024 while `TIPO_VIA = 2` ("Autopista libre") rises to 3.3%, with 2023 back at the earlier split and the sum stable near 3.7% | 2021, 2022, 2024 | interurban coding changes. The dual carriageway / conventional split is not comparable across 2020–2021, and the collapsed grouping does not fix it because `road_group` puts 5 in dual carriageway and 6 in conventional; the 2019 case study therefore builds its two groups from the raw codes (5 and 6 against 1, 2 and 3, `policy.py`) so that the recoding stays inside the treated group. The toll/free motorway distinction is unusable, but codes 1 and 2 are pooled into `motorway` in every use, so that group is unaffected |
+| `TIPO_VIA = 5` ("Carretera Convencional de doble calzada") falls from 6.8% to 1.8% of crashes between 2020 and 2021 while `TIPO_VIA = 6` ("Carretera Convencional de calzada única") rises from 17.9% to 21.4% and their sum stays near 23%; `TIPO_VIA = 1` ("Autopista de peaje") falls from about 1.8% to 0.4% in 2022 and 2024 while `TIPO_VIA = 2` ("Autopista libre") rises to 3.3%, with 2023 back at the earlier split and the sum stable near 3.7% | 2021, 2022, 2024 | interurban coding changes. The dual carriageway / conventional split is not comparable across 2020–2021, and the collapsed grouping does not fix it because `road_group` puts 5 in dual carriageway and 6 in conventional; the 2019 case study therefore builds its two groups from the raw codes (5 and 6 against 1, 2 and 3, `policy.py`) so that the recoding stays inside the treated group. The toll/free motorway distinction is unusable, but codes 1 and 2 are pooled in every use (as `motorway` in `road_group`, as autopistas in the simulator), so no group splits them |
 | `ZONA = 4` ("Autopista o autovía urbana") falls from 0.6–0.7% of crashes in 2016–2018 to 0.1% or less from 2019 (0.4% in 2021) | 2019+ | urban motorways are coded elsewhere from 2019 (the grouped zone is unaffected); the zone level in the severity models is mostly an early-period estimate, and the page says so |
 | `NUDO = 1` (at a junction) rises from 38–40% of crashes in 2016–2022 to 43.5–43.7% in 2023–2024, and `NUDO_INFO = 999` from 0.5–0.7% (2.8% in 2018) to 14.5% in 2023 and 15.1% in 2024, 72% of those rows in Barcelona and 99% in the four Catalan provinces | 2023+ | a reporting change in the junction fields, not a change on the roads; the junction term in the severity models pools both regimes and the stability check is where it would show; never read the junction share as a trend across 2022–2023 |
 | `VISIB_RESTRINGIDA_POR` and `CONDICION_NIVEL_CIRCULA` swap between their explicit unknown code (18 "Se desconoce", 6 "Se desconoce") and 999 in 2021, 2023 and 2024: `VISIB_RESTRINGIDA_POR = 999` is 0.3% / 0.1% / 0.0% in 2019 / 2020 / 2022 but 14.9% / 14.0% / 14.8% in 2021 / 2023 / 2024 while code 18 drops from 28–30% to 4.8–5.6%, and `VISIB_RESTRINGIDA_POR = 17` ("Otras restricciones") jumps from 0.4% to 8.7–8.9% in the same three years; `CONDICION_NIVEL_CIRCULA = 999` is 9.5–10.2% in 2019 / 2020 / 2022 but 32.2% / 32.8% / 34.0% in 2021 / 2023 / 2024 while code 6 drops from 29–31% to 6.9–7.7%. `TITULARIDAD_VIA = 999` appears in 2021 (14.8%, 13,280 rows, all urban `ZONA 3` / `TIPO_VIA 9`) and in 28 rows of 2024 (0.03%, also all `ZONA 3`) | 2021, 2023, 2024 | one reporting batch from the four Catalan provinces (Barcelona alone is 74–79% of the `VISIB_RESTRINGIDA_POR = 999` rows in those years, Barcelona, Girona, Lleida and Tarragona together 97–100%; for `CONDICION_NIVEL_CIRCULA = 999`, which has a 10% floor everywhere, the four provinces are 65–71%), which also carries the 2021 wind flag (13,412 of the 22,090 flagged rows are the same rows); missingness is province- and year-dependent, so never run complete-case trend comparisons and never read these fields as a trend |
@@ -179,8 +187,10 @@ No duplicate identifiers were found in any year.
 ### Kilometre estimates
 
 - `media_km_antiguedad_tipo_2022.xlsx` gives, for 2022 only, fleet size and mean annual km for 7 vehicle
-  types × 5 age bands. Multiplying the two gives total vehicle-kilometres by type, the only vehicle-km
-  denominator in the repository.
+  types × 5 age bands. Multiplying the two gives total vehicle-kilometres by type, the vehicles
+  page's denominator. The other vehicle-km in the repository are DGT's 2024 estimates by owner age
+  and by category, the Ministry's measured interurban kilometres by type of road and the monthly
+  toll-motorway series.
 - The methodology report warns that predictions are valid in aggregate, not per vehicle, and that 2020 and
   2021 were excluded from model fitting.
 - `km_itv_2024/km_edad_propietario_2024.xlsx` gives the same estimate broken down by the owner's age
@@ -195,11 +205,51 @@ No duplicate identifiers were found in any year.
   fuel **sold**, not distance: the petrol/diesel mix shifts sharply over the 2000s as the fleet
   dieselises, so the level drifts relative to kilometres even though the month-to-month shape does
   not. Seasonal peak: July.
+- The reader checks that each automotive subtotal equals the sum of its product columns, bioethanol,
+  biodiesel and blends included, to one part in a million in every month, so a tonne of road fuel
+  counts the biofuel blended into it. CORES publishes the mass share of that biofuel: 6.6 % of road
+  fuel in 2019, 7.8 % in 2023 and 7.1 % in 2024 (`longrun_fuel_bio.csv`). Biofuel carries less
+  energy per tonne than the petrol and diesel it replaces, so a rise in its share lowers kilometres
+  per tonne slightly; it cannot explain their rise after 2019.
 - The toll-motorway series measures vehicle-kilometres directly, but on 1,400–2,500 km of motorway
   (roughly 5 % of Spanish traffic) whose length changes as concessions expire: 2,362 km in 2019,
   1,894 km in 2020, 1,416 km from 2022. Seasonal peak: August, and far sharper than CORES's,
   because it is a holiday network. The two seasonal profiles correlate at about 0.75 over
   2000–2007, which is why both are reported rather than one.
+
+### Measured interurban kilometres (added October 2026)
+
+- `traffic/anuario_carreteras_2023.pdf`, the roads chapter of the Ministerio de Transportes'
+  2023 statistical yearbook (13 pages, printed from the Ministry's own workbook in January 2025).
+  Table 1.2.14 gives vehicle-kilometres on the State, regional and provincial interurban networks
+  by type of road, 2004–2023, with the share of heavy vehicles on each, from each network's
+  traffic-count plan. All twenty years parse; the four road types add up to the published total in
+  every year but 2009, where the published row is 5 million vehicle-km (0.002 %) short, so the
+  reader allows one part in ten thousand. Footnote 3 marks 2008 as not comparable with 2007 (new
+  road inventory), so trend fits start in 2008. Footnote 1 puts the municipal interurban roads it
+  leaves out at up to 10 % of traffic. Toll motorway kilometres fall after 2019 and autovía
+  kilometres rise as concessions expire and the roads change category, so risk per kilometre by
+  road class uses only the sum of the two. The simulator's travel time takes each type's 2023
+  kilometres and heavy-vehicle share as published, timing toll motorways at the speeds measured on
+  autopistas, autovías and free motorways at those measured on autovías, and multi-lane and
+  conventional roads at those measured on conventional roads.
+- Against road fuel: kilometres on this network per tonne of all road fuel grew 0.5 % a year over
+  2011–2019 (8,410 to 8,740 km per tonne), the span of the national per-fuel trend's last segment,
+  and 1.9 % a year over 2019–2023 (to 9,420): about 1.4 points a year faster. That is the drift the
+  long-run page had bounded with a sensitivity and now measures, and it is just enough to bring the
+  2023 excess of deaths per tonne of fuel inside its interval. The ratio is kilometres per tonne,
+  not fuel economy: it also moves when traffic shifts between towns and interurban roads, and with
+  the mix of freight.
+
+### Evidence register for the simulator (added October 2026)
+
+- `evidence/simulator_parameters.csv`, 33 rows, each a value read in its publication with the
+  table or page, the URL and a verbatim quote; a test requires every quote to contain the value it
+  supports. The Baseline speed figures were checked against the report's tables 9–11 and 12a and,
+  for autovías, the Annex 1 text introducing tables 12a–12c (p. 42); the Elvik exponents against
+  table S1 of TØI report 1034/2009; the response curve against figure 3.11.2 of the handbook; the
+  limits against the consolidated text of the Reglamento General de Circulación and Real Decreto
+  970/2020 in the BOE; and DGT's values against the two 2024 Universidad de Murcia reports.
 
 ## 4. What the data can and cannot support
 
@@ -210,14 +260,16 @@ No duplicate identifiers were found in any year.
 | Province comparisons per population, per licensed driver, per registered vehicle | Yes, with INE population added | census files give drivers by province; fleet only national in the series |
 | Vulnerable road users (pedestrians, cyclists, moped riders, motorcyclists, VMP) fatality shares and trends | Yes | `TOT_*_MU30DF` columns |
 | Older road users, per unit of driving | Yes, for 2024 | DGT's 2024 kilometre release gives km by the **owner's** age band; the driver tables give car-driver deaths and involvements by age. Earlier years have no age-specific kilometres |
-| Heavy vehicles and buses per vehicle-km | Only for 2022, and only occupant deaths | involvement not in microdata; km only for 2022 |
+| Heavy vehicles and buses per vehicle-km | Only for 2022, and only occupant deaths | involvement not in microdata; km by vehicle type only for 2022 (the Ministry's table 1.2.14 gives only the share of heavy vehicles on interurban roads, as one group) |
 | Alcohol, distraction, drugs, speed and illegal manoeuvres as recorded concurrent factors, year to year | Partly | DGT's speed report counts injury crashes with each factor, 2014–2023, for Spain without Cataluña and País Vasco; comparable only within runs of years without a recording break (urban distraction breaks in 2016 and 2019, urban alcohol in 2016, drugs throughout); deaths by factor are published for speed only |
 | Speed as a severity factor | Yes, as an association | the speed report's speed-related crashes and deaths by road type against microdata totals for the same provinces, which reproduce the report's totals exactly |
 | Alcohol × speed interaction, fatigue, protective equipment | **No** | none of these variables exist in the crash-level file, and the report gives no cross-tabulation of factors |
 | Driver age and sex risk | Yes, per licence holder and per crash, 2014–2024; per km by age for 2024 only | aggregate tables 4.1.1 and 4.2 with the driver census; no source gives kilometres by sex, so the sex comparison uses licences and a bounded travel proxy (MOVILIA 2006) |
 | Campaign or policy evaluation with daily resolution | **No** | no calendar day in microdata; monthly evaluation is possible |
-| Annual and monthly exposure for risk trends and seasonality | Partly | CORES road fuel (all roads, but tonnes not km, with a fuel-economy drift bounded by a sensitivity), petrol alone (private cars) and toll-motorway intensity (measured, but long-distance routes) are the only monthly series; DGT's 2022 and 2024 kilometre estimates cannot be chained |
+| Annual and monthly exposure for risk trends and seasonality | Partly | CORES road fuel (all roads, but tonnes not km: kilometres per tonne drift, bounded by a sensitivity and measured against the Ministry's interurban kilometres to 2023), petrol alone (private cars) and toll-motorway intensity (measured, but long-distance routes) are the only monthly series; across the whole interurban network the Ministry measures annual vehicle-km, 2004–2023 (comparable from 2008, without urban or municipal roads); DGT's 2022 and 2024 kilometre estimates cannot be chained |
 | The 2019 conventional-road speed limit | **No** | the aggregate two-group design fails its own placebo, and section identifiers, limits, speeds and volumes are not published |
+| Deaths per kilometre by year and road class | Yes, interurban only: in total 2008–2023, by road class 2016–2023 | the Ministry's measured vehicle-km (table 1.2.14) run from 2004 and are comparable from 2008. Against the yearbook series' interurban deaths they give the total for 2008–2023; by road class (autopistas and autovías together, conventional roads) the deaths come from the crash microdata, which start in 2016, so only 2016–2023 have both. No urban kilometres |
+| What a change in speed limits or compliance would do | As a projection | Spanish baselines and measured Spanish speeds with published dose-response evidence; the crash data cannot estimate it. The forecasting model gives the chance that the first year's death count would show it: over 99 % for full compliance with today's limits, 99 % for conventional roads at 70 km/h, 45 % at 80 km/h, and no more than 25 % for any change of the autopista and autovía limit alone |
 | Road geometry, speed limits, traffic volume, coordinates | **No** | not in any file |
 
 Vehicle-level and person-level records are the single most valuable addition and are required before any
@@ -225,7 +277,7 @@ factor-interaction work can start. They are not published for download; a data r
 
 ## 5. Organisation
 
-- Raw files are tracked in Git under `data/raw/` (about 260 MB, 110 files) and are never edited in place.
+- Raw files are tracked in Git under `data/raw/` (about 260 MB, 112 files) and are never edited in place.
   `data/raw/manifest.csv` records path, size, SHA-256, source URL, description and the date added for
   each file; any replacement must update the manifest entry.
 - `data/interim/` and `data/processed/` stay ignored and are rebuilt from `data/raw/` by the ingestion

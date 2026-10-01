@@ -20,6 +20,7 @@ from dgt_stats import (
     agebands,
     driver_risk,
     factors,
+    forecast,
     io_exposure,
     io_population,
     io_tables,
@@ -27,6 +28,7 @@ from dgt_stats import (
     policy,
     risk_trends,
     seasonality,
+    simulator,
     speed,
     vehicles,
 )
@@ -35,7 +37,6 @@ from dgt_stats.paths import PROCESSED_DATA_DIR, TABLES_DIR
 PROCESSED_CRASHES = PROCESSED_DATA_DIR / "accidentes.parquet"
 
 BASE_YEAR = 2019
-LATEST_TABLE_YEAR = 2024
 SEVERITY_METRICS = ("crashes", "deaths_30d", "hospitalised_30d", "non_hospitalised_30d")
 
 CRASH_COLUMNS = [
@@ -77,23 +78,6 @@ def annual_headline() -> pd.DataFrame:
         wide[f"{metric}_index"] = (wide[metric] / base * 100).round(1)
     wide["deaths_per_100_crashes"] = (wide.deaths_30d / wide.crashes * 100).round(2)
     return wide
-
-
-def annual_by_zone() -> pd.DataFrame:
-    """Crashes and deaths per year and zone from the microdata (2016–2024)."""
-    crashes = read_crashes(["ANYO", "zone", "fatal", "n_deaths", "serious"])
-    out = (
-        crashes.groupby(["ANYO", "zone"], observed=True)
-        .agg(
-            crashes=("fatal", "size"),
-            fatal_crashes=("fatal", "sum"),
-            deaths_30d=("n_deaths", "sum"),
-        )
-        .reset_index()
-        .rename(columns={"ANYO": "year"})
-    )
-    out["deaths_per_100_crashes"] = (out.deaths_30d / out.crashes * 100).round(2)
-    return out
 
 
 # --------------------------------------------------------------------------- Q2 timing
@@ -144,26 +128,6 @@ def other_road_by_period() -> pd.DataFrame:
 
 
 # --------------------------------------------------------------------------- Q5 road users
-
-
-def deaths_by_road_user() -> pd.DataFrame:
-    """30-day deaths by road-user type, year and zone (2016–2024), long format with shares."""
-    columns = ["ANYO", "zone", *labels.ROAD_USER_TYPES]
-    crashes = read_crashes(columns)
-    totals = crashes.groupby(["ANYO", "zone"], observed=True)[list(labels.ROAD_USER_TYPES)].sum(
-        min_count=1
-    )
-    long = (
-        totals.reset_index()
-        .melt(id_vars=["ANYO", "zone"], var_name="column", value_name="deaths_30d")
-        .rename(columns={"ANYO": "year"})
-    )
-    long["road_user"] = long.column.map(labels.ROAD_USER_TYPES)
-    long["vulnerable"] = long.column.isin(labels.VULNERABLE_TYPES)
-    long["share"] = (
-        long.deaths_30d / long.groupby(["year", "zone"]).deaths_30d.transform("sum")
-    ).round(4)
-    return long[["year", "zone", "column", "road_user", "vulnerable", "deaths_30d", "share"]]
 
 
 # ------------------------------------------------------------------- licence holders by age
@@ -255,6 +219,8 @@ SUMMARIES = {
     # 2019 to 2024: counts against exposure
     "risk_annual_panel": risk_trends.annual_panel,
     "risk_index": risk_trends.risk_index,
+    "risk_dispersion": risk_trends.year_to_year_dispersion,
+    "risk_frequency_severity": risk_trends.frequency_severity,
     "risk_fuel_efficiency": risk_trends.fuel_efficiency_sensitivity,
     "risk_km_crosscheck": risk_trends.km_crosscheck,
     # The long run and the pandemic
@@ -262,6 +228,23 @@ SUMMARIES = {
     "longrun_segments": risk_trends.long_run_segments,
     "longrun_model_choice": risk_trends.long_run_model_choice,
     "longrun_efficiency": risk_trends.long_run_efficiency_sensitivity,
+    "longrun_km_panel": risk_trends.interurban_km_panel,
+    "longrun_km_check": risk_trends.km_trend_check,
+    "longrun_fuel_bio": risk_trends.fuel_bio_share,
+    # Predicting deaths, and what a before-and-after comparison can see
+    "forecast_selection": forecast.model_selection,
+    "forecast_validation": forecast.validation,
+    "forecast_backtest": forecast.backtest,
+    "forecast_horizons": forecast.horizon_errors,
+    "forecast_detectability": forecast.detectability,
+    "forecast_coefficients": forecast.coefficients,
+    # What a speed law would do
+    "simulator_baseline": simulator.baseline_table,
+    "simulator_speed_sites": simulator.speed_sites,
+    "simulator_class_risk": simulator.class_risk,
+    "simulator_presets": simulator.presets,
+    "simulator_preset_sites": simulator.preset_sites,
+    "simulator_limit_grid": simulator.limit_grid,
     # Seasonality and mobility
     "season_profile": seasonality.seasonal_profile,
     "season_profile_long": seasonality.seasonal_profile_long,
@@ -289,6 +272,7 @@ SUMMARIES = {
     "q7_km_rates": driver_risk.km_rates,
     "q7_km_ratio": driver_risk.km_rate_ratios,
     "q7_company_km": driver_risk.company_km_sensitivity,
+    "q7_owner_age_check": driver_risk.owner_age_check,
     "q7_denominator_contrast": driver_risk.denominator_contrast,
     "q7_licence_share": licence_share_by_age,
     # Vehicles per kilometre

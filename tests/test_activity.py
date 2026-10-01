@@ -1,12 +1,12 @@
 from dgt_stats import io_activity
 
 
-def test_register_and_esra_shares() -> None:
+def test_the_survey_register_parses() -> None:
+    # No page reads the register any more; it is kept, and checked, as the record of what was
+    # searched before DGT's kilometres by owner age replaced the survey-based denominator.
     register = io_activity.read_activity_register()
     assert {"source", "wave", "share", "n"} <= set(register.columns)
-    esra = io_activity.esra_shares()
-    assert esra.wave.tolist() == [2018, 2023]
-    assert abs(esra.share.iloc[1] - 0.759) < 1e-9 and int(esra.n.iloc[1]) == 935
+    assert {2018, 2023} <= set(register.wave)
 
 
 def test_movilia_trips_by_mode_sex_and_age() -> None:

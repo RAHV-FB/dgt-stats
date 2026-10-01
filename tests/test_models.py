@@ -190,7 +190,7 @@ def test_small_levels_merge_into_the_reference() -> None:
     assert groupings.loc[("Crash type", "2")].level == "side collision"
 
 
-def test_profiles_and_predicted_grid(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_profiles(monkeypatch: pytest.MonkeyPatch) -> None:
     frame = _synthetic()
     fit = models.fit_severity(frame, "fatal", ("x1", "x2"))
     monkeypatch.setattr(models, "PROFILES", {"ref": {}, "b": {"x1": "b"}})
@@ -198,8 +198,6 @@ def test_profiles_and_predicted_grid(monkeypatch: pytest.MonkeyPatch) -> None:
     reference = 1 / (1 + np.exp(-fit.params["intercept"]))
     assert out.set_index("profile").fatal["ref"] == pytest.approx(reference, rel=1e-6)
     assert out.fatal.between(0, 1).all()
-    grid = models.predicted_grid(frame, fit, rows="x1", columns="x2")
-    assert len(grid) == 3 * 2 and grid.probability.between(0, 1).all()
 
 
 def _road_frame(n: int = 20_000) -> pd.DataFrame:
@@ -226,18 +224,15 @@ def _road_frame(n: int = 20_000) -> pd.DataFrame:
     )
 
 
-def test_predicted_grid_pins_zone_to_the_road_type() -> None:
+def test_a_profile_is_a_valid_design_and_rejects_unknown_levels() -> None:
     frame = _road_frame()
     fit = models.fit_severity(frame, "fatal", ("road", "zone", "lighting"), cluster=None)
-    grid = models.predicted_grid(frame, fit)
-    assert len(grid) == 3 * 2 and grid.probability.between(0, 1).all()
-    got = grid.set_index(["road", "lighting"]).probability
-    coupled = models._profile_design(
+    motorway = models._profile_design(
         frame, fit, {"road": "motorway", "lighting": "daylight", "zone": "interurban road"}
     )
-    assert got[("motorway", "daylight")] == pytest.approx(float(models.predict(fit, coupled)[0]))
     urban = models._profile_design(frame, fit, {"road": "urban street", "lighting": "daylight"})
-    assert got[("urban street", "daylight")] == pytest.approx(float(models.predict(fit, urban)[0]))
+    for design in (motorway, urban):
+        assert 0 < float(models.predict(fit, design)[0]) < 1
     with pytest.raises(ValueError):
         models._profile_design(frame, fit, {"road": "no such road"})
 

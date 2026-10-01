@@ -229,9 +229,6 @@ def test_vehicle_groups_cover_every_source_once() -> None:
         "heavy_truck",
         "bus",
     )
-    assert vehicles.group_of("Vehículo articulado") == "heavy_truck"
-    with pytest.raises(KeyError):
-        vehicles.group_of("Nave espacial")
 
 
 def test_driver_infractions_every_layout() -> None:

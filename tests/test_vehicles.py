@@ -81,15 +81,7 @@ def test_summary_matches_the_yearbook_and_the_long_table() -> None:
     )
 
 
-def test_involvement_by_year_and_occupant_series() -> None:
-    by_year = vehicles.involvement_by_year()
-    assert sorted(by_year.year.unique()) == list(io_tables.VEHICLE_TABLE_YEARS)
-    assert by_year[by_year.group == "pedestrian"].fatal_involvement_share_of_vehicles.isna().all()
-    # Shares of the vehicles involved in fatal crashes, pedestrians excluded: pinned to TABLA 2.3.
-    cars_2022 = by_year[(by_year.year == 2022) & (by_year.group == "car")].iloc[0]
-    assert cars_2022.fatal_involvement == 1_299
-    assert cars_2022.fatal_involvement_share_of_vehicles == pytest.approx(0.5102, abs=5e-5)
-
+def test_van_split_and_vehicle_groups() -> None:
     split = vehicles.van_light_truck_split().set_index("group")
     assert list(split.index) == ["van", "light_truck"]
     assert split.loc["van", "fatal_involvement"] == 215
@@ -100,16 +92,6 @@ def test_involvement_by_year_and_occupant_series() -> None:
         .set_index("group")
         .loc[vehicles.MERGED_GROUP, "fatal_involvement"]
     )
-    assert (
-        by_year[(by_year.year == 2024) & (by_year.group == "pedestrian")].iloc[0].fatal_involvement
-        == 380
-    )
-
-    series = vehicles.occupant_deaths_series()
-    assert series.year.min() == 1993 and series.year.max() == 2024
-    row = series[(series.year == 2022) & (series.group == vehicles.MERGED_GROUP)].iloc[0]
-    assert row.deaths_30d == 98 and row.has_km_denominator
-    assert series[(series.year == 1993) & (series.group == "vmp")].deaths_30d.isna().all()
 
     groups = vehicles.vehicle_groups_table()
     assert len(groups) == len(vehicles.VEHICLE_GROUPS)

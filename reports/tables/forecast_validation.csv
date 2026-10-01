@@ -1,0 +1,46 @@
+outcome,outcome_label,family,method,method_label,window,set,years,rmse,mean_abs_error,bias
+deaths_all,All roads,model,trend_traffic_calendar,Month + trend + traffic + calendar,4,selection,10,0.04911603822,0.04061013218,0.02307727779
+deaths_all,All roads,model,trend,Month + trend,4,selection,10,0.07650364482,0.05920493557,0.01299171732
+deaths_all,All roads,naive,last_year,Naive: same months last year,4,selection,10,0.1171206135,0.09776537765,-0.09669680876
+deaths_all,All roads,naive,mean_3_years,Naive: mean of the last three years,4,selection,10,0.2254026124,0.2090601943,-0.2090601943
+deaths_all,All roads,trees,boosted_trees_leaf_1,"Gradient-boosted trees, same inputs, leaves of at least 1",4,selection,10,0.07528017318,0.06153652948,-0.0572259009
+deaths_all,All roads,model,trend_traffic_calendar,Month + trend + traffic + calendar,4,holdout,7,0.06612908091,0.05488844725,0.01546200593
+deaths_all,All roads,model,trend,Month + trend,4,holdout,7,0.1322794281,0.1073473334,0.03704102641
+deaths_all,All roads,naive,last_year,Naive: same months last year,4,holdout,7,0.0586849792,0.04251576198,0.0272177192
+deaths_all,All roads,naive,mean_3_years,Naive: mean of the last three years,4,holdout,7,0.08416376401,0.07149510157,0.06183788767
+deaths_all,All roads,trees,boosted_trees_leaf_1,"Gradient-boosted trees, same inputs, leaves of at least 1",4,holdout,7,0.08373319985,0.06110601112,0.0303238312
+deaths_all,All roads,model,trend_traffic_calendar,Month + trend + traffic + calendar,4,pandemic,2,0.07312131083,0.05574384265,0.05574384265
+deaths_all,All roads,model,trend,Month + trend,4,pandemic,2,0.1937188209,0.1828643707,-0.06393436895
+deaths_all,All roads,naive,last_year,Naive: same months last year,4,pandemic,2,0.192317275,0.1800369886,-0.06762112851
+deaths_all,All roads,naive,mean_3_years,Naive: mean of the last three years,4,pandemic,2,0.1980737944,0.1705053933,-0.1705053933
+deaths_all,All roads,trees,boosted_trees_leaf_1,"Gradient-boosted trees, same inputs, leaves of at least 1",4,pandemic,2,0.1685476017,0.1393892541,-0.1393892541
+deaths_interurban,Interurban roads,model,trend_traffic_calendar,Month + trend + traffic + calendar,4,selection,10,0.05402041612,0.03977206123,0.01841271728
+deaths_interurban,Interurban roads,model,trend,Month + trend,4,selection,10,0.0886913926,0.06503165755,0.01299031731
+deaths_interurban,Interurban roads,naive,last_year,Naive: same months last year,4,selection,10,0.1289519785,0.1102788894,-0.1073732693
+deaths_interurban,Interurban roads,naive,mean_3_years,Naive: mean of the last three years,4,selection,10,0.2484352524,0.2310069984,-0.2310069984
+deaths_interurban,Interurban roads,trees,boosted_trees_leaf_1,"Gradient-boosted trees, same inputs, leaves of at least 1",4,selection,10,0.08151702972,0.06995372547,-0.06995372547
+deaths_interurban,Interurban roads,model,trend_traffic_calendar,Month + trend + traffic + calendar,4,holdout,7,0.06267169618,0.04545579082,0.0101367367
+deaths_interurban,Interurban roads,model,trend,Month + trend,4,holdout,7,0.1309438514,0.1006693627,0.03254932857
+deaths_interurban,Interurban roads,naive,last_year,Naive: same months last year,4,holdout,7,0.05754689912,0.03843166714,0.019429191
+deaths_interurban,Interurban roads,naive,mean_3_years,Naive: mean of the last three years,4,holdout,7,0.08316997957,0.07060994494,0.05406928984
+deaths_interurban,Interurban roads,trees,boosted_trees_leaf_1,"Gradient-boosted trees, same inputs, leaves of at least 1",4,holdout,7,0.09440584242,0.06587406164,0.02982750866
+deaths_interurban,Interurban roads,model,trend_traffic_calendar,Month + trend + traffic + calendar,4,pandemic,2,0.1137724233,0.09633388943,0.09633388943
+deaths_interurban,Interurban roads,model,trend,Month + trend,4,pandemic,2,0.2064616802,0.2010228928,-0.04707676698
+deaths_interurban,Interurban roads,naive,last_year,Naive: same months last year,4,pandemic,2,0.1930110315,0.1861334195,-0.05106474754
+deaths_interurban,Interurban roads,naive,mean_3_years,Naive: mean of the last three years,4,pandemic,2,0.2021132348,0.1666805349,-0.1666805349
+deaths_interurban,Interurban roads,trees,boosted_trees_leaf_1,"Gradient-boosted trees, same inputs, leaves of at least 1",4,pandemic,2,0.157144704,0.1411653037,-0.1411653037
+deaths_urban,Urban streets,model,trend_traffic_calendar,Month + trend + traffic + calendar,4,selection,10,0.0728739884,0.06961504206,0.03582674766
+deaths_urban,Urban streets,model,trend,Month + trend,4,selection,10,0.06407572579,0.05792749103,0.01092620819
+deaths_urban,Urban streets,naive,last_year,Naive: same months last year,4,selection,10,0.0865438349,0.06112428404,-0.058298807
+deaths_urban,Urban streets,naive,mean_3_years,Naive: mean of the last three years,4,selection,10,0.1494600658,0.1321192667,-0.1321192667
+deaths_urban,Urban streets,trees,boosted_trees_leaf_1,"Gradient-boosted trees, same inputs, leaves of at least 1",4,selection,10,0.1071047361,0.08743036611,-0.02197336226
+deaths_urban,Urban streets,model,trend_traffic_calendar,Month + trend + traffic + calendar,4,holdout,7,0.1040591805,0.09140880508,0.02730782604
+deaths_urban,Urban streets,model,trend,Month + trend,4,holdout,7,0.1524756911,0.1290851831,0.04743689088
+deaths_urban,Urban streets,naive,last_year,Naive: same months last year,4,holdout,7,0.09137176776,0.07803864866,0.04747261473
+deaths_urban,Urban streets,naive,mean_3_years,Naive: mean of the last three years,4,holdout,7,0.1037213859,0.08212919023,0.08173993365
+deaths_urban,Urban streets,trees,boosted_trees_leaf_1,"Gradient-boosted trees, same inputs, leaves of at least 1",4,holdout,7,0.1314097951,0.1261436832,0.04313527777
+deaths_urban,Urban streets,model,trend_traffic_calendar,Month + trend + traffic + calendar,4,pandemic,2,0.05473854931,0.05396801273,-0.05396801273
+deaths_urban,Urban streets,model,trend,Month + trend,4,pandemic,2,0.1736022201,0.136624877,-0.1071044994
+deaths_urban,Urban streets,naive,last_year,Naive: same months last year,4,pandemic,2,0.1968204543,0.1636092876,-0.1094088307
+deaths_urban,Urban streets,naive,mean_3_years,Naive: mean of the last three years,4,pandemic,2,0.1925540464,0.1808307477,-0.1808307477
+deaths_urban,Urban streets,trees,boosted_trees_leaf_1,"Gradient-boosted trees, same inputs, leaves of at least 1",4,pandemic,2,0.09845909977,0.08530062478,-0.08530062478

@@ -171,14 +171,6 @@ UNIT_TO_GROUP: dict[str, str] = {
 }
 
 
-def group_of(unit_type: str) -> str:
-    """Group of a yearbook unit label; raises for a label the mapping does not know."""
-    try:
-        return UNIT_TO_GROUP[unit_type]
-    except KeyError as error:
-        raise KeyError(f"unit type {unit_type!r} is not in VEHICLE_GROUPS") from error
-
-
 def label(group: str) -> str:
     if group == MERGED_GROUP:
         return MERGED_LABEL
@@ -452,60 +444,3 @@ def van_light_truck_split() -> pd.DataFrame:
         "fatal_involvement_per_100k_vehicles",
     ]
     return out[columns]
-
-
-def involvement_by_year() -> pd.DataFrame:
-    """Vehicles involved and occupant deaths by group, 2020–2024, all roads (counts only)."""
-    frames = [_counts(year) for year in io_tables.VEHICLE_TABLE_YEARS]
-    out = pd.concat(frames, ignore_index=True)
-    out = out[out.zone == "all"].drop(columns="zone")
-    for column in ("injury_involvement", "fatal_involvement", "occupant_deaths"):
-        out[column] = out[column].fillna(0).astype("int64")
-    out["label"] = out.group.map(label)
-    vehicles_only = out[out.group != "pedestrian"]
-    totals = vehicles_only.groupby("year").fatal_involvement.sum()
-    share = vehicles_only.fatal_involvement / vehicles_only.year.map(totals)
-    out["fatal_involvement_share_of_vehicles"] = share.round(4)  # NaN for pedestrians
-    order = {name: index for index, name in enumerate(dict.fromkeys(RATE_GROUP_OF.values()))}
-    out = out.sort_values(["year", "group"], key=lambda s: s.map(order) if s.name == "group" else s)
-    columns = [
-        "year",
-        "group",
-        "label",
-        "injury_involvement",
-        "fatal_involvement",
-        "occupant_deaths",
-        "fatal_involvement_share_of_vehicles",
-    ]
-    return out[columns].reset_index(drop=True)
-
-
-def occupant_deaths_series() -> pd.DataFrame:
-    """Drivers and passengers killed (30-day) by group, 1993–2024, all roads, from the series.
-
-    Vans and light trucks are one column in the series and stay merged here.
-    """
-    users = io_tables.read_table("series_road_users")
-    rows = users[
-        (users.population == "drivers_and_passengers")
-        & (users.severity == "deaths_30d")
-        & (users.zone == "all")
-        & ~users.is_total
-    ]
-    series_to_group = {
-        spec["series"]: name for name, spec in VEHICLE_GROUPS.items() if spec["series"]
-    }
-    series_to_group[SERIES_MERGED_COLUMN] = MERGED_GROUP
-    out = rows[["year", "vehicle_type", "value"]].rename(
-        columns={"vehicle_type": "series_column", "value": "deaths_30d"}
-    )
-    out = out.assign(group=out.series_column.map(series_to_group))
-    if out.group.isna().any():
-        raise ValueError(
-            f"series columns without a group: {sorted(out[out.group.isna()].series_column)}"
-        )
-    out["label"] = out.group.map(label)
-    out["has_km_denominator"] = out.group.isin(RATE_GROUPS)
-    return out[
-        ["year", "group", "label", "series_column", "deaths_30d", "has_km_denominator"]
-    ].reset_index(drop=True)

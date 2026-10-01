@@ -4,7 +4,7 @@ Data are organised by processing stage. Source data must never be manually edite
 
 ## Layers
 
-- `raw/`: source downloads kept byte for byte, except `ine_poblacion_provincias_edad_sexo.csv` (an extract of INE table 56947 written by `scripts/fetch_ine.py`) and `driving_activity_by_age.csv` (hand-typed survey values); tracked in Git, with `raw/manifest.csv` listing path, size, SHA-256, source URL, description and the date added. Subfolders: `microdata/`, `tables/`, `exposure/`, `reports/`.
+- `raw/`: source downloads kept byte for byte, except `ine_poblacion_provincias_edad_sexo.csv` (an extract of INE table 56947 written by `scripts/fetch_ine.py`), `driving_activity_by_age.csv` (hand-typed survey values) and `evidence/simulator_parameters.csv` (hand-typed published values for the simulator, each with its source, table, URL and a verbatim quote); tracked in Git, with `raw/manifest.csv` listing path, size, SHA-256, source URL, description and the date added. Subfolders: `microdata/`, `tables/`, `exposure/`, `reports/`, `evidence/`.
 - `interim/`: parsed files with harmonised encodings, names and types.
 - `processed/`: validated, analysis-ready tables at documented units of observation.
 
@@ -24,7 +24,7 @@ python scripts/ingest.py validate
 | `tables` | `series_annual`, `series_monthly`, `series_province`, `series_age`, `series_sex`, `series_road_users`, `series_pedestrians`, `tables_2024_province`, `tables_2024_month`, `tables_2024_vehicles_involved`, `tables_units_by_type` (2.3, 2020–2024), `tables_victims_by_mode` (2.2, 2020–2024), `tables_driver_victims` (4.1.1, 2014–2024), `tables_drivers_involved` (4.2, 2014–2024), `tables_driver_infractions` (6.1, 2014–2024) | tidy long frames with a `source_sheet` column; `.` cells become missing; the driver tables carry a `band` column on the DGT age bands |
 | `exposure` | `censo_conductores` (2023–2025 stacked), `censo_provincias_2025`, `censo_edad` (2023–2025 by province, sex and age band), `censo_edad_tablas` (published class × age totals 2014–2023), `conductores_por_edad` (2014–2025 stitched), `poblacion_ine` (INE residents 2002–2025), `km_medios_2022`, `km_estimados_2022`, `km_edad_propietario_2024` (vehicles and km by category and owner age band), `km_medios_tipo_2024` (the same release's totals, used to check it) | census `licence_class` is the driver's highest class; `conductores_por_edad` uses the published tables to 2023 and the text files from 2024 |
 | `reports` | `speed_report` | 61 of the 64 tables of the DGT speed-factor report (2014–2023, without Cataluña or País Vasco; all but the three year-on-year variation tables) transcribed from the PDF text with `pymupdf`; long format with the table's metric, zone, breakdown and a `region_scope` column on every row |
-| `validate` | `reports/tables/validation.csv`, `reports/tables/missingness_by_year.csv` (both committed) | reconciliation against the yearbook and 2024 tables, key uniqueness, code domains, census cross-check, driver deaths in the yearly tables against the series (2014–2024), 2023 census by age against the published table, vehicles involved and deaths by means of transport in the yearly tables 2.3 and 2.2 against the microdata (2020–2024), the driver-infraction tables 6.1 against the drivers involved in table 4.2 within 1.5 % with one agreed total across the blocks that publish one, two in 2014–2015 and six from 2016 (2014–2024, both zones), the speed report's scope totals against the microdata restricted to its provinces (2016–2023), per-year missingness (482 checks). The missingness profile counts the placeholders of the fields that carry no code list — `KM` 9999 and, in 2019, 1000; `CARRETERA` "No inventariada"; the `COD_MUNICIPIO` placeholder — as not observed |
+| `validate` | `reports/tables/validation.csv`, `reports/tables/missingness_by_year.csv` (both committed) | reconciliation against the yearbook and 2024 tables, key uniqueness, code domains, census cross-check, driver deaths in the yearly tables against the series (2014–2024), 2023 census by age against the published table, vehicles involved and deaths by means of transport in the yearly tables 2.3 and 2.2 against the microdata (2020–2024), the driver-infraction tables 6.1 against the drivers involved in table 4.2 within 1.5 % with one agreed total across the blocks that publish one, two in 2014–2015 and six from 2016 (2014–2024, both zones), the speed report's scope totals against the microdata restricted to its provinces (2016–2023), per-year missingness (482 checks). The missingness profile counts the placeholders of the fields that carry no code list (`KM` 9999 and, in 2019, 1000; `CARRETERA` "No inventariada"; the `COD_MUNICIPIO` placeholder) as not observed |
 
 Existing outputs are skipped unless `--force` is given. Tests that need the interim layer skip themselves with a message until it has been built.
 
@@ -32,16 +32,18 @@ Existing outputs are skipped unless `--force` is given. Tests that need the inte
 
 ```bash
 python scripts/build_tables.py      # data/processed/accidentes.parquet: interim crashes + derived fields
-python scripts/model.py             # reports/tables/q3_*.csv: the severity models (about 30 seconds)
-python scripts/analyse.py all       # reports/tables/q*.csv, reports/figures/*.svg, captions.json
-python scripts/build_site.py        # site/*.html, site/style.css, site/figures/
+python scripts/model.py             # reports/tables/q3_*.csv: the severity models (about a minute and a half)
+python scripts/analyse.py all       # the other result tables in reports/tables/, reports/figures/*.svg, captions.json
+python scripts/build_site.py        # site/*.html, site/style.css, site/simulator.js, site/figures/, site/tables/
 ```
 
 `data/processed/accidentes.parquet` (875,013 rows, 102 columns) adds outcome flags (`fatal`, `serious`),
 `zone`, `road_group`, `hour_band`, `night`, `weekend`, a `status_*` companion for every condition column
 and an English `*_label` column for the code lists used on the site. The result tables, the figures
-under `reports/` and the site's HTML and CSS are committed so they can be reviewed without rebuilding;
-`site/figures/` is not, and `build_site.py` copies the SVGs from `reports/figures/` into it.
+under `reports/` and the site's HTML, CSS and script are committed so they can be reviewed without
+rebuilding; `site/figures/` and `site/tables/` are not: `build_site.py` copies the figures and
+result tables into them from `reports/`, and the simulator's evidence register from
+`raw/evidence/` into `site/tables/`.
 
 ## Source inventory
 
@@ -49,15 +51,17 @@ The full audit is in [`docs/data_inventory.md`](../docs/data_inventory.md).
 
 | Group | Files | Used for |
 |---|---|---|
-| Crash microdata 2016–2024 | nine yearly workbooks, the code dictionary | the speed report's scope totals by road type, darkness shares, the severity model and the 2019 case study (supporting) |
-| Yearbook series 1993–2024 | one workbook, 69 sheets | 2019–2024 risk, the long run, seasonality, the 2006 case study (supporting) |
+| Crash microdata 2016–2024 | nine yearly workbooks, the code dictionary | the speed report's scope totals by road type, darkness shares, the simulator's baseline and deaths per kilometre by road class, the severity model and the 2019 case study (supporting) |
+| Yearbook series 1993–2024 | one workbook, 69 sheets | 2019–2024 risk, the long run, seasonality, the forecasting model, the 2006 case study (supporting) |
 | Statistical tables 2014–2024 | chapter workbooks to 2019, one workbook per year from 2020 | province and month totals, vehicles involved, victims by mode, drivers by age, sex and infraction |
 | Driver census 2014–2025 | text extracts and published tables | licence-holder denominators by year, sex and age |
 | INE population 2002–2025 | one CSV | resident denominators by year, sex and age |
 | ITV kilometre estimates 2022 and 2024 | four workbooks and the methodology note | vehicle-kilometres by type (2022) and by owner age (2024); the circulating fleet |
-| Monthly traffic | CORES road fuel, state toll-motorway traffic | the traffic denominators of the risk, long-run and seasonality pages |
+| Monthly traffic | CORES road fuel, state toll-motorway traffic | the traffic denominators of the risk, long-run and seasonality pages; road fuel also feeds the forecasting model |
+| Interurban traffic 2004–2023 | the roads chapter of the Ministerio de Transportes' Anuario Estadístico 2023 (PDF) | vehicle-km and heavy-vehicle share by type of road (table 1.2.14): the check on road fuel, deaths per kilometre by road class and the simulator's travel time |
 | Travel and driving surveys | MOVILIA 2006–2007, ECEPOV 2021, EHMA 2008, ESRA shares | MOVILIA 2006 bounds the travel gap between the sexes; the others are registered for context |
 | DGT thematic reports | speed factor, older road users, Easter 2026 | speed as a severity factor and the recorded-factor series (transcribed, reconciled against the microdata), definitions |
+| Simulator evidence | one hand-typed register, `evidence/simulator_parameters.csv` | the Power Model exponents, the response of speeds to a new limit, car speeds measured in Spain in 2022, the legal limits and DGT's values of a casualty |
 
 The driver-census text files use a pipe delimiter. The census-by-class files
 (`censo_conductores_YYYY.txt`) carry five fields:

@@ -1,3 +1,4 @@
+import json
 import re
 from pathlib import Path
 
@@ -31,14 +32,26 @@ def test_every_page_is_written_with_one_heading(built: Path) -> None:
         assert page.exists(), slug
         text = page.read_text(encoding="utf-8")
         assert text.count("<h1>") == 1, slug
-        assert "<script" not in text, slug
+        _scripts_are_only_the_simulator(slug, text)
         assert 'lang="en"' in text
         assert f'href="{slug}.html" aria-current="page"' in text
-    # Seven analyses, the overview and the data in the main navigation; two supporting analyses
-    # in a second row; and a pointer for each page that was renamed, and nothing else.
-    assert len(site.PAGES) == 9 and len(site.SUPPORTING_PAGES) == 2
+    # Seven analyses, the simulator, the overview and the data in the main navigation; two
+    # supporting analyses in a second row; and a pointer for each page that was renamed.
+    assert len(site.PAGES) == 10 and len(site.SUPPORTING_PAGES) == 2
     expected = {slug for slug, _ in site.ALL_PAGES} | set(site.MOVED_PAGES)
     assert expected == {p.stem for p in built.glob("*.html")}
+
+
+def _scripts_are_only_the_simulator(slug: str, text: str) -> None:
+    """No page runs a script except the simulator, which loads its own file and a data block."""
+    scripts = re.findall(r"<script[^>]*>", text)
+    if slug != "simulator":
+        assert not scripts, slug
+        return
+    assert scripts == [
+        '<script type="application/json" id="simulator-parameters">',
+        '<script src="simulator.js" defer>',
+    ]
 
 
 def test_moved_pages_point_to_their_successors(built: Path) -> None:
@@ -257,7 +270,7 @@ def test_every_page_has_a_description_and_every_image_an_alt(built: Path) -> Non
         for image in re.findall(r"<img[^>]*>", text):
             alt = re.search(r'alt="([^"]*)"', image)
             assert alt and alt.group(1).strip(), (page.name, image[:80])
-        assert "<script" not in text
+        _scripts_are_only_the_simulator(page.stem, text)
 
 
 def test_front_page_leads_with_the_central_question(built: Path) -> None:
@@ -310,3 +323,52 @@ def test_the_development_note_is_professional_and_present(built: Path) -> None:
         text = page.read_text(encoding="utf-8")
         if page.name != "data.html":
             assert "Claude Code" not in text
+
+
+def test_simulator_page_carries_its_evidence_and_works_without_the_script(built: Path) -> None:
+    text = (built / "simulator.html").read_text(encoding="utf-8")
+    assert (built / "simulator.js").exists()
+    presets = pd.read_csv(TABLES_DIR / "simulator_presets.csv").set_index("scenario")
+    comply = presets.loc["all_comply"]
+    # The headline is computed from the table, and the presets are printed for readers without
+    # the script, the interactive panel staying hidden until the script reveals it.
+    assert f"{-comply.deaths_change:,.0f}" in text
+    assert '<div id="simulator-panel" hidden>' in text
+    assert "The laws the page offers as starting points" in text
+    # Every publication the simulator draws on is linked, and the register is downloadable.
+    evidence = pd.read_csv(simulator_evidence_path())
+    for url in evidence.url.unique():
+        assert f'href="{site.esc(url)}"' in text, url
+    assert 'href="tables/simulator_evidence.csv"' in text
+    # The model behind the detectability is reported against the naive forecasts.
+    for name in ("k1_forecast_check", "k2_detectability"):
+        assert f'src="figures/{name}.svg"' in text
+    assert "held back" in text
+    # The parameters block parses and names every interurban road and urban street.
+    block = re.search(
+        r'<script type="application/json" id="simulator-parameters">(.*?)</script>', text, re.S
+    )
+    parameters = json.loads(block.group(1).replace("<\\/", "</"))
+    assert set(parameters["sites"]) == {
+        "autopista",
+        "autovia",
+        "conventional",
+        "urban_50",
+        "urban_30",
+    }
+    assert set(parameters["levers"]) == {"motorway", "conventional", "urban_50"}
+    assert {p["key"] for p in parameters["presets"]} == set(presets.index)
+    # Every preset's chance of showing in a year's count is printed, never a bare yes or no.
+    for key, row in presets.drop(index="current").iterrows():
+        if pd.isna(row.power_in_one_year):
+            continue
+        power = float(row.power_in_one_year)
+        printed = "over 99%" if power > 0.995 else f"{power:.0%}"
+        assert f"<td>{printed}</td>" in text, key
+    assert "Visible in a year" not in text and "invisible" not in text
+
+
+def simulator_evidence_path() -> Path:
+    from dgt_stats.paths import SIMULATOR_EVIDENCE_PATH
+
+    return SIMULATOR_EVIDENCE_PATH

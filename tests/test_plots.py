@@ -13,6 +13,10 @@ EXPECTED_FIGURES = {
     "r1_risk_change",
     "l1_trend_projection",
     "l2_observed_over_trend",
+    "l3_frequency_severity",
+    "l4_km_against_fuel",
+    "k1_forecast_check",
+    "k2_detectability",
     "m1_season_profile",
     "m2_month_effects",
     "m3_lockdown",
@@ -71,11 +75,7 @@ def test_bar_shares_and_heatmap(tmp_path: Path) -> None:
     _svg_ok(plots.heatmap(matrix, tmp_path / "heat.svg", "Heat", percent=True))
 
 
-def test_small_multiples_and_missingness(tmp_path: Path) -> None:
-    frame = pd.DataFrame(
-        {"facet": ["a"] * 3 + ["b"] * 3, "x": [1, 2, 3] * 2, "y": [1, 2, 3, 3, 2, 1]}
-    )
-    _svg_ok(plots.small_multiples(frame, "facet", "x", "y", tmp_path / "sm.svg", "Small"))
+def test_missingness_heatmap(tmp_path: Path) -> None:
     profile = pd.DataFrame(
         {
             "year": [2016, 2017, 2016, 2017],
@@ -114,7 +114,7 @@ def test_series_styles_differ_beyond_colour() -> None:
     assert len({(s["linestyle"], s.get("marker")) for s in styles}) == len(styles)
 
 
-def test_line_series_with_band_and_small_multiples_with_series(tmp_path: Path) -> None:
+def test_line_series_with_band(tmp_path: Path) -> None:
     frame = pd.DataFrame(
         {
             "year": list(range(2014, 2025)) * 2,
@@ -128,18 +128,11 @@ def test_line_series_with_band_and_small_multiples_with_series(tmp_path: Path) -
         frame, "year", "value", tmp_path / "band.svg", "Band", series="band", band=("low", "high")
     )
     _svg_ok(out)
-    frame["kind"] = "a"
-    other = frame.assign(kind="b", value=frame.value * 2, low=frame.low * 2, high=frame.high * 2)
-    both = pd.concat([frame, other])
-    out = plots.small_multiples(
-        both, "band", "year", "value", tmp_path / "sm2.svg", "Panels", ncols=2, series="kind"
-    )
-    _svg_ok(out)
     text = out.read_text(encoding="utf-8")
-    assert ">a<" in text and ">b<" in text  # series names appear in the shared legend
+    assert "65-74" in text and "75+" in text  # both series are labelled
 
 
-def test_dot_interval_and_grouped_bars(tmp_path: Path) -> None:
+def test_dot_interval(tmp_path: Path) -> None:
     frame = pd.DataFrame(
         {"name": list("abcdef"), "v": [1, 3, 2, 5, 4, 6], "lo": [0.5] * 6, "hi": [7] * 6}
     )
@@ -153,13 +146,6 @@ def test_dot_interval_and_grouped_bars(tmp_path: Path) -> None:
         "Dots",
         reference=3.5,
         reference_label="Spain",
-    )
-    _svg_ok(out)
-    bars = pd.DataFrame(
-        {"band": ["a", "a", "b", "b"], "kind": ["x", "y", "x", "y"], "share": [0.2, 0.1, 0.5, 0.4]}
-    )
-    out = plots.grouped_bars(
-        bars, "band", "kind", "share", tmp_path / "bars2.svg", "Bars", percent=True
     )
     _svg_ok(out)
 

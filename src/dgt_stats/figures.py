@@ -29,6 +29,7 @@ SPEED_REPORT_SOURCE = "DGT, Informe temático Factor Velocidad 2014–2023"
 POPULATION_SOURCE = "INE, Estadística Continua de Población"
 CENSUS_SOURCE = "DGT, Censo de conductores 2014–2025"
 FUEL_SOURCE = "CORES, consumo de productos petrolíferos"
+ROAD_TRAFFIC_SOURCE = "Ministerio de Transportes y Movilidad Sostenible, Anuario Estadístico 2023"
 TRAFFIC_SOURCE = (
     "CORES, consumo de productos petrolíferos; Ministerio de Transportes y Movilidad Sostenible, "
     "tráfico en autopistas estatales de peaje"
@@ -69,6 +70,7 @@ def build_all(
     _trend_figures(figures_dir, captions, summary)
     _long_run_figures(figures_dir, captions, summary)
     _season_figures(figures_dir, captions, summary)
+    _forecast_figures(figures_dir, captions, summary)
     _sex_figures(figures_dir, captions, summary)
     _factor_figures(figures_dir, captions, summary)
     _speed_status_figure(figures_dir, captions, summary)
@@ -145,8 +147,8 @@ def _trend_figures(figures_dir: Path, captions: dict[str, str], summary) -> None
         "outcome_label",
         "denominator_short",
         "ratio_to_base",
-        "ratio_low",
-        "ratio_high",
+        "ratio_low_yty",
+        "ratio_high_yty",
         figures_dir / "r1_risk_change.svg",
         f"{last} against 2019: the same outcomes under five denominators",
         order=list(SHORT_DENOMINATORS.values()),
@@ -160,8 +162,10 @@ def _trend_figures(figures_dir: Path, captions: dict[str, str], summary) -> None
         f"vehicle fleet; {FUEL_SOURCE}",
         f"2019 and {last}, all roads",
         "each outcome divided by each denominator in turn, as the ratio of the "
-        f"{last} rate to the 2019 rate, with 95% log-normal intervals that treat both counts as "
-        "Poisson and the denominators as known; count is the outcome with no denominator; road "
+        f"{last} rate to the 2019 rate, with 95% log-normal intervals widened by each outcome's "
+        "year-to-year dispersion around its 2013–2019 trend, so that they cover an ordinary "
+        "year's variation and not only Poisson chance; the denominators are treated as known; "
+        "count is the outcome with no denominator; road "
         "fuel is automotive petrol plus diesel in tonnes, a proxy for vehicle-kilometres; each "
         "panel has its own scale",
     )
@@ -222,6 +226,122 @@ def _long_run_figures(figures_dir: Path, captions: dict[str, str], summary) -> N
         + "); the per-vehicle and per-fuel trends are multiplied back by each year's fleet or "
         "fuel so that all three panels are in deaths; shaded: 95% prediction interval of the "
         "projection",
+    )
+
+    check = summary("longrun_km_check")
+    check = check[check.year >= 2010].assign(
+        ratio_low=lambda f: f.observed / f.high, ratio_high=lambda f: f.observed / f.low
+    )
+    plots.line_series(
+        check,
+        "year",
+        "ratio",
+        figures_dir / "l4_km_against_fuel.svg",
+        "Interurban deaths against the 2013–2019 trend: per kilometre and per tonne of fuel",
+        series="measure_label",
+        ylabel="Observed ÷ trend",
+        zero_based=False,
+        reference=1.0,
+        band=("ratio_low", "ratio_high"),
+        end_labels=False,
+    )
+    first_km = int(check.year.min())
+    captions["l4_km_against_fuel"] = plots.caption(
+        f"{SERIES_SOURCE}; {FUEL_SOURCE}; {ROAD_TRAFFIC_SOURCE}",
+        f"{first_km}–{int(check.year.max())}, interurban roads",
+        "interurban deaths within 30 days divided by a joinpoint trend fitted to 2008–2019 "
+        "(the first comparable year of the kilometre series) and projected from 2020, once with "
+        "the measured vehicle-kilometres of the State, regional and provincial networks as "
+        "exposure and once with national road fuel; 1 means on trend; shaded: the range the "
+        "trend's 95% prediction interval allows",
+    )
+
+    split = summary("risk_frequency_severity")
+    labels = {
+        "deaths_per_fuel_index": "Deaths per tonne of fuel",
+        "frequency_index": "Injury crashes per tonne of fuel (how often)",
+        "severity_index": "Deaths per injury crash (how deadly)",
+    }
+    long = split.melt(
+        id_vars="year", value_vars=list(labels), var_name="measure", value_name="index"
+    ).assign(measure_label=lambda f: f.measure.map(labels))
+    base = int(split.year.min())
+    plots.line_series(
+        long,
+        "year",
+        "index",
+        figures_dir / "l3_frequency_severity.svg",
+        f"Deaths per unit of traffic, split into how often and how deadly ({base} = 100)",
+        series="measure_label",
+        ylabel=f"Index, {base} = 100",
+        reference=100,
+        end_labels=False,
+    )
+    captions["l3_frequency_severity"] = plots.caption(
+        f"{SERIES_SOURCE}; {FUEL_SOURCE}",
+        f"{base}–{int(split.year.max())}, all roads",
+        "deaths within 30 days per tonne of automotive petrol plus diesel, and its two factors: "
+        "injury crashes per tonne and deaths per injury crash, each indexed to "
+        f"{base}; the two factors multiply to the first exactly; the injury-crash count depends "
+        "on how completely slight injuries are recorded, which moves the split between the two "
+        "factors but not their product",
+    )
+
+
+# --------------------------------------------------------------------------- forecasts
+
+
+def _forecast_figures(figures_dir: Path, captions: dict[str, str], summary) -> None:
+    backtest = summary("forecast_backtest")
+    national = backtest[backtest.outcome == "deaths_all"]
+    labels = {
+        "observed": "Deaths",
+        "model": "Model forecast",
+        "naive_last_year": "Last year's count",
+    }
+    long = national.melt(
+        id_vars="year", value_vars=list(labels), var_name="series", value_name="deaths"
+    ).assign(series_label=lambda f: f.series.map(labels))
+    first, last = int(national.year.min()), int(national.year.max())
+    plots.line_series(
+        long,
+        "year",
+        "deaths",
+        figures_dir / "k1_forecast_check.svg",
+        "Each year's deaths against two forecasts made before it",
+        series="series_label",
+        ylabel="Deaths (30 days), all roads",
+        zero_based=True,
+        end_labels=False,
+    )
+    captions["k1_forecast_check"] = plots.caption(
+        f"{SERIES_SOURCE}; {FUEL_SOURCE}",
+        f"{first}–{last}",
+        "each year forecast from the four years before it: the model is a Poisson regression "
+        "of monthly 30-day deaths on the month of year, a linear trend, the month's road fuel "
+        "and its Fridays, Saturdays and Sundays, given the year's observed fuel and calendar; "
+        "the naive forecast repeats the previous year; the model was chosen on the forecasts "
+        "of 2006–2015, and 2016–2024 played no part in the choice",
+    )
+    detect = summary("forecast_detectability")
+    plots.line_series(
+        detect.assign(mde_pct=lambda f: f.mde),
+        "horizon",
+        "mde_pct",
+        figures_dir / "k2_detectability.svg",
+        "The fall in deaths a comparison detects four times in five, by years after a law",
+        series="outcome_label",
+        ylabel="Fall detected 4 times in 5",
+        percent=True,
+        end_labels=True,
+    )
+    captions["k2_detectability"] = plots.caption(
+        f"{SERIES_SOURCE}; {FUEL_SOURCE}",
+        "forecast errors measured on 2006–2024, pandemic years left out",
+        "the fall in deaths, summed over the years after a law (horizontal axis), that a "
+        "comparison with the model's forecast detects with 80% power at the 5% level; it combines "
+        "Poisson chance on the zone's recent deaths with the forecast's own measured error at "
+        "that horizon, which grows as the trend drifts from its extrapolation",
     )
 
 

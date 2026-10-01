@@ -1,0 +1,6 @@
+site,site_label,limit,mean_speed,v85,share_within_limit,lognormal_mu,lognormal_sigma,implied_mean,excess_over_limit
+autopista,Autopistas (120 km/h),120,121.3,136,0.508,4.785022125,0.1231461301,120.6151152,6.219402388
+autovia,Autovías (120 km/h),120,117.2,130,0.625,4.751959603,0.111512084,116.5333008,3.705702394
+conventional,Conventional roads (90 km/h),90,94.4,109,0.426,4.529028581,0.1566133462,93.81196918,7.841993273
+urban_50,Urban streets at 50 km/h,50,46.5,60,0.649,3.805325169,0.2788595927,46.72159631,3.880211346
+urban_30,Urban streets at 30 km/h,30,35.3,46,0.321,3.533559713,0.2847087776,35.66212699,7.205957598

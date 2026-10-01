@@ -108,14 +108,6 @@ ENGLISH: dict[str, dict[str, str]] = {
     },
 }
 
-# Derived groupings used on the site.
-ROAD_GROUPS: dict[str, str] = {
-    "motorway": "Motorway",
-    "dual_carriageway": "Dual carriageway",
-    "conventional": "Conventional road",
-    "urban_street": "Urban street",
-    "other": "Other road",
-}
 
 # Hour bands: (first hour, last hour) inclusive. Key and label are derived from the edges.
 HOUR_BAND_EDGES: tuple[tuple[int, int], ...] = (
@@ -132,20 +124,6 @@ HOUR_BANDS: dict[str, str] = {
 
 ZONES: dict[str, str] = {"interurban": "Interurban", "urban": "Urban", "all": "All roads"}
 
-MONTHS: dict[int, str] = {
-    1: "Jan",
-    2: "Feb",
-    3: "Mar",
-    4: "Apr",
-    5: "May",
-    6: "Jun",
-    7: "Jul",
-    8: "Aug",
-    9: "Sep",
-    10: "Oct",
-    11: "Nov",
-    12: "Dec",
-}
 
 WEEKDAYS: dict[int, str] = {int(k): v for k, v in ENGLISH["DIA_SEMANA"].items()}
 
@@ -173,19 +151,6 @@ VULNERABLE_TYPES: tuple[str, ...] = (
     "TOT_VMP_MU30DF",
 )
 
-# Series-workbook vehicle-type names -> English.
-SERIES_VEHICLE_TYPES: dict[str, str] = {
-    "Bicicletas": "Bicycles",
-    "VMP": "Personal mobility vehicles",
-    "Ciclomotores": "Mopeds",
-    "Motocicletas": "Motorcycles",
-    "Turismos": "Cars",
-    "Camiones hasta 3.500 kg y furgonetas": "Vans and light trucks (≤3.5 t)",
-    "Camiones más de 3.500 kg": "Heavy trucks (>3.5 t)",
-    "Autobuses": "Buses",
-    "Otros": "Other",
-    "TOTAL": "Total",
-}
 
 LABELLED_COLUMNS: tuple[str, ...] = tuple(ENGLISH)
 

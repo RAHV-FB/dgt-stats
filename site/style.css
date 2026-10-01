@@ -34,10 +34,10 @@ header { padding-top: 28px; }
 .masthead a { color: var(--ink); text-decoration: none; font-weight: 600; font-size: 1.05rem; letter-spacing: 0.01em; }
 .masthead .strap { font-family: var(--sans); font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-2); }
 nav { margin: 14px 0 0; border-top: 1px solid var(--ink); border-bottom: 1px solid var(--rule); }
-nav ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0 22px; }
+nav ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0 14px; }
 nav a {
   display: inline-block; padding: 9px 0 8px; color: var(--ink-2); text-decoration: none;
-  font-family: var(--sans); font-size: 0.78rem; letter-spacing: 0.06em; text-transform: uppercase;
+  font-family: var(--sans); font-size: 0.74rem; letter-spacing: 0.04em; text-transform: uppercase;
 }
 nav a:hover { color: var(--ink); }
 nav a[aria-current="page"] { color: var(--ink); box-shadow: inset 0 -2px 0 var(--accent); }
@@ -119,6 +119,32 @@ th.wrap, td.wrap { white-space: normal; min-width: 22ch; max-width: 40ch; text-a
 .limit strong { color: var(--ink); }
 .conclusion { max-width: var(--measure); margin: 26px 0 0; padding-left: 16px; border-left: 3px solid var(--accent); }
 .conclusion p { margin: 0; }
+
+/* The simulator: a plain form in the bulletin's furniture, ruled rather than boxed. */
+.simulator { max-width: var(--wide); margin: 8px 0 18px; font-family: var(--sans); font-size: 0.86rem; }
+.simulator .help { color: var(--ink-2); max-width: 46rem; }
+.simulator fieldset {
+  border: 0; border-top: 1px solid var(--rule); margin: 0; padding: 10px 0 14px;
+  display: flex; flex-wrap: wrap; gap: 10px 26px; align-items: flex-end; min-width: 0;
+}
+.simulator legend {
+  float: left; width: 100%; padding: 0 0 4px; font-size: 0.7rem; letter-spacing: 0.07em;
+  text-transform: uppercase; color: var(--ink-2);
+}
+.simulator .control { display: flex; flex-direction: column; gap: 4px; min-width: 12rem; }
+.simulator select, .presets button {
+  font: inherit; color: var(--ink); background: var(--paper);
+  border: 1px solid var(--rule-strong); border-radius: 2px; padding: 5px 9px;
+}
+.simulator .choice { display: block; width: 100%; max-width: 46rem; }
+.simulator input[type=range] { width: min(26rem, 100%); accent-color: var(--accent); }
+.simulator output { font-variant-numeric: tabular-nums; font-weight: 600; }
+.presets { display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; border-top: 1px solid var(--rule); padding-top: 12px; }
+.presets span { font-size: 0.7rem; letter-spacing: 0.07em; text-transform: uppercase; color: var(--ink-2); margin-right: 4px; }
+.presets button { font-size: 0.8rem; cursor: pointer; }
+.presets button:hover, .presets button:focus-visible, .simulator select:focus-visible { border-color: var(--accent); color: var(--accent); outline: none; }
+.verdict { font-family: var(--sans); font-size: 0.9rem; line-height: 1.5; max-width: 46rem; border-left: 3px solid var(--accent); padding-left: 14px; margin: 14px 0 22px; }
+tr.total th, tr.total td { font-weight: 600; }
 
 footer {
   border-top: 1px solid var(--rule); margin-top: 20px; padding-top: 18px; padding-bottom: 40px;
