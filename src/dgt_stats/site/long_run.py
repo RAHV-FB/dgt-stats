@@ -50,6 +50,15 @@ def page_long_run(captions: dict[str, str]) -> str:
     km_last_row = km_check.loc[("per_km", km_last)]
     km_prev_row = km_check.loc[("per_km", km_last - 1)]
     fuel_km_last = km_check.loc[("per_fuel", km_last)]
+    fuel_km_prev = km_check.loc[("per_fuel", km_last - 1)]
+    # The answer below says which of these lie outside their intervals; stop if that changes.
+    flags = [
+        bool(row.outside_interval) for row in (fuel_km_last, fuel_km_prev, km_last_row, km_prev_row)
+    ]
+    if flags != [True, False, False, False]:
+        raise ValueError(
+            f"long-run page: the kilometre check no longer splits as described: {flags}"
+        )
     km_base = int(km_last_row.last_segment_start)
 
     def per_tonne_pace(first: int, last_year: int) -> float:
@@ -117,11 +126,12 @@ def page_long_run(captions: dict[str, str]) -> str:
         f"{_change(float(fuel_prev.ratio), 0)} and {_change(float(fuel_last.ratio), 0)} above "
         "where the pre-2020 decline was heading. On interurban roads, where the Ministerio de "
         "Transportes measures the kilometres driven, the same comparison can be made both ways: "
-        f"in {km_last - 1} and {km_last} deaths per tonne of fuel were "
-        f"{_change(float(km_check.loc[('per_fuel', km_last - 1), 'ratio']), 0)} and "
-        f"{_change(float(fuel_km_last.ratio), 0)} above trend, but deaths per kilometre only "
-        f"{_change(float(km_prev_row.ratio), 0)} and {_change(float(km_last_row.ratio), 0)}, "
-        "inside the interval. The counts cannot yet tell whether the pre-2020 decline carried "
+        f"in {km_last} deaths per tonne of fuel were {_change(float(fuel_km_last.ratio), 0)} "
+        "above trend, outside the interval, but deaths per kilometre only "
+        f"{_change(float(km_last_row.ratio), 0)}, inside it ({km_last - 1}: "
+        f"{_change(float(fuel_km_prev.ratio), 0)} per tonne of fuel, just inside, and "
+        f"{_change(float(km_prev_row.ratio), 0)} per kilometre). The counts cannot yet tell "
+        "whether the pre-2020 decline carried "
         "on or stalled, but they rule out a jump in risk per kilometre. Fuel overstated the "
         "rise because each tonne carried more traffic after 2019 than before.</p>"
     )

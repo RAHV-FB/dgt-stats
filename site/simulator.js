@@ -152,12 +152,19 @@
     return 1 - Math.exp(-z * Math.sqrt(1 / expected + tau * tau));
   }
 
-  // Chance that the first year's count shows a change of `change` deaths; NaN for no change.
+  // The rise detected four times in five, as a proportion of the expected count.
+  function minimumDetectableRise(P, expected, tau) {
+    const z = P.detect.zAlpha + P.detect.zPower;
+    return Math.expm1(z * Math.sqrt(1 / expected + tau * tau));
+  }
+
+  // Chance that the first year's count shows a change of `change` deaths in its own direction;
+  // NaN for no change.
   function detectionPower(P, change, expected, tau) {
     if (Math.abs(change) < 0.5) return NaN;
     const sigma = Math.sqrt(1 / expected + tau * tau);
     const shift = Math.abs(Math.log1p(change / expected)) / sigma;
-    return normCdf(shift - P.detect.zAlpha) + normCdf(-shift - P.detect.zAlpha);
+    return normCdf(shift - P.detect.zAlpha);
   }
 
   function simulate(P, scenario) {
@@ -194,6 +201,7 @@
     sortEnds(total);
     const tau = P.detect.tauInterurban;
     total.mde_deaths = minimumDetectable(P, total.deaths_before, tau) * total.deaths_before;
+    total.mde_rise_deaths = minimumDetectableRise(P, total.deaths_before, tau) * total.deaths_before;
     total.power_in_one_year = detectionPower(P, total.deaths_change, total.deaths_before, tau);
     const urban = URBAN.map(function (key) {
       const v1 = newMeanSpeed(P, key, scenario);
@@ -298,7 +306,7 @@
     } else if (!moved) {
       const street = result.urban.find((row) => row.site === "urban_50");
       verdict =
-        "Only urban streets change: deaths on the streets now at 50 km/h by " +
+        "Only urban streets change: deaths on the streets now at 50 km/h change by " +
         percent(street.deaths_change) + ". DGT does not publish deaths by the limit of the " +
         "street, so there is no count to watch: the effect would have to be checked by " +
         "measuring speeds.";
@@ -308,24 +316,27 @@
         "all, which no count could show.";
     } else {
       const power = t.power_in_one_year;
-      const count = signed(t.deaths_change, 0);
+      const fall = t.deaths_change < 0;
+      const threshold = fall ? t.mde_deaths : t.mde_rise_deaths;
       const rises = result.interurban.some((row) => row.deaths_change >= 0.5);
       const falls = result.interurban.some((row) => row.deaths_change <= -0.5);
       verdict = rises && falls ? "Rises on some roads offset falls on others. " : "";
       verdict +=
-        "A change of " + count + (Math.abs(Math.round(t.deaths_change)) === 1 ? " death" :
-        " deaths") + " a year on autopistas, autovías and conventional roads would " +
+        "A change of " + signed(t.deaths_change, 0) +
+        (Math.abs(Math.round(t.deaths_change)) === 1 ? " death" : " deaths") +
+        " a year on autopistas, autovías and conventional roads would " +
         (power >= 0.99
           ? "almost certainly stand out from an ordinary year in the first year's count"
           : "stand out from an ordinary year in the first year's count with a chance of about " +
             Math.round(power * 100) + "%") +
-        "; the count picks up a change of " + Math.round(t.mde_deaths) + " four times in five. ";
+        "; the count picks up a " + (fall ? "fall" : "rise") + " of " + Math.round(threshold) +
+        " four times in five. ";
       if (power >= 0.8) {
         verdict += "The count would most likely show it on its own.";
       } else if (power >= 0.5) {
         verdict +=
           "More often than not the count would show it, but a year that did not would not " +
-          "mean the law had failed.";
+          (fall ? "mean the law had failed." : "mean the law was harmless.");
       } else {
         verdict +=
           "More often than not it would be lost in ordinary variation, and the forecast only " +
@@ -367,6 +378,7 @@
     newMeanSpeed: newMeanSpeed,
     ratios: ratios,
     minimumDetectable: minimumDetectable,
+    minimumDetectableRise: minimumDetectableRise,
     detectionPower: detectionPower,
     simulate: simulate,
     attach: attach,

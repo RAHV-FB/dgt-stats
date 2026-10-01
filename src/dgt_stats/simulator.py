@@ -554,8 +554,9 @@ def totals(effects: pd.DataFrame) -> pd.Series:
 def presets() -> pd.DataFrame:
     """Every preset scenario: interurban casualties, value, time and the chance a count shows it.
 
-    ``mde_deaths`` is the change the first year's count picks up four times in five (80 % power,
-    two-sided 5 % test); ``power_in_one_year`` is the chance it picks up this scenario's change.
+    ``mde_deaths`` is the fall the first year's count picks up four times in five (80 % power,
+    two-sided 5 % test) and ``mde_rise_deaths`` the rise; ``power_in_one_year`` is the chance it
+    picks up this scenario's change in its own direction.
     """
     tau = detectability_inputs()["tau_interurban"]
     frames = []
@@ -577,6 +578,7 @@ def presets() -> pd.DataFrame:
                 "value_euros_high": float(total.value_euros_high),
                 "vehicle_hours_change": float(total.vehicle_hours_change),
                 "mde_deaths": forecast.minimum_detectable_effect(expected, tau) * expected,
+                "mde_rise_deaths": forecast.minimum_detectable_rise(expected, tau) * expected,
                 "power_in_one_year": power_in_one_year(float(total.deaths_change), expected, tau),
             }
         )
@@ -644,11 +646,20 @@ def speed_sites() -> pd.DataFrame:
 
 
 def baseline_table() -> pd.DataFrame:
-    """The baseline by road class with the measured interurban vehicle-km beside it."""
+    """The baseline by road class with the measured interurban vehicle-km beside it.
+
+    The kilometres follow the Ministry's types of road (``vehicle_km_types``), which are not the
+    crash data's classes: free motorways are autopistas in the crash data but sit with autovías in
+    the traffic table. They time journeys; deaths per kilometre by class come from
+    :func:`class_risk`, which pools autopistas and autovías for that reason.
+    """
     out = baseline()
     km = _vehicle_km()
     out["vehicle_km"] = [km["all"].get(key, np.nan) for key in out.road_class]
     out["light_vehicle_km"] = [km["light"].get(key, np.nan) for key in out.road_class]
+    out["vehicle_km_types"] = [
+        "+".join(TRAFFIC_TYPES[key]) if key in TRAFFIC_TYPES else "" for key in out.road_class
+    ]
     out["vehicle_km_year"] = km["year"]
     return out
 

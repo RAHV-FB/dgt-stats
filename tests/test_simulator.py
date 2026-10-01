@@ -1,6 +1,7 @@
 import itertools
 import json
 import math
+import re
 import shutil
 import subprocess
 from pathlib import Path
@@ -42,19 +43,34 @@ def test_every_published_value_carries_its_source() -> None:
 
 
 def _written_forms(value: float, unit: str) -> set[str]:
-    """The ways a source may print ``value``: points or commas, thousands, percentages."""
-    numbers = {value, value * 100} if unit == "share" else {value}
+    """The ways a source may print ``value``: decimal points or commas, thousands, percentages."""
+    numbers = {round(value * 100, 6)} if unit == "share" else {value}
     forms = set()
     for number in numbers:
-        for text in (f"{number:g}", f"{number:.1f}", f"{number:,.0f}"):
+        texts = [f"{number:g}"] + ([f"{number:,.0f}"] if float(number).is_integer() else [])
+        for text in texts:
             forms |= {text, text.replace(",", "."), text.replace(".", ",")}
     return forms
 
 
+def _quotes(quote: str, value: float, unit: str) -> bool:
+    """Whether ``quote`` prints ``value`` as a whole number, not as part of another one."""
+    return any(
+        re.search(r"(?<![\d.,])" + re.escape(form) + r"(?![\d])", quote)
+        for form in _written_forms(value, unit)
+    )
+
+
 def test_every_quote_contains_the_value_it_supports() -> None:
-    for row in simulator.evidence().itertuples():
-        forms = _written_forms(float(row.value), row.unit)
-        assert any(form in row.quote for form in forms), (row.parameter, row.applies_to)
+    rows = simulator.evidence()
+    for row in rows.itertuples():
+        assert _quotes(row.quote, float(row.value), row.unit), (row.parameter, row.applies_to)
+    # The check is strict enough to catch a mistyped value.
+    for factor in (0.61, 1.37, 1.9):
+        caught = [
+            not _quotes(row.quote, float(row.value) * factor, row.unit) for row in rows.itertuples()
+        ]
+        assert all(caught), factor
 
 
 def test_a_law_sets_one_limit_for_every_site_it_covers() -> None:
@@ -281,7 +297,13 @@ def test_the_browser_computes_exactly_what_the_python_computes(tmp_path: Path) -
                 ), (scenario.key, row["road_class"], column)
         urban = simulator.urban_effects(scenario).set_index("site")
         for row in computed["urban"]:
-            for column in ("new_mean_speed", "deaths_change", "seriously_injured_change"):
+            for column in (
+                "new_mean_speed",
+                "deaths_change",
+                "deaths_change_low",
+                "deaths_change_high",
+                "seriously_injured_change",
+            ):
                 assert row[column] == pytest.approx(
                     float(urban.loc[row["site"], column]), rel=1e-6, abs=1e-9
                 ), (scenario.key, row["site"], column)
@@ -304,6 +326,7 @@ def test_the_browser_computes_exactly_what_the_python_computes(tmp_path: Path) -
                 float(row.deaths_change), rel=1e-6, abs=1e-6
             )
             assert computed["total"]["mde_deaths"] == pytest.approx(float(row.mde_deaths))
+            assert computed["total"]["mde_rise_deaths"] == pytest.approx(float(row.mde_rise_deaths))
             if math.isnan(power):
                 assert math.isnan(float(row.power_in_one_year))
             else:

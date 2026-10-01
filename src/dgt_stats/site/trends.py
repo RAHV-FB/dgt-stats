@@ -7,6 +7,7 @@ import pandas as pd
 from dgt_stats.site.components import (
     _change,
     _fmt_int,
+    _join,
     conclusion,
     downloads,
     figure,
@@ -39,10 +40,6 @@ def _beyond(row: pd.Series) -> bool:
     return float(row.ratio_low_yty) > 1 or float(row.ratio_high_yty) < 1
 
 
-def _listed(parts: list[str]) -> str:
-    return parts[0] if len(parts) == 1 else ", ".join(parts[:-1]) + " and " + parts[-1]
-
-
 def page_trends(captions: dict[str, str]) -> str:
     risk = _risk_numbers()
     latest, last = risk["latest"], risk["last"]
@@ -59,8 +56,8 @@ def page_trends(captions: dict[str, str]) -> str:
         raise ValueError(f"trends page: hospital admissions beyond an ordinary year: {hosp_beyond}")
     shown = ("count", "residents", "vehicles", "road_fuel")
     crash_within = [key for key in shown if not _beyond(crashes.loc[key])]
-    crash_beyond = [key for key in shown if _beyond(crashes.loc[key])]
-    if crash_beyond != ["vehicles"]:
+    crash_beyond = [key for key in PER if _beyond(crashes.loc[key])]
+    if crash_beyond != ["vehicles"] or (crashes.ratio_to_base >= 1).any():
         raise ValueError(f"trends page: crash changes beyond an ordinary year: {crash_beyond}")
 
     body = key_figures(
@@ -154,7 +151,7 @@ def page_trends(captions: dict[str, str]) -> str:
         return f"{_change(float(row.ratio_low_yty))} to {_change(float(row.ratio_high_yty), 2)}"
 
     crash_text = (
-        f"Injury crashes moved {_listed([crash_change(k) for k in crash_within])}, "
+        f"Injury crashes moved {_join([crash_change(k) for k in crash_within])}, "
         + ("all " if not crash_beyond else "")
         + "within an ordinary year's variation"
     )
@@ -214,7 +211,7 @@ def page_trends(captions: dict[str, str]) -> str:
         "summary is that death risk did not measurably change against 2019. Crash risk did "
         "not either, under most denominators"
         + (
-            f"; the fall {_listed([PER[k] for k in crash_beyond])} is only just beyond an "
+            f"; the fall {_join([PER[k] for k in crash_beyond])} is only just beyond an "
             "ordinary year. "
             if crash_beyond
             else ". "
@@ -235,8 +232,9 @@ def page_trends(captions: dict[str, str]) -> str:
         "trends",
         "2019 to 2024: counts against risk",
         "Did the roads get safer or more dangerous after the pandemic? For deaths the count and "
-        "four denominators disagree, all within an ordinary year's variation, and so do crashes "
-        "but for a fall per vehicle just beyond it; hospital admissions rose beyond it as a "
+        "four denominators disagree, all within an ordinary year's variation; injury crashes "
+        "fell under all five, within that variation except per vehicle, just beyond it; "
+        "hospital admissions rose beyond it as a "
         "count and per unit of traffic.",
         body,
     )

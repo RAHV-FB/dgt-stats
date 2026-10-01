@@ -29,22 +29,27 @@ selection years from ``TREE_LEAF_CANDIDATES``.
 
 The result is a split verdict, and the page reports it as one. In the years when the trend moved
 (the selection years) or traffic collapsed (the lockdowns) the model beats last year's count by a
-wide margin; in the flat held-back years last year's count does as well or slightly better. A
+wide margin; in the flat held-back years last year's count does slightly better. A
 counterfactual for a law has to survive both kinds of year, so the model is the one used. The
 trees, tuned the same way, do worse than the model in every zone and every kind of year: a tree
-cannot extend a trend beyond the years it has seen, and with 48 rows it fits the noise.
+cannot extend a trend beyond the years it has seen, and with 48 rows a small leaf fits the noise.
+Trees with leaves of at least 8, worse on the selection years, would have beaten both the model
+and last year's count on the flat held-back years in every zone and lost to the model in the
+lockdowns: they forecast little more than the recent level, which wins only when nothing moves,
+and that cannot be known when a forecast is made.
 
 **What the error means.** The forecast error of a sum of ``n`` years, measured the same way at each
 horizon, splits into Poisson chance (``1 / expected deaths``) and an extra, multiplicative part
 ``tau_n`` that comes from the trend drifting away from the extrapolation. The second part grows
 with the horizon, which is why waiting longer after a law does not make it easier to see. The
-smallest effect a comparison can detect with 80 % power at the 5 % level is
+chance that a two-sided comparison at the 5 % level shows a change in its own direction
+(:func:`detection_power`) is ``Φ(d − z_0.975)``, with ``d = |log(1 + change / expected)| / sigma``
+and ``sigma = sqrt(1 / expected + tau_n²)``. It is 80 % for a fall of
 
-    MDE = 1 − exp(−(z_0.975 + z_0.80) · sqrt(1 / expected + tau_n²)),
+    MDE = 1 − exp(−(z_0.975 + z_0.80) · sigma),
 
-and the chance that a comparison detects a given change (:func:`detection_power`) is
-``Φ(d − z_0.975) + Φ(−d − z_0.975)`` with ``d = |log(1 + change / expected)| / sigma``. The MDE is
-the change detected four times in five, not a line below which nothing shows.
+the minimum detectable effect, and for a rise of ``exp((z_0.975 + z_0.80) · sigma) − 1``. The MDE
+is the change detected four times in five, not a line below which nothing shows.
 """
 
 from __future__ import annotations
@@ -82,6 +87,9 @@ SPECIFICATIONS = {
     "trend_traffic": "C(month) + t + log_fuel",
     "trend_traffic_calendar": f"C(month) + t + log_fuel + {CALENDAR}",
 }
+# The trees' smallest leaf, tuned on the selection years like the model's specification: the
+# library default of 20 leaves room for one split in 48 monthly rows, which cannot carry a season.
+TREE_LEAF_CANDIDATES = (1, 2, 3, 5, 8, 12, 20)
 SPECIFICATION_LABELS = {
     "trend": "Month + trend",
     "trend_calendar": "Month + trend + calendar",
@@ -91,14 +99,11 @@ SPECIFICATION_LABELS = {
     "mean_3_years": "Naive: mean of the last three years",
     **{
         f"boosted_trees_leaf_{n}": f"Gradient-boosted trees, same inputs, leaves of at least {n}"
-        for n in (1, 2, 3, 5, 8, 12, 20)
+        for n in TREE_LEAF_CANDIDATES
     },
 }
 CHOSEN = "trend_traffic_calendar"
 TREE_FEATURES = ("month", "t", "log_fuel", "fridays", "saturdays", "sundays")
-# The trees' smallest leaf, tuned on the selection years like the model's specification: the
-# library default of 20 leaves room for one split in 48 monthly rows, which cannot carry a season.
-TREE_LEAF_CANDIDATES = (1, 2, 3, 5, 8, 12, 20)
 TREE_LEAF = 1
 TREE_METHOD = f"boosted_trees_leaf_{TREE_LEAF}"
 
@@ -329,8 +334,9 @@ def horizon_errors() -> pd.DataFrame:
     Each origin year from 2006 is fitted on the four years before it and the next ``n`` years are
     predicted with their observed traffic and calendar. Forecast spans that contain 2020 or 2021
     are left out; fits whose four-year window contains them (origins 2022–2024) are kept, because
-    a forecast made for a law today is fitted on such a window too, and they raise the error. ``tau`` is the error left once Poisson chance on the observed total is taken out: the
-    drift of the trend, which applies to any count of deaths in the same zone whatever its size.
+    a forecast made for a law today is fitted on such a window too, and they raise the error.
+    ``tau`` is the error left once Poisson chance on the observed total is taken out: the drift of
+    the trend, which applies to any count of deaths in the same zone whatever its size.
     """
     panel = model_panel()
     last = int(panel.year.max())
@@ -386,16 +392,24 @@ def minimum_detectable_effect(
 
 
 def detection_power(change: float, expected: float, tau: float, alpha: float = ALPHA) -> float:
-    """Chance that a comparison at the ``alpha`` level detects a change of ``change`` deaths.
+    """Chance that a two-sided comparison at the ``alpha`` level shows a change of ``change`` deaths.
 
-    The change is taken on the log scale against a count of ``expected`` deaths whose forecast
-    error is Poisson chance plus ``tau``; rises and falls are treated alike. At the minimum
-    detectable effect it is 0.80 by construction; it is ``alpha`` when nothing changes.
+    Only a result in the direction of the change counts: a count that moves the other way and
+    clears the test has not shown it. The change is taken on the log scale against a count of
+    ``expected`` deaths whose forecast error is Poisson chance plus ``tau``. At the minimum
+    detectable effect it is ``POWER`` exactly; when nothing changes it is ``alpha / 2``.
     """
     sigma = np.sqrt(1 / expected + tau**2)
     shift = abs(np.log1p(change / expected)) / sigma
-    z = stats.norm.ppf(1 - alpha / 2)
-    return float(stats.norm.cdf(shift - z) + stats.norm.cdf(-shift - z))
+    return float(stats.norm.cdf(shift - stats.norm.ppf(1 - alpha / 2)))
+
+
+def minimum_detectable_rise(
+    expected: float, tau: float, power: float = POWER, alpha: float = ALPHA
+) -> float:
+    """Smallest proportional rise in a count of ``expected`` deaths that the comparison detects."""
+    z = stats.norm.ppf(1 - alpha / 2) + stats.norm.ppf(power)
+    return float(np.expm1(z * np.sqrt(1 / expected + tau**2)))
 
 
 def detectability() -> pd.DataFrame:

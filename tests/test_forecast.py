@@ -58,11 +58,16 @@ def test_the_model_forecast_follows_traffic_where_last_year_cannot() -> None:
     assert np.log(observed / naive) < -0.25
 
 
-def test_detection_power_is_the_size_of_the_test_at_no_change_and_the_power_at_the_mde() -> None:
+def test_detection_power_counts_only_the_right_direction_and_is_the_power_at_the_mde() -> None:
     tau, expected = 0.05, 1200.0
-    mde = forecast.minimum_detectable_effect(expected, tau) * expected
-    assert forecast.detection_power(0.0, expected, tau) == pytest.approx(forecast.ALPHA)
-    assert forecast.detection_power(-mde, expected, tau) == pytest.approx(forecast.POWER, abs=1e-4)
+    fall = forecast.minimum_detectable_effect(expected, tau) * expected
+    rise = forecast.minimum_detectable_rise(expected, tau) * expected
+    # With nothing to find, a two-sided test flags a change in a given direction half its size.
+    assert forecast.detection_power(0.0, expected, tau) == pytest.approx(forecast.ALPHA / 2)
+    assert forecast.detection_power(-fall, expected, tau) == pytest.approx(forecast.POWER)
+    assert forecast.detection_power(rise, expected, tau) == pytest.approx(forecast.POWER)
+    # On the log scale a rise has to be larger than a fall to be seen as often.
+    assert rise > fall
     powers = [forecast.detection_power(-change, expected, tau) for change in (50, 100, 200, 400)]
     assert powers == sorted(powers)
 

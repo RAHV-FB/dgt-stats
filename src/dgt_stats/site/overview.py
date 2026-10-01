@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dgt_stats.site.components import (
+    _chance,
     _change,
     _fmt_int,
     _fmt_pct,
@@ -84,10 +85,6 @@ def page_index(captions: dict[str, str]) -> str:
     comply = presets.loc["all_comply"]
     conventional = presets.loc["conventional_80"]
 
-    def _chance(row) -> str:
-        power = float(row.power_in_one_year)
-        return "almost every time" if power >= 0.99 else f"{_fmt_pct(power, 0)} of the time"
-
     first, final = int(split.index.min()), int(split.index.max())
     severity = float(split.loc[final, "severity_index"]) / 100 - 1
     frequency = float(split.loc[final, "frequency_index"]) / 100 - 1
@@ -139,7 +136,7 @@ def page_index(captions: dict[str, str]) -> str:
             "ordinary year's variation. People admitted to hospital rose "
             f"{_change(float(hosp_count.ratio_to_base))}, beyond it.",
             "Annual DGT totals over INE residents, the driver census, the registered fleet and "
-            "CORES road fuel, indexed to 2019, with intervals that allow for the year-to-year "
+            "CORES road fuel, indexed to 2019, with intervals that allow for the yearly "
             "scatter of each count.",
         ),
         (
@@ -218,15 +215,16 @@ def page_index(captions: dict[str, str]) -> str:
         ),
         (
             "simulator.html",
-            "Keeping to today's limits would save more lives than any single new limit",
+            "Keeping to today's limits would save more lives than any one new limit",
             "If every driver now above the limit on motorways and conventional roads kept to "
-            "it, the Power Model and the speeds measured in 2022 put the saving at about "
-            f"{_fmt_int(-comply.deaths_change)} lives a year; 80 km/h on conventional "
-            f"roads would save about {_fmt_int(-conventional.deaths_change)}. A validated "
-            "forecasting model says the first year's count would show the first "
-            f"{_chance(comply)} and the second {_chance(conventional)}.",
-            "Spanish baselines and measured speeds, published dose-response evidence and DGT's "
-            "values of a life, every number sourced.",
+            "it, the Power Model and the speeds measured in Spain put the saving at about "
+            f"{_fmt_int(-comply.deaths_change)} lives a year, more than any one new limit with "
+            "the typical response; 80 km/h on conventional roads would save about "
+            f"{_fmt_int(-conventional.deaths_change)}. A validated forecast says the first year's "
+            f"count would show the first {_chance(comply.power_in_one_year)}, the second "
+            f"{_chance(conventional.power_in_one_year)}.",
+            "Spanish baselines and speeds, published dose-response evidence and DGT's values of "
+            "a life, all sourced.",
         ),
     ]
     body += "".join(
@@ -241,8 +239,7 @@ def page_index(captions: dict[str, str]) -> str:
         "men, crash about as often as their driving predicts and die far more often once in a "
         "crash. A crash with speed recorded kills twice as often as another on the same kind "
         f"of road. Conventional roads kill {_times(risk_ratio)} as many people per kilometre "
-        f"as autopistas and autovías in {risk_year}, though their traffic is slower. The "
-        "national series says "
+        f"as motorways in {risk_year}, though their traffic is slower. The national series says "
         f"the same about the past: between {first} and {final} deaths per tonne of road fuel "
         f"fell {_fmt_pct(-per_fuel, 0)}, injury crashes per tonne only "
         f"{_fmt_pct(-frequency, 0)}, and deaths per injury crash "

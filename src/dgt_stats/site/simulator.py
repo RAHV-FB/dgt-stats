@@ -6,6 +6,7 @@ import pandas as pd
 
 from dgt_stats import forecast, simulator
 from dgt_stats.site.components import (
+    _chance,
     _fmt_dec,
     _fmt_int,
     _fmt_pct,
@@ -34,7 +35,7 @@ OUTCOME_LABELS = {
 def _power(power: float) -> str:
     """A chance of detection for a table, where nothing changes saying so, and no false 100%."""
     if pd.isna(power):
-        return "no change"
+        return "no change on these roads"
     return "over 99%" if power > 0.995 else _fmt_pct(float(power), 0)
 
 
@@ -110,7 +111,7 @@ def _simulator_controls(parameters: dict) -> str:
         f"<fieldset><legend>New limits</legend>{''.join(selects)}</fieldset>"
         "<fieldset><legend>How drivers follow a new limit</legend>"
         '<label class="choice"><input type="radio" name="response" value="typical" checked> '
-        "As they typically do: the average of 143 before-and-after studies</label>"
+        "As they typically do: the curve fitted to 143 before-and-after results</label>"
         '<label class="choice"><input type="radio" name="response" value="set"> '
         "A set share of the limit change reaches the average speed: "
         '<output data-out="response-share">35%</output></label>'
@@ -197,7 +198,18 @@ def page_simulator(captions: dict[str, str]) -> str:
     conventional, faster = presets.loc["conventional_80"], presets.loc["motorway_130"]
     slower = presets.loc["motorway_110"]
     interurban_total = float(comply.deaths_before)
-    mde = float(comply.mde_deaths)
+    mde, mde_rise = float(comply.mde_deaths), float(comply.mde_rise_deaths)
+    trees = read_table("forecast_selection")
+    trees = trees[
+        (trees.family == "trees")
+        & (trees.outcome == "deaths_all")
+        & (trees.method != forecast.TREE_METHOD)
+    ].pivot_table(index="method", columns="set", values="rmse")
+    flat_tree = trees.loc[trees.holdout.idxmin()]
+    everything = read_table("forecast_selection")
+    everything = everything[(everything.outcome == "deaths_all") & (everything.set == "holdout")]
+    if everything.loc[everything.rmse.idxmin(), "method"] != flat_tree.name:
+        raise ValueError("simulator page: the best forecast of the held-back years has changed")
     one_year = detect.loc[("deaths_interurban", 1)]
     five_years = detect.loc[("deaths_interurban", 5)]
     latest_risk = risk[risk.year == risk.year.max()].set_index("road_class")
@@ -239,7 +251,7 @@ def page_simulator(captions: dict[str, str]) -> str:
                 "deaths a year, if drivers respond as they typically do",
             ),
             (
-                "Change a year's count picks up 4 times in 5",
+                "Fall a year's count picks up 4 times in 5",
                 _fmt_int(mde),
                 f"deaths a year on those roads, {_fmt_pct(mde / interurban_total, 0)}",
             ),
@@ -272,10 +284,6 @@ def page_simulator(captions: dict[str, str]) -> str:
             parts.append(f"conventional roads at {row.conventional_limit:g} km/h")
         return " and ".join(parts)
 
-    def chance(row: pd.Series) -> str:
-        power = float(row.power_in_one_year)
-        return "almost every time" if power >= 0.99 else f"{_fmt_pct(power, 0)} of the time"
-
     body += (
         '<p class="answer">Speed is the lever on the severity of crashes that the evidence '
         "measures best, and in Spain most cars on conventional roads drive above the limit: "
@@ -284,15 +292,17 @@ def page_simulator(captions: dict[str, str]) -> str:
         "conventional roads, the published Power Model says that if every driver now above "
         f"the limit kept to it, about {_fmt_int(-comply.deaths_change)} fewer people a year "
         f"would die there (between {_fmt_int(-comply.deaths_change_high)} and "
-        f"{_fmt_int(-comply.deaths_change_low)}). That is more than any single new limit on "
-        f"this page achieves, the largest being {lever_change(single)} "
+        f"{_fmt_int(-comply.deaths_change_low)}). With drivers responding to a new limit as they "
+        "typically do, that is more than any single new limit on this page achieves, the "
+        f"largest being {lever_change(single)} "
         f"({_fmt_int(-single.deaths_change)}); only lowering both limits at once saves more, "
         f"up to {_fmt_int(-deepest.deaths_change)} with {lever_change(deepest)}. Lowering the "
-        "limit on conventional roads from 90 to 80 km/h, with drivers responding as they "
-        f"typically do, would save about {_fmt_int(-conventional.deaths_change)}. The first "
-        f"year's death count on these roads would show full compliance {chance(comply)}, but a "
-        f"change of {_fmt_int(-conventional.deaths_change)} only {chance(conventional)}: it "
-        f"picks up a change of {_fmt_int(mde)} four times in five, and smaller ones less "
+        f"limit on conventional roads from 90 to 80 km/h would save about "
+        f"{_fmt_int(-conventional.deaths_change)}. The first "
+        f"year's death count on these roads would show full compliance "
+        f"{_chance(comply.power_in_one_year)}, but a fall of "
+        f"{_fmt_int(-conventional.deaths_change)} only {_chance(conventional.power_in_one_year)}: "
+        f"it picks up a fall of {_fmt_int(mde)} four times in five, and smaller ones less "
         "often.</p>"
     )
 
@@ -323,7 +333,7 @@ def page_simulator(captions: dict[str, str]) -> str:
         pd.DataFrame(rows),
         "The laws the page offers as starting points, computed with drivers responding as "
         "they typically do: casualties on autopistas, autovías and conventional roads, their "
-        "value, the time they cost cars and other light vehicles, the chance the first year's "
+        "value, the time on those roads of cars and other light vehicles, the chance the first year's "
         "death count on those roads shows the change, and the change on urban streets now at "
         "50 km/h",
     )
@@ -443,10 +453,17 @@ def page_simulator(captions: dict[str, str]) -> str:
         f"{_fmt_pct(float(pandemic.loc['last_year', 'rmse']))}, because it knows the traffic "
         "fell. On the years held back, 2016–2019 and 2022–2024, it was "
         f"{_fmt_pct(float(holdout.loc[chosen, 'rmse']))} and last year's count "
-        f"{_fmt_pct(float(holdout.loc['last_year', 'rmse']))}: in flat years nothing beats "
-        "last year, and the model only earns its place when the trend or the traffic moves, "
-        "which is when a law's effect has to be told apart from them. Its worst held-back year "
-        f"is {int(worst_year.year)}, forecast from a window that includes the lockdowns.</p>"
+        f"{_fmt_pct(float(holdout.loc['last_year', 'rmse']))}: in flat years last year's count "
+        "did better than the model, which earns its place when the trend or the traffic moves, "
+        "the years in which a law's effect has to be told apart from them. Its worst held-back "
+        f"year is {int(worst_year.year)}, forecast from a window that includes the lockdowns. "
+        "Trees with larger leaves, each holding at least "
+        f"{flat_tree.name.rsplit('_', 1)[-1]} months, worse on the selection years "
+        f"({_fmt_pct(float(flat_tree.selection))}), would have done best of all on the "
+        f"held-back years ({_fmt_pct(float(flat_tree.holdout))}) and worse "
+        f"than the model in the lockdowns ({_fmt_pct(float(flat_tree.pandemic))}): they "
+        "forecast little more than the recent level, which wins only when nothing moves, and "
+        "that cannot be known when the forecast is made.</p>"
     )
     body += figure("k1_forecast_check", "Each year's deaths against two forecasts", captions)
     body += (
@@ -456,8 +473,9 @@ def page_simulator(captions: dict[str, str]) -> str:
         f"{_fmt_pct(float(one_year.mde), 0)}, about {_fmt_int(one_year.mde_deaths_per_year)} "
         f"of {_fmt_int(one_year.expected)} deaths a year; on the "
         f"{_fmt_int(interurban_total)} deaths of the autopistas, autovías and conventional "
-        f"roads the simulator covers it is {_fmt_int(mde)}. Smaller changes are picked up less "
-        "often, not never: the preset table gives each one's chance. Summed over five years the "
+        f"roads the simulator covers it is {_fmt_int(mde)}, and a rise needs to reach "
+        f"{_fmt_int(mde_rise)}. Smaller changes are picked up less often, not never: the preset "
+        "table gives each one's chance. Summed over five years the "
         f"threshold is {_fmt_pct(float(five_years.mde), 0)}, because the trend drifts further "
         "from any extrapolation the longer it runs. This is why the dated policy changes on the "
         '<a href="policy.html">2006 page</a> could not be settled from the counts, and why a '
@@ -481,8 +499,9 @@ def page_simulator(captions: dict[str, str]) -> str:
 
     body += "<h2>Conclusion</h2>"
     body += conclusion(
-        "On the evidence, the largest saving within reach of any one measure is not a new limit "
-        "but the existing ones kept: if every driver now above the limit on autopistas, "
+        "On the evidence, and with drivers responding to a new limit as they typically do, the "
+        "largest saving within reach of any one measure is not a new limit but the existing "
+        "ones kept: if every driver now above the limit on autopistas, "
         "autovías and conventional roads kept to it, about "
         f"{_fmt_int(-comply.deaths_change)} fewer people would die each year, "
         f"{_fmt_pct(-comply.deaths_change / interurban_total, 0)} of the deaths on those roads, "
@@ -491,11 +510,11 @@ def page_simulator(captions: dict[str, str]) -> str:
         "kilometre. Raising "
         "the motorway limit trades lives for hours at a rate the page shows but does not judge. "
         "Full compliance would show in the first year's death count on those roads "
-        f"{chance(comply)}. Of the new limits, conventional roads at "
+        f"{_chance(comply.power_in_one_year)}. Of the new limits, conventional roads at "
         f"{conventional_only.iloc[0].conventional_limit:g} km/h would show "
-        f"{chance(conventional_only.iloc[0])} and at "
+        f"{_chance(conventional_only.iloc[0].power_in_one_year)} and at "
         f"{conventional_only.iloc[1].conventional_limit:g} km/h "
-        f"{chance(conventional_only.iloc[1])}, and no change of the motorway limit alone "
+        f"{_chance(conventional_only.iloc[1].power_in_one_year)}, and no change of the motorway limit alone "
         f"more than {_fmt_pct(float(motorway_only.power_in_one_year.max()), 0)} of the time. "
         "A speed law has to be judged by the speeds it produces, not by waiting for the "
         "deaths."

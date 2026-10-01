@@ -94,6 +94,12 @@ def _signed_pct(value: float, decimals: int = 0) -> str:
     return _minus(f"{value * 100:+.{decimals}f}%")
 
 
+def _chance(power: float) -> str:
+    """A chance of detection in words: '45% of the time', or 'almost every time' from 99%."""
+    power = float(power)
+    return "almost every time" if power >= 0.99 else f"{_fmt_pct(power, 0)} of the time"
+
+
 def _join(items: list[str]) -> str:
     """'a', 'a and b', 'a, b and c'."""
     if len(items) < 2:

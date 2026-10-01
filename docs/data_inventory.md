@@ -231,7 +231,8 @@ No duplicate identifiers were found in any year.
   kilometres rise as concessions expire and the roads change category, so risk per kilometre by
   road class uses only the sum of the two. The simulator's travel time takes each type's 2023
   kilometres and heavy-vehicle share as published, timing toll motorways at the speeds measured on
-  autopistas and autovías with free motorways at those measured on autovías.
+  autopistas, autovías and free motorways at those measured on autovías, and multi-lane and
+  conventional roads at those measured on conventional roads.
 - Against road fuel: kilometres on this network per tonne of all road fuel grew 0.5 % a year over
   2011–2019 (8,410 to 8,740 km per tonne), the span of the national per-fuel trend's last segment,
   and 1.9 % a year over 2019–2023 (to 9,420): about 1.4 points a year faster. That is the drift the

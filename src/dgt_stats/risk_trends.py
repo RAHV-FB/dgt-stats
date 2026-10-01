@@ -523,9 +523,10 @@ def long_run_series() -> pd.DataFrame:
 def long_run_efficiency_sensitivity() -> pd.DataFrame:
     """The 2022–2024 per-fuel excess over trend if kilometres grew faster than fuel after 2019.
 
-    The pre-2020 per-fuel trend already carries the fuel-economy gains of 1996–2019, so projecting
-    it assumes they continued at the same pace. This asks what an *extra* ``g`` a year of
-    kilometres per tonne from 2020 (faster electrification, a lighter fleet) would do.
+    The pre-2020 per-fuel trend already carries the growth in kilometres per tonne of its last
+    segment (from 2011), so projecting it assumes that growth went on at the same pace. This asks
+    what an *extra* ``g`` a year of kilometres per tonne from 2020 (more efficient or electric
+    vehicles, a shift of traffic or freight) would do.
     """
     series = long_run_series()
     fuel = series[(series.measure == "road_fuel") & (series.period == "projected")]

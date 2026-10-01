@@ -25,7 +25,7 @@ five commands.
 | **[Vehicles](https://rahv-fb.github.io/dgt-stats/vehicles.html)** | A heavy truck is in a fatal crash 10× as often as a car per vehicle | 2.5× per kilometre, and 0.18 of its own occupants die per fatal crash it is in |
 | **[Speed](https://rahv-fb.github.io/dgt-stats/speed.html)** | Speed recorded in 7 % of crashes, 22 % of deaths | On the same kind of road, a crash with speed recorded kills 2.0× as often (3.4× before allowing for road type): an association, with two recording biases stated |
 | **[Factors](https://rahv-fb.github.io/dgt-stats/factors.html)** | DGT's recorded alcohol, distraction and drug shares | After a recording-break test: interurban alcohol 5.5 % → 8.2 % and speed on all roads 10.0 % → 6.9 % are comparable over 2014–2023; urban distraction and drugs are not |
-| **[Speed laws](https://rahv-fb.github.io/dgt-stats/simulator.html)** | — | If every driver now above the limit on motorways and conventional roads kept to it, about 335 fewer people a year would die there (298–370): more than any single new limit saves (the largest, 70 km/h on conventional roads, about 261); only lowering both limits at once can save more, up to about 350. 90 → 80 km/h on conventional roads saves about 123. A validated forecasting model puts the chance that the first year's death count shows each at over 99 % for full compliance and 45 % for 80 km/h |
+| **[Speed laws](https://rahv-fb.github.io/dgt-stats/simulator.html)** | — | If every driver now above the limit on motorways and conventional roads kept to it, about 335 fewer people a year would die there (298–370): with drivers responding as they typically do, more than any single new limit saves (the largest, 70 km/h on conventional roads, about 261); only lowering both limits at once can save more, up to about 350. 90 → 80 km/h on conventional roads saves about 123. A validated forecasting model puts the chance that the first year's death count shows each at over 99 % for full compliance and 45 % for 80 km/h |
 
 **What connects them.** Wherever the data split risk into how often people crash and how badly
 they are hurt when they do, the difference is in the second. The national series says the same
@@ -67,10 +67,12 @@ of road. Nothing in the chain is fitted to Spanish crash data, which carry no sp
 on month, a four-year trend, road fuel and weekday counts, chosen on the forecasts of 2006–2015 and
 scored on the held-back years 2016–2019 and 2022–2024 (the lockdown years 2020–2021 are scored
 apart) against last year's count and against gradient-boosted trees given the same inputs and tuned,
-like the model, on 2006–2015. The trees do worse than the model on every kind of road and in every
-set of years. The model beats last year's count when the trend or the traffic moves (7.3 % against
-19.2 % in the lockdown years), and in flat years does slightly worse (6.6 % against 5.9 % on the
-held-back years). From its measured error, a comparison one year after a law picks up a change of
+like the model, on 2006–2015. The tuned trees do worse than the model on every kind of road and
+in every set of years. The model beats last year's count when the trend or the traffic moves
+(7.3 % against 19.2 % in the lockdown years), and in flat years does slightly worse (6.6 % against
+5.9 % on the held-back years); trees with large leaves, worse on 2006–2015, would have beaten both
+on the held-back years (3.7 %) by forecasting little more than the recent level, which wins only
+when nothing moves. From its measured error, a comparison one year after a law picks up a fall of
 15 % of interurban deaths (about 195 a year) four times in five, and smaller changes less often;
 summed over five years the figure is 36 %. The JavaScript is a port of `simulator.py`, and a test
 runs it under Node against the Python.
