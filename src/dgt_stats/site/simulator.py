@@ -10,6 +10,7 @@ from dgt_stats.site.components import (
     _fmt_dec,
     _fmt_int,
     _fmt_pct,
+    _join,
     _minus,
     _signed_pct,
     _times,
@@ -264,8 +265,11 @@ def page_simulator(captions: dict[str, str]) -> str:
     )
     single = grid[grid.levers_changed == 1].sort_values("deaths_change").iloc[0]
     beyond = grid[grid.deaths_change < float(comply.deaths_change)]
-    if (beyond.levers_changed < 2).any():
-        raise ValueError("simulator page: a single new limit saves more than full compliance")
+    if beyond.empty or (beyond.levers_changed < 2).any():
+        raise ValueError(
+            "simulator page: full compliance no longer sits between the best single limit and "
+            "the best pair"
+        )
     deepest = grid.sort_values("deaths_change").iloc[0]
     today = {lever: parameters["levers"][lever]["limit"] for lever in ("motorway", "conventional")}
     conventional_only = grid[
@@ -432,6 +436,21 @@ def page_simulator(captions: dict[str, str]) -> str:
     selection = validation.loc[("deaths_all", "selection")]
     pandemic = validation.loc[("deaths_all", "pandemic")]
     chosen = forecast.CHOSEN
+    # The paragraph below says which forecast wins in which years; stop if the tables move.
+    if not (
+        holdout.loc["last_year", "rmse"] < holdout.loc[chosen, "rmse"]
+        and flat_tree.selection > selection.loc[chosen, "rmse"]
+        and flat_tree.pandemic > pandemic.loc[chosen, "rmse"]
+    ):
+        raise ValueError("simulator page: the forecast comparison no longer reads as described")
+    larger = [
+        leaf
+        for leaf in forecast.TREE_LEAF_CANDIDATES
+        if leaf > int(flat_tree.name.rsplit("_", 1)[-1])
+    ]
+    larger_errors = [float(trees.loc[f"boosted_trees_leaf_{leaf}", "holdout"]) for leaf in larger]
+    if any(error <= float(flat_tree.holdout) for error in larger_errors):
+        raise ValueError("simulator page: a larger leaf now does as well on the held-back years")
     worst = backtest[(backtest.outcome == "deaths_all") & (backtest.set == "holdout")]
     worst = worst.assign(error=lambda f: (f.observed / f.model - 1).abs()).sort_values("error")
     worst_year = worst.iloc[-1]
@@ -457,13 +476,15 @@ def page_simulator(captions: dict[str, str]) -> str:
         "did better than the model, which earns its place when the trend or the traffic moves, "
         "the years in which a law's effect has to be told apart from them. Its worst held-back "
         f"year is {int(worst_year.year)}, forecast from a window that includes the lockdowns. "
-        "Trees with larger leaves, each holding at least "
+        "Trees whose leaves hold at least "
         f"{flat_tree.name.rsplit('_', 1)[-1]} months, worse on the selection years "
         f"({_fmt_pct(float(flat_tree.selection))}), would have done best of all on the "
         f"held-back years ({_fmt_pct(float(flat_tree.holdout))}) and worse "
-        f"than the model in the lockdowns ({_fmt_pct(float(flat_tree.pandemic))}): they "
-        "forecast little more than the recent level, which wins only when nothing moves, and "
-        "that cannot be known when the forecast is made.</p>"
+        f"than the model in the lockdowns ({_fmt_pct(float(flat_tree.pandemic))}); leaves of "
+        f"{_join([str(leaf) for leaf in larger])} months did worse again on the held-back "
+        f"years ({_join([_fmt_pct(error) for error in larger_errors])}). A setting that wins "
+        "only in flat years cannot be picked in advance, because whether the years ahead will "
+        "be flat is not known when the forecast is made.</p>"
     )
     body += figure("k1_forecast_check", "Each year's deaths against two forecasts", captions)
     body += (

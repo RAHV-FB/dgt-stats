@@ -385,8 +385,9 @@ roads, urban streets) and in every set of years: a tree cannot extend a trend be
 has seen, and with 48 rows a small leaf fits the noise. Trees whose leaves hold at least 8 months,
 worse on the selection years (10.3 %), would have done best of all on the held-back years (3.7 %,
 in every zone better than both the model and last year's count) and worse than the model in the
-lockdowns (14.2 %): they forecast little more than the recent level, which wins only when nothing
-moves, and that cannot be known when a forecast is made. A synthetic test checks that the fit
+lockdowns (14.2 %); leaves of 12 and 20 months did worse again on the held-back years (5.9 % and
+7.1 %). A setting that wins only in flat years cannot be picked in advance, because whether the
+years ahead will be flat is not known when a forecast is made. A synthetic test checks that the fit
 recovers a known traffic elasticity and weekday effect, and that its forecast follows a traffic
 shock that last year's count misses.
 

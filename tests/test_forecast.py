@@ -127,10 +127,11 @@ def test_the_model_beats_last_year_when_the_trend_or_traffic_moves() -> None:
         model = table.loc[("deaths_all", kind, forecast.CHOSEN), "rmse"]
         naive = table.loc[("deaths_all", kind, "last_year"), "rmse"]
         assert model < naive / 2
-    # In the flat years since 2016 last year is as good: the page says so, and this holds it.
+    # In the flat years since 2016 last year's count does slightly better: the page says so, and
+    # this holds it.
     model = table.loc[("deaths_all", "holdout", forecast.CHOSEN), "rmse"]
     naive = table.loc[("deaths_all", "holdout", "last_year"), "rmse"]
-    assert abs(model - naive) < 0.02
+    assert naive < model < naive + 0.02
     # The tuned trees do worse than the model on every kind of road and in every set of years.
     for outcome in forecast.OUTCOMES:
         for kind in ("selection", "holdout", "pandemic"):

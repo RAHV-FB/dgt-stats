@@ -47,16 +47,16 @@ def _written_forms(value: float, unit: str) -> set[str]:
     numbers = {round(value * 100, 6)} if unit == "share" else {value}
     forms = set()
     for number in numbers:
-        texts = [f"{number:g}"] + ([f"{number:,.0f}"] if float(number).is_integer() else [])
-        for text in texts:
+        whole = [f"{number:,.0f}", f"{number:.1f}"] if float(number).is_integer() else []
+        for text in (f"{number:g}", *whole):
             forms |= {text, text.replace(",", "."), text.replace(".", ",")}
     return forms
 
 
 def _quotes(quote: str, value: float, unit: str) -> bool:
-    """Whether ``quote`` prints ``value`` as a whole number, not as part of another one."""
+    """Whether ``quote`` prints ``value`` in full: not inside a longer number, and with its sign."""
     return any(
-        re.search(r"(?<![\d.,])" + re.escape(form) + r"(?![\d])", quote)
+        re.search(r"(?<![\d.,\-−])" + re.escape(form) + r"(?![\d]|[.,]\d)", quote)
         for form in _written_forms(value, unit)
     )
 
@@ -65,12 +65,25 @@ def test_every_quote_contains_the_value_it_supports() -> None:
     rows = simulator.evidence()
     for row in rows.itertuples():
         assert _quotes(row.quote, float(row.value), row.unit), (row.parameter, row.applies_to)
-    # The check is strict enough to catch a mistyped value.
-    for factor in (0.61, 1.37, 1.9):
+        # The exponents' interval ends feed every evidence range, so they are checked too.
+        if row.unit == "power":
+            for bound in (row.low, row.high):
+                assert _quotes(row.quote, float(bound), row.unit), (row.parameter, bound)
+    # The check catches a mistyped value: scaled, sign-flipped or with its decimals dropped.
+    for factor in (0.61, 1.37, 1.9, -1):
         caught = [
             not _quotes(row.quote, float(row.value) * factor, row.unit) for row in rows.itertuples()
         ]
         assert all(caught), factor
+    for row in rows.itertuples():
+        scale = 100 if row.unit == "share" else 1
+        printed = float(row.value) * scale
+        if printed.is_integer() or f"{int(printed)}.0" in row.quote:
+            continue  # nothing to drop, or the shorter number is printed in its own right
+        assert not _quotes(row.quote, int(printed) / scale, row.unit), (
+            row.parameter,
+            row.applies_to,
+        )
 
 
 def test_a_law_sets_one_limit_for_every_site_it_covers() -> None:

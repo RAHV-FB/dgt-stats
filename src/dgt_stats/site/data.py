@@ -302,7 +302,9 @@ def page_data(captions: dict[str, str]) -> str:
         "<p>Five commands from the raw files, which are tracked in the repository with their "
         f'checksums. The sequence is in the <a href="{REPO_URL}#reproduce">README</a>. On every '
         "pull request and every push to main, GitHub Actions reruns the first three commands and "
-        "the tests from the raw files (not the analyses or the site build), and the result "
+        "the tests from the raw files (not the analyses; a push to main that touches the site "
+        "or its inputs also rebuilds this site from the committed tables and publishes it), and "
+        "the result "
         "tables and figures are committed, so "
         "any number on this site can be traced to the table it came from and the table to the "
         "file it came from.</p>"

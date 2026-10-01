@@ -70,9 +70,10 @@ apart) against last year's count and against gradient-boosted trees given the sa
 like the model, on 2006–2015. The tuned trees do worse than the model on every kind of road and
 in every set of years. The model beats last year's count when the trend or the traffic moves
 (7.3 % against 19.2 % in the lockdown years), and in flat years does slightly worse (6.6 % against
-5.9 % on the held-back years); trees with large leaves, worse on 2006–2015, would have beaten both
-on the held-back years (3.7 %) by forecasting little more than the recent level, which wins only
-when nothing moves. From its measured error, a comparison one year after a law picks up a fall of
+5.9 % on the held-back years); trees whose leaves hold at least 8 months, worse on 2006–2015,
+would have beaten both on the held-back years (3.7 %) and lost to the model in the lockdowns, a
+setting nobody could have picked in advance. From its measured error, a comparison one year after
+a law picks up a fall of
 15 % of interurban deaths (about 195 a year) four times in five, and smaller changes less often;
 summed over five years the figure is 36 %. The JavaScript is a port of `simulator.py`, and a test
 runs it under Node against the Python.

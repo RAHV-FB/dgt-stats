@@ -35,8 +35,9 @@ trees, tuned the same way, do worse than the model in every zone and every kind 
 cannot extend a trend beyond the years it has seen, and with 48 rows a small leaf fits the noise.
 Trees with leaves of at least 8, worse on the selection years, would have beaten both the model
 and last year's count on the flat held-back years in every zone and lost to the model in the
-lockdowns: they forecast little more than the recent level, which wins only when nothing moves,
-and that cannot be known when a forecast is made.
+lockdowns; larger leaves did worse again on the held-back years. A setting that wins only in
+flat years cannot be picked in advance, because whether the years ahead will be flat is not known
+when a forecast is made.
 
 **What the error means.** The forecast error of a sum of ``n`` years, measured the same way at each
 horizon, splits into Poisson chance (``1 / expected deaths``) and an extra, multiplicative part

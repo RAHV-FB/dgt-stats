@@ -150,8 +150,9 @@ share; speed alone does not explain the gap.
 Its forecasting model is judged on years it did not see, against last year's count and against
 gradient-boosted trees tuned, like the model, on 2006–2015. The tuned trees do worse than the
 model on every kind of road and in every set of years; last year's count does slightly better in
-the flat held-back years, 2016–2019 and 2022–2024 (5.9 % against 6.6 %), and trees with large
-leaves, rejected on 2006–2015, would have done better than both there (3.7 %) and worse than the
+the flat held-back years, 2016–2019 and 2022–2024 (5.9 % against 6.6 %), and trees whose leaves
+hold at least 8 months, rejected on 2006–2015, would have done better than both there (3.7 %) and
+worse than the
 model in the lockdowns; the page says both. From the
 model's measured error the page gives the chance that the first year's death count would show a
 change: over 99 % for full compliance, 45 % for conventional roads at 80 km/h, and no more than

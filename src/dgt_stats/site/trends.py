@@ -57,6 +57,18 @@ def page_trends(captions: dict[str, str]) -> str:
     shown = ("count", "residents", "vehicles", "road_fuel")
     crash_within = [key for key in shown if not _beyond(crashes.loc[key])]
     crash_beyond = [key for key in PER if _beyond(crashes.loc[key])]
+    series = read_table("longrun_series").set_index(["measure", "year"])
+    km_check = read_table("longrun_km_check").set_index(["measure", "year"])
+    trend_flags = [
+        bool(series.loc[("road_fuel", 2023), "outside_interval"]),
+        bool(series.loc[("road_fuel", 2024), "outside_interval"]),
+        bool(km_check.loc[("per_fuel", 2023), "outside_interval"]),
+        bool(km_check.loc[("per_km", 2023), "outside_interval"]),
+    ]
+    if trend_flags != [True, True, True, False]:
+        raise ValueError(
+            f"trends page: the trend comparison no longer reads as described: {trend_flags}"
+        )
     if crash_beyond != ["vehicles"] or (crashes.ratio_to_base >= 1).any():
         raise ValueError(f"trends page: crash changes beyond an ordinary year: {crash_beyond}")
 
@@ -164,8 +176,9 @@ def page_trends(captions: dict[str, str]) -> str:
         f"<p>{crash_text}. Set beside the rise in hospital admissions, that means more people "
         "admitted per crash, which is either more serious crashes or more complete tracing of "
         "admissions. Against 2019 alone, the per-fuel rise in deaths is within an ordinary "
-        "year. Against the direction the pre-2020 trend was taking it is outside the interval, "
-        "but measured per kilometre on interurban roads it is inside; the "
+        "year. Against the direction the pre-2020 trend was taking it is outside the interval "
+        "in 2023 and 2024; on interurban roads, where kilometres are measured only up to 2023, "
+        "the 2023 excess is outside it per tonne of fuel but inside it per kilometre; the "
         '<a href="long-run.html">long-run page</a> sets that out.</p>'
     )
 

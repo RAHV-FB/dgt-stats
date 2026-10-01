@@ -215,11 +215,12 @@ def page_index(captions: dict[str, str]) -> str:
         ),
         (
             "simulator.html",
-            "Keeping to today's limits would save more lives than any one new limit",
+            "With the typical response, keeping to today's limits would save more lives than "
+            "any one new limit",
             "If every driver now above the limit on motorways and conventional roads kept to "
             "it, the Power Model and the speeds measured in Spain put the saving at about "
-            f"{_fmt_int(-comply.deaths_change)} lives a year, more than any one new limit with "
-            "the typical response; 80 km/h on conventional roads would save about "
+            f"{_fmt_int(-comply.deaths_change)} lives a year; 80 km/h on conventional roads "
+            "would save about "
             f"{_fmt_int(-conventional.deaths_change)}. A validated forecast says the first year's "
             f"count would show the first {_chance(comply.power_in_one_year)}, the second "
             f"{_chance(conventional.power_in_one_year)}.",
