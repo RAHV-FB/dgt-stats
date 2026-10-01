@@ -19,13 +19,13 @@ five commands.
 | | Counted | Measured |
 |---|---|---|
 | **[2019 to 2024](https://rahv-fb.github.io/dgt-stats/trends.html)** | 2024 deaths +1.7 % on 2019 | −3.4 % per vehicle, +3.5 % per tonne of road fuel: all within an ordinary year's variation. Hospital admissions rose 11 % as a count and 13 % per unit of traffic, beyond it |
-| **[The long run](https://rahv-fb.github.io/dgt-stats/long-run.html)** | 2020 deaths 24 % below trend, back on it by 2022 | Per tonne of fuel 2020 was on trend: the fall was less driving. Since then the decline has stalled: per kilometre measured on interurban roads 2023 is +5 % on the 2013–2019 trend, inside its interval; per tonne of fuel it looks +13 %, because each tonne now carries more traffic |
+| **[The long run](https://rahv-fb.github.io/dgt-stats/long-run.html)** | 2020 deaths 24 % below trend, back on it by 2022 | Per tonne of fuel 2020 was on trend: the fall was less driving. On interurban roads in 2023, deaths per tonne of fuel were +13 % on the 2013–2019 trend, outside its interval, but per kilometre measured only +5 %, inside it: each tonne now carries more traffic. The counts cannot yet tell whether the 2013–2019 decline went on or stalled; they rule out a jump in risk |
 | **[Seasons](https://rahv-fb.github.io/dgt-stats/seasons.html)** | July deaths 1.22×, August 1.14× the average month | Per unit of petrol 1.06× and 0.98×: the summer peak is mostly traffic. Spring is safer per unit of traffic, autumn riskier |
 | **[Age and sex](https://rahv-fb.github.io/dgt-stats/drivers.html)** | Drivers 75+ and men die more | 75+ crash about as often per km as drivers aged 35–54 but are killed 3.9× as often once involved; men crash 1.4× as often per licence (about their extra travel) and are killed 2.6× as often once involved |
 | **[Vehicles](https://rahv-fb.github.io/dgt-stats/vehicles.html)** | A heavy truck is in a fatal crash 10× as often as a car per vehicle | 2.5× per kilometre, and 0.18 of its own occupants die per fatal crash it is in |
 | **[Speed](https://rahv-fb.github.io/dgt-stats/speed.html)** | Speed recorded in 7 % of crashes, 22 % of deaths | On the same kind of road, a crash with speed recorded kills 2.0× as often (3.4× before allowing for road type): an association, with two recording biases stated |
-| **[Factors](https://rahv-fb.github.io/dgt-stats/factors.html)** | DGT's recorded alcohol, distraction and drug shares | After a recording-break test: interurban alcohol 5.5 % → 8.2 % and speed 10.0 % → 6.9 % are comparable over 2014–2023; urban distraction and drugs are not |
-| **[Speed laws](https://rahv-fb.github.io/dgt-stats/simulator.html)** | — | If every driver now above the limit on motorways and conventional roads kept to it, about 330 fewer people a year would die there (290–360), more than any new limit achieves; 90 → 80 km/h on conventional roads saves about 120. A validated forecasting model shows why neither would be visible in a year's death count: anything under about 180 deaths a year is not |
+| **[Factors](https://rahv-fb.github.io/dgt-stats/factors.html)** | DGT's recorded alcohol, distraction and drug shares | After a recording-break test: interurban alcohol 5.5 % → 8.2 % and speed on all roads 10.0 % → 6.9 % are comparable over 2014–2023; urban distraction and drugs are not |
+| **[Speed laws](https://rahv-fb.github.io/dgt-stats/simulator.html)** | — | If every driver now above the limit on motorways and conventional roads kept to it, about 335 fewer people a year would die there (298–370): more than any single new limit saves (the largest, 70 km/h on conventional roads, about 261); only lowering both limits at once can save more, up to about 350. 90 → 80 km/h on conventional roads saves about 123. A validated forecasting model puts the chance that the first year's death count shows each at over 99 % for full compliance and 45 % for 80 km/h |
 
 **What connects them.** Wherever the data split risk into how often people crash and how badly
 they are hurt when they do, the difference is in the second. The national series says the same
@@ -50,22 +50,30 @@ It is a chain of four links, each sourced:
 
 1. **Baseline**: deaths and injuries by road class, 2022–2024, from the reconciled microdata.
 2. **Today's speeds**: car speeds measured by radar in Spain in 2022 for the EU's Baseline project
-   (mean, share within the limit, 85th percentile), fitted with a log-normal that reproduces them.
-3. **From a law to a mean speed**: Elvik's curve through 143 before-and-after studies of limit
-   changes, or a share the reader sets; compliance lowers the mean by the expected excess over the
-   limit.
+   (mean, share within the limit, 85th percentile) on autopistas, autovías, conventional roads and
+   urban streets, fitted with a log-normal through the last two, whose mean lands within 0.7 km/h
+   of the measured one.
+3. **From a law to a mean speed**: Elvik's curve through 143 before-and-after results of limit
+   changes, or a share the reader sets; compliance lowers the mean by the complying share of the
+   expected excess over the limit.
 4. **From speed to casualties**: the Power Model, with Elvik's 2009 meta-analytic exponents and
    their 95 % intervals, by road environment. Values of a casualty are DGT's own (2024 update).
 
-Every published value is in [`data/raw/evidence/simulator_parameters.csv`](data/raw/evidence/simulator_parameters.csv)
-with its source, table and a verbatim quote. Nothing in the chain is fitted to Spanish crash
-data, which carry no speeds. The **forecasting model** behind its verdicts (`forecast.py`) is a
-Poisson regression of monthly deaths on month, a four-year trend, road fuel and weekday counts,
-chosen on the forecasts of 2006–2015 and scored on 2016–2024 against last year's count and
-gradient-boosted trees. It beats both when the trend or the traffic moves and ties last year in
-flat years; its measured error says the smallest change one year's count can show is about 15 %
-of interurban deaths, and that waiting longer makes it larger. The JavaScript is a port of
-`simulator.py`, and a test runs it under Node against the Python.
+Every published value in the chain is in [`data/raw/evidence/simulator_parameters.csv`](data/raw/evidence/simulator_parameters.csv)
+with its source, table and a verbatim quote; the travel time, of cars and other light vehicles only,
+comes from the Ministerio de Transportes' 2023 vehicle-kilometres and heavy-vehicle shares by type
+of road. Nothing in the chain is fitted to Spanish crash data, which carry no speeds. The
+**forecasting model** behind its verdicts (`forecast.py`) is a Poisson regression of monthly deaths
+on month, a four-year trend, road fuel and weekday counts, chosen on the forecasts of 2006–2015 and
+scored on the held-back years 2016–2019 and 2022–2024 (the lockdown years 2020–2021 are scored
+apart) against last year's count and against gradient-boosted trees given the same inputs and tuned,
+like the model, on 2006–2015. The trees do worse than the model on every kind of road and in every
+set of years. The model beats last year's count when the trend or the traffic moves (7.3 % against
+19.2 % in the lockdown years), and in flat years does slightly worse (6.6 % against 5.9 % on the
+held-back years). From its measured error, a comparison one year after a law picks up a change of
+15 % of interurban deaths (about 195 a year) four times in five, and smaller changes less often;
+summed over five years the figure is 36 %. The JavaScript is a port of `simulator.py`, and a test
+runs it under Node against the Python.
 
 ## Why you can believe the numbers
 
@@ -79,17 +87,18 @@ of interurban deaths, and that waiting longer makes it larger. The JavaScript is
   shows all of them side by side.
 - **Assumptions are tested, and the tests changed findings.** Road fuel was checked against the
   kilometres the Ministry measures (it drifts after 2019, which shrank the long-run excess);
-  intervals were checked against each count's real year-to-year scatter (crash counts scatter 68
-  times as much as chance, so the apparent fall in crashes per person is not a finding); the
-  owner's age was bounded as a stand-in for the driver's. The list is on the
-  [data page](https://rahv-fb.github.io/dgt-stats/data.html#assumptions-tested).
+  intervals were checked against each count's real year-to-year scatter (the variance of crash
+  counts is 68 times what chance gives, so their spread is about eight times the Poisson one: the
+  apparent fall in crashes per person is not a finding, and the fall per vehicle is only just
+  beyond an ordinary year); the owner's age was bounded as a stand-in for the driver's. The list
+  is on the [data page](https://rahv-fb.github.io/dgt-stats/data.html#assumptions-tested).
 - **Models are judged on years they did not see**, against naive forecasts, and the page says
   where the simple forecast wins.
 - **Recording changes are tested before trends are read.** A factor share that jumps or falls by a
   quarter in a year is treated as a change in recording, and the page compares only within the
   unbroken runs.
-- **The prose cannot drift from the tables.** Every sentence on the site that contains a number
-  computes it from a committed result table at build time.
+- **The prose follows the tables.** Nearly every number in the site's sentences is computed from
+  a committed result table at build time, so a rebuilt table rewrites the text that quotes it.
 
 How the project was re-centred on its question, pillar by pillar:
 [`docs/goal_alignment_audit.md`](docs/goal_alignment_audit.md). Method by method:
@@ -102,8 +111,9 @@ How the project was re-centred on its question, pillar by pillar:
   factors come from DGT's report as police-recorded shares; interactions such as alcohol × speed
   are out of reach.
 - **Kilometres only where they are measured.** The Ministry measures interurban vehicle-km by road
-  type each year (to 2023, without municipal roads); there is no urban series, no series by
-  vehicle type except DGT's 2022 estimate, and no source of kilometres by sex.
+  type each year (to 2023, without municipal roads); there is no urban series; by vehicle type
+  there are only the Ministry's yearly share of heavy vehicles on each type of road and DGT's
+  estimates for 2022 and 2024; and there is no source of kilometres by sex.
 - **No speeds in the crash data**, so the effect of speed on Spanish casualties is taken from
   international evidence, not estimated; and no split of urban casualties by speed limit, so the
   simulator gives urban effects per kind of street, not as a national count.
@@ -133,14 +143,19 @@ and is skipped otherwise.
 Raw files are tracked under `data/raw/` with their size, SHA-256 and source URL in
 `data/raw/manifest.csv`; result tables and figures under `reports/` and the site's HTML, CSS and
 script are committed, so the pages can be read and reviewed without rebuilding. `site/figures/`
-and `site/tables/` are not committed; `scripts/build_site.py` copies them in from `reports/`, so
-run it once before opening the pages locally.
+and `site/tables/` are not committed; `scripts/build_site.py` copies them in from `reports/`
+(with the simulator's evidence register from `data/raw/evidence/`), so run it once before opening
+the pages locally.
 
-Every push and pull request runs [`ci.yml`](.github/workflows/ci.yml): Ruff over `src`, `scripts`
-and `tests`, then the whole sequence above from the raw files, so the checks and the tests run
-against the published code rather than a prepared data layer. A push to `main` that touches the
-site or its inputs runs [`pages.yml`](.github/workflows/pages.yml), which renders `site/` from the
-committed tables and deploys it.
+Every pull request and every push to `main` runs [`ci.yml`](.github/workflows/ci.yml): Ruff over
+`src`, `scripts` and `tests`, then `ingest.py all`, `build_tables.py` and `model.py` from the raw
+files (the data layers are cached on the raw files and the code that reads them, and the
+reconciliation checks rerun either way), then `pytest`, so the checks and the tests run against
+the published code rather than a prepared data layer. It does not run `analyse.py`,
+`build_site.py` or `pytest -m slow`, so the tables and figures that `analyse.py` writes are not
+regenerated in CI, and the tests that need them read the committed ones. A push to `main` that
+touches the site or its inputs runs [`pages.yml`](.github/workflows/pages.yml), which renders
+`site/` from the committed tables and deploys it.
 
 ## Layout
 
