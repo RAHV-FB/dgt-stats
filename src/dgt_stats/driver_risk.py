@@ -179,8 +179,8 @@ def owner_age_check(year: int = KM_YEAR) -> pd.DataFrame:
     far fewer cars per licence than anyone else and are credited with far fewer kilometres, which
     means part of their driving is registered to older owners, most plausibly their parents in
     the 35–54 baseline. ``ratio_75_if_young_drive_like_baseline`` is the 75-and-over involvement
-    ratio in the extreme case: the young drive as many kilometres per licence as the baseline,
-    and all of the difference is moved out of the baseline's kilometres.
+    ratio in the extreme case: kilometres are moved out of the baseline and credited to the young
+    until the two bands drive the same distance per licence holder.
     """
     licences = io_exposure.read_exposure("conductores_por_edad")
     licences = licences[(licences.year == year) & (licences.sex == "total")]
@@ -204,7 +204,10 @@ def owner_age_check(year: int = KM_YEAR) -> pd.DataFrame:
     out["cars_per_licence"] = out.cars / out.licence_holders
     out["km_per_licence"] = out.billion_km * BILLION / out.licence_holders
     young, base = out.loc["18-34"], out.loc[REFERENCE_BAND]
-    shortfall = (base.km_per_licence - young.km_per_licence) * young.licence_holders / BILLION
+    # The transfer x that equalises the two: (young_km + x) / young = (base_km - x) / base.
+    shortfall = (
+        base.billion_km * young.licence_holders - young.billion_km * base.licence_holders
+    ) / (young.licence_holders + base.licence_holders)
     published = float(out.loc["75+", "drivers_involved"] / out.loc["75+", "billion_km"]) / float(
         base.drivers_involved / base.billion_km
     )

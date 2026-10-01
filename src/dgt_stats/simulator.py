@@ -9,7 +9,8 @@ four links, and each link names where its numbers come from:
    with DGT's yearbook (:func:`baseline`).
 2. **Today's speeds.** The free-flow speeds of cars measured in Spain in 2022 for the EU's
    Baseline project, by road type: the mean, the share of cars within the limit and the 85th
-   percentile. A log-normal distribution through the last two reproduces both exactly
+   percentile, separately for autopistas, autovías, conventional roads and urban streets at 50
+   and at 30 km/h. A log-normal distribution through the last two reproduces both exactly
    (:class:`SpeedDistribution`); its mean is checked against the measured one.
 3. **From a law to a new mean speed.** Two levers. *A new limit*: drivers move their average speed
    by only part of the change, by the amount of the curve fitted to 143 before-and-after results
@@ -28,11 +29,15 @@ crash data, because Spanish crash data carry no speeds: the evidence that measur
 the effect, the Spanish data say what it applies to, and :mod:`dgt_stats.forecast` says whether
 the result could ever be seen in the counts.
 
+A law sets one limit for autopistas and autovías together, as the Reglamento General de
+Circulación does, one for conventional roads and one for urban streets now at 50 km/h; each
+measured kind of road then responds from its own speeds (:data:`LEVERS`).
+
 What is left out, deliberately: other interurban roads (service roads, local tracks), for which no
 speed was measured; urban casualties as a national count, because DGT does not publish how many
 happen on 30 and on 50 km/h streets, so the urban effect is given per street type; and the money
 value of travel time, for which no Spanish official figure was found to cite. Time is reported in
-vehicle-hours.
+vehicle-hours of cars and other light vehicles, the traffic the speeds were measured on.
 """
 
 from __future__ import annotations
@@ -53,39 +58,56 @@ PROCESSED_CRASHES = PROCESSED_DATA_DIR / "accidentes.parquet"
 BASELINE_YEARS = (2022, 2023, 2024)
 
 # Road classes, by DGT's zone and road-type code. Every class is stable across the 2021
-# (interurban) and 2024 (urban) recodings because each groups the codes that were swapped.
+# (interurban) and 2022–2024 (toll and free motorway) recodings because each groups the codes
+# that were swapped: toll and free motorways (1 and 2) are both autopistas.
 ROAD_CLASSES = {
-    "motorway": "Motorways and autovías",
+    "autopista": "Autopistas",
+    "autovia": "Autovías",
     "conventional": "Conventional roads",
     "other_interurban": "Other interurban roads",
     "urban": "Urban streets",
 }
-MOTORWAY_CODES = (1, 2, 3)
+AUTOPISTA_CODES = (1, 2)
+AUTOVIA_CODES = (3,)
 CONVENTIONAL_CODES = (4, 5, 6)
 # The evidence's road environments: Elvik's exponents are given for rural roads and motorways
 # together, and for urban and residential streets.
 ENVIRONMENT = {
-    "motorway": "rural",
+    "autopista": "rural",
+    "autovia": "rural",
     "conventional": "rural",
     "other_interurban": "rural",
     "urban": "urban",
 }
-# Where a speed was measured: the two interurban classes, and two kinds of urban street.
+# Where a speed was measured: the three interurban classes, and two kinds of urban street.
 SITES = {
-    "motorway": "Motorways and autovías (120 km/h)",
+    "autopista": "Autopistas (120 km/h)",
+    "autovia": "Autovías (120 km/h)",
     "conventional": "Conventional roads (90 km/h)",
     "urban_50": "Urban streets at 50 km/h",
     "urban_30": "Urban streets at 30 km/h",
 }
-INTERURBAN_SITES = ("motorway", "conventional")
+INTERURBAN_SITES = ("autopista", "autovia", "conventional")
 URBAN_SITES = ("urban_50", "urban_30")
+# What a law sets, and the measured sites each limit applies to: the Reglamento gives autopistas
+# and autovías one limit. Streets already at 30 km/h keep it.
+LEVERS = {
+    "motorway": ("autopista", "autovia"),
+    "conventional": ("conventional",),
+    "urban_50": ("urban_50",),
+}
+LEVER_LABELS = {
+    "motorway": "Autopistas and autovías (120 km/h)",
+    "conventional": "Conventional roads (90 km/h)",
+    "urban_50": "Urban streets now at 50 km/h",
+}
+LEVER_OF = {site: lever for lever, sites in LEVERS.items() for site in sites}
 # The limits the page offers, inside the range of limit changes the response curve was fitted on
 # (−33 to +24 km/h).
 LIMIT_OPTIONS = {
     "motorway": (100, 110, 120, 130, 140),
     "conventional": (70, 80, 90, 100),
     "urban_50": (30, 40, 50),
-    "urban_30": (30,),
 }
 RESPONSE_RANGE = (-33, 24)
 
@@ -115,6 +137,7 @@ def evidence() -> pd.DataFrame:
     return frame
 
 
+@cache
 def parameter(name: str, applies_to: str = "all", bound: str = "value") -> float:
     """One published value (``bound`` is ``value``, ``low`` or ``high``)."""
     rows = evidence()
@@ -129,14 +152,15 @@ def parameter(name: str, applies_to: str = "all", bound: str = "value") -> float
 
 def road_class(zone: pd.Series, road_type: pd.Series) -> pd.Series:
     """The simulator's road class of each crash: urban by zone, interurban by road-type code."""
-    out = np.where(
-        zone == "urban",
-        "urban",
-        np.where(
-            road_type.isin(MOTORWAY_CODES),
-            "motorway",
-            np.where(road_type.isin(CONVENTIONAL_CODES), "conventional", "other_interurban"),
-        ),
+    out = np.select(
+        [
+            zone == "urban",
+            road_type.isin(AUTOPISTA_CODES),
+            road_type.isin(AUTOVIA_CODES),
+            road_type.isin(CONVENTIONAL_CODES),
+        ],
+        ["urban", "autopista", "autovia", "conventional"],
+        "other_interurban",
     )
     return pd.Series(out, index=zone.index, dtype="string")
 
@@ -165,12 +189,21 @@ def baseline(years: tuple[int, ...] = BASELINE_YEARS) -> pd.DataFrame:
     return out.reset_index()
 
 
+RISK_CLASSES = {
+    "motorway": "Autopistas and autovías",
+    "conventional": "Conventional roads",
+}
+
+
 def class_risk() -> pd.DataFrame:
     """Deaths, admissions and injury crashes per billion vehicle-km, motorways against conventional.
 
     The kilometres are the Ministry's measured interurban network (table 1.2.14): toll motorways
     plus autovías and free motorways against conventional plus multi-lane roads. They leave out
     the municipal interurban roads, so the rates are a little high, by the same factor for both.
+    Autopistas and autovías are pooled here: the table puts free motorways with autovías and the
+    crash data with toll motorways, and the crash data swap toll and free motorways in 2022 and
+    2024.
     """
     traffic = io_traffic.read_road_traffic().set_index("year")
     km = {
@@ -178,6 +211,9 @@ def class_risk() -> pd.DataFrame:
         "conventional": traffic.multilane + traffic.conventional,
     }
     crashes = _crashes()
+    crashes["road_class"] = crashes.road_class.replace(
+        {"autopista": "motorway", "autovia": "motorway"}
+    )
     crashes = crashes[crashes.road_class.isin(km) & crashes.ANYO.isin(traffic.index)]
     counts = crashes.groupby(["ANYO", "road_class"]).agg(
         deaths=("TOTAL_MU30DF", "sum"),
@@ -191,7 +227,7 @@ def class_risk() -> pd.DataFrame:
             {
                 "year": int(year),
                 "road_class": key,
-                "road_class_label": ROAD_CLASSES[key],
+                "road_class_label": RISK_CLASSES[key],
                 "billion_vehicle_km": billion_km,
                 "deaths": float(row.deaths),
                 "deaths_per_bn_km": float(row.deaths) / billion_km,
@@ -322,7 +358,7 @@ def outcome_ratios(site: str, v1: float) -> dict[str, tuple[float, float, float]
 
 @dataclass(frozen=True)
 class Scenario:
-    """A law: limits per measured site, how drivers respond, and compliance."""
+    """A law: a limit per lever (:data:`LEVERS`), how drivers respond, and compliance."""
 
     key: str
     label: str
@@ -330,12 +366,17 @@ class Scenario:
     response_share: float | None = None
     compliance: float = 0.0
 
+    def limit(self, site: str) -> float | None:
+        """The new limit on a measured site, or ``None`` where the law leaves it alone."""
+        lever = LEVER_OF.get(site)
+        return None if lever is None else self.limits.get(lever)
+
 
 PRESETS = (
     Scenario("current", "Today's limits and today's driving", {}),
     Scenario("conventional_80", "Conventional roads 90 → 80 km/h", {"conventional": 80}),
-    Scenario("motorway_130", "Motorways and autovías 120 → 130 km/h", {"motorway": 130}),
-    Scenario("motorway_110", "Motorways and autovías 120 → 110 km/h", {"motorway": 110}),
+    Scenario("motorway_130", "Autopistas and autovías 120 → 130 km/h", {"motorway": 130}),
+    Scenario("motorway_110", "Autopistas and autovías 120 → 110 km/h", {"motorway": 110}),
     Scenario("urban_30", "Urban streets at 50 → 30 km/h", {"urban_50": 30}),
     Scenario("half_comply", "Half of today's speeders keep to the limit", {}, compliance=0.5),
     Scenario("all_comply", "Every speeder keeps to today's limits", {}, compliance=1.0),
@@ -347,15 +388,14 @@ def site_effects(scenario: Scenario) -> pd.DataFrame:
     records = []
     for site, label in SITES.items():
         distribution = speed_distribution(site)
-        v1 = new_mean_speed(
-            site, scenario.limits.get(site), scenario.response_share, scenario.compliance
-        )
+        new_limit = scenario.limit(site)
+        v1 = new_mean_speed(site, new_limit, scenario.response_share, scenario.compliance)
         record = {
             "scenario": scenario.key,
             "site": site,
             "site_label": label,
             "limit": distribution.limit,
-            "new_limit": scenario.limits.get(site, distribution.limit),
+            "new_limit": distribution.limit if new_limit is None else new_limit,
             "mean_speed": distribution.mean,
             "new_mean_speed": v1,
         }
@@ -374,25 +414,42 @@ def _baseline() -> pd.DataFrame:
     return baseline().set_index("road_class")
 
 
+# The types of road in the Ministry's traffic table that make up each interurban site. Free
+# motorways are autopistas in the crash data but sit with autovías in the table, so their
+# kilometres are timed at the autovías' speeds.
+TRAFFIC_TYPES = {
+    "autopista": ("toll_motorway",),
+    "autovia": ("autovia_free_motorway",),
+    "conventional": ("multilane", "conventional"),
+}
+
+
 @cache
-def _vehicle_km() -> dict[str, float]:
+def _vehicle_km() -> dict[str, dict[str, float] | int]:
+    """Vehicle-km a year on each interurban site, all vehicles and light vehicles only.
+
+    The latest year of the Ministry's table 1.2.14; light vehicles are all traffic less the
+    published share of heavy vehicles on each type of road.
+    """
     traffic = io_traffic.read_road_traffic().set_index("year")
     last = traffic.iloc[-1]
-    return {
-        "motorway": float(last.toll_motorway + last.autovia_free_motorway) * 1e6,
-        "conventional": float(last.multilane + last.conventional) * 1e6,
-        "year": int(traffic.index[-1]),
+    total = {key: sum(float(last[t]) for t in types) * 1e6 for key, types in TRAFFIC_TYPES.items()}
+    light = {
+        key: sum(float(last[t]) * (1 - float(last[f"{t}_heavy_share"])) for t in types) * 1e6
+        for key, types in TRAFFIC_TYPES.items()
     }
+    return {"all": total, "light": light, "year": int(traffic.index[-1])}
 
 
 def interurban_effects(scenario: Scenario) -> pd.DataFrame:
-    """Casualties a year on motorways and conventional roads under the scenario, with value and time.
+    """Casualties a year on autopistas, autovías and conventional roads, with value and time.
 
     ``change`` is after minus before (negative is fewer); ``change_low`` and ``change_high`` span
     the exponent intervals, and the ``at_low_exponent`` and ``at_high_exponent`` columns keep the
     two ends unsorted for :func:`totals`. Value is the DGT's 2024 value of preventing each
-    casualty, so a negative change in casualties is a positive ``value``. Time is vehicle-hours on
-    the measured interurban network: positive when journeys take longer.
+    casualty, so a negative change in casualties is a positive ``value``. Time is vehicle-hours of
+    light vehicles on the measured interurban network at free-flow speeds, positive when journeys
+    take longer; heavy vehicles have their own limits, which the scenario leaves alone.
     """
     sites = site_effects(scenario).set_index("site")
     base = _baseline()
@@ -426,7 +483,7 @@ def interurban_effects(scenario: Scenario) -> pd.DataFrame:
         record["value_euros_high"] = max(values[1:])
         record["value_euros_at_low_exponent"] = values[1]
         record["value_euros_at_high_exponent"] = values[2]
-        record["vehicle_hours_change"] = km[key] * (
+        record["vehicle_hours_change"] = km["light"][key] * (
             1 / float(site.new_mean_speed) - 1 / float(site.mean_speed)
         )
         records.append(record)
@@ -467,9 +524,14 @@ def detectability_inputs() -> dict[str, float]:
     }
 
 
-def visible(change: float, expected: float, tau: float) -> bool:
-    """Whether a change in a yearly count of ``expected`` deaths clears the one-year MDE."""
-    return abs(change) / expected >= forecast.minimum_detectable_effect(expected, tau)
+def power_in_one_year(change: float, expected: float, tau: float) -> float:
+    """Chance that the first year's count shows a change of ``change`` deaths; NaN for none.
+
+    A change under half a death a year is no change: the count has nothing to show.
+    """
+    if abs(change) < 0.5:
+        return math.nan
+    return forecast.detection_power(change, expected, tau)
 
 
 # --------------------------------------------------------------------------- tables
@@ -478,9 +540,9 @@ def visible(change: float, expected: float, tau: float) -> bool:
 def totals(effects: pd.DataFrame) -> pd.Series:
     """Sum of :func:`interurban_effects` over the roads, with each range built at one exponent end.
 
-    Both interurban roads take the rural exponent, so the ends of a total are the sums at the low
+    Every interurban road takes the rural exponent, so the ends of a total are the sums at the low
     exponent and at the high exponent, sorted; adding each road's sorted ends instead would mix
-    the two whenever one road's casualties rise and the other's fall.
+    the two whenever one road's casualties rise and another's fall.
     """
     total = effects.sum(numeric_only=True)
     for stem in [f"{outcome}_change" for outcome in OUTCOMES] + ["value_euros"]:
@@ -490,7 +552,11 @@ def totals(effects: pd.DataFrame) -> pd.Series:
 
 
 def presets() -> pd.DataFrame:
-    """Every preset scenario: interurban casualties, value, time and whether the count could show it."""
+    """Every preset scenario: interurban casualties, value, time and the chance a count shows it.
+
+    ``mde_deaths`` is the change the first year's count picks up four times in five (80 % power,
+    two-sided 5 % test); ``power_in_one_year`` is the chance it picks up this scenario's change.
+    """
     tau = detectability_inputs()["tau_interurban"]
     frames = []
     for scenario in PRESETS:
@@ -511,10 +577,43 @@ def presets() -> pd.DataFrame:
                 "value_euros_high": float(total.value_euros_high),
                 "vehicle_hours_change": float(total.vehicle_hours_change),
                 "mde_deaths": forecast.minimum_detectable_effect(expected, tau) * expected,
-                "visible_in_one_year": visible(float(total.deaths_change), expected, tau),
+                "power_in_one_year": power_in_one_year(float(total.deaths_change), expected, tau),
             }
         )
     return pd.DataFrame.from_records(frames)
+
+
+def limit_grid() -> pd.DataFrame:
+    """Every pair of interurban limits the page offers, with drivers responding as they typically do.
+
+    ``levers_changed`` counts the limits that differ from today's, so that a page can compare
+    one new limit against two; ``power_in_one_year`` is as in :func:`presets`.
+    """
+    tau = detectability_inputs()["tau_interurban"]
+    records = []
+    for motorway in LIMIT_OPTIONS["motorway"]:
+        for conventional in LIMIT_OPTIONS["conventional"]:
+            limits = {"motorway": motorway, "conventional": conventional}
+            scenario = Scenario("grid", "grid", limits)
+            total = totals(interurban_effects(scenario))
+            records.append(
+                {
+                    "motorway_limit": motorway,
+                    "conventional_limit": conventional,
+                    "levers_changed": sum(
+                        limits[lever] != parameter("limit", LEVERS[lever][0]) for lever in limits
+                    ),
+                    "deaths_change": float(total.deaths_change),
+                    "deaths_change_low": float(total.deaths_change_low),
+                    "deaths_change_high": float(total.deaths_change_high),
+                    "value_euros": float(total.value_euros),
+                    "vehicle_hours_change": float(total.vehicle_hours_change),
+                    "power_in_one_year": power_in_one_year(
+                        float(total.deaths_change), float(total.deaths_before), tau
+                    ),
+                }
+            )
+    return pd.DataFrame.from_records(records)
 
 
 def preset_sites() -> pd.DataFrame:
@@ -548,7 +647,8 @@ def baseline_table() -> pd.DataFrame:
     """The baseline by road class with the measured interurban vehicle-km beside it."""
     out = baseline()
     km = _vehicle_km()
-    out["vehicle_km"] = [km.get(key, np.nan) for key in out.road_class]
+    out["vehicle_km"] = [km["all"].get(key, np.nan) for key in out.road_class]
+    out["light_vehicle_km"] = [km["light"].get(key, np.nan) for key in out.road_class]
     out["vehicle_km_year"] = km["year"]
     return out
 
@@ -570,19 +670,27 @@ def browser_parameters(tables: dict[str, pd.DataFrame]) -> dict[str, object]:
             for key in INTERURBAN_SITES
         },
         "baselineYears": [int(base.first_year.iloc[0]), int(base.last_year.iloc[0])],
-        "vehicleKm": {key: float(base.loc[key, "vehicle_km"]) for key in INTERURBAN_SITES},
+        "vehicleKm": {key: float(base.loc[key, "light_vehicle_km"]) for key in INTERURBAN_SITES},
         "vehicleKmYear": int(base.vehicle_km_year.iloc[0]),
         "sites": {
             site: {
                 "label": label,
+                "lever": LEVER_OF.get(site),
                 "limit": float(sites.loc[site, "limit"]),
                 "mean": float(sites.loc[site, "mean_speed"]),
                 "mu": float(sites.loc[site, "lognormal_mu"]),
                 "sigma": float(sites.loc[site, "lognormal_sigma"]),
                 "environment": "urban" if site in URBAN_SITES else "rural",
-                "options": list(LIMIT_OPTIONS[site]),
             }
             for site, label in SITES.items()
+        },
+        "levers": {
+            lever: {
+                "label": LEVER_LABELS[lever],
+                "limit": float(sites.loc[LEVERS[lever][0], "limit"]),
+                "options": list(LIMIT_OPTIONS[lever]),
+            }
+            for lever in LEVERS
         },
         "exponents": {
             f"{outcome}|{environment}": [
@@ -600,7 +708,8 @@ def browser_parameters(tables: dict[str, pd.DataFrame]) -> dict[str, object]:
         "values": {outcome: parameter(name) for outcome, name in VALUE_PARAMETERS.items()},
         "detect": {
             "tauInterurban": float(one["deaths_interurban"]),
-            "z": float(stats.norm.ppf(1 - forecast.ALPHA / 2) + stats.norm.ppf(forecast.POWER)),
+            "zAlpha": float(stats.norm.ppf(1 - forecast.ALPHA / 2)),
+            "zPower": float(stats.norm.ppf(forecast.POWER)),
         },
         "presets": [
             {

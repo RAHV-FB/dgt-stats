@@ -52,9 +52,30 @@ def page_long_run(captions: dict[str, str]) -> str:
     fuel_km_last = km_check.loc[("per_fuel", km_last)]
     km_base = int(km_last_row.last_segment_start)
 
-    def per_tonne_growth(first: int, last_year: int) -> str:
+    def per_tonne_pace(first: int, last_year: int) -> float:
         ratio = float(km_panel.loc[last_year, "km_per_tonne"] / km_panel.loc[first, "km_per_tonne"])
-        return _signed_pct(ratio ** (1 / (last_year - first)) - 1, 1)
+        return ratio ** (1 / (last_year - first)) - 1
+
+    def per_tonne_growth(first: int, last_year: int) -> str:
+        return _signed_pct(per_tonne_pace(first, last_year), 1)
+
+    # The extra yearly growth in kilometres per tonne, beyond the pace the national per-fuel
+    # trend's last segment already carries, that brings a year's per-fuel excess inside the
+    # interval; and the extra growth the measured kilometres show.
+    at_pace = efficiency[efficiency.extra_annual_efficiency_gain == 0].set_index("year")
+
+    def needed(year: int) -> float:
+        return float(at_pace.loc[year, "ratio_low"]) ** (1 / (year - 2019)) - 1
+
+    fuel_start = int(fuel_flat.start)
+    measured_extra = per_tonne_pace(2019, km_last) - per_tonne_pace(fuel_start, 2019)
+    margin = measured_extra - needed(km_last)
+    if margin < 0:
+        enough = "not enough"
+    elif margin < 0.005:
+        enough = "just enough"
+    else:
+        enough = "more than enough"
 
     body = key_figures(
         [
@@ -100,8 +121,9 @@ def page_long_run(captions: dict[str, str]) -> str:
         f"{_change(float(km_check.loc[('per_fuel', km_last - 1), 'ratio']), 0)} and "
         f"{_change(float(fuel_km_last.ratio), 0)} above trend, but deaths per kilometre only "
         f"{_change(float(km_prev_row.ratio), 0)} and {_change(float(km_last_row.ratio), 0)}, "
-        "inside the interval. The decline stopped; risk per kilometre did not jump. Fuel "
-        "overstated it because each tonne carried more traffic after 2019 than before.</p>"
+        "inside the interval. The counts cannot yet tell whether the pre-2020 decline carried "
+        "on or stalled, but they rule out a jump in risk per kilometre. Fuel overstated the "
+        "rise because each tonne carried more traffic after 2019 than before.</p>"
     )
     body += figure(
         "l1_trend_projection",
@@ -170,21 +192,26 @@ def page_long_run(captions: dict[str, str]) -> str:
         f"<p>As a count, 2020 was {_change(float(count_2020.ratio), 0)} against trend and "
         f"{last} {_change(float(count_last.ratio), 0)}: a dip and a return. Per tonne of fuel, "
         f"2020 was {_change(float(fuel_2020.ratio), 0)}, inside the interval. The per-fuel trend "
-        "already carries the fuel-economy gains of 1996–2019, so projecting it assumes they "
-        "continued at that pace. If kilometres per tonne improved an extra 1% a year from 2020, "
-        f"the excess is {excess(0.01)}; at an extra 2% a year it is {excess(0.02)}. So the "
-        "excess is clear if fuel economy kept its pre-2020 pace, and within the trend's "
-        "uncertainty only if it improved about two points a year faster than before.</p>"
+        "already carries the growth in kilometres per tonne of its last segment, "
+        f"{fuel_start}–2019, so projecting it assumes that growth went on at the same pace. If "
+        f"kilometres per tonne grew an extra 1% a year from 2020, the excess is {excess(0.01)}; "
+        f"at an extra 2% a year it is {excess(0.02)}. So the excess is clear if kilometres per "
+        "tonne kept their pre-2020 pace, and inside the trend's uncertainty only if they grew "
+        f"faster: about {needed(last - 1) * 100:.1f} points a year faster for {last - 1} and "
+        f"{needed(last) * 100:.1f} for {last}.</p>"
     )
     body += "<h2>Kilometres, not fuel</h2>"
     body += (
-        "<p>That condition can now be checked. The Ministerio de Transportes publishes the "
-        "vehicle-kilometres travelled each year on the whole interurban network of the State, "
-        "the regions and the provincial councils, measured by their traffic counts. Kilometres "
-        f"per tonne of road fuel moved {per_tonne_growth(km_base, 2019)} a year from {km_base} "
-        f"to 2019 and {per_tonne_growth(2019, km_last)} a year from 2019 to {km_last}: fuel "
-        "economy did improve about two points a year faster than before, the case in which the "
-        "per-fuel excess falls inside the interval. Fitting the same turning-point search to "
+        "<p>That condition can now be checked, roughly. The Ministerio de Transportes publishes "
+        "the vehicle-kilometres travelled each year on the whole interurban network of the "
+        "State, the regions and the provincial councils, measured by their traffic counts. "
+        "Kilometres on that network per tonne of all road fuel grew "
+        f"{per_tonne_growth(fuel_start, 2019)} a year from {fuel_start} to 2019 and "
+        f"{per_tonne_growth(2019, km_last)} a year from 2019 to {km_last}: "
+        f"{measured_extra * 100:.1f} points a year faster, {enough} to bring the per-fuel "
+        f"excess of {km_last} inside the interval. The ratio is not fuel economy alone: it "
+        "also moves when traffic shifts between towns and interurban roads, and with the mix "
+        "of freight. Fitting the same turning-point search to "
         "interurban deaths with each exposure in turn, both place the last turning point in "
         f"{km_base} and both find a decline of {_signed_pct(float(km_last_row.last_segment_annual_change), 1)} "
         "a year after it. Projected on, the per-fuel trend leaves "
@@ -212,11 +239,12 @@ def page_long_run(captions: dict[str, str]) -> str:
         "The large structural change in Spanish road deaths happened between about 2003 and "
         f"{plateau_start} and has not resumed. The pandemic did not interrupt it: 2020 and 2021 "
         "deaths fell in line with traffic, so they are a distortion of the count, not of the "
-        "risk. After it, deaths per unit of traffic stopped falling. Per tonne of fuel they "
-        "appear to have risen well above the pre-pandemic decline; per kilometre measured on "
-        "interurban roads they sit a few per cent above it, inside its interval, because each "
-        "tonne of fuel now carries more traffic. The honest reading is that the slow decline "
-        f"of {km_base}–2019 has stalled, not that the roads became more dangerous."
+        "risk. After it, per tonne of fuel deaths appear to have risen well above the "
+        "pre-pandemic decline; per kilometre measured on interurban roads they sit a few per "
+        "cent above it, inside its interval, because each tonne of fuel now carries more "
+        "traffic. The honest reading is that the counts cannot yet tell whether the slow "
+        f"decline of {km_base}–2019 carried on or stalled, and that they rule out a jump in "
+        "risk: the roads did not become measurably more dangerous."
     )
     body += limits(
         "The trends are statistical descriptions, not explanations, and a projection assumes "

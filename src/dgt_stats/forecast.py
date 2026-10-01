@@ -1,9 +1,9 @@
-"""Predicting a year's road deaths, and how large a change must be before the counts can show it.
+"""Predicting a year's road deaths, and how likely the counts are to show a change in them.
 
 A law is judged by comparing the deaths after it with the deaths that would have happened without
 it. The second number is a forecast, and its error decides what the comparison can see. This
 module builds that forecast as a small, validated model and measures its error honestly, out of
-sample, so that the simulator can say whether a simulated effect would ever be visible.
+sample, so that the simulator can say how likely the counts are to show a simulated effect.
 
 **The model** is a Poisson regression (a generalised linear model) of monthly 30-day deaths, fitted
 on the four years before the year it predicts:
@@ -23,13 +23,16 @@ on. The specification and window were chosen on the forecast years 2006–2015 a
 reported for it are those of 2016–2019 and 2022–2024, which played no part in the choice
 (``SELECTION_YEARS``, ``HOLDOUT_YEARS``). The two lockdown years, 2020 and 2021, are scored
 separately and never used to choose. Two naive forecasts (the same months last year; the mean of
-the last three years) and a gradient-boosted tree with the same inputs are scored beside it.
+the last three years) and gradient-boosted trees with the same inputs are scored beside it; the
+trees' leaf size, the one setting that matters on 48 monthly rows, is chosen on the same
+selection years from ``TREE_LEAF_CANDIDATES``.
 
 The result is a split verdict, and the page reports it as one. In the years when the trend moved
 (the selection years) or traffic collapsed (the lockdowns) the model beats last year's count by a
-wide margin; in the flat years since 2016 last year's count is as good. A counterfactual for a law
-has to survive both kinds of year, so the model is the one used. The trees do worse than the
-model throughout, because a tree cannot extend a trend beyond the years it has seen.
+wide margin; in the flat held-back years last year's count does as well or slightly better. A
+counterfactual for a law has to survive both kinds of year, so the model is the one used. The
+trees, tuned the same way, do worse than the model in every zone and every kind of year: a tree
+cannot extend a trend beyond the years it has seen, and with 48 rows it fits the noise.
 
 **What the error means.** The forecast error of a sum of ``n`` years, measured the same way at each
 horizon, splits into Poisson chance (``1 / expected deaths``) and an extra, multiplicative part
@@ -37,7 +40,11 @@ horizon, splits into Poisson chance (``1 / expected deaths``) and an extra, mult
 with the horizon, which is why waiting longer after a law does not make it easier to see. The
 smallest effect a comparison can detect with 80 % power at the 5 % level is
 
-    MDE = 1 − exp(−(z_0.975 + z_0.80) · sqrt(1 / expected + tau_n²)).
+    MDE = 1 − exp(−(z_0.975 + z_0.80) · sqrt(1 / expected + tau_n²)),
+
+and the chance that a comparison detects a given change (:func:`detection_power`) is
+``Φ(d − z_0.975) + Φ(−d − z_0.975)`` with ``d = |log(1 + change / expected)| / sigma``. The MDE is
+the change detected four times in five, not a line below which nothing shows.
 """
 
 from __future__ import annotations
@@ -82,10 +89,18 @@ SPECIFICATION_LABELS = {
     "trend_traffic_calendar": "Month + trend + traffic + calendar",
     "last_year": "Naive: same months last year",
     "mean_3_years": "Naive: mean of the last three years",
-    "boosted_trees": "Gradient-boosted trees, same inputs",
+    **{
+        f"boosted_trees_leaf_{n}": f"Gradient-boosted trees, same inputs, leaves of at least {n}"
+        for n in (1, 2, 3, 5, 8, 12, 20)
+    },
 }
 CHOSEN = "trend_traffic_calendar"
 TREE_FEATURES = ("month", "t", "log_fuel", "fridays", "saturdays", "sundays")
+# The trees' smallest leaf, tuned on the selection years like the model's specification: the
+# library default of 20 leaves room for one split in 48 monthly rows, which cannot carry a season.
+TREE_LEAF_CANDIDATES = (1, 2, 3, 5, 8, 12, 20)
+TREE_LEAF = 1
+TREE_METHOD = f"boosted_trees_leaf_{TREE_LEAF}"
 
 
 # --------------------------------------------------------------------------- inputs
@@ -144,9 +159,14 @@ def predict_year(
         recent = panel[panel.year.between(year - 3, year - 1)].groupby("month")[outcome].mean()
         return recent.loc[test.month].to_numpy(dtype=float)
     train = _training(panel, year, window)
-    if method == "boosted_trees":
+    if method.startswith("boosted_trees_leaf_"):
         model = HistGradientBoostingRegressor(
-            loss="poisson", max_iter=200, learning_rate=0.05, max_depth=3, random_state=0
+            loss="poisson",
+            max_iter=200,
+            learning_rate=0.05,
+            max_depth=3,
+            min_samples_leaf=int(method.rsplit("_", 1)[1]),
+            random_state=0,
         )
         model.fit(train[list(TREE_FEATURES)], train[outcome])
         return model.predict(test[list(TREE_FEATURES)])
@@ -176,7 +196,8 @@ def rolling_forecasts() -> pd.DataFrame:
         for year in [y for y in _scored_years() if y <= last]:
             observed = float(panel.loc[panel.year == year, outcome].sum())
             runs = [(spec, window) for spec in SPECIFICATIONS for window in CANDIDATE_WINDOWS]
-            runs += [(m, WINDOW_YEARS) for m in ("last_year", "mean_3_years", "boosted_trees")]
+            runs += [(m, WINDOW_YEARS) for m in ("last_year", "mean_3_years")]
+            runs += [(f"boosted_trees_leaf_{n}", WINDOW_YEARS) for n in TREE_LEAF_CANDIDATES]
             for method, window in runs:
                 predicted = float(predict_year(panel, outcome, year, method, window).sum())
                 records.append(
@@ -214,7 +235,9 @@ def _rolling() -> pd.DataFrame:
 def model_selection() -> pd.DataFrame:
     """Every method and window, scored separately on the selection years and the holdout years.
 
-    Errors are on the log scale of the annual total: an ``rmse`` of 0.06 is about 6 %.
+    Errors are on the log scale of the annual total: an ``rmse`` of 0.06 is about 6 %. ``family``
+    is ``model`` (the Poisson regressions), ``trees`` or ``naive``; ``chosen`` marks the best model
+    and the best trees on the selection years for all roads, the only years used to choose.
     """
     frame = _rolling()
     out = (
@@ -224,14 +247,21 @@ def model_selection() -> pd.DataFrame:
     )
     out["outcome_label"] = out.outcome.map(OUTCOMES)
     out["method_label"] = out.method.map(SPECIFICATION_LABELS)
+    out["family"] = [
+        "model" if m in SPECIFICATIONS else "trees" if m.startswith("boosted_trees") else "naive"
+        for m in out.method
+    ]
     selection = out[(out.set == "selection") & (out.outcome == "deaths_all")]
-    glm = selection[selection.method.isin(SPECIFICATIONS)]
-    best = glm.loc[glm.rmse.idxmin()]
-    out["chosen"] = (out.method == best.method) & (out.window == best.window)
+    out["chosen"] = False
+    for family in ("model", "trees"):
+        rows = selection[selection.family == family]
+        best = rows.loc[rows.rmse.idxmin()]
+        out.loc[(out.method == best.method) & (out.window == best.window), "chosen"] = True
     return out[
         [
             "outcome",
             "outcome_label",
+            "family",
             "method",
             "method_label",
             "window",
@@ -253,7 +283,7 @@ def validation() -> pd.DataFrame:
     """
     selection = model_selection()
     rows = selection[selection.window == WINDOW_YEARS]
-    keep = [CHOSEN, "trend", "last_year", "mean_3_years", "boosted_trees"]
+    keep = [CHOSEN, "trend", "last_year", "mean_3_years", TREE_METHOD]
     out = rows[rows.method.isin(keep)].copy()
     out["order"] = out.method.map({name: i for i, name in enumerate(keep)})
     out["set_order"] = out.set.map({"selection": 0, "holdout": 1, "pandemic": 2})
@@ -265,13 +295,15 @@ def backtest() -> pd.DataFrame:
     """Each scored year's deaths beside the chosen model's forecast and last year's count."""
     frame = _rolling()
     keep = frame[
-        (frame.window == WINDOW_YEARS) & frame.method.isin([CHOSEN, "last_year", "boosted_trees"])
+        (frame.window == WINDOW_YEARS) & frame.method.isin([CHOSEN, "last_year", TREE_METHOD])
     ]
     out = keep.pivot_table(
         index=["outcome", "year", "set", "observed"], columns="method", values="predicted"
     ).reset_index()
     out.columns.name = None
-    out = out.rename(columns={CHOSEN: "model", "last_year": "naive_last_year"})
+    out = out.rename(
+        columns={CHOSEN: "model", "last_year": "naive_last_year", TREE_METHOD: "boosted_trees"}
+    )
     out["outcome_label"] = out.outcome.map(OUTCOMES)
     return out[
         [
@@ -295,8 +327,9 @@ def horizon_errors() -> pd.DataFrame:
     """Error of the chosen model's forecast of an ``n``-year total, for n = 1 to 5.
 
     Each origin year from 2006 is fitted on the four years before it and the next ``n`` years are
-    predicted with their observed traffic and calendar; windows that contain 2020 or 2021 are left
-    out. ``tau`` is the error left once Poisson chance on the observed total is taken out: the
+    predicted with their observed traffic and calendar. Forecast spans that contain 2020 or 2021
+    are left out; fits whose four-year window contains them (origins 2022–2024) are kept, because
+    a forecast made for a law today is fitted on such a window too, and they raise the error. ``tau`` is the error left once Poisson chance on the observed total is taken out: the
     drift of the trend, which applies to any count of deaths in the same zone whatever its size.
     """
     panel = model_panel()
@@ -350,6 +383,19 @@ def minimum_detectable_effect(
     """Smallest proportional fall in a count of ``expected`` deaths that the comparison detects."""
     z = stats.norm.ppf(1 - alpha / 2) + stats.norm.ppf(power)
     return float(1 - np.exp(-z * np.sqrt(1 / expected + tau**2)))
+
+
+def detection_power(change: float, expected: float, tau: float, alpha: float = ALPHA) -> float:
+    """Chance that a comparison at the ``alpha`` level detects a change of ``change`` deaths.
+
+    The change is taken on the log scale against a count of ``expected`` deaths whose forecast
+    error is Poisson chance plus ``tau``; rises and falls are treated alike. At the minimum
+    detectable effect it is 0.80 by construction; it is ``alpha`` when nothing changes.
+    """
+    sigma = np.sqrt(1 / expected + tau**2)
+    shift = abs(np.log1p(change / expected)) / sigma
+    z = stats.norm.ppf(1 - alpha / 2)
+    return float(stats.norm.cdf(shift - z) + stats.norm.cdf(-shift - z))
 
 
 def detectability() -> pd.DataFrame:

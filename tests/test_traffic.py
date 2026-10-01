@@ -66,3 +66,30 @@ def test_the_two_series_agree_on_the_shape_of_a_spanish_year() -> None:
     assert seasonal_toll.max() - seasonal_toll.min() > 3 * (
         seasonal_fuel.max() - seasonal_fuel.min()
     )
+
+
+def test_measured_interurban_kilometres_parse_every_year_and_add_up() -> None:
+    from dgt_stats.paths import ROAD_TRAFFIC_PATH
+
+    if not ROAD_TRAFFIC_PATH.exists():
+        pytest.skip("the Ministry's yearbook chapter is not in data/raw")
+    km = io_traffic.read_road_traffic().set_index("year")
+    assert list(km.index) == list(range(2004, 2024))
+    parts = km[list(io_traffic.ROAD_TRAFFIC_COLUMNS)].sum(axis=1)
+    assert ((parts - km.total).abs() / km.total <= 1e-4).all()
+    # Two rows pinned to the printed table, so a shifted column cannot pass.
+    assert km.loc[2023, "autovia_free_motorway"] == 140_043
+    assert km.loc[2023, "conventional_heavy_share"] == pytest.approx(0.086)
+    assert km.loc[2004, "total"] == 241_715
+    shares = [f"{name}_heavy_share" for name in io_traffic.ROAD_TRAFFIC_COLUMNS]
+    assert km[shares].stack().between(0.03, 0.25).all()
+
+
+def test_road_fuel_carries_its_published_biofuel_share() -> None:
+    fuel = io_traffic.read_cores_fuel()
+    shares = fuel[["petrol_bio_share", "diesel_bio_share"]]
+    # CORES reports the share from 2007; it is a fraction of each subtotal by mass.
+    assert shares[fuel.year < 2005].isna().all().all()
+    reported = shares[fuel.year >= 2008]
+    assert reported.notna().all().all()
+    assert ((reported >= 0) & (reported < 0.2)).all().all()

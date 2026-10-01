@@ -7,20 +7,25 @@ monthly too. Two published Spanish series are monthly and reach back past 2006:
   Spain's compulsory oil stocks and publishes the official petroleum statistics under Ley 34/1998)
   reports consumption in tonnes by product and month from January 1996. Adding the two automotive
   subtotals, ``Subtotal gasolinas auto`` and ``Subtotal gasóleos auto``, gives national road-fuel
-  consumption, which covers all roads and all vehicles.
+  consumption, which covers all roads and all vehicles. Each subtotal is the sum of its products,
+  the bioethanol, biodiesel and blends among them, which the reader checks; the biofuel blended
+  into ordinary petrol and diesel is inside those products, and CORES publishes its share of each
+  subtotal by mass.
 * The **Ministerio de Transportes** publishes monthly average daily intensity and
   vehicle-kilometres on the network of state toll motorways from January 1990. That is a direct
   measurement of traffic, but on 1,400-2,500 km of motorway rather than on the roads where most
   deaths happen, and the network itself changes as concessions expire.
 
 Neither is vehicle-kilometres on all Spanish roads by month, which does not exist. What each is
-and is not is set out in ``docs/methodology.md`` §§4–6 and §12; here they are only parsed.
+and is not is set out in ``docs/methodology.md`` §§4–6, §11 (the forecasting model) and §15 (the
+2006 case study); here they are only parsed.
 
 A third series is annual and measured: the Ministerio de Transportes' yearbook table 1.2.14 gives
 vehicle-kilometres on the whole interurban network of the State, the regions and the provincial
 councils, by type of road, from 2004, built from the traffic-count plans of each network. It
 leaves out interurban roads run by municipalities, which the Ministry puts at up to a tenth of
-traffic, and it is not comparable across 2007–2008, when the road inventory was redone.
+traffic, and it is not comparable across 2007–2008, when the road inventory was redone. It is
+used in §5 (the check on fuel) and §12 (the simulator's risk per kilometre and travel time).
 """
 
 from __future__ import annotations
@@ -66,6 +71,8 @@ CORES_SHEETS = {
     "Gasoleos": "Subtotal gasóleos auto",
 }
 CORES_COLUMNS = {"Gasolinas": "petrol_tonnes", "Gasoleos": "diesel_tonnes"}
+CORES_BIO_LABELS = {"Gasolinas": "% biocomb. en gasolinas", "Gasoleos": "% biocomb. en gasóleos"}
+CORES_BIO_COLUMNS = {"Gasolinas": "petrol_bio_share", "Gasoleos": "diesel_bio_share"}
 
 
 def _text(value: object) -> str:
@@ -73,7 +80,11 @@ def _text(value: object) -> str:
 
 
 def _cores_sheet(sheet: str) -> pd.DataFrame:
-    """One CORES sheet as ``year``, ``month``, tonnes of the automotive subtotal."""
+    """One CORES sheet as ``year``, ``month``, tonnes of the automotive subtotal, and bio share.
+
+    The subtotal must equal the sum of the product columns before it (biofuels included) in every
+    month, to one part in a million.
+    """
     frame = pd.read_excel(CORES_FUEL_PATH, sheet_name=sheet, header=None)
     header_rows = frame.index[frame[0].map(_text) == "Año"]
     if len(header_rows) != 1:
@@ -84,14 +95,24 @@ def _cores_sheet(sheet: str) -> pd.DataFrame:
     if wanted not in labels:
         raise ValueError(f"CORES {sheet}: column {wanted!r} not found in {labels}")
     column = labels.index(wanted)
+    above = [_text(value) for value in frame.iloc[header - 1]]
+    if CORES_BIO_LABELS[sheet] not in above:
+        raise ValueError(f"CORES {sheet}: column {CORES_BIO_LABELS[sheet]!r} not found")
+    bio = above.index(CORES_BIO_LABELS[sheet])
     body = frame.iloc[header + 1 :].copy()
     body["month"] = body[1].map(lambda value: SPANISH_MONTHS.get(_text(value).lower()))
     body = body[body.month.notna() & body[0].notna()]
+    subtotal = pd.to_numeric(body[column], errors="coerce")
+    products = body[list(range(2, column))].apply(pd.to_numeric, errors="coerce")
+    gap = ((products.fillna(0).sum(axis=1) - subtotal).abs() / subtotal)[subtotal.notna()]
+    if (gap > 1e-6).any():
+        raise ValueError(f"CORES {sheet}: {wanted!r} is not the sum of its products")
     out = pd.DataFrame(
         {
             "year": pd.to_numeric(body[0], errors="coerce").astype("Int64"),
             "month": body.month.astype("int8"),
-            CORES_COLUMNS[sheet]: pd.to_numeric(body[column], errors="coerce"),
+            CORES_COLUMNS[sheet]: subtotal,
+            CORES_BIO_COLUMNS[sheet]: pd.to_numeric(body[bio], errors="coerce"),
         }
     )
     out = out[out.year.notna()]
@@ -102,8 +123,10 @@ def read_cores_fuel() -> pd.DataFrame:
     """Monthly Spanish road-fuel consumption in tonnes, from January 1996.
 
     Columns: ``year``, ``month``, ``period``, ``petrol_tonnes``, ``diesel_tonnes``,
-    ``road_fuel_tonnes``. Months with an empty cell in either subtotal (the most recent month of
-    one product before the other is published) are dropped, so the series ends where both do.
+    ``road_fuel_tonnes``, and ``petrol_bio_share`` and ``diesel_bio_share``, the published mass
+    share of biofuel in each subtotal (empty before CORES reports it). Months with an empty cell in
+    either subtotal (the most recent month of one product before the other is published) are
+    dropped, so the series ends where both do.
     """
     petrol = _cores_sheet("Gasolinas")
     diesel = _cores_sheet("Gasoleos")
@@ -115,7 +138,18 @@ def read_cores_fuel() -> pd.DataFrame:
     expected = pd.date_range(out.period.min(), out.period.max(), freq="MS")
     if not out.period.equals(pd.Series(expected)):
         raise ValueError("CORES: the monthly series has gaps or duplicates")
-    return out[["period", "year", "month", "petrol_tonnes", "diesel_tonnes", "road_fuel_tonnes"]]
+    return out[
+        [
+            "period",
+            "year",
+            "month",
+            "petrol_tonnes",
+            "diesel_tonnes",
+            "road_fuel_tonnes",
+            "petrol_bio_share",
+            "diesel_bio_share",
+        ]
+    ]
 
 
 def read_toll_traffic() -> pd.DataFrame:
@@ -187,8 +221,9 @@ def read_road_traffic() -> pd.DataFrame:
     """Annual vehicle-kilometres on the interurban network by type of road, from 2004.
 
     Columns: ``year``, one column per road type in millions of vehicle-km (toll motorways;
-    autovías and free motorways; multi-lane roads; conventional roads), ``total`` and the share of
-    heavy vehicles on the whole network. Every year from the first to the last must be present,
+    autovías and free motorways; multi-lane roads; conventional roads), the share of heavy
+    vehicles on each type (``<type>_heavy_share``), ``total`` and the heavy share of the whole
+    network. Every year from the first to the last must be present,
     and the four types must add up to the published total within one part in ten thousand: more
     than the table's rounding, because the published 2009 row is itself 5 million short.
     """
@@ -215,6 +250,10 @@ def read_road_traffic() -> pd.DataFrame:
             {
                 "year": int(match.group(1)),
                 **{name: values[2 * i] for i, name in enumerate(ROAD_TRAFFIC_COLUMNS)},
+                **{
+                    f"{name}_heavy_share": values[2 * i + 1] / 100
+                    for i, name in enumerate(ROAD_TRAFFIC_COLUMNS)
+                },
                 "total": values[8],
                 "heavy_share": values[9] / 100,
             }

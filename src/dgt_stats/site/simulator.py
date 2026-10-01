@@ -31,6 +31,13 @@ OUTCOME_LABELS = {
 }
 
 
+def _power(power: float) -> str:
+    """A chance of detection for a table, where nothing changes saying so, and no false 100%."""
+    if pd.isna(power):
+        return "no change"
+    return "over 99%" if power > 0.995 else _fmt_pct(float(power), 0)
+
+
 def _source(evidence: pd.DataFrame, name: str, applies_to: str, text: str) -> str:
     """``text`` linked to the URL the register gives for one published value."""
     row = evidence[(evidence.parameter == name) & (evidence.applies_to == applies_to)].iloc[0]
@@ -79,10 +86,9 @@ def _evidence_tables(evidence: pd.DataFrame, speeds: pd.DataFrame) -> str:
 
 
 def _simulator_controls(parameters: dict) -> str:
-    """The form: one select per measured site with a limit to change, and the two levers."""
+    """The form: one select per limit a law sets, then how drivers respond and comply."""
     selects = []
-    for site in ("motorway", "conventional", "urban_50"):
-        spec = parameters["sites"][site]
+    for lever, spec in parameters["levers"].items():
         options = "".join(
             f'<option value="{limit:g}"{" selected" if limit == spec["limit"] else ""}>'
             f"{limit:g} km/h</option>"
@@ -90,7 +96,8 @@ def _simulator_controls(parameters: dict) -> str:
         )
         selects.append(
             f'<label class="control"><span>{esc(spec["label"])}</span>'
-            f'<select data-site="{site}" data-limit="{spec["limit"]:g}">{options}</select></label>'
+            f'<select data-lever="{lever}" data-limit="{spec["limit"]:g}">{options}</select>'
+            "</label>"
         )
     presets = "".join(
         f'<button type="button" data-preset="{esc(p["key"])}">{esc(p["label"])}</button>'
@@ -123,7 +130,7 @@ def _simulator_controls(parameters: dict) -> str:
 def _simulator_results(parameters: dict) -> str:
     years = parameters["baselineYears"]
     rows = ""
-    for key in ("motorway", "conventional"):
+    for key in simulator.INTERURBAN_SITES:
         label = simulator.ROAD_CLASSES[key]
         base = parameters["baseline"][key]
         rows += (
@@ -133,9 +140,9 @@ def _simulator_results(parameters: dict) -> str:
             '<td data-out="serious"></td><td data-out="slight"></td>'
             '<td data-out="value"></td><td data-out="hours"></td></tr>'
         )
-    total = sum(parameters["baseline"][k]["deaths"] for k in ("motorway", "conventional"))
+    total = sum(parameters["baseline"][k]["deaths"] for k in simulator.INTERURBAN_SITES)
     rows += (
-        '<tr data-class="total" class="total"><th scope="row">Both</th><td></td>'
+        '<tr data-class="total" class="total"><th scope="row">All three</th><td></td>'
         f'<td>{_fmt_int(total)}</td><td data-out="deaths"></td><td data-out="deaths-range"></td>'
         '<td data-out="serious"></td><td data-out="slight"></td><td data-out="value"></td>'
         '<td data-out="hours"></td></tr>'
@@ -155,9 +162,10 @@ def _simulator_results(parameters: dict) -> str:
     )
     return (
         '<div class="table-wrap" role="region" tabindex="0" aria-label="Simulated effect on '
-        'interurban roads" aria-live="polite"><table><caption>Motorways and conventional roads: '
-        "the change a year under the law set above; the range spans the 95% intervals of the "
-        "Power Model exponents</caption>"
+        'interurban roads" aria-live="polite"><table><caption>Autopistas, autovías and '
+        "conventional roads: the change a year under the law set above; the range spans the 95% "
+        "intervals of the Power Model exponents; hours are those of cars and other light "
+        "vehicles</caption>"
         f"<thead>{head}</thead><tbody>{rows}</tbody></table></div>"
         '<p class="verdict" aria-live="polite" data-out="verdict"></p>'
         '<div class="table-wrap" role="region" tabindex="0" aria-label="Simulated effect on '
@@ -204,8 +212,9 @@ def page_simulator(captions: dict[str, str]) -> str:
         / (pooled.loc["motorway", "deaths"] / pooled.loc["motorway", "billion_vehicle_km"])
     )
     conv_speed = speeds.loc["conventional"]
-    motor_speed = speeds.loc["motorway"]
+    autopista_speed, autovia_speed = speeds.loc["autopista"], speeds.loc["autovia"]
     urban_30 = sites.loc[("urban_30", "urban_50")]
+    grid = read_table("simulator_limit_grid")
 
     def deaths(row: pd.Series) -> str:
         return (
@@ -221,7 +230,8 @@ def page_simulator(captions: dict[str, str]) -> str:
             (
                 "If every speeder kept to today's limits",
                 _fmt_int(comply.deaths_change),
-                f"deaths a year, of {_fmt_int(interurban_total)} on motorways and conventional roads",
+                f"deaths a year, of {_fmt_int(interurban_total)} on autopistas, autovías and "
+                "conventional roads",
             ),
             (
                 "Conventional roads 90 → 80 km/h",
@@ -229,7 +239,7 @@ def page_simulator(captions: dict[str, str]) -> str:
                 "deaths a year, if drivers respond as they typically do",
             ),
             (
-                "Smallest change a year's count can show",
+                "Change a year's count picks up 4 times in 5",
                 _fmt_int(mde),
                 f"deaths a year on those roads, {_fmt_pct(mde / interurban_total, 0)}",
             ),
@@ -240,20 +250,50 @@ def page_simulator(captions: dict[str, str]) -> str:
             ),
         ]
     )
+    single = grid[grid.levers_changed == 1].sort_values("deaths_change").iloc[0]
+    beyond = grid[grid.deaths_change < float(comply.deaths_change)]
+    if (beyond.levers_changed < 2).any():
+        raise ValueError("simulator page: a single new limit saves more than full compliance")
+    deepest = grid.sort_values("deaths_change").iloc[0]
+    today = {lever: parameters["levers"][lever]["limit"] for lever in ("motorway", "conventional")}
+    conventional_only = grid[
+        (grid.levers_changed == 1) & (grid.motorway_limit == today["motorway"])
+    ].sort_values("conventional_limit")
+    motorway_only = grid[
+        (grid.levers_changed == 1) & (grid.conventional_limit == today["conventional"])
+    ]
+
+    def lever_change(row: pd.Series) -> str:
+        """The limits a grid row changes, in words."""
+        parts = []
+        if row.motorway_limit != today["motorway"]:
+            parts.append(f"autopistas and autovías at {row.motorway_limit:g} km/h")
+        if row.conventional_limit != today["conventional"]:
+            parts.append(f"conventional roads at {row.conventional_limit:g} km/h")
+        return " and ".join(parts)
+
+    def chance(row: pd.Series) -> str:
+        power = float(row.power_in_one_year)
+        return "almost every time" if power >= 0.99 else f"{_fmt_pct(power, 0)} of the time"
+
     body += (
         '<p class="answer">Speed is the lever on the severity of crashes that the evidence '
         "measures best, and in Spain most cars on conventional roads drive above the limit: "
         f"only {_fmt_pct(float(conv_speed.share_within_limit), 0)} of those measured in 2022 "
-        "kept to 90 km/h. Applied to the deaths on Spain's motorways and conventional roads, "
-        "the published Power Model says that if every driver now above the limit kept to it, "
-        f"about {_fmt_int(-comply.deaths_change)} fewer people a year would die there "
-        f"(between {_fmt_int(-comply.deaths_change_high)} and "
-        f"{_fmt_int(-comply.deaths_change_low)}), more than any change of limit on this page "
-        "achieves. Lowering the limit on conventional roads from 90 to 80 km/h, with drivers "
-        "responding as they typically do, would save about "
-        f"{_fmt_int(-conventional.deaths_change)}. Neither would be easy to see: a change "
-        f"smaller than about {_fmt_int(mde)} deaths a year cannot be told from an ordinary year "
-        "in the counts, and waiting longer makes it harder, not easier.</p>"
+        "kept to 90 km/h. Applied to the deaths on Spain's autopistas, autovías and "
+        "conventional roads, the published Power Model says that if every driver now above "
+        f"the limit kept to it, about {_fmt_int(-comply.deaths_change)} fewer people a year "
+        f"would die there (between {_fmt_int(-comply.deaths_change_high)} and "
+        f"{_fmt_int(-comply.deaths_change_low)}). That is more than any single new limit on "
+        f"this page achieves, the largest being {lever_change(single)} "
+        f"({_fmt_int(-single.deaths_change)}); only lowering both limits at once saves more, "
+        f"up to {_fmt_int(-deepest.deaths_change)} with {lever_change(deepest)}. Lowering the "
+        "limit on conventional roads from 90 to 80 km/h, with drivers responding as they "
+        f"typically do, would save about {_fmt_int(-conventional.deaths_change)}. The first "
+        f"year's death count on these roads would show full compliance {chance(comply)}, but a "
+        f"change of {_fmt_int(-conventional.deaths_change)} only {chance(conventional)}: it "
+        f"picks up a change of {_fmt_int(mde)} four times in five, and smaller ones less "
+        "often.</p>"
     )
 
     body += "<h2>Set a law</h2>"
@@ -275,18 +315,21 @@ def page_simulator(captions: dict[str, str]) -> str:
                 "Admitted to hospital": _fmt_int(row.seriously_injured_change),
                 "Value saved a year, € million": _fmt_int(row.value_euros / 1e6),
                 "Extra vehicle-hours a year, million": _fmt_dec(row.vehicle_hours_change / 1e6),
-                "Visible in a year's count": "yes" if bool(row.visible_in_one_year) else "no",
+                "Chance a year's count shows it": _power(row.power_in_one_year),
                 "Deaths on 50 km/h streets": _signed_pct(float(urban.deaths_ratio) - 1),
             }
         )
     body += table(
         pd.DataFrame(rows),
         "The laws the page offers as starting points, computed with drivers responding as "
-        "they typically do: casualties on motorways and conventional roads, their value and the "
-        "time they cost, and the change on urban streets now at 50 km/h",
+        "they typically do: casualties on autopistas, autovías and conventional roads, their "
+        "value, the time they cost cars and other light vehicles, the chance the first year's "
+        "death count on those roads shows the change, and the change on urban streets now at "
+        "50 km/h",
     )
     body += (
-        "<p>Read the rows against each other. Raising the motorway limit to 130 km/h would cost "
+        "<p>Read the rows against each other. Raising the limit on autopistas and autovías to "
+        "130 km/h would cost "
         f"about {_fmt_int(faster.deaths_change)} lives a year and save about "
         f"{_fmt_dec(-faster.vehicle_hours_change / 1e6, 0)} million vehicle-hours, about "
         f"{per_death_hours(faster)} hours for each life. Lowering it to 110 km/h would save "
@@ -326,14 +369,17 @@ def page_simulator(captions: dict[str, str]) -> str:
     body += (
         "<p>The Ministerio de Transportes measures how far traffic travels on Spain's interurban "
         "roads, by type of road. Divided into it, conventional roads killed "
-        f"{_times(risk_ratio)} as many people per kilometre as motorways and autovías in "
+        f"{_times(risk_ratio)} as many people per kilometre as autopistas and autovías in "
         f"{risk_year}, and {_times(pooled_ratio)} over {int(risk.year.min())}–{risk_year}, "
         "although their traffic is slower: a mean of "
-        f"{float(conv_speed.mean_speed):.1f} km/h against "
-        f"{float(motor_speed.mean_speed):.1f}. Speed is not what separates the two kinds of road; "
-        "two-way traffic with no barrier between the directions is. Within each kind of road, "
-        "speed is what decides how hard a crash is, and that is what the Power Model measures. "
-        "Conventional roads are where the most deaths and the most speeding meet.</p>"
+        f"{float(conv_speed.mean_speed):.1f} km/h against {float(autovia_speed.mean_speed):.1f} "
+        f"on autovías and {float(autopista_speed.mean_speed):.1f} on autopistas. Speed alone "
+        "does not explain the gap: conventional roads also differ in two-way traffic without a "
+        "barrier, junctions and direct access, none of which these data measure. Within each "
+        "kind of road, speed is what decides how hard a crash is, and that is what the Power "
+        "Model measures. Conventional roads are where the most deaths meet the most speeding of "
+        "any interurban road, by the share of cars above the limit and by how far above it they "
+        "drive.</p>"
     )
     body += downloads([("simulator_class_risk", "deaths per vehicle-km by road class")])
 
@@ -351,7 +397,7 @@ def page_simulator(captions: dict[str, str]) -> str:
         "distribution through the last two reproduces both, and its mean lands within "
         f"{float((speeds.implied_mean - speeds.mean_speed).abs().max()):.1f} km/h of the measured "
         "one on every kind of road. The limits are those of the "
-        f"{_source(evidence, 'limit', 'motorway', 'Reglamento General de Circulación')} and "
+        f"{_source(evidence, 'limit', 'autovia', 'Reglamento General de Circulación')} and "
         f"{_source(evidence, 'limit', 'urban_50', 'Real Decreto 970/2020')}. <strong>A new "
         "limit</strong> moves the average speed by part of the change: the curve fitted to "
         f"{_source(evidence, 'pass_through_b', 'all', '143 before-and-after results')} puts a "
@@ -359,7 +405,8 @@ def page_simulator(captions: dict[str, str]) -> str:
         f"{_fmt_dec(simulator.typical_response(-20))}. <strong>Compliance</strong> brings a share "
         "of the drivers above the limit down to it, which lowers the mean by that share of the "
         f"average excess: {float(conv_speed.excess_over_limit):.1f} km/h per car on conventional "
-        f"roads, {float(motor_speed.excess_over_limit):.1f} on motorways. <strong>The Power "
+        f"roads, {float(autopista_speed.excess_over_limit):.1f} on autopistas and "
+        f"{float(autovia_speed.excess_over_limit):.1f} on autovías. <strong>The Power "
         "Model</strong>, in "
         f"{elvik}, turns "
         "the change in mean speed into casualties, more steeply for deaths than for injuries. "
@@ -388,8 +435,10 @@ def page_simulator(captions: dict[str, str]) -> str:
         f"{_fmt_pct(float(selection.loc[chosen, 'rmse']))}, against "
         f"{_fmt_pct(float(selection.loc['last_year', 'rmse']))} for simply repeating last year's "
         "count and "
-        f"{_fmt_pct(float(selection.loc['boosted_trees', 'rmse']))} for gradient-boosted trees "
-        "given the same inputs, which cannot extend a trend. In the lockdown years it was "
+        f"{_fmt_pct(float(selection.loc[forecast.TREE_METHOD, 'rmse']))} for gradient-boosted "
+        "trees given the same inputs and tuned on the same years, which cannot extend a trend; "
+        "the trees did worse than the model on every kind of road and in every set of years. "
+        "In the lockdown years the model's error was "
         f"{_fmt_pct(float(pandemic.loc[chosen, 'rmse']))} against "
         f"{_fmt_pct(float(pandemic.loc['last_year', 'rmse']))}, because it knows the traffic "
         "fell. On the years held back, 2016–2019 and 2022–2024, it was "
@@ -401,19 +450,23 @@ def page_simulator(captions: dict[str, str]) -> str:
     )
     body += figure("k1_forecast_check", "Each year's deaths against two forecasts", captions)
     body += (
-        "<p>The forecast's own error sets the smallest effect a before-and-after comparison can "
-        "detect. For deaths on interurban roads one year after a law it is "
+        "<p>The forecast's own error sets how large an effect a before-and-after comparison "
+        "picks up. For all deaths on interurban roads one year after a law, the fall it detects "
+        "four times in five (a two-sided test at 5%) is "
         f"{_fmt_pct(float(one_year.mde), 0)}, about {_fmt_int(one_year.mde_deaths_per_year)} "
-        "deaths a year; summed over five years it is "
-        f"{_fmt_pct(float(five_years.mde), 0)}, because the trend drifts further from any "
-        "extrapolation the longer it runs. This is why the dated policy changes on the "
+        f"of {_fmt_int(one_year.expected)} deaths a year; on the "
+        f"{_fmt_int(interurban_total)} deaths of the autopistas, autovías and conventional "
+        f"roads the simulator covers it is {_fmt_int(mde)}. Smaller changes are picked up less "
+        "often, not never: the preset table gives each one's chance. Summed over five years the "
+        f"threshold is {_fmt_pct(float(five_years.mde), 0)}, because the trend drifts further "
+        "from any extrapolation the longer it runs. This is why the dated policy changes on the "
         '<a href="policy.html">2006 page</a> could not be settled from the counts, and why a '
         "speed law's effect is checked by measuring speeds, which the Power Model then turns "
         "into casualties.</p>"
     )
     body += figure(
         "k2_detectability",
-        "The smallest detectable fall in deaths by years after a law",
+        "The fall in deaths a comparison detects four times in five, by years after a law",
         captions,
     )
     body += downloads(
@@ -421,23 +474,31 @@ def page_simulator(captions: dict[str, str]) -> str:
             ("forecast_validation", "model against the naive forecasts"),
             ("forecast_selection", "every specification and window"),
             ("forecast_backtest", "each year's forecasts"),
-            ("forecast_detectability", "smallest detectable effects"),
+            ("forecast_detectability", "effects detected four times in five"),
             ("forecast_coefficients", "what the model learned"),
         ]
     )
 
     body += "<h2>Conclusion</h2>"
     body += conclusion(
-        "On the evidence, the largest saving within reach is not a new limit but the existing "
-        "ones kept: if every driver now above the limit on motorways and conventional roads kept "
-        f"to it, about {_fmt_int(-comply.deaths_change)} fewer people would die each year, "
+        "On the evidence, the largest saving within reach of any one measure is not a new limit "
+        "but the existing ones kept: if every driver now above the limit on autopistas, "
+        "autovías and conventional roads kept to it, about "
+        f"{_fmt_int(-comply.deaths_change)} fewer people would die each year, "
         f"{_fmt_pct(-comply.deaths_change / interurban_total, 0)} of the deaths on those roads, "
         f"worth about €{comply.value_euros / 1e9:,.1f} billion a year at DGT's own values. "
-        "The next largest is on conventional roads, the deadliest per kilometre. Raising "
-        "motorway limits trades lives for hours at a rate the page shows but does not judge. "
-        "Almost none of these changes would be visible in the national death count within a "
-        "year, so a speed law has to be judged by the speeds it produces, not by waiting for "
-        "the deaths."
+        "The largest saving from a new limit is on conventional roads, the deadliest per "
+        "kilometre. Raising "
+        "the motorway limit trades lives for hours at a rate the page shows but does not judge. "
+        "Full compliance would show in the first year's death count on those roads "
+        f"{chance(comply)}. Of the new limits, conventional roads at "
+        f"{conventional_only.iloc[0].conventional_limit:g} km/h would show "
+        f"{chance(conventional_only.iloc[0])} and at "
+        f"{conventional_only.iloc[1].conventional_limit:g} km/h "
+        f"{chance(conventional_only.iloc[1])}, and no change of the motorway limit alone "
+        f"more than {_fmt_pct(float(motorway_only.power_in_one_year.max()), 0)} of the time. "
+        "A speed law has to be judged by the speeds it produces, not by waiting for the "
+        "deaths."
     )
     body += limits(
         "The Power Model is an aggregate relation estimated from before-and-after studies in "
@@ -448,7 +509,9 @@ def page_simulator(captions: dict[str, str]) -> str:
         "the spread of speeds, which the Power Model does not count, so the compliance figures "
         "are if anything low. The response to a new limit varies widely between roads, which is "
         "why it can be set by hand. Time is computed at free-flow speeds over the measured "
-        "interurban kilometres, which leave out municipal interurban roads. Other interurban "
+        "interurban kilometres of cars and other light vehicles, which leave out municipal "
+        "interurban roads; free motorways are timed at the speeds of autovías, with which the "
+        "Ministry's traffic table counts them. Other interurban "
         f"roads ({_fmt_int(read_table('simulator_baseline').set_index('road_class').loc['other_interurban', 'deaths'])} "
         "deaths a year) and urban streets as a national count are left out because no speed or "
         "street split is published for them."

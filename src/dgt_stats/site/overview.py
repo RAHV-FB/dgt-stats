@@ -59,8 +59,10 @@ def page_index(captions: dict[str, str]) -> str:
     hosp_count = latest.loc[("hospitalised_30d", "count")]
     count_2020 = projected.loc[("count", 2020)]
     fuel_2020 = projected.loc[("road_fuel", 2020)]
-    fuel_last = projected.loc[("road_fuel", last)]
     km_last_row = km_check.loc[("per_km", km_last)]
+    fuel_km_last_row = km_check.loc[("per_fuel", km_last)]
+    if bool(km_last_row.outside_interval) or not bool(fuel_km_last_row.outside_interval):
+        raise ValueError("overview: the per-km and per-fuel checks no longer split as described")
     july_raw = effects.loc[("none", 7)]
     july_petrol = effects.loc[("petrol_tonnes", 7)]
     august_raw = effects.loc[("none", 8)]
@@ -81,6 +83,11 @@ def page_index(captions: dict[str, str]) -> str:
     speed_share = _window(windows, "all", "Inappropriate speed", 2014)
     comply = presets.loc["all_comply"]
     conventional = presets.loc["conventional_80"]
+
+    def _chance(row) -> str:
+        power = float(row.power_in_one_year)
+        return "almost every time" if power >= 0.99 else f"{_fmt_pct(power, 0)} of the time"
+
     first, final = int(split.index.min()), int(split.index.max())
     severity = float(split.loc[final, "severity_index"]) / 100 - 1
     frequency = float(split.loc[final, "frequency_index"]) / 100 - 1
@@ -107,7 +114,7 @@ def page_index(captions: dict[str, str]) -> str:
             (
                 "If every speeder kept to the limit",
                 _fmt_int(comply.deaths_change),
-                "deaths a year on motorways and conventional roads, on the published evidence",
+                "deaths a year on motorways and conventional roads",
             ),
         ]
     )
@@ -137,13 +144,15 @@ def page_index(captions: dict[str, str]) -> str:
         ),
         (
             "long-run.html",
-            "The pandemic dip was less driving; since then the decline has stalled",
+            "The pandemic dip was less driving; since then risk per kilometre has not jumped",
             f"As a count, 2020 deaths were {_change(float(count_2020.ratio), 0)} against the "
             "pre-pandemic trend and back on it by 2022. Per tonne of road fuel 2020 was on trend "
-            f"({_times(float(fuel_2020.ratio))}): the fall was the traffic. Per tonne of fuel "
-            f"{last} looks {_change(float(fuel_last.ratio), 0)} above the trend; per kilometre "
-            f"measured on interurban roads, {km_last} is {_change(float(km_last_row.ratio), 0)}, "
-            "within it. Fuel overstates the rise because each tonne now carries more traffic.",
+            f"({_times(float(fuel_2020.ratio))}): the fall was the traffic. On interurban roads "
+            f"in {km_last}, deaths per tonne of fuel were "
+            f"{_change(float(fuel_km_last_row.ratio), 0)} on trend, outside its interval, but "
+            f"per kilometre measured {_change(float(km_last_row.ratio), 0)}, inside it. The "
+            "counts cannot yet tell whether the pre-2020 decline went on or stalled; they rule "
+            "out a jump.",
             "Joinpoint quasi-Poisson trends fitted to 1993–2019 and projected, re-run on the "
             "Ministerio de Transportes' measured interurban vehicle-kilometres.",
         ),
@@ -209,13 +218,13 @@ def page_index(captions: dict[str, str]) -> str:
         ),
         (
             "simulator.html",
-            "Keeping to today's limits would save more lives than any new limit",
-            "On the published Power Model and the speeds measured in Spain in 2022, if every "
-            "driver now above the limit on motorways and conventional roads kept to it, about "
-            f"{_fmt_int(-comply.deaths_change)} fewer people a year would die there. A 80 km/h "
-            f"limit on conventional roads would save about {_fmt_int(-conventional.deaths_change)}. "
-            "A validated forecasting model shows why neither would be visible in a year's death "
-            f"count: anything under about {_fmt_int(comply.mde_deaths)} deaths a year is not.",
+            "Keeping to today's limits would save more lives than any single new limit",
+            "If every driver now above the limit on motorways and conventional roads kept to "
+            "it, the Power Model and the speeds measured in 2022 put the saving at about "
+            f"{_fmt_int(-comply.deaths_change)} lives a year; 80 km/h on conventional "
+            f"roads would save about {_fmt_int(-conventional.deaths_change)}. A validated "
+            "forecasting model says the first year's count would show the first "
+            f"{_chance(comply)} and the second {_chance(conventional)}.",
             "Spanish baselines and measured speeds, published dose-response evidence and DGT's "
             "values of a life, every number sourced.",
         ),
@@ -232,7 +241,8 @@ def page_index(captions: dict[str, str]) -> str:
         "men, crash about as often as their driving predicts and die far more often once in a "
         "crash. A crash with speed recorded kills twice as often as another on the same kind "
         f"of road. Conventional roads kill {_times(risk_ratio)} as many people per kilometre "
-        f"as motorways in {risk_year}, though their traffic is slower. The national series says "
+        f"as autopistas and autovías in {risk_year}, though their traffic is slower. The "
+        "national series says "
         f"the same about the past: between {first} and {final} deaths per tonne of road fuel "
         f"fell {_fmt_pct(-per_fuel, 0)}, injury crashes per tonne only "
         f"{_fmt_pct(-frequency, 0)}, and deaths per injury crash "
@@ -245,12 +255,12 @@ def page_index(captions: dict[str, str]) -> str:
     )
     body += (
         "<p>How hard a crash is depends on the energy in it and on the body that absorbs it. "
-        "Age is the body; speed is the energy, and it is the one a law reaches, the one the "
-        "evidence measures best and the one on which Spanish drivers stray furthest from the "
-        "rule: in 2022 only "
+        "Age is the body; speed is the energy, the one a law reaches, the one the evidence "
+        "measures best and the one on which Spanish drivers stray furthest from the rule: in "
+        "2022 only "
         f"{_fmt_pct(float(speeds.loc['conventional', 'share_within_limit']), 0)} of cars "
         "measured on conventional roads kept to 90 km/h. That is why the last page is a "
-        "simulator of speed laws, and why it says plainly what the counts cannot show.</p>"
+        "simulator of speed laws, and why it says how likely the counts are to show it.</p>"
     )
 
     body += "<h2>What this site does not claim</h2>"

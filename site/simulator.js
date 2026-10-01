@@ -2,8 +2,9 @@
  *
  * A line-by-line port of the Python, reading the same parameters, which the page carries as a
  * JSON block built from the committed result tables and the evidence register. A test runs this
- * file under Node on the same scenarios as the Python and requires the two to agree. Nothing here
- * is computed that the Python does not compute.
+ * file under Node on every combination of the page's limits, with the response and compliance
+ * across their range, and requires it to agree with the Python to one part in a million. Nothing
+ * here is computed that the Python does not compute.
  */
 (function (root, factory) {
   "use strict";
@@ -23,40 +24,76 @@
 
   const OUTCOMES = ["deaths", "seriously_injured", "slightly_injured", "injury_crashes"];
   const VALUED = ["deaths", "seriously_injured", "slightly_injured"];
-  const INTERURBAN = ["motorway", "conventional"];
+  const INTERURBAN = ["autopista", "autovia", "conventional"];
   const URBAN = ["urban_50", "urban_30"];
   const MINUS = "−";
 
   // ------------------------------------------------------------------ arithmetic
 
-  // Complementary error function (Numerical Recipes, erfcc): fractional error below 1.2e-7.
-  function erfc(x) {
-    const z = Math.abs(x);
-    const t = 1 / (1 + 0.5 * z);
-    const r =
-      t *
-      Math.exp(
-        -z * z -
-          1.26551223 +
-          t *
-            (1.00002368 +
-              t *
-                (0.37409196 +
-                  t *
-                    (0.09678418 +
-                      t *
-                        (-0.18628806 +
-                          t *
-                            (0.27886807 +
-                              t *
-                                (-1.13520398 +
-                                  t * (1.48851587 + t * (-0.82215223 + t * 0.17087277))))))))
-      );
-    return x >= 0 ? r : 2 - r;
-  }
+  // Standard normal distribution function: W. J. Cody's rational Chebyshev approximations, as in
+  // R's pnorm, accurate to about one part in 10^15 wherever the simulator evaluates it.
+  const CODY_A = [
+    2.2352520354606839287, 161.02823106855587881, 1067.6894854603709582, 18154.981253343561249,
+    0.065682337918207449113,
+  ];
+  const CODY_B = [
+    47.20258190468824187, 976.09855173777669322, 10260.932208618978205, 45507.789335026729956,
+  ];
+  const CODY_C = [
+    0.39894151208813466764, 8.8831497943883759412, 93.506656132177855979, 597.27027639480026226,
+    2494.5375852903726711, 6848.1904505362823326, 11602.651437647350124, 9842.7148383839780218,
+    1.0765576773720192317e-8,
+  ];
+  const CODY_D = [
+    22.266688044328115691, 235.38790178262499861, 1519.377599407554805, 6485.558298266760755,
+    18615.571640885098091, 34900.952721145977266, 38912.003286093271411, 19685.429676859990727,
+  ];
+  const CODY_P = [
+    0.21589853405795699, 0.1274011611602473639, 0.022235277870649807, 0.001421619193227893466,
+    2.9112874951168792e-5, 0.02307344176494017303,
+  ];
+  const CODY_Q = [
+    1.28426009614491121, 0.468238212480865118, 0.0659881378689285515, 0.00378239633202758244,
+    7.29751555083966205e-5,
+  ];
 
   function normCdf(x) {
-    return 0.5 * erfc(-x / Math.SQRT2);
+    const y = Math.abs(x);
+    if (y <= 0.67448975) {
+      const square = x * x;
+      let num = CODY_A[4] * square;
+      let den = square;
+      for (let i = 0; i < 3; i++) {
+        num = (num + CODY_A[i]) * square;
+        den = (den + CODY_B[i]) * square;
+      }
+      return 0.5 + (x * (num + CODY_A[3])) / (den + CODY_B[3]);
+    }
+    let tail;
+    if (y <= Math.sqrt(32)) {
+      let num = CODY_C[8] * y;
+      let den = y;
+      for (let i = 0; i < 7; i++) {
+        num = (num + CODY_C[i]) * y;
+        den = (den + CODY_D[i]) * y;
+      }
+      tail = (num + CODY_C[7]) / (den + CODY_D[7]);
+    } else if (y < 37.5193) {
+      const inverse = 1 / (y * y);
+      let num = CODY_P[5] * inverse;
+      let den = inverse;
+      for (let i = 0; i < 4; i++) {
+        num = (num + CODY_P[i]) * inverse;
+        den = (den + CODY_Q[i]) * inverse;
+      }
+      tail = (1 / Math.sqrt(2 * Math.PI) - (inverse * (num + CODY_P[4])) / (den + CODY_Q[4])) / y;
+    } else {
+      return x > 0 ? 1 : 0;
+    }
+    // exp(-y²/2) in two factors, so that the square loses no precision.
+    const rounded = Math.trunc(y * 16) / 16;
+    tail *= Math.exp((-rounded * rounded) / 2) * Math.exp((-(y - rounded) * (y + rounded)) / 2);
+    return x > 0 ? 1 - tail : tail;
   }
 
   function typicalResponse(P, change) {
@@ -79,7 +116,7 @@
   function newMeanSpeed(P, key, scenario) {
     const site = P.sites[key];
     const limits = scenario.limits || {};
-    const limit = key in limits ? limits[key] : site.limit;
+    const limit = site.lever !== null && site.lever in limits ? limits[site.lever] : site.limit;
     const change = limit - site.limit;
     const share = scenario.responseShare;
     const shift = share === null || share === undefined ? typicalResponse(P, change) : share * change;
@@ -111,7 +148,16 @@
   }
 
   function minimumDetectable(P, expected, tau) {
-    return 1 - Math.exp(-P.detect.z * Math.sqrt(1 / expected + tau * tau));
+    const z = P.detect.zAlpha + P.detect.zPower;
+    return 1 - Math.exp(-z * Math.sqrt(1 / expected + tau * tau));
+  }
+
+  // Chance that the first year's count shows a change of `change` deaths; NaN for no change.
+  function detectionPower(P, change, expected, tau) {
+    if (Math.abs(change) < 0.5) return NaN;
+    const sigma = Math.sqrt(1 / expected + tau * tau);
+    const shift = Math.abs(Math.log1p(change / expected)) / sigma;
+    return normCdf(shift - P.detect.zAlpha) + normCdf(-shift - P.detect.zAlpha);
   }
 
   function simulate(P, scenario) {
@@ -146,9 +192,9 @@
       }
     }
     sortEnds(total);
-    const mde = minimumDetectable(P, total.deaths_before, P.detect.tauInterurban);
-    total.mde_deaths = mde * total.deaths_before;
-    total.visible_in_one_year = Math.abs(total.deaths_change) / total.deaths_before >= mde;
+    const tau = P.detect.tauInterurban;
+    total.mde_deaths = minimumDetectable(P, total.deaths_before, tau) * total.deaths_before;
+    total.power_in_one_year = detectionPower(P, total.deaths_change, total.deaths_before, tau);
     const urban = URBAN.map(function (key) {
       const v1 = newMeanSpeed(P, key, scenario);
       const r = ratios(P, key, v1);
@@ -189,8 +235,8 @@
 
   function readScenario(form) {
     const limits = {};
-    for (const select of form.querySelectorAll("select[data-site]")) {
-      limits[select.dataset.site] = Number(select.value);
+    for (const select of form.querySelectorAll("select[data-lever]")) {
+      limits[select.dataset.lever] = Number(select.value);
     }
     const typical = form.querySelector('input[name="response"][value="typical"]').checked;
     const share = Number(form.querySelector("#response-share").value) / 100;
@@ -199,8 +245,8 @@
   }
 
   function setScenario(form, scenario) {
-    for (const select of form.querySelectorAll("select[data-site]")) {
-      const key = select.dataset.site;
+    for (const select of form.querySelectorAll("select[data-lever]")) {
+      const key = select.dataset.lever;
       select.value = String(key in scenario.limits ? scenario.limits[key] : select.dataset.limit);
     }
     const typical = scenario.responseShare === null || scenario.responseShare === undefined;
@@ -244,20 +290,47 @@
       put(scope, "deaths-range", percent(row.deaths_change_low) + " to " + percent(row.deaths_change_high));
       put(scope, "serious", percent(row.seriously_injured_change));
     }
+    const moved = result.interurban.some((row) => Math.abs(row.deaths_change) >= 0.5);
+    const urbanMoved = result.urban.some((row) => Math.abs(row.deaths_change) > 1e-9);
     let verdict;
-    if (Math.abs(t.deaths_change) < 0.5) {
+    if (!moved && !urbanMoved) {
       verdict = "Nothing changes, so there is nothing to detect.";
-    } else if (t.visible_in_one_year) {
+    } else if (!moved) {
+      const street = result.urban.find((row) => row.site === "urban_50");
       verdict =
-        "A change of " + signed(t.deaths_change, 0) + " deaths a year is larger than the " +
-        Math.round(t.mde_deaths) + " the interurban death count can show in its first year, so " +
-        "the counts alone could confirm it.";
+        "Only urban streets change: deaths on the streets now at 50 km/h by " +
+        percent(street.deaths_change) + ". DGT does not publish deaths by the limit of the " +
+        "street, so there is no count to watch: the effect would have to be checked by " +
+        "measuring speeds.";
+    } else if (Number.isNaN(t.power_in_one_year)) {
+      verdict =
+        "The changes on the three kinds of road cancel out to less than one death a year in " +
+        "all, which no count could show.";
     } else {
-      verdict =
-        "A change of " + signed(t.deaths_change, 0) + " deaths a year is smaller than the " +
-        Math.round(t.mde_deaths) + " the interurban death count can show in its first year, and " +
-        "waiting longer does not help: it would be invisible in the counts, real or not. It " +
-        "would have to be checked by measuring speeds.";
+      const power = t.power_in_one_year;
+      const count = signed(t.deaths_change, 0);
+      const rises = result.interurban.some((row) => row.deaths_change >= 0.5);
+      const falls = result.interurban.some((row) => row.deaths_change <= -0.5);
+      verdict = rises && falls ? "Rises on some roads offset falls on others. " : "";
+      verdict +=
+        "A change of " + count + (Math.abs(Math.round(t.deaths_change)) === 1 ? " death" :
+        " deaths") + " a year on autopistas, autovías and conventional roads would " +
+        (power >= 0.99
+          ? "almost certainly stand out from an ordinary year in the first year's count"
+          : "stand out from an ordinary year in the first year's count with a chance of about " +
+            Math.round(power * 100) + "%") +
+        "; the count picks up a change of " + Math.round(t.mde_deaths) + " four times in five. ";
+      if (power >= 0.8) {
+        verdict += "The count would most likely show it on its own.";
+      } else if (power >= 0.5) {
+        verdict +=
+          "More often than not the count would show it, but a year that did not would not " +
+          "mean the law had failed.";
+      } else {
+        verdict +=
+          "More often than not it would be lost in ordinary variation, and the forecast only " +
+          "drifts further in later years: it would have to be checked by measuring speeds.";
+      }
     }
     put(doc, "verdict", verdict);
   }
@@ -294,6 +367,7 @@
     newMeanSpeed: newMeanSpeed,
     ratios: ratios,
     minimumDetectable: minimumDetectable,
+    detectionPower: detectionPower,
     simulate: simulate,
     attach: attach,
   };

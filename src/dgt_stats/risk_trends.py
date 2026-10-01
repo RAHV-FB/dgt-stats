@@ -319,7 +319,7 @@ def km_crosscheck() -> pd.DataFrame:
 
 @dataclass
 class Joinpoint:
-    """A segmented log-linear Poisson trend with quasi-likelihood (overdispersed) errors."""
+    """A segmented log-linear Poisson trend with quasi-likelihood errors, dispersion at least 1."""
 
     years: np.ndarray
     breaks: tuple[int, ...]
@@ -338,9 +338,17 @@ def _design(years: np.ndarray, first: int, breaks: tuple[int, ...]) -> np.ndarra
 
 
 def _fit(years: np.ndarray, counts: np.ndarray, offset: np.ndarray | None, breaks) -> Joinpoint:
+    """Fit one placement of the turning points, with the dispersion floored at 1.
+
+    A Pearson dispersion below 1 in a dozen points is chance, not a series steadier than Poisson,
+    so the scale is never allowed to make an interval narrower than pure Poisson noise would.
+    """
     design = _design(years, int(years[0]), tuple(breaks))
     model = sm.GLM(counts, design, family=sm.families.Poisson(), offset=offset)
-    return Joinpoint(years, tuple(breaks), model.fit(scale="X2"))
+    result = model.fit(scale="X2")
+    if result.scale < 1.0:
+        result = model.fit(scale=1.0)
+    return Joinpoint(years, tuple(breaks), result)
 
 
 def _candidate_breaks(years: np.ndarray) -> list[int]:
@@ -546,6 +554,28 @@ KM_MEASURES = {
     "per_km": ("vehicle_km", "Interurban deaths per vehicle-km (measured)"),
     "per_fuel": ("road_fuel_tonnes", "Interurban deaths per tonne of road fuel (proxy)"),
 }
+
+
+def fuel_bio_share() -> pd.DataFrame:
+    """Biofuel in road fuel by year: the mass CORES reports blended into petrol and diesel.
+
+    Biofuel carries less energy per tonne than the petrol and diesel it replaces, so a change in
+    its share would change the kilometres a tonne of road fuel stands for. Only years in which
+    CORES reports the share for all twelve months are kept.
+    """
+    fuel = io_traffic.read_cores_fuel()
+    fuel = fuel.assign(
+        bio_tonnes=fuel.petrol_tonnes * fuel.petrol_bio_share
+        + fuel.diesel_tonnes * fuel.diesel_bio_share
+    )
+    annual = fuel.groupby("year").agg(
+        road_fuel_tonnes=("road_fuel_tonnes", "sum"),
+        bio_tonnes=("bio_tonnes", "sum"),
+        months=("bio_tonnes", "count"),
+    )
+    annual = annual[annual.months == 12].drop(columns="months")
+    annual["bio_share"] = annual.bio_tonnes / annual.road_fuel_tonnes
+    return annual.reset_index()
 
 
 def interurban_km_panel() -> pd.DataFrame:

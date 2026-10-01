@@ -1,3 +1,4 @@
+import itertools
 import json
 import math
 import shutil
@@ -38,6 +39,39 @@ def test_every_published_value_carries_its_source() -> None:
             for o in ("deaths", "seriously_injured", "slightly_injured")
         ]
         assert order == sorted(order, reverse=True)
+
+
+def _written_forms(value: float, unit: str) -> set[str]:
+    """The ways a source may print ``value``: points or commas, thousands, percentages."""
+    numbers = {value, value * 100} if unit == "share" else {value}
+    forms = set()
+    for number in numbers:
+        for text in (f"{number:g}", f"{number:.1f}", f"{number:,.0f}"):
+            forms |= {text, text.replace(",", "."), text.replace(".", ",")}
+    return forms
+
+
+def test_every_quote_contains_the_value_it_supports() -> None:
+    for row in simulator.evidence().itertuples():
+        forms = _written_forms(float(row.value), row.unit)
+        assert any(form in row.quote for form in forms), (row.parameter, row.applies_to)
+
+
+def test_a_law_sets_one_limit_for_every_site_it_covers() -> None:
+    for lever, sites in simulator.LEVERS.items():
+        limits = {simulator.parameter("limit", site) for site in sites}
+        assert len(limits) == 1, lever
+        (limit,) = limits
+        assert limit in simulator.LIMIT_OPTIONS[lever]
+        for option in simulator.LIMIT_OPTIONS[lever]:
+            low, high = simulator.RESPONSE_RANGE
+            assert low <= option - limit <= high
+    assert set(simulator.LEVER_OF) == set(simulator.SITES) - {"urban_30"}
+    sites = simulator.site_effects(
+        simulator.Scenario("t", "t", {"motorway": 110, "urban_50": 30})
+    ).set_index("site")
+    assert list(sites.new_limit) == [110, 110, 90, 30, 30]
+    assert sites.loc["urban_30", "new_mean_speed"] == sites.loc["urban_30", "mean_speed"]
 
 
 def test_typical_response_is_partial_and_stays_inside_the_evidence() -> None:
@@ -93,10 +127,19 @@ def test_the_power_model_moves_outcomes_in_the_right_order() -> None:
     faster = simulator.site_effects(simulator.Scenario("t", "t", {"motorway": 130})).set_index(
         "site"
     )
-    assert faster.loc["motorway", "deaths_ratio"] > 1
+    assert (faster.loc[["autopista", "autovia"], "deaths_ratio"] > 1).all()
+    assert faster.loc["conventional", "deaths_ratio"] == 1
     # A set response of the full limit change moves the mean by exactly the change.
-    full = simulator.new_mean_speed("motorway", 110, response_share=1.0)
-    assert full == pytest.approx(simulator.speed_distribution("motorway").mean - 10)
+    full = simulator.new_mean_speed("autovia", 110, response_share=1.0)
+    assert full == pytest.approx(simulator.speed_distribution("autovia").mean - 10)
+    # Autopistas are driven faster than autovías, so keeping to the same limit slows them more.
+    autopista, autovia = (simulator.speed_distribution(s) for s in ("autopista", "autovia"))
+    assert autopista.excess(120) > autovia.excess(120)
+
+
+def test_no_change_has_no_chance_of_detection() -> None:
+    assert math.isnan(simulator.power_in_one_year(0.2, 1200.0, 0.05))
+    assert simulator.power_in_one_year(-300.0, 1200.0, 0.05) > 0.99
 
 
 @pytest.mark.skipif(
@@ -109,7 +152,7 @@ def test_a_total_range_uses_one_exponent_end_on_every_road() -> None:
     mixed = simulator.Scenario("m", "m", {"motorway": 130, "conventional": 80})
     effects = simulator.interurban_effects(mixed).set_index("road_class")
     assert (
-        effects.loc["motorway", "deaths_change"] > 0 > effects.loc["conventional", "deaths_change"]
+        effects.loc["autovia", "deaths_change"] > 0 > effects.loc["conventional", "deaths_change"]
     )
     total = simulator.totals(effects)
     at_ends = sorted(
@@ -143,6 +186,22 @@ def test_the_baseline_reconciles_with_the_yearbook() -> None:
 
 
 @processed
+def test_travel_time_counts_only_the_light_vehicles_the_speeds_were_measured_on() -> None:
+    from dgt_stats import io_traffic
+
+    table = simulator.baseline_table().set_index("road_class")
+    traffic = io_traffic.read_road_traffic().set_index("year").iloc[-1]
+    toll = traffic.toll_motorway * 1e6
+    assert table.loc["autopista", "vehicle_km"] == pytest.approx(toll)
+    assert table.loc["autopista", "light_vehicle_km"] == pytest.approx(
+        toll * (1 - traffic.toll_motorway_heavy_share)
+    )
+    interurban = table.loc[list(simulator.INTERURBAN_SITES)]
+    assert (interurban.light_vehicle_km < interurban.vehicle_km).all()
+    assert interurban.vehicle_km.sum() == pytest.approx(traffic.total * 1e6)
+
+
+@processed
 def test_conventional_roads_carry_the_most_risk_per_kilometre() -> None:
     risk = simulator.class_risk().pivot(
         index="year", columns="road_class", values="deaths_per_bn_km"
@@ -162,17 +221,26 @@ tables = pytest.mark.skipif(
 )
 
 
+def _page_grid() -> list[simulator.Scenario]:
+    """Every combination of the page's limits, with response and compliance across their range."""
+    levers = list(simulator.LIMIT_OPTIONS)
+    scenarios = list(simulator.PRESETS)
+    for limits in itertools.product(*(simulator.LIMIT_OPTIONS[lever] for lever in levers)):
+        for share in (None, 0.0, 0.35, 1.0):
+            for compliance in (0.0, 0.05, 0.5, 1.0):
+                key = f"{limits}-{share}-{compliance}"
+                scenarios.append(
+                    simulator.Scenario(key, key, dict(zip(levers, limits)), share, compliance)
+                )
+    return scenarios
+
+
 @processed
 @tables
 @pytest.mark.skipif(shutil.which("node") is None, reason="node is not installed")
 def test_the_browser_computes_exactly_what_the_python_computes(tmp_path: Path) -> None:
     parameters = _browser_parameters()
-    scenarios = [*simulator.PRESETS]
-    scenarios += [
-        simulator.Scenario("a", "a", {"motorway": 100, "conventional": 70}, 0.4, 0.3),
-        simulator.Scenario("b", "b", {"motorway": 140, "urban_50": 40}, None, 0.8),
-        simulator.Scenario("c", "c", {"conventional": 100}, 1.0, 0.0),
-    ]
+    scenarios = _page_grid()
     payload = [
         {"limits": s.limits, "responseShare": s.response_share, "compliance": s.compliance}
         for s in scenarios
@@ -200,8 +268,12 @@ def test_the_browser_computes_exactly_what_the_python_computes(tmp_path: Path) -
         "value_euros_high",
         "vehicle_hours_change",
     ]
+    tau = parameters["detect"]["tauInterurban"]
+    published = pd.read_csv(TABLES_DIR / "simulator_presets.csv").set_index("scenario")
     for scenario, computed in zip(scenarios, browser):
-        python = simulator.interurban_effects(scenario).set_index("road_class")
+        effects = simulator.interurban_effects(scenario)
+        python = effects.set_index("road_class")
+        assert [row["road_class"] for row in computed["interurban"]] == list(python.index)
         for row in computed["interurban"]:
             for column in columns:
                 assert row[column] == pytest.approx(
@@ -213,23 +285,26 @@ def test_the_browser_computes_exactly_what_the_python_computes(tmp_path: Path) -
                 assert row[column] == pytest.approx(
                     float(urban.loc[row["site"], column]), rel=1e-6, abs=1e-9
                 ), (scenario.key, row["site"], column)
-        total = simulator.totals(simulator.interurban_effects(scenario))
-        for column in (
-            "deaths_change",
-            "deaths_change_low",
-            "deaths_change_high",
-            "value_euros_low",
-        ):
+        total = simulator.totals(effects)
+        for column in [*columns[1:], "deaths_before"]:
             assert computed["total"][column] == pytest.approx(
                 float(total[column]), rel=1e-6, abs=1e-6
             ), (scenario.key, "total", column)
-        presets = {p.key for p in simulator.PRESETS}
-        if scenario.key in presets:
-            published = pd.read_csv(TABLES_DIR / "simulator_presets.csv").set_index("scenario")
-            total = computed["total"]
-            assert total["deaths_change"] == pytest.approx(
-                float(published.loc[scenario.key, "deaths_change"]), rel=1e-6, abs=1e-6
+        power = simulator.power_in_one_year(
+            float(total.deaths_change), float(total.deaths_before), tau
+        )
+        browser_power = computed["total"]["power_in_one_year"]
+        if math.isnan(power):
+            assert browser_power is None, scenario.key
+        else:
+            assert browser_power == pytest.approx(power, rel=1e-6), scenario.key
+        if scenario.key in published.index:
+            row = published.loc[scenario.key]
+            assert computed["total"]["deaths_change"] == pytest.approx(
+                float(row.deaths_change), rel=1e-6, abs=1e-6
             )
-            assert total["visible_in_one_year"] == bool(
-                published.loc[scenario.key, "visible_in_one_year"]
-            )
+            assert computed["total"]["mde_deaths"] == pytest.approx(float(row.mde_deaths))
+            if math.isnan(power):
+                assert math.isnan(float(row.power_in_one_year))
+            else:
+                assert browser_power == pytest.approx(float(row.power_in_one_year), rel=1e-6)

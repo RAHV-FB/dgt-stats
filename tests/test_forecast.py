@@ -58,6 +58,15 @@ def test_the_model_forecast_follows_traffic_where_last_year_cannot() -> None:
     assert np.log(observed / naive) < -0.25
 
 
+def test_detection_power_is_the_size_of_the_test_at_no_change_and_the_power_at_the_mde() -> None:
+    tau, expected = 0.05, 1200.0
+    mde = forecast.minimum_detectable_effect(expected, tau) * expected
+    assert forecast.detection_power(0.0, expected, tau) == pytest.approx(forecast.ALPHA)
+    assert forecast.detection_power(-mde, expected, tau) == pytest.approx(forecast.POWER, abs=1e-4)
+    powers = [forecast.detection_power(-change, expected, tau) for change in (50, 100, 200, 400)]
+    assert powers == sorted(powers)
+
+
 def test_minimum_detectable_effect_is_the_power_formula() -> None:
     z = stats.norm.ppf(0.975) + stats.norm.ppf(0.80)
     assert forecast.minimum_detectable_effect(1e12, 0.05) == pytest.approx(1 - np.exp(-z * 0.05))
@@ -90,8 +99,16 @@ def test_model_panel_is_complete_monthly_and_adds_up() -> None:
 def test_the_published_choice_is_the_one_the_selection_years_make() -> None:
     selection = forecast.model_selection()
     chosen = selection[selection.chosen]
-    assert set(chosen.method) == {forecast.CHOSEN}
-    assert set(chosen.window) == {forecast.WINDOW_YEARS}
+    model = chosen[chosen.family == "model"]
+    assert set(model.method) == {forecast.CHOSEN}
+    assert set(model.window) == {forecast.WINDOW_YEARS}
+    # The trees were tuned on the same years: every leaf size was scored, and the published one
+    # is the best of them there.
+    trees = selection[selection.family == "trees"]
+    leaves = {f"boosted_trees_leaf_{leaf}" for leaf in forecast.TREE_LEAF_CANDIDATES}
+    assert set(trees.method) == leaves
+    assert set(chosen[chosen.family == "trees"].method) == {forecast.TREE_METHOD}
+    assert set(chosen.family) == {"model", "trees"}
     # The selection and holdout years do not overlap, and the lockdown years are in neither.
     sets = selection.groupby("set").years.max()
     assert sets["selection"] == len(forecast.SELECTION_YEARS)
@@ -109,6 +126,11 @@ def test_the_model_beats_last_year_when_the_trend_or_traffic_moves() -> None:
     model = table.loc[("deaths_all", "holdout", forecast.CHOSEN), "rmse"]
     naive = table.loc[("deaths_all", "holdout", "last_year"), "rmse"]
     assert abs(model - naive) < 0.02
+    # The tuned trees do worse than the model on every kind of road and in every set of years.
+    for outcome in forecast.OUTCOMES:
+        for kind in ("selection", "holdout", "pandemic"):
+            model = table.loc[(outcome, kind, forecast.CHOSEN), "rmse"]
+            assert table.loc[(outcome, kind, forecast.TREE_METHOD), "rmse"] > model
 
 
 @data

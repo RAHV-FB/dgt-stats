@@ -25,6 +25,22 @@ DENOMINATOR_NOTES = {
     "vehicles": "Every registered vehicle, including the many that are rarely used.",
     "road_fuel": "Petrol and diesel sold for road use: the closest annual measure of traffic.",
 }
+PER = {
+    "count": "as a count",
+    "residents": "per resident",
+    "licence_holders": "per licence holder",
+    "vehicles": "per vehicle",
+    "road_fuel": "per tonne of fuel",
+}
+
+
+def _beyond(row: pd.Series) -> bool:
+    """Whether a change lies outside the interval of an ordinary year."""
+    return float(row.ratio_low_yty) > 1 or float(row.ratio_high_yty) < 1
+
+
+def _listed(parts: list[str]) -> str:
+    return parts[0] if len(parts) == 1 else ", ".join(parts[:-1]) + " and " + parts[-1]
 
 
 def page_trends(captions: dict[str, str]) -> str:
@@ -35,6 +51,17 @@ def page_trends(captions: dict[str, str]) -> str:
     deaths = latest.xs("deaths_30d", level="outcome")
     hosp = latest.xs("hospitalised_30d", level="outcome")
     crashes = latest.xs("crashes", level="outcome")
+    # The prose below states which changes lie beyond an ordinary year; stop if the tables move.
+    if any(_beyond(deaths.loc[key]) for key in PER):
+        raise ValueError("trends page: a change in deaths now lies beyond an ordinary year")
+    hosp_beyond = [key for key in PER if _beyond(hosp.loc[key])]
+    if hosp_beyond != ["count", "road_fuel"]:
+        raise ValueError(f"trends page: hospital admissions beyond an ordinary year: {hosp_beyond}")
+    shown = ("count", "residents", "vehicles", "road_fuel")
+    crash_within = [key for key in shown if not _beyond(crashes.loc[key])]
+    crash_beyond = [key for key in shown if _beyond(crashes.loc[key])]
+    if crash_beyond != ["vehicles"]:
+        raise ValueError(f"trends page: crash changes beyond an ordinary year: {crash_beyond}")
 
     body = key_figures(
         [
@@ -111,22 +138,38 @@ def page_trends(captions: dict[str, str]) -> str:
         f"{float(scatter.loc['hospitalised_30d', 'dispersion']):.0f} times and injury crashes by "
         f"{float(scatter.loc['crashes', 'dispersion']):.0f} times, because how completely slight "
         "injuries are recorded changes from year to year. The intervals on this page are widened "
-        "by that factor, so a change outside them is larger than an ordinary year, not only "
-        "larger than chance. It matters most for crashes: with a pure Poisson interval the "
-        "apparent fall per person and per vehicle looks certain; against an ordinary year it "
-        "is not.</p>"
+        "by the square root of that factor, the ratio of the spreads, so a change outside them "
+        "is larger than an ordinary year, not only larger than chance. It matters most for "
+        "crashes, whose spread is about "
+        f"{float(scatter.loc['crashes', 'dispersion']) ** 0.5:.0f} times the Poisson one: with "
+        "a pure Poisson interval the apparent fall per person and per vehicle looks certain; "
+        "against an ordinary year only the fall per vehicle stays beyond it, and only just.</p>"
     )
+
+    def crash_change(key: str) -> str:
+        return f"{_change(float(crashes.loc[key, 'ratio_to_base']))} {PER[key]}"
+
+    def crash_interval(key: str) -> str:
+        row = crashes.loc[key]
+        return f"{_change(float(row.ratio_low_yty))} to {_change(float(row.ratio_high_yty), 2)}"
+
+    crash_text = (
+        f"Injury crashes moved {_listed([crash_change(k) for k in crash_within])}, "
+        + ("all " if not crash_beyond else "")
+        + "within an ordinary year's variation"
+    )
+    if crash_beyond:
+        crash_text += "; " + "; ".join(
+            f"{crash_change(k)}, just beyond it (interval {crash_interval(k)})"
+            for k in crash_beyond
+        )
     body += (
-        "<p>Injury crashes moved "
-        f"{_change(float(crashes.loc['count', 'ratio_to_base']))} as a count, "
-        f"{_change(float(crashes.loc['residents', 'ratio_to_base']))} per resident, "
-        f"{_change(float(crashes.loc['vehicles', 'ratio_to_base']))} per vehicle and "
-        f"{_change(float(crashes.loc['road_fuel', 'ratio_to_base']))} per tonne of fuel, all "
-        "within an ordinary year's variation. Set beside the rise in hospital admissions, that "
-        "means more people admitted per crash, which is either more serious crashes or more "
-        "complete tracing of admissions. Against 2019 alone, the per-fuel rise in deaths is "
-        "within an ordinary year. Against the direction the pre-2020 trend was taking, it is "
-        'not; the <a href="long-run.html">long-run page</a> sets that out.</p>'
+        f"<p>{crash_text}. Set beside the rise in hospital admissions, that means more people "
+        "admitted per crash, which is either more serious crashes or more complete tracing of "
+        "admissions. Against 2019 alone, the per-fuel rise in deaths is within an ordinary "
+        "year. Against the direction the pre-2020 trend was taking it is outside the interval, "
+        "but measured per kilometre on interurban roads it is inside; the "
+        '<a href="long-run.html">long-run page</a> sets that out.</p>'
     )
 
     body += "<h2>Fuel is a proxy for kilometres, and it drifts</h2>"
@@ -168,8 +211,15 @@ def page_trends(captions: dict[str, str]) -> str:
         "resident, per licence holder or per vehicle they were slightly below; measured per "
         "unit of traffic, slightly above, or flat once better fuel economy is allowed for. None "
         "of those differences is larger than an ordinary year's variation, so the honest "
-        "summary is that death risk did not measurably change against 2019, and neither did "
-        "crash risk. Serious injury rose: more people were admitted to hospital after a crash "
+        "summary is that death risk did not measurably change against 2019. Crash risk did "
+        "not either, under most denominators"
+        + (
+            f"; the fall {_listed([PER[k] for k in crash_beyond])} is only just beyond an "
+            "ordinary year. "
+            if crash_beyond
+            else ". "
+        )
+        + "Serious injury rose: more people were admitted to hospital after a crash "
         f"in {last} than in 2019, beyond an ordinary year as a count and per unit of traffic."
     )
     body += limits(
@@ -184,8 +234,9 @@ def page_trends(captions: dict[str, str]) -> str:
     return render_page(
         "trends",
         "2019 to 2024: counts against risk",
-        "Did the roads get safer or more dangerous after the pandemic? For deaths and crashes "
-        "the count and four denominators disagree, all within an ordinary year's variation; "
-        "hospital admissions rose beyond it.",
+        "Did the roads get safer or more dangerous after the pandemic? For deaths the count and "
+        "four denominators disagree, all within an ordinary year's variation, and so do crashes "
+        "but for a fall per vehicle just beyond it; hospital admissions rose beyond it as a "
+        "count and per unit of traffic.",
         body,
     )

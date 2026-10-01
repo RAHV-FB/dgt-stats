@@ -26,7 +26,9 @@ def _assumptions_section() -> str:
     km = read_table("longrun_km_panel").set_index("year")
     km_check = read_table("longrun_km_check").set_index(["measure", "year"])
     km_last = int(km.index.max())
-    base_year = int(km_check.loc["per_km"].last_segment_start.iloc[0])
+    segments = read_table("longrun_segments")
+    base_year = int(segments[segments.measure == "road_fuel"].start.max())
+    bio = read_table("longrun_fuel_bio").set_index("year").bio_share
     owner = read_table("q7_owner_age_check").set_index("band")
     validation = (
         read_table("forecast_validation").set_index(["outcome", "set", "method"]).sort_index()
@@ -44,6 +46,12 @@ def _assumptions_section() -> str:
 
     def rmse(kind: str, method: str) -> str:
         return _fmt_pct(float(validation.loc[("deaths_all", kind, method), "rmse"]))
+
+    holdout_years = sorted(forecast.HOLDOUT_YEARS)
+    holdout = (
+        f"{holdout_years[0]}–{forecast.PANDEMIC_YEARS[0] - 1} and "
+        f"{forecast.PANDEMIC_YEARS[-1] + 1}–{holdout_years[-1]}"
+    )
 
     crash_person = index.loc[("crashes", "residents", last)]
     hosp = index.loc[("hospitalised_30d", "count", last)]
@@ -73,14 +81,26 @@ def _assumptions_section() -> str:
             "corrected",
         ),
         (
+            "Long run",
+            "A tonne of road fuel means the same every year",
+            "CORES subtotals against their products, biofuels included, and the published "
+            "biofuel share",
+            "Each subtotal equals its products in every month; biofuel was "
+            f"{_fmt_pct(float(bio.loc[2019]))} of road fuel by mass in 2019 and "
+            f"{_fmt_pct(float(bio.loc[km_last]))} in {km_last}",
+            "Holds. A point more biofuel, which carries less energy per tonne, would lower "
+            "kilometres per tonne slightly; it cannot explain their rise",
+        ),
+        (
             "Age and sex",
             "The registered owner's age stands for the driver's",
             "Cars and kilometres per licence holder, by age band",
             f"18–34: {float(young.cars_per_licence):.2f} cars and "
             f"{float(young.km_per_licence):,.0f} km per licence holder; 35–54: "
             f"{float(middle.cars_per_licence):.2f} and {float(middle.km_per_licence):,.0f}",
-            "Partly: young drivers' kilometres sit with older owners. Moving all of the gap out "
-            "of the 35–54 baseline takes the 75-and-over involvement ratio from "
+            "Partly: young drivers' kilometres sit with older owners. Moving kilometres from the "
+            "35–54 baseline to the 18–34 band until both drive the same distance per licence "
+            "holder takes the 75-and-over involvement ratio from "
             f"{float(owner.ratio_75_published.iloc[0]):.2f} to "
             f"{float(owner.ratio_75_if_young_drive_like_baseline.iloc[0]):.2f}; the fatality "
             "ratio needs no kilometres. The conclusion holds",
@@ -102,11 +122,14 @@ def _assumptions_section() -> str:
             "A forecast can show a law's effect in the counts",
             "Rolling forecasts on years the model had not seen",
             f"Model {rmse('selection', forecast.CHOSEN)} on 2006–2015 and "
-            f"{rmse('holdout', forecast.CHOSEN)} on 2016–2024; last year's count "
-            f"{rmse('selection', 'last_year')} and {rmse('holdout', 'last_year')}",
-            "Only for large effects: one year after a law the smallest visible change is "
+            f"{rmse('holdout', forecast.CHOSEN)} on {holdout}; last year's count "
+            f"{rmse('selection', 'last_year')} and {rmse('holdout', 'last_year')}. In the "
+            f"lockdown years {rmse('pandemic', forecast.CHOSEN)} against "
+            f"{rmse('pandemic', 'last_year')}",
+            "Only for large effects: one year after a law the comparison picks up a fall of "
             f"{_fmt_pct(float(detect.loc[('deaths_interurban', 1), 'mde']), 0)} of interurban "
-            "deaths, and it grows with every year waited",
+            "deaths four times in five, smaller ones less often, and the threshold grows with "
+            "every year waited",
         ),
         (
             "Simulator",
@@ -123,7 +146,7 @@ def _assumptions_section() -> str:
     return (
         '<h2 id="assumptions-tested">Assumptions tested</h2>'
         "<p>Every headline rests on an assumption the data can be asked about. These are the "
-        "ones that could be tested, with what the test found; two of them changed a finding.</p>"
+        "ones that were tested, with what the test found; two of them changed a finding.</p>"
         + table(frame, "The assumptions behind the headlines, and what testing them found")
     )
 

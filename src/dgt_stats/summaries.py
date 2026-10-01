@@ -230,6 +230,7 @@ SUMMARIES = {
     "longrun_efficiency": risk_trends.long_run_efficiency_sensitivity,
     "longrun_km_panel": risk_trends.interurban_km_panel,
     "longrun_km_check": risk_trends.km_trend_check,
+    "longrun_fuel_bio": risk_trends.fuel_bio_share,
     # Predicting deaths, and what a before-and-after comparison can see
     "forecast_selection": forecast.model_selection,
     "forecast_validation": forecast.validation,
@@ -243,6 +244,7 @@ SUMMARIES = {
     "simulator_class_risk": simulator.class_risk,
     "simulator_presets": simulator.presets,
     "simulator_preset_sites": simulator.preset_sites,
+    "simulator_limit_grid": simulator.limit_grid,
     # Seasonality and mobility
     "season_profile": seasonality.seasonal_profile,
     "season_profile_long": seasonality.seasonal_profile_long,

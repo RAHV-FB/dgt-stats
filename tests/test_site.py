@@ -349,8 +349,23 @@ def test_simulator_page_carries_its_evidence_and_works_without_the_script(built:
         r'<script type="application/json" id="simulator-parameters">(.*?)</script>', text, re.S
     )
     parameters = json.loads(block.group(1).replace("<\\/", "</"))
-    assert set(parameters["sites"]) == {"motorway", "conventional", "urban_50", "urban_30"}
+    assert set(parameters["sites"]) == {
+        "autopista",
+        "autovia",
+        "conventional",
+        "urban_50",
+        "urban_30",
+    }
+    assert set(parameters["levers"]) == {"motorway", "conventional", "urban_50"}
     assert {p["key"] for p in parameters["presets"]} == set(presets.index)
+    # Every preset's chance of showing in a year's count is printed, never a bare yes or no.
+    for key, row in presets.drop(index="current").iterrows():
+        if pd.isna(row.power_in_one_year):
+            continue
+        power = float(row.power_in_one_year)
+        printed = "over 99%" if power > 0.995 else f"{power:.0%}"
+        assert f"<td>{printed}</td>" in text, key
+    assert "Visible in a year" not in text and "invisible" not in text
 
 
 def simulator_evidence_path() -> Path:

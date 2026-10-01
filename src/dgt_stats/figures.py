@@ -329,9 +329,9 @@ def _forecast_figures(figures_dir: Path, captions: dict[str, str], summary) -> N
         "horizon",
         "mde_pct",
         figures_dir / "k2_detectability.svg",
-        "The smallest fall in deaths detectable, by number of years after a law",
+        "The fall in deaths a comparison detects four times in five, by years after a law",
         series="outcome_label",
-        ylabel="Smallest detectable fall",
+        ylabel="Fall detected 4 times in 5",
         percent=True,
         end_labels=True,
     )
