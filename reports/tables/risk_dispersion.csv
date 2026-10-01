@@ -1,0 +1,4 @@
+outcome,outcome_label,first_year,last_year,dispersion,mean_count
+deaths_30d,Deaths within 30 days,2013,2019,1.450092008,1751.142857
+hospitalised_30d,Injured and hospitalised,2013,2019,7.700487766,9429.142857
+crashes,Injury crashes,2013,2019,67.71350265,98545.57143

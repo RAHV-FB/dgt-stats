@@ -1,0 +1,16 @@
+outcome,outcome_label,term,term_label,estimate,low,high,scale,first_year,last_year,dispersion
+deaths_all,All roads,log_fuel,Road fuel (elasticity),1.237399566,0.4692672171,2.005531914,elasticity,2021,2024,1.325947348
+deaths_all,All roads,fridays,One more Friday,0.9678328416,0.8964400272,1.044911406,rate ratio,2021,2024,1.325947348
+deaths_all,All roads,saturdays,One more Saturday,1.076943398,0.9936388661,1.167232002,rate ratio,2021,2024,1.325947348
+deaths_all,All roads,sundays,One more Sunday,1.047028133,0.9648878778,1.136160932,rate ratio,2021,2024,1.325947348
+deaths_all,All roads,t,"Trend, per year",1.033617988,1.007256983,1.060668889,rate ratio,2021,2024,1.325947348
+deaths_interurban,Interurban roads,log_fuel,Road fuel (elasticity),1.522927973,0.6380473122,2.407808633,elasticity,2021,2024,1.252434802
+deaths_interurban,Interurban roads,fridays,One more Friday,0.9389769409,0.8600681866,1.025125344,rate ratio,2021,2024,1.252434802
+deaths_interurban,Interurban roads,saturdays,One more Saturday,1.130188229,1.030773382,1.239191324,rate ratio,2021,2024,1.252434802
+deaths_interurban,Interurban roads,sundays,One more Sunday,1.033510722,0.9414130167,1.134618274,rate ratio,2021,2024,1.252434802
+deaths_interurban,Interurban roads,t,"Trend, per year",1.026437562,0.9966828736,1.057080539,rate ratio,2021,2024,1.252434802
+deaths_urban,Urban streets,log_fuel,Road fuel (elasticity),0.508978542,-0.6562278877,1.674184972,elasticity,2021,2024,0.8734998503
+deaths_urban,Urban streets,fridays,One more Friday,1.04419954,0.9282531298,1.174628606,rate ratio,2021,2024,0.8734998503
+deaths_urban,Urban streets,saturdays,One more Saturday,0.9505247041,0.8394697995,1.076271253,rate ratio,2021,2024,0.8734998503
+deaths_urban,Urban streets,sundays,One more Sunday,1.081226144,0.9528390784,1.22691229,rate ratio,2021,2024,0.8734998503
+deaths_urban,Urban streets,t,"Trend, per year",1.052746747,1.011171479,1.096031422,rate ratio,2021,2024,0.8734998503

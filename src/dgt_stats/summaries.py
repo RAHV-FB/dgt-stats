@@ -20,6 +20,7 @@ from dgt_stats import (
     agebands,
     driver_risk,
     factors,
+    forecast,
     io_exposure,
     io_population,
     io_tables,
@@ -27,6 +28,7 @@ from dgt_stats import (
     policy,
     risk_trends,
     seasonality,
+    simulator,
     speed,
     vehicles,
 )
@@ -255,6 +257,8 @@ SUMMARIES = {
     # 2019 to 2024: counts against exposure
     "risk_annual_panel": risk_trends.annual_panel,
     "risk_index": risk_trends.risk_index,
+    "risk_dispersion": risk_trends.year_to_year_dispersion,
+    "risk_frequency_severity": risk_trends.frequency_severity,
     "risk_fuel_efficiency": risk_trends.fuel_efficiency_sensitivity,
     "risk_km_crosscheck": risk_trends.km_crosscheck,
     # The long run and the pandemic
@@ -262,6 +266,21 @@ SUMMARIES = {
     "longrun_segments": risk_trends.long_run_segments,
     "longrun_model_choice": risk_trends.long_run_model_choice,
     "longrun_efficiency": risk_trends.long_run_efficiency_sensitivity,
+    "longrun_km_panel": risk_trends.interurban_km_panel,
+    "longrun_km_check": risk_trends.km_trend_check,
+    # Predicting deaths, and what a before-and-after comparison can see
+    "forecast_selection": forecast.model_selection,
+    "forecast_validation": forecast.validation,
+    "forecast_backtest": forecast.backtest,
+    "forecast_horizons": forecast.horizon_errors,
+    "forecast_detectability": forecast.detectability,
+    "forecast_coefficients": forecast.coefficients,
+    # What a speed law would do
+    "simulator_baseline": simulator.baseline_table,
+    "simulator_speed_sites": simulator.speed_sites,
+    "simulator_class_risk": simulator.class_risk,
+    "simulator_presets": simulator.presets,
+    "simulator_preset_sites": simulator.preset_sites,
     # Seasonality and mobility
     "season_profile": seasonality.seasonal_profile,
     "season_profile_long": seasonality.seasonal_profile_long,
@@ -289,6 +308,7 @@ SUMMARIES = {
     "q7_km_rates": driver_risk.km_rates,
     "q7_km_ratio": driver_risk.km_rate_ratios,
     "q7_company_km": driver_risk.company_km_sensitivity,
+    "q7_owner_age_check": driver_risk.owner_age_check,
     "q7_denominator_contrast": driver_risk.denominator_contrast,
     "q7_licence_share": licence_share_by_age,
     # Vehicles per kilometre

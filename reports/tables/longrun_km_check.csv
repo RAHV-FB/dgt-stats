@@ -1,0 +1,33 @@
+measure,measure_label,year,observed,expected,low,high,ratio,projected,outside_interval,breaks,last_segment_start,last_segment_annual_change
+per_km,Interurban deaths per vehicle-km (measured),2008,2466,2443.079843,2336.51076,2549.648926,1.009381665,False,False,2013,2013,-0.01823265241
+per_km,Interurban deaths per vehicle-km (measured),2009,2130,2173.10785,2081.657147,2264.558554,0.9801630414,False,False,2013,2013,-0.01823265241
+per_km,Interurban deaths per vehicle-km (measured),2010,1928,1886.929219,1805.960595,1967.897844,1.021765936,False,False,2013,2013,-0.01823265241
+per_km,Interurban deaths per vehicle-km (measured),2011,1603,1649.06801,1573.91282,1724.223201,0.9720642144,False,False,2013,2013,-0.01823265241
+per_km,Interurban deaths per vehicle-km (measured),2012,1442,1415.245705,1344.070958,1486.420451,1.018904347,False,False,2013,2013,-0.01823265241
+per_km,Interurban deaths per vehicle-km (measured),2013,1230,1248.714947,1179.086428,1318.343466,0.9850126346,False,False,2013,2013,-0.01823265241
+per_km,Interurban deaths per vehicle-km (measured),2014,1247,1238.809116,1172.539922,1305.07831,1.006611902,False,False,2013,2013,-0.01823265241
+per_km,Interurban deaths per vehicle-km (measured),2015,1248,1260.739259,1195.469687,1326.008832,0.9898954051,False,False,2013,2013,-0.01823265241
+per_km,Interurban deaths per vehicle-km (measured),2016,1291,1283.398923,1217.630114,1349.167731,1.005922615,False,False,2013,2013,-0.01823265241
+per_km,Interurban deaths per vehicle-km (measured),2017,1321,1287.941466,1220.611841,1355.27109,1.025667731,False,False,2013,2013,-0.01823265241
+per_km,Interurban deaths per vehicle-km (measured),2018,1317,1293.044234,1222.625049,1363.463418,1.018526641,False,False,2013,2013,-0.01823265241
+per_km,Interurban deaths per vehicle-km (measured),2019,1236,1278.921428,1204.779492,1353.063363,0.9664393552,False,False,2013,2013,-0.01823265241
+per_km,Interurban deaths per vehicle-km (measured),2020,975,974.8080481,908.7938853,1040.822211,1.000196913,True,False,2013,2013,-0.01823265241
+per_km,Interurban deaths per vehicle-km (measured),2021,1116,1173.489557,1093.116067,1253.863047,0.9510097412,True,False,2013,2013,-0.01823265241
+per_km,Interurban deaths per vehicle-km (measured),2022,1273,1221.777477,1132.483744,1311.071209,1.041924593,True,False,2013,2013,-0.01823265241
+per_km,Interurban deaths per vehicle-km (measured),2023,1288,1227.030568,1130.34247,1323.718667,1.049688601,True,False,2013,2013,-0.01823265241
+per_fuel,Interurban deaths per tonne of road fuel (proxy),2008,2466,2462.217814,2364.455706,2559.979922,1.001536089,False,False,2013,2013,-0.01761066348
+per_fuel,Interurban deaths per tonne of road fuel (proxy),2009,2130,2129.184091,2046.769257,2211.598924,1.000383203,False,False,2013,2013,-0.01761066348
+per_fuel,Interurban deaths per tonne of road fuel (proxy),2010,1928,1906.913245,1832.58422,1981.242269,1.011058057,False,False,2013,2013,-0.01761066348
+per_fuel,Interurban deaths per tonne of road fuel (proxy),2011,1603,1657.924223,1589.139095,1726.709351,0.9668716928,False,False,2013,2013,-0.01761066348
+per_fuel,Interurban deaths per tonne of road fuel (proxy),2012,1442,1417.586384,1352.579495,1482.593274,1.01722196,False,False,2013,2013,-0.01761066348
+per_fuel,Interurban deaths per tonne of road fuel (proxy),2013,1230,1244.491402,1181.0913,1307.891505,0.9883555624,False,False,2013,2013,-0.01761066348
+per_fuel,Interurban deaths per tonne of road fuel (proxy),2014,1247,1240.077349,1179.572045,1300.582653,1.005582435,False,False,2013,2013,-0.01761066348
+per_fuel,Interurban deaths per tonne of road fuel (proxy),2015,1248,1260.462971,1200.911618,1320.014324,0.9901123864,False,False,2013,2013,-0.01761066348
+per_fuel,Interurban deaths per tonne of road fuel (proxy),2016,1291,1277.703912,1217.838161,1337.569663,1.010406235,False,False,2013,2013,-0.01761066348
+per_fuel,Interurban deaths per tonne of road fuel (proxy),2017,1321,1286.222581,1224.832817,1347.612345,1.027038414,False,False,2013,2013,-0.01761066348
+per_fuel,Interurban deaths per tonne of road fuel (proxy),2018,1317,1295.301516,1230.979546,1359.623486,1.016751686,False,False,2013,2013,-0.01761066348
+per_fuel,Interurban deaths per tonne of road fuel (proxy),2019,1236,1280.914512,1213.198746,1348.630277,0.96493559,False,False,2013,2013,-0.01761066348
+per_fuel,Interurban deaths per tonne of road fuel (proxy),2020,975,1037.586209,974.7872506,1100.385168,0.9396809551,True,False,2013,2013,-0.01761066348
+per_fuel,Interurban deaths per tonne of road fuel (proxy),2021,1116,1161.588243,1088.80421,1234.372276,0.9607535259,True,False,2013,2013,-0.01761066348
+per_fuel,Interurban deaths per tonne of road fuel (proxy),2022,1273,1175.946877,1096.84555,1255.048204,1.082531894,True,True,2013,2013,-0.01761066348
+per_fuel,Interurban deaths per tonne of road fuel (proxy),2023,1288,1143.288902,1059.933242,1226.644562,1.126574393,True,True,2013,2013,-0.01761066348

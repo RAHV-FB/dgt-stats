@@ -171,6 +171,53 @@ def km_rate_ratios(year: int = KM_YEAR) -> pd.DataFrame:
     return pd.DataFrame.from_records(records)
 
 
+def owner_age_check(year: int = KM_YEAR) -> pd.DataFrame:
+    """How far the owner's age can stand for the driver's: cars and kilometres per licence holder.
+
+    If every licence holder's driving were registered in their own name, kilometres per licence
+    holder would differ between bands only by how much each band drives. Drivers aged 18–34 own
+    far fewer cars per licence than anyone else and are credited with far fewer kilometres, which
+    means part of their driving is registered to older owners, most plausibly their parents in
+    the 35–54 baseline. ``ratio_75_if_young_drive_like_baseline`` is the 75-and-over involvement
+    ratio in the extreme case: the young drive as many kilometres per licence as the baseline,
+    and all of the difference is moved out of the baseline's kilometres.
+    """
+    licences = io_exposure.read_exposure("conductores_por_edad")
+    licences = licences[(licences.year == year) & (licences.sex == "total")]
+    licences = licences[licences.band.isin(agebands.DGT_BANDS)]
+    licences = licences.assign(
+        exposure_band=[
+            agebands.band_for(*agebands.DGT_BANDS[b], agebands.EXPOSURE_BANDS)
+            for b in licences.band
+        ]
+    )
+    holders = licences.groupby("exposure_band").n_drivers.sum()
+    rates_frame = km_rates(year).set_index("band")
+    out = pd.DataFrame(
+        {
+            "licence_holders": holders.reindex(list(COMPARED_BANDS)).astype(float),
+            "cars": rates_frame.n_cars,
+            "billion_km": rates_frame.billion_km,
+            "drivers_involved": rates_frame.drivers_involved,
+        }
+    )
+    out["cars_per_licence"] = out.cars / out.licence_holders
+    out["km_per_licence"] = out.billion_km * BILLION / out.licence_holders
+    young, base = out.loc["18-34"], out.loc[REFERENCE_BAND]
+    shortfall = (base.km_per_licence - young.km_per_licence) * young.licence_holders / BILLION
+    published = float(out.loc["75+", "drivers_involved"] / out.loc["75+", "billion_km"]) / float(
+        base.drivers_involved / base.billion_km
+    )
+    adjusted_base = float(base.drivers_involved / (base.billion_km - shortfall))
+    out["ratio_75_published"] = published
+    out["ratio_75_if_young_drive_like_baseline"] = (
+        float(out.loc["75+", "drivers_involved"] / out.loc["75+", "billion_km"]) / adjusted_base
+    )
+    out["young_km_shortfall_bn"] = shortfall
+    out.index.name = "band"
+    return out.reset_index()
+
+
 def company_km_sensitivity(year: int = KM_YEAR) -> pd.DataFrame:
     """What the kilometres of company-registered cars could do to the comparison.
 

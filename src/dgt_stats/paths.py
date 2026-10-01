@@ -38,6 +38,8 @@ KM_BY_OWNER_AGE_2024_PATH = RAW_EXPOSURE_DIR / "km_itv_2024" / "km_edad_propieta
 KM_MEAN_BY_TYPE_2024_PATH = RAW_EXPOSURE_DIR / "km_itv_2024" / "km_medios_tipo_2024.xlsx"
 CORES_FUEL_PATH = RAW_EXPOSURE_DIR / "traffic" / "cores_consumos_pp.xlsx"
 TOLL_TRAFFIC_PATH = RAW_EXPOSURE_DIR / "traffic" / "peaje_trafico_total.xls"
+ROAD_TRAFFIC_PATH = RAW_EXPOSURE_DIR / "traffic" / "anuario_carreteras_2023.pdf"
+SIMULATOR_EVIDENCE_PATH = RAW_DATA_DIR / "evidence" / "simulator_parameters.csv"
 
 MICRODATA_YEARS = tuple(range(2016, 2025))
 CENSUS_YEARS = (2023, 2024, 2025)

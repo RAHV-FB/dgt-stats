@@ -1,0 +1,8 @@
+scenario,scenario_label,deaths_before,deaths_change,deaths_change_low,deaths_change_high,seriously_injured_change,slightly_injured_change,value_euros,value_euros_low,value_euros_high,vehicle_hours_change,mde_deaths,visible_in_one_year
+current,Today's limits and today's driving,1200,0,0,0,0,0,0,0,0,0,183.5075103,False
+conventional_80,Conventional roads 90 → 80 km/h,1200,-122.9317477,-137.5965772,-107.9650425,-330.7870657,-1230.264054,379641800.3,235194571.4,481280803.9,40243952.41,183.5075103,False
+motorway_130,Motorways and autovías 120 → 130 km/h,1200,31.43602081,27.18072136,35.73932794,65.76008251,460.2108867,-91062251.92,-117340782.6,-58340071,-23758898.69,183.5075103,False
+motorway_110,Motorways and autovías 120 → 110 km/h,1200,-41.25187449,-46.2611343,-36.16000199,-88.48979457,-649.7895946,120733153.8,78157894.56,152103449,35447669.72,183.5075103,False
+urban_30,Urban streets at 50 → 30 km/h,1200,0,0,0,0,0,0,0,0,0,183.5075103,False
+half_comply,Half of today's speeders keep to the limit,1200,-175.4318737,-196.1024852,-154.2784188,-460.0295433,-1910.690943,538457274.4,336045024.6,680009245.5,71090436.59,183.5075103,False
+all_comply,Every speeder keeps to today's limits,1200,-327.7113382,-362.396701,-291.3690062,-876.1671938,-3792.667016,1014236690,638961739,1256031533,147427669.9,183.5075103,True

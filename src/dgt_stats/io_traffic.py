@@ -15,13 +15,22 @@ monthly too. Two published Spanish series are monthly and reach back past 2006:
 
 Neither is vehicle-kilometres on all Spanish roads by month, which does not exist. What each is
 and is not is set out in ``docs/methodology.md`` §§4–6 and §12; here they are only parsed.
+
+A third series is annual and measured: the Ministerio de Transportes' yearbook table 1.2.14 gives
+vehicle-kilometres on the whole interurban network of the State, the regions and the provincial
+councils, by type of road, from 2004, built from the traffic-count plans of each network. It
+leaves out interurban roads run by municipalities, which the Ministry puts at up to a tenth of
+traffic, and it is not comparable across 2007–2008, when the road inventory was redone.
 """
 
 from __future__ import annotations
 
-import pandas as pd
+import re
 
-from dgt_stats.paths import CORES_FUEL_PATH, TOLL_TRAFFIC_PATH
+import pandas as pd
+import pymupdf
+
+from dgt_stats.paths import CORES_FUEL_PATH, ROAD_TRAFFIC_PATH, TOLL_TRAFFIC_PATH
 
 SPANISH_MONTHS = {
     "enero": 1,
@@ -154,3 +163,69 @@ def read_toll_traffic() -> pd.DataFrame:
     return out.astype({"year": "int16", "month": "int8"})[
         ["period", "year", "month", "network_km", "imd", "veh_km_millions"]
     ]
+
+
+ROAD_TRAFFIC_TABLE = "TABLA 1.2.14"
+ROAD_TRAFFIC_TITLE = "TRÁFICO EN EL CONJUNTO DE LAS REDES DE CARRETERAS POR TIPO DE VÍA"
+ROAD_TRAFFIC_COLUMNS = (
+    "toll_motorway",
+    "autovia_free_motorway",
+    "multilane",
+    "conventional",
+)
+# The yearbook's footnote (3): the 2008 figures follow a new road inventory and are not
+# comparable with the years before.
+ROAD_TRAFFIC_BREAK_YEAR = 2008
+_ROW = re.compile(r"^(\d{4})(?: \(3\))?$")
+
+
+def _spanish_number(text: str) -> float:
+    return float(text.replace(".", "").replace(",", "."))
+
+
+def read_road_traffic() -> pd.DataFrame:
+    """Annual vehicle-kilometres on the interurban network by type of road, from 2004.
+
+    Columns: ``year``, one column per road type in millions of vehicle-km (toll motorways;
+    autovías and free motorways; multi-lane roads; conventional roads), ``total`` and the share of
+    heavy vehicles on the whole network. Every year from the first to the last must be present,
+    and the four types must add up to the published total within one part in ten thousand: more
+    than the table's rounding, because the published 2009 row is itself 5 million short.
+    """
+    document = pymupdf.open(ROAD_TRAFFIC_PATH)
+    lines: list[str] | None = None
+    for page in document:
+        text = page.get_text()
+        if ROAD_TRAFFIC_TITLE in text and ROAD_TRAFFIC_TABLE in text:
+            lines = [line.strip() for line in text.splitlines() if line.strip()]
+            break
+    if lines is None:
+        raise ValueError(f"road traffic: {ROAD_TRAFFIC_TABLE} not found in {ROAD_TRAFFIC_PATH}")
+    records = []
+    for index, line in enumerate(lines):
+        match = _ROW.match(line)
+        if not match:
+            continue
+        cells = lines[index + 1 : index + 11]
+        try:
+            values = [_spanish_number(cell) for cell in cells]
+        except ValueError:
+            continue
+        records.append(
+            {
+                "year": int(match.group(1)),
+                **{name: values[2 * i] for i, name in enumerate(ROAD_TRAFFIC_COLUMNS)},
+                "total": values[8],
+                "heavy_share": values[9] / 100,
+            }
+        )
+    out = pd.DataFrame.from_records(records).drop_duplicates("year").sort_values("year")
+    if out.empty:
+        raise ValueError("road traffic: no rows parsed")
+    if list(out.year) != list(range(int(out.year.min()), int(out.year.max()) + 1)):
+        raise ValueError("road traffic: the annual series has gaps")
+    gap = (out[list(ROAD_TRAFFIC_COLUMNS)].sum(axis=1) - out.total).abs() / out.total
+    if (gap > 1e-4).any():
+        bad = list(out.year[gap > 1e-4])
+        raise ValueError(f"road traffic: types do not add up to the total in {bad}")
+    return out.reset_index(drop=True)

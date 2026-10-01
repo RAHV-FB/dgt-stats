@@ -1,0 +1,244 @@
+outcome,outcome_label,method,method_label,window,set,years,rmse,mean_abs_error,bias,chosen
+deaths_all,All roads,boosted_trees,"Gradient-boosted trees, same inputs",4,holdout,7,0.07070639752,0.05240132317,0.03850119573,False
+deaths_all,All roads,boosted_trees,"Gradient-boosted trees, same inputs",4,pandemic,2,0.1580198463,0.1226120254,-0.1226120254,False
+deaths_all,All roads,boosted_trees,"Gradient-boosted trees, same inputs",4,selection,10,0.1458766913,0.1294398238,-0.1294398238,False
+deaths_all,All roads,last_year,Naive: same months last year,4,holdout,7,0.0586849792,0.04251576198,0.0272177192,False
+deaths_all,All roads,last_year,Naive: same months last year,4,pandemic,2,0.192317275,0.1800369886,-0.06762112851,False
+deaths_all,All roads,last_year,Naive: same months last year,4,selection,10,0.1171206135,0.09776537765,-0.09669680876,False
+deaths_all,All roads,mean_3_years,Naive: mean of the last three years,4,holdout,7,0.08416376401,0.07149510157,0.06183788767,False
+deaths_all,All roads,mean_3_years,Naive: mean of the last three years,4,pandemic,2,0.1980737944,0.1705053933,-0.1705053933,False
+deaths_all,All roads,mean_3_years,Naive: mean of the last three years,4,selection,10,0.2254026124,0.2090601943,-0.2090601943,False
+deaths_all,All roads,trend,Month + trend,3,holdout,7,0.1176601102,0.08969300927,0.004018445329,False
+deaths_all,All roads,trend,Month + trend,3,pandemic,2,0.216254016,0.2158261159,-0.01359732023,False
+deaths_all,All roads,trend,Month + trend,3,selection,10,0.07193679169,0.05997817636,0.01562290664,False
+deaths_all,All roads,trend,Month + trend,4,holdout,7,0.1322794281,0.1073473334,0.03704102641,False
+deaths_all,All roads,trend,Month + trend,4,pandemic,2,0.1937188209,0.1828643707,-0.06393436895,False
+deaths_all,All roads,trend,Month + trend,4,selection,10,0.07650364482,0.05920493557,0.01299171732,False
+deaths_all,All roads,trend,Month + trend,5,holdout,7,0.1320639201,0.1064073691,0.07590518305,False
+deaths_all,All roads,trend,Month + trend,5,pandemic,2,0.2038406246,0.1704865473,-0.1117378066,False
+deaths_all,All roads,trend,Month + trend,5,selection,10,0.08611079004,0.06746203242,0.007836582332,False
+deaths_all,All roads,trend,Month + trend,6,holdout,7,0.1453653569,0.1247595595,0.1064317156,False
+deaths_all,All roads,trend,Month + trend,6,pandemic,2,0.2065358832,0.1478245538,-0.1478245538,False
+deaths_all,All roads,trend,Month + trend,6,selection,10,0.09612837087,0.08338730868,-0.002359985355,False
+deaths_all,All roads,trend,Month + trend,7,holdout,7,0.155567679,0.1361041822,0.1302908248,False
+deaths_all,All roads,trend,Month + trend,7,pandemic,2,0.2097814547,0.1659763471,-0.1659763471,False
+deaths_all,All roads,trend,Month + trend,7,selection,10,0.114921102,0.09784581874,-0.01571553671,False
+deaths_all,All roads,trend,Month + trend,8,holdout,7,0.1700705922,0.1498643803,0.1498643803,False
+deaths_all,All roads,trend,Month + trend,8,pandemic,2,0.1888913477,0.1598214883,-0.1598214883,False
+deaths_all,All roads,trend,Month + trend,8,selection,10,0.1318364211,0.1132121789,-0.03192592681,False
+deaths_all,All roads,trend_calendar,Month + trend + calendar,3,holdout,7,0.1149122677,0.08655735906,0.00694651207,False
+deaths_all,All roads,trend_calendar,Month + trend + calendar,3,pandemic,2,0.2161165662,0.2154139959,-0.01741208074,False
+deaths_all,All roads,trend_calendar,Month + trend + calendar,3,selection,10,0.07194848359,0.06005949267,0.01522266563,False
+deaths_all,All roads,trend_calendar,Month + trend + calendar,4,holdout,7,0.1341268217,0.1081091261,0.03830307409,False
+deaths_all,All roads,trend_calendar,Month + trend + calendar,4,pandemic,2,0.1935507052,0.1822556735,-0.0651517072,False
+deaths_all,All roads,trend_calendar,Month + trend + calendar,4,selection,10,0.0764068866,0.0597927343,0.01281111432,False
+deaths_all,All roads,trend_calendar,Month + trend + calendar,5,holdout,7,0.1335766823,0.1074332175,0.07707419252,False
+deaths_all,All roads,trend_calendar,Month + trend + calendar,5,pandemic,2,0.2036017223,0.1697537372,-0.1124158799,False
+deaths_all,All roads,trend_calendar,Month + trend + calendar,5,selection,10,0.08658960594,0.06786089855,0.008383769159,False
+deaths_all,All roads,trend_calendar,Month + trend + calendar,6,holdout,7,0.146100548,0.125040157,0.1068610596,False
+deaths_all,All roads,trend_calendar,Month + trend + calendar,6,pandemic,2,0.2061856509,0.1485615214,-0.1485615214,False
+deaths_all,All roads,trend_calendar,Month + trend + calendar,6,selection,10,0.09654916262,0.08381020369,-0.002032090662,False
+deaths_all,All roads,trend_calendar,Month + trend + calendar,7,holdout,7,0.155818779,0.1365190388,0.1306761352,False
+deaths_all,All roads,trend_calendar,Month + trend + calendar,7,pandemic,2,0.2094754241,0.1659516727,-0.1659516727,False
+deaths_all,All roads,trend_calendar,Month + trend + calendar,7,selection,10,0.1152755211,0.0981085467,-0.01541273795,False
+deaths_all,All roads,trend_calendar,Month + trend + calendar,8,holdout,7,0.1699194406,0.1498965139,0.1498965139,False
+deaths_all,All roads,trend_calendar,Month + trend + calendar,8,pandemic,2,0.1888151575,0.1597962131,-0.1597962131,False
+deaths_all,All roads,trend_calendar,Month + trend + calendar,8,selection,10,0.1321110411,0.113767396,-0.03189207656,False
+deaths_all,All roads,trend_traffic,Month + trend + traffic,3,holdout,7,0.07582998215,0.06422985194,0.002255624009,False
+deaths_all,All roads,trend_traffic,Month + trend + traffic,3,pandemic,2,0.01809195906,0.01715822296,0.005737104452,False
+deaths_all,All roads,trend_traffic,Month + trend + traffic,3,selection,10,0.06883410954,0.05418095095,0.01903632715,False
+deaths_all,All roads,trend_traffic,Month + trend + traffic,4,holdout,7,0.07602490045,0.0683933089,0.01357470647,False
+deaths_all,All roads,trend_traffic,Month + trend + traffic,4,pandemic,2,0.01614272755,0.01610089121,-0.001161445208,False
+deaths_all,All roads,trend_traffic,Month + trend + traffic,4,selection,10,0.07690384304,0.05452441704,0.01894840593,False
+deaths_all,All roads,trend_traffic,Month + trend + traffic,5,holdout,7,0.08238570008,0.07461890647,0.03228138228,False
+deaths_all,All roads,trend_traffic,Month + trend + traffic,5,pandemic,2,0.08834600535,0.06503262975,-0.05979777361,False
+deaths_all,All roads,trend_traffic,Month + trend + traffic,5,selection,10,0.08115349996,0.06312227487,0.01432890042,False
+deaths_all,All roads,trend_traffic,Month + trend + traffic,6,holdout,7,0.08695937168,0.07125457345,0.0494624127,False
+deaths_all,All roads,trend_traffic,Month + trend + traffic,6,pandemic,2,0.127042157,0.1005791759,-0.1005791759,False
+deaths_all,All roads,trend_traffic,Month + trend + traffic,6,selection,10,0.08520500067,0.07169859423,0.01139114984,False
+deaths_all,All roads,trend_traffic,Month + trend + traffic,7,holdout,7,0.08770634368,0.06912901737,0.06402554784,False
+deaths_all,All roads,trend_traffic,Month + trend + traffic,7,pandemic,2,0.134048197,0.1081007439,-0.1081007439,False
+deaths_all,All roads,trend_traffic,Month + trend + traffic,7,selection,10,0.09454566556,0.07950921987,0.007395082769,False
+deaths_all,All roads,trend_traffic,Month + trend + traffic,8,holdout,7,0.08780689711,0.07208411258,0.06869675303,False
+deaths_all,All roads,trend_traffic,Month + trend + traffic,8,pandemic,2,0.03756242662,0.03727077381,-0.03727077381,False
+deaths_all,All roads,trend_traffic,Month + trend + traffic,8,selection,10,0.1059743119,0.08881899122,0.003193155126,False
+deaths_all,All roads,trend_traffic_calendar,Month + trend + traffic + calendar,3,holdout,7,0.06837159691,0.05546795907,0.004330370641,False
+deaths_all,All roads,trend_traffic_calendar,Month + trend + traffic + calendar,3,pandemic,2,0.09066934524,0.07403265058,0.07403265058,False
+deaths_all,All roads,trend_traffic_calendar,Month + trend + traffic + calendar,3,selection,10,0.05855873035,0.04949266986,0.03443400911,False
+deaths_all,All roads,trend_traffic_calendar,Month + trend + traffic + calendar,4,holdout,7,0.06612908091,0.05488844725,0.01546200593,True
+deaths_all,All roads,trend_traffic_calendar,Month + trend + traffic + calendar,4,pandemic,2,0.07312131083,0.05574384265,0.05574384265,True
+deaths_all,All roads,trend_traffic_calendar,Month + trend + traffic + calendar,4,selection,10,0.04911603822,0.04061013218,0.02307727779,True
+deaths_all,All roads,trend_traffic_calendar,Month + trend + traffic + calendar,5,holdout,7,0.06818358277,0.05521815134,0.02997325476,False
+deaths_all,All roads,trend_traffic_calendar,Month + trend + traffic + calendar,5,pandemic,2,0.07189482492,0.05178742315,0.05178742315,False
+deaths_all,All roads,trend_traffic_calendar,Month + trend + traffic + calendar,5,selection,10,0.05720888926,0.04296932479,0.03381698508,False
+deaths_all,All roads,trend_traffic_calendar,Month + trend + traffic + calendar,6,holdout,7,0.0698109267,0.05252161085,0.03835178931,False
+deaths_all,All roads,trend_traffic_calendar,Month + trend + traffic + calendar,6,pandemic,2,0.08446489506,0.07060305456,0.04636299369,False
+deaths_all,All roads,trend_traffic_calendar,Month + trend + traffic + calendar,6,selection,10,0.05949601757,0.05055836763,0.03310488912,False
+deaths_all,All roads,trend_traffic_calendar,Month + trend + traffic + calendar,7,holdout,7,0.06966881979,0.05303452735,0.04398673067,False
+deaths_all,All roads,trend_traffic_calendar,Month + trend + traffic + calendar,7,pandemic,2,0.09595437339,0.07968559688,0.05345509725,False
+deaths_all,All roads,trend_traffic_calendar,Month + trend + traffic + calendar,7,selection,10,0.07009083842,0.06023570387,0.03146391605,False
+deaths_all,All roads,trend_traffic_calendar,Month + trend + traffic + calendar,8,holdout,7,0.06844937803,0.05559327635,0.04578399662,False
+deaths_all,All roads,trend_traffic_calendar,Month + trend + traffic + calendar,8,pandemic,2,0.06218410361,0.05564802772,0.02775175223,False
+deaths_all,All roads,trend_traffic_calendar,Month + trend + traffic + calendar,8,selection,10,0.08139807882,0.07373634846,0.0274386144,False
+deaths_interurban,Interurban roads,boosted_trees,"Gradient-boosted trees, same inputs",4,holdout,7,0.06876307896,0.04860948599,0.03007443527,False
+deaths_interurban,Interurban roads,boosted_trees,"Gradient-boosted trees, same inputs",4,pandemic,2,0.1489005712,0.1097394552,-0.1097394552,False
+deaths_interurban,Interurban roads,boosted_trees,"Gradient-boosted trees, same inputs",4,selection,10,0.1577597421,0.1408791501,-0.1396169695,False
+deaths_interurban,Interurban roads,last_year,Naive: same months last year,4,holdout,7,0.05754689912,0.03843166714,0.019429191,False
+deaths_interurban,Interurban roads,last_year,Naive: same months last year,4,pandemic,2,0.1930110315,0.1861334195,-0.05106474754,False
+deaths_interurban,Interurban roads,last_year,Naive: same months last year,4,selection,10,0.1289519785,0.1102788894,-0.1073732693,False
+deaths_interurban,Interurban roads,mean_3_years,Naive: mean of the last three years,4,holdout,7,0.08316997957,0.07060994494,0.05406928984,False
+deaths_interurban,Interurban roads,mean_3_years,Naive: mean of the last three years,4,pandemic,2,0.2021132348,0.1666805349,-0.1666805349,False
+deaths_interurban,Interurban roads,mean_3_years,Naive: mean of the last three years,4,selection,10,0.2484352524,0.2310069984,-0.2310069984,False
+deaths_interurban,Interurban roads,trend,Month + trend,3,holdout,7,0.1142600286,0.08605371381,-0.005321927486,False
+deaths_interurban,Interurban roads,trend,Month + trend,3,pandemic,2,0.2312268629,0.2306806435,0.01588404253,False
+deaths_interurban,Interurban roads,trend,Month + trend,3,selection,10,0.08079363004,0.06458827173,0.01643779112,False
+deaths_interurban,Interurban roads,trend,Month + trend,4,holdout,7,0.1309438514,0.1006693627,0.03254932857,False
+deaths_interurban,Interurban roads,trend,Month + trend,4,pandemic,2,0.2064616802,0.2010228928,-0.04707676698,False
+deaths_interurban,Interurban roads,trend,Month + trend,4,selection,10,0.0886913926,0.06503165755,0.01299031731,False
+deaths_interurban,Interurban roads,trend,Month + trend,5,holdout,7,0.1344743575,0.1078737954,0.07577565703,False
+deaths_interurban,Interurban roads,trend,Month + trend,5,pandemic,2,0.2029396577,0.1789389143,-0.09573593692,False
+deaths_interurban,Interurban roads,trend,Month + trend,5,selection,10,0.0957426309,0.07266503593,0.005411896649,False
+deaths_interurban,Interurban roads,trend,Month + trend,6,holdout,7,0.1496570955,0.1344588675,0.109855552,False
+deaths_interurban,Interurban roads,trend,Month + trend,6,pandemic,2,0.2016653483,0.1559915484,-0.1278106003,False
+deaths_interurban,Interurban roads,trend,Month + trend,6,selection,10,0.1038445506,0.08724991309,-0.007504945339,False
+deaths_interurban,Interurban roads,trend,Month + trend,7,holdout,7,0.1622911139,0.1468322726,0.137223801,False
+deaths_interurban,Interurban roads,trend,Month + trend,7,pandemic,2,0.2052548372,0.1474877125,-0.1474877125,False
+deaths_interurban,Interurban roads,trend,Month + trend,7,selection,10,0.1244590698,0.1035595675,-0.02334796686,False
+deaths_interurban,Interurban roads,trend,Month + trend,8,holdout,7,0.1795453314,0.1596291645,0.1596291645,False
+deaths_interurban,Interurban roads,trend,Month + trend,8,pandemic,2,0.1781585049,0.139866605,-0.139866605,False
+deaths_interurban,Interurban roads,trend,Month + trend,8,selection,10,0.1449686086,0.1267611386,-0.04265980261,False
+deaths_interurban,Interurban roads,trend_calendar,Month + trend + calendar,3,holdout,7,0.1091937996,0.07912763249,-0.002756482356,False
+deaths_interurban,Interurban roads,trend_calendar,Month + trend + calendar,3,pandemic,2,0.2294368042,0.229207308,0.01025948793,False
+deaths_interurban,Interurban roads,trend_calendar,Month + trend + calendar,3,selection,10,0.08093853475,0.06518142229,0.0162406264,False
+deaths_interurban,Interurban roads,trend_calendar,Month + trend + calendar,4,holdout,7,0.1324980767,0.1011647198,0.03362936463,False
+deaths_interurban,Interurban roads,trend_calendar,Month + trend + calendar,4,pandemic,2,0.2044862417,0.1981559734,-0.05048597046,False
+deaths_interurban,Interurban roads,trend_calendar,Month + trend + calendar,4,selection,10,0.0887908548,0.06393211498,0.0131815993,False
+deaths_interurban,Interurban roads,trend_calendar,Month + trend + calendar,5,holdout,7,0.1360671533,0.1083612724,0.07717988718,False
+deaths_interurban,Interurban roads,trend_calendar,Month + trend + calendar,5,pandemic,2,0.2018794151,0.176625321,-0.09776908613,False
+deaths_interurban,Interurban roads,trend_calendar,Month + trend + calendar,5,selection,10,0.09639244051,0.07246310825,0.006296579083,False
+deaths_interurban,Interurban roads,trend_calendar,Month + trend + calendar,6,holdout,7,0.1499629014,0.1344362085,0.1101207265,False
+deaths_interurban,Interurban roads,trend_calendar,Month + trend + calendar,6,pandemic,2,0.2008615231,0.1537221015,-0.1292859891,False
+deaths_interurban,Interurban roads,trend_calendar,Month + trend + calendar,6,selection,10,0.1043870566,0.08778128555,-0.006936054588,False
+deaths_interurban,Interurban roads,trend_calendar,Month + trend + calendar,7,holdout,7,0.1622249279,0.1470756106,0.1374706908,False
+deaths_interurban,Interurban roads,trend_calendar,Month + trend + calendar,7,pandemic,2,0.2046799964,0.1474584213,-0.1474584213,False
+deaths_interurban,Interurban roads,trend_calendar,Month + trend + calendar,7,selection,10,0.1248551069,0.1038099225,-0.02292865234,False
+deaths_interurban,Interurban roads,trend_calendar,Month + trend + calendar,8,holdout,7,0.1790379348,0.1594699023,0.1594699023,False
+deaths_interurban,Interurban roads,trend_calendar,Month + trend + calendar,8,pandemic,2,0.1781588957,0.1399483304,-0.1399483304,False
+deaths_interurban,Interurban roads,trend_calendar,Month + trend + calendar,8,selection,10,0.1452146917,0.127007804,-0.04255982072,False
+deaths_interurban,Interurban roads,trend_traffic,Month + trend + traffic,3,holdout,7,0.06347842922,0.05119686736,-0.007170209953,False
+deaths_interurban,Interurban roads,trend_traffic,Month + trend + traffic,3,pandemic,2,0.04276421179,0.03362935645,0.0264167408,False
+deaths_interurban,Interurban roads,trend_traffic,Month + trend + traffic,3,selection,10,0.08172490431,0.06276480386,0.02061334521,False
+deaths_interurban,Interurban roads,trend_traffic,Month + trend + traffic,4,holdout,7,0.07358779559,0.06220350942,0.009392788526,False
+deaths_interurban,Interurban roads,trend_traffic,Month + trend + traffic,4,pandemic,2,0.0627137694,0.06051365908,-0.01646553786,False
+deaths_interurban,Interurban roads,trend_traffic,Month + trend + traffic,4,selection,10,0.09358784201,0.06367279125,0.02049242535,False
+deaths_interurban,Interurban roads,trend_traffic,Month + trend + traffic,5,holdout,7,0.08597664372,0.07699641301,0.03077022289,False
+deaths_interurban,Interurban roads,trend_traffic,Month + trend + traffic,5,pandemic,2,0.1151851285,0.09306477789,-0.06787165045,False
+deaths_interurban,Interurban roads,trend_traffic,Month + trend + traffic,5,selection,10,0.09467375001,0.0716288702,0.01536067389,False
+deaths_interurban,Interurban roads,trend_traffic,Month + trend + traffic,6,holdout,7,0.09161151129,0.0806652243,0.05172812155,False
+deaths_interurban,Interurban roads,trend_traffic,Month + trend + traffic,6,pandemic,2,0.1630490361,0.1192812429,-0.1111619236,False
+deaths_interurban,Interurban roads,trend_traffic,Month + trend + traffic,6,selection,10,0.09824489726,0.07673560093,0.009973031205,False
+deaths_interurban,Interurban roads,trend_traffic,Month + trend + traffic,7,holdout,7,0.09268760768,0.08037531618,0.07139370292,False
+deaths_interurban,Interurban roads,trend_traffic,Month + trend + traffic,7,pandemic,2,0.1744209619,0.125150526,-0.1214908136,False
+deaths_interurban,Interurban roads,trend_traffic,Month + trend + traffic,7,selection,10,0.1066344258,0.08531943987,0.003493169059,False
+deaths_interurban,Interurban roads,trend_traffic,Month + trend + traffic,8,holdout,7,0.0965468143,0.08509939188,0.07934714028,False
+deaths_interurban,Interurban roads,trend_traffic,Month + trend + traffic,8,pandemic,2,0.03511522381,0.02650641126,-0.02650641126,False
+deaths_interurban,Interurban roads,trend_traffic,Month + trend + traffic,8,selection,10,0.1182068238,0.09415047992,-0.001900218242,False
+deaths_interurban,Interurban roads,trend_traffic_calendar,Month + trend + traffic + calendar,3,holdout,7,0.05203992758,0.03865872329,-0.003747147767,False
+deaths_interurban,Interurban roads,trend_traffic_calendar,Month + trend + traffic + calendar,3,pandemic,2,0.1348039575,0.1212090316,0.1212090316,False
+deaths_interurban,Interurban roads,trend_traffic_calendar,Month + trend + traffic + calendar,3,selection,10,0.06029179812,0.04944023145,0.03083128203,False
+deaths_interurban,Interurban roads,trend_traffic_calendar,Month + trend + traffic + calendar,4,holdout,7,0.06267169618,0.04545579082,0.0101367367,True
+deaths_interurban,Interurban roads,trend_traffic_calendar,Month + trend + traffic + calendar,4,pandemic,2,0.1137724233,0.09633388943,0.09633388943,True
+deaths_interurban,Interurban roads,trend_traffic_calendar,Month + trend + traffic + calendar,4,selection,10,0.05402041612,0.03977206123,0.01841271728,True
+deaths_interurban,Interurban roads,trend_traffic_calendar,Month + trend + traffic + calendar,5,holdout,7,0.06741730954,0.05288425612,0.02614634345,False
+deaths_interurban,Interurban roads,trend_traffic_calendar,Month + trend + traffic + calendar,5,pandemic,2,0.07764451358,0.06375222575,0.06375222575,False
+deaths_interurban,Interurban roads,trend_traffic_calendar,Month + trend + traffic + calendar,5,selection,10,0.05633570827,0.04139374859,0.03000560365,False
+deaths_interurban,Interurban roads,trend_traffic_calendar,Month + trend + traffic + calendar,6,holdout,7,0.06806878203,0.05095816722,0.03519438141,False
+deaths_interurban,Interurban roads,trend_traffic_calendar,Month + trend + traffic + calendar,6,pandemic,2,0.09556405407,0.07033916062,0.07033916062,False
+deaths_interurban,Interurban roads,trend_traffic_calendar,Month + trend + traffic + calendar,6,selection,10,0.05852087072,0.05294507625,0.02799032104,False
+deaths_interurban,Interurban roads,trend_traffic_calendar,Month + trend + traffic + calendar,7,holdout,7,0.06833781965,0.05380833444,0.04558451423,False
+deaths_interurban,Interurban roads,trend_traffic_calendar,Month + trend + traffic + calendar,7,pandemic,2,0.08910031314,0.06618089503,0.06618089503,False
+deaths_interurban,Interurban roads,trend_traffic_calendar,Month + trend + traffic + calendar,7,selection,10,0.06991210911,0.06207567,0.02510506808,False
+deaths_interurban,Interurban roads,trend_traffic_calendar,Month + trend + traffic + calendar,8,holdout,7,0.07102669952,0.0586142676,0.05016121882,False
+deaths_interurban,Interurban roads,trend_traffic_calendar,Month + trend + traffic + calendar,8,pandemic,2,0.07940536332,0.0571572691,0.0571572691,False
+deaths_interurban,Interurban roads,trend_traffic_calendar,Month + trend + traffic + calendar,8,selection,10,0.08438075141,0.07591302202,0.02238377581,False
+deaths_urban,Urban streets,boosted_trees,"Gradient-boosted trees, same inputs",4,holdout,7,0.09601185485,0.07652725,0.06080405456,False
+deaths_urban,Urban streets,boosted_trees,"Gradient-boosted trees, same inputs",4,pandemic,2,0.1946193736,0.1649074075,-0.1649074075,False
+deaths_urban,Urban streets,boosted_trees,"Gradient-boosted trees, same inputs",4,selection,10,0.1043940299,0.08407552936,-0.08407552936,False
+deaths_urban,Urban streets,last_year,Naive: same months last year,4,holdout,7,0.09137176776,0.07803864866,0.04747261473,False
+deaths_urban,Urban streets,last_year,Naive: same months last year,4,pandemic,2,0.1968204543,0.1636092876,-0.1094088307,False
+deaths_urban,Urban streets,last_year,Naive: same months last year,4,selection,10,0.0865438349,0.06112428404,-0.058298807,False
+deaths_urban,Urban streets,mean_3_years,Naive: mean of the last three years,4,holdout,7,0.1037213859,0.08212919023,0.08173993365,False
+deaths_urban,Urban streets,mean_3_years,Naive: mean of the last three years,4,pandemic,2,0.1925540464,0.1808307477,-0.1808307477,False
+deaths_urban,Urban streets,mean_3_years,Naive: mean of the last three years,4,selection,10,0.1494600658,0.1321192667,-0.1321192667,False
+deaths_urban,Urban streets,trend,Month + trend,3,holdout,7,0.1599510677,0.1356299147,0.02762179632,False
+deaths_urban,Urban streets,trend,Month + trend,3,pandemic,2,0.1990672651,0.1783891739,-0.08834635636,False
+deaths_urban,Urban streets,trend,Month + trend,3,selection,10,0.08211398363,0.07130230986,0.01275774798,False
+deaths_urban,Urban streets,trend,Month + trend,4,holdout,7,0.1524756911,0.1290851831,0.04743689088,False
+deaths_urban,Urban streets,trend,Month + trend,4,pandemic,2,0.1736022201,0.136624877,-0.1071044994,False
+deaths_urban,Urban streets,trend,Month + trend,4,selection,10,0.06407572579,0.05792749103,0.01092620819,False
+deaths_urban,Urban streets,trend,Month + trend,5,holdout,7,0.1331622954,0.105222365,0.07366505091,False
+deaths_urban,Urban streets,trend,Month + trend,5,pandemic,2,0.2136764726,0.1531419871,-0.1531419871,False
+deaths_urban,Urban streets,trend,Month + trend,5,selection,10,0.07235514531,0.06567787118,0.01261828006,False
+deaths_urban,Urban streets,trend,Month + trend,6,holdout,7,0.1419111498,0.1122668377,0.09365855092,False
+deaths_urban,Urban streets,trend,Month + trend,6,pandemic,2,0.2303847565,0.1998955815,-0.1998955815,False
+deaths_urban,Urban streets,trend,Month + trend,6,selection,10,0.08065919575,0.07045554934,0.01128451814,False
+deaths_urban,Urban streets,trend,Month + trend,7,holdout,7,0.1459918221,0.1171570512,0.1068228128,False
+deaths_urban,Urban streets,trend,Month + trend,7,pandemic,2,0.2331874684,0.2144868237,-0.2144868237,False
+deaths_urban,Urban streets,trend,Month + trend,7,selection,10,0.08642489256,0.07634296216,0.006099428788,False
+deaths_urban,Urban streets,trend,Month + trend,8,holdout,7,0.1475624877,0.1170587583,0.1170587583,False
+deaths_urban,Urban streets,trend,Month + trend,8,pandemic,2,0.2263384814,0.2129454743,-0.2129454743,False
+deaths_urban,Urban streets,trend,Month + trend,8,selection,10,0.08993496566,0.07854280294,0.0007369152308,False
+deaths_urban,Urban streets,trend_calendar,Month + trend + calendar,3,holdout,7,0.1615408559,0.1371911345,0.02955303427,False
+deaths_urban,Urban streets,trend_calendar,Month + trend + calendar,3,pandemic,2,0.2001537363,0.1802493517,-0.08701545473,False
+deaths_urban,Urban streets,trend_calendar,Month + trend + calendar,3,selection,10,0.08378363767,0.07401830457,0.01099241375,False
+deaths_urban,Urban streets,trend_calendar,Month + trend + calendar,4,holdout,7,0.1530442449,0.1290914293,0.04808087603,False
+deaths_urban,Urban streets,trend_calendar,Month + trend + calendar,4,pandemic,2,0.1745436776,0.1410839456,-0.1027658293,False
+deaths_urban,Urban streets,trend_calendar,Month + trend + calendar,4,selection,10,0.06548999836,0.05862734644,0.009454105464,False
+deaths_urban,Urban streets,trend_calendar,Month + trend + calendar,5,holdout,7,0.1327244392,0.1055989213,0.07345609994,False
+deaths_urban,Urban streets,trend_calendar,Month + trend + calendar,5,pandemic,2,0.2135619758,0.1526306344,-0.1493740504,False
+deaths_urban,Urban streets,trend_calendar,Month + trend + calendar,5,selection,10,0.07286180598,0.06610233346,0.01210646907,False
+deaths_urban,Urban streets,trend_calendar,Month + trend + calendar,6,holdout,7,0.1425473158,0.1132336479,0.0941465117,False
+deaths_urban,Urban streets,trend_calendar,Month + trend + calendar,6,pandemic,2,0.2304456953,0.1986561904,-0.1986561904,False
+deaths_urban,Urban streets,trend_calendar,Month + trend + calendar,6,selection,10,0.08117528993,0.07127622851,0.0107392035,False
+deaths_urban,Urban streets,trend_calendar,Month + trend + calendar,7,holdout,7,0.1463295968,0.1182568988,0.107341307,False
+deaths_urban,Urban streets,trend_calendar,Month + trend + calendar,7,pandemic,2,0.2334657266,0.2141353003,-0.2141353003,False
+deaths_urban,Urban streets,trend_calendar,Month + trend + calendar,7,selection,10,0.08690241593,0.0770331047,0.005806054816,False
+deaths_urban,Urban streets,trend_calendar,Month + trend + calendar,8,holdout,7,0.1473694938,0.1174021714,0.1174021714,False
+deaths_urban,Urban streets,trend_calendar,Month + trend + calendar,8,pandemic,2,0.2264891014,0.212819423,-0.212819423,False
+deaths_urban,Urban streets,trend_calendar,Month + trend + calendar,8,selection,10,0.09022197195,0.07901896286,0.0004489602954,False
+deaths_urban,Urban streets,trend_traffic,Month + trend + traffic,3,holdout,7,0.1376924071,0.134272582,0.02530921984,False
+deaths_urban,Urban streets,trend_traffic,Month + trend + traffic,3,pandemic,2,0.05778477054,0.0556914458,-0.0556914458,False
+deaths_urban,Urban streets,trend_traffic,Month + trend + traffic,3,selection,10,0.09598870233,0.08248407414,0.01412908208,False
+deaths_urban,Urban streets,trend_traffic,Month + trend + traffic,4,holdout,7,0.104597743,0.08849887233,0.02259106649,False
+deaths_urban,Urban streets,trend_traffic,Month + trend + traffic,4,pandemic,2,0.08821860442,0.08469397703,0.02468709018,False
+deaths_urban,Urban streets,trend_traffic,Month + trend + traffic,4,selection,10,0.06622946638,0.05847093819,0.01312053309,False
+deaths_urban,Urban streets,trend_traffic,Month + trend + traffic,5,holdout,7,0.09078063344,0.07440235829,0.03369947139,False
+deaths_urban,Urban streets,trend_traffic,Month + trend + traffic,5,pandemic,2,0.04592390917,0.04591076086,-0.04591076086,False
+deaths_urban,Urban streets,trend_traffic,Month + trend + traffic,5,selection,10,0.07067382584,0.06369063423,0.00850546631,False
+deaths_urban,Urban streets,trend_traffic,Month + trend + traffic,6,holdout,7,0.09485238379,0.07567202044,0.04053114491,False
+deaths_urban,Urban streets,trend_traffic,Month + trend + traffic,6,pandemic,2,0.08232868014,0.07865489854,-0.07865489854,False
+deaths_urban,Urban streets,trend_traffic,Month + trend + traffic,6,selection,10,0.06791051925,0.05668356178,0.01306916294,False
+deaths_urban,Urban streets,trend_traffic,Month + trend + traffic,7,holdout,7,0.09426706381,0.07064027612,0.04100631938,False
+deaths_urban,Urban streets,trend_traffic,Month + trend + traffic,7,pandemic,2,0.08623085498,0.07953400204,-0.07953400204,False
+deaths_urban,Urban streets,trend_traffic,Month + trend + traffic,7,selection,10,0.07144911181,0.06045395281,0.01642366941,False
+deaths_urban,Urban streets,trend_traffic,Month + trend + traffic,8,holdout,7,0.08332991291,0.06425608111,0.03564454528,False
+deaths_urban,Urban streets,trend_traffic,Month + trend + traffic,8,pandemic,2,0.07864361008,0.06678663444,-0.06678663444,False
+deaths_urban,Urban streets,trend_traffic,Month + trend + traffic,8,selection,10,0.0750409426,0.06508135562,0.01532387338,False
+deaths_urban,Urban streets,trend_traffic_calendar,Month + trend + traffic + calendar,3,holdout,7,0.1347504417,0.1312492015,0.02266044806,False
+deaths_urban,Urban streets,trend_traffic_calendar,Month + trend + traffic + calendar,3,pandemic,2,0.07538319865,0.07496946446,-0.07496946446,False
+deaths_urban,Urban streets,trend_traffic_calendar,Month + trend + traffic + calendar,3,selection,10,0.1028185002,0.09038711379,0.04446186728,False
+deaths_urban,Urban streets,trend_traffic_calendar,Month + trend + traffic + calendar,4,holdout,7,0.1040591805,0.09140880508,0.02730782604,True
+deaths_urban,Urban streets,trend_traffic_calendar,Month + trend + traffic + calendar,4,pandemic,2,0.05473854931,0.05396801273,-0.05396801273,True
+deaths_urban,Urban streets,trend_traffic_calendar,Month + trend + traffic + calendar,4,selection,10,0.0728739884,0.06961504206,0.03582674766,True
+deaths_urban,Urban streets,trend_traffic_calendar,Month + trend + traffic + calendar,5,holdout,7,0.08704796055,0.07283267834,0.03753824462,False
+deaths_urban,Urban streets,trend_traffic_calendar,Month + trend + traffic + calendar,5,pandemic,2,0.06043279781,0.0583373229,0.01577592495,False
+deaths_urban,Urban streets,trend_traffic_calendar,Month + trend + traffic + calendar,5,selection,10,0.0792456353,0.07339816604,0.04210448409,False
+deaths_urban,Urban streets,trend_traffic_calendar,Month + trend + traffic + calendar,6,holdout,7,0.09602673831,0.08273209281,0.04443560512,False
+deaths_urban,Urban streets,trend_traffic_calendar,Month + trend + traffic + calendar,6,pandemic,2,0.08787449066,0.08686839888,-0.01325923776,False
+deaths_urban,Urban streets,trend_traffic_calendar,Month + trend + traffic + calendar,6,selection,10,0.08085866741,0.07332022959,0.04576321059,False
+deaths_urban,Urban streets,trend_traffic_calendar,Month + trend + traffic + calendar,7,holdout,7,0.09189657735,0.06942333035,0.03698610476,False
+deaths_urban,Urban streets,trend_traffic_calendar,Month + trend + traffic + calendar,7,pandemic,2,0.1330999594,0.1313022199,0.02180197755,False
+deaths_urban,Urban streets,trend_traffic_calendar,Month + trend + traffic + calendar,7,selection,10,0.08545831834,0.07864540643,0.04733208577,False
+deaths_urban,Urban streets,trend_traffic_calendar,Month + trend + traffic + calendar,8,holdout,7,0.07964039404,0.06281615376,0.03036593279,False
+deaths_urban,Urban streets,trend_traffic_calendar,Month + trend + traffic + calendar,8,pandemic,2,0.07427716247,0.05444219367,-0.05052864943,False
+deaths_urban,Urban streets,trend_traffic_calendar,Month + trend + traffic + calendar,8,selection,10,0.07712801439,0.0676848616,0.03779850822,False

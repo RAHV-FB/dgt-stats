@@ -45,6 +45,9 @@ MIN_SEGMENT_YEARS = 4
 MAX_BREAKS = 3
 # The simplest model whose QBIC is within this many points of the best is chosen.
 QBIC_TOLERANCE = 2.0
+# The plateau after the last turning point the long-run search finds (about 2013) and before the
+# pandemic: the stretch whose scatter around its own trend measures an ordinary year.
+SCATTER_YEARS = (2013, 2019)
 
 OUTCOMES = {
     "deaths_30d": "Deaths within 30 days",
@@ -120,16 +123,51 @@ def annual_panel() -> pd.DataFrame:
 # --------------------------------------------------------------------------- 2019 to 2024
 
 
+def year_to_year_dispersion(years: tuple[int, int] = SCATTER_YEARS) -> pd.DataFrame:
+    """How much more each annual count scatters around its trend than Poisson chance allows.
+
+    A log-linear Poisson trend is fitted to each outcome over ``years`` and the Pearson dispersion
+    is kept (at least 1). A dispersion of 8 means a year's count varies eight times as much as a
+    Poisson count of the same size: recording practice, weather and the calendar all move a year,
+    and the pure Poisson interval does not see them. Crashes, whose count depends on how
+    completely slight injuries are recorded, scatter far more than deaths.
+    """
+    panel = annual_panel().set_index("year").loc[years[0] : years[1]]
+    t = (panel.index.to_numpy(dtype=float) - years[0]).reshape(-1, 1)
+    design = sm.add_constant(t)
+    records = []
+    for outcome, label in OUTCOMES.items():
+        fit = sm.GLM(panel[outcome].to_numpy(), design, family=sm.families.Poisson()).fit(
+            scale="X2"
+        )
+        records.append(
+            {
+                "outcome": outcome,
+                "outcome_label": label,
+                "first_year": years[0],
+                "last_year": years[1],
+                "dispersion": max(float(fit.scale), 1.0),
+                "mean_count": float(panel[outcome].mean()),
+            }
+        )
+    return pd.DataFrame.from_records(records)
+
+
 def risk_index(base_year: int = BASE_YEAR) -> pd.DataFrame:
     """Each outcome under each denominator, as a rate and as a ratio to the base year.
 
     ``ratio_to_base`` is (rate this year) / (rate in ``base_year``), with a log-normal interval
     that treats both counts as Poisson and the denominators as known. For the count itself the
-    "denominator" is 1 and the ratio is the change in the count.
+    "denominator" is 1 and the ratio is the change in the count. ``ratio_low_yty`` and
+    ``ratio_high_yty`` widen that interval by the outcome's ``year_to_year_dispersion``, so they
+    cover an ordinary year's variation and not just Poisson chance; the pages read changes
+    against these.
     """
     panel = annual_panel().set_index("year")
+    dispersion = year_to_year_dispersion().set_index("outcome").dispersion
     last_year = int(panel.index.max())
     years = range(base_year, last_year + 1)
+    z = 1.959963984540054
     records = []
     for outcome, outcome_label in OUTCOMES.items():
         for key, (column, label, per) in DENOMINATORS.items():
@@ -145,6 +183,7 @@ def risk_index(base_year: int = BASE_YEAR) -> pd.DataFrame:
                 ratio, ratio_low, ratio_high = rates.rate_ratio(
                     count, exposure, base_count, base_exposure
                 )
+                spread = z * np.sqrt(float(dispersion[outcome]) * (1 / count + 1 / base_count))
                 records.append(
                     {
                         "outcome": outcome,
@@ -160,10 +199,48 @@ def risk_index(base_year: int = BASE_YEAR) -> pd.DataFrame:
                         "ratio_to_base": ratio,
                         "ratio_low": ratio_low,
                         "ratio_high": ratio_high,
+                        "ratio_low_yty": ratio * np.exp(-spread),
+                        "ratio_high_yty": ratio * np.exp(spread),
                         "index": 100 * ratio,
                     }
                 )
     return pd.DataFrame.from_records(records)
+
+
+FREQUENCY_SEVERITY_BASE = 1996
+
+
+def frequency_severity(base_year: int = FREQUENCY_SEVERITY_BASE) -> pd.DataFrame:
+    """Deaths per unit of traffic split into how often crashes happen and how deadly they are.
+
+    Deaths per tonne of road fuel is the product of injury crashes per tonne (frequency) and
+    deaths per injury crash (severity), so the two indices multiply to the third exactly. Each is
+    indexed to ``base_year`` (the first year of the fuel series) = 100. The injury-crash count
+    depends on how completely slight injuries are recorded, which moves the split between the two
+    without moving the product: deaths are the completely counted outcome.
+    """
+    panel = annual_panel().set_index("year")
+    panel = panel[panel.road_fuel_tonnes.notna()]
+    out = pd.DataFrame(
+        {
+            "crashes": panel.crashes,
+            "deaths_30d": panel.deaths_30d,
+            "hospitalised_30d": panel.hospitalised_30d,
+            "road_fuel_tonnes": panel.road_fuel_tonnes,
+        }
+    )
+    out["crashes_per_kt_fuel"] = out.crashes / out.road_fuel_tonnes * 1e3
+    out["deaths_per_100_crashes"] = out.deaths_30d / out.crashes * 100
+    out["hospitalised_per_100_crashes"] = out.hospitalised_30d / out.crashes * 100
+    out["deaths_per_mt_fuel"] = out.deaths_30d / out.road_fuel_tonnes * 1e6
+    for column, name in (
+        ("crashes_per_kt_fuel", "frequency_index"),
+        ("deaths_per_100_crashes", "severity_index"),
+        ("deaths_per_mt_fuel", "deaths_per_fuel_index"),
+    ):
+        out[name] = out[column] / out.loc[base_year, column] * 100
+    out.index.name = "year"
+    return out.reset_index()
 
 
 EFFICIENCY_GAINS = (0.0, 0.01, 0.02)
@@ -455,6 +532,92 @@ def long_run_efficiency_sensitivity() -> pd.DataFrame:
                     "ratio": row.ratio / factor,
                     "ratio_low": row.observed / (row.high * factor),
                     "ratio_high": row.observed / (row.low * factor),
+                }
+            )
+    return pd.DataFrame.from_records(records)
+
+
+# --------------------------------------------------------------------------- measured kilometres
+
+# The first year of the Ministry's interurban vehicle-km that is comparable with the rest: its 2008
+# figures follow a new road inventory.
+KM_FIRST_YEAR = io_traffic.ROAD_TRAFFIC_BREAK_YEAR
+KM_MEASURES = {
+    "per_km": ("vehicle_km", "Interurban deaths per vehicle-km (measured)"),
+    "per_fuel": ("road_fuel_tonnes", "Interurban deaths per tonne of road fuel (proxy)"),
+}
+
+
+def interurban_km_panel() -> pd.DataFrame:
+    """Interurban deaths beside the two traffic measures, year by year, from 2004.
+
+    ``vehicle_km`` is the Ministry's measured total on the interurban network (State, regions and
+    provincial councils, in vehicle-km); ``km_per_tonne`` divides it by national road fuel, so its
+    drift is the drift of the fuel proxy (fuel economy, electric kilometres, freight mix and urban
+    traffic, which the fuel covers and the kilometres do not).
+    """
+    traffic = io_traffic.read_road_traffic().set_index("year")
+    monthly = io_tables.read_table("series_monthly")
+    deaths = (
+        monthly[(monthly.metric == "deaths_30d") & (monthly.zone == "interurban")]
+        .groupby("year")
+        .value.sum()
+    )
+    fuel = annual_panel().set_index("year").road_fuel_tonnes
+    out = pd.DataFrame(
+        {
+            "deaths_interurban": deaths,
+            "vehicle_km": traffic.total * 1e6,
+            "road_fuel_tonnes": fuel,
+        }
+    ).dropna()
+    out.index = out.index.astype(int)
+    out["km_per_tonne"] = out.vehicle_km / out.road_fuel_tonnes
+    out["deaths_per_bn_km"] = out.deaths_interurban / out.vehicle_km * 1e9
+    out["deaths_per_mt_fuel"] = out.deaths_interurban / out.road_fuel_tonnes * 1e6
+    out["comparable"] = out.index >= KM_FIRST_YEAR
+    out.index.name = "year"
+    return out.reset_index()
+
+
+def km_trend_check(last_pre_year: int = BASE_YEAR) -> pd.DataFrame:
+    """The long-run per-fuel finding re-run on measured kilometres, for interurban deaths.
+
+    The same joinpoint search as the long-run page is fitted to interurban deaths, 2008 to
+    ``last_pre_year``, once per measured vehicle-km and once per tonne of fuel, and projected to
+    every later year with its own exposure. ``ratio`` is observed over expected; if the per-fuel
+    excess were a change on the road it would appear per kilometre too.
+    """
+    panel = interurban_km_panel().set_index("year")
+    panel = panel[panel.comparable]
+    records = []
+    for key, (column, label) in KM_MEASURES.items():
+        window = panel.loc[:last_pre_year]
+        years = window.index.to_numpy()
+        fit, _ = joinpoint_search(
+            years,
+            window.deaths_interurban.to_numpy(dtype=float),
+            np.log(window[column].to_numpy(dtype=float)),
+        )
+        all_years = panel.index.to_numpy()
+        projected = project(fit, all_years, np.log(panel[column].to_numpy(dtype=float)))
+        last_segment = segment_changes(fit).iloc[-1]
+        for row, (year, observed) in zip(projected.itertuples(), panel.deaths_interurban.items()):
+            records.append(
+                {
+                    "measure": key,
+                    "measure_label": label,
+                    "year": int(year),
+                    "observed": float(observed),
+                    "expected": float(row.expected),
+                    "low": float(row.low),
+                    "high": float(row.high),
+                    "ratio": float(observed / row.expected),
+                    "projected": int(year) > last_pre_year,
+                    "outside_interval": bool(observed < row.low or observed > row.high),
+                    "breaks": " ".join(str(b) for b in fit.breaks),
+                    "last_segment_start": int(last_segment.start),
+                    "last_segment_annual_change": float(last_segment.annual_change),
                 }
             )
     return pd.DataFrame.from_records(records)
