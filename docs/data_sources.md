@@ -4,7 +4,7 @@ The source register, as of the published site (October 2026). Paths are relative
 every file is listed with size, SHA-256, source URL, description and the date added in
 `data/raw/manifest.csv`, and the audit of what each supports is in
 [`data_inventory.md`](data_inventory.md). The page column names where the file's numbers appear on
-the site.
+the site; the overview, which repeats headline numbers from the other pages, is not listed.
 
 ## Providers
 
@@ -15,7 +15,10 @@ the site.
 - **INE** (Instituto Nacional de Estadística): resident population by province, age and sex; the
   2021 ECEPOV commuting extract; the 2008 household mobility survey extracts.
 - **Ministerio de Transportes y Movilidad Sostenible**: MOVILIA 2006 and 2007 travel surveys;
-  monthly traffic on the state toll-motorway network from 1990 (Boletín Estadístico Online).
+  monthly traffic on the state toll-motorway network from 1990 (Boletín Estadístico Online);
+  annual vehicle-kilometres and the share of heavy vehicles by type of road on the State, regional
+  and provincial interurban networks, 2004–2023 (Anuario Estadístico 2023, roads chapter, table
+  1.2.14).
 - **CORES** (Corporación de Reservas Estratégicas de Productos Petrolíferos, the body that
   keeps Spain's compulsory oil stocks and publishes the official petroleum statistics under
   Ley 34/1998): monthly consumption of petroleum products from 1996.
@@ -44,9 +47,9 @@ and `driving_activity_by_age.csv` is hand-typed from the surveys it cites.
 | Provider | Files | Terms as published | Notice |
 |---|---|---|---|
 | DGT, catalogued on datos.gob.es | crash microdata and dictionary (`microdata/`) | free, non-exclusive licence for commercial and non-commercial reuse: name the origin of the data, do not distort its meaning, keep the date of last update, do not suggest that the publisher endorses the reuse, keep the metadata | <https://datos.gob.es/avisolegal>, the licence named in `metadata_2024.rdf.xml` |
-| DGT, from dgt.es | series, statistical tables, driver census, kilometre estimates, thematic reports (`tables/`, `exposure/`, `reports/dgt_*.pdf`, errata) | public-sector information within the scope of Ley 37/2007. DGT's legal notice claims the intellectual property of the portal, its graphic design and its code, states that unauthorised reproduction, distribution, commercialisation or transformation of those works other than for personal and private use is an infringement, and warns that unauthorised placement of the information the portal contains may lead to legal action; it grants no reuse licence for the statistics and names no licence at all. Redistribution of these files here therefore rests on the Ley 37/2007 regime for public-sector information, applying the datos.gob.es conditions above to every DGT file by this project's own choice; no permission has been requested from DGT | <https://www.dgt.es/contenido/aviso-legal/> |
+| DGT, from dgt.es | series, statistical tables, driver census, kilometre estimates, thematic reports (`tables/`, `exposure/censo_*`, `exposure/km_itv_*`, `reports/dgt_*.pdf`, errata) | public-sector information within the scope of Ley 37/2007. DGT's legal notice claims the intellectual property of the portal, its graphic design and its code, states that unauthorised reproduction, distribution, commercialisation or transformation of those works other than for personal and private use is an infringement, and warns that unauthorised placement of the information the portal contains may lead to legal action; it grants no reuse licence for the statistics and names no licence at all. Redistribution of these files here therefore rests on the Ley 37/2007 regime for public-sector information, applying the datos.gob.es conditions above to every DGT file by this project's own choice; no permission has been requested from DGT | <https://www.dgt.es/contenido/aviso-legal/> |
 | INE | population (`ine_poblacion_provincias_edad_sexo.csv`), ECEPOV 2021, EHMA 2008 | Creative Commons Attribution 4.0 unless a product says otherwise; processed data are cited as "Elaboración propia con datos extraídos del sitio web del INE: www.ine.es"; keep the date of last update; do not suggest that INE endorses the reuse | <https://www.ine.es/aviso_legal/> |
-| Ministerio de Transportes y Movilidad Sostenible | MOVILIA 2006 and 2007 workbooks; the toll-motorway traffic series (`exposure/traffic/peaje_trafico_total.xls`) | reusable for commercial and non-commercial purposes: cite "Origen de los datos: Ministerio de Transportes y Movilidad Sostenible", keep the date of last update, do not distort the content, do not suggest endorsement, keep the metadata | <https://www.transportes.gob.es/ministerio/aviso-legal> |
+| Ministerio de Transportes y Movilidad Sostenible | MOVILIA 2006 and 2007 workbooks; the toll-motorway traffic series (`exposure/traffic/peaje_trafico_total.xls`); the roads chapter of the Anuario Estadístico 2023 (`exposure/traffic/anuario_carreteras_2023.pdf`) | reusable for commercial and non-commercial purposes: cite "Origen de los datos: Ministerio de Transportes y Movilidad Sostenible", keep the date of last update, do not distort the content, do not suggest endorsement, keep the metadata | <https://www.transportes.gob.es/ministerio/aviso-legal> |
 | Comunidad de Madrid, Instituto de Estadística | five MOVILIA 2006 tables for Madrid (`exposure/movilia_madrid/`) | copying and distribution allowed provided the pages are not used directly for commercial purposes, the source is cited, the content is neither altered nor its meaning distorted, and no sponsorship is implied. These five files carry a condition the code licence does not; a commercial reuse of them goes back to the provider | <https://www.madrid.org/iestadis/fijas/otros/avisolegal.htm> |
 | Fundación MAPFRE | none archived; three driving-frequency rows typed into `exposure/driving_activity_by_age.csv` | a private foundation, not a public body, so the Ley 37/2007 regime applied to the DGT files does not reach it: the report offers no reuse licence and none was requested. The three shares (0.559 / 0.303 / 0.138 of Madrid drivers aged 65+, n 300, year inferred) are short quotations with attribution to "Mayores de 65 años y seguridad vial" and its URL; the PDF is not archived here and no page reads them | <https://app.mapfre.com/ccm/content/documentos/fundacion/seg-vial/investigacion/mayores-y-seguridad-vial.pdf>; the foundation's site publishes no reuse notice, only a privacy policy (<https://www.fundacionmapfre.org/politica-privacidad/>), as read on 22 September 2026 |
 | CORES | `exposure/traffic/cores_consumos_pp.xlsx` | public-sector information within the scope of Ley 37/2007: CORES is a corporation of public law under the Ministerio para la Transición Ecológica and publishes these statistics as part of its statutory duty. Its site names no reuse licence, so the file is redistributed here on the same footing as the DGT statistics, applying the datos.gob.es conditions by this project's own choice: the source is named, the meaning is not distorted, the date of last update is kept (the `Actualizado el` cell of each sheet) and no endorsement is implied | <https://www.cores.es/es/estadisticas> |
@@ -57,8 +60,8 @@ and `driving_activity_by_age.csv` is hand-typed from the surveys it cites.
 
 | File | Coverage | Role | Page |
 |---|---|---|---|
-| `accidentes_2016.xlsx` … `accidentes_2024.xlsx` | 2016–2024, 875,013 injury crashes | the crash table: location, time, road, conditions, victims by severity and road-user type | timing, road users, severity, policy (2019), data |
-| `diccionario.xlsx` | all years | code lists for the 33 coded fields | every page (labels), data |
+| `accidentes_2016.xlsx` … `accidentes_2024.xlsx` | 2016–2024, 875,013 injury crashes | the crash table: location, time, road, conditions, victims by severity and road-user type | speed, seasons (darkness), simulator (baseline, risk per km by road class), severity (supporting), 2006 break (supporting: the 2019 study's fits, linked as a negative result), data |
+| `diccionario.xlsx` | all years | code lists for the 33 coded fields | the pages that use the microdata (labels), data (code checks) |
 | `metadata_2024.rdf.xml` | 2024 | official access URL, licence and issue date | manifest template |
 
 datos.gob.es gives 5 November 2025 as the last update of the 2024 microdata (the `dct:modified` of
@@ -71,7 +74,7 @@ published in the records held for 2016–2023, and the record gives the dictiona
 
 | File | Coverage | Role | Page |
 |---|---|---|---|
-| `series_historicas_2024.xlsx` | 1993–2024, 69 sheets | crashes and victims by year, month, province, sex, age, pedestrians, drivers and passengers by vehicle, fleet and rates | 2019–2024 risk, long run, seasons, vehicles, 2006 break (supporting) |
+| `series_historicas_2024.xlsx` | 1993–2024, 69 sheets | crashes and victims by year, month, province, sex, age, pedestrians, drivers and passengers by vehicle, fleet and rates | 2019–2024 risk, long run, seasons, vehicles, simulator (forecast), 2006 break (supporting) |
 | `tablas_estadisticas_2020.xlsx` … `_2024.xlsx` | one workbook per year | province and month totals (validation), vehicles involved by type (2.3), victims by mode (2.2), drivers by age and sex (4.1.1, 4.2), driver infractions (6.1) | data (checks), vehicles, age and sex, speed |
 | `chapters/2014/grupo_1.xls` … `chapters/2019/grupo_8.xlsx` | 2014–2019, eight chapters a year | the same tables 4.1.1, 4.2 and 6.1 for the earlier years | age and sex, speed |
 
@@ -87,9 +90,9 @@ published in the records held for 2016–2023, and the record gives the dictiona
 | `km_itv_2022/km_recorridos_estimados_2022.xlsx` | 2022 | km per vehicle by stratum (type, Euro class, age, engine, fuel) | parsed; not on the site |
 | `km_itv_2024/km_edad_propietario_2024.xlsx` | 2024 | vehicles, total and mean annual km by vehicle category **and by the age band of the registered owner**; the denominator of the age-and-exposure analysis | age and sex |
 | `km_itv_2024/km_medios_tipo_2024.xlsx` | 2024 | vehicles and mean annual km by category (the release's table 6), used to reconcile the owner-age table against the published fleet, and compared with fuel on the 2019–2024 page | age and sex (check), 2019–2024 |
-| `traffic/cores_consumos_pp.xlsx` | 1996–2026, monthly | national consumption of petroleum products; the automotive petrol and diesel subtotals are the road-traffic exposure proxy, annual and monthly | 2019–2024, long run, seasons, 2006 break |
+| `traffic/cores_consumos_pp.xlsx` | 1996–2026, monthly | national consumption of petroleum products; the automotive petrol and diesel subtotals are the road-traffic exposure proxy, annual and monthly; each sheet also publishes the mass share of biofuel blended into its subtotal | 2019–2024, long run, seasons, simulator (forecast), data (biofuel check), 2006 break |
 | `traffic/peaje_trafico_total.xls` | 1990–2026, monthly | average daily intensity and vehicle-kilometres on the state toll-motorway network | seasons (intensity), 2006 break |
-| `traffic/anuario_carreteras_2023.pdf` | 2004–2023, annual | Ministerio de Transportes, Anuario Estadístico 2023, chapter on roads; table 1.2.14 gives vehicle-kilometres measured on the State, regional and provincial interurban networks by type of road (toll motorways; autovías and free motorways; multi-lane; conventional), parsed by `io_traffic.read_road_traffic`, which requires the four types to add up to the published total. Comparable from 2008 (new road inventory); municipal interurban roads, up to a tenth of traffic by the Ministry's estimate, are not included | long run (the check on fuel), simulator (risk per km by road class, travel time) |
+| `traffic/anuario_carreteras_2023.pdf` | 2004–2023, annual | Ministerio de Transportes, Anuario Estadístico 2023, chapter on roads; table 1.2.14 gives vehicle-kilometres measured on the State, regional and provincial interurban networks by type of road (toll motorways; autovías and free motorways; multi-lane; conventional), each with its share of heavy vehicles, parsed by `io_traffic.read_road_traffic`, which requires the four types to add up to the published total. Comparable from 2008 (new road inventory); municipal interurban roads, up to a tenth of traffic by the Ministry's estimate, are not included | long run (the check on fuel), simulator (risk per km by road class, 2016–2023; light vehicles' travel time, 2023), data (assumptions tested) |
 | `km_itv_2022/metodologia.pdf` | 2014–2023 ITV | how the kilometres are modelled; the definition of the circulating fleet (Anexo III) and the category definitions that settle the heavy-truck mapping | vehicles (limits) |
 | `driving_activity_by_age.csv` | 2008, 2018, 2023 | hand-typed survey register: ESRA national shares of adults who drive (Spain) and three Fundación MAPFRE rows on driving days per week among Madrid drivers 65+. Registered and kept as the record of what was searched; **no page reads them any more**, since DGT's 2024 kilometres by owner age replaced the survey-based driving denominator | none |
 | `movilia_2006.xls` | 2006 | table 64, trips by main mode × sex × age. Once the basis of the retired travel-weighted age denominator, which it could not support (its car-or-motorcycle column counts passengers as well as drivers and its top band is 65+). Now used only for the male-to-female trip ratio by age, read as a lower bound on the travel gap between the sexes | age and sex (bracket) |
@@ -101,7 +104,7 @@ published in the records held for 2016–2023, and the record gives the dictiona
 
 | File | Role | Page |
 |---|---|---|
-| `simulator_parameters.csv` | hand-typed register of every published value the simulator uses, one row per value with its source, the table or page, the URL and a verbatim quote: Elvik (2009, TØI report 1034/2009, table S1) Power Model exponents by road environment; the limit-to-mean-speed curve of the Norwegian road-safety handbook (Trafikksikkerhetshåndboken, chapter 3.11, figure 3.11.2); free-flow car speeds measured in Spain in 2022 for the EU Baseline project (KPI Speeding report, tables 9–12a); the legal limits (Reglamento General de Circulación art. 48; Real Decreto 970/2020 art. 50); DGT's 2024 values of preventing a death, a serious and a slight injury (Universidad de Murcia for DGT). Each was read in the publication itself; values that could not be verified at source were left out | simulator |
+| `simulator_parameters.csv` | hand-typed register of every published value the simulator uses, one row per value with its source, the table or page, the URL and a verbatim quote: Elvik (2009, TØI report 1034/2009, table S1) Power Model exponents by road environment; the limit-to-mean-speed curve of the Norwegian road-safety handbook (Trafikksikkerhetshåndboken, chapter 3.11, figure 3.11.2); free-flow car speeds measured in Spain in 2022 for the EU Baseline project (KPI Speeding report, tables 9–11 and 12a, and for autovías the Annex 1 text introducing tables 12a–12c); the legal limits (Reglamento General de Circulación art. 48; Real Decreto 970/2020 art. 50); DGT's 2024 values of preventing a death, a serious and a slight injury (Universidad de Murcia for DGT). Each was read in the publication itself, and a test requires every quote to contain the value it supports; values that could not be verified at source were left out | simulator, data |
 
 None of the publications is archived here: the TØI report and the handbook carry the
 institute's copyright, the Baseline report is the European Commission's, and the register only
@@ -145,7 +148,8 @@ same time; nothing from them enters a table.
 - A dated register of campaigns and enforcement periods.
 - Vehicle-kilometres **by vehicle type** for any year other than 2022; DGT's 2024 release gives
   them by owner age and by category but the vehicles page needs the type × involvement pairing
-  that only the 2022 release supports at that level of detail.
+  that only the 2022 release supports at that level of detail. The Ministry's table 1.2.14 splits
+  interurban traffic only into heavy vehicles, as one group, and the rest.
 - Distance driven by the **driver's** age. DGT's 2024 kilometre release is the closest Spanish
   source and gives the **owner's** age band. MOVILIA 2006/2007 count trips and travel time, not
   kilometres, and do not separate drivers from passengers; INE's EHMA 2008 gives mean annual

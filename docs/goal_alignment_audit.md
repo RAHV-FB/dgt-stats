@@ -63,7 +63,7 @@ analyses", each opening with a note saying why it is outside the central questio
 | Pillar | Page | Method (module) | What it finds |
 |---|---|---|---|
 | 1 | `trends.html` | Crashes, deaths and hospitalised injured over residents, licence holders, registered vehicles and road fuel, indexed to 2019 with Poisson intervals; fuel-economy sensitivity; DGT km estimates checked against fuel (`risk_trends`) | 2024 deaths against 2019: +1.7 % as a count, −1.9 % per resident, −3.4 % per vehicle, +3.5 % per tonne of fuel, none beyond chance. Crashes fell 5–7 % per person and per vehicle, flat per unit of traffic. Hospitalised injured rose under every denominator, +5.5 % to +13 % |
-| 6 | `long-run.html` | Joinpoint quasi-Poisson trends 1993–2019 for deaths, deaths per vehicle, deaths per tonne of fuel, turning points by QBIC, projected with prediction intervals (`risk_trends`) | All three find turning points near 2003 and 2011–2013: −11 % a year for a decade, then a plateau. As a count 2020 was 24 % below trend and 2022–2024 back on it. Per tonne of fuel 2020–2021 were **on** trend (the fall was traffic) and 2023–2024 were 16–17 % **above** it, outside the interval unless fuel economy improved about two points a year faster than before |
+| 6 | `long-run.html` | Joinpoint quasi-Poisson trends 1993–2019 for deaths, deaths per vehicle, deaths per tonne of fuel, turning points by QBIC, projected with prediction intervals (`risk_trends`) | All three find turning points near 2003 and 2011–2013: −11 % a year for a decade, then a plateau. As a count 2020 was 24 % below trend and 2022–2024 back on it. Per tonne of fuel 2020–2021 were **on** trend (the fall was traffic) and 2023–2024 were 16–17 % **above** it, outside the interval unless kilometres per tonne of fuel grew faster than before from 2020 (about 1.4 points a year faster for 2023, 0.7 for 2024) |
 | 3 | `seasons.html` | Monthly deaths against road fuel, petrol and toll-motorway intensity; quasi-Poisson month effects with year effects, with and without a traffic offset; 2020 month by month (`seasonality`) | July 1.22× and August 1.14× the average month as counts; per unit of petrol 1.06× and 0.98×. Spring below average under every proxy; September and November above under two of three. April 2020: deaths −68 %, petrol −76 %; whether each kilometre got riskier depends on the proxy and is not claimed |
 | 2 | `drivers.html` | Age: car-driver involvement per km, fatality once involved, deaths per km, 2024 (from #17). Sex: drivers involved and killed per licence-holder-year, 2022–2024, men against women, car and all motor vehicles; MOVILIA 2006 trips as a bounded travel proxy (`driver_risk`) | 75+: involvement per km 1.02× the 35–54 rate, killed once involved 3.93×. Men (car drivers): involved 1.41× per licence holder, about the size of the travel gap MOVILIA implies; killed once involved 2.57× (2.24–2.94). The excess is in what the crash does, not how often it happens |
 | Vehicles | `vehicles.html` | Unchanged from #17 (`vehicles`) | Heavy truck 10.3× a car per vehicle, 2.5× per km |
@@ -90,7 +90,7 @@ offset that removes a known season, the break rule).
 
 | Wanted | Why not now | What would unlock it |
 |---|---|---|
-| Deaths per kilometre by year | No annual all-roads vehicle-km series; DGT's 2022 and 2024 estimates are built differently | A consistent DGT kilometre series, or the Ministerio de Transportes' annual vehicle-km on the state network (*Mapa de tráfico*) as a measured interurban denominator |
+| Deaths per kilometre by year | No annual all-roads vehicle-km series; DGT's 2022 and 2024 estimates are built differently. Since October 2026 (section 8) the Ministerio de Transportes' measured interurban vehicle-km (yearbook table 1.2.14) give it for interurban roads: in total for 2008–2023, by road class for 2016–2023, the years the crash microdata and the kilometres share | Urban vehicle-km, which none of the registered sources gives, or a consistent DGT kilometre series for all roads |
 | Kilometres by sex | No Spanish source | A travel survey with driver-only kilometres by sex (a new MOVILIA wave or DGT's own survey) |
 | Severity of alcohol and distraction crashes | The report gives deaths by factor for speed only | INTCF toxicology reports on killed drivers (a consistent annual series), or DGT deaths by factor |
 | Whether rising recorded alcohol is behaviour or testing | Enforcement is not in the files | DGT's annual alcohol and drug test statistics |
@@ -116,12 +116,18 @@ and 11–13.
 
 | Page | Before | After | Why |
 |---|---|---|---|
-| Long run | 2023–2024 deaths 16–17 % above the pre-2020 per-fuel trend, outside its interval | Per kilometre measured on interurban roads, 2023 is +5 % on the 2013–2019 trend, inside its interval; the decline stalled, risk did not jump | the Ministerio de Transportes' measured interurban vehicle-km show kilometres per tonne of fuel rising about 1.9 % a year after 2019, the case the page had named |
-| 2019–2024 | crashes fell per person and per vehicle; admissions rose under every denominator | changes read against an ordinary year: crashes within it under every denominator, admissions beyond it as a count and per unit of traffic | annual counts scatter more than Poisson chance, crashes 68 times as much |
+| Long run | 2023–2024 deaths 16–17 % above the pre-2020 per-fuel trend, outside its interval | On interurban roads, measured both ways: in 2023 deaths per tonne of fuel are +13 % on the 2013–2019 trend, outside its interval, and per kilometre measured +5 %, inside it. Per kilometre every year from 2020 to 2023 is inside the interval of the 2013–2019 decline (−1.8 % a year) continued, so the counts cannot yet tell whether that decline carried on or stalled; they rule out a jump in risk | the Ministerio de Transportes' measured interurban vehicle-km: kilometres per tonne of road fuel grew 1.9 % a year over 2019–2023 against 0.5 % over 2011–2019, the span of the national per-fuel trend's last segment. That is about 1.4 points a year faster, just enough to bring the 2023 national per-fuel excess inside its interval, the case the page had named. The ratio is kilometres per tonne, not fuel economy: it also moves when traffic shifts between towns and interurban roads, and with the mix of freight |
+| 2019–2024 | crashes fell per person and per vehicle; admissions rose under every denominator | changes read against an ordinary year. In 2024 crashes are within it as a count, per resident, per licence holder and per tonne of fuel, and only just beyond it per registered vehicle (−6.9 %, interval −13.3 % to −0.03 %); admissions are beyond it as a count (+11.0 %) and per tonne of fuel (+13.0 %), and within it per resident, per licence holder and per vehicle | annual counts scatter more than Poisson chance. Around the 2013–2019 trend the variance of crashes is 68 times the Poisson variance, so their spread is about eight times the Poisson spread (admissions 7.7 times in variance, deaths 1.5) |
 
-**Two held up under a test.** The owner's age as a stand-in for the driver's (the 75-and-over
-involvement ratio moves from 1.02 to at most 0.83, the fatality ratio not at all), and CORES road
-fuel including its blended biofuel.
+**Two held up under a test.** The owner's age as a stand-in for the driver's: moving kilometres
+from the 35–54 band to the 18–34 band until both drive the same distance per licence holder (a
+transfer of 15.24 billion km, which leaves both at 8,899 km) takes the 75-and-over involvement
+ratio from 1.02 to 0.89, and the fatality ratio, which needs no kilometres, not at all. And CORES
+road fuel as a measure that means the same every year: each automotive subtotal equals the sum of
+its products (bioethanol, biodiesel and blends included) in every month, and biofuel, 6.6 % of
+road fuel by mass in 2019 and 7.8 % in 2023, carries less energy per tonne, so its rise would lower
+kilometres per tonne slightly and cannot explain their rise. Both tests are recorded on the data
+page with the others.
 
 **What connects the findings**, now on the overview: wherever risk can be split into how often
 people crash and how badly they are hurt, the difference is in the second, and the long series
@@ -131,8 +137,23 @@ crash −73 %).
 **The new question**, what a speed law would do, is the simulator page, kept in the main
 navigation because it follows from that conclusion: severity is energy and fragility, and speed is
 the part a law reaches. It does not break the rule against causal claims from Spanish data, because
-its effects come from published dose-response evidence and it says so; its forecasting model is
-judged on years it did not see, and it reports where a naive forecast does as well.
+its effects come from published dose-response evidence and it says so. With drivers responding as
+they typically do, if every driver now above the limit on autopistas, autovías and conventional
+roads kept to it, about 335 fewer people a year would die there (298–370). That is more than any
+single new limit saves (the largest, 70 km/h on conventional roads, about 261); only one pair of
+lower limits saves more, 100 km/h on autopistas and autovías with 70 on conventional roads, about
+350. Conventional roads at 80 km/h save about 123. The page also divides deaths by the Ministry's
+kilometres: conventional roads killed 3.38 times as many people per kilometre as autopistas and
+autovías in 2023, and 3.42 times over 2016–2023, the years the crash microdata and the kilometres
+share; speed alone does not explain the gap.
+
+Its forecasting model is judged on years it did not see, against last year's count and against
+gradient-boosted trees tuned, like the model, on 2006–2015. The trees do worse than the model on
+every kind of road and in every set of years; last year's count does slightly better in the flat
+held-back years, 2016–2019 and 2022–2024 (5.9 % against 6.6 %), and the page says so. From the
+model's measured error the page gives the chance that the first year's death count would show a
+change: over 99 % for full compliance, 45 % for conventional roads at 80 km/h, and no more than
+25 % for any change of the autopista and autovía limit alone.
 
 **Cleanup.** The 3,477-line site module became a package with one module per page; code no page
 or figure reached (the speed report breakdowns the site stopped republishing, the withdrawn
