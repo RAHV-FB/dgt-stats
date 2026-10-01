@@ -1,6 +1,6 @@
 # Data and evidence sources
 
-The source register, as of the published site (September 2026). Paths are relative to `data/raw/`;
+The source register, as of the published site (October 2026). Paths are relative to `data/raw/`;
 every file is listed with size, SHA-256, source URL, description and the date added in
 `data/raw/manifest.csv`, and the audit of what each supports is in
 [`data_inventory.md`](data_inventory.md). The page column names where the file's numbers appear on
@@ -51,6 +51,7 @@ and `driving_activity_by_age.csv` is hand-typed from the surveys it cites.
 | Fundación MAPFRE | none archived; three driving-frequency rows typed into `exposure/driving_activity_by_age.csv` | a private foundation, not a public body, so the Ley 37/2007 regime applied to the DGT files does not reach it: the report offers no reuse licence and none was requested. The three shares (0.559 / 0.303 / 0.138 of Madrid drivers aged 65+, n 300, year inferred) are short quotations with attribution to "Mayores de 65 años y seguridad vial" and its URL; the PDF is not archived here and no page reads them | <https://app.mapfre.com/ccm/content/documentos/fundacion/seg-vial/investigacion/mayores-y-seguridad-vial.pdf>; the foundation's site publishes no reuse notice, only a privacy policy (<https://www.fundacionmapfre.org/politica-privacidad/>), as read on 22 September 2026 |
 | CORES | `exposure/traffic/cores_consumos_pp.xlsx` | public-sector information within the scope of Ley 37/2007: CORES is a corporation of public law under the Ministerio para la Transición Ecológica and publishes these statistics as part of its statutory duty. Its site names no reuse licence, so the file is redistributed here on the same footing as the DGT statistics, applying the datos.gob.es conditions by this project's own choice: the source is named, the meaning is not distorted, the date of last update is kept (the `Actualizado el` cell of each sheet) and no endorsement is implied | <https://www.cores.es/es/estadisticas> |
 | ESRA (Vias institute and partner institutes) | none archived; two national shares typed into `exposure/driving_activity_by_age.csv` | no reuse licence is offered: the Vias disclaimer linked from the ESRA site footer claims intellectual rights over its contents for Vias institute "or entitled third parties", and no reproduction permission is stated in the reports or was requested, so nothing of theirs is redistributed here. The two shares are short quotations with attribution: the 2023 share (75.9 %, weighted n 935) from the ESRA3 main report, Table 6, and the Spain country fact sheet; the 2018 share (80.2 %, weighted n 906) from the ESRA-123 online dashboard, which publishes no downloadable table | <https://www.esranet.eu/en/publications/>, <https://www.vias.be/en/disclaimer> |
+| Simulator evidence register (`evidence/simulator_parameters.csv`) | compiled by this project | the values are quoted with attribution from their publications (TØI report 1034/2009; Trafikksikkerhetshåndboken, TØI for Statens vegvesen; European Commission, Baseline KPI Speeding; BOE; DGT); no publication is redistributed, and each row names its source, location and URL | the URLs in the file |
 
 ## Crash microdata (`microdata/`)
 
@@ -88,12 +89,33 @@ published in the records held for 2016–2023, and the record gives the dictiona
 | `km_itv_2024/km_medios_tipo_2024.xlsx` | 2024 | vehicles and mean annual km by category (the release's table 6), used to reconcile the owner-age table against the published fleet, and compared with fuel on the 2019–2024 page | age and sex (check), 2019–2024 |
 | `traffic/cores_consumos_pp.xlsx` | 1996–2026, monthly | national consumption of petroleum products; the automotive petrol and diesel subtotals are the road-traffic exposure proxy, annual and monthly | 2019–2024, long run, seasons, 2006 break |
 | `traffic/peaje_trafico_total.xls` | 1990–2026, monthly | average daily intensity and vehicle-kilometres on the state toll-motorway network | seasons (intensity), 2006 break |
+| `traffic/anuario_carreteras_2023.pdf` | 2004–2023, annual | Ministerio de Transportes, Anuario Estadístico 2023, chapter on roads; table 1.2.14 gives vehicle-kilometres measured on the State, regional and provincial interurban networks by type of road (toll motorways; autovías and free motorways; multi-lane; conventional), parsed by `io_traffic.read_road_traffic`, which requires the four types to add up to the published total. Comparable from 2008 (new road inventory); municipal interurban roads, up to a tenth of traffic by the Ministry's estimate, are not included | long run (the check on fuel), simulator (risk per km by road class, travel time) |
 | `km_itv_2022/metodologia.pdf` | 2014–2023 ITV | how the kilometres are modelled; the definition of the circulating fleet (Anexo III) and the category definitions that settle the heavy-truck mapping | vehicles (limits) |
 | `driving_activity_by_age.csv` | 2008, 2018, 2023 | hand-typed survey register: ESRA national shares of adults who drive (Spain) and three Fundación MAPFRE rows on driving days per week among Madrid drivers 65+. Registered and kept as the record of what was searched; **no page reads them any more**, since DGT's 2024 kilometres by owner age replaced the survey-based driving denominator | none |
 | `movilia_2006.xls` | 2006 | table 64, trips by main mode × sex × age. Once the basis of the retired travel-weighted age denominator, which it could not support (its car-or-motorcycle column counts passengers as well as drivers and its top band is 65+). Now used only for the male-to-female trip ratio by age, read as a lower bound on the travel gap between the sexes | age and sex (bracket) |
 | `movilia_2007.xls`, `movilia_madrid/*.xls` | 2006–2007 | long-distance and Madrid extracts, inspected; not read by any script | none |
 | `ine_ecepov_2021_55378.xlsx` | 2021 | commuters by main vehicle, sex and age | registered and checked in the audit; not read by the code and not on the site |
 | `ine_ehma_2008_10016.csv`, `ine_ehma_2008_10019.csv` | 2008 | household km per vehicle by fuel and vehicle age | registered and checked in the audit; not read by the code and not on the site |
+
+## Evidence for the simulator (`evidence/`)
+
+| File | Role | Page |
+|---|---|---|
+| `simulator_parameters.csv` | hand-typed register of every published value the simulator uses, one row per value with its source, the table or page, the URL and a verbatim quote: Elvik (2009, TØI report 1034/2009, table S1) Power Model exponents by road environment; the limit-to-mean-speed curve of the Norwegian road-safety handbook (Trafikksikkerhetshåndboken, chapter 3.11, figure 3.11.2); free-flow car speeds measured in Spain in 2022 for the EU Baseline project (KPI Speeding report, tables 9–12a); the legal limits (Reglamento General de Circulación art. 48; Real Decreto 970/2020 art. 50); DGT's 2024 values of preventing a death, a serious and a slight injury (Universidad de Murcia for DGT). Each was read in the publication itself; values that could not be verified at source were left out | simulator |
+
+None of the publications is archived here: the TØI report and the handbook carry the
+institute's copyright, the Baseline report is the European Commission's, and the register only
+quotes the numbers with attribution, as with the ESRA shares below. The DGT reports on the value of
+a casualty are public-sector information and could be archived on the same footing as DGT's other
+reports; they are cited rather than copied because only three numbers are taken from them.
+
+Considered for the simulator and not used, with the reason: Elvik, Vadeby, Hels and van Schagen
+(2019), whose updated exponents (5.5 for deaths, 3.9 for injury crashes) are not split by road
+environment and are higher, so using Elvik (2009) is the conservative choice; Cameron and Elvik
+(2010), whose exponential alternative for urban roads is behind a paywall and could not be
+verified; the DGT/Interior figures on mean motorway speeds during the 2011 110 km/h limit, found
+only as press extracts of a page that could not be opened; and INTCF's toxicology of killed drivers,
+for an alcohol scenario that would need a behavioural response no source measures.
 
 ## Thematic reports (`reports/`)
 
@@ -131,7 +153,14 @@ same time; nothing from them enters a table.
   bands that stop at 65+, and is sixteen years older than the crash counts; ESRA gives a
   national share of adults who drive with no age split. Each was checked and is registered
   above; the DGT owner-age table is the one used, and the page states what it is.
-- Monthly vehicle-kilometres on all Spanish roads. The two monthly series registered above are
-  proxies with known limits: CORES measures fuel sold, not distance, and its petrol/diesel mix
-  shifts over the 2000s; the toll-motorway series measures distance directly but on 1,400–2,500
-  km of motorway whose length changes as concessions expire.
+- Monthly vehicle-kilometres on all Spanish roads, and annual urban vehicle-kilometres. The two
+  monthly series registered above are proxies with known limits: CORES measures fuel sold, not
+  distance, and its petrol/diesel mix shifts over the 2000s; the toll-motorway series measures
+  distance directly but on 1,400–2,500 km of motorway whose length changes as concessions expire.
+  The Ministry's annual table 1.2.14 measures interurban kilometres only, without municipal roads.
+- Measured speeds by road type before and after a Spanish limit change (the 2019 change to 90 km/h
+  on conventional roads, the 2011 temporary 110 km/h on motorways): no published before-and-after
+  measurement was found, so the simulator takes the response to a new limit from the international
+  evidence.
+- Casualties by the speed limit of the street, which would let the simulator give urban effects as
+  a national count.

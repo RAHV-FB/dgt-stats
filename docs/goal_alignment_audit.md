@@ -105,3 +105,36 @@ offset that removes a known season, the break rule).
   2006 is used only for the male-to-female trip ratio, read as a lower bound.
 - **The recording-break threshold** (25 % in one year) is a rule, not a test; every change is
   published in `factor_changes.csv` so another threshold can be applied.
+
+## 8. October 2026: the assumptions tested, and a simulator
+
+A final review checked the assumption behind each headline, extended the project into one new
+question, and tidied the code. Details are in [`methodology.md`](methodology.md), sections 4, 5, 7
+and 11–13.
+
+**Two findings changed.**
+
+| Page | Before | After | Why |
+|---|---|---|---|
+| Long run | 2023–2024 deaths 16–17 % above the pre-2020 per-fuel trend, outside its interval | Per kilometre measured on interurban roads, 2023 is +5 % on the 2013–2019 trend, inside its interval; the decline stalled, risk did not jump | the Ministerio de Transportes' measured interurban vehicle-km show kilometres per tonne of fuel rising about 1.9 % a year after 2019, the case the page had named |
+| 2019–2024 | crashes fell per person and per vehicle; admissions rose under every denominator | changes read against an ordinary year: crashes within it under every denominator, admissions beyond it as a count and per unit of traffic | annual counts scatter more than Poisson chance, crashes 68 times as much |
+
+**Two held up under a test.** The owner's age as a stand-in for the driver's (the 75-and-over
+involvement ratio moves from 1.02 to at most 0.83, the fatality ratio not at all), and CORES road
+fuel including its blended biofuel.
+
+**What connects the findings**, now on the overview: wherever risk can be split into how often
+people crash and how badly they are hurt, the difference is in the second, and the long series
+says the same (deaths per tonne of fuel −76 % over 1996–2024, crashes per tonne −13 %, deaths per
+crash −73 %).
+
+**The new question**, what a speed law would do, is the simulator page, kept in the main
+navigation because it follows from that conclusion: severity is energy and fragility, and speed is
+the part a law reaches. It does not break the rule against causal claims from Spanish data, because
+its effects come from published dose-response evidence and it says so; its forecasting model is
+judged on years it did not see, and it reports where a naive forecast does as well.
+
+**Cleanup.** The 3,477-line site module became a package with one module per page; code no page
+or figure reached (the speed report breakdowns the site stopped republishing, the withdrawn
+travel-weighted denominator, chart types and series from removed pages) was removed with its
+tests; the empty notebooks folder went.

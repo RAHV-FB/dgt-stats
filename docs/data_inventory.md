@@ -201,6 +201,31 @@ No duplicate identifiers were found in any year.
   because it is a holiday network. The two seasonal profiles correlate at about 0.75 over
   2000–2007, which is why both are reported rather than one.
 
+### Measured interurban kilometres (added October 2026)
+
+- `traffic/anuario_carreteras_2023.pdf`, the roads chapter of the Ministerio de Transportes'
+  2023 statistical yearbook (13 pages, printed from the Ministry's own workbook in January 2025).
+  Table 1.2.14 gives vehicle-kilometres on the State, regional and provincial interurban networks
+  by type of road, 2004–2023, from each network's traffic-count plan. All twenty years parse; the
+  four road types add up to the published total in every year but 2009, where the published row is
+  5 million vehicle-km (0.002 %) short, so the reader allows one part in ten thousand. Footnote 3
+  marks 2008 as not comparable with 2007 (new road inventory), so trend fits start in 2008.
+  Footnote 1 puts the municipal interurban roads it leaves out at up to 10 % of traffic. Toll
+  motorway kilometres fall after 2019 and autovía kilometres rise as concessions expire and the
+  roads change category, so only the sum of the two is used.
+- Against road fuel: kilometres per tonne were flat over 2013–2019 (8,750 km per tonne) and rose to
+  9,420 in 2023, about 1.9 % a year, which is the drift the long-run page had bounded with a
+  sensitivity and now measures.
+
+### Evidence register for the simulator (added October 2026)
+
+- `evidence/simulator_parameters.csv`, 29 rows, each a value read in its publication with the
+  table or page, the URL and a verbatim quote. The Baseline speed figures were checked against the
+  report's tables 9–12a and its text on autovías, the Elvik exponents against table S1 of TØI
+  report 1034/2009, the response curve against figure 3.11.2 of the handbook, the limits against
+  the consolidated text of the Reglamento General de Circulación and Real Decreto 970/2020 in the
+  BOE, and DGT's values against the two 2024 Universidad de Murcia reports.
+
 ## 4. What the data can and cannot support
 
 | Question | Feasible with current files? | Why |
@@ -218,6 +243,8 @@ No duplicate identifiers were found in any year.
 | Campaign or policy evaluation with daily resolution | **No** | no calendar day in microdata; monthly evaluation is possible |
 | Annual and monthly exposure for risk trends and seasonality | Partly | CORES road fuel (all roads, but tonnes not km, with a fuel-economy drift bounded by a sensitivity), petrol alone (private cars) and toll-motorway intensity (measured, but long-distance routes) are the only monthly series; DGT's 2022 and 2024 kilometre estimates cannot be chained |
 | The 2019 conventional-road speed limit | **No** | the aggregate two-group design fails its own placebo, and section identifiers, limits, speeds and volumes are not published |
+| Deaths per kilometre by year and road class | Yes, interurban, 2008–2023 | the Ministry's measured vehicle-km (table 1.2.14) against interurban deaths from the series and the microdata; no urban kilometres |
+| What a change in speed limits or compliance would do | As a projection | Spanish baselines and measured Spanish speeds with published dose-response evidence; the crash data cannot estimate it, and the forecasting model shows the counts could not detect most such effects within years |
 | Road geometry, speed limits, traffic volume, coordinates | **No** | not in any file |
 
 Vehicle-level and person-level records are the single most valuable addition and are required before any
@@ -225,7 +252,7 @@ factor-interaction work can start. They are not published for download; a data r
 
 ## 5. Organisation
 
-- Raw files are tracked in Git under `data/raw/` (about 260 MB, 110 files) and are never edited in place.
+- Raw files are tracked in Git under `data/raw/` (about 260 MB, 112 files) and are never edited in place.
   `data/raw/manifest.csv` records path, size, SHA-256, source URL, description and the date added for
   each file; any replacement must update the manifest entry.
 - `data/interim/` and `data/processed/` stay ignored and are rebuilt from `data/raw/` by the ingestion

@@ -335,10 +335,10 @@ def test_simulator_page_carries_its_evidence_and_works_without_the_script(built:
     assert f"{-comply.deaths_change:,.0f}" in text
     assert '<div id="simulator-panel" hidden>' in text
     assert "The laws the page offers as starting points" in text
-    # Every published value is shown with its source, and the register is linked.
+    # Every publication the simulator draws on is linked, and the register is downloadable.
     evidence = pd.read_csv(simulator_evidence_path())
-    for source in evidence.source.unique():
-        assert site.esc(source) in text, source
+    for url in evidence.url.unique():
+        assert f'href="{site.esc(url)}"' in text, url
     assert 'href="tables/simulator_evidence.csv"' in text
     # The model behind the detectability is reported against the naive forecasts.
     for name in ("k1_forecast_check", "k2_detectability"):

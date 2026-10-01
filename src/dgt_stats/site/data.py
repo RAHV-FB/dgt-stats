@@ -121,7 +121,7 @@ def _assumptions_section() -> str:
     ]
     frame = pd.DataFrame(rows, columns=["Page", "Assumption", "Test", "Result", "Verdict"])
     return (
-        "<h2>Assumptions tested</h2>"
+        '<h2 id="assumptions-tested">Assumptions tested</h2>'
         "<p>Every headline rests on an assumption the data can be asked about. These are the "
         "ones that could be tested, with what the test found; two of them changed a finding.</p>"
         + table(frame, "The assumptions behind the headlines, and what testing them found")

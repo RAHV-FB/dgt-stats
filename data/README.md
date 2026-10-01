@@ -4,7 +4,7 @@ Data are organised by processing stage. Source data must never be manually edite
 
 ## Layers
 
-- `raw/`: source downloads kept byte for byte, except `ine_poblacion_provincias_edad_sexo.csv` (an extract of INE table 56947 written by `scripts/fetch_ine.py`) and `driving_activity_by_age.csv` (hand-typed survey values); tracked in Git, with `raw/manifest.csv` listing path, size, SHA-256, source URL, description and the date added. Subfolders: `microdata/`, `tables/`, `exposure/`, `reports/`.
+- `raw/`: source downloads kept byte for byte, except `ine_poblacion_provincias_edad_sexo.csv` (an extract of INE table 56947 written by `scripts/fetch_ine.py`), `driving_activity_by_age.csv` (hand-typed survey values) and `evidence/simulator_parameters.csv` (hand-typed published values for the simulator, each with its source, table, URL and a verbatim quote); tracked in Git, with `raw/manifest.csv` listing path, size, SHA-256, source URL, description and the date added. Subfolders: `microdata/`, `tables/`, `exposure/`, `reports/`, `evidence/`.
 - `interim/`: parsed files with harmonised encodings, names and types.
 - `processed/`: validated, analysis-ready tables at documented units of observation.
 

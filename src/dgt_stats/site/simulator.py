@@ -23,48 +23,59 @@ from dgt_stats.site.components import (
     table,
 )
 
-EVIDENCE_LABELS = {
-    "exponent_deaths": "Power Model exponent, deaths",
-    "exponent_seriously_injured": "Power Model exponent, admitted to hospital",
-    "exponent_slightly_injured": "Power Model exponent, other injured",
-    "exponent_injury_crashes": "Power Model exponent, injury crashes",
-    "pass_through_a": "Response curve, squared term",
-    "pass_through_b": "Response curve, linear term",
-    "mean_speed": "Mean car speed today (km/h)",
-    "v85": "85th percentile of car speed (km/h)",
-    "share_within_limit": "Cars within the limit",
-    "limit": "Legal limit (km/h)",
-    "value_death": "Value of preventing a death (€)",
-    "value_serious_injury": "Value of preventing a serious injury (€)",
-    "value_slight_injury": "Value of preventing a slight injury (€)",
+OUTCOME_LABELS = {
+    "deaths": "Deaths",
+    "seriously_injured": "Admitted to hospital",
+    "slightly_injured": "Other injured",
+    "injury_crashes": "Injury crashes",
 }
 
 
-APPLIES_TO = {
-    "rural": "rural roads and motorways",
-    "urban": "urban streets",
-    "all": "all roads",
-    "motorway": "motorways and autovías",
-    "conventional": "conventional roads",
-    "urban_50": "urban streets at 50",
-    "urban_30": "urban streets at 30",
-}
+def _source(evidence: pd.DataFrame, name: str, applies_to: str, text: str) -> str:
+    """``text`` linked to the URL the register gives for one published value."""
+    row = evidence[(evidence.parameter == name) & (evidence.applies_to == applies_to)].iloc[0]
+    return f'<a href="{esc(row.url)}">{esc(text)}</a>'
 
 
-def _evidence_value(row: pd.Series) -> str:
-    def show(value: float) -> str:
-        if row.parameter == "share_within_limit":
-            return f"{value * 100:.1f}%"
-        if row.parameter.startswith("value_"):
-            return f"{value:,.0f}"
-        if row.parameter.startswith("pass_through"):
-            return f"{value:g}"
-        return f"{value:g}"
+def _evidence_tables(evidence: pd.DataFrame, speeds: pd.DataFrame) -> str:
+    """The measured speeds and the Power Model exponents, the two sets of values behind the page."""
+    rows = [
+        {
+            "Road": row.site_label,
+            "Mean speed, km/h": _fmt_dec(row.mean_speed),
+            "Within the limit": _fmt_pct(row.share_within_limit, 0),
+            "85th percentile, km/h": _fmt_dec(row.v85, 0),
+            "Fitted mean, km/h": _fmt_dec(row.implied_mean),
+            "Excess over the limit per car, km/h": _fmt_dec(row.excess_over_limit),
+        }
+        for row in speeds.itertuples()
+    ]
+    out = table(
+        pd.DataFrame(rows),
+        "Free-flow car speeds measured in Spain in 2022 (EU Baseline project, weekday daytime), "
+        "and the log-normal fitted through the share within the limit and the 85th percentile",
+    )
 
-    text = show(float(row.value))
-    if pd.notna(row.low) and pd.notna(row.high) and row.parameter.startswith("exponent"):
-        text += f" ({show(float(row.low))} to {show(float(row.high))})"
-    return _minus(text)
+    def exponent(outcome: str, environment: str) -> str:
+        value, low, high = (
+            simulator.exponent(outcome, environment, bound) for bound in ("value", "low", "high")
+        )
+        return _minus(f"{value:g} ({low:g} to {high:g})")
+
+    rows = [
+        {
+            "Outcome": label,
+            "Rural roads and motorways": exponent(outcome, "rural"),
+            "Urban streets": exponent(outcome, "urban"),
+        }
+        for outcome, label in OUTCOME_LABELS.items()
+    ]
+    out += table(
+        pd.DataFrame(rows),
+        "Power Model exponents with 95% intervals (Elvik 2009, TØI report 1034/2009, table S1): "
+        "a count changes by the ratio of mean speeds raised to this power",
+    )
+    return out
 
 
 def _simulator_controls(parameters: dict) -> str:
@@ -210,7 +221,7 @@ def page_simulator(captions: dict[str, str]) -> str:
             (
                 "If every speeder kept to today's limits",
                 _fmt_int(comply.deaths_change),
-                f"deaths a year on motorways and conventional roads, of {_fmt_int(interurban_total)}",
+                f"deaths a year, of {_fmt_int(interurban_total)} on motorways and conventional roads",
             ),
             (
                 "Conventional roads 90 → 80 km/h",
@@ -327,43 +338,37 @@ def page_simulator(captions: dict[str, str]) -> str:
     body += downloads([("simulator_class_risk", "deaths per vehicle-km by road class")])
 
     body += "<h2>How each number is made</h2>"
+    elvik = _source(evidence, "exponent_deaths", "rural", "Elvik's 2009 meta-analysis")
+    dgt_value = _source(evidence, "value_death", "all", "DGT's 2024 value of a life")
     body += (
         "<p>Four links, each with its source. <strong>The baseline</strong> is the mean deaths, "
         "admissions and other injured of "
         f"{parameters['baselineYears'][0]}–{parameters['baselineYears'][1]} by road class, from "
         "the crash microdata, which reconcile exactly with DGT's yearbook. <strong>Today's "
         "speeds</strong> are the free-flow speeds of cars measured by radar in Spain in 2022 for "
-        "the EU's Baseline project: the mean, the share within the limit and the speed 85% of "
-        "cars stay under. A log-normal distribution through the last two reproduces both; its "
-        "mean lands within "
-        f"{float((speeds.implied_mean - speeds.mean_speed).abs().max()):.1f} km/h of the "
-        "measured one on every kind of road. <strong>A new limit</strong> moves the average "
-        "speed by part of the change: the curve fitted to 143 before-and-after results puts a "
+        f"the {_source(evidence, 'mean_speed', 'conventional', 'EU Baseline project')}: the "
+        "mean, the share within the limit and the speed 85% of cars stay under. A log-normal "
+        "distribution through the last two reproduces both, and its mean lands within "
+        f"{float((speeds.implied_mean - speeds.mean_speed).abs().max()):.1f} km/h of the measured "
+        "one on every kind of road. The limits are those of the "
+        f"{_source(evidence, 'limit', 'motorway', 'Reglamento General de Circulación')} and "
+        f"{_source(evidence, 'limit', 'urban_50', 'Real Decreto 970/2020')}. <strong>A new "
+        "limit</strong> moves the average speed by part of the change: the curve fitted to "
+        f"{_source(evidence, 'pass_through_b', 'all', '143 before-and-after results')} puts a "
         f"cut of 10 km/h at {_fmt_dec(simulator.typical_response(-10))} km/h and of 20 km/h at "
         f"{_fmt_dec(simulator.typical_response(-20))}. <strong>Compliance</strong> brings a share "
         "of the drivers above the limit down to it, which lowers the mean by that share of the "
         f"average excess: {float(conv_speed.excess_over_limit):.1f} km/h per car on conventional "
         f"roads, {float(motor_speed.excess_over_limit):.1f} on motorways. <strong>The Power "
-        "Model</strong> turns the change in mean speed into casualties: a count changes by the "
-        "ratio of the speeds raised to a power, larger for deaths than for injuries.</p>"
+        "Model</strong>, in "
+        f"{elvik}, turns "
+        "the change in mean speed into casualties, more steeply for deaths than for injuries. "
+        "Casualties are valued at "
+        f"{dgt_value} and "
+        f"{_source(evidence, 'value_serious_injury', 'all', 'of an injury')}.</p>"
     )
-    rows = [
-        {
-            "Value": EVIDENCE_LABELS[row.parameter],
-            "Applies to": APPLIES_TO[row.applies_to],
-            "Figure": _evidence_value(row),
-            "Source": row.source,
-            "Where": row.location,
-        }
-        for row in evidence.itertuples()
-        if row.parameter in EVIDENCE_LABELS
-    ]
-    body += table(
-        pd.DataFrame(rows),
-        "Every published value the simulator uses; exponent intervals are 95%; the register "
-        "below gives the URL and a verbatim quote for each row",
-    )
-    body += downloads([("simulator_evidence", "every value with its URL and a verbatim quote")])
+    body += _evidence_tables(evidence, read_table("simulator_speed_sites"))
+    body += downloads([("simulator_evidence", "every published value, its URL and a quote")])
 
     body += "<h2>Could the counts show it?</h2>"
     holdout = validation.loc[("deaths_all", "holdout")]
