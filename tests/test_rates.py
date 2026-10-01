@@ -39,25 +39,3 @@ def test_wilson_interval_bounds() -> None:
     low, high = rates.wilson_interval(0.759, 935)
     assert 0.73 < low < 0.759 < high < 0.79
     assert rates.wilson_interval(0.0, 10)[0] == 0.0
-
-
-def test_interpolate_share_between_and_outside_waves() -> None:
-    waves = pd.DataFrame({"wave": [2018, 2023], "share": [0.8, 0.7], "n": [900, 900]})
-    assert rates.interpolate_share(2018, waves)[0] == pytest.approx(0.8)
-    assert rates.interpolate_share(2020, waves)[0] == pytest.approx(0.76)
-    assert rates.interpolate_share(2014, waves)[0] == pytest.approx(0.8)
-    assert rates.interpolate_share(2025, waves)[0] == pytest.approx(0.7)
-    value, low, high = rates.interpolate_share(2021, waves)
-    assert low < value < high
-
-
-def test_travel_weighted_share_spreads_and_caps() -> None:
-    waves = pd.DataFrame({"wave": [2023], "share": [0.75], "n": [900]})
-    profile = pd.Series({"25-34": 1.2, "75+": 0.4})
-    licence = pd.Series({"25-34": 0.95, "75+": 0.25})
-    out = rates.travel_weighted_share(2023, waves, profile, licence)
-    young = out[out.band == "25-34"].iloc[0]
-    old = out[out.band == "75+"].iloc[0]
-    assert young.share == pytest.approx(0.9) and not young.capped
-    assert old.share == pytest.approx(0.25) and old.capped
-    assert young.share_low < young.share < young.share_high

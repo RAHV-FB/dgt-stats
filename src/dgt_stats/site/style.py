@@ -1,0 +1,175 @@
+"""The stylesheet: a statistical bulletin, not a dashboard."""
+
+from __future__ import annotations
+
+STYLE = """
+/* A statistical bulletin, not a dashboard: serif for reading, sans for furniture and figures,
+   hairline rules instead of boxes, and a text column narrower than the charts so that a figure
+   or a table always breaks out of the prose. The paper colour is the same one the SVGs are drawn
+   on, so a chart sits on the page with no visible edge. */
+:root {
+  --paper: #fcfcfb;
+  --ink: #191817;
+  --ink-2: #57544e;
+  --rule: #ddd9d1;
+  --rule-strong: #b4afa4;
+  --accent: #1b5fae;
+  --wash: #f4f2ec;
+  --serif: Charter, "Bitstream Charter", "Sitka Text", Cambria, "Source Serif 4", Georgia, serif;
+  --sans: "Helvetica Neue", Helvetica, Arial, system-ui, sans-serif;
+  --measure: 34rem;
+  --wide: 52rem;
+}
+* { box-sizing: border-box; }
+html { background: var(--paper); }
+body {
+  margin: 0;
+  color: var(--ink);
+  background: var(--paper);
+  font-family: var(--serif);
+  font-size: 19px;
+  line-height: 1.62;
+  -webkit-font-smoothing: antialiased;
+}
+header, main, footer { max-width: var(--wide); margin: 0 auto; padding: 0 24px; }
+
+/* Masthead */
+header { padding-top: 28px; }
+.masthead { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; }
+.masthead a { color: var(--ink); text-decoration: none; font-weight: 600; font-size: 1.05rem; letter-spacing: 0.01em; }
+.masthead .strap { font-family: var(--sans); font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-2); }
+nav { margin: 14px 0 0; border-top: 1px solid var(--ink); border-bottom: 1px solid var(--rule); }
+nav ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0 22px; }
+nav a {
+  display: inline-block; padding: 9px 0 8px; color: var(--ink-2); text-decoration: none;
+  font-family: var(--sans); font-size: 0.78rem; letter-spacing: 0.06em; text-transform: uppercase;
+}
+nav a:hover { color: var(--ink); }
+nav a[aria-current="page"] { color: var(--ink); box-shadow: inset 0 -2px 0 var(--accent); }
+nav ul.supporting { border-top: 1px solid var(--rule); }
+nav ul.supporting li:first-child { font-family: var(--sans); font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-2); padding: 8px 0; }
+
+main { padding-top: 34px; padding-bottom: 56px; }
+h1 { font-size: 2.35rem; line-height: 1.12; margin: 0 0 14px; letter-spacing: -0.012em; font-weight: 600; max-width: var(--measure); }
+h2 {
+  font-size: 1.28rem; font-weight: 600; margin: 46px 0 10px; padding-top: 12px;
+  border-top: 1px solid var(--rule); max-width: var(--wide); letter-spacing: -0.005em;
+}
+h3 { font-size: 1.05rem; font-weight: 600; margin: 30px 0 6px; max-width: var(--measure); }
+p, li { max-width: var(--measure); }
+p { margin: 0 0 1em; }
+p.lead { font-size: 1.12rem; color: var(--ink-2); line-height: 1.5; margin-bottom: 26px; }
+p.answer { font-size: 1.18rem; line-height: 1.5; margin: 0 0 1.2em; }
+p.answer strong, p.answer em { font-weight: 600; font-style: normal; }
+a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+
+/* Key figures: a bulletin's indicator strip, ruled rather than boxed. */
+.figures + h2, .figures + p + h2 { border-top: 0; padding-top: 0; margin-top: 34px; }
+.figures { display: flex; flex-wrap: wrap; margin: 0 0 32px; border-top: 2px solid var(--ink); border-bottom: 1px solid var(--rule); }
+.keyfig { flex: 1 1 11rem; padding: 12px 18px 13px 0; margin-right: 18px; border-right: 1px solid var(--rule); }
+.keyfig:last-child { border-right: 0; margin-right: 0; }
+.keyfig .label {
+  font-family: var(--sans); font-size: 0.7rem; letter-spacing: 0.07em; text-transform: uppercase;
+  color: var(--ink-2); line-height: 1.35; min-height: 2.7em;
+}
+.keyfig .value { font-size: 1.95rem; font-weight: 600; font-variant-numeric: tabular-nums lining-nums; line-height: 1.1; margin: 5px 0 3px; letter-spacing: -0.02em; }
+.keyfig .gloss { font-family: var(--sans); font-size: 0.76rem; line-height: 1.35; color: var(--ink-2); }
+
+/* Findings: a numbered editorial list on the front page. */
+.finding { max-width: var(--measure); margin: 0 0 30px; }
+.finding h3 { margin: 0 0 6px; font-size: 1.12rem; line-height: 1.3; }
+.finding h3 .num { font-family: var(--sans); font-size: 0.72rem; letter-spacing: 0.08em; color: var(--accent); display: block; margin-bottom: 3px; }
+.finding h3 a { color: var(--ink); text-decoration: none; box-shadow: inset 0 -1px 0 var(--rule-strong); }
+.finding h3 a:hover { box-shadow: inset 0 -2px 0 var(--accent); }
+.finding p { margin: 0 0 6px; }
+.finding p.method { font-family: var(--sans); font-size: 0.81rem; line-height: 1.45; color: var(--ink-2); }
+
+/* Figures and tables break out of the text column. */
+figure { margin: 26px 0 30px; max-width: var(--wide); }
+.figure-wrap { overflow-x: auto; }
+figure img { width: 100%; min-width: 660px; height: auto; display: block; background: var(--paper); }
+figcaption {
+  font-family: var(--sans); font-size: 0.78rem; line-height: 1.5; color: var(--ink-2);
+  margin-top: 8px; padding-top: 7px; border-top: 1px solid var(--rule); max-width: 46rem;
+}
+.table-wrap { overflow-x: auto; margin: 24px 0 8px; max-width: var(--wide); }
+table {
+  border-collapse: collapse; font-family: var(--sans); font-size: 0.82rem;
+  font-variant-numeric: tabular-nums lining-nums; min-width: 460px;
+}
+caption {
+  caption-side: top; text-align: left; font-family: var(--sans); font-size: 0.78rem;
+  line-height: 1.5; color: var(--ink-2); padding: 0 0 9px; max-width: 46rem;
+}
+thead th {
+  font-weight: 600; color: var(--ink); text-align: right; vertical-align: bottom;
+  padding: 0 14px 6px 0; border-bottom: 1px solid var(--ink);
+  border-top: 2px solid var(--ink);
+  font-size: 0.74rem; letter-spacing: 0.03em;
+}
+thead th:first-child { text-align: left; }
+tbody th, tbody td { padding: 5px 14px 5px 0; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--rule); }
+tbody th { font-weight: 400; text-align: left; }
+tbody tr:last-child th, tbody tr:last-child td { border-bottom: 1px solid var(--rule-strong); }
+th.wrap, td.wrap { white-space: normal; min-width: 22ch; max-width: 40ch; text-align: left; }
+.table-wrap:focus-visible, .figure-wrap:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+.downloads { font-family: var(--sans); font-size: 0.78rem; color: var(--ink-2); margin: 0 0 30px; max-width: 46rem; }
+.note { background: var(--wash); padding: 14px 18px; margin: 22px 0; max-width: var(--measure); }
+.note p { margin: 0; }
+.limit {
+  font-family: var(--sans); font-size: 0.83rem; line-height: 1.55; color: var(--ink-2);
+  max-width: 44rem; margin: 26px 0 0; padding-top: 12px; border-top: 1px solid var(--rule);
+}
+.limit strong { color: var(--ink); }
+.conclusion { max-width: var(--measure); margin: 26px 0 0; padding-left: 16px; border-left: 3px solid var(--accent); }
+.conclusion p { margin: 0; }
+
+/* The simulator: a plain form in the bulletin's furniture, ruled rather than boxed. */
+.simulator { max-width: var(--wide); margin: 8px 0 18px; font-family: var(--sans); font-size: 0.86rem; }
+.simulator .help { color: var(--ink-2); max-width: 46rem; }
+.simulator fieldset {
+  border: 0; border-top: 1px solid var(--rule); margin: 0; padding: 10px 0 14px;
+  display: flex; flex-wrap: wrap; gap: 10px 26px; align-items: flex-end; min-width: 0;
+}
+.simulator legend {
+  float: left; width: 100%; padding: 0 0 4px; font-size: 0.7rem; letter-spacing: 0.07em;
+  text-transform: uppercase; color: var(--ink-2);
+}
+.simulator .control { display: flex; flex-direction: column; gap: 4px; min-width: 12rem; }
+.simulator select, .presets button {
+  font: inherit; color: var(--ink); background: var(--paper);
+  border: 1px solid var(--rule-strong); border-radius: 2px; padding: 5px 9px;
+}
+.simulator .choice { display: block; width: 100%; max-width: 46rem; }
+.simulator input[type=range] { width: min(26rem, 100%); accent-color: var(--accent); }
+.simulator output { font-variant-numeric: tabular-nums; font-weight: 600; }
+.presets { display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; border-top: 1px solid var(--rule); padding-top: 12px; }
+.presets span { font-size: 0.7rem; letter-spacing: 0.07em; text-transform: uppercase; color: var(--ink-2); margin-right: 4px; }
+.presets button { font-size: 0.8rem; cursor: pointer; }
+.presets button:hover, .presets button:focus-visible, .simulator select:focus-visible { border-color: var(--accent); color: var(--accent); outline: none; }
+.verdict { font-family: var(--sans); font-size: 0.9rem; line-height: 1.5; max-width: 46rem; border-left: 3px solid var(--accent); padding-left: 14px; margin: 14px 0 22px; }
+tr.total th, tr.total td { font-weight: 600; }
+
+footer {
+  border-top: 1px solid var(--rule); margin-top: 20px; padding-top: 18px; padding-bottom: 40px;
+  font-family: var(--sans); font-size: 0.78rem; line-height: 1.55; color: var(--ink-2);
+}
+footer p { max-width: 46rem; }
+
+@media (max-width: 640px) {
+  body { font-size: 18px; }
+  h1 { font-size: 1.85rem; }
+  .keyfig { flex-basis: 100%; border-right: 0; border-bottom: 1px solid var(--rule); margin-right: 0; padding-right: 0; }
+  .keyfig:last-child { border-bottom: 0; }
+}
+@media print {
+  nav, .downloads { display: none; }
+  body { font-size: 11pt; }
+  figure, .figure-wrap, .table-wrap { break-inside: avoid; overflow: visible; }
+  figure img { min-width: 0; }
+  table { min-width: 0; font-size: 8pt; }
+  th, td { white-space: normal; }
+  a[href^="http"]::after { content: " (" attr(href) ")"; }
+}
+"""

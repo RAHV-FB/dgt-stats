@@ -1,9 +1,7 @@
-"""Rates with exact Poisson intervals, rate ratios and an exploratory exposure scenario.
+"""Rates with exact Poisson intervals, rate ratios, and Wilson intervals for shares.
 
-Counts of deaths or involved drivers are treated as Poisson. Observed population and licence
-denominators are treated as known; the legacy ESRA×MOVILIA exposure-equivalent denominator is a
-sensitivity construction rather than an observed driver count. Intervals are 95 % unless
-``alpha`` says otherwise.
+Counts of deaths or involved drivers are treated as Poisson and their denominators as known.
+Intervals are 95 % unless ``alpha`` says otherwise.
 """
 
 from __future__ import annotations
@@ -85,57 +83,3 @@ def wilson_interval(share: float, n: float, alpha: float = 0.05) -> tuple[float,
     centre = (share + z**2 / (2 * n)) / (1 + z**2 / n)
     half = z * np.sqrt(share * (1 - share) / n + z**2 / (4 * n**2)) / (1 + z**2 / n)
     return (max(centre - half, 0.0), min(centre + half, 1.0))
-
-
-def interpolate_share(year: int, waves: pd.DataFrame) -> tuple[float, float, float]:
-    """Survey share for ``year``: linear between waves, held flat outside them.
-
-    ``waves`` has columns ``wave``, ``share`` and ``n``. The interval is the Wilson interval of
-    the nearest wave, centred on the interpolated value.
-    """
-    waves = waves.sort_values("wave").reset_index(drop=True)
-    years = waves.wave.to_numpy(dtype=float)
-    shares = waves.share.to_numpy(dtype=float)
-    value = float(np.interp(year, years, shares))
-    nearest = waves.iloc[int(np.argmin(np.abs(years - year)))]
-    low, high = wilson_interval(float(nearest.share), float(nearest.n))
-    return (value, value - (float(nearest.share) - low), value + (high - float(nearest.share)))
-
-
-def travel_weighted_share(
-    year: int,
-    waves: pd.DataFrame,
-    profile: pd.Series,
-    licence_share: pd.Series,
-) -> pd.DataFrame:
-    """Exploratory ESRA×MOVILIA age-allocation scenario retained for reproducibility.
-
-    This is *not* an observed share of residents who drive and must not be presented as one.
-    ``profile`` is historical MOVILIA 2006 car-or-motorcycle trip intensity per resident, where
-    drivers and passengers are not separated. The national ESRA share of adults aged 18–74 who
-    report driving a car at least a few days a month is allocated across age bands in proportion
-    to that profile and capped at each band's licence-holding share. The cap is not redistributed.
-
-    The two inputs therefore measure different objects, cover different age ranges and refer to
-    different years. The output is useful only as a sensitivity denominator ("exposure-
-    equivalents"), not as a head count, a 2024 age-specific driver share or measured distance
-    driven. The function name and columns are retained so historical result tables remain
-    reproducible. Columns: ``band, share, share_low, share_high, national_share, capped``.
-    """
-    national, low, high = interpolate_share(year, waves)
-    records = []
-    for band, weight in profile.items():
-        cap = float(licence_share.get(band, 1.0))
-        cap = min(cap, 1.0) if not np.isnan(cap) else 1.0
-        share = min(national * weight, cap)
-        records.append(
-            {
-                "band": band,
-                "share": share,
-                "share_low": min(low * weight, cap),
-                "share_high": min(high * weight, cap),
-                "national_share": national,
-                "capped": national * weight > cap,
-            }
-        )
-    return pd.DataFrame.from_records(records).astype({"band": "string"})

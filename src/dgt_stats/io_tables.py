@@ -126,7 +126,6 @@ PEDESTRIAN_AGE_SHEETS: dict[str, str] = {
     "Edad_Pea_VIC_U": "urban",
 }
 
-SEVERITY_LEVELS = ("deaths_30d", "hospitalised_30d", "non_hospitalised_30d")
 SEVERITY_LABELS = {
     "Fallecidos": "deaths_30d",
     "Heridos hospitalizados": "hospitalised_30d",
@@ -990,25 +989,6 @@ INFRACTION_PREFIXES = (
     "infracciones de carga del vehículo",
     "resumen de infracciones",
 )
-INFRACTION_ITEM_LABELS = {
-    "speed_infraction": "Speed infraction",
-    "too_slow": "Driving too slowly, obstructing traffic",
-    "stop_sign": "Failing to stop at a stop sign",
-    "pedestrian_crossing": "Failing to respect a pedestrian crossing",
-    "other_priority": "Other priority infraction",
-    "wrong_way": "Driving against the flow or where prohibited",
-    "partial_wrong_side": "Partly invading the opposite lane",
-    "overtaking": "Illegal overtaking",
-    "safety_distance": "Not keeping a safe distance",
-    "other_infraction": "Other infraction",
-    "door_opening": "Opening a door without care",
-    "lighting": "Incorrect use of lights",
-    "load": "Excess, badly secured or shed load",
-    "any": "Some infraction",
-    "none": "No infraction",
-    "unknown": "Unknown",
-    "total": "All drivers",
-}
 
 
 def _infraction_key(label: str) -> str:

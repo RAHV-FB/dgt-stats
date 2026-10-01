@@ -37,7 +37,6 @@ from dgt_stats.paths import PROCESSED_DATA_DIR, TABLES_DIR
 PROCESSED_CRASHES = PROCESSED_DATA_DIR / "accidentes.parquet"
 
 BASE_YEAR = 2019
-LATEST_TABLE_YEAR = 2024
 SEVERITY_METRICS = ("crashes", "deaths_30d", "hospitalised_30d", "non_hospitalised_30d")
 
 CRASH_COLUMNS = [
@@ -79,23 +78,6 @@ def annual_headline() -> pd.DataFrame:
         wide[f"{metric}_index"] = (wide[metric] / base * 100).round(1)
     wide["deaths_per_100_crashes"] = (wide.deaths_30d / wide.crashes * 100).round(2)
     return wide
-
-
-def annual_by_zone() -> pd.DataFrame:
-    """Crashes and deaths per year and zone from the microdata (2016–2024)."""
-    crashes = read_crashes(["ANYO", "zone", "fatal", "n_deaths", "serious"])
-    out = (
-        crashes.groupby(["ANYO", "zone"], observed=True)
-        .agg(
-            crashes=("fatal", "size"),
-            fatal_crashes=("fatal", "sum"),
-            deaths_30d=("n_deaths", "sum"),
-        )
-        .reset_index()
-        .rename(columns={"ANYO": "year"})
-    )
-    out["deaths_per_100_crashes"] = (out.deaths_30d / out.crashes * 100).round(2)
-    return out
 
 
 # --------------------------------------------------------------------------- Q2 timing
@@ -146,26 +128,6 @@ def other_road_by_period() -> pd.DataFrame:
 
 
 # --------------------------------------------------------------------------- Q5 road users
-
-
-def deaths_by_road_user() -> pd.DataFrame:
-    """30-day deaths by road-user type, year and zone (2016–2024), long format with shares."""
-    columns = ["ANYO", "zone", *labels.ROAD_USER_TYPES]
-    crashes = read_crashes(columns)
-    totals = crashes.groupby(["ANYO", "zone"], observed=True)[list(labels.ROAD_USER_TYPES)].sum(
-        min_count=1
-    )
-    long = (
-        totals.reset_index()
-        .melt(id_vars=["ANYO", "zone"], var_name="column", value_name="deaths_30d")
-        .rename(columns={"ANYO": "year"})
-    )
-    long["road_user"] = long.column.map(labels.ROAD_USER_TYPES)
-    long["vulnerable"] = long.column.isin(labels.VULNERABLE_TYPES)
-    long["share"] = (
-        long.deaths_30d / long.groupby(["year", "zone"]).deaths_30d.transform("sum")
-    ).round(4)
-    return long[["year", "zone", "column", "road_user", "vulnerable", "deaths_30d", "share"]]
 
 
 # ------------------------------------------------------------------- licence holders by age

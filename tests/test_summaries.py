@@ -24,14 +24,6 @@ def test_annual_headline_matches_yearbook() -> None:
     assert headline.year.min() == 1993 and len(headline) == 32
 
 
-def test_annual_by_zone_sums_to_yearbook() -> None:
-    by_zone = summaries.annual_by_zone()
-    year = by_zone[by_zone.year == 2024].set_index("zone")
-    assert year.loc["interurban", "crashes"] == 35_772
-    assert year.loc["urban", "crashes"] == 66_224
-    assert year.loc["interurban", "deaths_30d"] + year.loc["urban", "deaths_30d"] == 1_785
-
-
 def test_night_share_by_year_and_zone() -> None:
     night = summaries.night_share_by_year_zone()
     assert set(night.zone) == {"interurban", "urban"}
@@ -39,14 +31,6 @@ def test_night_share_by_year_and_zone() -> None:
     # Darkness holds a larger share of deaths than of crashes in every year and zone, which is the
     # one sentence the context page draws from this table.
     assert (night.night_death_share > night.night_crash_share).all()
-
-
-def test_deaths_by_road_user_reconciles() -> None:
-    users = summaries.deaths_by_road_user()
-    assert users[users.year == 2024].deaths_30d.sum() == 1_785
-    # The road-user split of each year and zone adds up to the zone table, not just to itself.
-    zone_totals = summaries.annual_by_zone().set_index(["year", "zone"]).deaths_30d
-    assert users.groupby(["year", "zone"]).deaths_30d.sum().eq(zone_totals).all()
 
 
 def test_licence_share_by_age() -> None:

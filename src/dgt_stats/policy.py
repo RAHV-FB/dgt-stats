@@ -23,7 +23,6 @@ PROCESSED_CRASHES = PROCESSED_DATA_DIR / "accidentes.parquet"
 
 TREATED = "conventional"
 CONTROL = "motorway_dual"
-GROUP_LABELS = {TREATED: "Conventional roads", CONTROL: "Motorways and dual carriageways"}
 # The two-group panel is built from the road-type code, not from ``road_group``: DGT's
 # "carretera convencional de doble calzada" (code 5) is a conventional road under RD 1514/2018,
 # so it belongs with the treated roads, and from 2021 most of its crashes are coded as

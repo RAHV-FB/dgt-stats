@@ -48,14 +48,6 @@ def read_activity_register() -> pd.DataFrame:
     return out
 
 
-def esra_shares() -> pd.DataFrame:
-    """ESRA national shares of adults who drove a car at least a few days a month, by wave."""
-    register = read_activity_register()
-    rows = register[register.source.str.startswith("ESRA")]
-    out = rows[["source", "wave", "definition", "age_low", "age_high", "share", "n"]]
-    return out.sort_values("wave").reset_index(drop=True)
-
-
 def _text(value: object) -> str:
     return "" if pd.isna(value) else " ".join(str(value).split())
 

@@ -182,11 +182,6 @@ def load_dictionary() -> dict[str, dict[str, str]]:
     return dictionary
 
 
-def code_columns() -> tuple[str, ...]:
-    """Columns that have a code list in the dictionary."""
-    return tuple(load_dictionary())
-
-
 def labels_for(column: str) -> dict[str, str]:
     """Code → label map for one column; raises ``KeyError`` for non-coded columns."""
     return load_dictionary()[column]

@@ -1,0 +1,109 @@
+"""Result tables read once and shared by the pages that quote them."""
+
+from __future__ import annotations
+
+import pandas as pd
+
+from dgt_stats.site.components import read_table
+
+
+def _severity_numbers() -> dict[str, object]:
+    holdout = read_table("q3_holdout_summary").set_index("outcome")
+    coefficients = read_table("q3_model_coefficients")
+    fatal = coefficients[coefficients.outcome == "fatal"]
+    adverse = read_table("q3_adverse_conditions")
+    fatal_adverse = adverse[adverse.outcome == "fatal"].set_index(["variant", "level"])
+    return {
+        "n": int(fatal.n.iloc[0]),
+        "fatal_share": float(fatal.events.iloc[0]) / float(fatal.n.iloc[0]),
+        "auc_fatal": float(holdout.loc["fatal", "auc"]),
+        "auc_serious": float(holdout.loc["serious", "auc"]),
+        "adverse": fatal_adverse,
+        "coefficients": coefficients,
+    }
+
+
+def _age_numbers() -> dict[str, object]:
+    ratios = read_table("q7_km_ratio").set_index(["measure", "band"])
+    rates = read_table("q7_km_rates").set_index("band")
+    contrast = read_table("q7_denominator_contrast").set_index(["denominator", "band"])
+    company = read_table("q7_company_km").set_index(["allocation", "band"])
+    return {"ratios": ratios, "rates": rates, "contrast": contrast, "company": company}
+
+
+def _policy_numbers() -> dict[str, object]:
+    sensitivity = read_table("q8_points_sensitivity").set_index("variant")
+    calendar = read_table("q8_points_calendar_placebo")
+    forecast = read_table("q8_points_forecast")
+    transitions = read_table("q8_points_transitions")
+    trend = read_table("q8_points_trend_choice")
+    return {
+        "sensitivity": sensitivity,
+        "calendar": calendar,
+        "forecast": forecast,
+        "transitions": transitions,
+        "trend": trend,
+        "main": sensitivity.loc["main"],
+        "linear": sensitivity.loc["linear_trend"],
+        "true_calendar": calendar[calendar.is_true].iloc[0],
+        "true_forecast": forecast[forecast.is_true].iloc[0],
+    }
+
+
+def _risk_numbers() -> dict[str, object]:
+    index = read_table("risk_index")
+    last = int(index.year.max())
+    latest = index[index.year == last].set_index(["outcome", "denominator"])
+    return {"index": index, "last": last, "latest": latest}
+
+
+def _long_run_numbers() -> dict[str, object]:
+    series = read_table("longrun_series")
+    segments = read_table("longrun_segments")
+    efficiency = read_table("longrun_efficiency")
+    projected = series[series.period == "projected"].set_index(["measure", "year"])
+    return {
+        "series": series,
+        "segments": segments,
+        "efficiency": efficiency,
+        "projected": projected,
+        "last": int(series.year.max()),
+    }
+
+
+def _season_numbers() -> dict[str, object]:
+    effects = read_table("season_month_effects").set_index(["exposure", "month"])
+    lockdown = read_table("season_lockdown").set_index("month")
+    return {"effects": effects, "lockdown": lockdown}
+
+
+def _sex_numbers() -> dict[str, object]:
+    ratios = read_table("drivers_sex_ratios").set_index(["scope", "band", "measure"])
+    rates = read_table("drivers_sex_rates").set_index(["scope", "band", "sex"])
+    travel = read_table("drivers_sex_travel").set_index("band")
+    return {"ratios": ratios, "rates": rates, "travel": travel}
+
+
+def _speed_numbers() -> dict[str, object]:
+    pooled = read_table("speed_severity_pooled").set_index("road_type")
+    yearly = read_table("speed_severity")
+    all_roads = yearly[yearly.road_type == "all"].set_index("year")
+    return {"pooled": pooled, "yearly": yearly, "all_roads": all_roads}
+
+
+def _factor_numbers() -> dict[str, object]:
+    windows = read_table("factor_windows")
+    changes = read_table("factor_changes")
+    shares = read_table("factor_shares").set_index(["zone", "factor", "year"])
+    return {"windows": windows, "changes": changes, "shares": shares}
+
+
+def _window(windows: pd.DataFrame, zone: str, factor: str, year: int) -> pd.Series:
+    """The comparable window of ``factor`` in ``zone`` that contains ``year``."""
+    match = windows[
+        (windows.zone == zone)
+        & (windows.factor == factor)
+        & (windows.first_year <= year)
+        & (windows.last_year >= year)
+    ]
+    return match.iloc[0]
