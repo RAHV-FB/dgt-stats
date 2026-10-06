@@ -229,8 +229,10 @@ def page_trends(captions: dict[str, str]) -> str:
             if crash_beyond
             else ". "
         )
-        + "Serious injury rose: more people were admitted to hospital after a crash "
-        f"in {last} than in 2019, beyond an ordinary year as a count and per unit of traffic."
+        + "Recorded serious injury rose: more people were recorded as admitted to hospital after "
+        f"a crash in {last} than in 2019, beyond an ordinary year as a count and per unit of "
+        "traffic. With crashes flat, that is more admissions per crash, and these tables cannot "
+        "tell more serious crashes from more complete tracing of admissions."
     )
     body += limits(
         "The denominators are totals for Spain and treat every resident, licence, vehicle and "

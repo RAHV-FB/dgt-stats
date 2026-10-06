@@ -244,6 +244,8 @@ SUMMARIES = {
     "simulator_class_risk": simulator.class_risk,
     "simulator_presets": simulator.presets,
     "simulator_preset_sites": simulator.preset_sites,
+    "simulator_preset_roads": simulator.preset_roads,
+    "simulator_break_even": simulator.break_even,
     "simulator_limit_grid": simulator.limit_grid,
     # Seasonality and mobility
     "season_profile": seasonality.seasonal_profile,
@@ -271,6 +273,7 @@ SUMMARIES = {
     "q7_km_by_owner_age": driver_risk.car_kilometres,
     "q7_km_rates": driver_risk.km_rates,
     "q7_km_ratio": driver_risk.km_rate_ratios,
+    "q7_km_ratio_65_74": lambda: driver_risk.km_rate_ratios(reference_band="65-74"),
     "q7_company_km": driver_risk.company_km_sensitivity,
     "q7_owner_age_check": driver_risk.owner_age_check,
     "q7_denominator_contrast": driver_risk.denominator_contrast,

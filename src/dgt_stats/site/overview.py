@@ -2,11 +2,17 @@
 
 from __future__ import annotations
 
+import math
+
+import pandas as pd
+
+from dgt_stats import simulator
 from dgt_stats.site.components import (
     _chance,
     _change,
     _fmt_int,
     _fmt_pct,
+    _signed_int,
     _signed_pct,
     _times,
     figure,
@@ -14,6 +20,7 @@ from dgt_stats.site.components import (
     key_figures,
     read_table,
     render_page,
+    table,
 )
 from dgt_stats.site.numbers import (
     _age_numbers,
@@ -44,13 +51,6 @@ def page_index(captions: dict[str, str]) -> str:
     km_check = read_table("longrun_km_check").set_index(["measure", "year"])
     km_last = int(km_check.index.get_level_values("year").max())
     presets = read_table("simulator_presets").set_index("scenario")
-    class_risk = read_table("simulator_class_risk")
-    risk_year = int(class_risk.year.max())
-    latest_risk = class_risk[class_risk.year == risk_year].set_index("road_class")
-    risk_ratio = float(
-        latest_risk.loc["conventional", "deaths_per_bn_km"]
-        / latest_risk.loc["motorway", "deaths_per_bn_km"]
-    )
     speeds = read_table("simulator_speed_sites").set_index("site")
 
     deaths_count = latest.loc[("deaths_30d", "count")]
@@ -74,6 +74,12 @@ def page_index(captions: dict[str, str]) -> str:
     men_fatality = ratios_sex.loc[("car", "18+", "deaths_per_1000_involved")]
     involved_75 = age["ratios"].loc[("involved_per_bn_km", "75+")]
     fatality_75 = age["ratios"].loc[("deaths_per_1000_involved", "75+")]
+    killed_75 = age["ratios"].loc[("deaths_per_bn_km", "75+")]
+    involved_young = age["ratios"].loc[("involved_per_bn_km", "18-34")]
+    fatality_young = age["ratios"].loc[("deaths_per_1000_involved", "18-34")]
+    killed_young = age["ratios"].loc[("deaths_per_bn_km", "18-34")]
+    older_peers = read_table("q7_km_ratio_65_74").set_index(["measure", "band"])
+    men_killed = ratios_sex.loc[("car", "18+", "deaths_per_million_licences")]
     adjusted = speed["pooled"].loc["adjusted"]
     per_vehicle = float(
         truck.fatal_involvement_per_100k_vehicles / car.fatal_involvement_per_100k_vehicles
@@ -84,6 +90,8 @@ def page_index(captions: dict[str, str]) -> str:
     speed_share = _window(windows, "all", "Inappropriate speed", 2014)
     comply = presets.loc["all_comply"]
     conventional = presets.loc["conventional_80"]
+    conventional_comply = presets.loc["conventional_comply"]
+    kept_140 = presets.loc["motorway_140_comply"]
 
     first, final = int(split.index.min()), int(split.index.max())
     severity = float(split.loc[final, "severity_index"]) / 100 - 1
@@ -99,9 +107,10 @@ def page_index(captions: dict[str, str]) -> str:
                 f"{_signed_pct(frequency)}",
             ),
             (
-                "Killed once in a crash",
-                _times(float(fatality_75.ratio)),
-                "car drivers 75 and over against 35 to 54; they crash about as often per km",
+                "Killed per km, drivers 75+",
+                _times(float(killed_75.ratio)),
+                f"against 35–54: {_times(float(involved_75.ratio))} the crashes × "
+                f"{_times(float(fatality_75.ratio))} the deaths per crash",
             ),
             (
                 "Deaths per crash with speed",
@@ -109,9 +118,9 @@ def page_index(captions: dict[str, str]) -> str:
                 "against other crashes on the same kind of road",
             ),
             (
-                "If every speeder kept to the limit",
-                _fmt_int(comply.deaths_change),
-                "deaths a year on motorways and conventional roads",
+                "If everyone kept to today's limits",
+                _signed_int(comply.deaths_change),
+                "deaths a year on autopistas, autovías and conventional roads",
             ),
         ]
     )
@@ -120,15 +129,19 @@ def page_index(captions: dict[str, str]) -> str:
         "dangerous the roads were, because it moves with how much people drove, who was driving "
         "and in what. This site divides the same DGT counts by residents, licence holders, "
         "vehicles, kilometres and road fuel, and asks what changes. On every question below the "
-        "answer changes size, and on several it changes sign. Put together, the answers point "
-        "the same way: what decides how many people die is less how often crashes happen than "
-        "how hard they are, and the one lever on that which a law reaches is speed.</p>"
+        "answer changes size, and on several it changes sign. Each answer can then be split in "
+        "two, how often crashes happen and how deadly they are, and the split shows where the "
+        "extra deaths come from: for older drivers, men and heavy trucks it is how deadly the "
+        "crash is; for young drivers, motorcycles and conventional roads it is mostly how often "
+        "crashes happen. Speed acts on both, and the last page asks what a speed law would "
+        "do.</p>"
     )
 
     findings = [
         (
             "trends.html",
-            "Since 2019, death risk has not measurably changed; serious injury has risen",
+            "Since 2019, death risk has not measurably changed; recorded hospital admissions have "
+            "risen",
             f"Deaths in {last} were {_change(float(deaths_count.ratio_to_base))} on 2019 as a "
             f"count, {_change(float(deaths_resident.ratio_to_base))} per resident, "
             f"{_change(float(deaths_vehicle.ratio_to_base))} per registered vehicle and "
@@ -168,13 +181,19 @@ def page_index(captions: dict[str, str]) -> str:
         ),
         (
             "drivers.html",
-            "Older and male drivers crash little more for their driving; they die more when they do",
-            f"Per kilometre, car drivers aged 75 and over are involved in injury crashes "
-            f"{_times(float(involved_75.ratio))} as often as those aged 35 to 54, but are killed "
-            f"{_times(float(fatality_75.ratio))} as often once involved. Male car drivers are "
-            f"involved {_times(float(men_involved.ratio))} as often as women per licence holder, "
-            "about what the only Spanish travel survey by sex implies, and killed "
-            f"{_times(float(men_fatality.ratio))} as often once involved.",
+            "Young drivers die more per km because they crash more; older drivers because a "
+            "crash kills them more often",
+            f"Per kilometre, car drivers aged 75 and over are killed "
+            f"{_times(float(killed_75.ratio))} as often as those aged 35 to 54: "
+            f"{_times(float(involved_75.ratio))} the crashes per km (but "
+            f"{_times(float(older_peers.loc[('involved_per_bn_km', '75+'), 'ratio']))} those of "
+            f"drivers aged 65 to 74) × {_times(float(fatality_75.ratio))} the deaths per crash. "
+            f"Drivers aged 18 to 34: {_times(float(killed_young.ratio))}, from "
+            f"{_times(float(involved_young.ratio))} the crashes × "
+            f"{_times(float(fatality_young.ratio))} the deaths per crash. Men, per licence holder: "
+            f"{_times(float(men_killed.ratio))}, from {_times(float(men_involved.ratio))} the "
+            f"crashes, about their extra travel, × {_times(float(men_fatality.ratio))} the deaths "
+            "per crash.",
             "DGT driver tables over the driver census and DGT's 2024 kilometres by owner age; "
             "MOVILIA trips by sex as a bounded travel proxy.",
         ),
@@ -215,17 +234,19 @@ def page_index(captions: dict[str, str]) -> str:
         ),
         (
             "simulator.html",
-            "With the typical response, keeping to today's limits would save more lives than "
-            "any one new limit",
-            "If every driver now above the limit on motorways and conventional roads kept to "
-            "it, the Power Model and the speeds measured in Spain put the saving at about "
-            f"{_fmt_int(-comply.deaths_change)} lives a year; 80 km/h on conventional roads "
-            "would save about "
-            f"{_fmt_int(-conventional.deaths_change)}. A validated forecast says the first year's "
-            f"count would show the first {_chance(comply.power_in_one_year)}, the second "
+            "Keeping to today's limits saves more than any single new limit; a higher limit kept "
+            "still costs lives",
+            "On the published evidence and the speeds measured in Spain, if every driver now "
+            "above the limit on autopistas, autovías and conventional roads kept to it, about "
+            f"{_fmt_int(-comply.deaths_change)} fewer people a year would die there, "
+            f"{_fmt_int(-conventional_comply.deaths_change)} of them on conventional roads; 80 km/h "
+            f"on conventional roads would save about {_fmt_int(-conventional.deaths_change)}. "
+            "Motorways at 140 km/h with every driver keeping to it would cost "
+            f"{_fmt_int(kept_140.deaths_change)}. A validated forecast says the first year's count "
+            f"would show full compliance {_chance(comply.power_in_one_year)} and 80 km/h "
             f"{_chance(conventional.power_in_one_year)}.",
-            "Spanish baselines and speeds, published dose-response evidence and DGT's values of "
-            "a life, all sourced.",
+            "Spanish baselines and radar speeds, published dose-response evidence and DGT's values "
+            "of a life, all sourced; a Poisson forecast tested against machine learning.",
         ),
     ]
     body += "".join(
@@ -235,30 +256,35 @@ def page_index(captions: dict[str, str]) -> str:
 
     body += "<h2>What connects them</h2>"
     body += (
-        "<p>Wherever the data let risk be split into how often people crash and how badly they "
-        "are hurt when they do, the difference lies in the second. Drivers of 75 and over, and "
-        "men, crash about as often as their driving predicts and die far more often once in a "
-        "crash. A crash with speed recorded kills twice as often as another on the same kind "
-        f"of road. Conventional roads kill {_times(risk_ratio)} as many people per kilometre "
-        f"as motorways in {risk_year}, though their traffic is slower. The national series says "
-        f"the same about the past: between {first} and {final} deaths per tonne of road fuel "
-        f"fell {_fmt_pct(-per_fuel, 0)}, injury crashes per tonne only "
-        f"{_fmt_pct(-frequency, 0)}, and deaths per injury crash "
-        f"{_fmt_pct(-severity, 0)}.</p>"
+        "<p>Every comparison on the site can be split the same way: deaths for a given exposure "
+        "are crashes for that exposure times deaths per crash. Set side by side, the splits show "
+        "that the extra deaths do not all come from the same place.</p>"
+    )
+    body += table(_split_table(), _SPLIT_CAPTION)
+    body += (
+        "<p>For older drivers, men and heavy trucks the excess is in how deadly a crash is: the "
+        "body that absorbs it, or the mass that strikes the other party. For young drivers, "
+        "motorcycles and conventional roads it is mostly in how often crashes happen. The long "
+        f"run fell through severity: between {first} and {final} deaths per tonne of road fuel "
+        f"fell {_fmt_pct(-per_fuel, 0)}, injury crashes per tonne {_fmt_pct(-frequency, 0)} and "
+        f"deaths per injury crash {_fmt_pct(-severity, 0)}, a split that depends on how "
+        "completely slight injuries are recorded, though their product does not.</p>"
     )
     body += figure(
         "l3_frequency_severity",
         "Deaths per unit of traffic split into how often crashes happen and how deadly they are",
         captions,
     )
+    rural_deaths = simulator.exponent("deaths", "rural")
+    rural_crashes = simulator.exponent("injury_crashes", "rural")
     body += (
-        "<p>How hard a crash is depends on the energy in it and on the body that absorbs it. "
-        "Age is the body; speed is the energy, the one a law reaches, the one the evidence "
-        "measures best and the one on which Spanish drivers stray furthest from the rule: in "
-        "2022 only "
-        f"{_fmt_pct(float(speeds.loc['conventional', 'share_within_limit']), 0)} of cars "
-        "measured on conventional roads kept to 90 km/h. That is why the last page is a "
-        "simulator of speed laws, and why it says how likely the counts are to show it.</p>"
+        "<p>Speed acts on both factors, and more on the second: in the Power Model a 1% rise in "
+        f"the average speed on interurban roads brings about {_fmt_pct(1.01**rural_crashes - 1)} "
+        f"more injury crashes and {_fmt_pct(1.01**rural_deaths - 1)} more deaths. It is also the "
+        "factor on which Spanish drivers stray furthest from the rule: in 2022 "
+        f"{_fmt_pct(1 - float(speeds.loc['conventional', 'share_within_limit']), 0)} of cars "
+        "measured on conventional roads were above 90 km/h. That is why the site ends with a "
+        "simulator of speed laws, and why it says how likely the counts are to show one.</p>"
     )
 
     body += "<h2>What this site does not claim</h2>"
@@ -290,3 +316,106 @@ def page_index(captions: dict[str, str]) -> str:
         "simulator of speed laws built on what they show.",
         body,
     )
+
+
+_SPLIT_CAPTION = (
+    "Where the extra deaths come from: each comparison split into how often crashes happen for "
+    "the exposure and how deadly a crash is, which multiply to the deaths for the exposure. "
+    "Drivers: car drivers in injury crashes and killed (the driver only); vehicles: vehicles in "
+    "injury and in fatal crashes; roads and years: injury crashes and deaths"
+)
+
+
+def _split_table() -> pd.DataFrame:
+    """Every comparison the site makes, as crashes per exposure times deaths per crash."""
+    age = _age_numbers()["ratios"]
+    sex = _sex_numbers()["ratios"]
+    vehicles = read_table("q6_summary_2022").set_index("group")
+    risk = read_table("simulator_class_risk")
+    risk_year = int(risk.year.max())
+    risk = risk[risk.year == risk_year].set_index("road_class")
+    split = read_table("risk_frequency_severity").set_index("year")
+    first, final = int(split.index.min()), int(split.index.max())
+    speed = _speed_numbers()["pooled"].loc["adjusted"]
+
+    def vehicle(group: str) -> tuple[float, float]:
+        row, car = vehicles.loc[group], vehicles.loc["car"]
+        crashes = float(row.injury_involvement_per_bn_km / car.injury_involvement_per_bn_km)
+        deaths = float(row.fatal_involvement_per_bn_km / car.fatal_involvement_per_bn_km)
+        return crashes, deaths / crashes
+
+    conventional, motorway = risk.loc["conventional"], risk.loc["motorway"]
+    road_crashes = float(conventional.injury_crashes_per_bn_km / motorway.injury_crashes_per_bn_km)
+    road_deadly = float(
+        (conventional.deaths_per_bn_km / conventional.injury_crashes_per_bn_km)
+        / (motorway.deaths_per_bn_km / motorway.injury_crashes_per_bn_km)
+    )
+    rows = [
+        (
+            "Car drivers 75+ against 35–54, 2024",
+            "km driven",
+            float(age.loc[("involved_per_bn_km", "75+"), "ratio"]),
+            float(age.loc[("deaths_per_1000_involved", "75+"), "ratio"]),
+        ),
+        (
+            "Car drivers 18–34 against 35–54, 2024",
+            "km driven",
+            float(age.loc[("involved_per_bn_km", "18-34"), "ratio"]),
+            float(age.loc[("deaths_per_1000_involved", "18-34"), "ratio"]),
+        ),
+        (
+            "Male against female car drivers, 2022–2024",
+            "licence holder",
+            float(sex.loc[("car", "18+", "involved_per_1000_licences"), "ratio"]),
+            float(sex.loc[("car", "18+", "deaths_per_1000_involved"), "ratio"]),
+        ),
+        ("Heavy trucks against cars, 2022", "km driven", *vehicle("heavy_truck")),
+        ("Motorcycles against cars, 2022", "km driven", *vehicle("motorcycle")),
+        (
+            f"Conventional roads against motorways, {risk_year}",
+            "km driven",
+            road_crashes,
+            road_deadly,
+        ),
+        (
+            f"All roads, {final} against {first}",
+            "tonne of road fuel",
+            float(split.loc[final, "frequency_index"]) / 100,
+            float(split.loc[final, "severity_index"]) / 100,
+        ),
+    ]
+    out = []
+    for label, per, crashes, deadly in rows:
+        out.append(
+            {
+                "Comparison": label,
+                "Per": per,
+                "How often crashes happen": _times(crashes),
+                "How deadly a crash is": _times(deadly),
+                "Deaths": _times(crashes * deadly),
+                "Where the excess sits": _where(crashes, deadly),
+            }
+        )
+    out.append(
+        {
+            "Comparison": "Crashes with speed recorded against others, same road and year",
+            "Per": "crash",
+            "How often crashes happen": "",
+            "How deadly a crash is": _times(float(speed.rate_ratio)),
+            "Deaths": "",
+            "Where the excess sits": "deadliness",
+        }
+    )
+    return pd.DataFrame(out)
+
+
+def _where(crashes: float, deadly: float) -> str:
+    """Which factor carries a comparison: the one further from 1 on the log scale."""
+    a, b = math.log(crashes), math.log(deadly)
+    if a < 0 and b < 0:
+        return "both fell, deadliness most" if b < a else "both fell, crashes most"
+    if abs(b) > 2 * abs(a):
+        return "deadliness"
+    if abs(a) > 2 * abs(b):
+        return "crashes"
+    return "crashes more than deadliness" if abs(a) > abs(b) else "deadliness more than crashes"

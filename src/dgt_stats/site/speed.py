@@ -162,7 +162,10 @@ def page_speed(captions: dict[str, str]) -> str:
         "as often as one without, and on urban streets far more. The data support speed as a "
         "severity factor of that order. They do not support a count of deaths caused by speed, "
         "because the record is a judgement made after the fact, and they do not support a "
-        "trend in speeding from DGT's driver tables, which change meaning in 2016."
+        "trend in speeding from DGT's driver tables, which change meaning in 2016. For the size "
+        'of speed\'s effect the <a href="simulator.html">simulator</a> therefore uses speeds '
+        "measured by radar and the Power Model, which was estimated from changes in measured "
+        "speed, not from police records."
     )
     body += limits(
         "The concurrent-factor record is the police's judgement, may name several factors for "

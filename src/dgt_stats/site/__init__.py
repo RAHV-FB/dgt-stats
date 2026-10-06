@@ -2,7 +2,8 @@
 
 No template engine. The site answers one question, what changes when road risk is measured rather
 than counted, in seven analysis pages, a simulator of speed laws, an overview and a data page, with
-two supporting analyses (the severity model and the 2006 break) kept outside the main navigation.
+two supporting analyses (the severity model and the 2006 break) kept apart; the navigation shows
+them in labelled groups (``NAV_GROUPS``).
 Every sentence that carries a number computes it from a committed result table at build time, so
 the prose cannot drift from the tables; full tables are copied into ``site/tables`` and linked as
 CSV rather than printed. The one script, ``simulator.js``, is a port of
@@ -23,10 +24,12 @@ from dgt_stats.paths import FIGURES_DIR, PROJECT_ROOT, SIMULATOR_EVIDENCE_PATH, 
 from dgt_stats.site.components import (
     ALL_PAGES,
     MOVED_PAGES,
+    NAV_GROUPS,
     PAGES,
     PROFILE_URL,
     REPO_URL,
     SUPPORTING_PAGES,
+    _signed_int,
     _signed_pct,
     esc,
     mark_spanish,
@@ -52,12 +55,14 @@ __all__ = [
     "ALL_PAGES",
     "LITERATURE",
     "MOVED_PAGES",
+    "NAV_GROUPS",
     "PAGES",
     "PAGE_BUILDERS",
     "PROFILE_URL",
     "REPO_URL",
     "SITE_DIR",
     "SUPPORTING_PAGES",
+    "_signed_int",
     "_signed_pct",
     "build",
     "esc",

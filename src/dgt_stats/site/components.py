@@ -19,25 +19,36 @@ PROFILE_URL = "https://github.com/RAHV-FB"
 DOCS_URL = f"{REPO_URL}/blob/main/docs"
 
 
-PAGES: tuple[tuple[str, str], ...] = (
-    ("index", "Overview"),
-    ("trends", "2019–2024"),
-    ("long-run", "Long run"),
-    ("seasons", "Seasons"),
-    ("drivers", "Age and sex"),
-    ("vehicles", "Vehicles"),
-    ("speed", "Speed"),
-    ("factors", "Factors"),
-    ("simulator", "Simulator"),
-    ("data", "Data"),
+# The navigation, in labelled groups: where to start, the seven findings in reading order, the
+# model built on them, two careful analyses kept outside the central question, and the reference.
+NAV_GROUPS: tuple[tuple[str, tuple[tuple[str, str], ...]], ...] = (
+    ("Start", (("index", "Overview"),)),
+    (
+        "Findings",
+        (
+            ("trends", "2019–2024"),
+            ("long-run", "Long run"),
+            ("seasons", "Seasons"),
+            ("drivers", "Age and sex"),
+            ("vehicles", "Vehicles"),
+            ("speed", "Speed"),
+            ("factors", "Factors"),
+        ),
+    ),
+    ("Model", (("simulator", "Speed-law simulator"),)),
+    ("Supporting analyses", (("severity", "Severity model"), ("policy", "The 2006 break"))),
+    ("Reference", (("data", "Data and methods"),)),
 )
+SUPPORTING = "Supporting analyses"
+FINDINGS = "Findings"
 
 
-# Careful analyses outside the central question, linked from a second, quieter row.
-SUPPORTING_PAGES: tuple[tuple[str, str], ...] = (
-    ("severity", "Severity model"),
-    ("policy", "The 2006 break"),
+# The main pages, and the supporting analyses outside the central question.
+PAGES: tuple[tuple[str, str], ...] = tuple(
+    page for group, pages in NAV_GROUPS if group != SUPPORTING for page in pages
 )
+SUPPORTING_PAGES: tuple[tuple[str, str], ...] = dict(NAV_GROUPS)[SUPPORTING]
+FINDING_PAGES: tuple[tuple[str, str], ...] = dict(NAV_GROUPS)[FINDINGS]
 
 
 ALL_PAGES = PAGES + SUPPORTING_PAGES
@@ -85,6 +96,13 @@ def _fmt_pct(value: object, decimals: int = 1) -> str:
 
 def _fmt_dec(value: object, decimals: int = 1) -> str:
     return "" if pd.isna(value) else _minus(f"{float(value):,.{decimals}f}")
+
+
+def _signed_int(value: float) -> str:
+    """A signed whole number, so a fall reads as −39 and a rise as +39; zero carries no sign."""
+    if round(float(value)) == 0:
+        return "0"
+    return _minus(f"{float(value):+,.0f}")
 
 
 def _signed_pct(value: float, decimals: int = 0) -> str:
@@ -272,16 +290,47 @@ def limits(text: str) -> str:
     return f'<p class="limit"><strong>Limits.</strong> {text}</p>'
 
 
-def render_page(slug: str, title: str, lead: str, body: str, head: str = "") -> str:
-    def items(pages: tuple[tuple[str, str], ...]) -> str:
-        out = ""
-        for s, name in pages:
-            current = ' aria-current="page"' if s == slug else ""
-            out += f'<li><a href="{s}.html"{current}>{esc(name)}</a></li>'
-        return out
+def _nav(slug: str) -> str:
+    """The navigation: each group a label over its links, so a group never reads as a page."""
+    current = ' aria-current="page"'
+    groups = []
+    for index, (label, pages) in enumerate(NAV_GROUPS):
+        links = "".join(
+            f'<li><a href="{s}.html"{current if s == slug else ""}>{esc(name)}</a></li>'
+            for s, name in pages
+        )
+        groups.append(
+            f'<div class="navgroup"><span class="navlabel" id="nav-{index}">{esc(label)}</span>'
+            f'<ul aria-labelledby="nav-{index}">{links}</ul></div>'
+        )
+    return f'<nav aria-label="Sections">{"".join(groups)}</nav>'
 
-    nav_items = items(PAGES)
-    supporting_items = "<li>Supporting analyses</li>" + items(SUPPORTING_PAGES)
+
+def _place(slug: str) -> tuple[str, str]:
+    """Where a page sits: a line above its title, and links to the findings either side."""
+    for label, pages in NAV_GROUPS:
+        slugs = [s for s, _ in pages]
+        if slug not in slugs or label == "Start":
+            continue
+        if label != FINDINGS:
+            return f'<p class="eyebrow">{esc(label)}</p>', ""
+        position = slugs.index(slug)
+        eyebrow = f'<p class="eyebrow">Finding {position + 1} of {len(slugs)}</p>'
+        links = []
+        if position > 0:
+            before, name = pages[position - 1]
+            links.append(f'<a href="{before}.html" rel="prev">← {esc(name)}</a>')
+        if position < len(pages) - 1:
+            after, name = pages[position + 1]
+            links.append(f'<a href="{after}.html" rel="next">{esc(name)} →</a>')
+        else:
+            links.append('<a href="simulator.html" rel="next">The speed-law simulator →</a>')
+        return eyebrow, f'<nav class="pager" aria-label="Findings">{"".join(links)}</nav>'
+    return "", ""
+
+
+def render_page(slug: str, title: str, lead: str, body: str, head: str = "") -> str:
+    eyebrow, pager = _place(slug)
     page_title = (
         "Road safety in Spain · measuring risk, not counting crashes"
         if slug == "index"
@@ -302,13 +351,13 @@ def render_page(slug: str, title: str, lead: str, body: str, head: str = "") -> 
 <a href="index.html">Road safety in Spain</a>
 <span class="strap">Measuring risk, not counting crashes</span>
 </div>
-<nav aria-label="Sections"><ul>{nav_items}</ul><ul class="supporting">{supporting_items}</ul></nav>
+{_nav(slug)}
 </header>
 <main>
-<h1>{esc(title)}</h1>
+{eyebrow}<h1>{esc(title)}</h1>
 <p class="lead">{esc(lead)}</p>
 {body}
-</main>
+{pager}</main>
 <footer>
 <p>An independent analysis by <a href="{PROFILE_URL}">RAHV-FB</a> (Russell Howard) from Dirección
 General de Tráfico open data, INE resident population and the Ministerio de Transportes and CORES

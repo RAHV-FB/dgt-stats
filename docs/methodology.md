@@ -435,14 +435,24 @@ A chain of four links, each with its source, run in the reader's browser.
 3. **From a law to a mean speed.** A law sets three limits (`LEVERS`): one for autopistas and
    autovías together, as the Reglamento General de Circulación does (120 km/h on both today), one
    for conventional roads (90) and one for urban streets now at 50 km/h; streets at 30 stay at 30.
-   Each measured site then responds from its own speeds. A change of limit moves the mean by
+   Each measured site then responds from its own speeds. How far drivers follow a new limit and
+   how many keep to the limit are set separately for each kind of road (`GROUPS`: autopistas and
+   autovías, conventional roads, urban streets at 50 and at 30), so that a law on one kind of road
+   leaves the others as they are; a single number still applies to all of them. A change of limit moves the mean by
    Elvik's curve through 143 before-and-after results (Trafikksikkerhetshåndboken, figure 3.11.2,
    published as `y = −0.0047x² + 0.2682x − 0.3125`, R² 0.51), with the intercept dropped so that no
    change means no change and offered only within the fitted range of −33 to +24 km/h, or by a
    share of the change the reader sets. Without its intercept the curve gives 7.2 km/h for a 20
    km/h cut and 3.5 for a 20 km/h rise, where the handbook rounds the scatter to about 8
-   and 5. Compliance brings a share of the drivers above the limit down to it, which lowers the
-   mean by that share of `E[(v − limit)+]` under the fitted distribution, scaled to the new mean.
+   and 5. Compliance brings a share of the drivers above the limit in force (the new one, if
+   there is one) down to it, which lowers the mean by that share of `E[(v − limit)+]` under the
+   fitted distribution, scaled to the new mean. `speed_steps` returns the two moves separately
+   (`limit_shift`, `compliance_cut`), and two measures of the flow under the limit in force: the
+   share of cars above it, `(1 − c) · P(v > limit)`, and the spread of speeds, the standard
+   deviation of the fitted distribution once the complying share `c` of the cars above the limit
+   has moved to it (`E[v]` and `E[v²]` each lose `c` times their part above the limit, net of the
+   limit's own contribution). The Power Model counts only the mean, so the spread is reported and
+   not turned into casualties.
 4. **From mean speed to casualties.** The Power Model: a count changes by `(v1 / v0) ** p`, with
    Elvik's 2009 exponents and 95 % intervals (TØI report 1034/2009, table S1) for deaths,
    seriously injured, slightly injured and injury crashes, separately for rural roads and motorways
@@ -479,16 +489,34 @@ about 217, against a fall of about 195 for all 1,284 interurban deaths in sectio
 include the other interurban roads. A
 change of under half a death a year counts as none, and no chance is computed for it.
 
-The presets, with drivers responding as they typically do (`simulator_presets.csv`):
+The presets, with drivers responding to a new limit as they typically do
+(`simulator_presets.csv`; road by road in `simulator_preset_roads.csv`):
 
-| Preset | Deaths a year | Light-vehicle hours a year | Chance the first year's count shows it |
-|---|---|---|---|
-| Every speeder keeps to today's limits | −335 (−370 to −298) | +134 million | over 99 % |
-| Half of today's speeders keep to the limit | −179 (−200 to −158) | +64.7 million | 78 % |
-| Conventional roads 90 → 80 km/h | −123 (−138 to −108) | +36.9 million | 45 % |
-| Autopistas and autovías 120 → 110 km/h | −41 (−46 to −36) | +30.2 million | 8 % |
-| Autopistas and autovías 120 → 130 km/h | +31 (27 to 35) | −20.3 million | 6 % |
-| Urban streets 50 → 30 km/h | no interurban change | no interurban change | not computed |
+| Preset | Deaths a year | Injury crashes a year | Light-vehicle hours a year | Chance the first year's count shows it |
+|---|---|---|---|---|
+| Everyone keeps to today's limits | −335 (−370 to −298) | −3,365 | +134 million | over 99 % |
+| Half of today's speeders keep to the limit | −179 (−200 to −158) | −1,702 | +64.7 million | 78 % |
+| Everyone keeps to 90 km/h on conventional roads | −280 (−309 to −249) | −2,675 | +96.8 million | 99 % |
+| Everyone keeps to 120 km/h on autopistas and autovías | −55 (−62 to −49) | −690 | +37.4 million | 12 % |
+| Conventional roads 90 → 80 km/h | −123 (−138 to −108) | −1,092 | +36.9 million | 45 % |
+| Autopistas and autovías 120 → 110 km/h | −41 (−46 to −36) | −486 | +30.2 million | 8 % |
+| Autopistas and autovías 120 → 130 km/h | +31 (+27 to +35) | +346 | −20.3 million | 6 % |
+| Autopistas and autovías at 130 km/h, and everyone keeps to it | +2 (+2 to +3) | +12 | −4.4 million | 3 % |
+| Autopistas and autovías 120 → 140 km/h | +50 (+43 to +57) | +547 | −31.6 million | 10 % |
+| Autopistas and autovías at 140 km/h, and everyone keeps to it | +39 (+33 to +44) | +418 | −26.2 million | 8 % |
+| Urban streets 50 → 30 km/h | no interurban change | no interurban change | no interurban change | not computed |
+
+**A higher limit that everyone keeps to** (`break_even`, `simulator_break_even.csv`). Raising the
+autopista and autovía limit to 140 km/h moves the mean up by the typical response, +3.5 km/h (17 %
+of the change), and every driver keeping to 140 takes off only what lies above 140: 1.4 km/h on
+autopistas, where 10 % of cars exceed 140 today, and 0.6 on autovías. Deaths on the two rise by
+about 39 a year against today, and by about 94 against everyone keeping to 120 (−55). Deaths would
+fall against today only if less than 2.4 % of the rise reached the mean. With the typical
+response and everyone keeping to the limit, the limit at which deaths equal today's is about
+129.5 km/h. The spread of speeds on autopistas narrows from 14.9 to 12.8 km/h at 140 kept by
+everyone, and to 7.9 km/h at 120 kept by everyone; for the narrower spread at 140 to cancel the
+rise it would have to cut deaths on the two roads by about 10 % on its own, and the Aarts and van
+Schagen (2006) review gives no dose-response from which to judge that.
 
 Full compliance is worth about €1.0 billion a year at DGT's values. Conventional roads at 80 km/h
 cost about 300,000 hours for each life saved, and autopistas and autovías at 130 km/h save about
@@ -527,11 +555,12 @@ which the Power Model does not count and which would make the compliance figures
 The browser code is a port of the Python. Its normal distribution function is W. J. Cody's
 rational approximation, as in R's `pnorm`, accurate to about one part in 10^15. A test runs it
 under Node on every combination of the page's limits (5 × 4 × 3 = 60), each with the response
-typical, 0, 35 % and 100 % of the change and compliance 0, 5 %, 50 % and 100 %, and on the
-presets: 967 scenarios, which must agree with the Python to one part in a million on every
-quantity the page shows (speeds, casualties, ranges, value and hours by road and in total, and the
-urban speeds, deaths with their range and admissions), on both thresholds and on the chance of
-detection.
+typical, 0, 35 % and 100 % of the change or set for some kinds of road only, and compliance 0,
+5 %, 50 % and 100 % or set for some kinds of road only, and on the presets: 1,512 scenarios,
+which must agree with the Python to one part in a million on every quantity the page shows
+(speeds and their steps, the share above the limit and the spread, casualties, ranges, value and
+hours by road and in total, and the urban speeds, deaths with their range and admissions), on
+both thresholds and on the chance of detection.
 
 ## 13. Assumptions tested
 
