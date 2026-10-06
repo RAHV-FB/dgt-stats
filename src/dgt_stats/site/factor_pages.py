@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import math
+import re
 
 import pandas as pd
 
@@ -1070,6 +1071,17 @@ def page_enforcement(captions: dict[str, str]) -> str:
     )
 
 
+def _short_source(source: str) -> str:
+    """A citation short enough for a table cell: 'TØI handbook, ch. 8.2 (2023)', 'Novoa et al. 2010'."""
+    handbook = re.search(r"ch\. (\d+\.\d+).*revision (\d{4})", source)
+    if "Trafikksikkerhetshåndboken" in source and handbook:
+        return f"TØI handbook, ch. {handbook[1]} ({handbook[2]})"
+    paper = re.match(r"([^\s,]+)[^(]*\((\d{4})\)", source)
+    if paper:
+        return f"{paper[1]} et al. {paper[2]}"
+    raise ValueError(f"no short form for the source {source!r}")
+
+
 def _enforcement_evidence() -> str:
     rows = factor_models.evidence()
     rows = rows[rows.parameter == "enforcement_effect"]
@@ -1078,9 +1090,13 @@ def _enforcement_evidence() -> str:
     missing = set(rows.applies_to) ^ set(ENFORCEMENT_STUDIES)
     if missing:
         raise ValueError(f"enforcement studies without a description or a register row: {missing}")
-    shown = []
+    body = ""
+    current = None
     for row in rows.itertuples():
         lever, measure, outcome = ENFORCEMENT_STUDIES[row.applies_to]
+        if lever != current:
+            body += f'<tr class="group"><th scope="rowgroup" colspan="4">{esc(lever)}</th></tr>'
+            current = lever
         # A rate ratio of 0.93 is a 7% fall: every effect is shown as a change.
         shift = 1.0 if row.unit == "rate_ratio" else 0.0
         interval = (
@@ -1088,34 +1104,21 @@ def _enforcement_evidence() -> str:
             if pd.isna(row.low)
             else f" ({_signed_pct_plain(row.low - shift)} to {_signed_pct_plain(row.high - shift)})"
         )
-        shown.append(
-            {
-                "Lever": lever,
-                "Measure": measure,
-                "Effect": f"{_signed_pct_plain(row.value - shift)}{interval}",
-                "On": outcome,
-                "Source": f'<a href="{esc(row.url)}">{esc(row.source)}</a>',
-            }
+        body += (
+            f'<tr><th scope="row" class="wrap">{esc(measure)}</th>'
+            f"<td>{_signed_pct_plain(row.value - shift)}{interval}</td>"
+            f'<td class="wrap">{esc(outcome)}</td>'
+            f'<td class="wrap"><a href="{esc(row.url)}" title="{esc(row.source)}">'
+            f"{esc(_short_source(row.source))}</a></td></tr>"
         )
-    frame = pd.DataFrame(shown)
-    head = "".join(f'<th scope="col">{esc(c)}</th>' for c in frame.columns)
-    body = "".join(
-        "<tr>"
-        + "".join(
-            (
-                f'<th scope="row">{esc(v)}</th>'
-                if i == 0
-                else f'<td class="wrap">{v if c == "Source" else esc(v)}</td>'
-            )
-            for i, (c, v) in enumerate(r.items())
-        )
-        + "</tr>"
-        for r in shown
+    head = (
+        '<th scope="col">Measure</th><th scope="col">Change</th>'
+        '<th scope="col" class="wrap">In</th><th scope="col" class="wrap">Source</th>'
     )
     return (
         '<div class="table-wrap" role="region" tabindex="0" aria-label="Enforcement studies">'
         "<table><caption>What enforcement measures achieved where they were evaluated: the change "
-        "in crashes, with its interval</caption>"
+        "in crashes or deaths, with its interval</caption>"
         f"<thead><tr>{head}</tr></thead><tbody>{body}</tbody></table></div>"
     )
 
