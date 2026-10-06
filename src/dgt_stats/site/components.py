@@ -20,7 +20,7 @@ DOCS_URL = f"{REPO_URL}/blob/main/docs"
 
 
 # The navigation, in labelled groups: where to start, the seven findings in reading order, the
-# model built on them, two careful analyses kept outside the central question, and the reference.
+# models built on them, two careful analyses kept outside the central question, and the reference.
 NAV_GROUPS: tuple[tuple[str, tuple[tuple[str, str], ...]], ...] = (
     ("Start", (("index", "Overview"),)),
     (
@@ -35,7 +35,15 @@ NAV_GROUPS: tuple[tuple[str, tuple[tuple[str, str], ...]], ...] = (
             ("factors", "Factors"),
         ),
     ),
-    ("Model", (("simulator", "Speed-law simulator"),)),
+    (
+        "Models",
+        (
+            ("simulator", "Speed laws"),
+            ("distraction", "Distraction"),
+            ("alcohol-drugs", "Alcohol and drugs"),
+            ("enforcement", "Which enforcement"),
+        ),
+    ),
     ("Supporting analyses", (("severity", "Severity model"), ("policy", "The 2006 break"))),
     ("Reference", (("data", "Data and methods"),)),
 )

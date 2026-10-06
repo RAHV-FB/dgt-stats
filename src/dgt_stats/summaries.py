@@ -19,6 +19,7 @@ import pandas as pd
 from dgt_stats import (
     agebands,
     driver_risk,
+    factor_models,
     factors,
     forecast,
     io_exposure,
@@ -246,6 +247,15 @@ SUMMARIES = {
     "simulator_preset_sites": simulator.preset_sites,
     "simulator_preset_roads": simulator.preset_roads,
     "simulator_break_even": simulator.break_even,
+    # Distraction, alcohol and drugs, and the three levers compared
+    "factor_casualties": factor_models.casualties,
+    "factor_recorded_shares": factor_models.recorded_shares,
+    "factor_inputs": factor_models.factor_inputs,
+    "factor_deaths": factor_models.factor_deaths,
+    "factor_naturalistic": factor_models.naturalistic_distraction,
+    "factor_crashes": factor_models.factor_crashes,
+    "factor_speed_curve": factor_models.speed_curve,
+    "factor_comparison": factor_models.comparison,
     "simulator_limit_grid": simulator.limit_grid,
     # Seasonality and mobility
     "season_profile": seasonality.seasonal_profile,

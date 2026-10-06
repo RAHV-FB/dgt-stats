@@ -1,4 +1,4 @@
-"""The overview: the seven findings, what connects them, and what the site does not claim."""
+"""The overview: the findings, what connects them, and what the site does not claim."""
 
 from __future__ import annotations
 
@@ -6,7 +6,8 @@ import math
 
 import pandas as pd
 
-from dgt_stats import simulator
+from dgt_stats import factor_models, simulator
+from dgt_stats.site import factor_pages
 from dgt_stats.site.components import (
     _chance,
     _change,
@@ -92,6 +93,16 @@ def page_index(captions: dict[str, str]) -> str:
     conventional = presets.loc["conventional_80"]
     conventional_comply = presets.loc["conventional_comply"]
     kept_140 = presets.loc["motorway_140_comply"]
+    levers = read_table("factor_comparison").set_index(["lever", "zone"])
+    by_factor = read_table("factor_deaths").set_index(["factor", "zone", "role"])
+    upper = read_table("factor_naturalistic").set_index("zone").loc["all"]
+    curve = read_table("factor_speed_curve")
+    lever = {name: levers.loc[(name, "all")] for name in (*factor_models.LEVERS, "combined")}
+    needed = {
+        name: factor_models.share_needed(curve, name, factor_pages.LIVES)
+        for name in factor_models.LEVERS
+    }
+    breath_tests = factor_models.parameter("alcohol_tests_millions", "atgc_2023")
 
     first, final = int(split.index.min()), int(split.index.max())
     severity = float(split.loc[final, "severity_index"]) / 100 - 1
@@ -248,6 +259,55 @@ def page_index(captions: dict[str, str]) -> str:
             "Spanish baselines and radar speeds, published dose-response evidence and DGT's values "
             "of a life, all sourced; a Poisson forecast tested against machine learning.",
         ),
+        (
+            "distraction.html",
+            "Distraction is in the most fatal crashes, but causes fewer deaths than alcohol",
+            "If no driver were distracted, about "
+            f"{_fmt_int(lever['distraction'].avoided)} fewer people a year would die, "
+            f"{_fmt_pct(float(lever['distraction'].share), 0)} of "
+            f"{_fmt_int(lever['distraction'].deaths)}. The police record distraction in "
+            f"{_fmt_pct(factor_models.presence('distraction', 'interurban'), 0)} of interurban "
+            "fatal crashes, more than any other factor, but a distracted driver is about twice "
+            "as likely to crash, so only half of those crashes are caused by it. If the record "
+            "misses as much distraction as cameras in cars find, the figure could reach "
+            f"{_fmt_int(upper.avoided)}.",
+            "DGT's record of the factors in fatal crashes, with the crash risk measured by "
+            "cameras in drivers' own cars (Dingus et al., 2016).",
+        ),
+        (
+            "alcohol-drugs.html",
+            "Drink- and drug-driving is the largest avoidable share of deaths",
+            "Without drink- or drug-driving about "
+            f"{_fmt_int(lever['alcohol_drugs'].avoided)} fewer people a year would die "
+            f"({_fmt_int(lever['alcohol_drugs'].avoided_low)} to "
+            f"{_fmt_int(lever['alcohol_drugs'].avoided_high)}), "
+            f"{_fmt_pct(float(lever['alcohol_drugs'].share), 0)} of deaths: "
+            f"{_fmt_int(by_factor.loc[('alcohol', 'all', 'all')].avoided)} from alcohol and "
+            f"{_fmt_int(by_factor.loc[('drugs', 'all', 'all')].avoided)} from drugs. A driver "
+            "over the limit is in "
+            f"{_fmt_pct(factor_models.presence('alcohol', 'interurban'), 0)} of interurban fatal "
+            "crashes, and most of them are far over it, so almost all of those deaths are caused "
+            "by the alcohol.",
+            "DGT's record of fatal crashes, the forensic toxicology of killed drivers (INTCF) "
+            "and the risks the EU's DRUID project measured.",
+        ),
+        (
+            "enforcement.html",
+            "Alcohol is the largest prize; speed cameras are the surest gain",
+            "Removing each factor would save about "
+            f"{_fmt_int(lever['alcohol_drugs'].avoided)} lives a year for alcohol and drugs, "
+            f"{_fmt_int(lever['speed'].avoided)} for speeding and "
+            f"{_fmt_int(lever['distraction'].avoided)} for distraction; saving "
+            f"{factor_pages.LIVES} takes removing {_fmt_pct(needed['alcohol_drugs'], 0)}, "
+            f"{_fmt_pct(needed['speed'], 0)} or {_fmt_pct(needed['distraction'], 0)} of each. "
+            "Automatic speed cameras cut fatal and serious crashes by "
+            f"{factor_pages._point('section_control')} to {factor_pages._point('fixed_cameras')} "
+            f"where they stand, in Spain too; Spain already runs {breath_tests:g} million breath "
+            "tests a year, and phone bans changed total deaths by too little to measure. Most of "
+            "every gain is on interurban roads.",
+            "The three models side by side, with the published evaluations of each kind of "
+            "enforcement.",
+        ),
     ]
     body += "".join(
         finding(index, href, heading, text, method)
@@ -284,7 +344,8 @@ def page_index(captions: dict[str, str]) -> str:
         "factor on which Spanish drivers stray furthest from the rule: in 2022 "
         f"{_fmt_pct(1 - float(speeds.loc['conventional', 'share_within_limit']), 0)} of cars "
         "measured on conventional roads were above 90 km/h. That is why the site ends with a "
-        "simulator of speed laws, and why it says how likely the counts are to show one.</p>"
+        "simulator of speed laws, set beside models of distraction and of alcohol and drugs, "
+        "and says how likely the counts are to show a change.</p>"
     )
 
     body += "<h2>What this site does not claim</h2>"
@@ -292,7 +353,8 @@ def page_index(captions: dict[str, str]) -> str:
         "<p>It attributes no cause from Spanish data. The public microdata have one row per "
         "crash and no driver, vehicle or person records, so every factor here is an "
         "association, and a policy or campaign effect is never read off a time series. The "
-        "simulator applies dose-response evidence measured elsewhere to Spanish baselines. Two "
+        "models apply dose-response evidence and crash risks measured elsewhere to Spanish "
+        "baselines and to the police record of fatal crashes. Two "
         "analyses built earlier in the project are kept "
         "as supporting material because they are careful but outside this question: a "
         '<a href="severity.html">model of crash severity</a> and a '
@@ -312,8 +374,8 @@ def page_index(captions: dict[str, str]) -> str:
         "index",
         "Road safety in Spain",
         "What changes when you stop counting crashes and start measuring road risk: seven "
-        "questions answered from DGT data, each with the denominator that decides it, and a "
-        "simulator of speed laws built on what they show.",
+        "questions answered from DGT data, each with the denominator that decides it, and "
+        "models of speed, distraction and alcohol that ask which enforcement would save most.",
         body,
     )
 

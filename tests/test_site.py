@@ -35,22 +35,32 @@ def test_every_page_is_written_with_one_heading(built: Path) -> None:
         _scripts_are_only_the_simulator(slug, text)
         assert 'lang="en"' in text
         assert f'href="{slug}.html" aria-current="page"' in text
-    # Seven analyses, the simulator, the overview and the data in the main navigation; two
+    # Seven analyses, four models, the overview and the data in the main navigation; two
     # supporting analyses in their own group; and a pointer for each page that was renamed.
-    assert len(site.PAGES) == 10 and len(site.SUPPORTING_PAGES) == 2
+    assert len(site.PAGES) == 13 and len(site.SUPPORTING_PAGES) == 2
     expected = {slug for slug, _ in site.ALL_PAGES} | set(site.MOVED_PAGES)
     assert expected == {p.stem for p in built.glob("*.html")}
 
 
+# The pages that run a script, each loading its model's port and a block of its parameters.
+SCRIPTED_PAGES = {
+    "simulator": ("simulator-parameters", "simulator.js"),
+    "distraction": ("factor-parameters", "factors.js"),
+    "alcohol-drugs": ("factor-parameters", "factors.js"),
+    "enforcement": ("factor-parameters", "factors.js"),
+}
+
+
 def _scripts_are_only_the_simulator(slug: str, text: str) -> None:
-    """No page runs a script except the simulator, which loads its own file and a data block."""
+    """No page runs a script except the model pages, each loading its own file and a data block."""
     scripts = re.findall(r"<script[^>]*>", text)
-    if slug != "simulator":
+    if slug not in SCRIPTED_PAGES:
         assert not scripts, slug
         return
+    block, source = SCRIPTED_PAGES[slug]
     assert scripts == [
-        '<script type="application/json" id="simulator-parameters">',
-        '<script src="simulator.js" defer>',
+        f'<script type="application/json" id="{block}">',
+        f'<script src="{source}" defer>',
     ]
 
 
@@ -287,7 +297,7 @@ def test_front_page_leads_with_the_central_question(built: Path) -> None:
         assert f'href="{slug}.html"' in body
     assert site.PROFILE_URL in index and "Russell Howard" in index
     # Concise: the findings, one table that splits each of them, and the framing around them.
-    assert len(body) < 14_000
+    assert len(body) < 16_000
 
 
 def test_every_analysis_page_ends_on_a_stated_conclusion(built: Path) -> None:

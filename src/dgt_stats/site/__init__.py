@@ -6,12 +6,13 @@ two supporting analyses (the severity model and the 2006 break) kept apart; the 
 them in labelled groups (``NAV_GROUPS``).
 Every sentence that carries a number computes it from a committed result table at build time, so
 the prose cannot drift from the tables; full tables are copied into ``site/tables`` and linked as
-CSV rather than printed. The one script, ``simulator.js``, is a port of
-:mod:`dgt_stats.simulator`, and only the simulator page loads it.
+CSV rather than printed. The two scripts are ports of the models: ``simulator.js`` of
+:mod:`dgt_stats.simulator`, loaded by the simulator page, and ``factors.js`` of
+:mod:`dgt_stats.factor_models`, loaded by the distraction, alcohol-and-drugs and enforcement pages.
 
 One module per page (``overview``, ``trends``, ``long_run``, ``seasons``, ``drivers``,
 ``vehicles``, ``speed``, ``factors``, ``simulator``, ``data``, and the supporting ``severity`` and
-``policy``), with the shared furniture in ``components``, the stylesheet in ``style`` and the
+``policy``; the three factor-model pages share ``factor_pages``), with the shared furniture in ``components``, the stylesheet in ``style`` and the
 result tables several pages quote in ``numbers``.
 """
 
@@ -20,7 +21,13 @@ from __future__ import annotations
 import shutil
 from pathlib import Path
 
-from dgt_stats.paths import FIGURES_DIR, PROJECT_ROOT, SIMULATOR_EVIDENCE_PATH, TABLES_DIR
+from dgt_stats.paths import (
+    FACTOR_EVIDENCE_PATH,
+    FIGURES_DIR,
+    PROJECT_ROOT,
+    SIMULATOR_EVIDENCE_PATH,
+    TABLES_DIR,
+)
 from dgt_stats.site.components import (
     ALL_PAGES,
     MOVED_PAGES,
@@ -39,6 +46,7 @@ from dgt_stats.site.components import (
 )
 from dgt_stats.site.data import page_data
 from dgt_stats.site.drivers import page_drivers
+from dgt_stats.site.factor_pages import page_distraction, page_enforcement, page_impairment
 from dgt_stats.site.factors import page_factors
 from dgt_stats.site.long_run import page_long_run
 from dgt_stats.site.overview import page_index
@@ -75,8 +83,10 @@ __all__ = [
 SITE_DIR = PROJECT_ROOT / "site"
 
 
-# The one script on the site: the simulator's arithmetic, a port of ``simulator.py``.
+# The site's two scripts: the simulator's arithmetic, a port of ``simulator.py``, and the factor
+# models', a port of ``factor_models.py``.
 SIMULATOR_SCRIPT = Path(__file__).parents[1] / "assets" / "simulator.js"
+FACTOR_SCRIPT = Path(__file__).parents[1] / "assets" / "factors.js"
 
 
 PAGE_BUILDERS = {
@@ -89,6 +99,9 @@ PAGE_BUILDERS = {
     "speed": page_speed,
     "factors": page_factors,
     "simulator": page_simulator,
+    "distraction": page_distraction,
+    "alcohol-drugs": page_impairment,
+    "enforcement": page_enforcement,
     "data": page_data,
     "severity": page_severity,
     "policy": page_policy,
@@ -125,12 +138,17 @@ def build(site_dir: Path = SITE_DIR) -> list[Path]:
     style = site_dir / "style.css"
     style.write_text(STYLE.strip() + "\n", encoding="utf-8")
     written.append(style)
-    script = site_dir / SIMULATOR_SCRIPT.name
-    shutil.copyfile(SIMULATOR_SCRIPT, script)
-    written.append(script)
-    evidence = site_dir / "tables" / "simulator_evidence.csv"
-    shutil.copyfile(SIMULATOR_EVIDENCE_PATH, evidence)
-    written.append(evidence)
+    for source in (SIMULATOR_SCRIPT, FACTOR_SCRIPT):
+        script = site_dir / source.name
+        shutil.copyfile(source, script)
+        written.append(script)
+    for source, name in (
+        (SIMULATOR_EVIDENCE_PATH, "simulator_evidence.csv"),
+        (FACTOR_EVIDENCE_PATH, "factor_evidence.csv"),
+    ):
+        evidence = site_dir / "tables" / name
+        shutil.copyfile(source, evidence)
+        written.append(evidence)
     for slug, builder in PAGE_BUILDERS.items():
         target = site_dir / f"{slug}.html"
         target.write_text(builder(captions), encoding="utf-8")

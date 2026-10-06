@@ -173,13 +173,19 @@ ol.conclusions li { margin-bottom: 0.7em; }
   font: inherit; font-size: 0.8rem; color: var(--ink); background: var(--paper); cursor: pointer;
   border: 1px solid var(--rule-strong); border-radius: 2px; padding: 4px 9px;
 }
+.simulator button.preset-like {
+  font: inherit; font-size: 0.8rem; color: var(--ink); background: var(--paper); cursor: pointer;
+  border: 1px solid var(--rule-strong); border-radius: 2px; padding: 4px 9px;
+}
+.simulator button.preset-like:hover, .simulator button.preset-like:focus-visible { border-color: var(--go); color: var(--go); outline: none; }
+.result-head .also-line { font-size: 0.88rem; margin: 0 0 8px; max-width: 46rem; }
 .presets button:hover, .presets button:focus-visible { border-color: var(--go); color: var(--go); outline: none; }
 .presets button[aria-pressed="true"] { background: var(--go); border-color: var(--go); color: #fff; }
 .simulator fieldset.road {
   border: 0; border-top: 1px solid var(--rule-strong); margin: 0; padding: 12px 0 14px 14px; min-width: 0;
   border-left: 3px solid transparent;
 }
-.simulator fieldset.road[data-state="changed"] { border-left-color: var(--go); background: linear-gradient(90deg, var(--go-wash), transparent 70%); }
+.simulator fieldset.road[data-state="changed"], .simulator fieldset.road[data-state="settings"] { border-left-color: var(--go); background: linear-gradient(90deg, var(--go-wash), transparent 70%); }
 .simulator legend {
   float: left; width: 100%; padding: 0 0 2px; font-size: 1rem; font-weight: 600; font-family: var(--serif);
 }
