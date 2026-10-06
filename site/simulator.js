@@ -443,7 +443,7 @@
             box,
             "response-hint-" + group,
             typical.checked
-              ? "Typically " + usualText + ", from 143 before-and-after studies of limit changes."
+              ? "Typically " + usualText + ", from 143 before-and-after results of limit changes."
               : "Your setting moves the average by " + signed(chosen * change, 1) +
                 " km/h. Typically " + usualText + "."
           );

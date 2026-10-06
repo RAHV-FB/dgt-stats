@@ -692,9 +692,14 @@ def page_simulator(captions: dict[str, str]) -> str:
         "speed laws have to be judged by the speeds they produce.</p>"
     )
 
+    body += (
+        '<a class="try" href="#set-a-law"><strong>Try the simulator</strong><span>Choose a speed '
+        "limit for each kind of road and how many drivers keep to it; every number is recomputed "
+        'as you move the sliders.</span><span class="arrow" aria-hidden="true">↓</span></a>'
+    )
     body += _explainer(parameters, speeds)
 
-    body += "<h2>Set a law</h2>"
+    body += '<h2 id="set-a-law">Set a law</h2>'
     body += (
         "<p>Each kind of road starts at today's limit and today's driving. Choose a new limit "
         "and the box asks how far the average speed follows it; leave it at <em>As drivers "
@@ -705,6 +710,8 @@ def page_simulator(captions: dict[str, str]) -> str:
     body += (
         '<div id="simulator-panel" hidden>'
         '<form id="simulator" class="simulator">'
+        '<p class="simulator-title">Set a law <span>· start from a question or move the '
+        "sliders</span></p>"
         + _presets(parameters)
         + _road_controls(parameters, speeds)
         + "</form>"

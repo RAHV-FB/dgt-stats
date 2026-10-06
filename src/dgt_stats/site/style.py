@@ -14,6 +14,9 @@ STYLE = """
   --rule: #ddd9d1;
   --rule-strong: #b4afa4;
   --accent: #1b5fae;
+  --go: #17703f;
+  --go-strong: #0f5a31;
+  --go-wash: #e9f4ed;
   --wash: #f4f2ec;
   --serif: Charter, "Bitstream Charter", "Sitka Text", Cambria, "Source Serif 4", Georgia, serif;
   --sans: "Helvetica Neue", Helvetica, Arial, system-ui, sans-serif;
@@ -160,7 +163,13 @@ ol.conclusions li { margin-bottom: 0.7em; }
 
 /* The simulator: one ruled box per kind of road, with today's limit first and a new one marked. */
 .simulator { max-width: var(--wide); margin: 8px 0 18px; font-family: var(--sans); font-size: 0.86rem; }
-.presets { border-top: 2px solid var(--ink); padding: 10px 0 12px; }
+.simulator { border: 2px solid var(--go); border-radius: 4px; padding: 0 16px 6px; background: var(--paper); box-shadow: 0 2px 0 var(--go-wash); }
+.simulator-title {
+  margin: 0 -16px 0; padding: 10px 16px; background: var(--go); color: #fff; font-family: var(--sans);
+  font-size: 0.95rem; font-weight: 600; letter-spacing: 0.01em; max-width: none;
+}
+.simulator-title span { font-weight: 400; opacity: 0.9; }
+.presets { padding: 12px 0 12px; }
 .presets .presets-title { font-size: 0.8rem; color: var(--ink-2); margin: 0 0 6px; max-width: none; }
 .preset-row { display: grid; grid-template-columns: 12.5rem 1fr; gap: 6px 10px; align-items: baseline; margin: 0 0 7px; }
 .preset-row > span { font-size: 0.68rem; letter-spacing: 0.07em; text-transform: uppercase; color: var(--ink-2); }
@@ -169,19 +178,19 @@ ol.conclusions li { margin-bottom: 0.7em; }
   font: inherit; font-size: 0.8rem; color: var(--ink); background: var(--paper); cursor: pointer;
   border: 1px solid var(--rule-strong); border-radius: 2px; padding: 4px 9px;
 }
-.presets button:hover, .presets button:focus-visible { border-color: var(--accent); color: var(--accent); outline: none; }
-.presets button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+.presets button:hover, .presets button:focus-visible { border-color: var(--go); color: var(--go); outline: none; }
+.presets button[aria-pressed="true"] { background: var(--go); border-color: var(--go); color: #fff; }
 .simulator fieldset.road {
   border: 0; border-top: 1px solid var(--rule-strong); margin: 0; padding: 12px 0 14px 14px; min-width: 0;
   border-left: 3px solid transparent;
 }
-.simulator fieldset.road[data-state="changed"] { border-left-color: var(--accent); background: linear-gradient(90deg, var(--wash), transparent 70%); }
+.simulator fieldset.road[data-state="changed"] { border-left-color: var(--go); background: linear-gradient(90deg, var(--go-wash), transparent 70%); }
 .simulator legend {
   float: left; width: 100%; padding: 0 0 2px; font-size: 1rem; font-weight: 600; font-family: var(--serif);
 }
 .simulator fieldset.road[data-state="changed"] legend::after {
   content: "New limit"; margin-left: 10px; padding: 1px 6px; font-family: var(--sans); font-size: 0.62rem;
-  letter-spacing: 0.08em; text-transform: uppercase; color: #fff; background: var(--accent); vertical-align: 2px;
+  letter-spacing: 0.08em; text-transform: uppercase; color: #fff; background: var(--go); vertical-align: 2px;
 }
 .simulator .today { clear: both; margin: 0 0 10px; color: var(--ink-2); max-width: 46rem; }
 .simulator .today strong { color: var(--ink); }
@@ -197,17 +206,18 @@ ol.conclusions li { margin-bottom: 0.7em; }
 .simulator .segmented label:first-child span { border-radius: 2px 0 0 2px; }
 .simulator .segmented label:last-child span { border-radius: 0 2px 2px 0; }
 .simulator .segmented input:checked + span { background: var(--ink); border-color: var(--ink); color: var(--paper); position: relative; }
-.simulator fieldset.road[data-state="changed"] .segmented input:checked + span { background: var(--accent); border-color: var(--accent); }
-.simulator .segmented input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; position: relative; }
+.simulator fieldset.road[data-state="changed"] .segmented input:checked + span { background: var(--go); border-color: var(--go); }
+.simulator .segmented input:focus-visible + span { outline: 2px solid var(--go); outline-offset: 2px; position: relative; }
 .simulator .state { margin: 6px 0 0; font-size: 0.82rem; color: var(--ink-2); }
-.simulator fieldset.road[data-state="changed"] .state { color: var(--accent); font-weight: 600; }
+.simulator fieldset.road[data-state="changed"] .state { color: var(--go); font-weight: 600; }
 .simulator .choices { display: flex; flex-wrap: wrap; gap: 4px 18px; margin: 0 0 4px; }
+.simulator input[type=radio] { accent-color: var(--go); }
 .simulator .slider { display: flex; align-items: center; gap: 12px; }
-.simulator input[type=range] { width: min(24rem, 70%); accent-color: var(--accent); }
-.simulator output { font-variant-numeric: tabular-nums; font-weight: 600; min-width: 8.5em; }
+.simulator input[type=range] { width: min(24rem, 70%); accent-color: var(--go); height: 22px; cursor: pointer; }
+.simulator output { font-variant-numeric: tabular-nums; font-weight: 700; min-width: 8.5em; color: var(--go-strong); }
 .simulator .hint { margin: 3px 0 0; font-size: 0.78rem; line-height: 1.45; color: var(--ink-2); }
 .result-head {
-  font-family: var(--sans); max-width: var(--wide); border-top: 2px solid var(--ink); padding: 12px 0 2px; margin-top: 6px;
+  font-family: var(--sans); max-width: var(--wide); border-top: 3px solid var(--go); padding: 12px 0 2px; margin-top: 14px;
 }
 .result-head .headline { font-size: 1rem; line-height: 1.4; margin: 0 0 6px; max-width: 46rem; }
 .result-head .big { font-family: var(--serif); font-size: 2.1rem; font-weight: 600; font-variant-numeric: tabular-nums; margin-right: 4px; }
@@ -215,8 +225,16 @@ ol.conclusions li { margin-bottom: 0.7em; }
 .result-head ul.also { list-style: none; padding: 0; margin: 0 0 10px; display: flex; flex-wrap: wrap; gap: 4px 22px; font-size: 0.85rem; max-width: none; }
 .result-head ul.also li { max-width: none; }
 .result-head ul.why { font-size: 0.85rem; line-height: 1.5; padding-left: 1.1em; margin: 0 0 8px; max-width: 46rem; }
-.verdict { font-family: var(--sans); font-size: 0.88rem; line-height: 1.5; max-width: 46rem; border-left: 3px solid var(--accent); padding-left: 14px; margin: 10px 0 18px; }
+.verdict { font-family: var(--sans); font-size: 0.88rem; line-height: 1.5; max-width: 46rem; border-left: 3px solid var(--go); padding-left: 14px; margin: 10px 0 18px; }
 tr.total th, tr.total td { font-weight: 600; }
+a.try {
+  display: flex; align-items: center; gap: 14px; max-width: var(--wide); margin: 0 0 30px; padding: 14px 18px;
+  background: var(--go); color: #fff; text-decoration: none; border-radius: 4px; font-family: var(--sans);
+}
+a.try:hover, a.try:focus-visible { background: var(--go-strong); outline: none; }
+a.try strong { font-size: 1.05rem; white-space: nowrap; }
+a.try span { font-size: 0.85rem; opacity: 0.92; }
+a.try .arrow { margin-left: auto; font-size: 1.4rem; line-height: 1; }
 
 footer {
   border-top: 1px solid var(--rule); margin-top: 20px; padding-top: 18px; padding-bottom: 40px;
