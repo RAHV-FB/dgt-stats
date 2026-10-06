@@ -8,8 +8,9 @@
 What changes when you stop counting road crashes and start measuring road risk? This project
 takes Spain's official crash data and divides the same counts by what produced them: residents,
 licence holders, registered vehicles, kilometres driven and road fuel. On each question below the
-answer changes size, and on several it changes sign. It then asks what a speed law would do, with
-a simulator built on what the analyses show. Everything is generated from files published by the
+answer changes size, and on several it changes sign. It then asks what would save most lives: a
+simulator of speed laws, models of distraction and of drink- and drug-driving, and a comparison of
+which enforcement would pay most, all built on what the analyses show. Everything is generated from files published by the
 Dirección General de Tráfico (DGT), INE, the Ministerio de Transportes and CORES, reconciled
 against the publishers' own totals by 482 checks before anything is computed, and reproducible in
 five commands.
@@ -26,6 +27,9 @@ five commands.
 | **[Speed](https://rahv-fb.github.io/dgt-stats/speed.html)** | Speed recorded in 7 % of crashes, 22 % of deaths | On the same kind of road, a crash with speed recorded kills 2.0× as often (3.4× before allowing for road type): an association, with two recording biases stated |
 | **[Factors](https://rahv-fb.github.io/dgt-stats/factors.html)** | DGT's recorded alcohol, distraction and drug shares | After a recording-break test: interurban alcohol 5.5 % → 8.2 % and speed on all roads 10.0 % → 6.9 % are comparable over 2014–2023; urban distraction and drugs are not |
 | **[Speed laws](https://rahv-fb.github.io/dgt-stats/simulator.html)** | — | If every driver now above the limit on motorways and conventional roads kept to it, about 335 fewer people a year would die there (298–370), 280 of them on conventional roads: more than any single new limit saves with drivers responding as they typically do (the largest, 70 km/h on conventional roads, about 261). 90 → 80 km/h on conventional roads saves about 123. Motorways at 140 km/h would cost about 39 lives a year even with every driver keeping to 140, 94 more than everyone keeping to 120; kept by everyone, the limit breaks even with today at about 130. A validated forecasting model puts the chance that the first year's death count shows each at over 99 % for full compliance and 45 % for 80 km/h |
+| **[Distraction](https://rahv-fb.github.io/dgt-stats/distraction.html)** | Recorded in 35 % of interurban fatal crashes, more than any other factor | If no driver were distracted, about 266 fewer people a year would die (266–385), 15 % of 1,779: a distracted driver crashes about twice as often as an attentive one, so half of those crashes are caused by it. If the police record misses as much distraction as cameras in cars see, up to 640 |
+| **[Alcohol and drugs](https://rahv-fb.github.io/dgt-stats/alcohol-drugs.html)** | A driver over the limit in 29 % of interurban fatal crashes where every driver was tested | Without drink- or drug-driving about 582 fewer deaths a year (497–644), 33 %: 479 from alcohol, 104 from drugs. 81 % of the killed drivers over the limit had more than 1.2 g/L, where the risk is about 63 times a sober driver's, so almost all those deaths are caused by the alcohol |
+| **[Which enforcement](https://rahv-fb.github.io/dgt-stats/enforcement.html)** | — | Removing each factor would save about 582 lives a year for alcohol and drugs, 449 for speeding and 266 for distraction; all three, 1,017 (57 %). Saving 100 takes removing about 17 % of drink- and drug-driving, 20 % of speeding or 38 % of distraction. More enforcement is best shown to pay on speed: automatic cameras cut fatal and serious crashes by 41–47 % where they stand, and crashes on Barcelona's ring roads by 30 %; Spain already runs 6.7 million breath tests a year, where the evidence says more of the same buys little, and phone bans changed total deaths by −2 % (−6 % to +1 %). 73–84 % of every gain is on interurban roads |
 
 **What connects them.** Every comparison splits the same way: deaths for an exposure are crashes
 for that exposure times deaths per crash. The split shows the extra deaths do not all come from one
@@ -84,6 +88,24 @@ a law picks up a fall of
 summed over five years the figure is 36 %. The JavaScript is a port of `simulator.py`, and a test
 runs it under Node against the Python.
 
+## Distraction, alcohol and drugs, and which enforcement
+
+Two further models ask of the other behaviours the police record most often in fatal crashes what
+the simulator asks of speed: what if no driver were distracted
+([`distraction.html`](https://rahv-fb.github.io/dgt-stats/distraction.html)), and what if none drank or took drugs
+([`alcohol-drugs.html`](https://rahv-fb.github.io/dgt-stats/alcohol-drugs.html)). Both use the attributable fraction among the
+crashes: deaths avoided = share removed × deaths × the share of fatal crashes with the factor ×
+(1 − 1/relative risk), by zone and road user. The share of fatal crashes is DGT's police record
+(Tabla 50, 2022 and 2024; urban streets as all roads less interurban roads), and for drugs the
+forensic toxicology of killed drivers (INTCF); the risks are the EU DRUID project's, weighted by the
+blood alcohol and the drugs found in killed drivers, and for distraction the naturalistic driving
+study of Dingus et al. (2016). A third page ([`enforcement.html`](https://rahv-fb.github.io/dgt-stats/enforcement.html)) puts the
+three levers on the same deaths, finds the share of each that must go to save 100 lives a year,
+and sets beside them 16 published evaluations of speed, alcohol, drug and phone enforcement. Every
+value is in [`data/raw/evidence/factor_parameters.csv`](data/raw/evidence/factor_parameters.csv)
+with its source and a verbatim quote that a test checks against it; each page has sliders backed by
+`assets/factors.js`, a port of `factor_models.py` that a test runs under Node against the Python.
+
 ## Why you can believe the numbers
 
 - **Reconciled before analysed.** 482 checks tie the crash microdata, the yearbook tables, the
@@ -123,6 +145,9 @@ How the project was re-centred on its question, pillar by pillar:
   type each year (to 2023, without municipal roads); there is no urban series; by vehicle type
   there are only the Ministry's yearly share of heavy vehicles on each type of road and DGT's
   estimates for 2022 and 2024; and there is no source of kilometres by sex.
+- **No measure of enforcement**, so how much of a behaviour a given amount of enforcement removes
+  is not estimated for Spain: the enforcement comparison sets evaluations from abroad, and one
+  from Barcelona, beside the models rather than feeding them in.
 - **No speeds in the crash data**, so the effect of speed on Spanish casualties is taken from
   international evidence, not estimated; and no split of urban casualties by speed limit, so the
   simulator gives urban effects per kind of street, not as a national count.
@@ -146,14 +171,14 @@ pytest                              # the test suite, the reconciliation checks 
 pytest -m slow                      # SHA-256 of every raw file against data/raw/manifest.csv
 ```
 
-The test that compares the simulator's JavaScript with its Python runs when `node` is installed
-and is skipped otherwise.
+The tests that compare the simulator's and the factor models' JavaScript with their Python run
+when `node` is installed and are skipped otherwise.
 
 Raw files are tracked under `data/raw/` with their size, SHA-256 and source URL in
 `data/raw/manifest.csv`; result tables and figures under `reports/` and the site's HTML, CSS and
 script are committed, so the pages can be read and reviewed without rebuilding. `site/figures/`
 and `site/tables/` are not committed; `scripts/build_site.py` copies them in from `reports/`
-(with the simulator's evidence register from `data/raw/evidence/`), so run it once before opening
+(with the evidence registers from `data/raw/evidence/`), so run it once before opening
 the pages locally.
 
 Every pull request and every push to `main` runs [`ci.yml`](.github/workflows/ci.yml): Ruff over
@@ -170,7 +195,7 @@ touches the site or its inputs runs [`pages.yml`](.github/workflows/pages.yml), 
 
 ```text
 data/raw/              every source file, never edited, listed in manifest.csv; evidence/ holds
-                       the simulator's register of published values
+                       the registers of published values the simulator and factor models use
 docs/                  methodology, source register, data audit, and the two audits that set
                        the project's direction
 reports/tables/        result tables (CSV), committed; the site links them for download
@@ -178,8 +203,9 @@ reports/figures/       the twenty-two published figures (SVG) and their captions
 scripts/               ingest · build_tables · model · analyse · build_site
 src/dgt_stats/         readers (io_*), codes and labels, derived fields and validation,
                        analysis (risk_trends, seasonality, driver_risk, vehicles, factors, speed),
-                       the forecasting model and the simulator (forecast, simulator, and
-                       assets/simulator.js), the supporting analyses (models, policy), and output
+                       the forecasting model, the simulator and the factor models (forecast,
+                       simulator, factor_models, assets/simulator.js and assets/factors.js),
+                       the supporting analyses (models, policy), and output
                        (plots, figures, and the site package, one module per page)
 tests/                 data-contract, reconciliation and analysis tests
 ```
@@ -201,8 +227,8 @@ file by file with its URL in [`docs/data_sources.md`](docs/data_sources.md). DGT
 are catalogued on datos.gob.es under its legal notice; DGT's other statistics carry no reuse licence
 of their own and are redistributed here as public-sector information under Ley 37/2007 with the
 datos.gob.es conditions applied. INE population is CC BY 4.0; the Ministerio de Transportes and
-CORES series are public-sector information on the same terms. The simulator's evidence register
-quotes published values with attribution and redistributes none of the publications. Every
+CORES series are public-sector information on the same terms. The two evidence registers
+quote published values with attribution and redistribute none of the publications. Every
 published figure is an aggregate and nothing on the site identifies a person.
 
 ---

@@ -562,6 +562,102 @@ which must agree with the Python to one part in a million on every quantity the 
 hours by road and in total, and the urban speeds, deaths with their range and admissions), on
 both thresholds and on the chance of detection.
 
+### 12.1 Distraction, and alcohol and drugs (`factor_models.py`, `assets/factors.js`)
+
+The simulator asks what follows if every driver above the limit kept to it. Two further models ask
+the same of the other two behaviours the police record most often in fatal crashes: what if no
+driver were distracted, and what if none drank or took drugs. Both use the attributable fraction
+among the cases (Miettinen): if a factor is present in a share `s` of fatal crashes and multiplies
+the risk of one by `RR`, the share of deaths that would not happen without it is
+`s · (1 − 1/RR)`, and removing a share `x` of the factor removes `x` of those deaths. It is applied
+to each zone (interurban, urban) and road user (driver, passenger, pedestrian):
+
+    deaths avoided = x · deaths · s_zone · (1 − 1/RR)
+
+Every published value is a row of `data/raw/evidence/factor_parameters.csv` with its source, its
+place in the source, the URL and a verbatim quote; a test requires every quote to print its value
+and the ends of its interval, and fails on a value mistyped by a factor of 0.61, 1.37 or 1.9.
+
+- **Deaths.** People killed within 30 days by zone and road user, the mean of 2022–2024 in DGT's
+  yearbook table 2.2: 1,779 a year, 1,284 on interurban roads and 495 in towns.
+- **Presence.** DGT's yearly table of the factors in fatal crashes (Tabla 50 of the Principales
+  cifras, Spain without Cataluña and País Vasco) gives, for distraction, alcohol and inappropriate
+  speed, the fatal crashes on all roads with the factor and the interurban share. The urban count
+  is the difference, which needs both denominators: DGT prints them for 2022 and 2024, which are
+  pooled; 2023, with the all-roads counts and the interurban share only, is kept as a check on
+  stability. For alcohol every denominator is the fatal crashes in which all drivers were tested
+  (990 of 1,373 in 2024). Pooled shares: distraction 35 % of interurban and 17 % of urban fatal
+  crashes; alcohol 29 % and 27 %. Drugs have no row in Tabla 50: their presence is the share of
+  killed drivers whose blood held a drug of abuse and no alcohol (INTCF, the national forensic
+  toxicology of killed drivers; mean of 2023 and 2024, about 10 %), the same for both zones.
+- **Risk.** For alcohol, the EU DRUID project's relative risks of being seriously injured or
+  killed: the 2023 killed drivers above 0.5 g/L split into 0.51–1.20 g/L (DRUID's 0.5–0.8 and
+  0.8–1.2 groups, geometric mean 7.0) and over 1.20 g/L (62.8), weighted by the INTCF counts; 81 %
+  are over 1.2 g/L, so the attributable fraction is 0.96. For drugs, DRUID's estimates for cocaine,
+  cannabis, amphetamines and opiates weighted by the drugs the police detected in killed drivers in
+  2023 (attributable fraction 0.57). For distraction, the naturalistic driving study of Dingus et
+  al. (2016): odds ratio 2.0 for any observable distraction (attributable fraction 0.5), 3.6 for a
+  handheld phone.
+- **Bounds.** `low` and `high` take the ends of DRUID's risk bands, and for distraction any
+  distraction against a handheld phone. They say how sensitive the answer is to the risk, not how
+  complete the police record is. Two checks bound that instead: for alcohol, the INTCF share of
+  killed drivers over the limit, which agrees with the police record; for distraction, the
+  naturalistic study's own estimate that 36 % of crashes would not happen without distraction,
+  which applied to every death gives 640 a year against the police record's 266
+  (`naturalistic_distraction`, a sensitivity, not a second estimate).
+- **Injury crashes.** The 2024 injury crashes with each factor recorded (13,164 with distraction,
+  3,630 with alcohol in tested crashes) times the attributable fraction.
+
+Results with each factor removed entirely: alcohol and drugs 582 deaths a year (497–644), 479 of
+them alcohol; distraction 266 (266–385), with 640 as the naturalistic ceiling; 6,582 of the 13,164
+injury crashes with distraction recorded. Left out deliberately: psychoactive medicines (11–16 %
+of killed drivers), prescribed and not what roadside enforcement targets; the impairment of
+pedestrians themselves (43 % of those killed tested positive); and any interaction between
+factors beyond the combination below.
+
+The assumptions that carry most weight are said on the pages: the risks were measured abroad, for
+injury crashes (DRUID) or for crashes of any severity (Dingus) rather than fatal ones; presence is
+per crash and is applied to every death in the zone, drivers, passengers and pedestrians alike; and
+the police record can miss a factor (distraction most of all) or record it where it did not cause
+the crash.
+
+### 12.2 Which enforcement (`factor_models.comparison`, `share_needed`)
+
+The comparison puts the three levers on the same deaths. Speed is the simulator with a share of
+the drivers above the limit on every road slowing to it, read off a curve of 101 points from no
+driver to every driver (`speed_curve`); urban streets take the simulator's proportional fall on
+streets at 50 km/h, with 0 as the low end, because the urban evidence includes no effect, and the
+fall on streets at 30 as the high end, because DGT does not split urban deaths by the limit of the
+street. Alcohol and drugs, and distraction, are the models above at a share removed. Removing all
+three combines the shares as `1 − Π(1 − a_i)`, which assumes they act independently; alcohol and
+speed often occur together, so the combined figure is if anything high.
+
+With each factor removed: alcohol and drugs 582, speed 449 (298–616), distraction 266, all three
+1,017 (57 % of deaths). `share_needed` inverts each lever for a number of lives: saving 100 a year
+takes removing about 17 % (16–20 %) of drink- and drug-driving, 20 % (14–31 %) of speeding, or 38 %
+(26–38 %) of distraction. For every lever 73–84 % of the gain is on
+interurban roads; for speed, 280 of the 335 interurban lives are on conventional roads.
+
+How much of each factor enforcement removes is not measured in Spain. The register carries 16
+published evaluations, each with a verbatim quote, of what an enforcement measure did to crashes
+where it was tried: fixed speed cameras (−47 % fatal crashes near them), section control (−41 %
+killed or seriously injured), mobile cameras, roadside checks, more of the existing speed
+enforcement (−9 %, −34 % to +26 %), Barcelona's ring-road cameras (−30 % crashes; no change on the
+city's arterial streets); breath-test checkpoints (−17 % alcohol-related crashes), drink-driving
+patrols (−3 %, −9 % to +4 %), Norway's planning assumption that tripling random breath tests cuts
+fatal crashes by 3 %, the response of drug-impaired driving to the chance of being caught; handheld
+and texting bans (−2 % and +5 % crashes) and, from Zhu et al. (2021), handheld bans the police can
+enforce on their own (driver deaths −7 %, all deaths −2 %, an interval including no change). The
+page reads the ranking from the two together: alcohol and drugs is the largest prize, speed the
+lever on which more enforcement is best shown to pay (automatic cameras on fast roads, above all
+conventional roads), and distraction the weakest on both counts. The evaluations measure effects
+on crashes, not the share of a behaviour removed, and all but one are from outside Spain, so they
+are set beside the model's numbers rather than fed into them.
+
+The browser code (`factors.js`) is a port of the Python; a test runs it under Node on 54
+combinations of the three sliders at each of the three bounds and requires it to agree with the
+Python to one part in a billion.
+
 ## 13. Assumptions tested
 
 Every headline rests on an assumption the data can be asked about; these are the ones tested, all
@@ -576,6 +672,8 @@ listed with their results on the data page.
 | The fall in deaths was in how deadly crashes are | exact frequency × severity split | holds; the split, not the product, depends on recording (section 4) |
 | A forecast can show a law's effect | out-of-sample forecast errors | only for large effects: a fall of about 15 % of interurban deaths is detected four times in five in the first year, smaller ones less often (section 11) |
 | Two numbers describe how fast cars drive | log-normal checked on the measured mean | holds, within 0.7 km/h (section 12) |
+| The police record finds the drunk drivers in fatal crashes | the toxicology of drivers killed in 2023 (INTCF) | holds on a different count: 27 % of killed drivers over 0.5 g/L, a driver over the limit in 29 % of interurban and 27 % of urban fatal crashes where every driver was tested (section 12.1) |
+| The police record finds the distraction in fatal crashes | the share of crashes distraction causes in a naturalistic driving study | cannot be tested on Spanish data; the naturalistic figure, 640 deaths a year against the record's 266, is given as the ceiling (section 12.1) |
 
 ## 14. Supporting analysis: severity models (`features.py`, `models.py`, `scripts/model.py`)
 
