@@ -727,6 +727,11 @@ ENFORCEMENT_STUDIES: dict[str, tuple[str, str, str]] = {
         "Comprehensive handheld bans (US)",
         "All deaths, drivers and others",
     ),
+    "texting_ban_primary_deaths": (
+        "Distraction",
+        "Texting bans for all drivers the police can enforce on their own (US)",
+        "All deaths",
+    ),
 }
 
 
@@ -999,7 +1004,8 @@ def page_enforcement(captions: dict[str, str]) -> str:
         f"{_fall('handheld_ban_crashes')}; after bans on texting crashes changed by "
         f"{_change('texting_ban_crashes')}. Where the police could enforce a full handheld ban "
         f"on its own, driver deaths fell by {_fall('phone_ban_driver_deaths')}, but all deaths "
-        f"changed by {_change('phone_ban_total_deaths')}, an interval that includes no change. "
+        f"changed by {_change('phone_ban_total_deaths')}, and after texting bans of the same "
+        f"kind by {_change('texting_ban_primary_deaths')}: both intervals include no change. "
         "A review of 32 studies of police enforcement of phone bans found it may cut phone use "
         "and fatal crashes, but with results that vary and are uncertain "
         f'(<a href="{esc(MOBILE_CHAPTER)}">TØI, ch. 8.14</a>). Spain already bans using a '

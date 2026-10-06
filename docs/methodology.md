@@ -638,7 +638,7 @@ takes removing about 17 % (16–20 %) of drink- and drug-driving, 20 % (14–31 
 (26–38 %) of distraction. For every lever 73–84 % of the gain is on
 interurban roads; for speed, 280 of the 335 interurban lives are on conventional roads.
 
-How much of each factor enforcement removes is not measured in Spain. The register carries 16
+How much of each factor enforcement removes is not measured in Spain. The register carries 17
 published evaluations, each with a verbatim quote, of what an enforcement measure did to crashes
 where it was tried: fixed speed cameras (−47 % fatal crashes near them), section control (−41 %
 killed or seriously injured), mobile cameras, roadside checks, more of the existing speed
@@ -647,7 +647,8 @@ city's arterial streets); breath-test checkpoints (−17 % alcohol-related crash
 patrols (−3 %, −9 % to +4 %), Norway's planning assumption that tripling random breath tests cuts
 fatal crashes by 3 %, the response of drug-impaired driving to the chance of being caught; handheld
 and texting bans (−2 % and +5 % crashes) and, from Zhu et al. (2021), handheld bans the police can
-enforce on their own (driver deaths −7 %, all deaths −2 %, an interval including no change). The
+enforce on their own (driver deaths −7 %, all deaths −2 %, an interval including no change), and
+from Ferdinand et al. (2014) texting bans of the same kind (all deaths −3 %, −5 % to 0 %). The
 page reads the ranking from the two together: alcohol and drugs is the largest prize, speed the
 lever on which more enforcement is best shown to pay (automatic cameras on fast roads, above all
 conventional roads), and distraction the weakest on both counts. The evaluations measure effects

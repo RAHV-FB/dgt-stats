@@ -101,7 +101,7 @@ forensic toxicology of killed drivers (INTCF); the risks are the EU DRUID projec
 blood alcohol and the drugs found in killed drivers, and for distraction the naturalistic driving
 study of Dingus et al. (2016). A third page ([`enforcement.html`](https://rahv-fb.github.io/dgt-stats/enforcement.html)) puts the
 three levers on the same deaths, finds the share of each that must go to save 100 lives a year,
-and sets beside them 16 published evaluations of speed, alcohol, drug and phone enforcement. Every
+and sets beside them 17 published evaluations of speed, alcohol, drug and phone enforcement. Every
 value is in [`data/raw/evidence/factor_parameters.csv`](data/raw/evidence/factor_parameters.csv)
 with its source and a verbatim quote that a test checks against it; each page has sliders backed by
 `assets/factors.js`, a port of `factor_models.py` that a test runs under Node against the Python.
