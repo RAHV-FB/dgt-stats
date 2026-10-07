@@ -294,7 +294,17 @@ def model_figures(figures_dir: Path, captions: dict[str, str]) -> None:
         int(calibration.n.sum()),
     )
     importance = table("ml_importance")
+    # Importance is drawn only for the models the site features (the decision table's keepers).
+    featured = None
+    decisions_path = TABLES_DIR / "ml_model_decisions.csv"
+    if decisions_path.exists():
+        from dgt_stats.microdata.validation.decisions import FEATURED
+
+        decisions = pd.read_csv(decisions_path)
+        featured = set(decisions.loc[decisions.decision.isin(FEATURED), "model"])
     for row in selected[selected.primary].itertuples():
+        if featured is not None and row.model not in featured:
+            continue
         model = row.model
         part = importance[(importance.model == model) & (importance.feature_set == row.feature_set)]
         part = part.head(10).assign(

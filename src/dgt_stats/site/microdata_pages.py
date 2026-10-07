@@ -685,7 +685,7 @@ def page_severity_models(captions: dict[str, str]) -> str:
         "it rank recorded crashes or people better than a plain table of outcome shares? "
         + (
             "The "
-            + " and the ".join(SHORT_NAMES[m].lower() + " model" for m in kept)
+            + " and the ".join(SHORT_NAMES[m] + " model" for m in kept)
             + (" do" if len(kept) > 1 else " does")
             + ", on later records they never saw. "
             if kept
@@ -693,7 +693,7 @@ def page_severity_models(captions: dict[str, str]) -> str:
         )
         + (
             "The "
-            + " and the ".join(SHORT_NAMES[m].lower() + " model" for m in replaced)
+            + " and the ".join(SHORT_NAMES[m] + " model" for m in replaced)
             + (" do" if len(replaced) > 1 else " does")
             + " not: "
             + ("their tables are" if len(replaced) > 1 else "its table is")
@@ -854,6 +854,9 @@ def page_severity_models(captions: dict[str, str]) -> str:
         & transport.status.eq("reported")
     ].iloc[0]
     failed_checks = audit[~audit.passed & audit.check.str.match(r"\d")]
+    forecast_decision = decisions[decisions.model.eq("dgt_monthly_deaths_forecast")].decision.iloc[
+        0
+    ]
     allowed = audit.decision.iloc[0].startswith("DGT microdata may train")
     _check(not allowed, "severity models", "the DGT audit keeps DGT records out of training")
     body += (
@@ -862,16 +865,21 @@ def page_severity_models(captions: dict[str, str]) -> str:
         + ", ".join(esc(c.split(" ", 1)[1]) for c in failed_checks.check)
         + '; <a href="sources.html">sources page</a>), so they describe Spain rather than train '
         "a model of it. They are used instead to test the Catalan model, restricted to the "
-        "variables both sources record the same way, on crashes recorded by other police forces "
-        f"outside Catalonia: the target domain's own model scores "
+        "variables both sources record the same way, on DGT's crash records from outside "
+        f"Catalonia, a separately published dataset: the target domain's own model scores "
         f"{national.in_domain_cv_roc_auc:.3f}, the transferred Catalan model "
         f"{national.roc_auc:.3f}, a gap of {national.transfer_gap:+.3f} on "
         f"{_fmt_int(national.test_n)} crashes ({_fmt_int(national.test_positives)} fatal), "
         f"calibration slope {national.calibration_slope:.2f}. How far that reaches is on the "
-        '<a href="transport.html">generalisability page</a>. The DGT records still support a '
-        '<a href="severity.html">supporting association analysis</a>, which is not a predictive '
-        'model, and the national deaths series supports the <a href="forecast.html">monthly '
-        "deaths forecast</a>.</p>"
+        '<a href="transport.html">generalisability page</a>. The DGT records also support an '
+        '<a href="severity.html">association analysis</a>, a supporting analysis and not a '
+        "predictive model. The monthly deaths series has "
+        + (
+            'a <a href="forecast.html">forecast</a> that does not beat repeating last year\'s '
+            "count in ordinary years, so it is not featured as a model either.</p>"
+            if forecast_decision not in decision_rules.FEATURED
+            else 'a <a href="forecast.html">forecasting model</a>.</p>'
+        )
     )
 
     body += "<h2>Models that were not built</h2>"
@@ -977,15 +985,16 @@ def page_transport(captions: dict[str, str]) -> str:
     shown_provinces = provinces[provinces.reported]
     full = verdicts[verdicts.features.str.startswith("full")]
     main = full.set_index("estimator").loc[to_bcn.estimator]
+    # intrinsic_difference_against_urban = (other urban Catalan crashes, same training size)
+    # minus Barcelona: negative means those urban crashes are harder to rank than Barcelona's.
+    urban = main.intrinsic_difference_against_urban
     urban_reading = (
-        f"other urban Catalan crashes are as hard: {main.intrinsic_difference_against_urban:+.2f}"
+        f"other urban Catalan crashes at the same training size are as hard: {urban:+.2f}"
         if not main.urban_comparison_excludes_zero
         else (
-            f"harder than other urban Catalan crashes too: "
-            f"{main.intrinsic_difference_against_urban:+.2f}"
-            if main.intrinsic_difference_against_urban < 0
-            else f"other urban Catalan crashes are harder still: "
-            f"{main.intrinsic_difference_against_urban:+.2f}"
+            f"other urban Catalan crashes at the same training size are harder still: {urban:+.2f}"
+            if urban < 0
+            else f"harder than other urban Catalan crashes too: {urban:+.2f}"
         )
     )
     _check(main.intrinsic_difference > 0, "transport", "Barcelona's crashes are harder to rank")
@@ -1045,15 +1054,17 @@ def page_transport(captions: dict[str, str]) -> str:
         "only the DGT records, which use one definition everywhere. <strong>Transportability"
         "</strong>: does a model trained in one place keep its ranking on records from another? "
         "Every transferred score is shown beside a model trained inside the target domain. The "
-        f"Catalan model ranks Barcelona's crashes at {to_bcn.roc_auc:.2f} against "
-        f"{to_bcn.in_domain_cv_roc_auc:.2f} for a model trained in Barcelona itself. The fall "
+        f"Catalan model ranks Barcelona's crashes at {to_bcn.roc_auc:.3f}, against a native "
+        f"{to_bcn.in_domain_cv_roc_auc:.3f} for a model trained in Barcelona itself (gap "
+        f"{to_bcn.transfer_gap:+.3f}). The fall "
         f"of {main.total_drop:.2f} from what it achieves inside the rest of Catalonia splits into "
         f"{main.training_size_cost:.2f} for Barcelona's smaller training set, "
         f"{main.intrinsic_difference:.2f} because Barcelona's crashes are harder to rank with "
         f"these variables ({urban_reading}), and {main.transport_cost:.2f} for the move itself"
         f"{gap_reading}. Restricted to the variables DGT records the same way, the model "
-        f"ranks crashes elsewhere in Spain at {national.roc_auc:.2f} against "
-        f"{national.in_domain_cv_roc_auc:.2f} in-domain. Transfer shows that associations hold "
+        f"ranks crashes elsewhere in Spain at {national.roc_auc:.3f}, against a native "
+        f"{national.in_domain_cv_roc_auc:.3f} (gap {national.transfer_gap:+.3f}). Transfer "
+        "shows that associations hold "
         "elsewhere; it does not make them causes.</p>"
     )
 
@@ -1195,8 +1206,8 @@ def page_transport(captions: dict[str, str]) -> str:
 
     body += "<h3>The national test</h3>"
     body += (
-        "<p>The DGT crash records outside Catalonia are recorded by other police forces and "
-        "published separately, so they are an independent test. Before reading the score, the "
+        "<p>DGT's crash records from outside Catalonia are a separately published dataset "
+        "covering other regions, so they are an external test. Before reading the score, the "
         "test itself is checked:</p>"
     )
     body += table(
@@ -1270,9 +1281,17 @@ def page_transport(captions: dict[str, str]) -> str:
         ]
     )
     body += "<h2>Conclusion</h2>" + conclusion(
-        "Inside Catalonia the severity associations travel between places and years; "
-        "Barcelona is harder to rank in itself rather than a place where the model breaks. "
-        "On the variables recorded alike, the Catalan model keeps its ranking on crashes "
+        "Inside Catalonia the severity associations travel between places and years. "
+        "Barcelona's crashes are harder to rank than the rest of Catalonia's, "
+        + (
+            "as other urban crashes are, "
+            if main.intrinsic_difference_against_urban <= 0
+            or not main.urban_comparison_excludes_zero
+            else "more than other urban crashes, "
+        )
+        + "and the move itself costs "
+        + ("no measurable ranking. " if not main.transport_cost_excludes_zero else "some ranking. ")
+        + "On the variables recorded alike, the Catalan model keeps its ranking on crashes "
         "recorded elsewhere in Spain. "
         + (
             "No model passes every stage of the outward path, so none is called nationally "
@@ -1517,7 +1536,7 @@ def overview_sections() -> str:
         f"never saw. {len(featured)} of the {len(main_rows)} models pass and are shown as models; "
         "the rest are kept for research or replaced by their table. They rank recorded cases by "
         "how severe the outcome was; none predicts whether a crash happens or estimates a "
-        "causal effect.</p>"
+        'causal effect. Details: <a href="severity-models.html">models page</a>.</p>'
     )
     body += table(
         pd.DataFrame(
@@ -1540,9 +1559,16 @@ def overview_sections() -> str:
         f"({_fmt_int(national.test_n)} crashes, {_fmt_int(national.test_positives)} fatal). "
         f"The full Catalan model on Barcelona: native {to_bcn.in_domain_cv_roc_auc:.3f}, "
         f"transferred {to_bcn.roc_auc:.3f}, gap {to_bcn.transfer_gap:+.3f}; most of the fall from "
-        f"the rest of Catalonia is Barcelona being harder to rank "
-        f"({main.intrinsic_difference:.2f}) and its smaller training set "
-        f"({main.training_size_cost:.2f}), not the move ({main.transport_cost:.2f}). "
+        f"the rest of Catalonia is that Barcelona's crashes are harder to rank "
+        f"({main.intrinsic_difference:.2f}), "
+        + (
+            "as other urban Catalan crashes are, "
+            if main.intrinsic_difference_against_urban <= 0
+            or not main.urban_comparison_excludes_zero
+            else ""
+        )
+        + f"and its smaller training set ({main.training_size_cost:.2f}), not the move "
+        f"({main.transport_cost:.2f}). "
         + (
             "No model passes every stage of the outward path, so none is called nationally "
             "transferable. "

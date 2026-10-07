@@ -19,6 +19,7 @@ from dgt_stats.site.components import (
     figure,
     key_figures,
     limits,
+    note,
     read_table,
     render_page,
     table,
@@ -211,6 +212,20 @@ def page_forecast(captions: dict[str, str]) -> str:
         f"{_fmt_pct(rise_all, 0)} four times in five. Smaller changes show less often, and "
         "waiting longer does not help.</p>"
     )
+    model_holdout = rmse("deaths_all", "holdout", chosen)
+    naive_holdout = rmse("deaths_all", "holdout", "last_year")
+    if model_holdout < naive_holdout:
+        raise ValueError("forecast: the model now beats last year's count in ordinary years")
+    body += note(
+        "<strong>Not one of the site's predictive models.</strong> In the held-back ordinary "
+        f"years repeating last year's count forecasts as well ({_fmt_pct(naive_holdout)} "
+        f"against {_fmt_pct(model_holdout)} for the model), so by the rule every model on this "
+        "site must pass, beating its plain comparator on records it never saw, the model is not "
+        'presented as a forecasting tool (<a href="severity-models.html">models page</a>). It is '
+        "kept for what it shows: its traffic adjustment matters when traffic moves sharply, as "
+        "in the lockdown years, and its error sets how large a change a year of counts can "
+        "show."
+    )
 
     body += "<h2>What the model is</h2>"
     body += (
@@ -358,9 +373,9 @@ def page_forecast(captions: dict[str, str]) -> str:
     )
     return render_page(
         "forecast",
-        "Monthly deaths: a forecasting model",
-        "A small model of Spain's monthly road deaths, fitted only to DGT's series and road "
-        "fuel, tested on years it had not seen, and what its error says about how large a "
-        "change in deaths a year of counts can show.",
+        "Monthly deaths: how large a change a year can show",
+        "Spain's monthly road deaths forecast from the series itself and road fuel, against "
+        "simply repeating last year's count: where the model adds nothing, where it helps, and "
+        "what the forecast error says about how large a change a year of counts can show.",
         body,
     )

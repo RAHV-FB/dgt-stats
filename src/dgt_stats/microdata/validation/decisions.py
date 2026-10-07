@@ -17,7 +17,8 @@ declared here, before any result is read, in this order:
 5. **KEEP but ranking-only** when it beats the table but its probabilities fail that rule.
 
 The monthly deaths forecast is judged the same way, with the naive forecasts (last year, mean of
-three years) as its descriptive baseline.
+three years) as its descriptive baseline, on the held-out ordinary years; the lockdown years,
+scored apart by the forecast module, are reported beside the decision.
 
 Every row also carries the furthest level its evidence reaches on the outward path (same source,
 later time, another region, another recording source, Spain), the in-domain and transferred
@@ -152,12 +153,14 @@ def _transfer(transport: pd.DataFrame, model: str, estimator: str) -> str:
 def _level(path: pd.DataFrame, model: str) -> tuple[int, str, str]:
     part = path[path.model.eq(model)].set_index("stage")
     highest = int(part.highest_consecutive_stage.iloc[0])
+    name = part.loc[highest, "stage_name"] if highest else LEVELS[0]
     blocked = (
-        f"stage {highest + 1} ({LEVELS[highest + 1]}): {part.loc[highest + 1, 'status']}"
+        f"stage {highest + 1} ({part.loc[highest + 1, 'stage_name']}): "
+        f"{part.loc[highest + 1, 'status']}"
         if highest < 5
         else "none"
     )
-    return highest, LEVELS[highest], blocked
+    return highest, name, blocked
 
 
 def source_rows(tables: dict[str, pd.DataFrame]) -> list[dict]:
@@ -241,6 +244,11 @@ def source_rows(tables: dict[str, pd.DataFrame]) -> list[dict]:
                         "usefulness": f"{rr.roc_auc - primary.roc_auc:+.3f} over the primary "
                         "model from information recorded after the event",
                         "transfer_evidence": "not tested (a diagnostic of the record)",
+                        "highest_validated_level": 2,
+                        "highest_validated_level_name": path[
+                            path.model.eq(model) & path.stage.eq(2)
+                        ].stage_name.iloc[0],
+                        "next_level_blocked_by": "not tested beyond its own test rows",
                         "question_answered": "how much the information recorded after the "
                         "event adds to the ranking",
                         "decision": decide(
@@ -318,28 +326,40 @@ def national_rows(tables: dict[str, pd.DataFrame]) -> list[dict]:
                 ),
             }
         )
-    selection = TABLES_DIR / "forecast_selection.csv"
     validation = TABLES_DIR / "forecast_validation.csv"
-    if selection.exists() and validation.exists():
-        sel = pd.read_csv(selection)
+    if validation.exists():
+        from dgt_stats import forecast
+
         val = pd.read_csv(validation)
-        chosen = sel[sel.chosen & sel.set.eq("holdout") & sel.outcome.eq("deaths_all")]
-        naive = val[val.family.eq("naive") & val.set.eq("holdout") & val.outcome.eq("deaths_all")]
-        if not chosen.empty and not naive.empty:
-            c = chosen.iloc[0]
-            best_naive = naive.sort_values("rmse").iloc[0]
+        val = val[val.outcome.eq("deaths_all")]
+        # The project's forecasting model is the Poisson regression the module selects
+        # (forecast.CHOSEN); the trees are a disclosed comparator, not the model.
+        chosen = val[val.family.eq("model") & val.method.eq(forecast.CHOSEN)]
+        naive = val[val.family.eq("naive")]
+        held = chosen[chosen.set.eq("holdout")]
+        if not held.empty and naive.set.eq("holdout").any():
+            c = held.iloc[0]
+            best_naive = naive[naive.set.eq("holdout")].sort_values("rmse").iloc[0]
             beats = bool(c.rmse < best_naive.rmse)
+            shock = chosen[chosen.set.eq("pandemic")]
+            shock_naive = naive[naive.set.eq("pandemic")].sort_values("rmse")
+            shock_text = (
+                f"; in the lockdown years, scored apart, {shock.rmse.iloc[0]:.3f} against "
+                f"{shock_naive.rmse.iloc[0]:.3f} for {shock_naive.method_label.iloc[0]}"
+                if not shock.empty and not shock_naive.empty
+                else ""
+            )
             rows.append(
                 {
                     "model": "dgt_monthly_deaths_forecast",
-                    "variant": c.method_label,
+                    "variant": "Poisson regression, " + c.method_label,
                     "unit": "one month, Spain",
                     "target": "road deaths in the month (yearbook series)",
                     "source": "DGT yearbook series, CORES fuel",
                     "layer": layers.NATIONAL.title,
                     "baseline": f"{best_naive.method_label}: held-out error {best_naive.rmse:.3f}",
-                    "ml": f"{c.method_label}: held-out error {c.rmse:.3f} over {int(c.years)} "
-                    "years",
+                    "ml": f"Poisson regression, {c.method_label}: held-out error {c.rmse:.3f} "
+                    f"over {int(c.years)} ordinary years{shock_text}",
                     "test_roc_auc": math.nan,
                     "test_n": int(c.years),
                     "test_positives": math.nan,
@@ -348,9 +368,12 @@ def national_rows(tables: dict[str, pd.DataFrame]) -> list[dict]:
                     "highest_validated_level_name": LEVELS[2],
                     "next_level_blocked_by": "one national series: no other domain",
                     "calibration": "not applicable (counts)",
-                    "usefulness": "beats the naive forecasts on held-out years"
-                    if beats
-                    else "does not beat a naive forecast on held-out years",
+                    "usefulness": (
+                        "beats the naive forecasts on the held-out ordinary years"
+                        if beats
+                        else "does not beat last year's count on the held-out ordinary years"
+                    )
+                    + shock_text.replace("; in", ". In"),
                     "question_answered": "is a year's death count outside what the series' "
                     "normal variation predicts",
                     "question_not_answered": "why a change happened; any measure's effect",

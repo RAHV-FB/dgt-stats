@@ -15,12 +15,12 @@ The question: may the DGT crash microdata train a severity model in this project
 | 3 feature definitions | every candidate column documented in the dictionary; every code that appears is a dictionary code | 30/30 candidate columns have dictionary labels; code-domain checks 33/33 passed | yes |
 | 4 sample construction | rows reproduce the published annual totals of crashes, deaths and injuries (the file is the complete published universe, not a sample) | crash-count reconciliations 9/9, victim-total reconciliations 45/45 passed | yes |
 | 5 severity and inclusion definitions | 24-hour and 30-day deaths and hospitalised injuries are separate columns that reconcile with the yearbook | TOTAL_MU24H, TOTAL_MU30DF, TOTAL_HG24H, TOTAL_HG30DF present; the victim-total reconciliations (45/45) cover 30-day victims and 24-hour deaths | yes |
-| 6 comparable across regions | every candidate field's unrecorded share within 10% between provinces with at least 2,000 crashes | 8/30 fields within the limit; failing: NUDO_INFO, PRIORI_NORMA, PRIORI_AGENTE, PRIORI_SEMAFORO, PRIORI_VERT_STOP, PRIORI_VERT_CEDA, PRIORI_HORIZ_STOP, PRIORI_HORIZ_CEDA, PRIORI_MARCAS, PRIORI_PEA_NO_ELEV, PRIORI_PEA_ELEV, PRIORI_MARCA_CICLOS, PRIORI_CIRCUNSTANCIAL, PRIORI_OTRA, CONDICION_NIVEL_CIRCULA, CONDICION_FIRME, CONDICION_METEO, CONDICION_NIEBLA, CONDICION_VIENTO, VISIB_RESTRINGIDA_POR, ACERA, TRAZADO_PLANTA | no |
-| 7 recording artefacts do not dominate | a model of unrecorded-field flags reaches under 50% of the lift of a model of recorded values | death within 30 days: 67%; death within 24 hours: 50% | no |
+| 6 comparable across regions | every candidate field's unrecorded share within 10% between provinces with at least 2,000 crashes | 9/30 fields within the limit; failing: NUDO_INFO, PRIORI_NORMA, PRIORI_AGENTE, PRIORI_SEMAFORO, PRIORI_VERT_STOP, PRIORI_VERT_CEDA, PRIORI_HORIZ_STOP, PRIORI_HORIZ_CEDA, PRIORI_MARCAS, PRIORI_PEA_NO_ELEV, PRIORI_PEA_ELEV, PRIORI_MARCA_CICLOS, PRIORI_CIRCUNSTANCIAL, PRIORI_OTRA, CONDICION_NIVEL_CIRCULA, CONDICION_FIRME, CONDICION_METEO, CONDICION_NIEBLA, VISIB_RESTRINGIDA_POR, ACERA, TRAZADO_PLANTA | no |
+| 7 recording artefacts do not dominate | a model of unrecorded-field flags reaches under 50% of the lift of a model of recorded values | death within 30 days: 67%; death within 24 hours: 49% | no |
 
 ## Check 6: are the fields recorded alike across Spain?
 
-Share of unrecorded values (not specified, unknown or blank) per field; spread between the 48 provinces with at least 2,000 crashes. 22 of 30 fields vary by more than 10% between provinces.
+Share of unrecorded values (not specified, unknown or blank) per field; spread between the 48 provinces with at least 2,000 crashes. 21 of 30 fields vary by more than 10% between provinces.
 
 | field | unrecorded_share | unrecorded_share_catalonia | unrecorded_share_rest_of_spain | province_spread | highest_provinces | comparable_across_provinces |
 |---|---|---|---|---|---|---|
@@ -50,7 +50,7 @@ Share of unrecorded values (not specified, unknown or blank) per field; spread b
 | CONDICION_ILUMINACION | 0.1% | 0.0% | 0.1% | 3.0% | Gipuzkoa 3%; Santa Cruz de Tenerife 2%; Toledo 0% | yes |
 | CONDICION_METEO | 6.3% | 0.0% | 8.3% | 28.3% | Bizkaia 28%; Madrid 24%; Araba/Álava 19% | no |
 | CONDICION_NIEBLA | 92.7% | 73.0% | 99.2% | 35.2% | Tarragona 100%; Girona 100%; Gipuzkoa 100% | no |
-| CONDICION_VIENTO | 97.0% | 89.7% | 99.4% | 11.4% | Ceuta 100%; Gipuzkoa 100%; Bizkaia 100% | no |
+| CONDICION_VIENTO | 0.0% | 0.0% | 0.0% | 0.0% | Barcelona 0%; Madrid 0%; Valencia/València 0% | yes |
 | VISIB_RESTRINGIDA_POR | 32.9% | 84.6% | 15.7% | 81.5% | Barcelona 86%; Lleida 84%; Girona 83% | no |
 | ACERA | 4.0% | 12.1% | 1.3% | 12.7% | Barcelona 13%; Tarragona 12%; Araba/Álava 11% | no |
 | TRAZADO_PLANTA | 9.0% | 34.7% | 0.5% | 61.4% | Lleida 61%; Tarragona 54%; Girona 52% | no |
@@ -61,8 +61,8 @@ Two logistic regressions per universe, 5-fold cross-validation on a random sampl
 
 | universe | target | rows | positives | prevalence | roc_auc_recorded_values | roc_auc_unrecorded_flags_only | artefact_share_of_lift | artefacts_dominate |
 |---|---|---|---|---|---|---|---|---|
-| every crash with victims | death within 30 days | 200000 | 3265 | 1.6% | 0.834 | 0.724 | 67.2% | yes |
-| crashes with a death or serious injury within 24 hours (the transfer test's universe) | death within 24 hours | 82783 | 12260 | 14.8% | 0.733 | 0.615 | 49.5% | no |
+| every crash with victims | death within 30 days | 200000 | 3265 | 1.6% | 0.834 | 0.724 | 67.1% | yes |
+| crashes with a death or serious injury within 24 hours (the transfer test's universe) | death within 24 hours | 82783 | 12260 | 14.8% | 0.733 | 0.615 | 49.4% | no |
 
 ## The one place DGT records enter the modelling: the national transfer test
 
@@ -76,10 +76,11 @@ The Catalan common-feature model is scored on DGT crashes outside Catalonia. The
 | prevalence | reported, not a pass/fail: a shift moves calibration, not ranking | training 12.6%, national test 15.4%; mean predicted 14.2% | yes |
 | feature coding | only fields whose two codings agree on the crashes both sources hold (Jensen-Shannon divergence at most 0.005) | 10 fields used, largest divergence 0.00032; excluded: road_class, junction, speed_limit, unit_types, geography | yes |
 | missingness | reported: mean share 'not specified' over the fields used | Catalan file 0.0%; DGT Catalonia 0.0%; DGT outside Catalonia 0.8% | yes |
-| in-domain reference and transfer gap | a model trained on DGT crashes outside Catalonia, same fields (5-fold CV), against the transferred Catalan model on the same crashes | in-domain ROC-AUC 0.712, transferred 0.708 (0.702-0.712); gap +0.004 | yes |
+| in-domain reference and transfer gap | a model trained on DGT crashes outside Catalonia, same fields (5-fold CV), against the transferred Catalan model on the same crashes | target-domain native ROC-AUC 0.712, transferred 0.708 (0.702-0.712); gap (transferred minus native) -0.004; n=67,971, positives=10,457, calibration slope 1.10 | yes |
 
 ## What this means
 
-- The DGT file is complete and internally consistent (checks 1-5): it is the right source for national counts, trends and province comparisons, and for the descriptive shares the site reports.
-- Fields whose recording differs between provinces measure, in part, *who recorded the crash*. A model trained on all of Spain would learn that, so the file is used in modelling only through fields validated against the Catalan file on the same crashes.
-- The national transfer test is a test of the Catalan model on a separately recorded population with the same target and inclusion rule; its transfer gap is reported beside the in-domain reference, never alone.
+- The file checks (1-5) pass: the file is the complete published universe, so it is the right source for national counts, trends, province comparisons and descriptive shares.
+- Several fields are left unrecorded at very different rates in different provinces. A field's unrecorded share then varies with where the crash was recorded as well as with the crash; the data do not establish whether the difference lies in recording practice or in the crashes. A model trained on all of Spain would learn it.
+- Which fields were left unrecorded ranks the outcome on its own (check 7), so a model's score on these records would partly measure how completely crashes were recorded.
+- The file enters modelling only through fields validated against the Catalan file on the crashes both hold, as an external test: the Catalan model scored on crashes recorded outside Catalonia, its transfer gap always beside the target domain's native score.

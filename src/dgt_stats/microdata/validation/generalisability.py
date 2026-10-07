@@ -383,6 +383,11 @@ STAGES = {
 # MAX_RESEMBLANCE_JSD (Jensen-Shannon divergence, DGT records, one definition everywhere).
 MAX_TRANSFER_GAP = 0.05
 MAX_RESEMBLANCE_JSD = 0.02
+# What stages 2 and 3 mean for a model whose source has one year of one city.
+STAGE_NAMES = {
+    model: {2: "later months of the same year", 3: "another district of the same city"}
+    for model in ("barcelona_person_severity", "barcelona_crash_severity")
+}
 
 PATH: dict[str, dict[int, tuple]] = {
     "catalonia_crash_severity": {
@@ -572,7 +577,7 @@ def outward_path(tables: dict[str, pd.DataFrame]) -> pd.DataFrame:
                 {
                     "model": model,
                     "stage": stage,
-                    "stage_name": STAGES[stage],
+                    "stage_name": STAGE_NAMES.get(model, {}).get(stage, STAGES[stage]),
                     "status": status,
                     "value": value,
                     "evidence": evidence,

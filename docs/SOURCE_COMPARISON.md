@@ -8,7 +8,7 @@ Every source is described against the same questions. The *basis* says where eac
 
 | Layer | Unit | Answers | Not for |
 |---|---|---|---|
-| National context | Spain by province and year; one DGT crash with victims | trends over time; exposure and denominators; province and year comparisons; historical context; aggregate rates; benchmarks for the regional files | training a severity model (see the DGT microdata audit); denominators attached to individual crashes |
+| National context | Spain by province and year; one DGT crash with victims | trends over time; exposure and denominators; province and year comparisons; historical context; aggregate rates; benchmarks for the regional files | training a severity model, unless the DGT microdata audit allows it; denominators attached to individual crashes |
 | Crash microdata: Catalonia | one crash with a death or serious injury | which recorded circumstances are associated with a fatal rather than a serious outcome; temporal and geographic validation of that model; the training domain of the transfer tests | crash frequency or injury-crash totals (slight-injury crashes are not in the file); record linkage to Barcelona or DGT records; driving speed (the speed field is the road's limit) |
 | Rich microdata: Barcelona | one crash; one person record | person severity by road user; crash severity and recorded causes; diagnostics and external checks of the Catalan model | trends (one year); unique-vehicle analysis (no vehicle key); a statistically useful fatal-against-serious benchmark (too few fatal crashes) |
 | Validation and transportability | held-out records of another year, place or source | does a model hold in later years, another place, another recording source; how the populations differ (representativeness), measured separately | creating observations; joining records across sources |
@@ -28,10 +28,10 @@ No layer is merged into another and no record is linked across sources. Cross-so
 | time coverage | 2016-2024 | measured |
 | when variables are known | time, place, road and conditions at the scene; 30-day deaths after a follow-up of a month | file |
 | observed or coded afterwards | circumstance codes describe the scene; no cause or contributory-factor field in the crash file | file |
-| missing and not specified | median share unrecorded (not specified, unknown or blank) over 30 circumstance fields 62.6%, highest 97% (CONDICION_VIENTO); 22 fields vary by more than 10 points between provinces | measured |
+| missing and not specified | median share unrecorded (not specified, unknown or blank) over 30 circumstance fields 52.8%, highest 93% (CONDICION_NIEBLA); 21 fields vary by more than 10 points between provinces | measured |
 | identifiers | ID_ACCIDENTE unique within a year; no person or vehicle file in the repository; no key shared with the regional files | measured |
 | known recording artefacts | 7 fields whose unrecorded share differs by a factor of 1.5 or more between fatal and non-fatal crashes in at least one region (ACERA, CONDICION_FIRME, CONDICION_METEO, CONDICION_NIVEL_CIRCULA, TITULARIDAD_VIA, TRAZADO_PLANTA, ...); unrecorded shares differ between provinces (see the DGT microdata audit) | measured |
-| used for | national trends, province and year comparisons, shares by zone and road; an external test domain for fields validated against the Catalan file; DGT microdata stay the national analytical layer and an external test domain for fields validated against another source; they do not train a severity model here | measured |
+| used for | national trends, province and year comparisons, shares by zone and road; an external test domain for fields validated against the Catalan file (audit decision: DGT microdata stay the national analytical layer and an external test domain for fields validated against another source; they do not train a severity model here) | measured |
 | never used for | linking records to the Catalan or Barcelona files; denominators for individual crashes | documentation |
 
 ## DGT and INE published aggregates
@@ -43,7 +43,7 @@ No layer is merged into another and no record is linked across sources. Cross-so
 | unit of observation | published aggregates: a count for a year (and province, age, sex or vehicle type); 77 DGT files; INE residents by province, age and sex (149,460 rows) | measured |
 | inclusion rule | as published; the crash series reconcile with the crash microdata year by year | reconciled |
 | severity definition | deaths within 30 days (24 hours in the monthly series); hospitalised injuries | documentation |
-| geography | Spain and its 53 provinces | measured |
+| geography | Spain and its 52 provinces | measured |
 | time coverage | yearbook series from 1993; residents 2002-2025 | measured |
 | when variables are known | after the year closes | documentation |
 | observed or coded afterwards | aggregated from records; kilometres are model estimates from inspection odometer readings, by owner age not driver age | documentation |

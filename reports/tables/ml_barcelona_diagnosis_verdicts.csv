@@ -1,5 +1,5 @@
-question,features,estimator,total_drop,training_size_cost,intrinsic_difference,transport_gap,material_components,largest_component,transport_gap_excludes_zero
-what makes up the drop from the rest of Catalonia to Barcelona,Barcelona-common features,boosted_trees,0.111103,0.0417873,0.0265174,0.0427981,training-size cost,transport gap,False
-what makes up the drop from the rest of Catalonia to Barcelona,Barcelona-common features,logistic,0.124168,0.012514,0.0659635,0.0456903,intrinsic difference; transport gap,intrinsic difference,True
-what makes up the drop from the rest of Catalonia to Barcelona,full Catalan context features,boosted_trees,0.122026,0.053925,0.0533758,0.0147249,training-size cost; intrinsic difference,training-size cost,False
-what makes up the drop from the rest of Catalonia to Barcelona,full Catalan context features,logistic,0.125711,0.0180193,0.0627756,0.0449162,intrinsic difference; transport gap,intrinsic difference,True
+question,features,estimator,total_drop,training_size_cost,intrinsic_difference,transport_cost,intrinsic_difference_against_urban,urban_comparison_excludes_zero,material_components,largest_component,transport_cost_excludes_zero
+what makes up the drop from the rest of Catalonia to Barcelona,Barcelona-common features,boosted_trees,0.111103,0.0417873,0.0265174,0.0427981,-0.0409052,True,training-size cost,transport cost,False
+what makes up the drop from the rest of Catalonia to Barcelona,Barcelona-common features,logistic,0.124168,0.012514,0.0659635,0.0456908,0.00121645,False,intrinsic difference; transport cost,intrinsic difference,True
+what makes up the drop from the rest of Catalonia to Barcelona,full Catalan context features,boosted_trees,0.122026,0.053925,0.0533758,0.0147249,-0.0385324,True,training-size cost; intrinsic difference,training-size cost,False
+what makes up the drop from the rest of Catalonia to Barcelona,full Catalan context features,logistic,0.125711,0.0180193,0.0627756,0.0449162,-0.00342755,False,intrinsic difference; transport cost,intrinsic difference,True

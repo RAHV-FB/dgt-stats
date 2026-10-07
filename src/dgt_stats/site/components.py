@@ -46,11 +46,15 @@ NAV_GROUPS: tuple[tuple[str, tuple[tuple[str, str], ...]], ...] = (
     ),
     (
         SUPPORTING,
-        (("severity", "Associations in DGT records"), ("policy", "The 2006 break")),
+        (
+            ("severity", "Associations in DGT records"),
+            ("forecast", "Monthly deaths"),
+            ("policy", "The 2006 break"),
+        ),
     ),
     (CATALONIA, (("catalonia", "Serious and fatal crashes"),)),
     (BARCELONA, (("barcelona", "Crashes and people"),)),
-    (MODELS, (("severity-models", "Severity models"), ("forecast", "Deaths forecast"))),
+    (MODELS, (("severity-models", "Severity models"),)),
     (GENERALISABILITY, (("transport", "How far the results reach"),)),
     (REFERENCE, (("sources", "Four layers of data"), ("data", "Data and methods"))),
 )

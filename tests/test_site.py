@@ -9,7 +9,11 @@ from dgt_stats.paths import FIGURES_DIR, TABLES_DIR
 from dgt_stats.site import components
 
 # The analysis pages in navigation order: everything in the main row but the overview and data.
-ANALYSIS_PAGES = tuple(slug for slug, _ in site.PAGES if slug not in ("index", "data"))
+# The national pages the overview's first question summarises, one finding each: the seven
+# findings and the monthly deaths page. The regional, model, generalisability and sources pages
+# answer the overview's other three questions in their own sections.
+ANALYSIS_PAGES = tuple(slug for slug, _ in components.FINDING_PAGES) + ("forecast",)
+REGIONAL_PAGES = ("catalonia", "barcelona", "severity-models", "transport", "sources")
 
 pytestmark = pytest.mark.skipif(
     not (FIGURES_DIR / "captions.json").exists()
@@ -48,8 +52,9 @@ def test_every_page_is_written_with_one_heading(built: Path) -> None:
         "Generalisability",
         "Sources and methods",
     ]
-    assert len(site.PAGES) == 15 and len(site.SUPPORTING_PAGES) == 2
-    assert [slug for slug, _ in dict(site.NAV_GROUPS)["Models"]] == ["severity-models", "forecast"]
+    assert len(site.PAGES) == 14 and len(site.SUPPORTING_PAGES) == 3
+    # Only models that beat their descriptive comparator are in the Models group.
+    assert [slug for slug, _ in dict(site.NAV_GROUPS)["Models"]] == ["severity-models"]
     expected = (
         {slug for slug, _ in site.ALL_PAGES} | set(site.MOVED_PAGES) | set(site.WITHDRAWN_PAGES)
     )
@@ -388,8 +393,15 @@ def test_front_page_leads_with_the_central_question(built: Path) -> None:
     for slug in ("severity", "policy"):
         assert f'href="{slug}.html"' in body
     assert site.PROFILE_URL in index and "Russell Howard" in index
-    # Concise: the findings, one table that splits each of them, and the framing around them.
-    assert len(body) < 16_000
+    # The other three questions follow the national findings, in order, each linking its page.
+    sections = [body.find(f"<h2>{n}. ") for n in (1, 2, 3, 4)]
+    assert all(p > 0 for p in sections) and sections == sorted(sections)
+    for slug in REGIONAL_PAGES[:-1]:
+        assert f'href="{slug}.html"' in body, slug
+    assert 'id="cannot-answer"' in body
+    # Concise: the findings, one table that splits each of them, the three regional answers and
+    # the framing around them.
+    assert len(body) < 30_000
     # Nothing on the overview or the data page comes from the withdrawn external-study models,
     # and the per-km age ratios are quoted as ranges on owner-age kilometres.
     data = (built / "data.html").read_text(encoding="utf-8")
@@ -468,7 +480,8 @@ def test_forecast_page_reports_the_model_on_years_it_had_not_seen(built: Path) -
     # Detectability is generic: nothing ties it to a speed law or any withdrawn model's effect.
     for word in ("simulator", "speed law", "km/h", "Power Model", "law shows"):
         assert word not in body, word
-    assert '<p class="eyebrow">Models</p>' in body
+    assert '<p class="eyebrow">Spain: supporting</p>' in body
+    assert "Not one of the site's predictive models." in body
 
 
 def test_navigation_groups_its_pages_under_labels(built: Path) -> None:

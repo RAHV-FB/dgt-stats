@@ -143,3 +143,13 @@ def test_transport_page_keeps_representativeness_and_transportability_apart(
 def test_sources_page_states_the_dgt_audit_decision(pages: dict[str, str]) -> None:
     checks = _table("dgt_audit_checks")
     assert checks.decision.iloc[0].replace("'", "&#x27;") in pages["sources"]
+
+
+def test_the_models_group_holds_only_models_that_beat_their_comparator() -> None:
+    from dgt_stats import site
+    from dgt_stats.microdata.validation import decisions as rules
+
+    decisions = _table("ml_model_decisions")
+    forecast = decisions[decisions.model.eq("dgt_monthly_deaths_forecast")].decision.iloc[0]
+    in_models = "forecast" in [slug for slug, _ in dict(site.NAV_GROUPS)["Models"]]
+    assert in_models == (forecast in rules.FEATURED)

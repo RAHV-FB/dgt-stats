@@ -5,6 +5,7 @@ import pandas as pd
 import pytest
 
 from dgt_stats import figures, plots, summaries
+from dgt_stats.microdata import charts as microdata_charts
 from dgt_stats.paths import TABLES_DIR
 
 # build_all writes these from the summary tables plus missingness_by_year.csv; the Q3 ones need
@@ -312,8 +313,14 @@ def test_intervention_and_placebo_dots(tmp_path: Path) -> None:
 def test_build_all_writes_every_registered_figure(tmp_path: Path) -> None:
     frames = {name: pd.read_csv(TABLES_DIR / f"{name}.csv") for name in summaries.SUMMARIES}
     captions = figures.build_all(tmp_path, frames=frames)
-    expected = EXPECTED_FIGURES | (
-        EXPECTED_MODEL_FIGURES if summaries.model_tables_present() else set()
+    # The regional figures are whatever the microdata chart module draws from its tables.
+    regional: dict[str, str] = {}
+    (tmp_path / "regional").mkdir()
+    microdata_charts.build(tmp_path / "regional", regional)
+    expected = (
+        EXPECTED_FIGURES
+        | (EXPECTED_MODEL_FIGURES if summaries.model_tables_present() else set())
+        | set(regional)
     )
     assert set(captions) == expected
     assert {p.stem for p in tmp_path.glob("*.svg")} == expected
