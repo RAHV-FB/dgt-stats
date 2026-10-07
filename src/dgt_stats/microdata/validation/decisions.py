@@ -60,8 +60,7 @@ SOURCE_MODELS = {
         "layer": layers.BARCELONA.title,
         "question": "which recorded crash circumstances distinguish serious-or-fatal crashes, "
         "beyond the accident type alone",
-        "not_answered": "anyone's risk per trip; the behaviour of a person; other cities or "
-        "years",
+        "not_answered": "anyone's risk per trip; the behaviour of a person; other cities or years",
     },
     "catalonia_common_dgt": {
         "observation": "one Catalan crash with a death or serious injury",
