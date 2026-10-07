@@ -17,7 +17,7 @@ jobs:
   checks:
     name: Lint, build the data layers, test
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
 
@@ -35,15 +35,15 @@ jobs:
           ruff check src scripts tests
           ruff format --check src scripts tests
 
-      # The interim and processed layers are rebuilt from the raw files in data/raw, which are
-      # tracked. They take about six minutes to build, so they are cached on the raw files and on
-      # the code that reads them; the reconciliation checks rerun either way.
+      # The staging and processed layers of the national data are rebuilt from the raw files in
+      # data/raw, which are tracked. They take about six minutes to build, so they are cached on
+      # the raw files and on the code that reads them; the reconciliation checks rerun either way.
       - name: Restore the data layers
         uses: actions/cache@v4
         with:
           path: |
-            data/interim
-            data/processed
+            data/staging/dgt
+            data/processed/dgt_accidentes.parquet
           key: >-
             data-${{ hashFiles('data/raw/manifest.csv',
             'src/dgt_stats/io_*.py', 'src/dgt_stats/codes.py',
@@ -58,6 +58,18 @@ jobs:
 
       - name: Fit the severity models
         run: python scripts/model.py
+
+      # The crash-level microdata layer (Catalonia, Barcelona): staging, canonical tables, the
+      # data-quality report, the feature tables and the descriptive tables, rebuilt from the raw
+      # files on every run (about a minute). The models and their transfer tests take about a
+      # quarter of an hour and write committed tables, so CI does not refit them; the tests check
+      # the feature tables, the leakage catalogue and the split isolation directly.
+      - name: Build the microdata layer
+        run: |
+          python scripts/microdata.py build
+          python scripts/microdata.py quality
+          python scripts/microdata.py features
+          python scripts/microdata.py analyse
 
       - name: Test
         run: pytest

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import pandas as pd
 
+from dgt_stats import factors
 from dgt_stats.site.components import (
     _fmt_int,
     _fmt_pct,
@@ -14,6 +15,7 @@ from dgt_stats.site.components import (
     figure,
     key_figures,
     limits,
+    read_table,
     render_page,
     table,
 )
@@ -43,6 +45,32 @@ def page_factors(captions: dict[str, str]) -> str:
     drugs = numbers["shares"].xs(("all", "Drugs"), level=["zone", "factor"]).crashes
     drugs_peak_year = int(drugs.idxmax())
     drugs_multiple = float(drugs.max() / drugs.loc[drugs.index.min()])
+    drugs_fall = drugs.diff()
+    drugs_collapse = int(drugs_fall.idxmin())
+    urban_alcohol_jump = changes[
+        (changes.zone == "urban") & (changes.factor == "Alcohol") & changes.jump
+    ]
+    status = read_table("q9_infraction_shares")
+    status = status[status.zone == "all"].set_index("year").share_unknown
+    status_jump = int(status.diff().idxmax())
+    rise, fall = urban_distraction.iloc[0], urban_distraction.iloc[-1]
+    inter_distraction = changes[
+        (changes.zone == "interurban") & (changes.factor == "Distraction or inattention")
+    ]
+    checks = {
+        "urban distraction has one jump up and a later one down": len(urban_distraction) == 2
+        and rise.share_ratio > 1 > fall.share_ratio,
+        "interurban distraction has no break": not inter_distraction.is_break.any(),
+        "urban alcohol jumps in the year urban distraction does": list(urban_alcohol_jump.to_year)
+        == [int(rise.to_year)],
+        "the driver tables' unknown speed status jumps in the year of the urban breaks": (
+            status_jump == int(rise.to_year)
+        ),
+        "drugs fall most in one year, to the end of the series": drugs_collapse > drugs_peak_year,
+    }
+    failed = [claim for claim, holds in checks.items() if not holds]
+    if failed:
+        raise ValueError(f"factors page: the tables no longer support: {failed}")
 
     body = key_figures(
         [
@@ -66,16 +94,18 @@ def page_factors(captions: dict[str, str]) -> str:
                 + _join([str(int(year)) for year in urban_distraction.to_year])
                 + ": not comparable across",
             ),
-            ("Drugs", "not comparable", "too few crashes and a collapse in 2020"),
+            ("Drugs", "not comparable", f"too few crashes and a collapse in {drugs_collapse}"),
         ]
     )
     body += (
         '<p class="answer">DGT publishes, for each year, how many injury crashes had each of '
-        "five concurrent factors recorded by the police. Before any trend is read, every "
-        "year-to-year change in each factor's share is tested for a recording break: a jump or "
-        "fall of more than a quarter in a single year, which no change in behaviour produces "
-        f"across tens of thousands of crashes. {n_breaks} of the "
-        f"{len(changes)} year-to-year changes fail that test or are too small to test. Within "
+        f"{len(FACTOR_ORDER)} concurrent factors recorded by the police. Before any trend is "
+        "read, every year-to-year change in each factor's share is tested for a recording "
+        f"break: a rise of more than {_fmt_pct(factors.BREAK_RATIO - 1, 0)} or a fall of more "
+        f"than {_fmt_pct(1 - 1 / factors.BREAK_RATIO, 0)} in a single year, which no change in "
+        f"behaviour produces across tens of thousands of crashes. {n_breaks} of the "
+        f"{len(changes)} year-to-year changes fail that test or are too small to test (fewer "
+        f"than {factors.MIN_CRASHES} crashes in either year). Within "
         "the runs that pass, two trends are clear. Recorded alcohol rose on interurban roads, "
         f"from {_fmt_pct(float(alcohol_inter.share_first))} to "
         f"{_fmt_pct(float(alcohol_inter.share_last))} of crashes between "
@@ -122,14 +152,18 @@ def page_factors(captions: dict[str, str]) -> str:
         "the rule but is the kind of drift a gradual change in recording also produces.</p>"
     )
     body += (
-        "<p>Three series fail. Urban distraction jumps by two thirds in 2016 and falls by more "
-        "than half in 2019, while the interurban series barely moves: those are changes in how "
-        "town police forces recorded it. Urban alcohol has the same 2016 jump. Drugs are "
+        "<p>Three series fail. Urban distraction's share changes by "
+        f"{_signed_pct(float(rise.share_ratio) - 1)} in {int(rise.to_year)} and by "
+        f"{_signed_pct(float(fall.share_ratio) - 1)} in {int(fall.to_year)}, while the "
+        "interurban series has no break: those are changes in how town police forces recorded "
+        f"it. Urban alcohol has the same {int(rise.to_year)} jump "
+        f"({_signed_pct(float(urban_alcohol_jump.share_ratio.iloc[0]) - 1)}). Drugs are "
         f"recorded in at most {_fmt_int(drugs.max())} crashes a year, climb "
         f"{drugs_multiple:.0f}-fold from {int(drugs.index.min())} to {drugs_peak_year} and "
-        "collapse in 2020: nothing about drug-driving can be read from them. 2016 is also the year the "
-        "driver tables stop recording a speed status for half of all drivers, which is why it "
-        "keeps appearing.</p>"
+        f"collapse in {drugs_collapse}: nothing about drug-driving can be read from them. "
+        f"{status_jump} is also the year the driver tables stop recording a speed status for "
+        f"{_fmt_pct(float(status.loc[status_jump]), 0)} of all drivers, which is why it keeps "
+        "appearing.</p>"
     )
     body += downloads(
         [
@@ -140,7 +174,8 @@ def page_factors(captions: dict[str, str]) -> str:
     )
     body += "<h2>Conclusion</h2>"
     body += conclusion(
-        "Of DGT's five recorded factors, three can be compared across years once recording "
+        f"Of DGT's {len(FACTOR_ORDER)} recorded factors, three can be compared across years "
+        "once recording "
         "breaks are taken out: recorded alcohol has risen on interurban roads, recorded "
         "inappropriate speed has fallen, and interurban distraction has held steady. Urban "
         "distraction and urban alcohol can only be compared within their own runs of years, and "

@@ -20,15 +20,27 @@ def _severity_numbers() -> dict[str, object]:
         "auc_serious": float(holdout.loc["serious", "auc"]),
         "adverse": fatal_adverse,
         "coefficients": coefficients,
+        "holdout": holdout,
     }
 
 
 def _age_numbers() -> dict[str, object]:
+    """``ratios`` are the published ratios to 35-54; ``owner`` (by band) holds the owner-age check
+    and every per-km ratio under the transfer scenario, so a per-km ratio is quoted as a range."""
     ratios = read_table("q7_km_ratio").set_index(["measure", "band"])
     rates = read_table("q7_km_rates").set_index("band")
     contrast = read_table("q7_denominator_contrast").set_index(["denominator", "band"])
     company = read_table("q7_company_km").set_index(["allocation", "band"])
-    return {"ratios": ratios, "rates": rates, "contrast": contrast, "company": company}
+    owner = read_table("q7_owner_age_check").set_index("band")
+    older = read_table("q7_km_ratio_65_74").set_index(["measure", "band"])
+    return {
+        "ratios": ratios,
+        "rates": rates,
+        "contrast": contrast,
+        "company": company,
+        "owner": owner,
+        "older": older,
+    }
 
 
 def _policy_numbers() -> dict[str, object]:
@@ -51,10 +63,12 @@ def _policy_numbers() -> dict[str, object]:
 
 
 def _risk_numbers() -> dict[str, object]:
+    """``latest``: the last year's rows by (outcome, denominator). Licence holders and the fleet
+    divide only driver and occupant casualties (``numerator``) and have no injury-crash rows."""
     index = read_table("risk_index")
     last = int(index.year.max())
     latest = index[index.year == last].set_index(["outcome", "denominator"])
-    return {"index": index, "last": last, "latest": latest}
+    return {"index": index, "base": int(index.year.min()), "last": last, "latest": latest}
 
 
 def _long_run_numbers() -> dict[str, object]:
@@ -72,6 +86,8 @@ def _long_run_numbers() -> dict[str, object]:
 
 
 def _season_numbers() -> dict[str, object]:
+    """Month effects with no exposure (``none``) and per tonne of road fuel (the only exposure);
+    the lockdown table keeps petrol and toll-motorway changes as traffic beside deaths only."""
     effects = read_table("season_month_effects").set_index(["exposure", "month"])
     lockdown = read_table("season_lockdown").set_index("month")
     return {"effects": effects, "lockdown": lockdown}
@@ -80,8 +96,7 @@ def _season_numbers() -> dict[str, object]:
 def _sex_numbers() -> dict[str, object]:
     ratios = read_table("drivers_sex_ratios").set_index(["scope", "band", "measure"])
     rates = read_table("drivers_sex_rates").set_index(["scope", "band", "sex"])
-    travel = read_table("drivers_sex_travel").set_index("band")
-    return {"ratios": ratios, "rates": rates, "travel": travel}
+    return {"ratios": ratios, "rates": rates}
 
 
 def _speed_numbers() -> dict[str, object]:

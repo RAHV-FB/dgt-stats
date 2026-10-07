@@ -1,0 +1,6 @@
+model,design,train_rows,test_rows,shared_ids,shared_groups,fold_shared_groups,validation_rows,shared_groups_validation
+catalonia_crash_severity,"train 2010-2020, choose on 2021-2022, test 2023",19714,1732,0,0,0,3032,0
+barcelona_person_severity,train months 1-9 with 5-fold cross-validation grouped by crash; test months 10-12,11799,4049,0,0,0,,
+barcelona_crash_severity,train months 1-9 with 5-fold cross-validation grouped by crash; test months 10-12,5747,1994,0,0,0,,
+catalonia_common_dgt,"train 2010-2020, choose on 2021-2022, test 2023",19714,1732,0,0,0,3032,0
+catalonia_common_bcn,"train 2010-2020, choose on 2021-2022, test 2023",19714,1732,0,0,0,3032,0

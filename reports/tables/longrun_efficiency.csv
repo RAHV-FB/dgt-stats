@@ -1,4 +1,4 @@
-extra_annual_efficiency_gain,year,ratio,ratio_low,ratio_high
+hypothetical_extra_annual_gain,year,ratio,ratio_low,ratio_high
 0,2020,0.9671967983,0.8779132089,1.076696619
 0,2021,0.9714107218,0.8816823781,1.081471497
 0,2022,1.098155784,0.9929851381,1.228243492

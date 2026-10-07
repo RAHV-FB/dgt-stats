@@ -2,3 +2,7 @@ outcome,outcome_label,first_year,last_year,dispersion,mean_count
 deaths_30d,Deaths within 30 days,2013,2019,1.450092008,1751.142857
 hospitalised_30d,Injured and hospitalised,2013,2019,7.700487766,9429.142857
 crashes,Injury crashes,2013,2019,67.71350265,98545.57143
+drivers_deaths_30d,"Drivers of motorcycles, cars, vans, trucks and buses killed within 30 days",2013,2019,1,941.2857143
+drivers_hospitalised_30d,"Drivers of motorcycles, cars, vans, trucks and buses injured and hospitalised",2013,2019,1.756916349,4616.571429
+occupants_deaths_30d,"Occupants of motorcycles, cars, vans, trucks and buses killed within 30 days",2013,2019,2.3502168,1220.428571
+occupants_hospitalised_30d,"Occupants of motorcycles, cars, vans, trucks and buses injured and hospitalised",2013,2019,3.831451046,6066

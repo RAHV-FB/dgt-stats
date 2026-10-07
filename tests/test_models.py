@@ -42,6 +42,7 @@ def test_coefficient_table_marginal_effects_and_predictions() -> None:
     fit = models.fit_severity(frame, "fatal", ("x1", "x2"), cluster=None)
     table = models.coefficient_table(frame, fit)
     assert table.is_reference.sum() == 2 and len(table) == 5
+    assert not table.is_nuisance.any()  # no level here stands for a missing value
     assert table.crashes.sum() == 2 * len(frame)
     effects = models.marginal_effects(frame, fit)
     b = effects[(effects.predictor == "x1") & (effects.level == "b")].iloc[0]
@@ -63,7 +64,10 @@ def test_holdout_and_stability_on_synthetic_years(monkeypatch: pytest.MonkeyPatc
     calibration, summary = models.holdout_check(frame, "fatal", (2023, 2024))
     assert calibration.crashes.sum() == (frame.crash_year >= 2023).sum()
     assert 0.5 < summary.auc.iloc[0] < 1.0
-    assert summary.brier.iloc[0] <= summary.brier_base_rate.iloc[0] + 1e-6
+    assert summary.brier.iloc[0] <= summary.brier_train_rate.iloc[0] + 1e-6
+    assert summary.brier_skill.iloc[0] == pytest.approx(
+        1 - summary.brier.iloc[0] / summary.brier_train_rate.iloc[0]
+    )
     full = models.fit_severity(frame, "fatal", ("x1", "x2"), cluster=None)
     stability = models.year_stability(frame, full, terms=3)
     assert set(stability.year.unique()) == {2016, 2017, 2023, 2024}
@@ -78,7 +82,7 @@ def test_model_frame_levels_and_groupings() -> None:
             "fatal": [False, True, False],
             "serious": [True, True, False],
             "ZONA": [3, 1, 999],
-            "road_group": ["urban_street", "conventional", pd.NA],
+            "TIPO_VIA": [9, 5, 999],
             "TIPO_ACCIDENTE": [2, 13, 7],
             "NUDO": [2, 1, pd.NA],
             "CONDICION_ILUMINACION": [1, 6, 999],
@@ -92,7 +96,10 @@ def test_model_frame_levels_and_groupings() -> None:
     )
     frame = features.model_frame(raw)
     assert list(frame.zone) == ["street", "interurban road", "not specified"]
+    # Code 5, a conventional road with two carriageways, is a conventional road: DGT recoded most
+    # of its crashes as code 6 in 2021, and one level keeps that recoding inside it.
     assert list(frame.road) == ["urban street", "conventional", "not specified"]
+    assert features.PREDICTORS["road"]["map"][5] == features.PREDICTORS["road"]["map"][6]
     assert list(frame.crash_type) == ["side collision", "run-off or overturn", "pedestrian struck"]
     assert list(frame.junction) == ["not at a junction", "at a junction", "not specified"]
     assert list(frame.lighting) == ["daylight", "dark, no lighting", "not specified"]
@@ -157,7 +164,7 @@ def test_small_levels_merge_into_the_reference() -> None:
             "fatal": [False] * n,
             "serious": [False] * n,
             "ZONA": [3] * n,
-            "road_group": ["urban_street"] * n,
+            "TIPO_VIA": [9] * n,
             "TIPO_ACCIDENTE": [2] * (n - 10) + [999] * 10,
             "NUDO": [2] * n,
             "CONDICION_ILUMINACION": [1] * n,
@@ -324,3 +331,63 @@ def test_level_composition_and_exclusions_describe_where_a_level_is() -> None:
     assert set(composition.dimension) == {"province", "zone", "road"}
     assert composition.share_of_level.between(0, 1).all()
     assert composition.attrs["n_level"] == int((frame.surface == "wet").sum())
+
+
+def test_missing_state_levels_are_flagged_as_nuisance() -> None:
+    for level in features.MISSING_LEVELS:
+        assert features.is_nuisance(level)
+    assert not features.is_nuisance("wet") and not features.is_nuisance("curve")
+    frame = _synthetic(20_000)
+    frame["x2"] = pd.Categorical(
+        np.where(frame.x2 == "q", features.UNKNOWN, "p"),
+        categories=["p", features.UNKNOWN],
+        ordered=True,
+    )
+    fit = models.fit_severity(frame, "fatal", ("x1", "x2"), cluster=None)
+    table = models.coefficient_table(frame, fit).set_index("level")
+    assert bool(table.loc[features.UNKNOWN, "is_nuisance"]) and not table.loc["b", "is_nuisance"]
+    effects = models.marginal_effects(frame, fit).set_index("level")
+    assert bool(effects.loc[features.UNKNOWN, "is_nuisance"])
+
+
+def test_holdout_merges_are_decided_on_the_training_years() -> None:
+    frame = _synthetic(6_000)
+    # Level "c" of x1 is common in the held-out years and rare in the training years: merged into
+    # the reference on the training counts alone, in both parts.
+    late = frame.crash_year >= 2023
+    values = frame.x1.astype(str).to_numpy()
+    values = np.where(~late & (values == "c") & (frame.index >= 100), "a", values)
+    frame["x1"] = pd.Categorical(values, categories=["a", "b", "c"], ordered=True)
+    train, test = frame[~late], frame[late]
+    assert (train.x1 == "c").sum() < features.MIN_LEVEL_CRASHES <= (test.x1 == "c").sum()
+    new_train, new_test, merged = models._merge_small_levels(train, test, ("x1", "x2"))
+    assert merged == {"x1": ["c"]}
+    assert list(new_test.x1.cat.categories) == ["a", "b"]
+    assert (new_test.x1 == "a").sum() == (test.x1.isin(["a", "c"])).sum()
+    assert len(new_train) == len(train) and len(new_test) == len(test)
+
+
+def test_recording_regime_and_the_refit_without_some_provinces() -> None:
+    frame = _synthetic(30_000)
+    inside = frame.province.isin(["1", "2"])
+    rng = np.random.default_rng(5)
+    unknown = inside & (rng.random(len(frame)) < 0.4)
+    frame["x2"] = pd.Categorical(
+        np.where(unknown, features.UNKNOWN, frame.x2.astype(str)),
+        categories=["p", "q", features.UNKNOWN],
+        ordered=True,
+    )
+    regime = models.recording_regime(frame, ("1", "2"), ("x1", "x2")).set_index("level")
+    row = regime.loc[features.UNKNOWN]
+    assert row.crashes == int(unknown.sum()) and row.catalan_share_of_level == 1.0
+    assert row.share_of_catalan_crashes == pytest.approx(unknown.sum() / inside.sum())
+    assert row.share_of_other_crashes == 0
+    fit = models.fit_severity(frame, "fatal", ("x1", "x2"))
+    out = models.regime_sensitivity(frame, {"fatal": fit}, provinces=("1", "2"))
+    out = out.set_index(["predictor", "level"])
+    assert int(out.n_without.iloc[0]) == int((~inside).sum())
+    # The level that exists only inside the dropped provinces cannot be refitted.
+    assert np.isnan(out.loc[("x2", features.UNKNOWN), "odds_ratio_without"])
+    assert bool(out.loc[("x2", features.UNKNOWN), "is_nuisance"])
+    # The true effect of level b is the same everywhere, so it survives the refit.
+    assert bool(out.loc[("x1", "b"), "within_full_interval"])

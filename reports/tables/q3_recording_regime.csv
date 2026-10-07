@@ -1,0 +1,7 @@
+predictor,predictor_label,level,crashes,crashes_catalonia,crashes_elsewhere,share_of_catalan_crashes,share_of_other_crashes,catalan_share_of_level,catalan_share_of_all_crashes
+lighting,Lighting,not specified,897,0,897,0,0.0013652,0,0.2491
+weather,Weather,unknown,22584,0,22584,0,0.034372,0,0.2491
+weather,Weather,not specified,32211,23,32188,0.000105521,0.0489889,0.000714042,0.2491
+surface,Road surface,unknown,18551,0,18551,0,0.0282339,0,0.2491
+surface,Road surface,not specified,547,0,547,0,0.000832513,0,0.2491
+alignment,Alignment,unknown,78990,75624,3366,0.346953,0.00512292,0.957387,0.2491

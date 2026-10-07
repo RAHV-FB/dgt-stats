@@ -25,7 +25,8 @@ vehicle-kilometres on the whole interurban network of the State, the regions and
 councils, by type of road, from 2004, built from the traffic-count plans of each network. It
 leaves out interurban roads run by municipalities, which the Ministry puts at up to a tenth of
 traffic, and it is not comparable across 2007–2008, when the road inventory was redone. It is
-used in §5 (the check on fuel) and §12 (the simulator's risk per kilometre and travel time).
+used in §5 (interurban deaths per measured kilometre) and by ``road_class`` (deaths per measured
+kilometre on motorways and conventional roads).
 """
 
 from __future__ import annotations

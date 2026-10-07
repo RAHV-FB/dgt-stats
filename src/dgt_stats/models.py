@@ -52,9 +52,9 @@ PROFILES: dict[str, dict[str, str]] = {
         "crash_type": "rear-end or chain collision",
         "alignment": "straight",
     },
-    "Dual carriageway, run-off, dark without lighting, one vehicle, weekend, 00:00–06:59": {
+    "Autovía, run-off, dark without lighting, one vehicle, weekend, 00:00–06:59": {
         "zone": "interurban road",
-        "road": "dual carriageway",
+        "road": "autovía",
         "crash_type": "run-off or overturn",
         "alignment": "straight",
         "lighting": "dark, no lighting",
@@ -348,6 +348,9 @@ def coefficient_table(frame: pd.DataFrame, fit: Fit) -> pd.DataFrame:
     table = table.sort_values(["_p", "_l"]).drop(columns=["_p", "_l"]).reset_index(drop=True)
     table["n"] = fit.n
     table["events"] = fit.events
+    # A missing-state level records how the form was filled in, not what happened: flagged so no
+    # figure or headline reads it as an effect.
+    table["is_nuisance"] = table.level.map(features.is_nuisance)
     return table
 
 
@@ -416,7 +419,38 @@ def marginal_effects(frame: pd.DataFrame, fit: Fit) -> pd.DataFrame:
                     "effect": np.nan,
                 }
             )
-    return pd.DataFrame.from_records(records)
+    out = pd.DataFrame.from_records(records)
+    out["is_nuisance"] = out.level.map(features.is_nuisance)
+    return out
+
+
+def _merge_small_levels(
+    train: pd.DataFrame, test: pd.DataFrame, predictors: tuple[str, ...]
+) -> tuple[pd.DataFrame, pd.DataFrame, dict[str, list[str]]]:
+    """Merge into the reference every level with fewer than ``MIN_LEVEL_CRASHES`` training crashes.
+
+    :func:`features.model_frame` decides its merges on all years; a level small over all years is
+    smaller still in the training years, so repeating the rule on the training counts alone gives
+    exactly the merges the training years would have chosen, and the held-out years decide nothing.
+    """
+    train, test = train.copy(), test.copy()
+    merged: dict[str, list[str]] = {}
+    for name in predictors:
+        reference = str(train[name].cat.categories[0])
+        counts = train[name].value_counts()
+        small = [
+            str(level)
+            for level, count in counts.items()
+            if count < features.MIN_LEVEL_CRASHES and str(level) != reference
+        ]
+        if not small:
+            continue
+        merged[name] = small
+        for part in (train, test):
+            values = part[name].astype(str).where(~part[name].isin(small), reference)
+            kept = [level for level in part[name].cat.categories if level not in small]
+            part[name] = pd.Categorical(values, categories=kept, ordered=True)
+    return train, test, merged
 
 
 def holdout_check(
@@ -424,12 +458,17 @@ def holdout_check(
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Fit on the years before ``holdout_years``, score the held-out years.
 
-    Returns (calibration by decile, summary with Brier score, AUC and base rates). The year
-    predictor is excluded from the holdout fit, so the model has to carry across years unaided.
+    Returns (calibration by decile, summary with Brier score, Brier skill, AUC and base rates).
+    The year predictor is excluded from the holdout fit, so the model has to carry across years
+    unaided, and the small-level merges are decided on the training years alone
+    (:func:`_merge_small_levels`). The Brier skill is against a forecast that gives every held-out
+    crash the training years' base rate, which needs nothing from the held-out years;
+    ``brier_test_mean`` scores the held-out years' own mean, an oracle shown for comparison only.
     """
     predictors = tuple(name for name in features.PREDICTORS if name != "year")
     train = frame[~frame.crash_year.isin(holdout_years)]
     test = frame[frame.crash_year.isin(holdout_years)]
+    train, test, merged = _merge_small_levels(train, test, predictors)
     fit = fit_severity(train, outcome, predictors, cluster=None)
     scores = predict(fit, design_matrix(test, predictors))
     y = test[outcome].astype(int).to_numpy()
@@ -445,21 +484,33 @@ def holdout_check(
         .reset_index()
     )
     calibration["outcome"] = outcome
+    base_rate_train = float(train[outcome].mean())
+    brier = float(brier_score_loss(y, scores))
+    brier_train_rate = float(brier_score_loss(y, np.full_like(scores, base_rate_train)))
     summary = pd.DataFrame(
         [
             {
                 "outcome": outcome,
                 "train_years": f"{train.crash_year.min()}–{train.crash_year.max()}",
                 "test_years": f"{test.crash_year.min()}–{test.crash_year.max()}",
+                "first_train_year": int(train.crash_year.min()),
+                "last_train_year": int(train.crash_year.max()),
+                "first_test_year": int(test.crash_year.min()),
+                "last_test_year": int(test.crash_year.max()),
                 "train_crashes": len(train),
                 "test_crashes": len(test),
                 "test_events": int(y.sum()),
-                "base_rate_train": float(train[outcome].mean()),
+                "base_rate_train": base_rate_train,
                 "base_rate_test": float(y.mean()),
                 "mean_predicted": float(scores.mean()),
-                "brier": float(brier_score_loss(y, scores)),
-                "brier_base_rate": float(brier_score_loss(y, np.full_like(scores, y.mean()))),
+                "brier": brier,
+                "brier_train_rate": brier_train_rate,
+                "brier_skill": 1 - brier / brier_train_rate,
+                "brier_test_mean": float(brier_score_loss(y, np.full_like(scores, y.mean()))),
                 "auc": float(roc_auc_score(y, scores)),
+                "levels_merged_on_training_years": "; ".join(
+                    f"{name}: {', '.join(levels)}" for name, levels in merged.items()
+                ),
             }
         ]
     )
@@ -703,3 +754,109 @@ def level_exclusions(
             }
         )
     return pd.DataFrame.from_records(records)
+
+
+# --------------------------------------------------------------------------- recording regime
+
+
+def _drop_unused(frame: pd.DataFrame) -> pd.DataFrame:
+    return frame.assign(
+        **{
+            name: frame[name].cat.remove_unused_categories()
+            for name in frame.columns
+            if isinstance(frame[name].dtype, pd.CategoricalDtype)
+        }
+    )
+
+
+def recording_regime(
+    frame: pd.DataFrame,
+    provinces: tuple[str, ...] = features.CATALAN_PROVINCES,
+    predictors: tuple[str, ...] | None = None,
+) -> pd.DataFrame:
+    """How the missing-state levels split between ``provinces`` (Cataluña's) and the rest of Spain.
+
+    One row per predictor and nuisance level present in ``frame``: its crashes in each part, the
+    share of each part's crashes it holds, and the share of the level's crashes that are in
+    ``provinces``. Counted from the model frame, so from the same processed crash table the models
+    are fitted to.
+    """
+    inside = frame.province.isin(provinces)
+    n_inside, n_outside = int(inside.sum()), int((~inside).sum())
+    records = []
+    for name in predictors or tuple(features.PREDICTORS):
+        if name not in frame:
+            continue
+        for level in frame[name].cat.categories:
+            if not features.is_nuisance(level):
+                continue
+            at_level = frame[name] == level
+            a, b = int((at_level & inside).sum()), int((at_level & ~inside).sum())
+            if a + b == 0:
+                continue
+            records.append(
+                {
+                    "predictor": name,
+                    "predictor_label": features.PREDICTOR_LABELS.get(name, name),
+                    "level": str(level),
+                    "crashes": a + b,
+                    "crashes_catalonia": a,
+                    "crashes_elsewhere": b,
+                    "share_of_catalan_crashes": a / n_inside if n_inside else np.nan,
+                    "share_of_other_crashes": b / n_outside if n_outside else np.nan,
+                    "catalan_share_of_level": a / (a + b),
+                    "catalan_share_of_all_crashes": n_inside / (n_inside + n_outside),
+                }
+            )
+    return pd.DataFrame.from_records(records)
+
+
+def regime_sensitivity(
+    frame: pd.DataFrame,
+    fits: dict[str, Fit],
+    provinces: tuple[str, ...] = features.CATALAN_PROVINCES,
+) -> pd.DataFrame:
+    """Every odds ratio of the full models beside the same model refitted without ``provinces``.
+
+    Cataluña's forces record most of the missing states (:func:`recording_regime`), so a recording
+    regime that goes with the outcome could be leaning on the other coefficients through them. The
+    refit drops those provinces' crashes and keeps the specification, so each ratio
+    ``odds_ratio_without / odds_ratio`` says how much a coefficient moves when that regime is out
+    of the data. Year terms and reference rows are left out; nuisance levels are kept and flagged.
+    """
+    kept = _drop_unused(frame[~frame.province.isin(provinces)])
+    records = []
+    for outcome, full in fits.items():
+        refit = fit_severity(kept, outcome, full.predictors)
+        base = odds_ratios(full).set_index(["predictor", "level"])
+        other = odds_ratios(refit).set_index(["predictor", "level"])
+        for (predictor, level), row in base.iterrows():
+            if predictor == "year":
+                continue
+            got = other.loc[(predictor, level)] if (predictor, level) in other.index else None
+            records.append(
+                {
+                    "outcome": outcome,
+                    "predictor": predictor,
+                    "predictor_label": row.predictor_label,
+                    "level": level,
+                    "is_nuisance": features.is_nuisance(level),
+                    "odds_ratio": float(row.odds_ratio),
+                    "or_low": float(row.or_low),
+                    "or_high": float(row.or_high),
+                    "odds_ratio_without": np.nan if got is None else float(got.odds_ratio),
+                    "or_low_without": np.nan if got is None else float(got.or_low),
+                    "or_high_without": np.nan if got is None else float(got.or_high),
+                    "crashes": int((frame[predictor] == level).sum()),
+                    "crashes_without": int((kept[predictor] == level).sum()),
+                    "n": full.n,
+                    "n_without": refit.n,
+                    "excluded_provinces": ", ".join(provinces),
+                }
+            )
+    out = pd.DataFrame.from_records(records)
+    out["ratio_without_to_full"] = out.odds_ratio_without / out.odds_ratio
+    out["within_full_interval"] = (out.odds_ratio_without >= out.or_low) & (
+        out.odds_ratio_without <= out.or_high
+    )
+    return out

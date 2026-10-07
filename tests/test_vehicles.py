@@ -5,8 +5,8 @@ from dgt_stats import io_exposure, io_tables, vehicles
 
 pytestmark = pytest.mark.skipif(
     not (
-        io_tables.interim_path("tables_units_by_type").exists()
-        and io_exposure.interim_path("km_medios_2022").exists()
+        io_tables.staging_path("tables_units_by_type").exists()
+        and io_exposure.staging_path("km_medios_2022").exists()
     ),
     reason="run `python scripts/ingest.py tables` and `python scripts/ingest.py exposure` first",
 )
@@ -45,12 +45,22 @@ def test_rates_recompute_from_their_columns_and_intervals_hold() -> None:
     assert set(long.measure) == set(vehicles.MEASURES)
     assert set(long.group) == set(vehicles.RATE_GROUPS)
     assert len(long) == len(vehicles.RATE_GROUPS) * 3 * len(vehicles.MEASURES)
-    per_km = long["count"] / long.vehicle_km * vehicles.BILLION
-    assert np.allclose(per_km, long.per_billion_km)
+    # Vehicle-km exist for all roads only, so only the all-roads rows have a rate per km; the
+    # zone rows keep their counts and the rate per circulating vehicle.
+    roads, zones = long[long.zone == "all"], long[long.zone != "all"]
+    km_columns = ["vehicle_km", "per_billion_km", "per_billion_km_low", "per_billion_km_high"]
+    assert zones[km_columns].isna().all(axis=None)
+    assert roads[km_columns].notna().all(axis=None)
+    assert set(zones.denominator) == {vehicles.DENOMINATORS["zone"]}
+    assert set(roads.denominator) == {vehicles.DENOMINATORS["all"]}
+    per_km = roads["count"] / roads.vehicle_km * vehicles.BILLION
+    assert np.allclose(per_km, roads.per_billion_km)
     per_vehicle = long["count"] / long.n_vehicles * vehicles.PER_VEHICLES
     assert np.allclose(per_vehicle, long.per_100k_vehicles)
-    assert (long.per_billion_km_low <= long.per_billion_km).all()
-    assert (long.per_billion_km <= long.per_billion_km_high).all()
+    assert (roads.per_billion_km_low <= roads.per_billion_km).all()
+    assert (roads.per_billion_km <= roads.per_billion_km_high).all()
+    assert (long.per_100k_vehicles_low <= long.per_100k_vehicles).all()
+    assert (long.per_100k_vehicles <= long.per_100k_vehicles_high).all()
     # Pinned to the published inputs: TABLA 2.3 2022 car rows and the km table car strata.
     car = long[(long.group == "car") & (long.zone == "all")].set_index("measure")
     car_km = 1.040664e11 + 6.569315e10 + 4.612673e10 + 5.686434e10 + 3.019795e10

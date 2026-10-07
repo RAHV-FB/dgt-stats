@@ -6,6 +6,7 @@ import math
 
 import pandas as pd
 
+from dgt_stats import policy
 from dgt_stats.site.components import (
     SUPPORTING_NOTES,
     _join,
@@ -17,6 +18,7 @@ from dgt_stats.site.components import (
     key_figures,
     limits,
     note,
+    read_table,
     render_page,
     table,
 )
@@ -44,7 +46,44 @@ def page_policy(captions: dict[str, str]) -> str:
     straight = trend[trend.label == "one linear trend"].iloc[0]
     true_calendar = numbers["true_calendar"]
     true_forecast = numbers["true_forecast"]
-    true_transition = transitions[transitions.year == 2006].iloc[0]
+    it = policy.INTERVENTIONS["points_licence"]
+    true_transition = transitions[transitions.year == it.date.year].iloc[0]
+    pre_months, post_months = policy.CALENDAR_PRE_MONTHS, it.post_months
+    step = f"{abs(float(main.level_change)) * 100:.0f}"
+    straight_step = f"{abs(float(linear.level_change)) * 100:.0f}"
+    ranked = transitions[transitions["rank"].notna()]
+    larger = ranked[ranked.twelve_month_ratio < float(true_transition.twelve_month_ratio)]
+    excluded = sorted(int(year) for year in transitions[transitions.excluded].year)
+    beyond = forecast[forecast.z < float(true_forecast.z)].sort_values("z")
+    fuel = numbers["sensitivity"].loc["fuel"]
+    toll = numbers["sensitivity"].loc["toll"]
+    knot_2004 = numbers["sensitivity"].loc["knot_2004"]
+    speed_placebo = read_table("q8_speed_placebo")
+    failed_placebo = speed_placebo[
+        ~speed_placebo.is_true.astype(bool) & ((speed_placebo.low > 0) | (speed_placebo.high < 0))
+    ]
+    penal_months = (it.second_break.year - it.date.year) * 12 + (
+        it.second_break.month - it.date.month
+    )
+    checks = {
+        "the preferred pre-trend gives the smaller step": bool(
+            linear.level_change < main.level_change < 0
+        ),
+        "every larger twelve-month fall came after the break": bool(
+            (larger.year > it.date.year).all()
+        ),
+        "the out-of-sample test ranks other Julys above 2006": len(beyond) >= 1,
+        "the traffic covariates barely move the step": all(
+            abs(float(row.level_change) - float(main.level_change)) < 0.01 for row in (fuel, toll)
+        ),
+        "the knot fixed at January 2004 gives an interval that includes no change": bool(
+            knot_2004.level_low < 0 < knot_2004.level_high
+        ),
+        "a placebo break before 2019 fails the speed-limit design": len(failed_placebo) >= 1,
+    }
+    failed = [claim for claim, holds in checks.items() if not holds]
+    if failed:
+        raise ValueError(f"policy page: the tables no longer support: {failed}")
 
     body = key_figures(
         [
@@ -79,8 +118,8 @@ def page_policy(captions: dict[str, str]) -> str:
         f"({_signed_pct(float(main.level_low))} to {_signed_pct(float(main.level_high))}), and a "
         "forecast made before each July finds 2006 only the "
         f"{_ordinal(int(true_forecast['rank']))} most abnormal July of "
-        f"{int(true_forecast.n_fits)}. What the series supports is a step of roughly seven per "
-        "cent that no single measure can be credited with.</p>"
+        f"{int(true_forecast.n_fits)}. What the series supports is a step of roughly {step} "
+        "per cent that no single measure can be credited with.</p>"
     )
 
     body += "<h2>How the pre-trend was chosen, and why it matters</h2>"
@@ -116,8 +155,8 @@ def page_policy(captions: dict[str, str]) -> str:
         "<p>Spanish road deaths peak every July and August. A placebo distribution built by "
         "moving the break to arbitrary months cannot answer whether the summer of 2006 was "
         "unusual, so this one places the break at 1 July of every year with a clean window: the "
-        "same model, the same 60 months before and 17 after, at Julys the points licence cannot "
-        "explain.</p>"
+        f"same model, the same {pre_months} months before and {post_months} after, at Julys the "
+        "points licence cannot explain.</p>"
     )
     body += figure(
         "p2_july_placebos",
@@ -136,16 +175,16 @@ def page_policy(captions: dict[str, str]) -> str:
     )
 
     body += "<h2>Two tests without a model</h2>"
-    ranked = transitions[transitions["rank"].notna()]
     body += (
         "<p>Take the twelve months from each July and divide by the twelve months before it. Both "
         "sides then contain one of every calendar month, so seasonality cancels exactly and no "
         "model is involved. Across July 2006 that ratio is "
         f"{_signed_pct(math.expm1(float(true_transition.twelve_month_ratio)), 1)}"
         f", a large fall, and the {_ordinal(int(true_transition['rank']))} largest of the "
-        f"{int(true_transition.n_ranked)} years that can be measured. Three years in the recession "
-        "that followed were larger. The series was falling steeply either side of 2006, which is "
-        "the same problem the pre-trend test found, seen without a regression.</p>"
+        f"{int(true_transition.n_ranked)} years that can be measured. The larger falls all "
+        f"came later, in {_join([str(int(year)) for year in sorted(larger.year)])}. The "
+        "series was falling steeply either side of 2006, which is the same problem the "
+        "pre-trend test found, seen without a regression.</p>"
     )
     largest = ranked.nsmallest(8, "twelve_month_ratio")
     show = pd.concat([largest, ranked[ranked.year == 2006]]).drop_duplicates("year")
@@ -167,9 +206,10 @@ def page_policy(captions: dict[str, str]) -> str:
     )
     body += table(
         show,
-        "The eight largest falls across a July, of the 27 years that can be measured. The last "
-        "column has the same twelve calendar months on each side, so seasonality cancels; "
-        "2019–2021 are left out because the pandemic breaks the comparison",
+        f"The {len(largest)} largest falls across a July, of the "
+        f"{int(true_transition.n_ranked)} years that can be measured. The last column has the "
+        "same twelve calendar months on each side, so seasonality cancels; "
+        f"{excluded[0]}–{excluded[-1]} are left out because the pandemic breaks the comparison",
         {
             "Year": "year",
             "June → July": "pct0",
@@ -180,16 +220,21 @@ def page_policy(captions: dict[str, str]) -> str:
         },
     )
     body += (
-        "<p>The second test fits the 60 months before each July, with a trend and seasonality "
-        "and no intervention term, then forecasts the 17 months after it. The question is how far "
-        "the "
+        f"<p>The second test fits the {pre_months} months before each July, with a trend and "
+        f"seasonality and no intervention term, then forecasts the {post_months} months after "
+        "it. The question is how far the "
         f"observed months fall below that forecast. After July 2006 they fall "
         f"{abs(float(true_forecast.log_ratio)) * 100:.0f}% below, which sounds decisive until the "
         f"same exercise is run at the other Julys: 2006 comes "
         f"{_ordinal(int(true_forecast['rank']))} of {int(true_forecast.n_fits)}. The months after "
-        f"July {int(forecast.sort_values('z').iloc[0].year)} were further below their own forecast, "
-        "and so were two other years. This is the single clearest reason not to report a twelve "
-        "per cent policy effect.</p>"
+        f"July {int(beyond.iloc[0].year)} were further below their own forecast"
+        + (
+            f", and so were those after July {_join([str(int(y)) for y in beyond.year.iloc[1:]])}"
+            if len(beyond) > 1
+            else ""
+        )
+        + f". This is the single clearest reason not to report a {straight_step} per cent "
+        "policy effect.</p>"
     )
     body += downloads(
         [
@@ -203,18 +248,19 @@ def page_policy(captions: dict[str, str]) -> str:
     )
 
     body += "<h2>Exposure, and everything else that changed</h2>"
-    fuel = numbers["sensitivity"].loc["fuel"]
-    toll = numbers["sensitivity"].loc["toll"]
     body += (
         "<p>A fall in deaths can be a fall in traffic. Two Spanish series are monthly and reach "
         "back past 2006: CORES's national road-fuel consumption, which covers every road, and the "
-        "Ministerio de Transportes' vehicle-kilometres on the state toll-motorway network, which "
-        "is a direct traffic measurement on a small and changing part of it. Adding either as a "
-        f"covariate barely moves the estimate: {_signed_pct(float(fuel.level_change))} with "
-        f"fuel and {_signed_pct(float(toll.level_change))} with toll traffic, against "
-        f"{_signed_pct(float(main.level_change))} without either. Neither is vehicle-kilometres on all "
-        "Spanish roads by month, which does not exist, so they rule out a traffic-volume "
-        "explanation rather than measuring exposure properly.</p>"
+        "Ministerio de Transportes' traffic on the state toll-motorway network, a direct "
+        "measurement on a small part of it. The toll series enters as its average daily "
+        "intensity, vehicles a day on the average kilometre, not as vehicle-kilometres, which "
+        "grow with the length of the network in service and step up whenever new sections open. "
+        "Adding either as a covariate barely moves the estimate: "
+        f"{_signed_pct(float(fuel.level_change))} with fuel and "
+        f"{_signed_pct(float(toll.level_change))} with toll-motorway intensity, against "
+        f"{_signed_pct(float(main.level_change))} without either. Neither is vehicle-kilometres "
+        "on all Spanish roads by month, which does not exist, so the two series show that the "
+        "step is not tracking these measures of traffic; they do not measure exposure.</p>"
     )
     body += table(
         pd.DataFrame(CONFOUNDERS, columns=["When", "What changed"]),
@@ -254,7 +300,7 @@ def page_policy(captions: dict[str, str]) -> str:
         "test and the seasonality-free transition both put 2006 inside the range of ordinary "
         "years. <strong>That the points licence caused it</strong>: not supported by this series "
         "at all. The speed-camera programme was rolling out over the same two years, the Penal "
-        "Code reform followed seventeen months later, and the recession after that."
+        f"Code reform followed {penal_months} months later, and the recession after that."
     )
     body += (
         f"<p>And the step is fragile. Of the {len(numbers['sensitivity'])} specifications in the "
@@ -264,18 +310,23 @@ def page_policy(captions: dict[str, str]) -> str:
             if len(crosses)
             else ". "
         )
-        + "Twelve per cent is not what this series supports; seven, with a wide interval, is "
-        "about as much as it will carry.</p>"
+        + f"{straight_step.capitalize()} per cent is not what this series supports; {step}, "
+        "with a wide interval, is about as much as it will carry.</p>"
     )
     body += limits(
-        "Monthly deaths are overdispersed and serially correlated; standard errors are Newey–West "
-        "with twelve lags and a negative-binomial fit is in the table above. Choosing the "
-        "pre-trend by AIC on the pre-period is a selection step, so the table shows the "
-        "alternatives: every knot from 2002 to 2005 gives between −6% and −10%, and a knot at "
-        "January 2004 gives an interval that includes zero. A separate study of the January 2019 "
-        "speed-limit cut on conventional roads is not published here: its control design fails a "
-        "placebo break placed in January 2017, which produces a divergence of its own, so no "
-        "claim can be made from it. Its fits are kept as evidence of the negative result "
+        "Monthly deaths are overdispersed and serially correlated; standard errors are "
+        "Newey–West "
+        f"with {policy.HAC_LAGS} lags and a negative-binomial fit is in the table above. "
+        "Choosing the pre-trend by AIC on the pre-period is a selection step, so the tables show "
+        "the alternatives: the best knots and their AIC, and a knot fixed at January 2004, which "
+        f"gives {_signed_pct(float(knot_2004.level_change))} with an interval "
+        f"({_signed_pct(float(knot_2004.level_low))} to "
+        f"{_signed_pct(float(knot_2004.level_high))}) that includes no change. A separate study "
+        "of the 2019 speed-limit cut on conventional roads is not published here: its control "
+        "design fails a placebo break placed in "
+        f"{pd.Timestamp(failed_placebo.break_date.iloc[0]):%B %Y}, which produces a divergence "
+        "of its own, so no claim can be made from it. Its fits are kept as evidence of the "
+        "negative result "
         '(<a href="tables/q8_speed_placebo.csv">placebos</a>, '
         '<a href="tables/q8_speed_sensitivity.csv">specifications</a>).'
     )

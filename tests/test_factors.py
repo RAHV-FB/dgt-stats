@@ -2,7 +2,7 @@ import pandas as pd
 import pytest
 
 from dgt_stats import factors, io_reports
-from dgt_stats.paths import INTERIM_DATA_DIR
+from dgt_stats.paths import DGT_PROCESSED_CRASHES
 
 
 def _shares(values: dict[int, tuple[float, float]]) -> pd.DataFrame:
@@ -47,10 +47,7 @@ def test_severity_row_splits_speed_from_the_rest() -> None:
 
 
 pytestmark_data = pytest.mark.skipif(
-    not (
-        io_reports.SPEED_REPORT_INTERIM.exists()
-        and (INTERIM_DATA_DIR.parent / "processed" / "accidentes.parquet").exists()
-    ),
+    not (io_reports.SPEED_REPORT_STAGING.exists() and DGT_PROCESSED_CRASHES.exists()),
     reason="run `python scripts/ingest.py all` and `python scripts/build_tables.py` first",
 )
 

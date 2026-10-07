@@ -4,7 +4,7 @@ import pytest
 from dgt_stats import io_tables, speed
 
 pytestmark = pytest.mark.skipif(
-    not io_tables.interim_path("tables_driver_infractions").exists(),
+    not io_tables.staging_path("tables_driver_infractions").exists(),
     reason="run `python scripts/ingest.py tables` first",
 )
 

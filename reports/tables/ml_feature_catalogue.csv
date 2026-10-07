@@ -1,0 +1,204 @@
+feature_table,column,kind,status,feature_sets,geography_variant,reason
+catalonia_crash_severity,year,numeric,safe,"context, retrospective_administrative",all,calendar year of the crash; also the split variable
+catalonia_crash_severity,month,categorical,safe,"context, retrospective_administrative",all,month of the crash
+catalonia_crash_severity,weekday,categorical,safe,"context, retrospective_administrative",all,"day of the week, from the date"
+catalonia_crash_severity,hour_band,categorical,safe,"context, retrospective_administrative",all,"hour of the crash in six bands, from `hor`"
+catalonia_crash_severity,D_TIPUS_VIA,categorical,safe,"context, retrospective_administrative",all,recorded road type
+catalonia_crash_severity,D_TITULARITAT_VIA,categorical,safe,"context, retrospective_administrative",all,recorded road owner ('NA' on urban streets)
+catalonia_crash_severity,D_SUBZONA,categorical,safe,"context, retrospective_administrative",all,"recorded zone detail (urban street, interurban road, through-town road)"
+catalonia_crash_severity,D_FUNC_ESP_VIA,categorical,safe,"context, retrospective_administrative",all,recorded special road function
+catalonia_crash_severity,D_INTER_SECCIO,categorical,safe,"context, retrospective_administrative",all,recorded intersection or road section
+catalonia_crash_severity,D_SUBTIPUS_TRAM,categorical,safe,"context, retrospective_administrative",all,recorded junction type
+catalonia_crash_severity,D_REGULACIO_PRIORITAT,categorical,safe,"context, retrospective_administrative",all,recorded priority regulation
+catalonia_crash_severity,D_SUPERFICIE,categorical,safe,"context, retrospective_administrative",all,recorded surface
+catalonia_crash_severity,D_LLUMINOSITAT,categorical,safe,"context, retrospective_administrative",all,recorded lighting
+catalonia_crash_severity,D_CLIMATOLOGIA,categorical,safe,"context, retrospective_administrative",all,recorded weather
+catalonia_crash_severity,D_VENT,categorical,safe,"context, retrospective_administrative",all,recorded wind
+catalonia_crash_severity,D_BOIRA,categorical,safe,"context, retrospective_administrative",all,recorded fog present
+catalonia_crash_severity,D_CIRCULACIO_MESURES_ESP,categorical,safe,"context, retrospective_administrative",all,recorded special traffic measures
+catalonia_crash_severity,D_SUBTIPUS_ACCIDENT,categorical,safe,"context, retrospective_administrative",all,recorded accident subtype
+catalonia_crash_severity,speed_limit_category,categorical,safe,"context, retrospective_administrative",all,"posted speed limit in bands, or 'generic limit' where the record has no value (the road's limit, not a vehicle's speed)"
+catalonia_crash_severity,n_units,numeric,safe,"context, retrospective_administrative",all,units involved (vehicles and pedestrians)
+catalonia_crash_severity,single_unit,binary,safe,"context, retrospective_administrative",all,one unit involved
+catalonia_crash_severity,involves_pedestrian,binary,safe,"context, retrospective_administrative",all,at least one unit of this type involved (n_pedestrians)
+catalonia_crash_severity,involves_bicycle,binary,safe,"context, retrospective_administrative",all,at least one unit of this type involved (n_bicycles)
+catalonia_crash_severity,involves_moped,binary,safe,"context, retrospective_administrative",all,at least one unit of this type involved (n_mopeds)
+catalonia_crash_severity,involves_motorcycle,binary,safe,"context, retrospective_administrative",all,at least one unit of this type involved (n_motorcycles)
+catalonia_crash_severity,involves_light_vehicle,binary,safe,"context, retrospective_administrative",all,at least one unit of this type involved (n_light_vehicles)
+catalonia_crash_severity,involves_heavy_vehicle,binary,safe,"context, retrospective_administrative",all,at least one unit of this type involved (n_heavy_vehicles)
+catalonia_crash_severity,involves_other_unit,binary,safe,"context, retrospective_administrative",all,at least one unit of this type involved (n_other_units)
+catalonia_crash_severity,demarcation,categorical,safe,"context, retrospective_administrative",broad,demarcation (province): broad geography
+catalonia_crash_severity,comarca,categorical,safe,"context, retrospective_administrative",comarca,comarca (43): finer geography
+catalonia_crash_severity,municipality,categorical,safe,"context, retrospective_administrative",granular,"municipality (about 900): granular geography, tested for memorisation"
+catalonia_crash_severity,D_INFLUIT_BOIRA,categorical,questionable,retrospective_administrative,all,"the police's retrospective judgement that this condition influenced the crash; fatal crashes may be investigated more fully, so the recording can depend on the outcome: retrospective administrative set only"
+catalonia_crash_severity,D_INFLUIT_CARACT_ENTORN,categorical,questionable,retrospective_administrative,all,"the police's retrospective judgement that this condition influenced the crash; fatal crashes may be investigated more fully, so the recording can depend on the outcome: retrospective administrative set only"
+catalonia_crash_severity,D_INFLUIT_CIRCULACIO,categorical,questionable,retrospective_administrative,all,"the police's retrospective judgement that this condition influenced the crash; fatal crashes may be investigated more fully, so the recording can depend on the outcome: retrospective administrative set only"
+catalonia_crash_severity,D_INFLUIT_ESTAT_CLIMA,categorical,questionable,retrospective_administrative,all,"the police's retrospective judgement that this condition influenced the crash; fatal crashes may be investigated more fully, so the recording can depend on the outcome: retrospective administrative set only"
+catalonia_crash_severity,D_INFLUIT_INTEN_VENT,categorical,questionable,retrospective_administrative,all,"the police's retrospective judgement that this condition influenced the crash; fatal crashes may be investigated more fully, so the recording can depend on the outcome: retrospective administrative set only"
+catalonia_crash_severity,D_INFLUIT_LLUMINOSITAT,categorical,questionable,retrospective_administrative,all,"the police's retrospective judgement that this condition influenced the crash; fatal crashes may be investigated more fully, so the recording can depend on the outcome: retrospective administrative set only"
+catalonia_crash_severity,D_INFLUIT_MESU_ESP,categorical,questionable,retrospective_administrative,all,"the police's retrospective judgement that this condition influenced the crash; fatal crashes may be investigated more fully, so the recording can depend on the outcome: retrospective administrative set only"
+catalonia_crash_severity,D_INFLUIT_OBJ_CALCADA,categorical,questionable,retrospective_administrative,all,"the police's retrospective judgement that this condition influenced the crash; fatal crashes may be investigated more fully, so the recording can depend on the outcome: retrospective administrative set only"
+catalonia_crash_severity,D_INFLUIT_SOLCS_RASES,categorical,questionable,retrospective_administrative,all,"the police's retrospective judgement that this condition influenced the crash; fatal crashes may be investigated more fully, so the recording can depend on the outcome: retrospective administrative set only"
+catalonia_crash_severity,D_INFLUIT_VISIBILITAT,categorical,questionable,retrospective_administrative,all,"the police's retrospective judgement that this condition influenced the crash; fatal crashes may be investigated more fully, so the recording can depend on the outcome: retrospective administrative set only"
+catalonia_crash_severity,D_TRACAT_ALTIMETRIC,categorical,questionable,retrospective_administrative,all,"recorded vertical alignment; its 'Sense especificar' level is much less often fatal than the rest, so it partly records how fully the crash was documented, which follows the outcome: retrospective administrative set only"
+catalonia_crash_severity,D_CARACT_ENTORN,categorical,questionable,retrospective_administrative,all,"recorded roadside profile; its 'Sense Especificar' level is much less often fatal than the rest, so it partly records how fully the crash was documented, which follows the outcome: retrospective administrative set only"
+catalonia_crash_severity,D_SENTITS_VIA,categorical,questionable,retrospective_administrative,all,"recorded one-way or two-way; its 'Sense especificar' level is much less often fatal than the rest, so it partly records how fully the crash was documented, which follows the outcome: retrospective administrative set only"
+catalonia_crash_severity,D_CARRIL_ESPECIAL,categorical,questionable,retrospective_administrative,all,"recorded special lane; its 'NA' level is much less often fatal than the rest, so it partly records how fully the crash was documented, which follows the outcome: retrospective administrative set only"
+catalonia_crash_severity,D_ACC_AMB_FUGA,categorical,questionable,retrospective_administrative,all,a driver left the scene: behaviour after the crash that may depend on its outcome; retrospective administrative set only
+catalonia_crash_severity,F_MORTS,numeric,direct_leakage,none,all,deaths: defines the target
+catalonia_crash_severity,n_deaths,numeric,direct_leakage,none,all,deaths: defines the target
+catalonia_crash_severity,D_GRAVETAT,categorical,direct_leakage,none,all,the severity label itself
+catalonia_crash_severity,severity,categorical,direct_leakage,none,all,the severity label in English
+catalonia_crash_severity,F_VICTIMES,numeric,direct_leakage,none,all,"victims, which include the deaths"
+catalonia_crash_severity,n_victims,numeric,direct_leakage,none,all,"victims, which include the deaths"
+catalonia_crash_severity,F_FERITS_GREUS,numeric,direct_leakage,none,all,"serious injuries: every non-fatal crash in this file has at least one, so zero serious injuries identifies a fatal crash"
+catalonia_crash_severity,n_serious_injuries,numeric,direct_leakage,none,all,as F_FERITS_GREUS
+catalonia_crash_severity,F_FERITS_LLEUS,numeric,questionable,none,all,minor injuries: a casualty count established after the crash; excluded
+catalonia_crash_severity,n_minor_injuries,numeric,questionable,none,all,as F_FERITS_LLEUS; excluded
+catalonia_crash_severity,C_VELOCITAT_VIA,categorical,excluded,none,all,raw limit field mixing posted limits with codes; replaced by speed_limit_category
+catalonia_crash_severity,D_LIMIT_VELOCITAT,categorical,excluded,none,all,contained in speed_limit_category
+catalonia_crash_severity,tipAcc,categorical,excluded,none,all,a coarser grouping of D_SUBTIPUS_ACCIDENT
+catalonia_crash_severity,zona,categorical,excluded,none,all,a coarser grouping of D_SUBZONA
+catalonia_crash_severity,grupHor,categorical,excluded,none,all,a coarser grouping of hour_band
+catalonia_crash_severity,grupDiaLab,categorical,excluded,none,all,a coarser grouping of weekday
+catalonia_crash_severity,tipDia,categorical,excluded,none,all,a coarser grouping of weekday
+catalonia_crash_severity,dat,categorical,excluded,none,all,"the date: month, weekday and year are used instead"
+catalonia_crash_severity,via,categorical,excluded,none,all,road name (773 values): would memorise roads
+catalonia_crash_severity,pk,numeric,excluded,none,all,kilometre point: a location identifier
+catalonia_crash_severity,F_UNIT_DESC_IMPLICADES,numeric,excluded,none,all,unknown units: non-zero once
+catalonia_crash_severity,n_pedestrians,numeric,excluded,none,all,count kept as the involves_pedestrian flag
+catalonia_crash_severity,n_bicycles,numeric,excluded,none,all,count kept as a flag
+catalonia_crash_severity,n_mopeds,numeric,excluded,none,all,count kept as a flag
+catalonia_crash_severity,n_motorcycles,numeric,excluded,none,all,count kept as a flag
+catalonia_crash_severity,n_light_vehicles,numeric,excluded,none,all,count kept as a flag
+catalonia_crash_severity,n_heavy_vehicles,numeric,excluded,none,all,count kept as a flag
+catalonia_crash_severity,n_other_units,numeric,excluded,none,all,count kept as a flag
+catalonia_crash_severity,cat_crash_id,categorical,excluded,none,all,surrogate identifier
+barcelona_person_severity,age,numeric,safe,"context, retrospective",all,age of the person (missing for 7%: imputed in the pipeline with a missing indicator)
+barcelona_person_severity,sex,categorical,safe,"context, retrospective",all,"sex, with 'not recorded' as its own category"
+barcelona_person_severity,person_role,categorical,safe,"context, retrospective",all,"driver, passenger or pedestrian"
+barcelona_person_severity,associated_vehicle_group,categorical,safe,"context, retrospective",all,vehicle type on the person's record (for a pedestrian the source does not say which vehicle this is)
+barcelona_person_severity,pedestrian_location,categorical,safe,"context, retrospective",all,"where a pedestrian was struck (crossing with lights, outside a crossing...); 'not a pedestrian' otherwise"
+barcelona_person_severity,hour,numeric,safe,"context, retrospective",all,hour of the crash
+barcelona_person_severity,weekday,categorical,safe,"context, retrospective",all,day of the week
+barcelona_person_severity,month,categorical,excluded,none,all,"month: one year of data, so the test months are never seen in training; it is the split variable instead"
+barcelona_person_severity,accident_type,categorical,safe,"context, retrospective",all,"recorded crash type (collision, pedestrian struck, fall...)"
+barcelona_person_severity,n_vehicles,numeric,safe,"context, retrospective",all,"vehicles involved, from the crash table"
+barcelona_person_severity,vehicle_records_include_car,binary,safe,"context, retrospective",all,the crash has a vehicle record of type car (presence only; see the vehicle audit)
+barcelona_person_severity,vehicle_records_include_taxi,binary,safe,"context, retrospective",all,the crash has a vehicle record of type taxi (presence only; see the vehicle audit)
+barcelona_person_severity,vehicle_records_include_motorcycle,binary,safe,"context, retrospective",all,the crash has a vehicle record of type motorcycle (presence only; see the vehicle audit)
+barcelona_person_severity,vehicle_records_include_moped,binary,safe,"context, retrospective",all,the crash has a vehicle record of type moped (presence only; see the vehicle audit)
+barcelona_person_severity,vehicle_records_include_bicycle,binary,safe,"context, retrospective",all,the crash has a vehicle record of type bicycle (presence only; see the vehicle audit)
+barcelona_person_severity,vehicle_records_include_personal_mobility_vehicle,binary,safe,"context, retrospective",all,the crash has a vehicle record of type personal_mobility_vehicle (presence only; see the vehicle audit)
+barcelona_person_severity,vehicle_records_include_van_or_light_truck,binary,safe,"context, retrospective",all,the crash has a vehicle record of type van_or_light_truck (presence only; see the vehicle audit)
+barcelona_person_severity,vehicle_records_include_heavy_truck,binary,safe,"context, retrospective",all,the crash has a vehicle record of type heavy_truck (presence only; see the vehicle audit)
+barcelona_person_severity,vehicle_records_include_bus_or_coach,binary,safe,"context, retrospective",all,the crash has a vehicle record of type bus_or_coach (presence only; see the vehicle audit)
+barcelona_person_severity,vehicle_records_include_tram_or_train,binary,safe,"context, retrospective",all,the crash has a vehicle record of type tram_or_train (presence only; see the vehicle audit)
+barcelona_person_severity,vehicle_records_include_other,binary,safe,"context, retrospective",all,the crash has a vehicle record of type other (presence only; see the vehicle audit)
+barcelona_person_severity,vehicle_records_include_not_recorded,binary,safe,"context, retrospective",all,the crash has a vehicle record of type not_recorded (presence only; see the vehicle audit)
+barcelona_person_severity,district,categorical,safe,"context, retrospective",broad,district (10): broad geography
+barcelona_person_severity,neighbourhood,categorical,safe,"context, retrospective",granular,"neighbourhood (73): granular geography, tested for memorisation"
+barcelona_person_severity,mediate_alcohol_recorded,binary,questionable,retrospective,all,"'alcohol' recorded as a mediate cause of the crash (police coding after the event; says the cause was recorded, not that it caused the crash): retrospective set only"
+barcelona_person_severity,mediate_speed_recorded,binary,questionable,retrospective,all,"'excessive or inappropriate speed' recorded as a mediate cause of the crash (police coding after the event; says the cause was recorded, not that it caused the crash): retrospective set only"
+barcelona_person_severity,mediate_drugs_medication_recorded,binary,questionable,retrospective,all,"'drugs or medication' recorded as a mediate cause of the crash (police coding after the event; says the cause was recorded, not that it caused the crash): retrospective set only"
+barcelona_person_severity,mediate_road_surface_recorded,binary,questionable,retrospective,all,"'road surface in poor condition' recorded as a mediate cause of the crash (police coding after the event; says the cause was recorded, not that it caused the crash): retrospective set only"
+barcelona_person_severity,mediate_signalling_recorded,binary,questionable,retrospective,all,"'state of the signalling' recorded as a mediate cause of the crash (police coding after the event; says the cause was recorded, not that it caused the crash): retrospective set only"
+barcelona_person_severity,mediate_weather_recorded,binary,questionable,retrospective,all,"'weather' recorded as a mediate cause of the crash (police coding after the event; says the cause was recorded, not that it caused the crash): retrospective set only"
+barcelona_person_severity,mediate_object_or_animal_recorded,binary,questionable,retrospective,all,"'objects or animals on the road' recorded as a mediate cause of the crash (police coding after the event; says the cause was recorded, not that it caused the crash): retrospective set only"
+barcelona_person_severity,driver_cause_inattention_recorded,binary,questionable,retrospective,all,'lack of attention to driving' recorded as a driver-related cause in the crash (not attributable to a person or vehicle): retrospective set only
+barcelona_person_severity,driver_cause_following_distance_recorded,binary,questionable,retrospective,all,'not keeping a safe distance' recorded as a driver-related cause in the crash (not attributable to a person or vehicle): retrospective set only
+barcelona_person_severity,driver_cause_improper_turn_recorded,binary,questionable,retrospective,all,'improper or careless turn' recorded as a driver-related cause in the crash (not attributable to a person or vehicle): retrospective set only
+barcelona_person_severity,driver_cause_traffic_light_recorded,binary,questionable,retrospective,all,'disobeying a traffic light' recorded as a driver-related cause in the crash (not attributable to a person or vehicle): retrospective set only
+barcelona_person_severity,driver_cause_lane_change_recorded,binary,questionable,retrospective,all,'careless lane change' recorded as a driver-related cause in the crash (not attributable to a person or vehicle): retrospective set only
+barcelona_person_severity,driver_cause_other_signal_recorded,binary,questionable,retrospective,all,'disobeying other signals' recorded as a driver-related cause in the crash (not attributable to a person or vehicle): retrospective set only
+barcelona_person_severity,driver_cause_overtaking_recorded,binary,questionable,retrospective,all,'faulty or improper overtaking' recorded as a driver-related cause in the crash (not attributable to a person or vehicle): retrospective set only
+barcelona_person_severity,driver_cause_merging_recorded,binary,questionable,retrospective,all,'careless merging into traffic' recorded as a driver-related cause in the crash (not attributable to a person or vehicle): retrospective set only
+barcelona_person_severity,driver_cause_pedestrian_crossing_recorded,binary,questionable,retrospective,all,'not respecting a pedestrian crossing' recorded as a driver-related cause in the crash (not attributable to a person or vehicle): retrospective set only
+barcelona_person_severity,driver_cause_reversing_recorded,binary,questionable,retrospective,all,'careless reversing' recorded as a driver-related cause in the crash (not attributable to a person or vehicle): retrospective set only
+barcelona_person_severity,driver_cause_right_of_way_recorded,binary,questionable,retrospective,all,'not giving way to the right' recorded as a driver-related cause in the crash (not attributable to a person or vehicle): retrospective set only
+barcelona_person_severity,driver_cause_wrong_side_recorded,binary,questionable,retrospective,all,'invading the opposite carriageway' recorded as a driver-related cause in the crash (not attributable to a person or vehicle): retrospective set only
+barcelona_person_severity,driver_cause_mechanical_failure_recorded,binary,questionable,retrospective,all,'mechanical failure or breakdown' recorded as a driver-related cause in the crash (not attributable to a person or vehicle): retrospective set only
+barcelona_person_severity,driver_cause_other_recorded,binary,questionable,retrospective,all,'other' recorded as a driver-related cause in the crash (not attributable to a person or vehicle): retrospective set only
+barcelona_person_severity,driver_cause_not_determined_recorded,binary,questionable,retrospective,all,'not determined' recorded as a driver-related cause in the crash (not attributable to a person or vehicle): retrospective set only
+barcelona_person_severity,driver_cause_status,categorical,questionable,retrospective,all,"whether any driver cause, only 'not determined', or nothing was recorded: retrospective set only"
+barcelona_person_severity,pedestrian_cause,categorical,questionable,retrospective,all,"pedestrian behaviour recorded for the crash (crash-level, not the person's own): retrospective set only"
+barcelona_person_severity,n_deaths,numeric,direct_leakage,none,all,deaths in the crash
+barcelona_person_severity,n_serious_injuries,numeric,direct_leakage,none,all,serious injuries in the crash
+barcelona_person_severity,n_victims,numeric,direct_leakage,none,all,"victims, including the serious and fatal ones"
+barcelona_person_severity,Numero_morts,numeric,direct_leakage,none,all,deaths (source column)
+barcelona_person_severity,Numero_lesionats_greus,numeric,direct_leakage,none,all,serious injuries (source column)
+barcelona_person_severity,Numero_victimes,numeric,direct_leakage,none,all,victims (source column)
+barcelona_person_severity,fatal_crash,binary,direct_leakage,none,all,derived from deaths
+barcelona_person_severity,n_minor_injuries,numeric,questionable,none,all,minor injuries: an outcome count; excluded
+barcelona_person_severity,Numero_lesionats_lleus,numeric,questionable,none,all,minor injuries (source column); excluded
+barcelona_person_severity,serious_or_fatal_crash,binary,direct_leakage,none,all,the crash had a serious or fatal injury: includes this person's own outcome
+barcelona_person_severity,Descripcio_victimitzacio,categorical,direct_leakage,none,all,the person's victimisation: the target
+barcelona_person_severity,injury_severity,categorical,direct_leakage,none,all,grouping of the victimisation: the target
+barcelona_person_severity,victimisation,categorical,direct_leakage,none,all,English victimisation: the target
+barcelona_person_severity,fatal,binary,direct_leakage,none,all,subset of the target
+barcelona_person_severity,trip_purpose,categorical,questionable,none,all,"trip purpose: often 'unknown', and whether it can be asked depends on the person's condition; excluded"
+barcelona_person_severity,n_person_records,numeric,questionable,none,all,person records in the crash: who is recorded depends partly on who was hurt; excluded
+barcelona_person_severity,person_record_id,categorical,excluded,none,all,identifier
+barcelona_person_severity,Numero_expedient,categorical,excluded,none,all,crash identifier: the grouping key
+barcelona_crash_severity,hour,numeric,safe,"context, retrospective",all,hour of the crash
+barcelona_crash_severity,weekday,categorical,safe,"context, retrospective",all,day of the week
+barcelona_crash_severity,month,categorical,excluded,none,all,"month: one year of data, so the test months are never seen in training; it is the split variable instead"
+barcelona_crash_severity,accident_type,categorical,safe,"context, retrospective",all,"recorded crash type (collision, pedestrian struck, fall...)"
+barcelona_crash_severity,n_vehicles,numeric,safe,"context, retrospective",all,"vehicles involved, from the crash table"
+barcelona_crash_severity,vehicle_records_include_car,binary,safe,"context, retrospective",all,the crash has a vehicle record of type car (presence only; see the vehicle audit)
+barcelona_crash_severity,vehicle_records_include_taxi,binary,safe,"context, retrospective",all,the crash has a vehicle record of type taxi (presence only; see the vehicle audit)
+barcelona_crash_severity,vehicle_records_include_motorcycle,binary,safe,"context, retrospective",all,the crash has a vehicle record of type motorcycle (presence only; see the vehicle audit)
+barcelona_crash_severity,vehicle_records_include_moped,binary,safe,"context, retrospective",all,the crash has a vehicle record of type moped (presence only; see the vehicle audit)
+barcelona_crash_severity,vehicle_records_include_bicycle,binary,safe,"context, retrospective",all,the crash has a vehicle record of type bicycle (presence only; see the vehicle audit)
+barcelona_crash_severity,vehicle_records_include_personal_mobility_vehicle,binary,safe,"context, retrospective",all,the crash has a vehicle record of type personal_mobility_vehicle (presence only; see the vehicle audit)
+barcelona_crash_severity,vehicle_records_include_van_or_light_truck,binary,safe,"context, retrospective",all,the crash has a vehicle record of type van_or_light_truck (presence only; see the vehicle audit)
+barcelona_crash_severity,vehicle_records_include_heavy_truck,binary,safe,"context, retrospective",all,the crash has a vehicle record of type heavy_truck (presence only; see the vehicle audit)
+barcelona_crash_severity,vehicle_records_include_bus_or_coach,binary,safe,"context, retrospective",all,the crash has a vehicle record of type bus_or_coach (presence only; see the vehicle audit)
+barcelona_crash_severity,vehicle_records_include_tram_or_train,binary,safe,"context, retrospective",all,the crash has a vehicle record of type tram_or_train (presence only; see the vehicle audit)
+barcelona_crash_severity,vehicle_records_include_other,binary,safe,"context, retrospective",all,the crash has a vehicle record of type other (presence only; see the vehicle audit)
+barcelona_crash_severity,vehicle_records_include_not_recorded,binary,safe,"context, retrospective",all,the crash has a vehicle record of type not_recorded (presence only; see the vehicle audit)
+barcelona_crash_severity,district,categorical,safe,"context, retrospective",broad,district (10): broad geography
+barcelona_crash_severity,neighbourhood,categorical,safe,"context, retrospective",granular,"neighbourhood (73): granular geography, tested for memorisation"
+barcelona_crash_severity,mediate_alcohol_recorded,binary,questionable,retrospective,all,"'alcohol' recorded as a mediate cause of the crash (police coding after the event; says the cause was recorded, not that it caused the crash): retrospective set only"
+barcelona_crash_severity,mediate_speed_recorded,binary,questionable,retrospective,all,"'excessive or inappropriate speed' recorded as a mediate cause of the crash (police coding after the event; says the cause was recorded, not that it caused the crash): retrospective set only"
+barcelona_crash_severity,mediate_drugs_medication_recorded,binary,questionable,retrospective,all,"'drugs or medication' recorded as a mediate cause of the crash (police coding after the event; says the cause was recorded, not that it caused the crash): retrospective set only"
+barcelona_crash_severity,mediate_road_surface_recorded,binary,questionable,retrospective,all,"'road surface in poor condition' recorded as a mediate cause of the crash (police coding after the event; says the cause was recorded, not that it caused the crash): retrospective set only"
+barcelona_crash_severity,mediate_signalling_recorded,binary,questionable,retrospective,all,"'state of the signalling' recorded as a mediate cause of the crash (police coding after the event; says the cause was recorded, not that it caused the crash): retrospective set only"
+barcelona_crash_severity,mediate_weather_recorded,binary,questionable,retrospective,all,"'weather' recorded as a mediate cause of the crash (police coding after the event; says the cause was recorded, not that it caused the crash): retrospective set only"
+barcelona_crash_severity,mediate_object_or_animal_recorded,binary,questionable,retrospective,all,"'objects or animals on the road' recorded as a mediate cause of the crash (police coding after the event; says the cause was recorded, not that it caused the crash): retrospective set only"
+barcelona_crash_severity,driver_cause_inattention_recorded,binary,questionable,retrospective,all,'lack of attention to driving' recorded as a driver-related cause in the crash (not attributable to a person or vehicle): retrospective set only
+barcelona_crash_severity,driver_cause_following_distance_recorded,binary,questionable,retrospective,all,'not keeping a safe distance' recorded as a driver-related cause in the crash (not attributable to a person or vehicle): retrospective set only
+barcelona_crash_severity,driver_cause_improper_turn_recorded,binary,questionable,retrospective,all,'improper or careless turn' recorded as a driver-related cause in the crash (not attributable to a person or vehicle): retrospective set only
+barcelona_crash_severity,driver_cause_traffic_light_recorded,binary,questionable,retrospective,all,'disobeying a traffic light' recorded as a driver-related cause in the crash (not attributable to a person or vehicle): retrospective set only
+barcelona_crash_severity,driver_cause_lane_change_recorded,binary,questionable,retrospective,all,'careless lane change' recorded as a driver-related cause in the crash (not attributable to a person or vehicle): retrospective set only
+barcelona_crash_severity,driver_cause_other_signal_recorded,binary,questionable,retrospective,all,'disobeying other signals' recorded as a driver-related cause in the crash (not attributable to a person or vehicle): retrospective set only
+barcelona_crash_severity,driver_cause_overtaking_recorded,binary,questionable,retrospective,all,'faulty or improper overtaking' recorded as a driver-related cause in the crash (not attributable to a person or vehicle): retrospective set only
+barcelona_crash_severity,driver_cause_merging_recorded,binary,questionable,retrospective,all,'careless merging into traffic' recorded as a driver-related cause in the crash (not attributable to a person or vehicle): retrospective set only
+barcelona_crash_severity,driver_cause_pedestrian_crossing_recorded,binary,questionable,retrospective,all,'not respecting a pedestrian crossing' recorded as a driver-related cause in the crash (not attributable to a person or vehicle): retrospective set only
+barcelona_crash_severity,driver_cause_reversing_recorded,binary,questionable,retrospective,all,'careless reversing' recorded as a driver-related cause in the crash (not attributable to a person or vehicle): retrospective set only
+barcelona_crash_severity,driver_cause_right_of_way_recorded,binary,questionable,retrospective,all,'not giving way to the right' recorded as a driver-related cause in the crash (not attributable to a person or vehicle): retrospective set only
+barcelona_crash_severity,driver_cause_wrong_side_recorded,binary,questionable,retrospective,all,'invading the opposite carriageway' recorded as a driver-related cause in the crash (not attributable to a person or vehicle): retrospective set only
+barcelona_crash_severity,driver_cause_mechanical_failure_recorded,binary,questionable,retrospective,all,'mechanical failure or breakdown' recorded as a driver-related cause in the crash (not attributable to a person or vehicle): retrospective set only
+barcelona_crash_severity,driver_cause_other_recorded,binary,questionable,retrospective,all,'other' recorded as a driver-related cause in the crash (not attributable to a person or vehicle): retrospective set only
+barcelona_crash_severity,driver_cause_not_determined_recorded,binary,questionable,retrospective,all,'not determined' recorded as a driver-related cause in the crash (not attributable to a person or vehicle): retrospective set only
+barcelona_crash_severity,driver_cause_status,categorical,questionable,retrospective,all,"whether any driver cause, only 'not determined', or nothing was recorded: retrospective set only"
+barcelona_crash_severity,pedestrian_cause,categorical,questionable,retrospective,all,"pedestrian behaviour recorded for the crash (crash-level, not the person's own): retrospective set only"
+barcelona_crash_severity,n_deaths,numeric,direct_leakage,none,all,deaths in the crash
+barcelona_crash_severity,n_serious_injuries,numeric,direct_leakage,none,all,serious injuries in the crash
+barcelona_crash_severity,n_victims,numeric,direct_leakage,none,all,"victims, including the serious and fatal ones"
+barcelona_crash_severity,Numero_morts,numeric,direct_leakage,none,all,deaths (source column)
+barcelona_crash_severity,Numero_lesionats_greus,numeric,direct_leakage,none,all,serious injuries (source column)
+barcelona_crash_severity,Numero_victimes,numeric,direct_leakage,none,all,victims (source column)
+barcelona_crash_severity,fatal_crash,binary,direct_leakage,none,all,derived from deaths
+barcelona_crash_severity,n_minor_injuries,numeric,questionable,none,all,minor injuries: an outcome count; excluded
+barcelona_crash_severity,Numero_lesionats_lleus,numeric,questionable,none,all,minor injuries (source column); excluded
+barcelona_crash_severity,serious_or_fatal_crash,binary,direct_leakage,none,all,the target
+barcelona_crash_severity,n_person_records,numeric,questionable,none,all,person records: who is recorded depends partly on who was hurt; excluded
+barcelona_crash_severity,n_pedestrian_records,numeric,questionable,none,all,as n_person_records; excluded
+barcelona_crash_severity,n_passenger_records,numeric,questionable,none,all,as n_person_records; excluded
+barcelona_crash_severity,n_driver_records,numeric,questionable,none,all,as n_person_records; excluded
+barcelona_crash_severity,vehicle_table_rows,numeric,excluded,none,all,row count of the vehicle table: not a vehicle count (quarantined)
+barcelona_crash_severity,shift,categorical,excluded,none,all,a coarser grouping of hour
+barcelona_crash_severity,Codi_carrer,categorical,excluded,none,all,street: would memorise locations
+barcelona_crash_severity,utm_x_ed50,numeric,excluded,none,all,coordinates: would memorise locations
+barcelona_crash_severity,Numero_expedient,categorical,excluded,none,all,identifier

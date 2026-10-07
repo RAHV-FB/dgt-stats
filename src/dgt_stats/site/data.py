@@ -4,13 +4,12 @@ from __future__ import annotations
 
 import pandas as pd
 
-from dgt_stats import factor_models, forecast
+from dgt_stats import forecast, io_exposure, risk_trends
 from dgt_stats.paths import TABLES_DIR
 from dgt_stats.site.components import (
     DOCS_URL,
     REPO_URL,
     _change,
-    _fmt_int,
     _fmt_pct,
     _signed_pct,
     figure,
@@ -27,6 +26,7 @@ def _assumptions_section() -> str:
     km = read_table("longrun_km_panel").set_index("year")
     km_check = read_table("longrun_km_check").set_index(["measure", "year"])
     km_last = int(km.index.max())
+    coverage = read_table("longrun_km_coverage")
     segments = read_table("longrun_segments")
     base_year = int(segments[segments.measure == "road_fuel"].start.max())
     bio = read_table("longrun_fuel_bio").set_index("year").bio_share
@@ -35,18 +35,10 @@ def _assumptions_section() -> str:
         read_table("forecast_validation").set_index(["outcome", "set", "method"]).sort_index()
     )
     detect = read_table("forecast_detectability").set_index(["outcome", "horizon"])
-    speeds = read_table("simulator_speed_sites")
-    upper = read_table("factor_naturalistic").set_index("zone").loc["all"]
-    distraction = read_table("factor_comparison").set_index(["lever", "zone"])
-    distraction = distraction.loc[("distraction", "all")]
-    killed_over_limit = sum(
-        factor_models.parameter("killed_drivers_bac", f"{band}_2023")
-        for band in ("0.51-1.20", "1.21-2.00", "over_2.00")
-    ) / factor_models.parameter("killed_drivers_analysed", "2023")
     split = read_table("risk_frequency_severity").set_index("year")
     index = read_table("risk_index").set_index(["outcome", "denominator", "year"])
-    last = int(split.index.max())
-    first = int(split.index.min())
+    first, last = int(split.index.min()), int(split.index.max())
+    reference = risk_trends.BASE_YEAR
 
     def growth(a: int, b: int) -> str:
         ratio = float(km.loc[b, "km_per_tonne"] / km.loc[a, "km_per_tonne"])
@@ -55,20 +47,59 @@ def _assumptions_section() -> str:
     def rmse(kind: str, method: str) -> str:
         return _fmt_pct(float(validation.loc[("deaths_all", kind, method), "rmse"]))
 
+    def span(years: tuple[int, ...]) -> str:
+        return f"{min(years)}–{max(years)}"
+
     holdout_years = sorted(forecast.HOLDOUT_YEARS)
     holdout = (
         f"{holdout_years[0]}–{forecast.PANDEMIC_YEARS[0] - 1} and "
         f"{forecast.PANDEMIC_YEARS[-1] + 1}–{holdout_years[-1]}"
     )
+    index_last = int(index.index.get_level_values("year").max())
+    crash_person = index.loc[("crashes", "residents", index_last)]
+    hosp = index.loc[("hospitalised_30d", "count", index_last)]
+    per_km_last = km_check.loc[("per_km", km_last)]
+    young, middle, old = owner.loc["18-34"], owner.loc["35-54"], owner.loc["75+"]
+    checks = {
+        "admissions and crashes scatter more than Poisson chance": float(
+            scatter.loc["hospitalised_30d", "dispersion"]
+        )
+        > 1
+        and float(scatter.loc["crashes", "dispersion"]) > 1,
+        "crashes per resident are within an ordinary year": float(crash_person.ratio_low_yty)
+        <= 1
+        <= float(crash_person.ratio_high_yty),
+        "admissions as a count are beyond an ordinary year": float(hosp.ratio_low_yty) > 1,
+        "per measured interurban km the last year is inside its interval": not bool(
+            per_km_last.outside_interval
+        ),
+        "interurban km per tonne of national fuel rise after the reference year": float(
+            km.loc[km_last, "km_per_tonne"]
+        )
+        > float(km.loc[reference, "km_per_tonne"]),
+        "the biofuel share rose, which lowers km per tonne": float(bio.loc[km_last])
+        > float(bio.loc[reference]),
+        "owner age does not stand for driver age at either end": float(young.cars_per_b_permit)
+        < float(middle.cars_per_b_permit)
+        < 1
+        < float(old.cars_per_b_permit),
+        "deaths per crash fell more than crashes per tonne": float(
+            split.loc[last, "severity_index"]
+        )
+        < float(split.loc[last, "frequency_index"]),
+        "waiting makes a change harder to see": bool(
+            detect.loc["deaths_interurban"].mde.is_monotonic_increasing
+        ),
+    }
+    failed = [claim for claim, holds in checks.items() if not holds]
+    if failed:
+        raise ValueError(f"data page: the tables no longer support: {failed}")
 
-    crash_person = index.loc[("crashes", "residents", last)]
-    hosp = index.loc[("hospitalised_30d", "count", last)]
-    young, middle = owner.loc["18-34"], owner.loc["35-54"]
     rows = [
         (
-            "2019–2024",
+            f"{reference}–{index_last}",
             "A year's count varies only by Poisson chance",
-            "Scatter of each annual count around its 2013–2019 trend",
+            f"Scatter of each annual count around its {span(risk_trends.SCATTER_YEARS)} trend",
             f"Deaths {float(scatter.loc['deaths_30d', 'dispersion']):.1f}, admissions "
             f"{float(scatter.loc['hospitalised_30d', 'dispersion']):.1f} and injury crashes "
             f"{float(scatter.loc['crashes', 'dispersion']):.0f} times the Poisson variance",
@@ -80,13 +111,17 @@ def _assumptions_section() -> str:
         (
             "Long run",
             "Road fuel tracks the kilometres driven",
-            "The Ministry's measured interurban vehicle-km against fuel",
-            f"Kilometres per tonne {growth(base_year, 2019)} a year {base_year}–2019, "
-            f"{growth(2019, km_last)} a year 2019–{km_last}",
-            "Holds to 2019 and drifts after. Per kilometre, interurban deaths in "
-            f"{km_last} are {_change(float(km_check.loc[('per_km', km_last), 'ratio']), 0)} on "
-            "trend, inside the interval; the per-fuel excess is mostly the proxy. Finding "
-            "corrected",
+            "The Ministry's measured interurban vehicle-km against national road fuel (the "
+            "scopes differ, so this is a diagnostic of the proxy, not a rate)",
+            f"Interurban km per tonne of national fuel {growth(base_year, reference)} a year "
+            f"{base_year}–{reference}, {growth(reference, km_last)} a year "
+            f"{reference}–{km_last}",
+            "Cannot be tested on all roads: the measured km cover only State, regional and "
+            "provincial interurban roads. Per measured km, interurban deaths in "
+            f"{km_last} are {_change(float(per_km_last.ratio), 0)} on trend, inside the "
+            f"interval; {_fmt_pct(float(coverage.outside_share.min()))} to "
+            f"{_fmt_pct(float(coverage.outside_share.max()))} of interurban deaths are on roads "
+            "the km leave out",
         ),
         (
             "Long run",
@@ -94,24 +129,29 @@ def _assumptions_section() -> str:
             "CORES subtotals against their products, biofuels included, and the published "
             "biofuel share",
             "Each subtotal equals its products in every month; biofuel was "
-            f"{_fmt_pct(float(bio.loc[2019]))} of road fuel by mass in 2019 and "
+            f"{_fmt_pct(float(bio.loc[reference]))} of road fuel by mass in {reference} and "
             f"{_fmt_pct(float(bio.loc[km_last]))} in {km_last}",
-            "Holds. A point more biofuel, which carries less energy per tonne, would lower "
-            "kilometres per tonne slightly; it cannot explain their rise",
+            "Holds. More biofuel, which carries less energy per tonne, would lower kilometres "
+            "per tonne slightly; it cannot explain the rise in interurban km per tonne",
         ),
         (
             "Age and sex",
             "The registered owner's age stands for the driver's",
-            "Cars and kilometres per licence holder, by age band",
-            f"18–34: {float(young.cars_per_licence):.2f} cars and "
-            f"{float(young.km_per_licence):,.0f} km per licence holder; 35–54: "
-            f"{float(middle.cars_per_licence):.2f} and {float(middle.km_per_licence):,.0f}",
-            "Partly: young drivers' kilometres sit with older owners. Moving kilometres from the "
-            "35–54 baseline to the 18–34 band until both drive the same distance per licence "
-            "holder takes the 75-and-over involvement ratio from "
-            f"{float(owner.ratio_75_published.iloc[0]):.2f} to "
-            f"{float(owner.ratio_75_if_young_drive_like_baseline.iloc[0]):.2f}; the fatality "
-            "ratio needs no kilometres. The conclusion holds",
+            "Cars and kilometres per B-permit holder, by age band",
+            f"18–34: {float(young.cars_per_b_permit):.2f} cars and "
+            f"{float(young.km_per_b_permit):,.0f} km per B-permit holder; 35–54: "
+            f"{float(middle.cars_per_b_permit):.2f} and {float(middle.km_per_b_permit):,.0f}; "
+            f"75+: {float(old.cars_per_b_permit):.2f} cars",
+            "Does not hold at either end. Moving "
+            f"{float(young.transfer_bn_km):.1f} billion km from the 35–54 band to the 18–34 "
+            "band "
+            "takes the 18–34 involvement ratio per km from "
+            f"{float(young.involved_per_bn_km_ratio):.2f} to "
+            f"{float(young.involved_per_bn_km_ratio_transfer):.2f} and the 75-and-over one from "
+            f"{float(old.involved_per_bn_km_ratio):.2f} to "
+            f"{float(old.involved_per_bn_km_ratio_transfer):.2f}. Per-km ratios are published "
+            "as ranges from that scenario (not an estimate) to the published ratio; deaths per "
+            "driver involved need no kilometres",
         ),
         (
             "Overview",
@@ -126,57 +166,25 @@ def _assumptions_section() -> str:
             "product, deaths per tonne, does not",
         ),
         (
-            "Simulator",
-            "A forecast can show a law's effect in the counts",
+            "Deaths forecast",
+            "A forecast can show a change in the counts",
             "Rolling forecasts on years the model had not seen",
-            f"Model {rmse('selection', forecast.CHOSEN)} on 2006–2015 and "
+            f"Model {rmse('selection', forecast.CHOSEN)} on {span(forecast.SELECTION_YEARS)} and "
             f"{rmse('holdout', forecast.CHOSEN)} on {holdout}; last year's count "
             f"{rmse('selection', 'last_year')} and {rmse('holdout', 'last_year')}. In the "
             f"lockdown years {rmse('pandemic', forecast.CHOSEN)} against "
             f"{rmse('pandemic', 'last_year')}",
-            "Only for large effects: one year after a law the comparison picks up a fall of "
+            "Only for large changes: one year after a change the comparison picks up a fall of "
             f"{_fmt_pct(float(detect.loc[('deaths_interurban', 1), 'mde']), 0)} of interurban "
-            "deaths four times in five, smaller ones less often, and the threshold grows with "
-            "every year waited",
-        ),
-        (
-            "Simulator",
-            "Two numbers describe how fast cars drive",
-            "A log-normal through the measured share within the limit and the 85th percentile, "
-            "checked on the measured mean",
-            "Its mean lands within "
-            f"{float((speeds.implied_mean - speeds.mean_speed).abs().max()):.1f} km/h of the "
-            "measured mean on every kind of road",
-            "Holds",
-        ),
-        (
-            "Alcohol and drugs",
-            "The police record finds the drunk drivers in fatal crashes",
-            "The forensic toxicology of drivers killed in 2023 (INTCF), against the share of "
-            "fatal crashes the police record with a driver over the limit",
-            f"{_fmt_pct(killed_over_limit, 0)} of killed drivers over 0.5 g/L; a driver over the "
-            f"limit in {_fmt_pct(factor_models.presence('alcohol', 'interurban'), 0)} of "
-            "interurban and "
-            f"{_fmt_pct(factor_models.presence('alcohol', 'urban'), 0)} of urban fatal crashes "
-            "where every driver was tested",
-            "Holds, on a different count: drivers killed against crashes",
-        ),
-        (
-            "Distraction",
-            "The police record finds the distraction in fatal crashes",
-            "The share of crashes distraction causes in a naturalistic driving study, with "
-            "cameras in drivers' cars, applied to every death",
-            f"{_fmt_int(upper.avoided)} deaths a year against {_fmt_int(distraction.avoided)} on "
-            "the police record",
-            "Cannot be tested on Spanish data: the page gives the police record as its estimate "
-            "and the naturalistic figure as its ceiling",
+            f"deaths with probability {_fmt_pct(forecast.POWER, 0)}, smaller ones less often, "
+            "and the threshold grows with every year waited",
         ),
     ]
     frame = pd.DataFrame(rows, columns=["Page", "Assumption", "Test", "Result", "Verdict"])
     return (
         '<h2 id="assumptions-tested">Assumptions tested</h2>'
         "<p>Every headline rests on an assumption the data can be asked about. These are the "
-        "ones that were tested, with what the test found; two of them changed a finding.</p>"
+        "ones that were tested, with what the test found.</p>"
         + table(frame, "The assumptions behind the headlines, and what testing them found")
     )
 
@@ -187,20 +195,26 @@ def page_data(captions: dict[str, str]) -> str:
     total = int(len(validation))
     coefficients = read_table("q3_model_coefficients")
     n_crashes = int(coefficients.n.iloc[0])
+    micro_years = coefficients[coefficients.predictor == "year"].level.astype(int)
+    micro_span = f"{micro_years.min()}–{micro_years.max()}"
+    headline = read_table("q1_annual_headline")
+    series_span = f"{int(headline.year.min())}–{int(headline.year.max())}"
+    fuel = read_table("risk_frequency_severity")
+    fuel_span = f"{int(fuel.year.min())}–{int(fuel.year.max())}"
     other = read_table("q2_other_road_by_period").set_index("period")
 
     body = key_figures(
         [
-            ("Injury crashes", f"{n_crashes:,}", "2016–2024 microdata, one row per crash"),
+            ("Injury crashes", f"{n_crashes:,}", f"{micro_span} microdata, one row per crash"),
             ("Reconciliation checks", f"{passed} / {total}", "run before any analysis"),
-            ("Series", "1993–2024", "the yearbook monthly and annual series"),
-            ("Traffic series", "1990–2025", "monthly road fuel and toll-motorway traffic"),
+            ("Series", series_span, "the yearbook annual series"),
+            ("Road fuel", fuel_span, "CORES national road fuel, the traffic denominator"),
         ]
     )
     body += (
         '<p class="answer">Every number on this site is generated from files published by DGT, '
         "INE, the Ministerio de Transportes and CORES, reconciled against the publishers' own "
-        f"totals by {passed} checks before anything is computed. This page is the short version; "
+        f"totals by {total} checks before anything is computed. This page is the short version; "
         f'the <a href="{DOCS_URL}/data_sources.md">source register</a>, the '
         f'<a href="{DOCS_URL}/data_inventory.md">data audit</a> and the '
         f'<a href="{DOCS_URL}/methodology.md">methodology</a> in the repository are the long '
@@ -211,13 +225,13 @@ def page_data(captions: dict[str, str]) -> str:
     sources = pd.DataFrame(
         [
             (
-                "Crash microdata 2016–2024",
+                f"Crash microdata {micro_span}",
                 "DGT",
                 f"{n_crashes:,} injury crashes, one row each: place, time, road, conditions and "
                 "victim counts. No driver, vehicle or person records.",
             ),
             (
-                "Yearbook series 1993–2024",
+                f"Yearbook series {series_span}",
                 "DGT",
                 "Annual, monthly and provincial totals; the reference the microdata are checked "
                 "against, and the series the long-run and seasons pages fit.",
@@ -237,7 +251,8 @@ def page_data(captions: dict[str, str]) -> str:
             (
                 "Driver census 2014–2025",
                 "DGT",
-                "Licence holders by province, sex and age band.",
+                "Licence holders by province, sex and age band; B-permit (car) holders by age "
+                "and sex in the text files from 2023.",
             ),
             (
                 "Resident population 2002–2025",
@@ -247,15 +262,18 @@ def page_data(captions: dict[str, str]) -> str:
             (
                 "Monthly traffic and fuel",
                 "Ministerio de Transportes; CORES",
-                "Traffic on state toll motorways from 1990 and national road-fuel consumption "
-                "from 1996: the traffic denominators of the 2019–2024, long-run and seasons pages.",
+                "National road-fuel consumption, the denominator of the 2019–2024, long-run and "
+                "seasons pages and a predictor of the deaths forecast; traffic on state toll "
+                "motorways, shown on the seasons page as a traffic index beside deaths and used "
+                "as a covariate in the 2006 case study, never as a denominator.",
             ),
             (
                 "Interurban vehicle-kilometres 2004–2023",
                 "Ministerio de Transportes",
                 "Vehicle-kilometres measured on the State, regional and provincial road networks "
-                "by type of road (yearbook table 1.2.14): the check on road fuel, and the "
-                "per-kilometre risk of each kind of road.",
+                "by type of road (yearbook table 1.2.14): interurban deaths per measured "
+                "kilometre on the long-run page, and the split by road class on the overview, "
+                "each with deaths on the roads of the networks the kilometres cover.",
             ),
             (
                 "Speed-factor report 2014–2023",
@@ -263,21 +281,6 @@ def page_data(captions: dict[str, str]) -> str:
                 "Injury crashes with each recorded concurrent factor, and deaths in those with "
                 "speed, for Spain without Cataluña and País Vasco; used on the speed and factors "
                 "pages, never added to national totals.",
-            ),
-            (
-                "Evidence for the simulator",
-                "TØI; European Commission; DGT; BOE",
-                "The Power Model exponents, the response of speeds to a new limit, car speeds "
-                "measured in Spain in 2022, the legal limits and DGT's values of a casualty: one "
-                "register, each value with its source, table and a verbatim quote.",
-            ),
-            (
-                "Evidence for the factor models",
-                "DGT; INTCF; EU DRUID; Dingus et al.; TØI and others",
-                "The police record of distraction and alcohol in fatal crashes (2022–2024), the "
-                "toxicology of killed drivers, the measured risks of alcohol, drugs and "
-                "distraction, roadside prevalence, and published evaluations of enforcement: one "
-                "register, each value with its source, table and a verbatim quote.",
             ),
         ],
         columns=["Source", "Published by", "What it carries"],
@@ -298,14 +301,19 @@ def page_data(captions: dict[str, str]) -> str:
 
     body += "<h2>Checks, and what they found</h2>"
     body += (
-        f"<p>{passed} checks tie the crash microdata, the yearbook tables and the driver census to "
+        f"<p>{total} checks tie the crash microdata, the yearbook tables and the driver census to "
         "DGT's published totals: crashes and victims per year, deaths by province and by month, "
         "driver deaths by zone, vehicles involved by type, the census against its published "
-        "tables, every code against the dictionary, and the speed report's own totals against "
-        "the microdata restricted to its provinces. All of them pass, and the microdata match "
-        "the yearbook exactly, year by year. The kilometre table by owner age reconciles with the "
-        "same release's published fleet to within 0.5%, the margin left by owners DGT could not "
-        f'classify. The <a href="tables/validation.csv">full list is a CSV</a>.</p>'
+        "tables, every code against the dictionary, and the speed report's own zone totals "
+        "against the microdata restricted to its provinces. "
+        + (
+            "All of them pass, and the microdata match the yearbook exactly, year by year. "
+            if passed == total
+            else f"{total - passed} of them do not pass; the CSV says which. "
+        )
+        + "The kilometre table by owner age reconciles with the same release's published fleet "
+        f"to within {_fmt_pct(io_exposure.KM_OWNER_TOLERANCE)}, the margin left by owners DGT "
+        f'could not classify. The <a href="tables/validation.csv">full list is a CSV</a>.</p>'
     )
     body += figure(
         "d1_missingness", "Share of crashes with a value recorded, by field and year", captions
@@ -320,7 +328,8 @@ def page_data(captions: dict[str, str]) -> str:
         "by year and alongside zone. In 2021 most crashes on double-carriageway conventional "
         "roads are recoded as single-carriageway conventional. From 2023 the junction field "
         "records more crashes at a junction, mostly in Barcelona. All three are why the severity "
-        "page reports its year-by-year refits, and why no page draws a road-type trend.</p>"
+        "page reports its year-by-year refits and puts both kinds of conventional road in one "
+        "level, and why no page draws a road-type trend.</p>"
     )
 
     body += "<h2>Reuse</h2>"

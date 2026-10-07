@@ -13,7 +13,7 @@ from dgt_stats.paths import (
     CENSUS_AGE_YEARS,
     CENSUS_TABLES_2025_PATH,
     CENSUS_YEARS,
-    INTERIM_DATA_DIR,
+    DGT_STAGING_DIR,
     KM_BY_OWNER_AGE_2024_PATH,
     KM_ESTIMATED_2022_PATH,
     KM_MEAN_2022_PATH,
@@ -141,6 +141,41 @@ def read_census_age_year(year: int) -> pd.DataFrame:
 
 def read_census_age_all(years: tuple[int, ...] = CENSUS_AGE_YEARS) -> pd.DataFrame:
     return pd.concat([read_census_age_year(year) for year in years], ignore_index=True)
+
+
+def b_permit_holders_by_age(year: int) -> pd.DataFrame:
+    """Holders of a B (car) permit by sex (male, female, total) and fine age band, national.
+
+    Read from ``NUM_PERMISOS_B`` of the census text file, which only the text-file years
+    (``CENSUS_AGE_YEARS``) carry. It is the population licensed to drive a car; the census total
+    (``n_drivers``) also counts people whose only permit is for a moped or motorcycle and holders
+    of the LCM and LVA licences. Read from the raw file, so it needs no staging.
+    """
+    if year not in CENSUS_AGE_ENCODINGS:
+        raise ValueError(f"B-permit holders by age: no census text file for {year}")
+    raw = pd.read_csv(
+        census_age_raw_path(year), sep="|", dtype=str, encoding=CENSUS_AGE_ENCODINGS[year]
+    )
+    raw.columns = [column.strip() for column in raw.columns]
+    parsed = [agebands.parse_age_label(label.strip()) for label in raw["EDAD"]]
+    frame = pd.DataFrame(
+        {
+            "sex": raw["IND_SEXO"].str.strip().map(SEX_CODES),
+            "band": [agebands.UNKNOWN if item is None else _fine_band(*item) for item in parsed],
+            "n_b_permit_holders": pd.to_numeric(raw["NUM_PERMISOS_B"].str.strip()),
+            "n_permit_holders": pd.to_numeric(raw["NUM_PERMISOS"].str.strip()),
+        }
+    )
+    if frame.sex.isna().any():
+        raise ValueError(f"B-permit holders by age {year}: unexpected sex code")
+    if (frame.n_b_permit_holders > frame.n_permit_holders).any():
+        raise ValueError(f"B-permit holders by age {year}: more B permits than permit holders")
+    by_sex = frame.groupby(["sex", "band"]).n_b_permit_holders.sum().reset_index()
+    total = frame.groupby("band").n_b_permit_holders.sum().reset_index().assign(sex="total")
+    out = pd.concat([by_sex, total], ignore_index=True).assign(year=year)
+    return out[["year", "sex", "band", "n_b_permit_holders"]].astype(
+        {"year": "int16", "sex": "string", "band": "string", "n_b_permit_holders": "int64"}
+    )
 
 
 def read_census_age_tables(year: int) -> pd.DataFrame:
@@ -488,15 +523,15 @@ EXPOSURE_BUILDERS = {
 }
 
 
-def interim_path(name: str) -> Path:
-    return INTERIM_DATA_DIR / f"{name}.parquet"
+def staging_path(name: str) -> Path:
+    return DGT_STAGING_DIR / f"{name}.parquet"
 
 
 def build_exposure(force: bool = False) -> list[Path]:
     written: list[Path] = []
-    INTERIM_DATA_DIR.mkdir(parents=True, exist_ok=True)
+    DGT_STAGING_DIR.mkdir(parents=True, exist_ok=True)
     for name, builder in EXPOSURE_BUILDERS.items():
-        target = interim_path(name)
+        target = staging_path(name)
         if target.exists() and not force:
             log.info("exposure %s: exists, skipping", name)
             written.append(target)
@@ -509,4 +544,4 @@ def build_exposure(force: bool = False) -> list[Path]:
 
 
 def read_exposure(name: str) -> pd.DataFrame:
-    return pd.read_parquet(interim_path(name))
+    return pd.read_parquet(staging_path(name))

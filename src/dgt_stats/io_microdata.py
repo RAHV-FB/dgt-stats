@@ -16,10 +16,10 @@ import openpyxl
 import pandas as pd
 
 from dgt_stats.paths import (
-    INTERIM_MICRODATA_DIR,
     MICRODATA_YEARS,
-    microdata_interim_path,
+    STAGING_MICRODATA_DIR,
     microdata_raw_path,
+    microdata_staging_path,
 )
 
 log = logging.getLogger(__name__)
@@ -181,9 +181,9 @@ def harmonise(df: pd.DataFrame, year: int) -> pd.DataFrame:
     return out.reset_index(drop=True)
 
 
-def write_interim(year: int, force: bool = False) -> Path:
+def write_staging(year: int, force: bool = False) -> Path:
     """Convert one year to Parquet; skip when the file exists unless ``force``."""
-    target = microdata_interim_path(year)
+    target = microdata_staging_path(year)
     if target.exists() and not force:
         log.info("microdata %s: exists, skipping (%s)", year, target.name)
         return target
@@ -202,12 +202,12 @@ def write_interim(year: int, force: bool = False) -> Path:
     return target
 
 
-def read_interim_year(year: int) -> pd.DataFrame:
-    return pd.read_parquet(microdata_interim_path(year))
+def read_staging_year(year: int) -> pd.DataFrame:
+    return pd.read_parquet(microdata_staging_path(year))
 
 
 def all_years_path() -> Path:
-    return INTERIM_MICRODATA_DIR / "accidentes_all.parquet"
+    return STAGING_MICRODATA_DIR / "accidentes_all.parquet"
 
 
 def build_all(years: tuple[int, ...] = MICRODATA_YEARS, force: bool = False) -> Path:
@@ -217,11 +217,11 @@ def build_all(years: tuple[int, ...] = MICRODATA_YEARS, force: bool = False) -> 
     ``--years`` never drops the others; a year whose Parquet file is missing is built on the spot.
     """
     for year in years:
-        write_interim(year, force=force)
+        write_staging(year, force=force)
     for year in MICRODATA_YEARS:
-        if not microdata_interim_path(year).exists():
-            write_interim(year)
-    frames = [read_interim_year(year) for year in MICRODATA_YEARS]
+        if not microdata_staging_path(year).exists():
+            write_staging(year)
+    frames = [read_staging_year(year) for year in MICRODATA_YEARS]
     stacked = pd.concat(frames, ignore_index=True)
     target = all_years_path()
     stacked.to_parquet(target, index=False)

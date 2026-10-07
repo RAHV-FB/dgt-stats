@@ -15,12 +15,12 @@ from pathlib import Path
 
 import pandas as pd
 
-from dgt_stats.paths import INTERIM_DATA_DIR, RAW_REPORTS_DIR
+from dgt_stats.paths import DGT_STAGING_DIR, RAW_REPORTS_DIR
 
 log = logging.getLogger(__name__)
 
 SPEED_REPORT_PATH = RAW_REPORTS_DIR / "dgt_factor_velocidad_2023.pdf"
-SPEED_REPORT_INTERIM = INTERIM_DATA_DIR / "speed_report.parquet"
+SPEED_REPORT_STAGING = DGT_STAGING_DIR / "speed_report.parquet"
 REGION_SCOPE = "Spain without Cataluña and País Vasco"
 
 WEEKDAYS = ("Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo", "Total")
@@ -251,9 +251,9 @@ def read_speed_report(path: Path = SPEED_REPORT_PATH) -> pd.DataFrame:
 
 
 def build_reports(force: bool = False) -> list[Path]:
-    """Write the parsed report to ``data/interim``."""
-    INTERIM_DATA_DIR.mkdir(parents=True, exist_ok=True)
-    target = SPEED_REPORT_INTERIM
+    """Write the parsed report to ``data/staging/dgt``."""
+    DGT_STAGING_DIR.mkdir(parents=True, exist_ok=True)
+    target = SPEED_REPORT_STAGING
     if target.exists() and not force:
         log.info("reports %s: exists, skipping", target.stem)
         return [target]
@@ -270,4 +270,4 @@ def build_reports(force: bool = False) -> list[Path]:
 
 
 def read_report(name: str = "speed_report") -> pd.DataFrame:
-    return pd.read_parquet(INTERIM_DATA_DIR / f"{name}.parquet")
+    return pd.read_parquet(DGT_STAGING_DIR / f"{name}.parquet")

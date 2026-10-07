@@ -3,8 +3,15 @@
 Every predictor is an ordered categorical whose first level is the reference (the most common level,
 so odds ratios read "relative to the typical crash"). The missing states (not specified, not
 applicable, and a field's explicit unknown code) are levels of their own and no row is dropped,
-because missingness is year-dependent. The grouping maps are data, so the severity page can print
-them.
+because missingness is year-dependent. They are *nuisance* levels (``is_nuisance``): they record
+how a police force fills in the form, which differs by jurisdiction and year (alignment "unknown"
+is almost entirely Cataluña's), so their odds ratios are kept in the tables, flagged, and never
+read as an effect. The grouping maps are data, so the severity page can print them.
+
+Levels with fewer than ``MIN_LEVEL_CRASHES`` crashes are merged into the reference on the counts of
+the frame passed in, all years together; the counts are of predictors only, never of outcomes.
+``models.holdout_check`` repeats the merge on the training years alone, so the held-out years
+decide nothing about the model scored on them.
 """
 
 from __future__ import annotations
@@ -12,9 +19,9 @@ from __future__ import annotations
 import pandas as pd
 
 from dgt_stats import codes
-from dgt_stats.paths import PROCESSED_DATA_DIR
+from dgt_stats.paths import DGT_PROCESSED_CRASHES
 
-PROCESSED_CRASHES = PROCESSED_DATA_DIR / "accidentes.parquet"
+PROCESSED_CRASHES = DGT_PROCESSED_CRASHES
 
 OUTCOMES = ("fatal", "serious")
 NOT_SPECIFIED = "not specified"
@@ -23,6 +30,10 @@ NOT_APPLICABLE = "not applicable"
 UNKNOWN = "unknown"
 # The three missing states together: levels that record what the form says, not what happened.
 MISSING_LEVELS = frozenset({NOT_SPECIFIED, NOT_APPLICABLE, UNKNOWN})
+# Cataluña's four provinces (Barcelona, Girona, Lleida, Tarragona; INE codes). Their crashes carry
+# road alignment "unknown" far more often than any other province's (``models.recording_regime``),
+# so the model is refitted without them as a check on the recording regime.
+CATALAN_PROVINCES = ("8", "17", "25", "43")
 # A level with fewer crashes than this is merged into the reference level: it cannot be estimated
 # (several such levels have no events at all) and would only add noise to the table.
 MIN_LEVEL_CRASHES = 500
@@ -51,14 +62,27 @@ PREDICTORS: dict[str, dict[str, object]] = {
         # so its level is mostly an early-period estimate; the severity page says so.
     },
     "road": {
-        "source": "road_group",
-        "levels": ["urban street", "conventional", "dual carriageway", "motorway", "other road"],
+        # From the road-type code itself, not ``road_group``: code 5, a conventional road with a
+        # dual carriageway, is a conventional road, and from 2021 most of its crashes are coded 6
+        # (code 5 falls from about 7,600 crashes a year to about 1,600). Grouping 5 with 6 keeps
+        # that recoding inside one level instead of moving crashes between two (as policy.py does).
+        "source": "TIPO_VIA",
+        "levels": ["urban street", "conventional", "autovía", "motorway", "other road"],
         "map": {
-            "urban_street": "urban street",
-            "conventional": "conventional",
-            "dual_carriageway": "dual carriageway",
-            "motorway": "motorway",
-            "other": "other road",
+            1: "motorway",
+            2: "motorway",
+            3: "autovía",
+            4: "conventional",
+            5: "conventional",
+            6: "conventional",
+            9: "urban street",
+            7: "other road",
+            8: "other road",
+            10: "other road",
+            11: "other road",
+            12: "other road",
+            13: "other road",
+            14: "other road",
         },
         "fallback": NOT_SPECIFIED,
     },
@@ -246,6 +270,11 @@ def _code_keys(values: pd.Series, spec: dict[str, object]) -> pd.Series:
     return out
 
 
+def is_nuisance(level: object) -> bool:
+    """A missing-state level: what the form says rather than what happened, never an effect."""
+    return str(level) in MISSING_LEVELS
+
+
 def levels(predictor: str) -> list[str]:
     """Ordered levels of a predictor including the missing states it can take."""
     spec = PREDICTORS[predictor]
@@ -310,7 +339,7 @@ def grouping_table(frame: pd.DataFrame | None = None) -> pd.DataFrame:
         rows: list[tuple[str, str]] = [(str(code), level) for code, level in mapping.items()]
         # The missing markers belong to the coded source columns only: a count (TOTAL_VEHICULOS)
         # and the year never carry 999 or 998, and neither do the derived columns.
-        if source not in ("hour_band", "weekend", "road_group", "TOTAL_VEHICULOS", "ANYO"):
+        if source not in ("hour_band", "weekend", "TOTAL_VEHICULOS", "ANYO"):
             rows.append((str(codes.NOT_SPECIFIED_CODE), NOT_SPECIFIED))
             rows.append(
                 (

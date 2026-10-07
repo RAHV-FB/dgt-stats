@@ -1,0 +1,57 @@
+source,question,answer,basis
+DGT crash microdata,layer,National context,file
+DGT crash microdata,who records,compiled and published by the Dirección General de Tráfico (catalogue record); the recording police force is not a column of the file,documentation
+DGT crash microdata,unit of observation,"one crash with victims; 875,013 rows, 0 duplicate keys (year, ID_ACCIDENTE)",measured
+DGT crash microdata,inclusion rule,"every crash with at least one victim on a public road, urban or interurban; rows reproduce the yearbook's annual crash totals",reconciled
+DGT crash microdata,severity definition,"deaths within 24 hours and within 30 days, hospitalised over 24 hours, slight injuries, as separate counts; 14.2% of 30-day deaths occur after the first 24 hours",measured
+DGT crash microdata,geography,52 provinces and municipality codes; urban or interurban zone,measured
+DGT crash microdata,time coverage,2016-2024,measured
+DGT crash microdata,when variables are known,"time, place, road and conditions at the scene; 30-day deaths after a follow-up of a month",file
+DGT crash microdata,observed or coded afterwards,circumstance codes describe the scene; no cause or contributory-factor field in the crash file,file
+DGT crash microdata,missing and not specified,"median share unrecorded (not specified, unknown or blank) over 30 circumstance fields 62.6%, highest 97% (CONDICION_VIENTO); 22 fields vary by more than 10 points between provinces",measured
+DGT crash microdata,identifiers,ID_ACCIDENTE unique within a year; no person or vehicle file in the repository; no key shared with the regional files,measured
+DGT crash microdata,known recording artefacts,"7 fields whose unrecorded share differs by a factor of 1.5 or more between fatal and non-fatal crashes in at least one region (ACERA, CONDICION_FIRME, CONDICION_METEO, CONDICION_NIVEL_CIRCULA, TITULARIDAD_VIA, TRAZADO_PLANTA, ...); unrecorded shares differ between provinces (see the DGT microdata audit)",measured
+DGT crash microdata,used for,"national trends, province and year comparisons, shares by zone and road; an external test domain for fields validated against the Catalan file; DGT microdata stay the national analytical layer and an external test domain for fields validated against another source; they do not train a severity model here",measured
+DGT crash microdata,never used for,linking records to the Catalan or Barcelona files; denominators for individual crashes,documentation
+DGT and INE published aggregates,layer,National context,file
+DGT and INE published aggregates,who records,"DGT (yearbook series, statistical tables, driver census, kilometre estimates from vehicle inspections); INE (resident population)",documentation
+DGT and INE published aggregates,unit of observation,"published aggregates: a count for a year (and province, age, sex or vehicle type); 77 DGT files; INE residents by province, age and sex (149,460 rows)",measured
+DGT and INE published aggregates,inclusion rule,as published; the crash series reconcile with the crash microdata year by year,reconciled
+DGT and INE published aggregates,severity definition,deaths within 30 days (24 hours in the monthly series); hospitalised injuries,documentation
+DGT and INE published aggregates,geography,Spain and its 53 provinces,measured
+DGT and INE published aggregates,time coverage,yearbook series from 1993; residents 2002-2025,measured
+DGT and INE published aggregates,when variables are known,after the year closes,documentation
+DGT and INE published aggregates,observed or coded afterwards,"aggregated from records; kilometres are model estimates from inspection odometer readings, by owner age not driver age",documentation
+DGT and INE published aggregates,missing and not specified,a published table has no missing cells; categories such as 'unknown age' are reported as their own rows,file
+DGT and INE published aggregates,identifiers,none below the published cell,file
+DGT and INE published aggregates,known recording artefacts,category changes between yearbook editions (for example personal mobility vehicles get their own column from 2020),file
+DGT and INE published aggregates,used for,"trends, exposure and denominators at the level they are published (Spain or province, year)",documentation
+DGT and INE published aggregates,never used for,rates for individual crashes; per-km rates by driver age (the kilometres are by owner age),documentation
+"Catalonia, Servei Català de Trànsit",layer,Crash microdata: Catalonia,file
+"Catalonia, Servei Català de Trànsit",who records,published by the Servei Català de Trànsit; the recording body is not a column of the file,documentation
+"Catalonia, Servei Català de Trànsit",unit of observation,"one crash; 24,478 rows; no identifier in the source (a surrogate cat_crash_id is assigned)",measured
+"Catalonia, Servei Català de Trànsit",inclusion rule,crashes with at least one death or serious injury; fatal crashes equal DGT's crashes with a death within 24 hours in 32 of 32 province-years; all crashes within 0.5% of DGT's crashes with a death or serious injury within 24 hours,reconciled
+"Catalonia, Servei Català de Trànsit",severity definition,"D_GRAVETAT 'Accident mortal' (3,093 crashes) or 'Accident greu'; the death count matches DGT's 24-hour definition (see the inclusion rule)",reconciled
+"Catalonia, Servei Català de Trànsit",geography,"4 demarcations, 894 municipalities, road and kilometre point",measured
+"Catalonia, Servei Català de Trànsit",time coverage,2010-2023,measured
+"Catalonia, Servei Català de Trànsit",when variables are known,"place, road, conditions and units involved at the scene; the D_INFLUIT_* 'influence' fields and several road descriptors after the report is completed",file
+"Catalonia, Servei Català de Trànsit",observed or coded afterwards,"the D_INFLUIT_* fields record whether a condition 'influenced' the crash: a judgement coded afterwards, not an observation",file
+"Catalonia, Servei Català de Trànsit",missing and not specified,'Sense especificar' and NA placeholders; NA is structural for some fields (no road owner on urban streets),measured
+"Catalonia, Servei Català de Trànsit",identifiers,none; no person or vehicle rows,file
+"Catalonia, Servei Català de Trànsit",known recording artefacts,"9 placeholder levels ('Sense especificar' or an unexplained NA) are much rarer among fatal crashes (outcome-dependent recording): D_CARACT_ENTORN, D_CARRIL_ESPECIAL, D_INFLUIT_BOIRA, D_INFLUIT_CARACT_ENTORN, D_INFLUIT_INTEN_VENT, D_INFLUIT_VISIBILITAT, D_SENTITS_VIA, D_TRACAT_ALTIMETRIC; these fields enter only the retrospective administrative model",measured
+"Catalonia, Servei Català de Trànsit",used for,"the fatal-against-serious crash model, its temporal and geographic validation, the training domain of the transfer tests",documentation
+"Catalonia, Servei Català de Trànsit",never used for,crash frequency (no slight-injury crashes); driving speed (the speed field is the road's limit); linking records to DGT or Barcelona,documentation
+"Barcelona, Guàrdia Urbana",layer,Rich microdata: Barcelona,file
+"Barcelona, Guàrdia Urbana",who records,the Guàrdia Urbana (municipal police); published by the Ajuntament de Barcelona,documentation
+"Barcelona, Guàrdia Urbana",unit of observation,"six tables keyed by Numero_expedient: bcn_accidents 7,741, bcn_accident_types 7,741, bcn_mediate_causes 7,749, bcn_driver_causes 8,072, bcn_people 17,200, bcn_vehicles 16,536",measured
+"Barcelona, Guàrdia Urbana",inclusion rule,"crashes the Guàrdia Urbana handled in the city, with or without injury: 890 of 7,741 crashes have no victim",measured
+"Barcelona, Guàrdia Urbana",severity definition,"per person: died within 24 hours (11), died after 24 hours (2), hospitalised over 24 hours (247), slight injuries in three kinds, uninjured; not recorded for 1,351 person records",measured
+"Barcelona, Guàrdia Urbana",geography,"10 districts, 73 neighbourhoods, street and coordinates",measured
+"Barcelona, Guàrdia Urbana",time coverage,"2025, months 1-12",measured
+"Barcelona, Guàrdia Urbana",when variables are known,"time, place, people, vehicles at the scene; causes (mediate, driver, pedestrian) after the police report",file
+"Barcelona, Guàrdia Urbana",observed or coded afterwards,"causes are the police's coding: a mediate cause is recorded for 6.1% of crashes, a pedestrian cause for 6.7%",measured
+"Barcelona, Guàrdia Urbana",missing and not specified,blank count cells mean zero (no explicit zero appears and the counts add up in every crash); blank cause rows mean none recorded,measured
+"Barcelona, Guàrdia Urbana",identifiers,"Numero_expedient links the six tables one crash to many rows; no person or vehicle key; 16,536 vehicle rows against 14,350 vehicles the crash table reports, so vehicle rows are not unique vehicles",measured
+"Barcelona, Guàrdia Urbana",known recording artefacts,"the crash file's UTM columns carry exchanged labels (corrected, offset measured against WGS84); driver causes have no key to the driver concerned",measured
+"Barcelona, Guàrdia Urbana",used for,"person and crash severity, road users, recorded causes; diagnostics and external checks of the Catalan model",documentation
+"Barcelona, Guàrdia Urbana",never used for,trends (one year); unique-vehicle analysis; linking to Catalan or DGT records,documentation

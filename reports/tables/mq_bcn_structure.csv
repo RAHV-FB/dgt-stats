@@ -1,0 +1,7 @@
+table,rows,source_columns,distinct_crash_ids,ids_not_in_crash_table,crashes_missing_from_table,min_rows_per_crash,max_rows_per_crash,crashes_with_more_than_one_row
+bcn_accidents,7741,25,7741,0,0,1,1,0
+bcn_accident_types,7741,20,7741,0,0,1,1,0
+bcn_mediate_causes,7749,20,7741,0,0,1,2,8
+bcn_driver_causes,8072,20,7741,0,0,1,3,324
+bcn_people,17200,28,7741,0,0,1,46,7122
+bcn_vehicles,16536,26,7741,0,0,1,15,6829

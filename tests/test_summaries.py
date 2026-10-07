@@ -5,9 +5,9 @@ from dgt_stats import io_exposure, io_tables, summaries
 pytestmark = pytest.mark.skipif(
     not (
         summaries.PROCESSED_CRASHES.exists()
-        and io_tables.interim_path("series_annual").exists()
-        and io_exposure.interim_path("conductores_por_edad").exists()
-        and io_exposure.interim_path("censo_edad").exists()
+        and io_tables.staging_path("series_annual").exists()
+        and io_exposure.staging_path("conductores_por_edad").exists()
+        and io_exposure.staging_path("censo_edad").exists()
     ),
     reason="run `python scripts/ingest.py tables exposure` and `python scripts/build_tables.py` first",
 )
@@ -59,13 +59,13 @@ def test_other_road_by_period_splits_the_pooled_row() -> None:
 def test_registry_holds_only_tables_the_site_or_a_figure_uses() -> None:
     names = set(summaries.SUMMARIES)
     # One prefix per page: the six pillars (risk, longrun, season, drivers, speed, factor), the
-    # simulator and its forecasting model (simulator, forecast), the earlier analyses they keep
+    # forecasting model (forecast), the road classes (road), the earlier analyses they keep
     # (q6 vehicles, q7 age, q8 policy, q9 speed status) and the context tables (q1, q2). The
     # severity models are written by scripts/model.py and are not here.
     assert {name.split("_")[0] for name in names} == {
         "risk",
         "forecast",
-        "simulator",
+        "road",
         "longrun",
         "season",
         "drivers",

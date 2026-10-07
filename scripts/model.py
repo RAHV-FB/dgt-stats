@@ -1,7 +1,7 @@
 """Fit the crash-severity models and write their result tables.
 
 Usage:
-    python scripts/model.py            # reports/tables/q3_*.csv (about 30 seconds)
+    python scripts/model.py            # reports/tables/q3_*.csv (about two minutes)
 
 The site build never refits: scripts/analyse.py and scripts/build_site.py read these tables.
 """
@@ -61,6 +61,9 @@ def main() -> int:
         ignore_index=True,
     )
     exclusions = models.level_exclusions(frame, "weather", "hail or snow")
+    regime = models.recording_regime(frame)
+    regime_fits = models.regime_sensitivity(frame, fits)
+    log.info("recording regime: refitted without %s", ", ".join(features.CATALAN_PROVINCES))
 
     outputs = {
         "q3_model_coefficients": pd.concat(coefficients, ignore_index=True),
@@ -72,6 +75,8 @@ def main() -> int:
         "q3_adverse_conditions": adverse,
         "q3_adverse_composition": composition,
         "q3_adverse_exclusions": exclusions,
+        "q3_recording_regime": regime,
+        "q3_regime_sensitivity": regime_fits,
         "q3_groupings": features.grouping_table(frame),
     }
     for name, table in outputs.items():

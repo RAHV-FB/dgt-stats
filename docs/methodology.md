@@ -869,3 +869,115 @@ and that each page's headline numbers match the tables they come from. The site 
   report excludes two regions; road-type coding changed in 2021 (interurban conventional roads),
   2022 and 2024 (toll and free motorways, with 2023 back at the earlier split) and 2024 (urban),
   and the junction field changed in 2023.
+
+## 20. The crash-level microdata layer (`src/dgt_stats/microdata/`, `scripts/microdata.py`)
+
+Two regional sources add what the national files lack: individual records with real keys.
+
+- **Catalonia, 2010–2023**: one row per crash with a death or serious injury (Servei Català de
+  Trànsit export). No identifier: `cat_crash_id` is a surrogate on the hash-pinned file. The
+  universe is conditioned on severity, so it supports frequency of serious crashes and severity
+  among them, never the chance of a crash. Its fatal counts equal the DGT microdata's 24-hour
+  counts province by province (`crosssource.py`), so its severity is read as the 24-hour
+  definition.
+- **Barcelona, 2025**: six Guàrdia Urbana tables sharing `Numero_expedient`: crashes, accident
+  types (one-to-one), mediate causes and driver causes (one-to-many, aggregated to one row per
+  crash before any join), people (person level, crash context joined many-to-one) and vehicle
+  records (row meaning not established: only type presence is used).
+
+Files are identified by their columns, de-duplicated by SHA-256 and by content, and a conflict
+between two files claiming the same table and year stops the pipeline (`sources.py`). Column
+names are normalised; values never are. Every cleaning rule that interprets a value is checked
+on the data on every build and reported in the generated
+[`DATA_QUALITY_MICRODATA.md`](DATA_QUALITY_MICRODATA.md): blank Barcelona counts are zeros
+(the victim identity holds on every row only that way, and the person table agrees), the crash
+file's UTM labels are exchanged (decided by magnitude, confirmed by a constant ED50/WGS84 offset),
+`hor` is hours and minutes, and the Catalan speed-limit field is a code wherever the generic
+limit applies. The vehicle table is audited in
+[`BARCELONA_VEHICLE_AUDIT.md`](BARCELONA_VEHICLE_AUDIT.md). The rules for what may be joined to
+what are in [`DATA_CONTRACT.md`](DATA_CONTRACT.md).
+
+## 21. Severity models (`microdata/ml/`: `features.py`, `modelling.py`, `rules.py`, `reporting.py`)
+
+Three tasks on real rows: fatal against serious among Catalan serious-or-fatal crashes (one row
+per crash), serious-or-fatal injury of a Barcelona person (one row per person record with a
+recorded victimisation), and a Barcelona crash with a serious or fatal injury (one row per
+crash). A single feature catalogue classes every candidate column as safe, questionable, direct
+leakage or excluded and generates [`ML_LEAKAGE_AUDIT.md`](ML_LEAKAGE_AUDIT.md); the primary model
+of each task uses safe features only. Questionable features (police judgements of what
+influenced a crash, recorded causes, and Catalan fields whose "not specified" level is far rarer
+among fatal crashes, measured on the training years by `recording.py`) enter only a labelled
+retrospective variant.
+
+Each task compares a prior-only baseline, an L2 logistic regression and gradient-boosted trees,
+each with a two-point grid chosen on validation data: in Catalonia the design is temporal (train
+on the early years, choose on the next two, test on the last); in Barcelona the last three months
+are the test set and cross-validation inside the training months is grouped by crash, so the
+people of one crash never straddle a split (checked in code and in the tests). Metrics are
+ROC-AUC and PR-AUC with bootstrap intervals (crashes resampled), Brier score and skill, balanced
+accuracy, precision, recall and F1 at a threshold chosen on validation data, and the confusion
+matrix, always with N and prevalence. Calibration is the slope and intercept of a logistic
+recalibration; probabilities are shown as estimates only when a pre-declared rule passes.
+Permutation importance on the test rows says what a model uses, not what causes severity.
+Geography enters at three grains so that memorisation of places shows up as a gap between
+training and test scores. No synthetic or oversampled rows are used. Model cards:
+[`docs/models/`](models/).
+
+Before a model is presented it must beat the simplest honest competitor: a lookup table of the
+outcome share of each group in the training rows (crash subtype by zone detail in Catalonia, road
+role by vehicle for Barcelona people, accident type for Barcelona crashes), smoothed toward the
+prevalence and scored on the same test rows (`rules.py`). A model adds signal when its ROC-AUC
+exceeds the table's by at least 0.02 and the paired bootstrap interval of the difference excludes
+zero; a model that does not is replaced by its table on the site and kept only as a diagnostic.
+The decision for every model, with where it works and fails, is generated in
+[`MODEL_DECISIONS.md`](MODEL_DECISIONS.md) (`validation/decisions.py`).
+
+## 22. Validation: transportability, representativeness and the outward path (`microdata/validation/`)
+
+The source hierarchy (`src/dgt_stats/layers.py`) gives each dataset one role: DGT and INE are the
+national context, the Catalan file is the crash microdata the severity model is trained on, the
+Barcelona files are the rich microdata, and validation tests models across them without merging
+records. How each source came to exist is compared against the same questions in
+[`SOURCE_COMPARISON.md`](SOURCE_COMPARISON.md) (`source_profile.py`).
+
+**Can the DGT microdata train a model?** Seven checks are declared before any result is read
+(`dgt_audit.py`): one row per crash, target observed, definitions documented, construction
+understood (rows reproduce the published totals), severity and inclusion definitions known,
+fields recorded alike across provinces, and recording artefacts not dominating (a model that sees
+only which fields were left unrecorded must reach less than half the lift of a model that sees
+the recorded values). Unless all seven pass, the file remains the national analytical layer and
+an external test domain for fields validated against the Catalan file on the crashes both hold;
+the decision is regenerated on every run. The national transfer test itself is checked: same target (24-hour
+death), same inclusion rule, no Catalan record in the test, coding validated, missingness and
+prevalence reported. Generated: [`DGT_MICRODATA_AUDIT.md`](DGT_MICRODATA_AUDIT.md).
+
+**Transportability** (`transport.py`). Each model is tested on records it could not have seen:
+inside the Catalan file (Barcelona municipality from the rest and the reverse, each demarcation
+left out, later Barcelona years from earlier years elsewhere); across sources with models
+restricted to variables recorded the same way (validated on the overlap; road class and junction
+fail); and in Barcelona, each district scored by a model trained on the others. Every transfer
+score sits beside an in-domain reference (the same kind of model cross-validated inside the
+target domain, including the test year of the temporal holdouts) and the transfer gap is
+reported. A reweighting to the national mix is a sensitivity check, not a national model.
+
+**Why Barcelona is harder** (`diagnosis.py`). The fall from the rest of Catalonia (in-domain) to
+Barcelona (transferred) telescopes into a training-size cost (the rest of Catalonia with its
+training folds cut to Barcelona's size), an intrinsic difference (that size-matched score
+against Barcelona's own in-domain score, and against the rest of Catalonia's urban crashes) and
+a transport gap (Barcelona in-domain against transferred, on the same crashes). Feature loss is
+measured separately, full against Barcelona-common features on the same rows. Domain-specific,
+other-domain, pooled, pooled-with-flag and universal (common-feature) models are compared on the
+same held-out crashes of each target domain (Barcelona, the rest of Catalonia, urban, interurban).
+
+**Representativeness** is reported separately from transportability (`generalisability.py`):
+how Catalonia and Barcelona differ from the rest of Spain on variables the DGT microdata record
+identically, outcome shares, residents and severe crashes per resident by province. Neither
+question answers the other.
+
+**The outward path toward Spain.** Five stages: held-out rows of the same source; later years;
+another region inside the source; another independently recorded Spanish dataset; national
+aggregates showing whether the training population resembles Spain. A transfer stage passes when
+the ROC-AUC interval stays above 0.5 and the score is at most 0.05 below its in-domain reference;
+stage 5 passes when no shared variable's mix differs by more than 0.02 (Jensen-Shannon). Only a
+model that passes all five would be called potentially nationally transferable. Everything is
+generated in [`GENERALISABILITY.md`](GENERALISABILITY.md) and `reports/model_metrics.json`.

@@ -312,11 +312,23 @@ def _counts(year: int) -> pd.DataFrame:
     return out.rename_axis(columns=None)
 
 
+# What each row is divided by. Vehicle-km exist for all roads only, so a zone row has no per-km
+# rate; the circulating fleet is the population of vehicles at risk on any road, so it divides
+# every row.
+DENOMINATORS = {
+    "all": "circulating fleet and vehicle-km on all roads, 2022",
+    "zone": "circulating fleet, 2022 (no vehicle-km by zone, so no rate per km)",
+}
+
+
 def rates_2022() -> pd.DataFrame:
     """Long table: group × zone × measure with counts, denominators, rates and exact intervals.
 
-    The kilometre and fleet denominators are national; zone rows share them and the
-    ``denominator`` column says so.
+    The fleet and the kilometres are national. Per 100,000 circulating vehicles is given for
+    every row: the whole fleet of a type is the population at risk of an urban or an interurban
+    crash. Per billion vehicle-km is given for all roads only, because the kilometre estimates are
+    for all roads: urban crashes divided by kilometres driven everywhere would not be a rate of
+    anything, so ``vehicle_km`` and the per-km columns are empty on the zone rows.
     """
     counts = _counts(KM_YEAR)
     km = vehicle_km(by_rate_group=True).set_index("group")
@@ -332,11 +344,20 @@ def rates_2022() -> pd.DataFrame:
         )
         records.append(block)
     out = pd.concat(records, ignore_index=True)
+    out["vehicle_km"] = out.vehicle_km.where(out.zone == "all")
     out = rates.add_rate(out, "count", "vehicle_km", "per_billion_km", per=BILLION)
     out = rates.add_rate(out, "count", "n_vehicles", "per_100k_vehicles", per=PER_VEHICLES)
+    zone_rows = out.zone != "all"
+    if (
+        out.loc[zone_rows, ["per_billion_km", "per_billion_km_low", "per_billion_km_high"]]
+        .notna()
+        .any(axis=None)
+    ):
+        raise ValueError("vehicle rates: a zone row carries a rate per all-road kilometre")
     out["label"] = out.group.map(label)
     out["measure_label"] = out.measure.map(MEASURES)
-    out["denominator"] = "national fleet and vehicle-km, 2022"
+    out["denominator"] = DENOMINATORS["all"]
+    out.loc[zone_rows, "denominator"] = DENOMINATORS["zone"]
     order = {name: index for index, name in enumerate(RATE_GROUPS)}
     zones = {"all": 0, "interurban": 1, "urban": 2}
     measures = {name: index for index, name in enumerate(MEASURES)}

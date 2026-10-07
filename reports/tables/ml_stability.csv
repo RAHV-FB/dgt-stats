@@ -1,0 +1,46 @@
+evaluation,test_block,n,positives,prevalence,roc_auc,pr_auc,brier,brier_skill,log_loss,mean_predicted,model
+rolling origin,2019,1732,228,0.13164,0.758308,0.403855,0.0980108,0.142593,0.3366,0.119764,catalonia_crash_severity
+rolling origin,2020,1208,149,0.123344,0.786775,0.399504,0.0912923,0.155722,0.310397,0.125897,catalonia_crash_severity
+rolling origin,2021,1448,182,0.125691,0.794349,0.440392,0.0901751,0.179425,0.306712,0.116523,catalonia_crash_severity
+rolling origin,2022,1584,211,0.133207,0.79285,0.441992,0.0953258,0.174403,0.320281,0.127798,catalonia_crash_severity
+rolling origin,2023,1732,209,0.12067,0.790231,0.414544,0.0885761,0.165231,0.301808,0.11915,catalonia_crash_severity
+"5-fold CV, random rows (stratified)",fold 1,4896,619,0.12643,0.763083,0.356919,0.097097,0.120858,0.328172,0.124523,catalonia_crash_severity
+"5-fold CV, random rows (stratified)",fold 2,4896,619,0.12643,0.753845,0.366601,0.0966794,0.12464,0.329008,0.121032,catalonia_crash_severity
+"5-fold CV, random rows (stratified)",fold 3,4896,619,0.12643,0.761196,0.375243,0.0959922,0.130862,0.327033,0.119431,catalonia_crash_severity
+"5-fold CV, random rows (stratified)",fold 4,4895,618,0.126251,0.767261,0.374948,0.0952339,0.136685,0.323316,0.122165,catalonia_crash_severity
+"5-fold CV, random rows (stratified)",fold 5,4895,618,0.126251,0.743376,0.342139,0.0988381,0.104012,0.335833,0.121323,catalonia_crash_severity
+"5-fold CV, grouped by crash",fold 1,3170,52,0.0164038,0.847048,0.106135,0.0160792,0.00343766,0.0728529,0.014383,barcelona_person_severity
+"5-fold CV, grouped by crash",fold 2,3170,52,0.0164038,0.860999,0.14943,0.0154508,0.0423873,0.0694805,0.0153389,barcelona_person_severity
+"5-fold CV, grouped by crash",fold 3,3169,52,0.016409,0.849575,0.0967918,0.0158478,0.0180885,0.0722911,0.0135921,barcelona_person_severity
+"5-fold CV, grouped by crash",fold 4,3170,52,0.0164038,0.874821,0.184733,0.0150321,0.0683387,0.0667644,0.0150317,barcelona_person_severity
+"5-fold CV, grouped by crash",fold 5,3169,52,0.016409,0.832069,0.0819831,0.0160128,0.00786111,0.0746476,0.0129652,barcelona_person_severity
+"5-fold CV, random rows (stratified)",fold 1,3170,52,0.0164038,0.867901,0.0826783,0.0165945,-0.028497,0.0724443,0.0144443,barcelona_person_severity
+"5-fold CV, random rows (stratified)",fold 2,3170,52,0.0164038,0.870602,0.139881,0.0152744,0.0533213,0.0676864,0.0149248,barcelona_person_severity
+"5-fold CV, random rows (stratified)",fold 3,3170,52,0.0164038,0.8563,0.0959239,0.0161288,0.000368663,0.0719751,0.0137969,barcelona_person_severity
+"5-fold CV, random rows (stratified)",fold 4,3169,52,0.016409,0.885834,0.141814,0.0152383,0.05585,0.0657273,0.0152604,barcelona_person_severity
+"5-fold CV, random rows (stratified)",fold 5,3169,52,0.016409,0.848128,0.139661,0.0154103,0.0451954,0.0704245,0.0151243,barcelona_person_severity
+"5-fold CV, random rows (stratified)",fold 1,1549,51,0.0329245,0.742945,0.134252,0.0303086,0.0481112,0.130158,0.0318353,barcelona_crash_severity
+"5-fold CV, random rows (stratified)",fold 2,1548,50,0.0322997,0.837744,0.268777,0.0277025,0.113703,0.114607,0.0344301,barcelona_crash_severity
+"5-fold CV, random rows (stratified)",fold 3,1548,50,0.0322997,0.779907,0.125117,0.0297018,0.0497406,0.125218,0.030575,barcelona_crash_severity
+"5-fold CV, random rows (stratified)",fold 4,1548,50,0.0322997,0.759753,0.176273,0.02883,0.07763,0.124337,0.0340239,barcelona_crash_severity
+"5-fold CV, random rows (stratified)",fold 5,1548,51,0.0329457,0.771903,0.157418,0.0296793,0.0684554,0.126453,0.0311277,barcelona_crash_severity
+rolling origin,2019,1732,228,0.13164,0.695708,0.254708,0.107812,0.0568535,0.36258,0.1187,catalonia_common_dgt
+rolling origin,2020,1208,149,0.123344,0.693547,0.241396,0.102063,0.0561117,0.347658,0.119665,catalonia_common_dgt
+rolling origin,2021,1448,182,0.125691,0.72309,0.270321,0.101904,0.0726929,0.34414,0.117446,catalonia_common_dgt
+rolling origin,2022,1584,211,0.133207,0.707999,0.288771,0.107151,0.071989,0.359931,0.123012,catalonia_common_dgt
+rolling origin,2023,1732,209,0.12067,0.704609,0.277461,0.0985037,0.0716701,0.338052,0.117757,catalonia_common_dgt
+"5-fold CV, random rows (stratified)",fold 1,4896,619,0.12643,0.695562,0.255581,0.103617,0.0618268,0.351766,0.127829,catalonia_common_dgt
+"5-fold CV, random rows (stratified)",fold 2,4896,619,0.12643,0.689316,0.248636,0.104298,0.05566,0.353817,0.128742,catalonia_common_dgt
+"5-fold CV, random rows (stratified)",fold 3,4896,619,0.12643,0.695622,0.256915,0.103732,0.0607811,0.35216,0.124494,catalonia_common_dgt
+"5-fold CV, random rows (stratified)",fold 4,4895,618,0.126251,0.694843,0.252468,0.10364,0.060481,0.352187,0.125953,catalonia_common_dgt
+"5-fold CV, random rows (stratified)",fold 5,4895,618,0.126251,0.682621,0.238665,0.104943,0.0486725,0.355973,0.124871,catalonia_common_dgt
+rolling origin,2019,1732,228,0.13164,0.656235,0.223428,0.110184,0.0360981,0.374503,0.127396,catalonia_common_bcn
+rolling origin,2020,1208,149,0.123344,0.683803,0.226661,0.102977,0.0476566,0.351681,0.126829,catalonia_common_bcn
+rolling origin,2021,1448,182,0.125691,0.674214,0.256018,0.104347,0.0504637,0.355461,0.128116,catalonia_common_bcn
+rolling origin,2022,1584,211,0.133207,0.669429,0.25108,0.109658,0.0502752,0.36997,0.131043,catalonia_common_bcn
+rolling origin,2023,1732,209,0.12067,0.680615,0.2313,0.101247,0.0458185,0.34752,0.125637,catalonia_common_bcn
+"5-fold CV, random rows (stratified)",fold 1,4896,619,0.12643,0.677994,0.246121,0.104724,0.0518027,0.356796,0.128723,catalonia_common_bcn
+"5-fold CV, random rows (stratified)",fold 2,4896,619,0.12643,0.663718,0.224329,0.106068,0.0396364,0.361087,0.126244,catalonia_common_bcn
+"5-fold CV, random rows (stratified)",fold 3,4896,619,0.12643,0.674428,0.224248,0.105608,0.0438015,0.358889,0.124836,catalonia_common_bcn
+"5-fold CV, random rows (stratified)",fold 4,4895,618,0.126251,0.677033,0.239811,0.105061,0.047601,0.357371,0.127492,catalonia_common_bcn
+"5-fold CV, random rows (stratified)",fold 5,4895,618,0.126251,0.6653,0.210378,0.106499,0.034568,0.36195,0.125036,catalonia_common_bcn

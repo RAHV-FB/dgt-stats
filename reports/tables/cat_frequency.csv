@@ -1,0 +1,113 @@
+year,demarcation,zone,crashes,fatal_crashes,deaths,serious_injuries
+2010,Barcelona,interurban road,475,76,86,503
+2010,Barcelona,urban,721,67,68,715
+2010,Girona,interurban road,203,55,65,199
+2010,Girona,urban,106,13,13,97
+2010,Lleida,interurban road,127,34,37,138
+2010,Lleida,urban,56,4,4,63
+2010,Tarragona,interurban road,194,47,58,192
+2010,Tarragona,urban,102,7,8,100
+2011,Barcelona,interurban road,382,64,72,410
+2011,Barcelona,urban,722,46,50,717
+2011,Girona,interurban road,162,45,52,162
+2011,Girona,urban,120,13,14,109
+2011,Lleida,interurban road,134,27,30,137
+2011,Lleida,urban,82,6,6,76
+2011,Tarragona,interurban road,155,41,51,143
+2011,Tarragona,urban,111,5,5,112
+2012,Barcelona,interurban road,461,66,77,490
+2012,Barcelona,urban,735,57,58,718
+2012,Girona,interurban road,163,37,42,174
+2012,Girona,urban,99,11,14,95
+2012,Lleida,interurban road,161,36,47,180
+2012,Lleida,urban,52,3,3,53
+2012,Tarragona,interurban road,149,28,28,139
+2012,Tarragona,urban,130,5,5,131
+2013,Barcelona,interurban road,467,74,76,459
+2013,Barcelona,urban,722,40,41,718
+2013,Girona,interurban road,150,31,35,145
+2013,Girona,urban,121,6,6,119
+2013,Lleida,interurban road,141,27,30,157
+2013,Lleida,urban,71,9,9,64
+2013,Tarragona,interurban road,127,27,29,141
+2013,Tarragona,urban,103,6,6,98
+2014,Barcelona,interurban road,409,59,62,407
+2014,Barcelona,urban,824,66,67,793
+2014,Girona,interurban road,147,20,20,161
+2014,Girona,urban,101,3,3,102
+2014,Lleida,interurban road,129,23,26,137
+2014,Lleida,urban,60,6,7,61
+2014,Tarragona,interurban road,119,26,33,114
+2014,Tarragona,urban,123,12,12,113
+2015,Barcelona,interurban road,404,52,55,428
+2015,Barcelona,urban,747,54,56,730
+2015,Girona,interurban road,147,29,30,158
+2015,Girona,urban,125,9,9,121
+2015,Lleida,interurban road,167,34,38,165
+2015,Lleida,urban,54,5,6,50
+2015,Tarragona,interurban road,145,43,53,140
+2015,Tarragona,urban,112,12,14,108
+2016,Barcelona,interurban road,430,43,48,458
+2016,Barcelona,urban,690,57,58,661
+2016,Girona,interurban road,147,25,34,170
+2016,Girona,urban,118,11,11,113
+2016,Lleida,interurban road,128,28,28,132
+2016,Lleida,urban,59,3,3,60
+2016,Tarragona,interurban road,110,30,44,136
+2016,Tarragona,urban,111,5,5,109
+2017,Barcelona,interurban road,398,64,73,399
+2017,Barcelona,urban,665,43,43,658
+2017,Girona,interurban road,114,27,33,112
+2017,Girona,urban,120,10,10,116
+2017,Lleida,interurban road,141,32,34,142
+2017,Lleida,urban,61,2,2,62
+2017,Tarragona,interurban road,114,23,29,125
+2017,Tarragona,urban,106,12,16,97
+2018,Barcelona,interurban road,380,67,78,382
+2018,Barcelona,urban,702,45,45,691
+2018,Girona,interurban road,147,30,35,160
+2018,Girona,urban,116,13,13,109
+2018,Lleida,interurban road,125,29,34,140
+2018,Lleida,urban,44,1,1,45
+2018,Tarragona,interurban road,120,40,46,101
+2018,Tarragona,urban,111,8,8,108
+2019,Barcelona,interurban road,410,77,80,388
+2019,Barcelona,urban,666,47,47,654
+2019,Girona,interurban road,142,23,27,136
+2019,Girona,urban,109,9,9,106
+2019,Lleida,interurban road,125,26,28,132
+2019,Lleida,urban,57,7,7,52
+2019,Tarragona,interurban road,123,35,40,122
+2019,Tarragona,urban,100,4,4,99
+2020,Barcelona,interurban road,260,43,49,251
+2020,Barcelona,urban,452,38,39,445
+2020,Girona,interurban road,85,16,17,80
+2020,Girona,urban,104,5,5,104
+2020,Lleida,interurban road,79,17,17,72
+2020,Lleida,urban,35,3,3,32
+2020,Tarragona,interurban road,104,23,25,104
+2020,Tarragona,urban,89,4,4,87
+2021,Barcelona,interurban road,307,53,54,294
+2021,Barcelona,urban,554,30,30,558
+2021,Girona,interurban road,117,32,34,123
+2021,Girona,urban,91,9,11,84
+2021,Lleida,interurban road,107,25,30,110
+2021,Lleida,urban,56,7,7,53
+2021,Tarragona,interurban road,88,21,21,79
+2021,Tarragona,urban,128,5,5,132
+2022,Barcelona,interurban road,322,67,73,328
+2022,Barcelona,urban,631,47,50,615
+2022,Girona,interurban road,118,32,34,111
+2022,Girona,urban,103,13,13,93
+2022,Lleida,interurban road,106,12,14,116
+2022,Lleida,urban,49,0,0,54
+2022,Tarragona,interurban road,146,35,39,142
+2022,Tarragona,urban,109,5,5,106
+2023,Barcelona,interurban road,375,60,64,368
+2023,Barcelona,urban,732,52,54,724
+2023,Girona,interurban road,94,25,28,96
+2023,Girona,urban,84,9,9,80
+2023,Lleida,interurban road,126,21,24,137
+2023,Lleida,urban,61,4,4,60
+2023,Tarragona,interurban road,120,30,36,119
+2023,Tarragona,urban,140,8,8,139

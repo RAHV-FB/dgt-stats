@@ -1,6 +1,0 @@
-road_class,road_class_label,injury_crashes,deaths,seriously_injured,slightly_injured,environment,first_year,last_year,vehicle_km,light_vehicle_km,vehicle_km_types,vehicle_km_year
-autopista,Autopistas,3679.333333,93,306,5611.333333,rural,2022,2024,1.0277e+10,9136253000,toll_motorway,2023
-autovia,Autovías,7839.333333,257,666.3333333,11740.33333,rural,2022,2024,1.40043e+11,1.19596722e+11,autovia_free_motorway,2023
-conventional,Conventional roads,20643.33333,850,2951.666667,26496.33333,rural,2022,2024,1.09979e+11,1.00889328e+11,multilane+conventional,2023
-other_interurban,Other interurban roads,2638.666667,84,333.6666667,3247,rural,2022,2024,,,,2023
-urban,Urban streets,65605.33333,495,4851.666667,75797.66667,urban,2022,2024,,,,2023

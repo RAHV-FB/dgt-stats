@@ -20,7 +20,8 @@ DOCS_URL = f"{REPO_URL}/blob/main/docs"
 
 
 # The navigation, in labelled groups: where to start, the seven findings in reading order, the
-# models built on them, two careful analyses kept outside the central question, and the reference.
+# models fitted to the same data, two careful analyses kept outside the central question, and the
+# reference.
 NAV_GROUPS: tuple[tuple[str, tuple[tuple[str, str], ...]], ...] = (
     ("Start", (("index", "Overview"),)),
     (
@@ -35,20 +36,13 @@ NAV_GROUPS: tuple[tuple[str, tuple[tuple[str, str], ...]], ...] = (
             ("factors", "Factors"),
         ),
     ),
-    (
-        "Models",
-        (
-            ("simulator", "Speed laws"),
-            ("distraction", "Distraction"),
-            ("alcohol-drugs", "Alcohol and drugs"),
-            ("enforcement", "Which enforcement"),
-        ),
-    ),
+    ("Models", (("forecast", "Deaths forecast"),)),
     ("Supporting analyses", (("severity", "Severity model"), ("policy", "The 2006 break"))),
     ("Reference", (("data", "Data and methods"),)),
 )
 SUPPORTING = "Supporting analyses"
 FINDINGS = "Findings"
+MODELS = "Models"
 
 
 # The main pages, and the supporting analyses outside the central question.
@@ -64,12 +58,12 @@ ALL_PAGES = PAGES + SUPPORTING_PAGES
 
 SUPPORTING_NOTES = {
     "severity": (
-        "<strong>Supporting analysis.</strong> This model explains the outcome of a crash from "
+        "<strong>Supporting analysis.</strong> This model describes the outcome of a crash by "
         "where, when and how it happened. It is kept because it is careful and because it shows "
         "which recorded circumstances go with a fatal outcome, but a multivariate model of crash "
-        "causation is not "
-        "what these data are best at: they have no driver, vehicle or speed records. The central "
-        'question of the site is on the <a href="index.html">overview</a>.'
+        "causation is not what these data are best at: DGT's national crash microdata have no "
+        "driver, vehicle or speed records. The central question of the site is on the "
+        '<a href="index.html">overview</a>.'
     ),
     "policy": (
         "<strong>Supporting analysis.</strong> A dated policy change is the only kind of "
@@ -83,6 +77,48 @@ SUPPORTING_NOTES = {
 
 # Pages that existed under another name, kept as pointers so old links still arrive somewhere.
 MOVED_PAGES = {"older-drivers": "drivers", "context": "long-run"}
+
+
+# Pages whose analysis was withdrawn, each with the reason. Their URLs stay alive as short notices
+# (not redirects): every result on them came from coefficients published in external studies, not
+# from rows of the files in this repository, which the project no longer accepts.
+WITHDRAWN_REASON = (
+    "This analysis was withdrawn because its results came from coefficients published in "
+    "external studies rather than from data in this repository."
+)
+WITHDRAWN_PAGES = {
+    "simulator": (
+        "This page simulated what new speed limits, and drivers keeping to them, would do to "
+        "deaths and injuries on Spanish roads. Every change in casualties it reported came from "
+        "values published elsewhere: car speeds measured for the EU Baseline project, a curve of "
+        "how far the average speed follows a new limit fitted to before-and-after studies in "
+        "other countries, the exponents of Elvik's Power Model and money values per casualty. "
+        "The Spanish crash records carry no speeds, so none of those links could be estimated or "
+        "checked here. The model of monthly deaths that was on this page is fitted only to the "
+        "repository's data and now has a page of its own."
+    ),
+    "distraction": (
+        "This page estimated how many deaths a year would not happen if no driver were "
+        "distracted. It multiplied the share of fatal crashes in which the police recorded "
+        "distraction, typed from DGT reports rather than read from a file in this repository, by "
+        "the crash risk of distraction measured in a naturalistic driving study in the United "
+        "States, and set the result against a ceiling taken from the same study. The repository "
+        "holds no Spanish data on how much distraction raises the risk of a crash."
+    ),
+    "alcohol-drugs": (
+        "This page estimated how many deaths a year would not happen if no driver drank or took "
+        "drugs. It applied relative risks by blood alcohol band and by drug from the EU DRUID "
+        "project, weighted by forensic toxicology figures typed from INTCF reports, to the share "
+        "of fatal crashes in which the police recorded alcohol. The repository holds no Spanish "
+        "data on how much alcohol or drugs raise the risk of a crash."
+    ),
+    "enforcement": (
+        "This page ranked enforcement against speeding, drink- and drug-driving and distraction "
+        "by the deaths each would avoid. The ranking combined the three withdrawn models with "
+        "published evaluations of checkpoints, cameras and phone bans in other countries. The "
+        "repository holds no data on the effect of enforcement in Spain."
+    ),
+}
 
 
 # House style for numbers: a typographic minus rather than a hyphen, so a negative figure in a
@@ -330,9 +366,9 @@ def _place(slug: str) -> tuple[str, str]:
             links.append(f'<a href="{before}.html" rel="prev">← {esc(name)}</a>')
         if position < len(pages) - 1:
             after, name = pages[position + 1]
-            links.append(f'<a href="{after}.html" rel="next">{esc(name)} →</a>')
         else:
-            links.append('<a href="simulator.html" rel="next">The speed-law simulator →</a>')
+            after, name = dict(NAV_GROUPS)[MODELS][0]
+        links.append(f'<a href="{after}.html" rel="next">{esc(name)} →</a>')
         return eyebrow, f'<nav class="pager" aria-label="Findings">{"".join(links)}</nav>'
     return "", ""
 

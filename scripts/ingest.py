@@ -1,4 +1,4 @@
-"""Build the interim data layer from the raw DGT files and run the validation checks.
+"""Build the staging layer of the national DGT data from the raw DGT files and run the validation checks.
 
 Usage:
     python scripts/ingest.py all

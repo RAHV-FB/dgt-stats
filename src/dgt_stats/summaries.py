@@ -5,7 +5,7 @@ tables (``driver_risk``), the per-kilometre vehicle rates (``vehicles``), the in
 series (``policy``) and the speed-status shares (``speed``). The severity models are written
 separately by ``scripts/model.py`` and read back with :func:`read_model_table`.
 
-Every function returns a tidy ``pandas.DataFrame`` built from the interim or processed layers. The
+Every function returns a tidy ``pandas.DataFrame`` built from the staging or processed layers. The
 column names are stable because the site and the tests key on them.
 """
 
@@ -19,7 +19,6 @@ import pandas as pd
 from dgt_stats import (
     agebands,
     driver_risk,
-    factor_models,
     factors,
     forecast,
     io_exposure,
@@ -28,14 +27,14 @@ from dgt_stats import (
     labels,
     policy,
     risk_trends,
+    road_class,
     seasonality,
-    simulator,
     speed,
     vehicles,
 )
-from dgt_stats.paths import PROCESSED_DATA_DIR, TABLES_DIR
+from dgt_stats.paths import DGT_PROCESSED_CRASHES, TABLES_DIR
 
-PROCESSED_CRASHES = PROCESSED_DATA_DIR / "accidentes.parquet"
+PROCESSED_CRASHES = DGT_PROCESSED_CRASHES
 
 BASE_YEAR = 2019
 SEVERITY_METRICS = ("crashes", "deaths_30d", "hospitalised_30d", "non_hospitalised_30d")
@@ -185,6 +184,8 @@ MODEL_TABLES = (
     "q3_adverse_conditions",
     "q3_adverse_composition",
     "q3_adverse_exclusions",
+    "q3_recording_regime",
+    "q3_regime_sensitivity",
     "q3_groupings",
 )
 
@@ -231,32 +232,18 @@ SUMMARIES = {
     "longrun_efficiency": risk_trends.long_run_efficiency_sensitivity,
     "longrun_km_panel": risk_trends.interurban_km_panel,
     "longrun_km_check": risk_trends.km_trend_check,
+    "longrun_km_coverage": risk_trends.interurban_network_coverage,
     "longrun_fuel_bio": risk_trends.fuel_bio_share,
-    # Predicting deaths, and what a before-and-after comparison can see
+    # The monthly deaths forecast, and the change a year of counts can detect
     "forecast_selection": forecast.model_selection,
     "forecast_validation": forecast.validation,
     "forecast_backtest": forecast.backtest,
     "forecast_horizons": forecast.horizon_errors,
     "forecast_detectability": forecast.detectability,
     "forecast_coefficients": forecast.coefficients,
-    # What a speed law would do
-    "simulator_baseline": simulator.baseline_table,
-    "simulator_speed_sites": simulator.speed_sites,
-    "simulator_class_risk": simulator.class_risk,
-    "simulator_presets": simulator.presets,
-    "simulator_preset_sites": simulator.preset_sites,
-    "simulator_preset_roads": simulator.preset_roads,
-    "simulator_break_even": simulator.break_even,
-    # Distraction, alcohol and drugs, and the three levers compared
-    "factor_casualties": factor_models.casualties,
-    "factor_recorded_shares": factor_models.recorded_shares,
-    "factor_inputs": factor_models.factor_inputs,
-    "factor_deaths": factor_models.factor_deaths,
-    "factor_naturalistic": factor_models.naturalistic_distraction,
-    "factor_crashes": factor_models.factor_crashes,
-    "factor_speed_curve": factor_models.speed_curve,
-    "factor_comparison": factor_models.comparison,
-    "simulator_limit_grid": simulator.limit_grid,
+    # Casualties by road class, and deaths per measured vehicle-km on interurban roads
+    "road_class_baseline": road_class.baseline,
+    "road_class_risk": road_class.class_risk,
     # Seasonality and mobility
     "season_profile": seasonality.seasonal_profile,
     "season_profile_long": seasonality.seasonal_profile_long,
@@ -267,7 +254,6 @@ SUMMARIES = {
     "drivers_sex_rates": driver_risk.sex_age_rates,
     "drivers_sex_ratios": driver_risk.sex_ratios,
     "drivers_sex_trend": driver_risk.sex_trend,
-    "drivers_sex_travel": driver_risk.sex_travel_bracket,
     # Speed as a severity factor, and the other concurrent factors
     "speed_severity": factors.speed_severity,
     "speed_severity_pooled": factors.speed_severity_pooled,

@@ -24,13 +24,13 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from dgt_stats.paths import RAW_EXPOSURE_DIR  # noqa: E402
+from dgt_stats.paths import RAW_INE_DIR  # noqa: E402
 
 log = logging.getLogger("fetch_ine")
 
 TABLE_ID = 56947
 SOURCE_URL = f"https://www.ine.es/jaxiT3/files/t/es/csv_bdsc/{TABLE_ID}.csv?nocab=1"
-TARGET = RAW_EXPOSURE_DIR / "ine_poblacion_provincias_edad_sexo.csv"
+TARGET = RAW_INE_DIR / "ine_poblacion_provincias_edad_sexo.csv"
 REFERENCES = {"1 de enero": "1 January", "1 de julio": "1 July"}
 
 

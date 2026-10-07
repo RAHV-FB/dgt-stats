@@ -5,7 +5,7 @@ import pytest
 from dgt_stats import io_tables, policy, summaries
 
 pytestmark = pytest.mark.skipif(
-    not (io_tables.interim_path("series_monthly").exists() and policy.PROCESSED_CRASHES.exists()),
+    not (io_tables.staging_path("series_monthly").exists() and policy.PROCESSED_CRASHES.exists()),
     reason="run `python scripts/ingest.py tables` and `python scripts/build_tables.py` first",
 )
 
@@ -75,7 +75,7 @@ def test_road_group_panel_covers_every_month_and_sums_to_the_microdata() -> None
     )
 
 
-def test_intervention_windows_and_fleet_offset() -> None:
+def test_intervention_windows_and_the_toll_covariate() -> None:
     points = policy.INTERVENTIONS["points_licence"]
     assert points.post_months == 17
     assert points.second_break == pd.Timestamp("2007-12-01")
@@ -84,14 +84,16 @@ def test_intervention_windows_and_fleet_offset() -> None:
     series = policy.monthly_series()
     inside = policy.window(series, points.pre_start, points.post_end)
     assert len(inside) == 78 + 17
-    fleet = policy.fleet_offset(inside.period)
-    assert fleet.is_monotonic_increasing
-    july_2006 = fleet[inside.period == "2006-07-01"].iloc[0]
-    annual = io_tables.read_table("series_annual")
-    published = annual[
-        (annual.metric == "vehicle_fleet") & (annual.zone == "all") & (annual.year == 2006)
-    ]
-    assert july_2006 == pytest.approx(float(published.value.iloc[0]))
+    # The toll covariate is the network's intensity, not its vehicle-km, which step with the
+    # length of the network in service at the very month of the break.
+    from dgt_stats import io_traffic
+
+    toll = io_traffic.read_toll_traffic().set_index("period")
+    june, july = toll.loc["2006-06-01"], toll.loc["2006-07-01"]
+    assert july.network_km > june.network_km
+    covariate = policy.exposure_covariate(inside.period, "toll")
+    logged = np.log(inside.period.map(toll.imd).to_numpy(dtype=float))
+    assert covariate.log_toll.to_numpy() == pytest.approx(logged - logged.mean())
 
 
 def _synthetic_series(
@@ -204,8 +206,8 @@ def test_points_licence_fits_assembles_the_published_tables() -> None:
         "interurban",
         "urban",
         "long",
-        "fleet_offset",
     }
+    assert "fleet_offset" not in set(sens.variant)  # the fleet does not divide every road user
     long_row = sens[sens.variant == "long"].iloc[0]
     assert long_row.n_months > sens[sens.variant == "main"].iloc[0].n_months
     assert np.isfinite(long_row.second_break_change)

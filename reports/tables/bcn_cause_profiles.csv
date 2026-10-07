@@ -1,0 +1,37 @@
+cause,group,measure,n,events,share,ci_low,ci_high,small_n
+alcohol,alcohol recorded,night_shift,337,160,0.474777,0.422046,0.528077,False
+alcohol,alcohol recorded,weekend,337,171,0.507418,0.454258,0.560411,False
+alcohol,alcohol recorded,single_vehicle,337,91,0.27003,0.225416,0.319827,False
+alcohol,alcohol recorded,serious_or_fatal_crash,337,5,0.0148368,0.00635351,0.0342566,False
+alcohol,alcohol recorded,crash type: collision with a fixed object,337,97,0.287834,0.242099,0.338351,False
+alcohol,alcohol recorded,crash type: rear-end collision,337,86,0.255193,0.211585,0.304319,False
+alcohol,alcohol recorded,crash type: side collision,337,59,0.175074,0.138225,0.219248,False
+alcohol,alcohol recorded,crash type: front-side collision,337,36,0.106825,0.0781651,0.144348,False
+alcohol,alcohol recorded,crash type: fall (two-wheeler),337,23,0.0682493,0.045905,0.100326,False
+alcohol,alcohol not recorded,night_shift,7404,692,0.093463,0.0870418,0.100306,False
+alcohol,alcohol not recorded,weekend,7404,1338,0.180713,0.172115,0.189643,False
+alcohol,alcohol not recorded,single_vehicle,7404,1886,0.254727,0.244931,0.264777,False
+alcohol,alcohol not recorded,serious_or_fatal_crash,7404,247,0.0333603,0.0295058,0.0376989,False
+alcohol,alcohol not recorded,crash type: side collision,7404,1767,0.238655,0.229082,0.248498,False
+alcohol,alcohol not recorded,crash type: rear-end collision,7404,1586,0.214209,0.205013,0.223701,False
+alcohol,alcohol not recorded,crash type: front-side collision,7404,1199,0.161939,0.153724,0.170506,False
+alcohol,alcohol not recorded,crash type: pedestrian struck,7404,875,0.118179,0.111023,0.125731,False
+alcohol,alcohol not recorded,crash type: collision with a fixed object,7404,567,0.0765802,0.0707401,0.0828595,False
+speed,speed recorded,night_shift,38,13,0.342105,0.212122,0.501082,False
+speed,speed recorded,weekend,38,19,0.5,0.348497,0.651503,False
+speed,speed recorded,single_vehicle,38,14,0.368421,0.23384,0.527163,False
+speed,speed recorded,serious_or_fatal_crash,38,7,0.184211,0.0922165,0.334192,False
+speed,speed recorded,crash type: rear-end collision,38,10,0.263158,0.149715,0.420092,False
+speed,speed recorded,crash type: collision with a fixed object,38,9,0.236842,0.129936,0.392071,False
+speed,speed recorded,crash type: front-side collision,38,4,0.105263,0.0417019,0.241308,False
+speed,speed recorded,crash type: side collision,38,3,0.0789474,0.0272141,0.207997,False
+speed,speed recorded,crash type: pedestrian struck,38,2,0.0526316,0.0145539,0.172858,False
+speed,speed not recorded,night_shift,7703,839,0.108919,0.102155,0.116072,False
+speed,speed not recorded,weekend,7703,1490,0.193431,0.184764,0.202404,False
+speed,speed not recorded,single_vehicle,7703,1963,0.254836,0.245228,0.264688,False
+speed,speed not recorded,serious_or_fatal_crash,7703,245,0.0318058,0.0281143,0.035964,False
+speed,speed not recorded,crash type: side collision,7703,1823,0.236661,0.227302,0.246283,False
+speed,speed not recorded,crash type: rear-end collision,7703,1662,0.21576,0.206717,0.225087,False
+speed,speed not recorded,crash type: front-side collision,7703,1231,0.159808,0.151795,0.16816,False
+speed,speed not recorded,crash type: pedestrian struck,7703,883,0.114631,0.107708,0.121938,False
+speed,speed not recorded,crash type: collision with a fixed object,7703,655,0.0850318,0.0790078,0.0914696,False

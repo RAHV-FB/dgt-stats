@@ -1,0 +1,13 @@
+measure,value
+vehicle records,16536
+crashes,7741
+vehicles reported by the crash table (sum),14350
+crashes where vehicle rows = vehicles reported,5591
+crashes with more vehicle rows than vehicles reported,2132
+crashes with fewer vehicle rows than vehicles reported,18
+crashes where vehicle rows = person records,6984
+crashes whose multiset of vehicle types equals that of the person records,6983
+crashes whose set of vehicle types equals that of the person records,7741
+"duplicate-looking records (same crash, type, make, model, colour)",4448
+duplicate-looking records with both licence fields blank,2212
+records exactly identical in every column,0

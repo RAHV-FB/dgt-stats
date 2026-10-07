@@ -1,0 +1,20 @@
+cell,train_share,target_share,raw_weight,capped,weighted_train_share
+interurban | run-off-road,0.107648,0.21006,1.95137,False,0.210063
+urban | pedestrian struck,0.188006,0.173971,0.925352,False,0.173974
+urban | front-side,0.128932,0.113298,0.878744,False,0.1133
+interurban | front-side,0.0579296,0.0657192,1.13447,False,0.0657202
+interurban | head-on,0.0686331,0.0628503,0.915744,False,0.0628513
+urban | fall or overturn,0.0566631,0.0567595,1.0017,False,0.0567603
+interurban | rear-end or multiple,0.0532723,0.054332,1.01989,False,0.0543328
+urban | run-off-road,0.0252472,0.0478586,1.89561,False,0.0478593
+urban | rear-end or multiple,0.0278618,0.0366921,1.31694,False,0.0366927
+interurban | pedestrian struck,0.0232454,0.0336467,1.44746,False,0.0336472
+interurban | fall or overturn,0.0392189,0.0319842,0.815531,False,0.0319847
+urban | side,0.0455103,0.0235542,0.517557,False,0.0235545
+interurban | side,0.0443255,0.0212885,0.480276,False,0.0212888
+urban | head-on,0.0194869,0.0159774,0.819905,False,0.0159776
+urban | fixed object,0.0321105,0.0153006,0.4765,False,0.0153009
+urban | other,0.0256965,0.0145356,0.565664,False,0.0145358
+interurban | other,0.0347251,0.0135499,0.390205,False,0.0135501
+interurban | fixed object,0.0214478,0.00854776,0.398537,False,0.00854789
+urban | not specified,4.0853e-05,5.88486e-05,1.4405,False,5.88495e-05

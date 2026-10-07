@@ -34,9 +34,9 @@ import statsmodels.api as sm
 import statsmodels.formula.api as smf
 
 from dgt_stats import io_reports, rates
-from dgt_stats.paths import PROCESSED_DATA_DIR
+from dgt_stats.paths import DGT_PROCESSED_CRASHES
 
-PROCESSED_CRASHES = PROCESSED_DATA_DIR / "accidentes.parquet"
+PROCESSED_CRASHES = DGT_PROCESSED_CRASHES
 
 # Provinces outside the speed report's scope: Barcelona, Girona, Lleida, Tarragona (Cataluña) and
 # Araba/Álava, Gipuzkoa, Bizkaia (País Vasco), by INE code.

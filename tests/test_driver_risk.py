@@ -5,8 +5,8 @@ from dgt_stats import agebands, driver_risk, io_exposure, io_tables
 
 pytestmark = pytest.mark.skipif(
     not (
-        io_exposure.interim_path("km_edad_propietario_2024").exists()
-        and io_tables.interim_path("tables_driver_victims").exists()
+        io_exposure.staging_path("km_edad_propietario_2024").exists()
+        and io_tables.staging_path("tables_driver_victims").exists()
     ),
     reason="run `python scripts/ingest.py tables exposure` first",
 )
@@ -59,12 +59,13 @@ def test_km_rates_multiply_out_and_carry_intervals() -> None:
     for name in ("involved_per_bn_km", "deaths_per_bn_km", "deaths_per_1000_involved"):
         assert (rates[f"{name}_low"] <= rates[name]).all()
         assert (rates[name] <= rates[f"{name}_high"]).all()
-    # The finding: involvement per km is flat across the older bands, fatality is not.
-    assert rates.loc["75+", "involved_per_bn_km"] < 1.5 * rates.loc["35-54", "involved_per_bn_km"]
-    assert (
-        rates.loc["75+", "deaths_per_1000_involved"]
-        > 3 * rates.loc["35-54", "deaths_per_1000_involved"]
-    )
+    # Pinned to the published inputs: 2024 car rows of tables 4.2 and 4.1.1 and owner-age km.
+    assert rates.loc["75+", "drivers_involved"] == 4_456
+    assert rates.loc["75+", "driver_deaths"] == 71
+    assert rates.loc["35-54", "billion_km"] == pytest.approx(120.302993, rel=1e-6)
+    # Every per-km label says whose kilometres they are.
+    for measure in driver_risk.KM_MEASURES:
+        assert "registered to owners of this age" in driver_risk.RATE_LABELS[measure]
 
 
 def test_ratios_are_one_at_the_baseline_and_ordered_by_age() -> None:
@@ -95,9 +96,12 @@ def test_company_kilometres_bracket_the_comparison_in_a_known_direction() -> Non
     spread = float(company.loc[("to_all_bands", "75+"), "ratio_to_reference"])
     # Spreading company kilometres over every band cannot change a ratio between two bands.
     assert spread == pytest.approx(published)
-    # Giving them to working-age bands raises the older ratio, so the published one is the
-    # conservative end of the bracket.
+    # The working-age scenario adds kilometres to the 35-54 reference and none to 75+, so the
+    # 75+ ratio rises by arithmetic; it says nothing about who drives company cars.
     assert working > published
+    labels = company.allocation_label.groupby(level="allocation").first()
+    assert labels["to_working_age"].startswith("Scenario")
+    assert labels["to_all_bands"].startswith("Scenario")
 
 
 def test_denominator_contrast_moves_the_answer_without_moving_the_numerator() -> None:
@@ -105,9 +109,12 @@ def test_denominator_contrast_moves_the_answer_without_moving_the_numerator() ->
     assert set(contrast.band) == set(driver_risk.CONTRAST_BANDS)
     deaths = contrast.pivot(index="band", columns="denominator", values="driver_deaths")
     assert deaths.nunique(axis=1).eq(1).all()  # the same deaths in every panel
-    ratios = contrast[contrast.band == "75+"].set_index("denominator").ratio
-    assert ratios["residents"] < ratios["licence_holders"] < ratios["kilometres"]
+    assert set(contrast.denominator) == set(driver_risk.CONTRAST_LABELS)
     assert contrast[contrast.band == driver_risk.REFERENCE_BAND].ratio.eq(1.0).all()
+    # The permit panel divides by B-permit holders, the car licence, not by every licence holder.
+    permits = contrast[contrast.denominator == "b_permit_holders"].set_index("band").exposure
+    assert permits.equals(driver_risk.b_permit_holders().reindex(permits.index))
+    assert (permits < driver_risk.licence_holders().reindex(permits.index)).all()
 
 
 def test_exposure_bands_nest_both_sources() -> None:
@@ -162,9 +169,59 @@ def test_sex_ratios_separate_crashing_from_dying() -> None:
     assert fatality.low > 1 and involved.low > 1
 
 
-def test_travel_bracket_divides_by_the_2006_trip_ratio() -> None:
-    travel = driver_risk.sex_travel_bracket()
-    assert list(travel.band) == ["15-29", "30-39", "40-49", "50-64", "65+"]
-    assert (travel.trip_ratio_2006 > 1).all()  # men made more car-or-motorcycle trips
-    per_trip = travel.involved_ratio_per_resident / travel.trip_ratio_2006
-    assert per_trip.to_numpy() == pytest.approx(travel.involved_ratio_per_trip.to_numpy())
+def test_b_permit_holders_are_a_subset_of_the_census() -> None:
+    permits = io_exposure.b_permit_holders_by_age(driver_risk.KM_YEAR)
+    wide = permits.pivot(index="band", columns="sex", values="n_b_permit_holders").fillna(0)
+    assert (wide.male + wide.female == wide.total).all()
+    assert wide.loc["15-17", "total"] == 0  # no B permit below 18
+    census = io_exposure.read_exposure("conductores_por_edad")
+    census = census[(census.year == driver_risk.KM_YEAR) & (census.sex == "total")]
+    census = census.set_index("band").n_drivers
+    holders = wide.total.reindex(census.index)
+    assert (holders <= census).all()
+    # Pinned to NUM_PERMISOS_B of the 2024 text file, summed over provinces and bands.
+    assert driver_risk.b_permit_holders().loc["75+"] == 1_569_029
+    with pytest.raises(ValueError):
+        io_exposure.b_permit_holders_by_age(2014)
+
+
+def test_owner_age_check_gives_every_band_and_measure_both_readings() -> None:
+    check = driver_risk.owner_age_check().set_index("band")
+    assert list(check.index) == list(driver_risk.COMPARED_BANDS)
+    young, base = check.loc[driver_risk.TRANSFER_BAND], check.loc[driver_risk.REFERENCE_BAND]
+    # The transfer equalises kilometres per B-permit holder in the two bands and moves no other.
+    per_holder = check.billion_km_transfer / check.b_permit_holders
+    assert per_holder[driver_risk.TRANSFER_BAND] == pytest.approx(
+        per_holder[driver_risk.REFERENCE_BAND]
+    )
+    assert young.transfer_bn_km == pytest.approx(-base.transfer_bn_km)
+    assert check.transfer_bn_km.sum() == pytest.approx(0.0, abs=1e-9)
+    assert (
+        check.drop([driver_risk.TRANSFER_BAND, driver_risk.REFERENCE_BAND]).transfer_bn_km == 0
+    ).all()
+    published = driver_risk.km_rate_ratios().set_index(["measure", "band"])
+    for measure in driver_risk.RATE_DEFINITIONS:
+        for band in check.index:
+            row = published.loc[(measure, band)]
+            assert check.loc[band, f"{measure}_ratio"] == pytest.approx(row.ratio)
+            assert check.loc[band, f"{measure}_low"] == pytest.approx(row.low)
+        assert check[f"{measure}_ratio"][driver_risk.REFERENCE_BAND] == 1.0
+    for measure in driver_risk.KM_MEASURES:
+        low, high = check[f"{measure}_range_low"], check[f"{measure}_range_high"]
+        assert (low <= high).all()
+        assert (low == check[[f"{measure}_ratio", f"{measure}_ratio_transfer"]].min(axis=1)).all()
+        # Adding kilometres to 18-34 and taking them from the reference lowers every other
+        # band's ratio to the reference.
+        assert (check[f"{measure}_ratio_transfer"] <= check[f"{measure}_ratio"] + 1e-12).all()
+    # Deaths per driver involved need no kilometres and have no transfer reading.
+    assert "deaths_per_1000_involved_ratio_transfer" not in check.columns
+    # 75+ against 65-74 is the same under both readings: neither band's kilometres move.
+    for measure in driver_risk.KM_MEASURES:
+        published_ratio = (
+            check.loc["75+", f"{measure}_ratio"] / check.loc["65-74", f"{measure}_ratio"]
+        )
+        transfer_ratio = (
+            check.loc["75+", f"{measure}_ratio_transfer"]
+            / check.loc["65-74", f"{measure}_ratio_transfer"]
+        )
+        assert transfer_ratio == pytest.approx(published_ratio)

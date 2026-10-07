@@ -1,16 +1,16 @@
 measure,measure_label,band,band_label,is_reference,ratio,low,high
-involved_per_bn_km,"Drivers involved in an injury crash, per billion km",18-34,18–34,False,3.62701907,3.534186399,3.722290182
-involved_per_bn_km,"Drivers involved in an injury crash, per billion km",35-54,35–54,False,1.409299714,1.374119958,1.445380131
-involved_per_bn_km,"Drivers involved in an injury crash, per billion km",55-64,55–64,False,1.017802086,0.9891175235,1.047318506
-involved_per_bn_km,"Drivers involved in an injury crash, per billion km",65-74,65–74,True,1,0.96745446,1.033640385
-involved_per_bn_km,"Drivers involved in an injury crash, per billion km",75+,75 and over,False,1.432333282,1.379556425,1.487129191
+involved_per_bn_km,"Drivers involved in an injury crash, per billion km driven by cars registered to owners of this age",18-34,18–34,False,3.62701907,3.534186399,3.722290182
+involved_per_bn_km,"Drivers involved in an injury crash, per billion km driven by cars registered to owners of this age",35-54,35–54,False,1.409299714,1.374119958,1.445380131
+involved_per_bn_km,"Drivers involved in an injury crash, per billion km driven by cars registered to owners of this age",55-64,55–64,False,1.017802086,0.9891175235,1.047318506
+involved_per_bn_km,"Drivers involved in an injury crash, per billion km driven by cars registered to owners of this age",65-74,65–74,True,1,0.96745446,1.033640385
+involved_per_bn_km,"Drivers involved in an injury crash, per billion km driven by cars registered to owners of this age",75+,75 and over,False,1.432333282,1.379556425,1.487129191
 deaths_per_1000_involved,"Drivers killed per 1,000 drivers involved",18-34,18–34,False,0.456321727,0.3338478569,0.6237257907
 deaths_per_1000_involved,"Drivers killed per 1,000 drivers involved",35-54,35–54,False,0.4825868916,0.3588873376,0.6489226104
 deaths_per_1000_involved,"Drivers killed per 1,000 drivers involved",55-64,55–64,False,0.6351085846,0.4520148968,0.8923664177
 deaths_per_1000_involved,"Drivers killed per 1,000 drivers involved",65-74,65–74,True,1,0.6970775449,1.434560627
 deaths_per_1000_involved,"Drivers killed per 1,000 drivers involved",75+,75 and over,False,1.895284971,1.341910899,2.676858145
-deaths_per_bn_km,Drivers killed per billion km,18-34,18–34,False,1.655087606,1.210872543,2.262265337
-deaths_per_bn_km,Drivers killed per billion km,35-54,35–54,False,0.6801095685,0.5057798224,0.9145264496
-deaths_per_bn_km,Drivers killed per billion km,55-64,55–64,False,0.6464148426,0.4600617051,0.9082524018
-deaths_per_bn_km,Drivers killed per billion km,65-74,65–74,True,1,0.6970775449,1.434560627
-deaths_per_bn_km,Drivers killed per billion km,75+,75 and over,False,2.714679743,1.922063643,3.834153012
+deaths_per_bn_km,"Drivers killed, per billion km driven by cars registered to owners of this age",18-34,18–34,False,1.655087606,1.210872543,2.262265337
+deaths_per_bn_km,"Drivers killed, per billion km driven by cars registered to owners of this age",35-54,35–54,False,0.6801095685,0.5057798224,0.9145264496
+deaths_per_bn_km,"Drivers killed, per billion km driven by cars registered to owners of this age",55-64,55–64,False,0.6464148426,0.4600617051,0.9082524018
+deaths_per_bn_km,"Drivers killed, per billion km driven by cars registered to owners of this age",65-74,65–74,True,1,0.6970775449,1.434560627
+deaths_per_bn_km,"Drivers killed, per billion km driven by cars registered to owners of this age",75+,75 and over,False,2.714679743,1.922063643,3.834153012
