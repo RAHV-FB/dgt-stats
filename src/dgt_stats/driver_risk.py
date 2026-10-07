@@ -14,6 +14,10 @@ age at all (``COMPANY_BAND``). ``owner_age_check`` shows where owner and driver 
 recomputes every per-km ratio under a transfer scenario, and ``company_km_sensitivity`` does the
 same for company cars, so the per-km ratios are read as ranges rather than points.
 
+The bands are ``agebands.EXPOSURE_BANDS``: 18-24 and 25-34 apart, 35-54 as the reference, then
+55-64, 65-74 and 75 and over. Every source cuts at those ages, except INE's residents, whose
+five-year groups start a band at 15 and 20; the per-resident comparison therefore starts at 25.
+
 Sex, 2014–2024. The same tables by sex, against licence holders from the driver census. No file in
 the repository measures driving by sex, so the sex rates are per licence holder and per driver
 involved, never per kilometre.
@@ -39,13 +43,13 @@ CAR_VEHICLE_TYPES = (
     "Turismo de SP hasta 9 plazas",
 )
 # Bands compared on the page: everything the kilometre table can carry, 15-17 excepted.
-COMPARED_BANDS = ("18-34", "35-54", "55-64", "65-74", "75+")
-# INE publishes residents in five-year groups, so no resident count can be cut at 18; the
-# four-denominator contrast therefore starts at 35, where every denominator is exact.
-CONTRAST_BANDS = ("35-54", "55-64", "65-74", "75+")
+COMPARED_BANDS = ("18-24", "25-34", "35-54", "55-64", "65-74", "75+")
+# INE publishes residents in five-year groups (15-19, 20-24, ...), so no resident count can be cut
+# at 18; the four-denominator contrast therefore starts at 25, where every denominator is exact.
+CONTRAST_BANDS = ("25-34", "35-54", "55-64", "65-74", "75+")
 REFERENCE_BAND = "35-54"
-# The band whose driving the owner-age kilometres credit to older owners (owner_age_check).
-TRANSFER_BAND = "18-34"
+# The bands whose driving the owner-age kilometres may credit to older owners (owner_age_check).
+TRANSFER_BANDS = ("18-24", "25-34")
 
 
 def car_driver_counts(year: int = KM_YEAR) -> pd.DataFrame:
@@ -92,7 +96,9 @@ def car_kilometres(year: int = KM_YEAR) -> pd.DataFrame:
     """Cars and annual kilometres by owner age band, plus the company-registered row."""
     km = io_exposure.read_exposure("km_edad_propietario_2024")
     cars = km[(km.vehicle_group == "car") & (km.year == year)]
-    private = cars[~cars.is_company].groupby("band")[["n_vehicles", "total_km"]].sum()
+    private = cars[~cars.is_company]
+    private = private.assign(band=private.band.map(_exposure_band_key))
+    private = private.groupby("band")[["n_vehicles", "total_km"]].sum()
     company = cars[cars.is_company][["n_vehicles", "total_km"]].sum()
     out = private.reindex(list(agebands.EXPOSURE_BANDS)).dropna(how="all")
     out.loc[COMPANY_BAND] = company
@@ -212,20 +218,20 @@ def owner_age_check(year: int = KM_YEAR) -> pd.DataFrame:
     One row per band: licence holders of any class and B-permit holders (the car licence), the
     cars and kilometres registered to owners of that age, and cars and kilometres per holder. If
     every car were registered to the person who drives it, cars per B-permit holder would say how
-    many cars each driver has; the 18–34 band has far fewer cars and kilometres per holder than
-    35–54, and owners aged 75 and over can hold more cars than there are B-permit holders of that
-    age, so neither end of the age range drives only the kilometres credited to it.
+    many cars each driver has; the 18–24 and 25–34 bands have far fewer cars and kilometres per
+    holder than 35–54, and owners aged 75 and over can hold more cars than there are B-permit
+    holders of that age, so neither end of the age range drives only the kilometres credited to it.
 
     ``transfer_bn_km`` is a scenario, not an estimate: kilometres move from the 35–54 reference
-    band to 18–34 until the two bands drive the same distance per B-permit holder, as if the whole
-    gap were young drivers' driving registered to owners aged 35–54. The data say neither how much
-    of the gap that is nor which older band holds it. For every band and measure the table gives
-    the published ratio to 35–54 (``{measure}_ratio``, ``_low``, ``_high``) and the ratio under the
-    scenario (``{measure}_ratio_transfer``, ``_low_transfer``, ``_high_transfer``), each with a
-    95 % interval that treats the kilometres as known, and for the per-km measures the two ratios
-    in ascending order (``{measure}_range_low``, ``{measure}_range_high``). Deaths per 1,000
-    involved need no kilometres and are the same under both. The scenario moves no kilometres of
-    55–64, 65–74 or 75+, so ratios among those three bands are the same under both.
+    band to 18–24 and 25–34 until the three bands drive the same distance per B-permit holder, as
+    if the whole gap were young drivers' driving registered to owners aged 35–54. The data say
+    neither how much of the gap that is nor which older band holds it. For every band and measure
+    the table gives the published ratio to 35–54 (``{measure}_ratio``, ``_low``, ``_high``) and the
+    ratio under the scenario (``{measure}_ratio_transfer``, ``_low_transfer``, ``_high_transfer``),
+    each with a 95 % interval that treats the kilometres as known, and for the per-km measures the
+    two ratios in ascending order (``{measure}_range_low``, ``{measure}_range_high``). Deaths per
+    1,000 involved need no kilometres and are the same under both. The scenario moves no
+    kilometres of 55–64, 65–74 or 75+, so ratios among those three bands are the same under both.
     """
     rates_frame = km_rates(year).set_index("band")
     bands = list(rates_frame.index)
@@ -242,15 +248,19 @@ def owner_age_check(year: int = KM_YEAR) -> pd.DataFrame:
     out["km_per_licence"] = out.billion_km * BILLION / out.licence_holders
     out["cars_per_b_permit"] = out.cars / out.b_permit_holders
     out["km_per_b_permit"] = out.billion_km * BILLION / out.b_permit_holders
-    young, base = out.loc[TRANSFER_BAND], out.loc[REFERENCE_BAND]
-    # The transfer x that equalises km per B-permit holder: (young_km + x) / young = (base_km - x)
-    # / base.
-    shortfall = (
-        base.billion_km * young.b_permit_holders - young.billion_km * base.b_permit_holders
-    ) / (young.b_permit_holders + base.b_permit_holders)
+    # The transfers that equalise km per B-permit holder across the young bands and the
+    # reference: every band in the pool ends at the pool's own km per holder, each young band
+    # gaining what it lacks and the reference giving up the sum.
+    pool = [*TRANSFER_BANDS, REFERENCE_BAND]
+    per_holder = out.loc[pool, "billion_km"].sum() / out.loc[pool, "b_permit_holders"].sum()
     out["transfer_bn_km"] = 0.0
-    out.loc[TRANSFER_BAND, "transfer_bn_km"] = shortfall
-    out.loc[REFERENCE_BAND, "transfer_bn_km"] = -shortfall
+    for band in TRANSFER_BANDS:
+        out.loc[band, "transfer_bn_km"] = (
+            per_holder * out.loc[band, "b_permit_holders"] - out.loc[band, "billion_km"]
+        )
+    out.loc[REFERENCE_BAND, "transfer_bn_km"] = -out.loc[
+        list(TRANSFER_BANDS), "transfer_bn_km"
+    ].sum()
     out["billion_km_transfer"] = out.billion_km + out.transfer_bn_km
     for measure, (count, exposure) in RATE_DEFINITIONS.items():
         variants = {"": exposure}
@@ -299,7 +309,7 @@ def company_km_sensitivity(year: int = KM_YEAR) -> pd.DataFrame:
     company_km = float(km.total_km.get(COMPANY_BAND, 0.0))
     bands = [band for band in COMPARED_BANDS if band in km.index]
     base = pd.Series({band: float(km.total_km[band]) for band in bands})
-    working = [band for band in bands if band in ("18-34", "35-54", "55-64")]
+    working = [band for band in bands if band in ("18-24", "25-34", "35-54", "55-64")]
     allocations = {
         "excluded": pd.Series(0.0, index=base.index),
         "to_working_age": company_km
@@ -391,7 +401,7 @@ def denominator_contrast(year: int = KM_YEAR) -> pd.DataFrame:
 # --------------------------------------------------------------------------- sex
 
 
-SEX_BANDS = ("18-34", "35-54", "55-64", "65-74", "75+")
+SEX_BANDS = ("18-24", "25-34", "35-54", "55-64", "65-74", "75+")
 ADULT_BAND = "18+"
 # Three years pooled, so that the rates for women over 65, a few deaths a year, are readable.
 SEX_POOL_YEARS = (2022, 2023, 2024)

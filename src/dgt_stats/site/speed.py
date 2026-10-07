@@ -1,4 +1,10 @@
-"""Recorded speed and crash severity, and the change in the speed-infraction record."""
+"""Deaths per crash where the police recorded inappropriate speed, and the break in DGT's record
+of drivers' speed infractions.
+
+The page compares severity between crashes with and without speed recorded; it estimates no
+effect of speed, since no file holds measured speeds. Every number is read from the speed tables
+and every qualitative sentence is checked against them.
+"""
 
 from __future__ import annotations
 
@@ -12,7 +18,6 @@ from dgt_stats.site.components import (
     _times,
     downloads,
     figure,
-    limitation,
     read_table,
     render_page,
     summary,
@@ -39,8 +44,8 @@ def page_speed(captions: dict[str, str]) -> str:
     types_span = f"{first_type}–{last_type}"
     status_jump = int(status.share_unknown.diff().idxmax())
     crude, rate = float(adjusted.crude_ratio), float(adjusted.rate_ratio)
-    adjusted_ci = _ratio_ci(rate, float(adjusted.ratio_low), float(adjusted.ratio_high))
-    # The share of the crude ratio, on the log scale, that the adjustment removes.
+    adjusted_ci = f"{float(adjusted.ratio_low):.2f}–{float(adjusted.ratio_high):.2f}"
+    # The share of the crude ratio, on the log scale, that road type and year account for.
     where_share = 1 - math.log(rate) / math.log(crude)
     types = pooled.drop(index="adjusted")
     urban = pooled.loc["urban"]
@@ -78,7 +83,7 @@ def page_speed(captions: dict[str, str]) -> str:
             and status.loc[last_status, "share_among_known"]
             > status.loc[first_status, "share_among_known"]
         ),
-        "the concurrent-factor speed series has no break": not bool(
+        "the crash series with speed recorded has no break": not bool(
             speed_changes[speed_changes.factor == "Inappropriate speed"].is_break.any()
         ),
     }
@@ -87,18 +92,19 @@ def page_speed(captions: dict[str, str]) -> str:
         raise ValueError(f"speed page: the tables no longer support: {failed}")
 
     body = summary(
-        "In Spain outside Catalonia and the Basque Country, injury crashes in which the police "
-        "recorded inappropriate speed were "
-        f"{_fmt_pct(float(latest.share_of_crashes))} of all injury crashes in {last} and "
-        f"{_fmt_pct(float(latest.share_of_deaths))} of the deaths. Over {types_span} they "
-        f"killed {_times(crude)} as many people per crash as other injury crashes. Part of that "
-        "difference reflects location: such crashes concentrate on interurban roads other than "
-        "motorways and dual carriageways, where any injury crash is more often fatal. Compared "
-        "with other crashes on the same kind of road in the same year, a crash with speed "
-        f"recorded had about twice as many deaths: {adjusted_ci}. A second source on speed, "
-        f"DGT's tables of drivers involved in injury crashes, changed in {status_jump}: from "
-        "that year about half the drivers have no speed status recorded."
+        "In Spain outside Catalonia and the Basque Country, police recorded inappropriate speed "
+        f"in {_fmt_pct(float(latest.share_of_crashes))} of injury crashes in {last}, and those "
+        f"crashes accounted for {_fmt_pct(float(latest.share_of_deaths))} of the deaths. Over "
+        f"{types_span}, crashes with speed recorded had {crude:.2f} times as many deaths per "
+        "crash as other injury crashes. Part of that difference is where they happen: they are "
+        "concentrated on interurban roads other than motorways and dual carriageways, where any "
+        "crash is more often fatal. Compared with other crashes on the same kind of road in the "
+        f"same year, they had about twice as many deaths: {rate:.2f} times (95% interval "
+        f"{adjusted_ci}). This is an association in police crash records. It does not estimate "
+        "how many crashes or deaths speeding caused."
     )
+
+    body += "<h2>Deaths per crash by road type</h2>"
     body += figure(
         "f1_speed_severity",
         "Dot chart of the ratio of deaths per 100 injury crashes with speed recorded to deaths "
@@ -132,51 +138,68 @@ def page_speed(captions: dict[str, str]) -> str:
         },
     )
     body += (
-        "<p>On every road type, crashes with speed recorded were deadlier than other crashes, "
-        "and every interval lies above one. The size of the difference varies widely. On urban "
-        f"streets, where an ordinary injury crash rarely kills "
-        f"({float(urban.other_deaths_per_100):.2f} deaths per 100), a crash with speed recorded "
-        f"had {_times(float(urban.rate_ratio))} as many deaths; on other interurban roads the "
-        f"ratio was {_times(float(other.rate_ratio))}, and on dual carriageways "
-        f"{_times(float(dual.rate_ratio))}. The adjusted ratio summarises this variation in one "
-        "figure, and its interval is widened to allow for it.</p>"
+        "<p>Crashes with speed recorded had more deaths per crash on every road type. The "
+        "difference was largest on urban streets, where an ordinary injury crash rarely kills "
+        f"({float(urban.other_deaths_per_100):.2f} deaths per 100 crashes): there, crashes with "
+        f"speed recorded had {float(urban.rate_ratio):.2f} times as many deaths. On interurban "
+        "roads other than motorways and dual carriageways the ratio was "
+        f"{float(other.rate_ratio):.2f}, and on dual carriageways {float(dual.rate_ratio):.2f}. "
+        f"The figure of {rate:.2f} for all roads compares crashes within the same road type and "
+        "year and summarises these ratios, with an interval widened to allow for how much they "
+        "vary.</p>"
     )
     body += technical(
         "How the speed report and the crash records are combined",
         f"<p>DGT's speed report, the {REPORT}, leaves out Catalonia and the Basque Country, "
         "which keep their own crash records. It gives crashes and deaths with speed recorded by "
         "road type, but totals of all crashes only for all roads, interurban roads and urban "
-        "streets. DGT's crash records restricted to the same provinces reproduce those three "
-        f"totals exactly in every year from {first_type} to {last_type}, the years both sources "
-        "cover, and they supply the totals for each interurban road type. Within interurban "
-        "roads the report's categories are matched to the road types of the crash records by "
-        "name (autopistas to motorways, autovías to dual carriageways, the rest to other "
-        "interurban roads). That match is checked only through the interurban total and is not "
-        "reconciled road type by road type: a mismatch would move crashes between the three "
-        "interurban rows, and the ratios by interurban road type and the adjusted ratio depend "
-        "on it.</p>"
+        "streets. DGT's crash records for the same provinces reproduce those three totals "
+        f"exactly in every year from {first_type} to {last_type}, and supply the totals for each "
+        "interurban road type. The report's interurban categories are matched to the road types "
+        "of the crash records by name (autopistas to motorways, autovías to dual carriageways, "
+        "the rest to other interurban roads); that match is checked only through the interurban "
+        "total, not road type by road type.</p>"
         "<p>The adjusted ratio comes from a quasi-Poisson model of deaths per crash with road "
         f"type and year. It brings the crude ratio of {_times(crude)} down to {_times(rate)}; "
-        "measured on a logarithmic scale, which splits a ratio into additive parts, road type "
-        f"and year account for {_fmt_pct(where_share, 0)} of the crude ratio.</p>",
+        "on a logarithmic scale, road type and year account for "
+        f"{_fmt_pct(where_share, 0)} of the crude ratio.</p>",
     )
 
-    body += "<h2>A record written after the crash</h2>"
+    body += "<h2>What a speed record shows</h2>"
     body += (
-        "<p>Inappropriate speed in these data is a judgement the police record after the "
-        "crash, once the outcome is known. Two biases follow from that timing, and they pull in "
-        "opposite directions. Fatal crashes may be investigated more thoroughly, so speed may "
-        "be recorded more often when someone has died, which would inflate the ratio. Speed "
-        "that played a part but went unrecorded leaves those crashes in the comparison group, "
-        "which would deflate it. The tables measure neither effect, so their balance is "
-        "unknown.</p>"
-        "<p>The ratio is therefore an association in the police record and not an estimate of "
-        "how many deaths speed caused. That estimate, like the effect of a change in speeds, "
-        "would require measured travelling speeds, and the files record speed only as the "
-        "police's judgement.</p>"
+        "<p>Inappropriate speed in these data is a judgement police officers record about a "
+        "crash after it has happened, usually once the outcome is known; no file records how "
+        "fast anyone was travelling. The record shows only that crashes in which the police "
+        "recorded speed were deadlier than other crashes. It does not show that speed "
+        "caused those crashes, or that it caused the deaths in them. A crash can carry several "
+        "recorded factors, and this comparison does not separate speed from the others. The "
+        "ratio could also be distorted in either direction: police may look harder for speed "
+        "when someone has died, which would raise it, while speed that played a part but went "
+        "unrecorded leaves those crashes among the others, which would lower it. The data "
+        "measure neither effect.</p>"
     )
 
-    body += f"<h2>A change in the speed-infraction record in {status_jump}</h2>"
+    body += f"<h2>The {status_jump} break in the driver tables</h2>"
+    known_first = float(status.loc[first_status, "share_among_known"])
+    known_last = float(status.loc[last_status, "share_among_known"])
+    all_first = float(status.loc[first_status, "share_speed_infraction"])
+    all_last = float(status.loc[last_status, "share_speed_infraction"])
+    body += (
+        "<p>DGT's yearbook tables also record, for each driver involved in an injury crash, "
+        "whether the police noted a speed infraction. From "
+        f"{status_jump}, about half of drivers have no speed status recorded "
+        f"({_fmt_pct(status.loc[status_jump, 'share_unknown'], 0)} in {status_jump} and "
+        f"{_fmt_pct(status.loc[last_status, 'share_unknown'], 0)} in {last_status}, against "
+        f"{_fmt_pct(status.loc[first_status, 'share_unknown'], 0)} in {first_status}), so the "
+        "driver tables cannot be used as a trend in speeding. The two obvious readings point "
+        "in opposite directions: "
+        "the share of all drivers with a speed infraction fell from "
+        f"{_fmt_pct(all_first)} to {_fmt_pct(all_last)} between {first_status} and "
+        f"{last_status}, while the share among drivers with a recorded status rose from "
+        f"{_fmt_pct(known_first)} to {_fmt_pct(known_last)}. The crash series used above, from "
+        'the speed report, shows no break of this kind (<a href="factors.html">recorded '
+        "factors</a> tests each series for breaks).</p>"
+    )
     body += figure(
         "c3_speed_status",
         f"Stacked bars of drivers in injury crashes by recorded speed status, "
@@ -184,44 +207,18 @@ def page_speed(captions: dict[str, str]) -> str:
         f"no status recorded. The share with no status recorded rises sharply in {status_jump}.",
         captions,
     )
-    known_first = float(status.loc[first_status, "share_among_known"])
-    known_last = float(status.loc[last_status, "share_among_known"])
-    all_first = float(status.loc[first_status, "share_speed_infraction"])
-    all_last = float(status.loc[last_status, "share_speed_infraction"])
-    body += (
-        "<p>DGT's yearbook tables also record, for each driver involved in an injury crash, "
-        f"whether the police noted a speed infraction. In {first_status}, "
-        f"{_fmt_pct(status.loc[first_status, 'share_unknown'], 0)} of drivers had no speed "
-        f"status recorded. In {status_jump} the share jumped to "
-        f"{_fmt_pct(status.loc[status_jump, 'share_unknown'], 0)}, and it has stayed close to "
-        f"half since ({_fmt_pct(status.loc[last_status, 'share_unknown'], 0)} in "
-        f"{last_status}). As a result, the two obvious readings of the table point in opposite "
-        "directions. The share of all drivers with a speed infraction fell from "
-        f"{_fmt_pct(all_first)} to {_fmt_pct(all_last)} between {first_status} and "
-        f"{last_status}, while the share among drivers with a recorded status rose from "
-        f"{_fmt_pct(known_first)} to {_fmt_pct(known_last)}. With half the drivers "
-        "unclassified, neither series measures a trend in speeding. The speed report's series "
-        "of crashes with speed recorded, used above, shows no break of this kind "
-        '(<a href="factors.html">Recorded factors</a> tests every factor series for breaks).</p>'
-    )
-
-    body += limitation(
-        "A crash may carry several recorded factors, and the ratio does not separate speed from "
-        "the others recorded with it."
-    )
     body += downloads(
         [
             ("speed_severity", "by year and road type"),
             ("speed_severity_pooled", f"pooled {types_span}, and adjusted"),
             ("q9_infraction_shares", "speed status in the driver tables"),
         ],
-        method=("data.html#records", "recorded factors and their limits"),
+        method=("data.html#records", "police-recorded factors"),
     )
     return render_page(
         "speed",
-        "Recorded speed and crash severity",
-        "Deaths per injury crash when the police recorded inappropriate speed, compared with "
-        "other crashes on the same kind of road, and a change in how DGT records speed "
-        "infractions.",
+        "Police-recorded inappropriate speed and crash severity",
+        "Deaths per injury crash where the police recorded inappropriate speed, compared with "
+        "other crashes on the same kind of road, from DGT's speed report and crash records.",
         body,
     )

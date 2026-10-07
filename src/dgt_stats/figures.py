@@ -17,7 +17,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from dgt_stats import agebands, factors, plots, policy, summaries
+from dgt_stats import agebands, driver_risk, factors, plots, policy, summaries
 from dgt_stats.microdata import charts as microdata_charts
 from dgt_stats.paths import FIGURES_DIR, TABLES_DIR
 
@@ -40,13 +40,6 @@ TRAFFIC_SOURCE = (
 )
 VEHICLE_FLEET_SOURCE = "DGT registered vehicle fleet"
 
-# The three rates the older-driver page separates, in the order they are read.
-# The kilometres are those of cars registered to owners of the band, which the titles say.
-AGE_RATE_PANELS = {
-    "involved_per_bn_km": "Involved per billion km\nof cars of owners this age",
-    "deaths_per_1000_involved": "Killed per 1,000 involved",
-    "deaths_per_bn_km": "Killed per billion km\nof cars of owners this age",
-}
 # Panel titles for the four-denominator contrast, short enough to sit over a panel.
 CONTRAST_PANELS = {
     "residents": "Per resident",
@@ -510,7 +503,7 @@ def _factor_figures(figures_dir: Path, captions: dict[str, str], summary) -> Non
         series_order=["Interurban roads", "Urban streets"],
     )
     captions["f2_factor_shares"] = _caption(
-        "Injury crashes in which the police recorded each concurrent factor, as a share of all "
+        "Injury crashes in which the police recorded each factor, as a share of all "
         "injury crashes on interurban roads and on urban streets, Spain outside Catalonia and "
         "the Basque Country, 2014–2023; a line breaks where the share rises by more than "
         f"{factors.BREAK_RATIO - 1:.0%} or falls by more than {1 - 1 / factors.BREAK_RATIO:.0%} "
@@ -612,35 +605,28 @@ def _severity_figures(figures_dir: Path, captions: dict[str, str]) -> None:
 
 def _age_figures(figures_dir: Path, captions: dict[str, str], summary) -> None:
     rates = summary("q7_km_rates")
-    long = pd.concat(
-        [
-            rates.assign(
-                panel=AGE_RATE_PANELS[measure],
-                value=rates[measure],
-                low=rates[f"{measure}_low"],
-                high=rates[f"{measure}_high"],
-            )[["band_label", "panel", "value", "low", "high"]]
-            for measure in AGE_RATE_PANELS
-        ],
-        ignore_index=True,
+    reference = rates[rates.band == driver_risk.REFERENCE_BAND].iloc[0]
+    # Deaths per driver involved need no measure of distance, so they are drawn as points with
+    # their intervals; the per-km ratios depend on the owner-age kilometres and are given on the
+    # page as ranges rather than drawn as points.
+    plots.dot_interval(
+        rates.assign(label=[agebands.band_label(band) for band in rates.band]),
+        "label",
+        "deaths_per_1000_involved",
+        "deaths_per_1000_involved_low",
+        "deaths_per_1000_involved_high",
+        figures_dir / "a1_killed_per_involved.svg",
+        "Car drivers killed per 1,000 involved in an injury crash, by age (2024)",
+        xlabel="Drivers killed within 30 days per 1,000 drivers involved",
+        reference=float(reference.deaths_per_1000_involved),
+        reference_label=agebands.band_label(driver_risk.REFERENCE_BAND),
+        keep_order=True,
     )
-    plots.dot_interval_panels(
-        long,
-        "panel",
-        "band_label",
-        "value",
-        "low",
-        "high",
-        figures_dir / "a1_km_risk_by_age.svg",
-        "Car drivers by age (2024): per km of cars of owners that age, and per driver involved",
-        order=[agebands.band_label(band) for band in rates.band],
-        panel_order=list(AGE_RATE_PANELS.values()),
-    )
-    captions["a1_km_risk_by_age"] = _caption(
-        "Car drivers involved in injury crashes and killed within 30 days, by age band, per "
-        "billion kilometres driven and per 1,000 drivers involved, Spain, 2024, with 95% "
-        "intervals; the kilometres are those of cars registered to owners of each age",
-        f"{TABLES_SOURCE}; {KM_2024_SOURCE}",
+    captions["a1_killed_per_involved"] = _caption(
+        "Car drivers who died within 30 days per 1,000 car drivers involved in an injury crash, "
+        "by age band, Spain, 2024, with 95% intervals; the dotted line is the rate at 35–54, and "
+        "no estimate of distance driven enters the rate",
+        TABLES_SOURCE,
         f"{int(rates.drivers_involved.sum()):,} drivers involved",
     )
 
@@ -663,7 +649,8 @@ def _age_figures(figures_dir: Path, captions: dict[str, str], summary) -> None:
         "Car-driver deaths within 30 days by age band, per resident, per holder of a B (car) "
         "permit, per car driver involved in an injury crash and per kilometre driven by cars "
         "registered to owners of the band, as ratios to drivers aged 35–54, Spain, 2024, with "
-        "95% intervals; the numerator is the same in every panel",
+        "95% intervals; the numerator is the same in every panel, and 18–24 is left out because "
+        "INE groups residents as 15–19 and 20–24",
         f"{TABLES_SOURCE}; {KM_2024_SOURCE}; {POPULATION_SOURCE}; {CENSUS_SOURCE}",
     )
 

@@ -100,7 +100,7 @@ def page_vehicles(captions: dict[str, str]) -> str:
         f"In {year} a heavy truck (over 3,500 kg) was involved in a fatal crash "
         f"{_x(per_vehicle)} as often as a car per vehicle on the road, and {_x(per_km)} as "
         "often per kilometre driven. The two figures differ because each heavy truck is driven "
-        f"{_x(truck_distance)} as far as a car. Motorcycles move the other way. Each is driven "
+        f"{_x(truck_distance)} as far as a car. Motorcycles show the opposite pattern. Each is driven "
         f"{_fmt_int(bike.km_per_vehicle)} km a year against {_fmt_int(car.km_per_vehicle)} km "
         f"for a car, so a rate {_x(bike_per_vehicle)} a car's per vehicle becomes "
         f"{_x(bike_per_km)} a car's per kilometre."
@@ -160,8 +160,7 @@ def page_vehicles(captions: dict[str, str]) -> str:
     body += "<h2>Frequency for motorcycles, severity for heavy trucks</h2>"
     body += (
         "<p>A rate of fatal crashes per kilometre is the product of involvement in injury "
-        "crashes per kilometre and the share of those crashes that were fatal. Motorcycles and "
-        "heavy trucks reach high rates by opposite routes.</p>"
+        "crashes per kilometre and the share of those crashes that were fatal.</p>"
     )
     split_rows = []
     for group, row in rates.sort_values("fatal_involvement_per_bn_km", ascending=False).iterrows():
@@ -241,8 +240,8 @@ def page_vehicles(captions: dict[str, str]) -> str:
         "kilometres but among other vehicles in the crash tables. Vans and light trucks form "
         "one group because the crash records and the vehicle register divide them "
         f"differently; taken apart, light trucks would have {_fmt_pct(van_gap, 0)} of a van's "
-        "rate per kilometre, and the data do not establish whether that gap is real or an "
-        "artefact of the split.</p>",
+        "rate per kilometre, and the data cannot show how much of that gap is real and how "
+        "much comes from the split.</p>",
     )
     body += downloads(
         [

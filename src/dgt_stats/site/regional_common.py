@@ -16,12 +16,12 @@ from dgt_stats.site.components import (
 )
 
 MIN_N = 30
-# The names a reader sees. The two featured models are the Catalonia severity model and the
+# The names a reader sees. The two featured models are the Catalonia crash-severity model and the
 # Barcelona person-severity model; the harmonised models are validation instruments.
 MODEL_NAMES = {
-    "catalonia_crash_severity": "Catalonia severity model",
+    "catalonia_crash_severity": "Catalonia crash-severity model",
     "barcelona_person_severity": "Barcelona person-severity model",
-    "barcelona_crash_severity": "Barcelona crash model",
+    "barcelona_crash_severity": "Barcelona crash-severity model",
     "catalonia_common_dgt": "Harmonised Catalonia model (variables recorded alike by DGT)",
     "catalonia_common_bcn": "Catalonia model on Barcelona's variables",
     "dgt_crash_severity": "Association analysis of DGT crash records",

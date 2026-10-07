@@ -206,10 +206,11 @@ def test_the_front_page_is_a_research_overview(built: dict[str, str]) -> None:
         assert f'href="{slug}.html"' in main, slug
     for slug in ("validation", "data", "sources"):
         assert f'href="{slug}.html' in main, slug
-    # Only the two models that beat their descriptive comparison are presented as models.
-    for name in ("Catalonia severity model", "Barcelona person-severity model"):
-        assert name in _visible(built["index"]), name
-    assert "Association analysis of DGT crash records" not in _visible(built["index"])
+    # The modelling is described in plain words, with the model that lost to its table named as
+    # such, and the supporting association analysis is not presented as a model.
+    visible = _visible(built["index"])
+    assert "did no better than a table" in visible
+    assert "Association analysis of DGT crash records" not in visible
 
 
 def test_the_models_page_presents_two_models_and_one_table(built: dict[str, str]) -> None:
@@ -231,6 +232,17 @@ def test_the_models_page_presents_two_models_and_one_table(built: dict[str, str]
         assert "DGT crash records" not in table_html
         assert "monthly deaths" not in table_html.lower()
     assert "ROC-AUC" in visible
+    # The three decisions are in the section headings, where a reader scanning the page sees them.
+    headings = [re.sub(r"<[^>]+>", "", h) for h in re.findall(r"<h2>(.*?)</h2>", main, re.S)]
+    for name, decision in (
+        ("Catalonia crash-severity model", "(kept)"),
+        ("Barcelona person-severity model", "(kept for ranking only)"),
+        ("Barcelona crash-severity model", "(replaced by a table)"),
+    ):
+        assert any(name in h and h.endswith(decision) for h in headings), (name, decision)
+    # ROC-AUC is explained once, after the first comparison it is used for, not before it.
+    explained = visible.find("ROC-AUC measures ranking")
+    assert visible.find("ROC-AUC") < explained and visible.count("ROC-AUC measures ranking") == 1
 
 
 def test_the_validation_page_does_not_claim_national_transferability(

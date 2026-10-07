@@ -194,7 +194,7 @@ L -3.5 0
       </g>
      </g>
      <g id="text_11">
-      <text style="font-size: 8px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: end; fill: #52514e" x="342.63" y="203.650568" transform="rotate(-0 342.63 203.650568)">Barcelona crash model: baseline</text>
+      <text style="font-size: 8px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: end; fill: #52514e" x="342.63" y="203.650568" transform="rotate(-0 342.63 203.650568)">Barcelona crash-severity model: baseline</text>
      </g>
     </g>
     <g id="ytick_2">
@@ -204,7 +204,7 @@ L -3.5 0
       </g>
      </g>
      <g id="text_12">
-      <text style="font-size: 8px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: end; fill: #52514e" x="342.63" y="183.71576" transform="rotate(-0 342.63 183.71576)">Barcelona crash model: descriptive table (accident type)</text>
+      <text style="font-size: 8px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: end; fill: #52514e" x="342.63" y="183.71576" transform="rotate(-0 342.63 183.71576)">Barcelona crash-severity model: descriptive table (accident type)</text>
      </g>
     </g>
     <g id="ytick_3">
@@ -214,7 +214,7 @@ L -3.5 0
       </g>
      </g>
      <g id="text_13">
-      <text style="font-size: 8px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: end; fill: #52514e" x="342.63" y="163.780951" transform="rotate(-0 342.63 163.780951)">Barcelona crash model</text>
+      <text style="font-size: 8px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: end; fill: #52514e" x="342.63" y="163.780951" transform="rotate(-0 342.63 163.780951)">Barcelona crash-severity model</text>
      </g>
     </g>
     <g id="ytick_4">
@@ -254,7 +254,7 @@ L -3.5 0
       </g>
      </g>
      <g id="text_17">
-      <text style="font-size: 8px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: end; fill: #52514e" x="342.63" y="84.041717" transform="rotate(-0 342.63 84.041717)">Catalonia severity model: baseline</text>
+      <text style="font-size: 8px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: end; fill: #52514e" x="342.63" y="84.041717" transform="rotate(-0 342.63 84.041717)">Catalonia crash-severity model: baseline</text>
      </g>
     </g>
     <g id="ytick_8">
@@ -264,7 +264,7 @@ L -3.5 0
       </g>
      </g>
      <g id="text_18">
-      <text style="font-size: 8px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: end; fill: #52514e" x="342.63" y="64.106909" transform="rotate(-0 342.63 64.106909)">Catalonia severity model: descriptive table (crash subtype × zone)</text>
+      <text style="font-size: 8px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: end; fill: #52514e" x="342.63" y="64.106909" transform="rotate(-0 342.63 64.106909)">Catalonia crash-severity model: descriptive table (crash subtype × zone)</text>
      </g>
     </g>
     <g id="ytick_9">
@@ -274,7 +274,7 @@ L -3.5 0
       </g>
      </g>
      <g id="text_19">
-      <text style="font-size: 8px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: end; fill: #52514e" x="342.63" y="44.1721" transform="rotate(-0 342.63 44.1721)">Catalonia severity model</text>
+      <text style="font-size: 8px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: end; fill: #52514e" x="342.63" y="44.1721" transform="rotate(-0 342.63 44.1721)">Catalonia crash-severity model</text>
      </g>
     </g>
    </g>

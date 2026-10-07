@@ -48,26 +48,14 @@ VARIABLES = {
     "unit_types": "types of vehicle involved",
     "geography": "location",
 }
-# Where a variable reads better in a table heading than in a sentence.
-VARIABLE_HEADINGS = {"alignment_recorded": "road alignment (including unknown)"}
-# The populations as the tables name them, and as a reader sees them.
-PLACES = {
-    "Barcelona municipality": "Barcelona city",
-    "Barcelona city": "Barcelona city",
-    "rest of Catalonia": "rest of Catalonia",
-    "Catalonia": "Catalonia",
-    "Spain outside Catalonia": "Spain outside Catalonia",
-    "urban crashes": "urban crashes",
-    "interurban crashes": "interurban crashes",
-}
-# The models as the validation tables name them. The Barcelona crash model was replaced by its
-# table of shares by accident type; it appears only in the table of evidence by model.
+# The models as the validation tables name them. The Barcelona crash-severity model was replaced
+# by its table of shares by accident type; it appears only in the table of tests by model.
 MODELS = {
-    "catalonia_crash_severity": "Catalonia severity model",
+    "catalonia_crash_severity": "Catalonia crash-severity model",
     "catalonia_common_dgt": "Harmonised Catalonia model",
     "catalonia_common_bcn": "Catalonia model restricted to Barcelona's variables",
     "barcelona_person_severity": "Barcelona person-severity model",
-    "barcelona_crash_severity": "Barcelona crash model (replaced by a descriptive table)",
+    "barcelona_crash_severity": "Barcelona crash-severity model (replaced by a table)",
 }
 # The kinds of test, from the records closest to the training data to the comparison with Spain.
 EVIDENCE_COLUMNS = {
@@ -85,50 +73,11 @@ EVIDENCE_CELLS = {
     "not testable": "too few cases",
 }
 RESEMBLANCE_CELLS = {"passed": "yes", "failed": "no"}
-# The parts of the fall from the rest of Catalonia to Barcelona city: a short name and what is
-# compared. The first four add up; the last two are read beside them.
-COMPONENTS = {
-    "total drop": (
-        "Total fall",
-        "Rest of Catalonia scored by a model trained there, against Barcelona city scored by "
-        "the model trained on the rest of Catalonia",
-    ),
-    "training-size cost": (
-        "Smaller training set",
-        "Rest of Catalonia: a model trained on all its training crashes, against one trained "
-        "on only as many as Barcelona's own model uses",
-    ),
-    "intrinsic difference": (
-        "Crashes harder to rank",
-        "Same variables and training size: rest of Catalonia against Barcelona city",
-    ),
-    "transport cost": (
-        "Change of population (net)",
-        "Barcelona city: a model trained there, against the model trained on the rest of Catalonia",
-    ),
-    "intrinsic difference against urban crashes": (
-        "Compared with other urban crashes",
-        "Same variables and training size: the rest of Catalonia's urban crashes against "
-        "Barcelona city (negative: those crashes are harder to rank)",
-    ),
-    "urban-only training": (
-        "Training on urban crashes only",
-        "Barcelona city: the model trained on the rest of Catalonia's urban crashes, against "
-        "the one trained on all its crashes (negative: worse)",
-    ),
-}
 OUTCOMES = {
     "crashes with a death or serious injury (24 h), share of injury crashes": "serious",
     "fatal (24 h) among crashes with a death or serious injury": "fatal_24h",
     "fatal (30 days) among injury crashes": "fatal_30d",
 }
-
-
-def _place(name: str, capital: bool = False) -> str:
-    label = PLACES.get(name)
-    if label is None:
-        raise ValueError(f"{PAGE} page: no reader-facing name for the population {name!r}")
-    return label[0].upper() + label[1:] if capital else label
 
 
 def _variable(name: str) -> str:
@@ -223,27 +172,6 @@ def _test_label(row) -> str:
     raise ValueError(f"{PAGE} page: no reader-facing name for the test {experiment!r}")
 
 
-def _strategy_label(strategy: str) -> str:
-    rules = (
-        (
-            r"domain-specific: (.+) only$",
-            lambda m: f"{_place(m.group(1), True)} only (separate model)",
-        ),
-        (r"other domain only: (.+)$", lambda m: f"{_place(m.group(1), True)} only"),
-        (r"pooled: both domains$", lambda m: "Both, pooled"),
-        (r"pooled with a domain flag$", lambda m: "Both, pooled, with a population indicator"),
-        (
-            r"pooled, Barcelona-common features",
-            lambda m: "Both, pooled, Barcelona's variables only",
-        ),
-    )
-    for pattern, label in rules:
-        match = re.match(pattern, strategy)
-        if match:
-            return label(match)
-    raise ValueError(f"{PAGE} page: no reader-facing name for the strategy {strategy!r}")
-
-
 def _signed(value: float, decimals: int = 2) -> str:
     """A difference with its sign: +0.05, −0.04, 0.00."""
     text = _fmt_dec(value, decimals)
@@ -265,7 +193,6 @@ def page_validation(captions: dict[str, str]) -> str:
     shares = read_table("gen_representativeness")
     components = read_table("ml_barcelona_diagnosis_components")
     verdicts = read_table("ml_barcelona_diagnosis_verdicts")
-    strategies = read_table("ml_domain_strategies")
     national_checks = read_table("dgt_audit_transfer").set_index("check")
     province_years = read_table("cat_vs_dgt_province_year")
     rates = read_table("gen_province_rates")
@@ -296,9 +223,6 @@ def page_validation(captions: dict[str, str]) -> str:
     same_cat = test_row("same crashes, two sources: Catalan file", "catalonia_common_dgt")
     same_dgt = test_row("same crashes, two sources: DGT records", "catalonia_common_dgt")
     dgt_only = test_row("Catalonia, a year the Catalan file", "catalonia_common_dgt")
-    bcn_vars = test_row(
-        "rest of Catalonia -> Barcelona municipality (Barcelona-common", "catalonia_common_bcn"
-    )
     districts = test_row("leave one district out", "barcelona_person_severity")
     district_reference = test_row("grouped 5-fold cross-validation", "barcelona_person_severity")
     # Shown with the estimator its model chose on its own validation data, as every other test.
@@ -313,6 +237,7 @@ def page_validation(captions: dict[str, str]) -> str:
     resemblance = generalisability.MAX_RESEMBLANCE_JSD
     slope_low, slope_high = modelling.CALIBRATION_SLOPE_RANGE
     minimum = transport_rules.MIN_POSITIVES
+    cat_name = MODELS["catalonia_crash_severity"]
 
     # ------------------------------------------------------------------ the principal result
     _check(national.roc_auc_low > 0.5, PAGE, "the national test ranks well above chance")
@@ -366,6 +291,11 @@ def page_validation(captions: dict[str, str]) -> str:
         "Barcelona's crashes are harder to rank at equal training size, and applying the model "
         "there costs no measurable ranking",
     )
+    _check(
+        not slope_low <= to_bcn.calibration_slope <= slope_high,
+        PAGE,
+        "the Catalonia model's probabilities do not carry over to Barcelona",
+    )
     within = reported[
         (reported.model == "catalonia_crash_severity")
         & reported.experiment.str.match(r"temporal holdout|leave out \w+ demarcation")
@@ -373,8 +303,7 @@ def page_validation(captions: dict[str, str]) -> str:
     _check(
         len(within) > 1 and bool((within.transfer_gap >= -tolerance).all()),
         PAGE,
-        "the Catalonia severity model keeps its ranking in a later year and in each province "
-        "left out",
+        "the Catalonia model keeps its ranking in a later year and in each province left out",
     )
     serious = shares[shares.universe.str.startswith("crashes with")]
 
@@ -402,30 +331,26 @@ def page_validation(captions: dict[str, str]) -> str:
     )
     used = mapping[mapping.enters_cross_source_tests]
     body = summary(
-        "The Catalonia severity model, restricted to the "
-        f"{_count(len(used))} variables that DGT's national crash records code in the same way, "
-        "ranks serious and fatal crashes elsewhere in Spain by their probability of being fatal "
-        "almost as well as a model trained on those records. On the "
-        f"{_fmt_int(national.test_n)} such crashes recorded outside Catalonia, "
-        f"{_fmt_int(national.test_positives)} of them fatal within 24 hours, this harmonised "
-        f"Catalonia model has a ROC-AUC of {national.roc_auc:.3f} (0.5 is chance and 1 a perfect "
-        f"ranking), against {national.in_domain_cv_roc_auc:.3f} for the model trained on DGT's "
-        "records. Within Catalonia, the Catalonia severity model itself keeps its ranking in a "
-        "later year and in each province left out of training. Trained on the rest of "
-        f"Catalonia, it scores {to_bcn.roc_auc:.3f} in Barcelona city, against "
-        f"{to_bcn.in_domain_cv_roc_auc:.3f} for a model trained on the city's own crashes: the "
-        "city's crashes are harder to rank than the rest of Catalonia's, and applying the model "
-        "there costs no measurable ranking. Catalonia's serious "
-        "and fatal crashes differ from Spain's in road type, crash type and recording practice, "
-        "so national use of the models is not established."
+        "This page asks whether a model trained in one place still works somewhere else. The "
+        f"main test took the {cat_name}, kept only the {_count(len(used))} variables that DGT's "
+        "national crash records code in the same way, trained it on the Catalan file and "
+        f"applied it to the {_fmt_int(national.test_n)} crashes with a death or serious injury "
+        "that DGT recorded elsewhere in Spain. Its ROC-AUC, which measures how well it ranks "
+        "fatal crashes above the others on a scale from 0.5 (chance) to 1 (perfect), was "
+        f"{national.roc_auc:.3f}, against {national.in_domain_cv_roc_auc:.3f} for a model "
+        "trained directly on those DGT records: little ranking ability was lost in the "
+        "transfer. That does not establish that the Catalonia model can be used nationally. The "
+        "full model uses variables DGT does not record, Catalonia's serious crashes differ from "
+        "the rest of Spain's in road type, crash type and recording practice, and in Barcelona "
+        "city the model's probabilities did not carry over even where its ranking did."
     )
     body += (
-        "<p>Every test scores crashes that played no part in training and sets the score beside "
-        "a reference: a model of the same kind trained within the test population and "
-        "cross-validated there. The reference shows how much ranking that population allows; the "
-        "difference between the scores measures what is lost by applying a model outside the "
-        "population it learned from. A small test population gives a weak reference, which a "
-        "model trained elsewhere on many more crashes can beat.</p>"
+        "<p>Every test on this page scores crashes that played no part in training and sets "
+        "the result beside a reference: a model of the same kind trained within the test "
+        "population and cross-validated there. The reference shows how well that population's "
+        "crashes can be ranked at all, and the difference between the two scores is what is "
+        "lost by using a model trained elsewhere. A small test population gives a weak "
+        "reference, which a model trained elsewhere on many more crashes can beat.</p>"
     )
 
     # ------------------------------------------------------------------ DGT records elsewhere
@@ -489,14 +414,14 @@ def page_validation(captions: dict[str, str]) -> str:
 
     weather_blank = level("weather", "not specified")
     surface_blank = level("surface", "not specified")
-    body += "<h2>Validation on DGT records outside Catalonia</h2>"
+    body += "<h2>Tested on DGT records outside Catalonia</h2>"
     body += (
         "<p>DGT's records of crashes outside Catalonia are kept separately from the Catalan "
-        "file, so they provide an external test. It uses the harmonised Catalonia model: the "
-        f"Catalonia severity model restricted to the {_count(len(used))} variables both sources "
-        "record in the same way, trained on the Catalan file alone, with no Catalan crash in the "
-        "test. The outcome means the same in both sources: the Catalan file's counts match DGT's "
-        "24-hour counts in every province and year both cover "
+        "file, so they give a test on a source the model has never seen. The test uses the "
+        f"harmonised Catalonia model: the {cat_name} restricted to the {_count(len(used))} "
+        "variables both sources record in the same way, trained on the Catalan file alone. The "
+        "outcome means the same in both: the Catalan file's fatal crashes match DGT's crashes "
+        "with a death within 24 hours in every province and year both cover "
         '(<a href="catalonia.html#dgt-agreement">Catalonia</a>).</p>'
     )
     body += (
@@ -504,26 +429,16 @@ def page_validation(captions: dict[str, str]) -> str:
         f"{national.roc_auc:.3f} (95% interval {national.roc_auc_low:.3f}–"
         f"{national.roc_auc_high:.3f}), against {national.in_domain_cv_roc_auc:.3f} for a model "
         "of the same kind trained on DGT's records outside Catalonia, a difference of "
-        f"{_signed(national.transfer_gap, 3)}. Fatal crashes are commoner in the test "
-        f"({_fmt_pct(national.test_prevalence)}) than in the Catalan training records "
-        f"({_fmt_pct(national.train_prevalence)}). The model's mean prediction, "
-        f"{_fmt_pct(national.mean_predicted)}, falls between the two, and its calibration slope of "
-        f"{national.calibration_slope:.2f} shows probabilities close to calibrated, "
+        f"{_signed(national.transfer_gap, 3)}. Its probabilities are close to calibrated. Fatal "
+        f"crashes are commoner in the test ({_fmt_pct(national.test_prevalence)}) than in the "
+        f"Catalan training records ({_fmt_pct(national.train_prevalence)}); the model's mean "
+        f"prediction, {_fmt_pct(national.mean_predicted)}, falls between the two, and its "
+        f"calibration slope is {national.calibration_slope:.2f}"
         + (
-            "slightly less extreme than the outcomes warrant."
+            ", a little less extreme than the outcomes warrant.</p>"
             if national.calibration_slope > 1
-            else "slightly more extreme than the outcomes warrant."
+            else ", a little more extreme than the outcomes warrant.</p>"
         )
-        + "</p>"
-    )
-    body += (
-        "<p>The result holds when the test is varied: the model scores "
-        f"{early.roc_auc:.3f} when trained only on the Catalan years before DGT's records begin "
-        f"({_years(early.train_domain)}), and {reweighted.roc_auc:.3f} when its training "
-        "crashes are reweighted to the national mix of zone and crash type. The same Catalan "
-        f"crashes of {_years(same_cat.test_domain)} score {same_cat.roc_auc:.3f} from the "
-        f"Catalan file and {same_dgt.roc_auc:.3f} from DGT's records, so the source of the "
-        "record makes almost no difference.</p>"
     )
     harmonised = reported[reported.model == "catalonia_common_dgt"]
     body += figure(
@@ -553,16 +468,6 @@ def page_validation(captions: dict[str, str]) -> str:
         f"{minimum} non-fatal crashes, the ROC-AUC runs from {worst.roc_auc:.2f} "
         f"({names[worst.province_code]}) to {best.roc_auc:.2f} ({names[best.province_code]}), "
         f"with a median of {shown_provinces.roc_auc.median():.2f}.</p>"
-    )
-    body += technical(
-        "Results by province outside Catalonia",
-        figure(
-            "tr3_province_auc",
-            "Dot chart of the harmonised Catalonia model's ROC-AUC in each province outside "
-            f"Catalonia, from {worst.roc_auc:.2f} in {names[worst.province_code]} to "
-            f"{best.roc_auc:.2f} in {names[best.province_code]}.",
-            captions,
-        ),
     )
     _check(
         weather_blank.share_b > 0,
@@ -608,40 +513,40 @@ def page_validation(captions: dict[str, str]) -> str:
     # comparators; where they round alike, the page says so.
     descriptive = rule_comparison.loc["catalonia_crash_severity", "rule_roc_auc"]
     same_display = f"{descriptive:.2f}" == f"{later_year.in_domain_cv_roc_auc:.2f}"
-    body += "<h2>Validation within Catalonia</h2>"
+    body += "<h2>Tested on a later year and on provinces left out</h2>"
     body += (
-        "<p>Tested without its province variable, so that a province left out of training is "
-        "new to it, the Catalonia severity model keeps its ranking inside Catalonia. On the final "
-        f"year of the Catalan file ({later_year_label}), held back from training and model "
-        f"choice, it scores {later_year.roc_auc:.2f}, against "
+        f"<p>Within Catalonia the {cat_name} keeps its ranking. For these tests it is used "
+        "without its province variable, so that a province left out of training is new to it. "
+        f"On the last year of the Catalan file ({later_year_label}), held back from training and "
+        f"from every choice of settings, it scores {later_year.roc_auc:.2f}, against "
         f"{later_year.in_domain_cv_roc_auc:.2f} for a model trained and cross-validated on the "
         f"{_fmt_int(later_year.test_n)} crashes of that year alone"
         + (
-            " (a different benchmark from the descriptive table on "
-            '<a href="severity-models.html">Severity models</a>, which also scores '
-            f"{descriptive:.2f})"
+            " (a different benchmark from the table on the "
+            '<a href="severity-models.html">models page</a>, which happens to score '
+            f"{descriptive:.2f} too)"
             if same_display
             else ""
         )
         + f". With each of the {_count(len(cat_provinces))} provinces left out of training in "
         f"turn, it scores between {lowest.roc_auc:.2f} ({lowest['name']}) and "
-        f"{highest.roc_auc:.2f} ({highest['name']}) on the province it did not see: above the "
-        f"province's own model in {_join(list(ahead.name))}, whose own records are few, and "
-        f"{_fmt_dec(-gap_behind.transfer_gap, 2)} below it in the province of Barcelona, which "
-        "holds most of the crashes.</p>"
+        f"{highest.roc_auc:.2f} ({highest['name']}) on the province it did not see. That is "
+        f"better than the province's own model in {_join(list(ahead.name))}, whose own records "
+        f"are few, and {_fmt_dec(-gap_behind.transfer_gap, 2)} below it in the province of "
+        "Barcelona, which holds most of the crashes.</p>"
     )
     catalan_tests = reported[reported.model == "catalonia_crash_severity"]
     _check(
         bool((catalan_tests.roc_auc_low.fillna(catalan_tests.roc_auc) > 0.5).all()),
         PAGE,
-        "every test of the Catalonia severity model lies above chance",
+        "every test of the Catalonia model lies above chance",
     )
     body += figure(
         "tr1_catalonia_transfer",
-        "Dot chart of the Catalonia severity model's ROC-AUC, with 95% intervals, on records it "
-        "was not trained on: a later year, each province left out, Barcelona city from the "
-        "rest of Catalonia and the reverse. Every score lies above the chance level of 0.5; "
-        "the lowest is the model trained on Barcelona and scored on the rest of Catalonia.",
+        f"Dot chart of the {cat_name}'s ROC-AUC, with 95% intervals, on records it was not "
+        "trained on: a later year, each province left out, Barcelona city from the rest of "
+        "Catalonia and the reverse. Every score lies above the chance level of 0.5; the lowest "
+        "is the model trained on Barcelona and scored on the rest of Catalonia.",
         captions,
     )
 
@@ -650,11 +555,6 @@ def page_validation(captions: dict[str, str]) -> str:
         to_bcn.roc_auc < cat_provinces.roc_auc.min(),
         PAGE,
         "Barcelona city is the hardest test inside Catalonia",
-    )
-    _check(
-        not slope_low <= to_bcn.calibration_slope <= slope_high,
-        PAGE,
-        "the Catalonia severity model's probabilities do not carry over to Barcelona",
     )
     _check(
         from_bcn.transfer_gap < -tolerance,
@@ -672,148 +572,23 @@ def page_validation(captions: dict[str, str]) -> str:
         PAGE,
         "Barcelona's own model learns from fewer crashes than the model trained elsewhere",
     )
-    intrinsic = shown_components.loc["intrinsic difference"]
     moving = shown_components.loc["transport cost"]
-    # intrinsic_difference_against_urban = (other urban Catalan crashes, same training size)
-    # minus Barcelona: negative means those urban crashes are harder to rank than Barcelona's.
-    urban = main.intrinsic_difference_against_urban
-    urban_only = shown_components.loc["urban-only training"]
     _check(
-        urban_only.value < 0 and urban_only.high < 0,
+        abs(to_bcn.transfer_gap + main.transport_cost) < 1e-6
+        and abs(moving.value - main.transport_cost) < 1e-6,
         PAGE,
-        "training on urban crashes alone transfers worse to Barcelona",
-    )
-    if urban <= 0 and main.urban_comparison_excludes_zero:
-        urban_sentence = (
-            "The difficulty is shared by urban crashes: at the same training size, the rest of "
-            f"Catalonia's urban crashes are ranked {_fmt_dec(-urban, 3)} less well than "
-            "Barcelona's."
-        )
-    elif not main.urban_comparison_excludes_zero:
-        urban_sentence = (
-            "The difficulty is shared by urban crashes: at the same training size, the rest of "
-            "Catalonia's urban crashes are about as hard to rank as Barcelona's (difference "
-            f"{_signed(urban, 3)})."
-        )
-    else:
-        urban_sentence = (
-            "Barcelona's crashes are harder to rank than the rest of Catalonia's urban crashes "
-            f"too, by {_fmt_dec(urban, 3)} at the same training size."
-        )
-    body += "<h2>Validation in Barcelona</h2>"
-    body += (
-        "<p>Barcelona city is the hardest test inside Catalonia. Trained on the rest of "
-        "Catalonia, the Catalonia severity model ranks the city's crashes at "
-        f"{to_bcn.roc_auc:.3f}, against {to_bcn.in_domain_cv_roc_auc:.3f} for a model trained "
-        f"in Barcelona (a difference of {_signed(to_bcn.transfer_gap, 3)}) and "
-        f"{rest_reference:.3f} for a model trained and tested in the rest of Catalonia. The "
-        f"fall of {main.total_drop:.3f} can be traced in three steps. Cutting a rest-of-Catalonia model's training set to the "
-        f"{_fmt_int(to_bcn.in_domain_train_n)} crashes from which Barcelona's own model learns "
-        f"lowers its score by {main.training_size_cost:.3f}. At that equal size, Barcelona's "
-        f"crashes are ranked {main.intrinsic_difference:.3f} less well than the rest of "
-        f"Catalonia's (95% interval {_interval(intrinsic.low, intrinsic.high, 3)}): they are "
-        f"harder to rank. The last {main.transport_cost:.3f} separates Barcelona's own model "
-        f"from the one trained on {_fmt_int(to_bcn.train_n)} crashes elsewhere: the loss from "
-        "applying a model outside the population it learned from, net of the gain from its "
-        f"larger training set. Its interval ({_interval(moving.low, moving.high, 3)}) includes "
-        "zero.</p>"
-    )
-    body += (
-        f"<p>{urban_sentence} Training the model on those urban crashes alone lowers its score "
-        f"in Barcelona by {_fmt_dec(-urban_only.value, 3)}. The Catalonia-trained model's "
-        "probabilities do not carry over "
-        f"to the city (calibration slope {to_bcn.calibration_slope:.2f}, where 1 is "
-        "calibrated), so there its scores order crashes without estimating their fatal share. "
-        "In the reverse direction, a model trained on Barcelona alone ranks the rest of "
-        f"Catalonia poorly ({from_bcn.roc_auc:.3f}, against {rest_reference:.3f}).</p>"
-    )
-    component_order = [c for c in COMPONENTS if c in shown_components.index]
-    _check(
-        len(component_order) == len(shown_components),
-        PAGE,
-        "every component of the Barcelona fall has a reader-facing name",
-    )
-    body += technical(
-        "Components of the fall in Barcelona",
-        table(
-            pd.DataFrame(
-                {
-                    "Component": [COMPONENTS[c][0] for c in component_order],
-                    "ROC-AUC difference": [
-                        _fmt_dec(shown_components.loc[c, "value"], 3) for c in component_order
-                    ],
-                    "95% interval": [
-                        ""
-                        if pd.isna(shown_components.loc[c, "low"])
-                        else _interval(
-                            shown_components.loc[c, "low"], shown_components.loc[c, "high"], 3
-                        )
-                        for c in component_order
-                    ],
-                    "What is compared": [COMPONENTS[c][1] for c in component_order],
-                }
-            ),
-            "Catalonia severity model without its province variable. The second, third and "
-            "fourth rows add up to the total fall.",
-        ),
-    )
-
-    groups = []
-    for _, group in strategies.groupby("target_domain", sort=False):
-        if group.estimator.eq(to_bcn.estimator).any():
-            group = group[group.estimator.eq(to_bcn.estimator)]
-        groups.append(group)
-    chosen = pd.concat(groups)
-    pooled = chosen[chosen.strategy.eq("pooled: both domains")].set_index("target_domain")
-    specific = chosen[chosen.strategy.str.startswith("domain-specific")].set_index("target_domain")
-    _check(
-        bool((pooled.gain_over_specific_high >= 0).all()),
-        PAGE,
-        "a pooled model ranks each population at least as well as a separate model",
+        "the Barcelona difference is the net cost of using a model trained elsewhere",
     )
     _check(
-        abs(specific.loc["Barcelona municipality", "roc_auc"] - to_bcn.in_domain_cv_roc_auc) < 1e-6,
+        main.training_size_cost + main.intrinsic_difference > 0.5 * main.total_drop,
         PAGE,
-        "the separate Barcelona model is the Barcelona reference of the transfer test",
+        "most of the Barcelona gap comes from harder crashes and the smaller training set",
     )
-    body += (
-        "<p>A single model trained on Barcelona's and the rest of Catalonia's crashes together "
-        "ranks each population as well as a separate model does ("
-        f"{pooled.loc['Barcelona municipality', 'roc_auc']:.3f} against "
-        f"{specific.loc['Barcelona municipality', 'roc_auc']:.3f} in Barcelona, "
-        f"{pooled.loc['rest of Catalonia', 'roc_auc']:.3f} against "
-        f"{specific.loc['rest of Catalonia', 'roc_auc']:.3f} in the rest of Catalonia), so a "
-        "separate model for Barcelona brings no measurable gain.</p>"
+    _check(
+        from_bcn.roc_auc == reported[reported.model == "catalonia_crash_severity"].roc_auc.min(),
+        PAGE,
+        "the lowest Catalan test is the model trained on Barcelona and scored elsewhere",
     )
-    body += technical(
-        "Pooled and separate models",
-        table(
-            pd.DataFrame(
-                {
-                    "Crashes scored": [_place(d, True) for d in chosen.target_domain],
-                    "Model trained on": [_strategy_label(s) for s in chosen.strategy],
-                    "ROC-AUC": [_fmt_dec(v, 3) for v in chosen.roc_auc],
-                    "Difference from the separate model (95% interval)": [
-                        ""
-                        if s.startswith("domain-specific")
-                        else f"{_signed(g, 3)} ({_interval(lo, hi, 3)})"
-                        for s, g, lo, hi in zip(
-                            chosen.strategy,
-                            chosen.gain_over_specific,
-                            chosen.gain_over_specific_low,
-                            chosen.gain_over_specific_high,
-                        )
-                    ],
-                }
-            ),
-            "Models scored on the same held-out crashes of each population, Catalan file.",
-        ),
-    )
-
-    loss = components[components.component.str.startswith("feature loss")]
-    loss_bcn = loss[
-        loss.component.str.endswith("Barcelona municipality") & loss.estimator.eq(to_bcn.estimator)
-    ]
     _check(
         bcn_records.status != "reported"
         and min(bcn_records.test_positives, bcn_records.test_n - bcn_records.test_positives)
@@ -826,39 +601,29 @@ def page_validation(captions: dict[str, str]) -> str:
         PAGE,
         "the model overstates the fatal share in Barcelona's own records",
     )
-    _check(
-        bcn_vars.roc_auc < bcn_vars.in_domain_cv_roc_auc,
-        PAGE,
-        "on Barcelona's variables the Catalonia model starts lower in the city",
+    body += "<h2>Tested on Barcelona city</h2>"
+    body += (
+        "<p>Barcelona city is the hardest test inside Catalonia. Trained on the rest of "
+        f"Catalonia, the {cat_name} ranks the city's crashes at {to_bcn.roc_auc:.3f}, against "
+        f"{to_bcn.in_domain_cv_roc_auc:.3f} for a model trained in Barcelona: a difference of "
+        f"{_signed(to_bcn.transfer_gap, 3)} (95% interval "
+        f"{_interval(-moving.high, -moving.low, 3)}), too small to separate from zero. Both "
+        f"scores are well below the {rest_reference:.3f} that a model reaches when trained and "
+        "tested in the rest of Catalonia, mainly because Barcelona's crashes are harder to rank "
+        "and fewer of them are available to train a model.</p>"
     )
     body += (
-        f"<p>The Guàrdia Urbana's own records for {bcn_records_year} hold "
-        f"{_fmt_int(bcn_records.test_n)} crashes defined compatibly with the Catalan file, only "
-        f"{_fmt_int(bcn_records.test_positives)} of them fatal: too few for a ranking test. For "
-        "these crashes the Catalonia model restricted to Barcelona's variables predicts a fatal "
-        f"share of {_fmt_pct(bcn_records.mean_predicted)}, against "
+        "<p>The ranking carries over to the city, but the probabilities do not: the "
+        f"calibration slope there is {to_bcn.calibration_slope:.2f}, far from 1, so in "
+        "Barcelona the model's scores order crashes without estimating their fatal share. The "
+        f"Guàrdia Urbana's own records for {bcn_records_year}, a second source for the city, "
+        f"hold {_fmt_int(bcn_records.test_n)} crashes defined compatibly with the Catalan file, "
+        f"only {_fmt_int(bcn_records.test_positives)} of them fatal: too few for a ranking test. "
+        "For these crashes the Catalonia model restricted to Barcelona's variables predicts a "
+        f"fatal share of {_fmt_pct(bcn_records.mean_predicted)}, against "
         f"{_fmt_pct(bcn_records.test_prevalence)} observed (95% interval "
         f"{_fmt_dec(100 * bcn_records.observed_low, 1)}–{_fmt_pct(bcn_records.observed_high)}), "
         "so it overstates the fatal share in the city.</p>"
-    )
-    records = ""
-    if not loss_bcn.empty:
-        lb = loss_bcn.iloc[0]
-        _check(lb.low > 0, PAGE, "Barcelona's variables cost ranking within Barcelona")
-        records = (
-            "Restricting the Catalonia severity model to the variables Barcelona records costs "
-            f"{lb.value:.3f} of ROC-AUC within Barcelona (95% interval "
-            f"{_interval(lb.low, lb.high, 3)}). "
-        )
-    body += technical(
-        "Barcelona's own crash records",
-        f"<p>{records}On the city's crashes in the Catalan file, the model restricted to "
-        f"Barcelona's variables scores {bcn_vars.roc_auc:.3f}, against "
-        f"{bcn_vars.in_domain_cv_roc_auc:.3f} for a model trained in Barcelona on the same "
-        "variables. The crashes taken from the Guàrdia Urbana's records are those with a death "
-        "within 24 hours or a hospital stay of more than 24 hours, compatible with the "
-        f"definition of the Catalan file. A ranking test needs at least {minimum} fatal and {minimum} non-fatal "
-        "crashes, so no ROC-AUC is reported for them.</p>",
     )
     _check(
         districts.transfer_gap >= -tolerance and districts.roc_auc_low > 0.5,
@@ -866,9 +631,9 @@ def page_validation(captions: dict[str, str]) -> str:
         "the person-severity model keeps its ranking across Barcelona's districts",
     )
     body += (
-        "<p>Within the city, the Barcelona person-severity model keeps its ranking when each of "
-        f"the {_count(int(districts.districts))} districts is left out of training in turn: "
-        f"{districts.roc_auc:.3f} on the district it did not see, against "
+        f"<p>Within the city, the {MODELS['barcelona_person_severity']} keeps its ranking when "
+        f"each of the {_count(int(districts.districts))} districts is left out of training in "
+        f"turn: {districts.roc_auc:.3f} on the district it did not see, against "
         f"{district_reference.roc_auc:.3f} in ordinary cross-validation on the same records.</p>"
     )
 
@@ -913,36 +678,6 @@ def page_validation(captions: dict[str, str]) -> str:
         PAGE,
         "DGT's records apply one source's definitions in every province",
     )
-    body += "<h2>Population differences</h2>"
-    body += (
-        "<p>In DGT's records, which use the same definitions in every province, a death or "
-        "serious injury occurs in a smaller share of injury crashes in Catalonia than elsewhere "
-        f"in Spain ({_fmt_pct(cat['serious'][0])} against {_fmt_pct(spain['serious'][0])}), and "
-        "fewer of those crashes are fatal within 24 hours "
-        f"({_fmt_pct(cat['fatal_24h'][0])} against {_fmt_pct(spain['fatal_24h'][0])}). Barcelona "
-        "city lies further from the national pattern, at "
-        f"{_fmt_pct(bcn['serious'][0])} and {_fmt_pct(bcn['fatal_24h'][0])}.</p>"
-    )
-    rows = {
-        "Injury crashes": [_fmt_int(populations[p]["serious"][1]) for p in order],
-        "Share with a death or serious injury (24 hours)": [
-            _fmt_pct(populations[p]["serious"][0]) for p in order
-        ],
-        "Share fatal (30 days)": [_fmt_pct(populations[p]["fatal_30d"][0]) for p in order],
-        "Crashes with a death or serious injury (24 hours)": [
-            _fmt_int(populations[p]["fatal_24h"][1]) for p in order
-        ],
-        "Of these, share fatal (24 hours)": [
-            _fmt_pct(populations[p]["fatal_24h"][0]) for p in order
-        ],
-    }
-    body += table(
-        pd.DataFrame(
-            [[label, *values] for label, values in rows.items()],
-            columns=["Measure", *[_place(p, True) for p in order]],
-        ),
-        f"Crash severity in DGT records, {dgt_period}. Barcelona city is part of Catalonia.",
-    )
 
     def largest(variable: str) -> str:
         part = serious[
@@ -972,7 +707,6 @@ def page_validation(captions: dict[str, str]) -> str:
         "'unknown' alignment is commoner in Catalonia; weather and surface are left unspecified "
         "more often elsewhere, weather almost never in Catalonia",
     )
-    # Barcelona's serious crashes against Spain's, the same population as Catalonia's above.
     bcn_mix = divergences("Barcelona city vs Spain outside Catalonia")
     bcn_material = bcn_mix[bcn_mix > resemblance]
     _check(
@@ -980,41 +714,34 @@ def page_validation(captions: dict[str, str]) -> str:
         PAGE,
         "Barcelona's serious crashes differ from Spain's far more than Catalonia's do",
     )
+    body += "<h2>How the crash populations differ</h2>"
     body += (
-        "<p>Catalonia's serious and fatal crashes also occur more often on dual carriageways "
+        "<p>A model can rank well in a population whose crashes look quite different from its "
+        "own, so a successful transfer says nothing about how alike the populations are. DGT's "
+        f"records for {dgt_period}, which use the same definitions in every province, show that "
+        "they differ. A "
+        "death or serious injury occurs in a smaller share of injury crashes in Catalonia than "
+        f"elsewhere in Spain ({_fmt_pct(cat['serious'][0])} against "
+        f"{_fmt_pct(spain['serious'][0])}), and fewer of those crashes are fatal within 24 hours "
+        f"({_fmt_pct(cat['fatal_24h'][0])} against {_fmt_pct(spain['fatal_24h'][0])}). Barcelona "
+        f"city lies further from the national pattern, at {_fmt_pct(bcn['serious'][0])} and "
+        f"{_fmt_pct(bcn['fatal_24h'][0])}.</p>"
+    )
+    body += (
+        "<p>Catalonia's serious and fatal crashes also happen more often on dual carriageways "
         f"({_fmt_pct(dual.share_a)} against {_fmt_pct(dual.share_b)} elsewhere in Spain) and "
         f"less often on conventional roads ({_fmt_pct(conventional.share_a)} against "
         f"{_fmt_pct(conventional.share_b)}), and fewer are run-off-road crashes "
         f"({_fmt_pct(run_off.share_a)} against {_fmt_pct(run_off.share_b)}). "
         f"{_count(len(material)).capitalize()} of the {_count(len(cat_mix))} variables compared "
-        f"differ by more than a limit fixed in advance: {_variables(material.index)}. Part of "
-        "the difference lies in recording practice, which the data cannot separate from "
-        "differences in the crashes themselves: DGT's code for an unknown road alignment covers "
+        f"differ by more than a limit set in advance: {_variables(material.index)}. Part of the "
+        "difference is recording practice, which the data cannot separate from real differences "
+        "in the crashes: DGT's code for an unknown road alignment covers "
         f"{_fmt_pct(unknown.share_a)} of these crashes in Catalonia and "
         f"{_fmt_pct(unknown.share_b)} elsewhere, and weather is unspecified in "
         f"{_fmt_pct(weather_blank.share_b)} outside Catalonia but almost never inside it. "
-        "Barcelona city's "
-        f"serious and fatal crashes differ from Spain's far more, on {_count(len(bcn_material))} "
-        f"variables, led by {_variables(bcn_material.index[:3])}.</p>"
-    )
-    body += technical(
-        "Divergence of each variable from Spain outside Catalonia",
-        "<p>The Jensen–Shannon divergence compares two distributions of a variable's categories: "
-        "it is 0 when they are identical and grows as they separate. A divergence above "
-        f"{resemblance:g} was fixed in advance as a material difference.</p>"
-        + table(
-            pd.DataFrame(
-                {
-                    "Variable": [
-                        VARIABLE_HEADINGS.get(v, _variable(v)).capitalize() for v in cat_mix.index
-                    ],
-                    "Catalonia": [_fmt_dec(v, 3) for v in cat_mix],
-                    "Barcelona city": [_fmt_dec(bcn_mix.get(v), 3) for v in cat_mix.index],
-                }
-            ),
-            "Divergence from Spain outside Catalonia, crashes with a death or serious injury, "
-            f"DGT records {dgt_period}.",
-        ),
+        "Barcelona city's serious and fatal crashes differ from Spain's far more, on "
+        f"{_count(len(bcn_material))} variables, led by {_variables(bcn_material.index[:3])}.</p>"
     )
 
     # ------------------------------------------------------------------ scope
@@ -1039,29 +766,18 @@ def page_validation(captions: dict[str, str]) -> str:
         PAGE,
         "the harmonised model scores slightly below the model trained on the Spanish records",
     )
-    body += "<h2>Scope of generalisation</h2>"
+    body += "<h2>What the tests support</h2>"
     body += (
-        "<p>A successful external test shows that the associations a model has learned order "
-        "cases in much the same way in a population it has not seen, recorded by another body "
-        "under its own procedures. The test on DGT's records meets that standard: the two "
-        "sources are kept separately and define the outcome in the same way, and the "
-        f"harmonised Catalonia model loses only {_fmt_dec(-national.transfer_gap, 3)} of ROC-AUC "
-        "against a model trained on the Spanish records.</p>"
-        "<p>Such a test leaves three questions open. It does not show that the training "
-        "population resembles the population tested: Catalonia's serious and fatal crashes "
-        f"differ materially from Spain's on {_count(len(material))} of the "
-        f"{_count(len(cat_mix))} variables compared, and a model can rank well in a population "
-        "whose composition differs from its own. It does not make the associations causal: a "
-        "variable can rank fatal outcomes well because it travels with something the records "
-        'do not hold (see <a href="severity-models.html">Severity models</a>). And it covers '
-        f"only the {_count(len(used))} variables that both sources record alike. The Catalonia "
-        "severity model itself and the Barcelona person-severity model rest on "
-        "variables or records that no second source holds, so both are validated only within "
-        "their own files.</p>"
-        "<p>The evidence therefore supports using the Catalonia severity model to rank serious "
-        "and fatal crashes within Catalonia. No model has passed every kind of test, from "
-        "held-out records to a comparison of its training crashes with Spain's, and none has "
-        "been shown to be fit for use across Spain.</p>"
+        f"<p>The tests support ranking serious and fatal crashes with the {cat_name} within "
+        "Catalonia, and show that a version restricted to the variables DGT records alike ranks "
+        "serious crashes elsewhere in Spain about as well as a model trained there, losing only "
+        f"{_fmt_dec(-national.transfer_gap, 3)} of ROC-AUC. The full {cat_name} and the "
+        f"{MODELS['barcelona_person_severity']} use variables or records that no second source "
+        "holds, so both are tested only within their own files. The model's probabilities did "
+        "not carry over to Barcelona city, and Catalonia's serious crashes differ materially "
+        f"from Spain's on {_count(len(material))} of the {_count(len(cat_mix))} variables "
+        "compared. No model has been shown to be fit for use across Spain, so national use of "
+        "the models is not established.</p>"
     )
     model_order = list(MODELS)
     _check(
@@ -1076,7 +792,7 @@ def page_validation(captions: dict[str, str]) -> str:
         if row.status not in cells:
             raise ValueError(f"{PAGE} page: no reader-facing word for {row.status!r}")
         if row.status == "not testable":
-            _check("too few" in row.evidence, PAGE, "an untestable stage had too few cases")
+            _check("too few" in row.evidence, PAGE, "an untestable test had too few cases")
         return cells[row.status]
 
     not_testable = path[path.status.eq("not testable")]
@@ -1086,7 +802,7 @@ def page_validation(captions: dict[str, str]) -> str:
         "only the test on Barcelona's own records had too few cases",
     )
     body += technical(
-        "Validation evidence by model",
+        "Tests passed by each model",
         table(
             pd.DataFrame(
                 {
@@ -1102,8 +818,10 @@ def page_validation(captions: dict[str, str]) -> str:
         )
         + "<p>“Passed” means that the model ranks above chance with 95% confidence and, where a "
         "model trained within the test population gives a reference, scores no more than "
-        f"{tolerance:g} below it. The last column is “yes” only if no variable's divergence "
-        f"from Spain's mix exceeds {resemblance:g}. Both limits were fixed before any result was "
+        f"{tolerance:g} below it. The last column is “yes” only if no variable's distribution "
+        "differs from Spain's by more than a Jensen–Shannon divergence of "
+        f"{resemblance:g}, a measure that is 0 for identical distributions. Both limits were "
+        "set before any result was "
         "read. “Not run”: no second source holds the model's variables or the crashes it would "
         f"need. “Too few cases”: Barcelona's own records for {bcn_records_year} hold "
         f"{_fmt_int(bcn_records.test_positives)} fatal crashes.</p>",
@@ -1116,8 +834,8 @@ def page_validation(captions: dict[str, str]) -> str:
     shown = shown.assign(
         _order=shown.model.map({m: i for i, m in enumerate(model_order)})
     ).sort_values("_order", kind="stable")
-    # The Catalonia severity model is tested without its province variable, so that a province
-    # left out is new to it; the models page reports the version with it.
+    # The Catalonia model is tested without its province variable, so that a province left out
+    # is new to it; the models page reports the version with it.
     no_province = variants[
         variants.model.eq("catalonia_crash_severity")
         & variants.feature_set.eq(primary.loc["catalonia_crash_severity", "feature_set"])
@@ -1128,7 +846,7 @@ def page_validation(captions: dict[str, str]) -> str:
     _check(
         len(no_province) == 1 and abs(no_province.roc_auc.iloc[0] - later_year.roc_auc) < 1e-6,
         PAGE,
-        "the external tests use the Catalonia severity model without its province variable",
+        "the external tests use the Catalonia model without its province variable",
     )
     with_province = primary.loc["catalonia_crash_severity", "roc_auc"]
     body += technical(
@@ -1158,10 +876,9 @@ def page_validation(captions: dict[str, str]) -> str:
             "minus that reference). Outcome cases are fatal crashes for the Catalan models and "
             "serious or fatal injuries for the Barcelona person-severity model. Each model uses "
             "the method, logistic regression or gradient-boosted trees, chosen on its own "
-            "validation data. The Catalonia severity model is tested without its province "
-            "variable, so that a province left out is new to it; in the later year this version "
-            f"scores {later_year.roc_auc:.3f}, against {with_province:.3f} for the version with "
-            "the province variable reported on Severity models.",
+            f"validation data. The {cat_name} is tested without its province variable; in the "
+            f"later year this version scores {later_year.roc_auc:.3f}, against "
+            f"{with_province:.3f} for the version with it reported on the models page.",
         )
         + f'<p>The <a href="{DOCS_URL}/GENERALISABILITY.md">generalisability report</a> lists '
         "every test with its training and test periods, for both logistic regression and "
@@ -1170,9 +887,9 @@ def page_validation(captions: dict[str, str]) -> str:
     body += downloads(
         [
             ("ml_transport_validation", "external tests"),
-            ("ml_outward_path", "evidence by model"),
+            ("ml_outward_path", "tests passed by each model"),
             ("ml_barcelona_diagnosis", "Barcelona scores"),
-            ("ml_barcelona_diagnosis_components", "Barcelona components"),
+            ("ml_barcelona_diagnosis_components", "parts of the Barcelona fall"),
             ("ml_domain_strategies", "pooled models"),
             ("ml_transport_provinces", "provinces"),
             ("ml_domain_shift", "variable distributions"),
@@ -1188,7 +905,7 @@ def page_validation(captions: dict[str, str]) -> str:
     return render_page(
         PAGE,
         "External validation of the severity models",
-        "Tests of the severity models on crashes from other years, places and data sources, "
-        "and how Catalonia's and Barcelona's crashes compare with those of the rest of Spain.",
+        "Whether the severity models still rank crashes well when they are applied to a later "
+        "year, to places left out of training and to another source's records.",
         body,
     )

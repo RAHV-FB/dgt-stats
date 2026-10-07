@@ -271,19 +271,19 @@ L 82.89125 329.694313
      </g>
     </g>
     <g id="text_14">
-     <text style="font-size: 9px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start; fill: #0b0b0b" x="90.09125" y="332.844313" transform="rotate(-0 90.09125 332.844313)">Catalonia severity model</text>
+     <text style="font-size: 9px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start; fill: #0b0b0b" x="90.09125" y="332.844313" transform="rotate(-0 90.09125 332.844313)">Catalonia crash-severity model</text>
     </g>
     <g id="line2d_20">
-     <path d="M 220.553281 329.694313 
-L 229.553281 329.694313 
-L 238.553281 329.694313 
+     <path d="M 248.35625 329.694313 
+L 257.35625 329.694313 
+L 266.35625 329.694313 
 " style="fill: none; stroke-dasharray: 7.4,3.2; stroke-dashoffset: 0; stroke: #eb6834; stroke-width: 2"/>
      <g>
-      <use xlink:href="#m00be163fef" x="229.553281" y="329.694313" style="fill: #eb6834; stroke: #fcfcfb; stroke-linejoin: miter"/>
+      <use xlink:href="#m00be163fef" x="257.35625" y="329.694313" style="fill: #eb6834; stroke: #fcfcfb; stroke-linejoin: miter"/>
      </g>
     </g>
     <g id="text_15">
-     <text style="font-size: 9px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start; fill: #0b0b0b" x="245.753281" y="332.844313" transform="rotate(-0 245.753281 332.844313)">Barcelona person-severity model</text>
+     <text style="font-size: 9px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start; fill: #0b0b0b" x="273.55625" y="332.844313" transform="rotate(-0 273.55625 332.844313)">Barcelona person-severity model</text>
     </g>
    </g>
   </g>

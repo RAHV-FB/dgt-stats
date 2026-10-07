@@ -14,9 +14,9 @@ import pandas as pd
 
 from dgt_stats import forecast
 from dgt_stats.site.components import (
+    DOCS_URL,
     _fmt_int,
     _fmt_pct,
-    _signed_pct,
     downloads,
     figure,
     limitation,
@@ -180,7 +180,6 @@ def _detect_rows(detect: pd.DataFrame, last_years: str) -> pd.DataFrame:
 def page_forecast(captions: dict[str, str]) -> str:
     n = forecast_numbers()
     rmse, years, detect = n["rmse"], n["years"], n["detect"]
-    trees, hindsight = n["trees"], n["hindsight"]
     chosen, tree = forecast.CHOSEN, forecast.TREE_METHOD
     selection_years, holdout_years = _span(years["selection"]), _span(years["holdout"])
     pandemic_years = _span(years["pandemic"])
@@ -193,10 +192,7 @@ def page_forecast(captions: dict[str, str]) -> str:
     half_power = forecast.detection_power(
         -half * float(one_all.expected), float(one_all.expected), float(one_all.tau)
     )
-    fuel = n["coefficients"].loc[("deaths_all", "log_fuel")]
-    saturday = n["coefficients"].loc[("deaths_all", "saturdays")]
     worst_year = n["worst_year"]
-    leaf = hindsight.rsplit("_", 1)[-1]
     level = _fmt_pct(forecast.ALPHA, 0)
     window = forecast.WINDOW_YEARS
     model_holdout = rmse("deaths_all", "holdout", chosen)
@@ -205,56 +201,33 @@ def page_forecast(captions: dict[str, str]) -> str:
     naive_lockdown = rmse("deaths_all", "pandemic", "last_year")
 
     body = summary(
-        "A Poisson model of monthly deaths, fitted to the four years before each year and given "
-        "that year's road-fuel sales and calendar, forecasts each year's deaths on Spain's "
-        f"roads. In ordinary years not used to build it, {holdout_years}, its forecasts miss "
-        f"by {_fmt_pct(model_holdout)} of the year's deaths (root-mean-square error), slightly "
-        "more than simply repeating the previous year's count "
-        f"({_fmt_pct(naive_holdout)}). In the lockdown years, {pandemic_years}, when traffic "
-        f"collapsed, its error is {_fmt_pct(model_lockdown)} against "
-        f"{_fmt_pct(naive_lockdown)} for the previous year's count. Its main use is to "
-        "measure how large a change in deaths the annual counts can reveal. One year of deaths "
-        "on all roads detects, four times in five, a fall of "
+        f"In ordinary years not used to build the model ({holdout_years}), repeating the "
+        "previous year's monthly counts forecast a year's road deaths more accurately than the "
+        f"fitted Poisson model: an error of {_fmt_pct(naive_holdout)} of the year's deaths against "
+        f"{_fmt_pct(model_holdout)}. The model is therefore not used as the forecast for "
+        f"ordinary years. It did much better in the lockdown years, {pandemic_years}, when "
+        "traffic collapsed and the model was given each month's fuel sales: an error of "
+        f"{_fmt_pct(model_lockdown)} against {_fmt_pct(naive_lockdown)}. Its errors also set "
+        "how large a change a year of counts can reveal: against the forecast, a fall of "
         f"{_fmt_pct(one_all.mde, 0)} ({_fmt_int(one_all.mde_deaths_per_year)} deaths) or a "
-        f"rise of {_fmt_pct(rise_all, 0)} against the forecast. Summing more years makes a "
-        "change of the same proportion harder to detect: the further ahead a forecast runs, "
-        "the further its trend can wander from the real course of deaths, and that error grows "
-        "faster than the larger count reduces chance variation. Over five years, the fall "
-        f"detected four times in five is {_fmt_pct(five_all.mde, 0)}."
+        f"rise of {_fmt_pct(rise_all, 0)} in one year's deaths on all roads is detected four "
+        "times in five."
     )
 
-    body += "<h2>A model of monthly deaths</h2>"
+    body += "<h2>The model and the simple forecasts</h2>"
     body += (
-        "<p>A before-and-after reading of death counts compares the deaths recorded after a "
-        "change with the deaths there would have been without it, and that second number is a "
-        "forecast. The forecast comes from a Poisson regression (the standard regression for "
-        "counts) of each month's deaths within 30 days on the month of the year, a linear "
-        "trend, the month's road-fuel sales (CORES petrol plus diesel) and its number of "
-        "Fridays, Saturdays and Sundays, fitted to the four years before the year being "
-        "forecast. It is fitted separately for all roads, interurban roads and urban streets, "
-        "using only DGT's monthly series and CORES fuel. Fuel sales and the calendar are known "
-        "once a month is over, so the forecast gives the deaths that a month's fuel sales and "
-        "calendar would have gone with on the recent trend.</p>"
-    )
-    body += technical(
-        "The model's coefficients",
-        f"<p>Fitted on {int(fuel.first_year)}–{int(fuel.last_year)}, a window that includes a "
-        "lockdown year, a month with one per cent more road fuel has about "
-        f"{fuel.estimate:.1f}% more deaths ({fuel.low:.1f}% to {fuel.high:.1f}%), and a month "
-        f"with one more Saturday {_fmt_pct(float(saturday.estimate) - 1, 0)} more deaths "
-        f"({_signed_pct(float(saturday.low) - 1)} to {_signed_pct(float(saturday.high) - 1)}). "
-        f"These are associations within {window * 12} months of data and serve only for "
-        "forecasting.</p>",
-    )
-
-    body += "<h2>Comparison with simple forecasts</h2>"
-    body += (
-        f"<p>The model's form and fitting window were chosen on its forecasts of "
-        f"{selection_years}, and it was tested on {holdout_years}, years that played no part "
-        "in the choice; the lockdown years, "
-        f"{pandemic_years}, are scored separately. It is compared with repeating last year's "
-        "count, the mean of the last three years, and gradient-boosted trees (a flexible "
-        "machine-learning method) given the same inputs.</p>"
+        "<p>The model is a Poisson regression (the standard regression for counts) of each "
+        "month's deaths within 30 days on the month of the year, a linear trend, the month's "
+        "road-fuel sales (CORES petrol plus diesel) and its number of Fridays, Saturdays and "
+        f"Sundays, fitted to the {_count_word(window).lower()} years before the year being "
+        "forecast. It is fitted "
+        "separately for all roads, interurban roads and urban streets, from DGT's monthly series "
+        "and CORES fuel alone. Its form and fitting window were chosen on its forecasts of "
+        f"{selection_years}, and it was then scored on {holdout_years}, years that played no "
+        f"part in the choice; the lockdown years, {pandemic_years}, are scored separately. It is "
+        "compared with repeating last year's monthly counts, the mean of the last three years, "
+        "and gradient-boosted trees (a flexible machine-learning method) given the same "
+        "inputs.</p>"
     )
 
     def row(label: str, errors: dict[str, float]) -> dict[str, str]:
@@ -272,26 +245,21 @@ def page_forecast(captions: dict[str, str]) -> str:
         row("Poisson model: month, trend, road fuel and weekend days", method(chosen)),
         row("Poisson model: month and trend only", method("trend")),
         row("Gradient-boosted trees, same inputs", method(tree)),
-        row("Last year's count", method("last_year")),
+        row("Last year's monthly counts", method("last_year")),
         row("Mean of the last three years", method("mean_3_years")),
     ]
     body += table(
         pd.DataFrame(rows),
         "Forecast error for a year's deaths on all roads (root-mean-square error as a share of "
-        "the year's deaths), each year forecast from the four years before it.",
+        f"the year's deaths), each year forecast from the {_count_word(window).lower()} years "
+        "before it.",
     )
     body += (
-        "<p>The model is more accurate than the trees in every set of years and on each type "
-        "of road: a tree cannot extend a trend beyond the range it has seen, and with only "
-        f"{window * 12} monthly observations it fits noise. In the lockdown years it is far "
-        "more accurate than last year's count, because it is given each month's fuel sales. "
-        "In the ordinary held-out years last year's count does slightly better "
-        f"({_fmt_pct(naive_holdout)} against {_fmt_pct(model_holdout)}); the model's largest "
-        f"miss is for {worst_year}, forecast from a window that includes the lockdowns. For "
-        "forecasting an ordinary year, repeating last year's count is the better choice. For "
-        "measuring how large a change the counts can reveal, the model is the better "
-        "reference: it must also hold in years when traffic or the trend moves, and whether "
-        "the coming years will be ordinary is not known in advance.</p>"
+        f"<p>The model's largest miss in the held-out years was {worst_year}, forecast from a "
+        "window that included the lockdowns. The trees were less accurate than the model in "
+        "every set of years and on every type of road: a tree cannot extend a trend beyond the "
+        f"range it has seen, and with only {window * 12} monthly observations it fits "
+        "noise.</p>"
     )
     body += figure(
         "k1_forecast_check",
@@ -299,7 +267,7 @@ def page_forecast(captions: dict[str, str]) -> str:
         captions,
     )
     body += technical(
-        "How the model and the trees were chosen, and a comparison made after the test",
+        "How the model and the trees were chosen",
         f"<p>{_count_word(len(forecast.SPECIFICATIONS))} versions of the model (all with month "
         "and trend terms, with or without road fuel and the weekend-day counts) and fitting "
         f"windows of {min(forecast.CANDIDATE_WINDOWS)} to {max(forecast.CANDIDATE_WINDOWS)} "
@@ -310,35 +278,34 @@ def page_forecast(captions: dict[str, str]) -> str:
         "month-and-trend form scored better in the selection years "
         f"({_fmt_pct(rmse('deaths_urban', 'selection', 'trend'))} against "
         f"{_fmt_pct(rmse('deaths_urban', 'selection', chosen))}), but one form is used for "
-        "every type of road.</p>"
-        "<p>One comparison was made after the test. Trees required to group at least "
-        f"{leaf} months together would have scored "
-        f"{_fmt_pct(float(trees.loc[hindsight, 'holdout']))} on the held-out years, better than "
-        "every other forecast. That setting was found by looking at the test years, so its "
-        "score there is not an independent test, and it is less accurate than the model in "
-        f"the selection years ({_fmt_pct(float(trees.loc[hindsight, 'selection']))}) and in "
-        f"the lockdown years ({_fmt_pct(float(trees.loc[hindsight, 'pandemic']))}).</p>",
+        "every type of road. The "
+        f'<a href="{DOCS_URL}/models/dgt_monthly_deaths_forecast.md">model card</a> also '
+        "reports a tree setting found by looking at the held-out years, which is therefore not "
+        "an independent test.</p>",
     )
 
-    body += "<h2>How large a change the counts can reveal</h2>"
+    body += "<h2>How large a change a year of counts can reveal</h2>"
     body += (
-        "<p>A comparison between the recorded count and the forecast can reveal a change only "
-        "when the change is large against the forecast's ordinary error. That error has two "
-        "parts. Chance variation in the number of deaths becomes proportionally smaller as "
-        "more deaths are counted. Drift is the distance between the trend fitted to the years "
-        "before a change and the real course of deaths, and it grows the further the trend is "
-        "extrapolated: measured on the model's own past forecasts for all roads, it is "
-        f"{_fmt_pct(one_all.tau)} of one year's deaths and {_fmt_pct(five_all.tau)} of a "
-        "five-year total. Together the two parts give the change "
-        "that such a comparison detects four times in five, with a two-sided test at the "
-        f"{level} level. For one year of deaths on all roads that is a fall of "
-        f"{_fmt_pct(one_all.mde, 0)} or a rise of {_fmt_pct(rise_all, 0)}; a fall half that "
-        f"size, about {_fmt_pct(half, 0)}, is detected only {_fmt_pct(half_power, 0)} of the "
-        f"time. Interurban roads need a fall of {_fmt_pct(one_inter.mde, 0)}, and urban "
-        f"streets, with fewer deaths and a less steady trend, {_fmt_pct(one_urban.mde, 0)}. "
-        "Because the drift grows faster than chance variation shrinks, summing more years "
-        f"raises the threshold: over five years it is {_fmt_pct(five_all.mde, 0)} on all "
-        "roads.</p>"
+        "<p>Judging whether deaths changed after some event means comparing the recorded count "
+        "with a forecast of what it would otherwise have been, and a change shows only when it "
+        "is large against the forecast's ordinary error. That error has two parts. Chance "
+        "variation in the number of deaths shrinks, as a share, the more deaths are counted. "
+        "Drift, the distance between the trend fitted to earlier years and the real course of "
+        "deaths, grows the further the trend is projected: measured on the model's own past "
+        f"forecasts for all roads, it is {_fmt_pct(one_all.tau)} of one year's deaths and "
+        f"{_fmt_pct(five_all.tau)} of a five-year total. This section uses the model's errors "
+        "rather than those of last year's counts because the model allows for changes in "
+        "traffic through fuel sales: a change being judged may come with a change in traffic, "
+        "as in the lockdown years, when repeating last year's counts missed badly.</p>"
+        "<p>Together the two parts set the change that such a comparison detects four times in "
+        f"five, with a two-sided test at the {level} level. For one year of deaths on all roads "
+        f"that is a fall of {_fmt_pct(one_all.mde, 0)} or a rise of {_fmt_pct(rise_all, 0)}; a "
+        f"fall half that size, about {_fmt_pct(half, 0)}, is detected only "
+        f"{_fmt_pct(half_power, 0)} of the time. Interurban roads need a fall of "
+        f"{_fmt_pct(one_inter.mde, 0)}, and urban streets, with fewer deaths and a less steady "
+        f"trend, {_fmt_pct(one_urban.mde, 0)}. Because the drift grows faster than chance "
+        "variation shrinks, summing more years raises the threshold: over five years it is "
+        f"{_fmt_pct(five_all.mde, 0)} on all roads.</p>"
     )
     body += table(
         _detect_rows(detect, last_years),
@@ -379,8 +346,8 @@ def page_forecast(captions: dict[str, str]) -> str:
     return render_page(
         "forecast",
         "Forecasting monthly road deaths",
-        "A forecast of Spain's road deaths built only from DGT's monthly death series and CORES "
-        "road-fuel sales, tested against simple forecasts and used to measure how large a "
-        "change in deaths one or several years of counts can reveal.",
+        "A Poisson model of Spain's monthly road deaths, tested against repeating the previous "
+        "year's counts, and the size of change in deaths that one or several years of counts "
+        "can reveal.",
         body,
     )

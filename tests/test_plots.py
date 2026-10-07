@@ -25,7 +25,7 @@ EXPECTED_FIGURES = {
     "f1_speed_severity",
     "f2_factor_shares",
     "c3_speed_status",
-    "a1_km_risk_by_age",
+    "a1_killed_per_involved",
     "a2_denominator_contrast",
     "v1_per_vehicle_vs_per_km",
     "p1_points_series",
@@ -334,7 +334,7 @@ def test_build_all_writes_every_registered_figure(tmp_path: Path) -> None:
     n_drivers = int(frames["q9_infraction_shares"].query("zone == 'all'").total.sum())
     assert captions["c3_speed_status"].endswith(f"n = {n_drivers:,} drivers.")
     n_involved = int(frames["q7_km_rates"].drivers_involved.sum())
-    assert captions["a1_km_risk_by_age"].endswith(f"n = {n_involved:,} drivers involved.")
+    assert captions["a1_killed_per_involved"].endswith(f"n = {n_involved:,} drivers involved.")
 
 
 @pytest.mark.skipif(not _TABLES_PRESENT, reason="run `python scripts/analyse.py tables` first")

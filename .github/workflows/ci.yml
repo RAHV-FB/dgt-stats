@@ -46,7 +46,7 @@ jobs:
             data/processed/dgt_accidentes.parquet
           key: >-
             data-${{ hashFiles('data/raw/manifest.csv',
-            'src/dgt_stats/io_*.py', 'src/dgt_stats/codes.py',
+            'src/dgt_stats/io_*.py', 'src/dgt_stats/agebands.py', 'src/dgt_stats/codes.py',
             'src/dgt_stats/derive.py', 'src/dgt_stats/labels.py',
             'scripts/ingest.py', 'scripts/build_tables.py') }}
 

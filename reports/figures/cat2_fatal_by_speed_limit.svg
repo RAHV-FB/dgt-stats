@@ -265,7 +265,7 @@ L 695.8625 193.498359
     <text style="font-size: 8px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start; fill: #52514e" x="451.191202" y="38.454609" transform="rotate(-0 451.191202 38.454609)">all</text>
    </g>
    <g id="text_15">
-    <text style="font-size: 10.5px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start; fill: #0b0b0b" x="249.4625" y="15.178359" transform="rotate(-0 249.4625 15.178359)">Fatal share by recorded speed limit</text>
+    <text style="font-size: 10.5px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start; fill: #0b0b0b" x="249.4625" y="15.178359" transform="rotate(-0 249.4625 15.178359)">Fatal share by posted speed limit (the road's limit, not vehicle speed)</text>
    </g>
   </g>
  </g>

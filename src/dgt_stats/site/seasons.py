@@ -10,7 +10,6 @@ from dgt_stats.site.components import (
     _fmt_pct,
     _join,
     _times,
-    conclusion,
     downloads,
     figure,
     read_table,
@@ -130,9 +129,9 @@ def page_seasons(captions: dict[str, str]) -> str:
         return _fmt_pct(-value, 0)
 
     body = summary(
-        "Road deaths in Spain peak in summer. Once each year's overall level is removed, July "
-        f"has {_times(float(july.rate_ratio))} the deaths of an average month and August "
-        f"{_times(float(august.rate_ratio))}. More road fuel is sold in those months, and part "
+        "Road deaths in Spain peak in summer. Compared with an average month of the same "
+        f"year, July has {float(july.rate_ratio):.2f} times the deaths and August "
+        f"{float(august.rate_ratio):.2f} times. More road fuel is sold in those months, and part "
         "of the excess goes with it. Per tonne of road fuel sold, the one monthly series that "
         f"covers every road and every vehicle, July and August stand at "
         f"{_times(float(july_fuel.rate_ratio))} and {_times(float(august_fuel.rate_ratio))}: "
@@ -168,15 +167,13 @@ def page_seasons(captions: dict[str, str]) -> str:
         "kilometres driven on all roads is unknown.</p>"
     )
 
-    body += "<h2>Month effects</h2>"
+    body += "<h2>Each month against the average month</h2>"
     body += (
-        "<p>The month effects come from a model of monthly deaths with a separate level for "
-        "each year, so that the long-run trend does not enter the seasonal pattern. A second "
-        "version adds road fuel sold as the denominator, which turns each month effect into "
-        "deaths per tonne of fuel against the average month. The intervals allow for monthly "
-        "counts that vary more than chance alone would produce. Both versions pool "
-        f"{_count_word(int(pooled.n_years))} years from {first} to {last}, leaving out "
-        f"{_join([str(year) for year in left_out])}.</p>"
+        "<p>Each month is compared with the average month of the same year, so the long-run "
+        "trend does not enter the seasonal pattern; a second version divides deaths by road "
+        "fuel sold. The intervals allow for monthly counts that vary more than chance alone "
+        f"would produce. Both versions pool {_count_word(int(pooled.n_years))} years from "
+        f"{first} to {last}, leaving out {_join([str(year) for year in left_out])}.</p>"
     )
     body += figure(
         "m2_month_effects",
@@ -218,17 +215,12 @@ def page_seasons(captions: dict[str, str]) -> str:
         f"fell {fall(float(april.deaths_per_road_fuel_tonnes_change))}.</p>"
     )
 
-    body += "<h2>What the summer excess means</h2>"
-    body += conclusion(
-        "Both results depend on the measure set against deaths. Measured against road fuel "
-        "sold, deaths rise more than fuel sales in summer and fell more than fuel sales in "
-        "the April lockdown. Against petrol sales or toll-motorway traffic, August deaths "
-        "stand below both series on the monthly index, and in April deaths fell less than "
-        "either. None of these series measures risk per "
-        "kilometre driven, so whether each kilometre became more or less dangerous during the "
-        "lockdown, and how much of the summer excess would remain per kilometre, is unknown. "
-        "The firm result concerns fuel: in July and August more people die on Spanish roads "
-        "than the fuel sold in those months would predict."
+    body += (
+        "<p>Both results depend on the measure set against deaths. Against road fuel sold, "
+        "deaths rise more than fuel sales in summer and fell more than fuel sales in the April "
+        "lockdown; against petrol sales or toll-motorway traffic, the reverse. None of these "
+        "series measures kilometres driven on all roads, so how much of the summer excess would "
+        "remain per kilometre is unknown.</p>"
     )
     body += downloads(
         [
