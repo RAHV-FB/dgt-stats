@@ -168,7 +168,6 @@ ROLES: tuple[Role, ...] = (
         file_stem="accidents_morts_ferits_greus_catalunya",
     ),
 )
-ROLE_BY_NAME = {role.name: role for role in ROLES}
 
 
 class SourceConflict(RuntimeError):

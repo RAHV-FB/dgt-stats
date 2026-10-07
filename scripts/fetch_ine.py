@@ -3,7 +3,7 @@
 Source: INE, Estadística Continua de Población, table 56947 "Población residente por fecha, sexo,
 grupo de edad y nacionalidad (agrupación de países)", provincial level, 2002 onwards, quarterly
 reference dates. The full CSV is about 330 MB; the extract keeps nationality = Total and the
-1 January and 1 July reference dates only (about 11 MB) and is committed under data/raw/exposure.
+1 January and 1 July reference dates only (about 11 MB) and is committed under data/raw/ine.
 
 Usage:
     python scripts/fetch_ine.py                   # download, filter, write the extract

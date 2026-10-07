@@ -193,6 +193,8 @@ def page_drivers(captions: dict[str, str]) -> str:
     licence = read_table("q7_licence_share")
     year_licence = int(licence.year.max())
     latest_licence = licence[licence.year == year_licence].set_index(["band", "sex"])
+    by_sex = latest_licence.licence_share.unstack("sex")
+    sex_gap = (by_sex.male - by_sex.female).loc[["35-44", "45-54", "55-64", "65-74", "75+"]]
     # Every qualitative statement below, checked against the tables it rests on.
     if not (
         fatality_by_age == sorted(fatality_by_age)
@@ -206,6 +208,7 @@ def page_drivers(captions: dict[str, str]) -> str:
         and float(owner.loc["75+", "transfer_bn_km"]) == 0
         and float(latest_licence.loc[("75+", "total"), "licence_share"]) < 0.5
         and float(latest_licence.loc[("75+", "female"), "licence_share"]) < 0.5
+        and sex_gap.is_monotonic_increasing
     ):
         raise ValueError("drivers page: the age tables no longer read as described")
 
@@ -366,7 +369,7 @@ def page_drivers(captions: dict[str, str]) -> str:
         f"{_fmt_pct(float(latest_licence.loc[('75+', 'total'), 'licence_share']), 0)} of "
         "residents aged 75 and over held a licence of any class against "
         f"{_fmt_pct(float(latest_licence.loc[('45-54', 'total'), 'licence_share']), 0)} of "
-        "those aged 45–54, and the gap between the sexes widens with age: "
+        "those aged 45–54, and from 35–44 on the gap between the sexes widens with age: "
         f"{_fmt_pct(float(latest_licence.loc[('75+', 'male'), 'licence_share']), 0)} of men "
         "over 74 held one and "
         f"{_fmt_pct(float(latest_licence.loc[('75+', 'female'), 'licence_share']), 0)} of "

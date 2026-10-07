@@ -177,6 +177,10 @@ def page_index(captions: dict[str, str]) -> str:
         "the forecast beats last year's count in the lockdowns": rmse("pandemic", chosen)
         < rmse("pandemic", "last_year"),
         "deaths per crash fell more than crashes per tonne of fuel": severity < frequency,
+        "recorded alcohol rose on interurban roads": float(alcohol.share_last)
+        > float(alcohol.share_first),
+        "recorded inappropriate speed fell": float(speed_share.share_last)
+        < float(speed_share.share_first),
         "the forecast's detection probability is four in five": forecast.POWER == 0.8,
     }
     failed = [claim for claim, holds in checks.items() if not holds]
@@ -311,13 +315,14 @@ def page_index(captions: dict[str, str]) -> str:
         ),
         (
             "speed.html",
-            f"Where speed is recorded, a crash is {_times(float(adjusted.rate_ratio))} as likely "
-            "to kill on the same kind of road",
+            f"Where speed is recorded, crashes have {_times(float(adjusted.rate_ratio))} the "
+            "deaths per crash on the same kind of road",
             "Injury crashes in which the police recorded inappropriate speed kill "
             f"{_times(float(adjusted.crude_ratio))} as many people per crash as the rest, and "
             f"{_times(float(adjusted.rate_ratio))} once the comparison is made on the same kind "
             "of road in the same year. That is an association: the record is written after the "
-            "fact, and is likelier to be written when someone has died.",
+            "fact, and the data cannot show whether it is written more often when someone has "
+            "died.",
             "DGT's speed-factor report against totals from the microdata for the same provinces, "
             "which reproduce the report's own zone totals exactly.",
         ),
@@ -338,7 +343,7 @@ def page_index(captions: dict[str, str]) -> str:
                     for row in urban_distraction.itertuples()
                 ]
             )
-            + ", single-year changes the break rule flags, and drugs are too few to compare.",
+            + ", single-year changes the break rule flags, and drugs cannot be compared in any year.",
             "DGT's concurrent-factor tables, with a recording-break rule applied to every "
             "year-to-year change before any trend is read.",
         ),
@@ -393,7 +398,7 @@ def page_index(captions: dict[str, str]) -> str:
 
     body += "<h2>What this site does not claim</h2>"
     body += (
-        "<p>It attributes no cause from Spanish data. DGT's national microdata have one row per "
+        "<p>It attributes no cause. DGT's national microdata have one row per "
         "crash and no driver, vehicle or person records, so every factor here is an "
         "association, and a policy or campaign effect is never read off a time series. Every "
         "result comes from the rows of files in the repository: no observation, coefficient or "

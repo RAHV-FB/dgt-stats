@@ -50,6 +50,16 @@ def page_speed(captions: dict[str, str]) -> str:
             ).all()
         ),
     }
+    speed_changes = read_table("factor_changes")
+    checks["the two readings of the driver tables point in opposite directions"] = bool(
+        status.loc[last_status, "share_speed_infraction"]
+        < status.loc[first_status, "share_speed_infraction"]
+        and status.loc[last_status, "share_among_known"]
+        > status.loc[first_status, "share_among_known"]
+    )
+    checks["the concurrent-factor speed series has no break"] = not bool(
+        speed_changes[speed_changes.factor == "Inappropriate speed"].is_break.any()
+    )
     types = pooled.drop(index="adjusted")
     checks["speed crashes concentrate where every crash is more often fatal"] = bool(
         types.speed_crashes.idxmax() == "other_interurban"
@@ -142,14 +152,14 @@ def page_speed(captions: dict[str, str]) -> str:
     body += "<h2>What the ratio can and cannot mean</h2>"
     body += (
         "<p>Speed here is a concurrent factor written by a police officer after the crash, not a "
-        "measured speed. Two biases pull on the ratio in opposite directions. A fatal crash is "
-        "investigated more thoroughly, so speed is more likely to be found and recorded when "
-        "someone has died: that inflates the ratio. Speed that was present but not recorded "
-        "sits in the comparison group: that deflates it. Neither can be measured from these "
-        "tables. What the data do support is the direction and rough size: where speed is "
-        f"judged to have played a part, a crash is about {_times(rate)} as likely to kill, on the "
-        "same kind of road. It is an association in the police record, not an estimate of how "
-        "many deaths speed caused.</p>"
+        "measured speed. Two possible biases pull on the ratio in opposite directions. If fatal "
+        "crashes are investigated more thoroughly, speed may be recorded more often when "
+        "someone has died, which would inflate the ratio; the data do not show whether this "
+        "happens. Speed that was present but not recorded sits in the comparison group, which "
+        "would deflate it. Neither can be measured from these tables. What the data do support "
+        "is the direction and rough size: where the police recorded speed, crashes have about "
+        f"{_times(rate)} as many deaths per crash, on the same kind of road. It is an "
+        "association in the police record, not an estimate of how many deaths speed caused.</p>"
     )
     body += (
         "<p>The report covers Spain without Cataluña and País Vasco, which keep their own "
@@ -165,7 +175,7 @@ def page_speed(captions: dict[str, str]) -> str:
         "ratios by interurban road type and the adjusted ratio rest on it.</p>"
     )
 
-    body += "<h2>A published series that changes meaning in 2016</h2>"
+    body += f"<h2>A published series that changes meaning in {status_jump}</h2>"
     body += figure(
         "c3_speed_status",
         f"Drivers in injury crashes by recorded speed status, {first_status}–{last_status}",

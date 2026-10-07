@@ -537,7 +537,7 @@ def severity_card(tables: dict[str, pd.DataFrame] | None = None) -> str:
         "",
         _markdown(pd.DataFrame(metric_rows)),
         "",
-        "In the top decile of predicted risk the observed share is "
+        "In the top decile of fitted probability the observed share is "
         + "; ".join(
             f"{outcome} {_pct(top.loc[outcome, 'observed'])} against "
             f"{_pct(top.loc[outcome, 'predicted'])} predicted"
@@ -562,7 +562,7 @@ def severity_card(tables: dict[str, pd.DataFrame] | None = None) -> str:
         "",
         f"Road alignment unknown is {_pct(alignment.catalan_share_of_level)} Catalan, while "
         f"Cataluña has {_pct(alignment.catalan_share_of_all_crashes)} of all crashes, so it marks "
-        "the recording practice of Cataluña's forces.",
+        "crashes recorded in Cataluña rather than a kind of road.",
         "",
         "## Sensitivity: without Cataluña",
         "",

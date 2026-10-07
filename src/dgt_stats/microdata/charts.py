@@ -118,7 +118,6 @@ def catalonia_figures(figures_dir: Path, captions: dict[str, str]) -> None:
             "Fatal share by type of unit involved (a crash can involve several)",
         ),
         ("cat4_fatal_by_crash_type", "crash subtype", "Fatal share by crash type"),
-        ("cat5_fatal_by_lighting", "lighting", "Fatal share by lighting"),
     ):
         _shares(
             shares,
@@ -415,10 +414,19 @@ def transport_figures(figures_dir: Path, captions: dict[str, str]) -> None:
 def build(figures_dir: Path, captions: dict[str, str]) -> None:
     """Every microdata figure; skipped quietly when the microdata tables are not built."""
     needed = (
-        "cat_fatal_share",
+        "bcn_crash_severity_share",
+        "bcn_frequency",
         "bcn_person_severity_share",
+        "cat_fatal_share",
+        "cat_frequency",
+        "gen_province_rates",
+        "ml_calibration",
+        "ml_importance",
+        "ml_model_decisions",
         "ml_selected",
+        "ml_transport_provinces",
         "ml_transport_validation",
+        "ml_variants",
     )
     if not all((TABLES_DIR / f"{name}.csv").exists() for name in needed):
         return

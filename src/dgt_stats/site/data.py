@@ -11,6 +11,7 @@ from dgt_stats.site.components import (
     REPO_URL,
     _change,
     _fmt_pct,
+    _join,
     _signed_pct,
     figure,
     key_figures,
@@ -103,7 +104,19 @@ def _assumptions_section() -> str:
             f"Deaths {float(scatter.loc['deaths_30d', 'dispersion']):.1f}, admissions "
             f"{float(scatter.loc['hospitalised_30d', 'dispersion']):.1f} and injury crashes "
             f"{float(scatter.loc['crashes', 'dispersion']):.0f} times the Poisson variance",
-            "Fails for crashes and admissions. Intervals now allow for an ordinary year: the "
+            "Fails for "
+            + _join(
+                [
+                    label
+                    for key, label in (
+                        ("deaths_30d", "deaths"),
+                        ("hospitalised_30d", "admissions"),
+                        ("crashes", "injury crashes"),
+                    )
+                    if float(scatter.loc[key, "dispersion"]) > 1
+                ]
+            )
+            + ". Intervals now allow for an ordinary year: the "
             f"fall in crashes per resident ({_change(float(crash_person.ratio_to_base))}) is "
             "within it; the rise in admissions as a count "
             f"({_change(float(hosp.ratio_to_base))}) is not",

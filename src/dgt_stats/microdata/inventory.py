@@ -28,7 +28,7 @@ INVENTORY_TABLE = TABLES_DIR / "data_inventory.csv"
 INVENTORY_DOC = DOCS_DIR / "RAW_FILE_INVENTORY.md"
 
 DELIMITER_NAMES = {",": "comma", ";": "semicolon", "|": "pipe", "\t": "tab"}
-GENERATED_LAYERS = ("staging", "processed", "features", "interim")
+GENERATED_LAYERS = ("staging", "processed", "features")
 NOT_SOURCES = {"README.md", ".gitkeep", "manifest.csv"}
 
 

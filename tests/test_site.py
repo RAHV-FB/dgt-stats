@@ -268,7 +268,7 @@ def test_speed_page_carries_severity_and_the_recording_discontinuity(built: Path
     )
     assert f"{adjusted.crude_ratio:.2f}×" in text  # the unadjusted ratio is shown beside it
     # The two biases are named, and no causal count is claimed.
-    assert "inflates the ratio" in text and "deflates it" in text
+    assert "would inflate the ratio" in text and "would deflate it" in text
     assert "not an estimate of how many deaths speed caused" in text
     shares = pd.read_csv(TABLES_DIR / "q9_infraction_shares.csv")
     all_roads = shares[shares.zone == "all"].set_index("year")
@@ -371,7 +371,7 @@ def test_every_page_has_a_description_and_every_image_an_alt(built: Path) -> Non
         description = re.search(r'<meta name="description" content="([^"]*)"', text)
         assert description and len(description.group(1)) > 40, page.name
         if page.name == "index.html":
-            assert "<title>Road safety in Spain · measuring risk, not counting crashes" in text
+            assert "<title>Road safety in Spain · every number from published data" in text
         else:
             assert re.search(r"<title>[^<]+ · Road safety in Spain</title>", text), page.name
         for image in re.findall(r"<img[^>]*>", text):

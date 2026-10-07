@@ -44,10 +44,10 @@ on every run, sets their role.
 
 | Section | Pages | Kind of finding |
 |---|---|---|
-| **Spain** | [2019–2024](https://rahv-fb.github.io/dgt-stats/trends.html), [long run](https://rahv-fb.github.io/dgt-stats/long-run.html), [seasons](https://rahv-fb.github.io/dgt-stats/seasons.html), [age and sex](https://rahv-fb.github.io/dgt-stats/drivers.html), [vehicles](https://rahv-fb.github.io/dgt-stats/vehicles.html), [speed](https://rahv-fb.github.io/dgt-stats/speed.html), [factors](https://rahv-fb.github.io/dgt-stats/factors.html); supporting: [associations in DGT records](https://rahv-fb.github.io/dgt-stats/severity.html), [the 2006 break](https://rahv-fb.github.io/dgt-stats/policy.html) | descriptive (national) |
+| **Spain** | [2019–2024](https://rahv-fb.github.io/dgt-stats/trends.html), [long run](https://rahv-fb.github.io/dgt-stats/long-run.html), [seasons](https://rahv-fb.github.io/dgt-stats/seasons.html), [age and sex](https://rahv-fb.github.io/dgt-stats/drivers.html), [vehicles](https://rahv-fb.github.io/dgt-stats/vehicles.html), [speed](https://rahv-fb.github.io/dgt-stats/speed.html), [factors](https://rahv-fb.github.io/dgt-stats/factors.html); supporting: [associations in DGT records](https://rahv-fb.github.io/dgt-stats/severity.html), [monthly deaths](https://rahv-fb.github.io/dgt-stats/forecast.html), [the 2006 break](https://rahv-fb.github.io/dgt-stats/policy.html) | descriptive (national); the supporting pages are association analyses and a forecast benchmark |
 | **Catalonia** | [serious and fatal crashes](https://rahv-fb.github.io/dgt-stats/catalonia.html) | descriptive (crash records) |
 | **Barcelona** | [crashes, people and recorded causes](https://rahv-fb.github.io/dgt-stats/barcelona.html) | descriptive (crash and person records) |
-| **Models** | [severity models](https://rahv-fb.github.io/dgt-stats/severity-models.html), [monthly deaths forecast](https://rahv-fb.github.io/dgt-stats/forecast.html) | predictive, on unseen records |
+| **Models** | [severity models](https://rahv-fb.github.io/dgt-stats/severity-models.html) | predictive, on unseen records |
 | **Generalisability** | [how far the results reach](https://rahv-fb.github.io/dgt-stats/transport.html) | transportability, and representativeness kept separate |
 | **Sources and methods** | [four layers of data](https://rahv-fb.github.io/dgt-stats/sources.html), [data and methods](https://rahv-fb.github.io/dgt-stats/data.html) | what each dataset represents |
 

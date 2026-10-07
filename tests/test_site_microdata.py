@@ -82,7 +82,7 @@ def test_model_scores_come_from_the_tables(pages: dict[str, str]) -> None:
     for row in selected[selected.primary].itertuples():
         assert f"{row.roc_auc:.2f}" in pages["severity-models"], row.model
         if not row.probabilities_shown_as_estimates:
-            assert "not reliable risk estimates" in pages["severity-models"]
+            assert "not reliable as the share of similar cases" in pages["severity-models"]
 
 
 def test_transfer_scores_and_the_small_barcelona_benchmark_come_from_the_tables(

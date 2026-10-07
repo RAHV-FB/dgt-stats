@@ -347,8 +347,9 @@ def page_long_run(captions: dict[str, str]) -> str:
     return render_page(
         "long-run",
         "1993 to 2024: structural change and the pandemic",
-        "Which changes in thirty years of road deaths are structural, and which are the "
-        "pandemic? Fit the trend before 2020, project it, and compare the count with occupant "
+        "Which changes in thirty years of road deaths follow the long-run trend, and which years "
+        "from 2020 depart from it? Fit the trend before 2020, project it, and compare the count "
+        "with occupant "
         "deaths per registered vehicle, deaths per tonne of road fuel and, on interurban roads, "
         "deaths per measured kilometre.",
         body,

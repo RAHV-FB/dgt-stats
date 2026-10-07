@@ -251,10 +251,6 @@ def load(role: str) -> pd.DataFrame:
     return pd.read_parquet(path)
 
 
-def rows_per_crash(frame: pd.DataFrame) -> pd.Series:
-    return frame.groupby(KEY).size()
-
-
 # ----------------------------------------------------------------------------- crash table
 def _date_fields(frame: pd.DataFrame, year: str, month: str, day: str) -> pd.DataFrame:
     out = pd.DataFrame(index=frame.index)

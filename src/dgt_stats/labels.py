@@ -122,11 +122,6 @@ HOUR_BANDS: dict[str, str] = {
     f"{low:02d}-{high:02d}": f"{low:02d}:00–{high:02d}:59" for low, high in HOUR_BAND_EDGES
 }
 
-ZONES: dict[str, str] = {"interurban": "Interurban", "urban": "Urban", "all": "All roads"}
-
-
-WEEKDAYS: dict[int, str] = {int(k): v for k, v in ENGLISH["DIA_SEMANA"].items()}
-
 # 30-day death columns by road-user type -> label.
 ROAD_USER_TYPES: dict[str, str] = {
     "TOT_PEAT_MU30DF": "Pedestrians",

@@ -80,6 +80,7 @@ def page_policy(captions: dict[str, str]) -> str:
             knot_2004.level_low < 0 < knot_2004.level_high
         ),
         "a placebo break before 2019 fails the speed-limit design": len(failed_placebo) >= 1,
+        "July 2006 is the largest fall of the July placebos": int(true_calendar["rank"]) == 1,
     }
     failed = [claim for claim, holds in checks.items() if not holds]
     if failed:
@@ -165,6 +166,8 @@ def page_policy(captions: dict[str, str]) -> str:
     )
     others = calendar[~calendar.is_true].sort_values("level_change")
     runner_up = others.iloc[0]
+    if not float(runner_up.low) <= float(true_calendar.high):
+        raise ValueError("policy page: the July 2006 interval no longer overlaps the runner-up's")
     body += (
         f"<p>July 2006 is the largest fall of the {int(true_calendar.n_fits)}, but only just. "
         f"July {int(runner_up.year)} gives {_signed_pct(float(runner_up.level_change), 1)} and "

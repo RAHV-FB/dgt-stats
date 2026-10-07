@@ -733,7 +733,3 @@ def dgt_model_fields() -> list[str]:
     """DGT common fields that passed both the a-priori and the overlap validation."""
     table = validate_dgt()
     return [f"dgt_{name}" for name in table.loc[table.enters_cross_source_tests, "field"]]
-
-
-def bcn_model_fields() -> list[str]:
-    return [f"bcn_{field.name}" for field in usable(BCN_FIELDS)]

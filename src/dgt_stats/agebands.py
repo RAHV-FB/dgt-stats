@@ -1,9 +1,9 @@
 """Age bands shared by every exposure and outcome table.
 
 DGT's driver tables and driver census use 15–17, 18–20, 21–24 and then five-year bands up to
-"more than 74"; INE population uses five-year groups; MOVILIA uses six broad bands. Everything is
-mapped onto the analysis bands below. A source band is accepted only when it nests inside exactly
-one analysis band, so nothing is split silently: a band that straddles two analysis bands raises.
+"more than 74"; INE population uses five-year groups. Everything is mapped onto the analysis bands
+below. A source band is accepted only when it nests inside exactly one analysis band, so nothing is
+split silently: a band that straddles two analysis bands raises.
 """
 
 from __future__ import annotations

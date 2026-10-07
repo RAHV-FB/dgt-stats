@@ -47,7 +47,7 @@ records exist only in the Barcelona files (sections 20 and 21).
 | ITV kilometre estimates 2022 | fleet and mean km by vehicle type and age | 2022 | vehicle rates per km |
 | ITV kilometre estimates 2024 | vehicles and km by category and owner age band | 2024 | the driving-exposure denominator |
 | driver census | licence holders by province, sex, age; B-permit holders by age | 2014–2025 | driver casualties per licence holder, sex rates; B-permit holders (2024 text file) for the owner-age check and the contrast denominators |
-| INE population | residents by province, age, sex | 2002–2025 | risk per resident, contrast denominators |
+| INE population | residents by province, age, sex | 2002–2025 | rates per resident (a population rate, not a risk), contrast denominators |
 | CORES road fuel | month | 1996– | the all-road traffic denominator or offset of the risk, long-run and seasonality analyses; the traffic input of the forecasting model; a covariate in the 2006 case study; the biofuel share of road fuel |
 | toll-motorway traffic | month | 1990– | a traffic index shown beside deaths (seasons) and an intensity covariate in the 2006 case study; never a denominator |
 | Ministerio de Transportes, yearbook table 1.2.14 | year, road type | 2004–2023 | measured interurban vehicle-km: the long run per measured km and road-class deaths per measured km (section 5) |
@@ -434,7 +434,8 @@ crashes with each of five police-recorded concurrent factors (distraction, inapp
 illegal manoeuvres, alcohol, drugs) by zone. Each factor's share of the zone's injury crashes (the
 report's own totals) is computed by year (`factor_shares`), and every year-to-year change is tested
 (`factor_consistency`): a change in share beyond a ratio of 1.25 either way in a single year is
-flagged as a recording break and is not read as a change in what drivers did; a change where
+flagged as a break in comparability (the data do not establish whether such a change is
+behavioural or recording-related) and no trend is read across it; a change where
 either year has fewer than 200 crashes cannot be tested and is treated as a break too.
 `comparable_windows` lists the runs of years between breaks, and the page reads trends only within
 them. The threshold is a rule, not a test with a known error rate;

@@ -14,7 +14,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from dgt_stats import agebands, plots, policy, summaries
+from dgt_stats import agebands, factors, plots, policy, summaries
 from dgt_stats.microdata import charts as microdata_charts
 from dgt_stats.paths import FIGURES_DIR, TABLES_DIR
 
@@ -521,7 +521,7 @@ def _factor_figures(figures_dir: Path, captions: dict[str, str], summary) -> Non
         "zone_label",
         "segment",
         figures_dir / "f2_factor_shares.svg",
-        "Share of injury crashes with each factor recorded; gaps are recording breaks",
+        "Share of injury crashes with each factor recorded; gaps are breaks in comparability",
         order=[
             "Alcohol",
             "Inappropriate speed",
@@ -535,9 +535,11 @@ def _factor_figures(figures_dir: Path, captions: dict[str, str], summary) -> Non
         SPEED_REPORT_SOURCE,
         "2014–2023, Spain without Cataluña and País Vasco",
         "injury crashes in which the police recorded each concurrent factor, as a share of all "
-        "injury crashes in the zone; a line is broken wherever the share jumps or falls by more "
-        "than 25% in one year (a recording break), so each unbroken run can be compared within "
-        "itself; each panel has its own scale",
+        "injury crashes in the zone; a line is broken wherever the share rises by more than "
+        f"{factors.BREAK_RATIO - 1:.0%} or falls by more than {1 - 1 / factors.BREAK_RATIO:.0%} "
+        f"in one year, or either year has fewer than {factors.MIN_CRASHES} crashes (a break in "
+        "comparability), so each unbroken run can be compared within itself; each panel has its "
+        "own scale",
     )
 
 

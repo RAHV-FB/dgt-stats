@@ -40,6 +40,7 @@ def page_vehicles(captions: dict[str, str]) -> str:
         and bike_crashes > bike_per_km / bike_crashes > 1
         and truck_crashes < 1 < per_km
         and truck_occupants < 0.5 < bike_occupants
+        and summary.fatal_involvement_per_bn_km.idxmax() == "motorcycle"
     ):
         raise ValueError("vehicles page: the 2022 rates no longer read as described")
 
@@ -205,8 +206,8 @@ def page_vehicles(captions: dict[str, str]) -> str:
         "motorcycles in the kilometres but in the 'other' row of the crash tables. Vans and light "
         "trucks are one group because the "
         f"crash record and the register split them differently; taken apart, light trucks would "
-        f"show {van_gap:.0%} of a van's rate per kilometre, a gap with no plausible cause but the "
-        "coding. The intervals come from the crash counts and treat the kilometres as known."
+        f"show {van_gap:.0%} of a van's rate per kilometre; the data do not establish whether "
+        "that gap is real or comes from the split. The intervals come from the crash counts and treat the kilometres as known."
     )
     return render_page(
         "vehicles",

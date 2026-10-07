@@ -95,20 +95,29 @@ def page_severity(captions: dict[str, str]) -> str:
     def without(key: tuple[str, str]) -> pd.Series:
         return sensitivity.loc[key]
 
+    ranked = coefficients[
+        (coefficients.outcome == "fatal")
+        & ~coefficients.is_nuisance.astype(bool)
+        & ~coefficients.is_reference.astype(bool)
+    ].sort_values("odds_ratio", ascending=False)
     checks = {
+        "the two largest odds ratios are a head-on collision and a pedestrian struck": set(
+            zip(ranked.predictor.iloc[:2], ranked.level.iloc[:2], strict=True)
+        )
+        == {("crash_type", "head-on collision"), ("crash_type", "pedestrian struck")},
         "wet conditions go with lower odds of a death": wet_alone < 1
         and float(adverse.loc[("no_weather", "wet"), "or_high"]) < 1,
         "a junction goes with lower odds of a death": float(
             adverse.loc[("full", "at a junction"), "or_high"]
         )
         < 1,
-        "the wet-surface effect is below 1 in every variant that has it": bool(
+        "the wet-surface odds ratio is below 1 in every variant that has it": bool(
             (adverse.xs("wet", level="level").or_high < 1).all()
         ),
-        "the junction effect is present in every stratum": bool(
+        "the junction association is present in every stratum": bool(
             (adverse.xs("at a junction", level="level").or_high < 1).all()
         ),
-        "hail or snow covers no effect on conventional roads alone": float(
+        "hail or snow covers no difference on conventional roads alone": float(
             adverse.loc[("conventional", "hail or snow"), "or_low"]
         )
         < 1
@@ -177,7 +186,7 @@ def page_severity(captions: dict[str, str]) -> str:
         '<p class="answer">Once an injury crash has happened, the conditions a driver would '
         "call dangerous go with a <em>lower</em> chance that someone dies. A wet road carries "
         f"{wet_alone:.2f} times the odds of a death of a dry one, a junction {junction_full:.2f} "
-        "times the odds of a stretch away from one. Rain and a wet surface are one effect counted "
+        "times the odds of a stretch away from one. Rain and a wet surface are one association counted "
         "twice, worth about "
         f"{wet_alone:.2f} on its own. These are associations in the police record of crashes "
         "that happened, given an injury crash. It says nothing about how often crashes happen.</p>"
@@ -197,21 +206,21 @@ def page_severity(captions: dict[str, str]) -> str:
         "type, crash type, junction, lighting, weather, surface, alignment, time of day, "
         "weekend, number of vehicles and year.</p>"
         "<p>The first objection is that weather and road surface measure much the same thing, so "
-        "a model carrying both splits one effect between two columns. That is what happens. With "
-        f"surface dropped, rain moves from {orr('full', 'rain')} to {orr('no_surface', 'rain')}. "
-        f"With weather dropped, a wet surface moves from {orr('full', 'wet')} to "
-        f"{orr('no_weather', 'wet')}. The right reading is a single wet-conditions effect of "
-        f"about {wet_alone:.2f}.</p>"
+        "a model carrying both splits one association between two columns. That is what "
+        f"happens. With surface dropped, rain moves from {orr('full', 'rain')} to "
+        f"{orr('no_surface', 'rain')}. With weather dropped, a wet surface moves from "
+        f"{orr('full', 'wet')} to {orr('no_weather', 'wet')}. The right reading is a single "
+        f"wet-conditions association, an odds ratio of about {wet_alone:.2f}.</p>"
     )
     body += (
         "<p>The second objection is that adverse weather falls in particular places. Fitting "
         "interurban roads and urban streets separately holds the road context fixed instead of "
-        f"adjusting for it. The wet-surface effect stays: {orr('interurban', 'wet')} on interurban "
-        f"roads and {orr('street', 'wet')} on urban streets. The junction effect, "
+        f"adjusting for it. The wet-surface odds ratio stays: {orr('interurban', 'wet')} on interurban "
+        f"roads and {orr('street', 'wet')} on urban streets. The junction association, "
         f"{orr('full', 'at a junction')} overall, is present in every stratum too. Hail and snow "
         f"behave differently. They give {orr('full', 'hail or snow')} in the full model but "
         f"{orr('conventional', 'hail or snow')} on conventional roads alone, where the interval "
-        "covers no effect at all.</p>"
+        "covers no difference at all.</p>"
     )
     body += figure(
         "s2_adverse_conditions",
@@ -260,7 +269,7 @@ def page_severity(captions: dict[str, str]) -> str:
         f"mountain provinces. That is not what the data show. Dropping the "
         f"{int(widest.n_excluded)} provinces that record most of them moves the odds ratio only "
         f"to {_ci(float(widest.odds_ratio), float(widest.or_low), float(widest.or_high))}. The "
-        "road type is what moves it, and on conventional roads alone the effect disappears.</p>"
+        "road type is what moves it, and on conventional roads alone the association disappears.</p>"
     )
 
     body += "<h2>Missing values and who recorded the crash</h2>"
@@ -340,7 +349,7 @@ def page_severity(captions: dict[str, str]) -> str:
     head_on = fatal.loc[("crash_type", "head-on collision")]
     pedestrian = fatal.loc[("crash_type", "pedestrian struck")]
     body += (
-        "<p>The large ratios are for the kind of crash. A head-on collision carries "
+        "<p>The two largest ratios are for kinds of crash. A head-on collision carries "
         f"{head_on.odds_ratio:.1f} times the odds of a death of a side collision, and a pedestrian "
         f"struck {pedestrian.odds_ratio:.1f} times, against {junction_full:.2f} for a junction and "
         f"{wet_alone:.2f} for a wet road. As a check that the associations carry across "

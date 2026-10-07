@@ -22,7 +22,6 @@ import hashlib
 import logging
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 
 from dgt_stats.microdata import sources
@@ -213,15 +212,3 @@ def read() -> pd.DataFrame:
     if not PROCESSED.exists():
         build()
     return pd.read_parquet(PROCESSED)
-
-
-def severity_consistency(frame: pd.DataFrame) -> pd.DataFrame:
-    """The severity label against the death and serious-injury counts, crash by crash."""
-    return pd.crosstab(
-        frame["severity"],
-        np.select(
-            [frame.n_deaths > 0, frame.n_serious_injuries > 0],
-            ["deaths > 0", "no deaths, serious > 0"],
-            default="no deaths, no serious",
-        ),
-    )

@@ -41,7 +41,7 @@ A check that the associations carry across years, not a measure of a predictive 
 | fatal | 2016-2022 | 2023-2024 | 203,302 | 3,336 | 1.64% | 0.801 | 0.01547 | 0.01614 | 4.2% |
 | serious | 2016-2022 | 2023-2024 | 203,302 | 19,820 | 9.40% | 0.693 | 0.08338 | 0.08800 | 5.3% |
 
-In the top decile of predicted risk the observed share is fatal 7.2% against 7.6% predicted; serious 24.6% against 25.2% predicted (`q3_calibration`).
+In the top decile of fitted probability the observed share is fatal 7.2% against 7.6% predicted; serious 24.6% against 25.2% predicted (`q3_calibration`).
 
 ## Nuisance levels
 
@@ -67,7 +67,7 @@ Where they are (provinces 8, 17, 25, 43, Cataluña, against the rest of Spain):
 | Road surface | not specified | 547 | 0.00% | 0.08% | 0.0% |
 | Alignment | unknown | 78,990 | 34.70% | 0.51% | 95.7% |
 
-Road alignment unknown is 95.7% Catalan, while Cataluña has 24.9% of all crashes, so it marks the recording practice of Cataluña's forces.
+Road alignment unknown is 95.7% Catalan, while Cataluña has 24.9% of all crashes, so it marks crashes recorded in Cataluña rather than a kind of road.
 
 ## Sensitivity: without Cataluña
 

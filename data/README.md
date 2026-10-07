@@ -24,7 +24,7 @@ The raw sources:
 | `raw/dgt/reports/` | DGT | thematic reports and yearbook errata (PDF) |
 | `raw/ine/` | INE | residents by province, age and sex 2002–2025 (extract written by `scripts/fetch_ine.py`); ECEPOV and EHMA survey tables |
 | `raw/transportes/` | Ministerio de Transportes (and former Fomento) | yearbook roads chapter 2023 (vehicle-km by road type), toll-motorway traffic, MOVILIA 2006–2007 |
-| `raw/comunidad_madrid/` | Comunidad de Madrid | MOVILIA 2007 regional tables |
+| `raw/comunidad_madrid/` | Comunidad de Madrid | MOVILIA 2006 extract for Madrid (files named `movilia07t0N`); read by no code |
 | `raw/cores/` | CORES | monthly road fuel by product |
 | `raw/catalonia/` | Servei Català de Trànsit | crashes with a death or serious injury, 2010–2023 (downloaded as `export.csv`) |
 | `raw/barcelona/2025/` | Ajuntament de Barcelona, Guàrdia Urbana | six crash tables for 2025 sharing `Numero_expedient` (downloaded as `download.csv` … `download(5).csv`) |

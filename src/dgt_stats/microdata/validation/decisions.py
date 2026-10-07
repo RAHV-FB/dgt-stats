@@ -282,16 +282,8 @@ def national_rows(tables: dict[str, pd.DataFrame]) -> list[dict]:
                 f"{a.roc_auc_unrecorded_flags_only:.3f} against {a.roc_auc_recorded_values:.3f} "
                 "from the recorded values"
             )
-        rule_path = TABLES_DIR / "q3_rule_comparison.csv"
+        # An association analysis, not a predictive model: it is not compared with a table.
         beats_table, baseline, usefulness = None, "not compared", "an association model"
-        if rule_path.exists():
-            r = pd.read_csv(rule_path).iloc[0]
-            beats_table = bool(r.model_adds_signal_over_table)
-            baseline = f"table of {r.rule}: ROC-AUC {r.rule_roc_auc:.3f}"
-            usefulness = (
-                f"gain {r.roc_auc_gain:+.3f} ({r.roc_auc_gain_low:+.3f} to "
-                f"{r.roc_auc_gain_high:+.3f}) over the table"
-            )
         rows.append(
             {
                 "model": "dgt_crash_severity",

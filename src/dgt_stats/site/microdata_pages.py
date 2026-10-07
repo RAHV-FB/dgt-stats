@@ -14,6 +14,7 @@ import pandas as pd
 
 from dgt_stats import layers
 from dgt_stats.microdata.validation import decisions as decision_rules
+from dgt_stats.microdata.validation import generalisability
 from dgt_stats.site.components import (
     DOCS_URL,
     _fmt_int,
@@ -99,6 +100,10 @@ def _year_label(frame: pd.DataFrame) -> str:
 
 def ca(text: str) -> str:
     return f'<span lang="ca">{esc(text)}</span>'
+
+
+def _group(row: pd.Series) -> str:
+    return f"{row.dimension} {row.level.replace('_', ' ')}"
 
 
 def _check(condition: bool, page: str, claim: str) -> None:
@@ -249,7 +254,15 @@ def page_catalonia(captions: dict[str, str]) -> str:
         & shares.level.str.startswith("posted ")
         & (shares.n >= MIN_N)
     ]
-    lowest, highest = posted.iloc[0], posted.sort_values("level").iloc[-1]
+    posted = posted.assign(
+        limit=posted.level.str.extract(r"(\d+)", expand=False).astype(float)
+    ).sort_values("limit")
+    _check(
+        posted.share.is_monotonic_increasing,
+        "catalonia",
+        "the fatal share rises with the posted limit",
+    )
+    lowest, highest = posted.iloc[0], posted.iloc[-1]
     body += (
         f"<p>{ca('C_VELOCITAT_VIA')} is the limit that applied to the road, not how fast "
         "anyone drove. It is a usable number only where the limit was signposted: under the "
@@ -661,8 +674,8 @@ def page_severity_models(captions: dict[str, str]) -> str:
         reading = (
             "its probabilities can be read as estimates for groups of similar cases."
             if row.probabilities_shown_as_estimates
-            else "the probabilities are not reliable risk estimates, so the model is used only "
-            "to rank profiles."
+            else "the probabilities are not reliable as the share of similar cases with the "
+            "outcome, so the model is used only to rank profiles."
         )
         return (
             f"Calibration slope {row.calibration_slope:.2f} and mean prediction "
@@ -812,12 +825,18 @@ def page_severity_models(captions: dict[str, str]) -> str:
             & (subgroups.n >= MIN_N)
         ]
         reported = shown[shown.auc_reported]
+        overall = float(shown[shown.dimension == "all"].roc_auc.iloc[0])
+        groups = reported[reported.dimension != "all"]
+        below = int((groups.roc_auc < overall).sum())
+        worst, best = groups.loc[groups.roc_auc.idxmin()], groups.loc[groups.roc_auc.idxmax()]
         pedestrians = shown[(shown.dimension == "role") & (shown.level == "pedestrian")].iloc[0]
         body += (
             "<p>Every person is scored by a model that never saw their crash (grouped "
-            "cross-validation over the year). Within groups the ranking is weaker than overall: "
-            "a ROC-AUC is shown only where a group has at least 20 serious or fatal cases "
-            f"({len(reported)} groups). Among pedestrians it is "
+            "cross-validation over the year). A ROC-AUC is shown only where a group has at "
+            f"least 20 serious or fatal cases ({len(groups)} groups). Against "
+            f"{overall:.2f} for everyone, {below} of them rank less well and "
+            f"{len(groups) - below} better, from {worst.roc_auc:.2f} ({esc(_group(worst))}) to "
+            f"{best.roc_auc:.2f} ({esc(_group(best))}). Among pedestrians it is "
             f"{'not reportable' if pd.isna(pedestrians.roc_auc) else f'{pedestrians.roc_auc:.2f}'}"
             f" ({int(pedestrians.positives)} serious or fatal of {_fmt_int(pedestrians.n)}).</p>"
         )
@@ -1280,8 +1299,18 @@ def page_transport(captions: dict[str, str]) -> str:
             ("gen_cross_source_register", "cross-source register"),
         ]
     )
+    within = reported[
+        (reported.model == "catalonia_crash_severity")
+        & reported.experiment.str.match(r"temporal holdout|leave out \w+ demarcation")
+    ]
+    _check(
+        len(within) > 1 and bool((within.transfer_gap >= -generalisability.MAX_TRANSFER_GAP).all()),
+        "transport",
+        "the Catalan model keeps its ranking in a later year and in each demarcation left out",
+    )
     body += "<h2>Conclusion</h2>" + conclusion(
-        "Inside Catalonia the severity associations travel between places and years. "
+        "Inside Catalonia the model keeps its ranking in a later year and in each demarcation "
+        "left out of training. "
         "Barcelona's crashes are harder to rank than the rest of Catalonia's, "
         + (
             "as other urban crashes are, "
@@ -1302,7 +1331,9 @@ def page_transport(captions: dict[str, str]) -> str:
         + "None of this is causal."
     )
     body += limits(
-        "Transfer is predictive evidence only; regions differ in how they record crashes; no "
+        "Transfer is predictive evidence only; how often fields are left unrecorded differs "
+        "between regions, and the data do not establish whether that is recording practice or "
+        "the crashes; no "
         "person-level or full-feature national validation is possible with the data in the "
         f'repository. Full tables: <a href="{DOCS_URL}/GENERALISABILITY.md">GENERALISABILITY.md'
         "</a>."

@@ -85,8 +85,8 @@ SUPPORTING_NOTES = {
         "<strong>Supporting analysis.</strong> A dated policy change is the only kind of "
         "intervention the monthly series can test, and this page shows how weak even that test "
         "is: the headline effect did not survive its falsification checks. The site makes no "
-        "causal claim about policies or campaigns. For what the pandemic and traffic did to the "
-        'same series, see the <a href="long-run.html">long-run page</a>.'
+        "causal claim about policies or campaigns. For how the same series moved against its "
+        'pre-2020 trend and against road fuel, see the <a href="long-run.html">long-run page</a>.'
     ),
 }
 
@@ -158,24 +158,11 @@ def _fmt_dec(value: object, decimals: int = 1) -> str:
     return "" if pd.isna(value) else _minus(f"{float(value):,.{decimals}f}")
 
 
-def _signed_int(value: float) -> str:
-    """A signed whole number, so a fall reads as −39 and a rise as +39; zero carries no sign."""
-    if round(float(value)) == 0:
-        return "0"
-    return _minus(f"{float(value):+,.0f}")
-
-
 def _signed_pct(value: float, decimals: int = 0) -> str:
     """A signed percentage, so a fall reads as −7% and a rise as +7%; zero carries no sign."""
     if round(value * 100, decimals) == 0:
         return f"{0:.{decimals}f}%"
     return _minus(f"{value * 100:+.{decimals}f}%")
-
-
-def _chance(power: float) -> str:
-    """A chance of detection in words: '45% of the time', or 'almost every time' from 99%."""
-    power = float(power)
-    return "almost every time" if power >= 0.99 else f"{_fmt_pct(power, 0)} of the time"
 
 
 def _join(items: list[str]) -> str:
@@ -392,7 +379,7 @@ def _place(slug: str) -> tuple[str, str]:
 def render_page(slug: str, title: str, lead: str, body: str, head: str = "") -> str:
     eyebrow, pager = _place(slug)
     page_title = (
-        "Road safety in Spain · measuring risk, not counting crashes"
+        "Road safety in Spain · every number from published data"
         if slug == "index"
         else esc(title) + " · Road safety in Spain"
     )
@@ -409,7 +396,7 @@ def render_page(slug: str, title: str, lead: str, body: str, head: str = "") -> 
 <header>
 <div class="masthead">
 <a href="index.html">Road safety in Spain</a>
-<span class="strap">Measuring risk, not counting crashes</span>
+<span class="strap">Every number from published data</span>
 </div>
 {_nav(slug)}
 </header>

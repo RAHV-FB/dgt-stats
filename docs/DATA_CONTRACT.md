@@ -38,7 +38,7 @@ merged into another and there is no master crash database.
 
 | Layer | Sources | Used for | Not used for |
 |---|---|---|---|
-| National context | DGT crash microdata, yearbook series and tables, driver census and kilometre estimates; INE residents; traffic and fuel series | trends, exposure and denominators, province and year comparisons, historical context, aggregate rates, benchmarks for the regional files | training a severity model unless the [DGT audit](DGT_MICRODATA_AUDIT.md) allows it; denominators for individual crashes |
+| National context | DGT crash microdata, yearbook series and tables, driver census and kilometre estimates; INE residents; traffic and fuel series | trends, exposure and denominators, province and year comparisons, historical context, aggregate rates, benchmarks for the regional files | training a predictive model unless the [DGT audit](DGT_MICRODATA_AUDIT.md) allows it (the severity regression of `scripts/model.py` is a supporting association analysis, never used for prediction); denominators for individual crashes |
 | Crash microdata: Catalonia | Servei Català de Trànsit file | the fatal-against-serious crash model; its temporal and geographic validation; the training domain of the transfer tests | crash frequency (no slight-injury crashes); driving speed; record linkage |
 | Rich microdata: Barcelona | Guàrdia Urbana tables | person and crash severity; road users; recorded causes; diagnostics and external checks of the Catalan model | trends (one year); unique vehicles; a fatal-against-serious benchmark (too few fatal crashes) |
 | Validation and transportability | not a source: a use | models trained in one layer scored on another's real records; population comparisons | creating observations; joining records |
@@ -52,11 +52,12 @@ variable is known, recording artefacts) is generated in
    on the crashes both hold. No source's rows are added to another's training data, imputed into
    it, or reweighted into a synthetic population (reweighting appears only as a labelled
    sensitivity check).
-9. **A source enters a model only if it passes its audit.** The DGT crash microdata train a
-   model only if all seven checks of [`DGT_MICRODATA_AUDIT.md`](DGT_MICRODATA_AUDIT.md) pass
+9. **A source enters a predictive model only if it passes its audit.** The DGT crash microdata
+   train a predictive model only if all seven checks of [`DGT_MICRODATA_AUDIT.md`](DGT_MICRODATA_AUDIT.md) pass
    (unit, target, definitions, construction, severity and inclusion definitions, comparability
-   across provinces, recording artefacts); otherwise they stay the national analytical layer and
-   a test domain for fields validated on the crashes both sources hold.
+   across provinces, recording artefacts); otherwise they stay the national analytical layer (the
+   supporting association analysis among them) and a test domain for fields validated on the
+   crashes both sources hold.
 
 ## Layers on disk
 
@@ -87,13 +88,14 @@ hand from publications: not source data, see below).
   (definitions validated, below).
 - **Forbidden**: linking a DGT crash to a Catalan or Barcelona record by date, place or counts;
   treating deaths by vehicle type as vehicle involvement (they are outcome counts).
-- **Selection and quality**: reconciled with the yearbook by 482 checks; recording practice
-  differs by region (the share of unrecorded values by field and province, and how much of a
+- **Selection and quality**: reconciled with the yearbook by 482 checks; how often fields are
+  left unrecorded differs by region (the share of unrecorded values by field and province, and how much of a
   model's ranking the unrecorded fields alone would carry, are measured in
   [`DGT_MICRODATA_AUDIT.md`](DGT_MICRODATA_AUDIT.md)); coding breaks are listed on the site's
   data page.
-- **Role**: national analytical layer and external test domain; it trains a model only if the
-  audit allows it (decision regenerated each run).
+- **Role**: national analytical layer (including the supporting association analysis) and
+  external test domain; it trains a predictive model only if the audit allows it (decision
+  regenerated each run).
 
 ### DGT yearbook series and statistical tables (`dgt/tables/`)
 
