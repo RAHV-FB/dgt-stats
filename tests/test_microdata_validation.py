@@ -97,7 +97,8 @@ def test_every_transfer_test_with_a_reference_reports_its_gap() -> None:
     with_reference = transport[transport.in_domain_cv_roc_auc.notna() & transport.roc_auc.notna()]
     assert not with_reference.empty
     gap = with_reference.in_domain_cv_roc_auc - with_reference.roc_auc
-    assert np.allclose(gap, with_reference.transfer_gap)
+    # Six significant digits in the table: allow the rounding of three values.
+    assert np.allclose(gap, with_reference.transfer_gap, rtol=0, atol=5e-6)
     temporal = transport[
         transport.experiment.str.startswith("temporal holdout")
         & transport.estimator.ne("baseline_prior")
