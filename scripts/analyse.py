@@ -1,9 +1,13 @@
-"""Produce the descriptive result tables and figures.
+"""Produce the national result tables, every figure and the national model cards.
 
 Usage:
-    python scripts/analyse.py tables     # reports/tables/q*.csv
+    python scripts/analyse.py tables     # reports/tables/q*.csv and the other national tables
     python scripts/analyse.py figures    # reports/figures/*.svg and captions.json
+    python scripts/analyse.py cards      # docs/models/dgt_*.md (needs model.py and the DGT audit)
     python scripts/analyse.py all
+
+Run after scripts/model.py and scripts/microdata.py: the figures include the regional ones, and
+the card of the DGT association analysis quotes the DGT microdata audit.
 """
 
 from __future__ import annotations
@@ -18,7 +22,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 import pandas as pd  # noqa: E402
 
-from dgt_stats import figures, summaries  # noqa: E402
+from dgt_stats import figures, model_cards, summaries  # noqa: E402
 from dgt_stats.paths import TABLES_DIR  # noqa: E402
 
 log = logging.getLogger("analyse")
@@ -47,7 +51,7 @@ def run_figures(frames: dict[str, pd.DataFrame] | None = None) -> None:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("step", choices=("tables", "figures", "all"))
+    parser.add_argument("step", choices=("tables", "figures", "cards", "all"))
     args = parser.parse_args(argv)
     logging.basicConfig(
         level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s", datefmt="%H:%M:%S"
@@ -58,6 +62,9 @@ def main(argv: list[str] | None = None) -> int:
         frames = run_tables()
     if args.step in ("figures", "all"):
         run_figures(frames)
+    if args.step in ("cards", "all"):
+        for path in (model_cards.write_forecast_card(), model_cards.write_severity_card()):
+            log.info("model card %s", path.name)
     log.info("done in %.1f s", time.perf_counter() - started)
     return 0
 

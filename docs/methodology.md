@@ -5,8 +5,9 @@ each from its own data:
 
 1. **Spain.** What is happening across the country, and what changes when road risk is measured
    against residents, licence holders, vehicles and traffic rather than counted (sections 1 to
-   10, 13 and 16, and the two supporting analyses in sections 14 and 15). This part ends with a
-   forecasting model of monthly deaths (section 11).
+   10, 13 and 16). This part ends with a forecasting model of monthly deaths (section 11). The
+   forecast, the associations in DGT's crash records (section 14) and the 2006 case study
+   (section 15) are supporting analyses.
 2. **Individual crash records.** What the Catalan and Barcelona crash records show (section 20).
 3. **Which models earn their place.** A severity model is presented only if it beats a
    descriptive table of outcome shares on the same test rows; otherwise the table replaces it
@@ -40,7 +41,7 @@ records exist only in the Barcelona files (sections 20 and 21).
 
 | Source | Unit | Years | Used for |
 |---|---|---|---|
-| crash microdata | injury crash | 2016–2024 | scoped totals for the speed comparison, the association analysis of severity (section 14), darkness shares, road-class deaths per measured km (`road_class.py`, section 5); in the validation layer, the audit and the national transfer test (section 22) |
+| crash microdata | injury crash | 2016–2024 | scoped totals for the speed comparison, the association analysis of severity (section 14), darkness shares (`q2_night_share`, published as a table only), road-class deaths per measured km (`road_class.py`) and the share of interurban deaths on roads the measured km leave out (section 5); in the validation layer, the audit and the national transfer test (section 22) |
 | yearbook series | year, month or province totals | 1993–2024 | 2019–2024 risk, the long run, seasonality, the monthly deaths of the forecasting model, the 2006 case study, reference totals |
 | yearly statistical tables | aggregate cells | 2014–2024 | vehicles involved by type, driver deaths and involvements by age and vehicle, drivers by recorded infraction |
 | ITV kilometre estimates 2022 | fleet and mean km by vehicle type and age | 2022 | vehicle rates per km |
@@ -206,8 +207,8 @@ conclusion.
 The question this answers is whether 2020–2024 is a distortion or a change of trend. As a count,
 2020 is far below trend and the count is inside its interval from 2021. Occupant deaths per
 registered vehicle are below the interval in 2020 and 2021 and inside it from 2022. Per tonne of
-road fuel, deaths stayed inside the trend's interval in 2020–2022, and 2023–2024 are above it,
-beyond the interval.
+road fuel, deaths stayed inside the trend's interval in 2020–2022, and in 2023–2024 they are above
+the interval.
 
 **Re-run on measured kilometres** (`interurban_km_panel`, `km_trend_check`). The Ministerio de
 Transportes' yearbook table 1.2.14 gives the vehicle-kilometres measured each year on the
@@ -409,9 +410,9 @@ road type and year (2.00, `speed_severity_pooled.csv`) rests on it. Rate ratios 
 intervals; `speed_severity_pooled` pools 2016–2023 by road type and fits a quasi-Poisson model of
 deaths with the log of crashes as offset and road type and year as factors, whose speed
 coefficient is the ratio on the same kind of road.
-The crude ratio is reported beside it. The ratio is an association subject to two biases the data
-cannot measure: differential recording (speed is more likely to be found in a fatal crash, which
-inflates it) and unrecorded speed in the comparison group (which deflates it).
+The crude ratio is reported beside it. The ratio is an association open to two biases the data
+cannot measure: differential recording (if speed is more often found when a crash is fatal, the
+ratio is inflated) and unrecorded speed in the comparison group (which deflates it).
 
 **Speed status in the driver tables.** Tables 6.1 count drivers involved by recorded infraction,
 2014–2024, interurban and urban. The speed page shows the share of drivers with no speed record
@@ -455,7 +456,8 @@ comparison can see. The model card is
 four years before the year it predicts: month of year, a linear trend, the log of the month's road
 fuel (CORES petrol plus diesel) with a free coefficient, and the counts of Fridays, Saturdays and
 Sundays in the month. Traffic and calendar are known once the month is over, so the forecast is
-what the month's traffic and calendar would have produced on the recent trend. Easter is left out:
+the number of deaths associated with the month's traffic and calendar on the recent trend, not an
+advance prediction. Easter is left out:
 in a four-year window it often falls in the same month every year and cannot then be told from
 that month's effect.
 
@@ -482,19 +484,21 @@ ratio), by set of years:
 | the tuned trees | 7.5 % | 8.4 % | 16.9 % |
 
 In the flat held-back years the model does slightly worse than repeating last year (6.6 % against
-5.9 %); it earns its place when the trend or the traffic moves, which is when a change has to be
-told apart from them. Its worst held-back year is 2022, forecast from a window that contains the
-lockdowns. The tuned trees do worse than the model on every kind of road (all roads, interurban
-roads, urban streets) and in every set of years: a tree cannot extend a trend beyond the years it
-has seen, and with 48 rows a small leaf fits the noise. Trees whose leaves hold at least 8 months
-are disclosed as a comparator, not chosen: worse on the selection years (10.3 %), they would have
-done best of all on the held-back years (3.7 %, in every zone better than both the model and last
+5.9 %); it does far better in the selection years and the lockdowns, when the trend or the traffic
+moved. Because it does not beat last year's count in the held-back ordinary years, the generated
+decision table does not feature it as a model ([`MODEL_DECISIONS.md`](MODEL_DECISIONS.md)), and
+its page is listed with the supporting analyses. Its worst held-back year is 2022, forecast from a
+window that contains the lockdowns. The tuned trees do worse than the model on every kind of
+road (all roads, interurban roads, urban streets) and in every set of years: a tree cannot extend
+a trend beyond the years it has seen, and with 48 rows a small leaf fits the noise. Trees whose
+leaves hold at least 8 months, a leaf size found by looking at the held-back years, are disclosed
+as a comparator, not a candidate: worse on the selection years (10.3 %), they would have done
+best of all on the held-back years (3.7 %, in every zone better than both the model and last
 year's count) and worse than the model in the lockdowns (14.2 %); leaves of 12 and 20 months did
 worse again on the held-back years (5.9 % and 7.1 %). A setting that wins only in flat years cannot
 be picked in advance, because whether the years ahead will be flat is not known when a forecast is
-made. A synthetic test checks that the fit
-recovers a known traffic elasticity and weekday effect, and that its forecast follows a traffic
-shock that last year's count misses.
+made. A synthetic test checks that the fit recovers a known traffic elasticity and weekday effect,
+and that its forecast follows a traffic shock that last year's count misses.
 
 **Detectability** (`horizon_errors`, `detectability`, `detection_power`). The error of the forecast
 of an `n`-year total is measured the same way at every origin from 2006, leaving out every forecast
@@ -556,9 +560,10 @@ marginal effects, predicted probabilities for six named crash profiles, and thre
 (fit on 2016–2022 with every predictor but the year, scored on 2023–2024), year-by-year stability
 of the ten largest effects, and separation. The holdout checks that the associations carry across
 years; it does not measure a predictive tool. Small levels are merged on the training years alone,
-so the held-out years decide nothing about the model scored on them, and the Brier skill is
-measured against giving every held-out crash the training years' share of the outcome: 4.2 % for
-fatal and 5.3 % for serious (`q3_holdout_summary.csv`).
+so the held-out years decide nothing about the model scored on them (lighting and surface "not
+specified" are the levels merged). The Brier skill is measured against giving every held-out
+crash the training years' share of the outcome (1.6 % fatal, 9.4 % serious): it is 0.042 for the
+fatal outcome and 0.053 for the serious one (`q3_holdout_summary.csv`).
 
 **Nuisance levels and the recording regime** (`features.is_nuisance`, `models.recording_regime`,
 `models.regime_sensitivity`). The missing states record how a police force fills in the form,
@@ -579,10 +584,10 @@ death, is tested rather than asserted. Four levels (`ADVERSE_LEVELS`) are refitt
 variants (`ADVERSE_VARIANTS`):
 
 - **Collinearity.** Weather and road surface describe overlapping states, so the full model can be
-  splitting one effect between two columns. The variants drop surface, drop weather, drop both, and
-  drop lighting. They show exactly that: on its own either predictor gives about 0.56, while the
-  full model reports 0.86 for rain and 0.62 for wet. The page reports the single wet-conditions
-  effect and says why.
+  splitting one association between two columns. The variants drop surface, drop weather, drop
+  both, and drop lighting. They show exactly that: on its own either predictor gives about 0.56,
+  while the full model reports 0.86 for rain and 0.62 for wet. The page reports the single
+  wet-conditions association and says why.
 - **Road context.** Three stratified fits (interurban roads, urban streets, conventional roads)
   hold the road context fixed by construction instead of adjusting for it, with the zone dropped
   as constant, and the road predictor too in the two road-specific fits. This is what shows that
@@ -681,11 +686,13 @@ The navigation (`NAV_GROUPS` in `src/dgt_stats/site/components.py`) follows the 
 - **Start**: the overview.
 - **Spain: DGT and INE**: the seven findings in reading order (2019–2024, the long run, seasons,
   age and sex, vehicles, speed, factors).
-- **Spain: supporting**: associations in DGT records (section 14) and the 2006 break (section 15),
-  each opening with a note that says why it is a supporting analysis.
+- **Spain: supporting**: associations in DGT records (section 14), monthly deaths (the forecast,
+  section 11) and the 2006 break (section 15); the first and the last open with a note that says
+  why they are supporting analyses.
 - **Catalonia**: serious and fatal crashes.
 - **Barcelona**: crashes and people.
-- **Models**: the severity models (section 21) and the deaths forecast (section 11).
+- **Models**: the severity models (section 21). The deaths forecast left this group because it
+  does not beat last year's count in the held-back ordinary years (section 11).
 - **Generalisability**: how far the results reach (section 22).
 - **Sources and methods**: the four layers of data, and data and methods (with the assumptions
   tested, section 13).
@@ -732,18 +739,19 @@ shared furniture in `components`.
   belt or helmet fields, so factor interactions and person-level risk are out of reach nationally.
   Person records exist only for Barcelona in 2025 (sections 20 and 21).
 - Police-recorded circumstances, whose completeness varies by year and by severity.
-- All model results are associations; the 2006 case study is a coincidence in time unless its
-  falsification tests agree, and they only partly do.
+- All model results are associations; the 2006 case study describes a break that coincides in
+  time with a policy change, and its falsification tests only partly set it apart from ordinary
+  years.
 - Vehicle-kilometres by vehicle type exist in detail for 2022 only (2024 by category, and each
   year on interurban roads only as heavy against other vehicles); kilometres by age are the
-  owner's age; the speed
-  report excludes two regions; road-type coding changed in 2021 (interurban conventional roads),
-  2022 and 2024 (toll and free motorways, with 2023 back at the earlier split) and 2024 (urban),
-  and the junction field changed in 2023.
+  owner's age; the speed report excludes two regions; road-type coding changed in 2021
+  (interurban conventional roads), 2022 and 2024 (toll and free motorways, with 2023 back at the
+  earlier split) and 2024 (urban), and the junction field changed in 2023.
 
 ## 20. The crash-level microdata layer (`src/dgt_stats/microdata/`, `scripts/microdata.py`)
 
-Two regional sources add what the national files lack: individual records with real keys.
+Two regional sources add what the national files lack: records of individual crashes and, in
+Barcelona, of the people in them.
 
 - **Catalonia, 2010–2023**: one row per crash with a death or serious injury (Servei Català de
   Trànsit export). No identifier: `cat_crash_id` is a surrogate on the hash-pinned file. The
@@ -818,9 +826,9 @@ fields recorded alike across provinces, and recording artefacts not dominating (
 only which fields were left unrecorded must reach less than half the lift of a model that sees
 the recorded values). Unless all seven pass, the file remains the national analytical layer and
 an external test domain for fields validated against the Catalan file on the crashes both hold;
-the decision is regenerated on every run. The national transfer test itself is checked: same target (24-hour
-death), same inclusion rule, no Catalan record in the test, coding validated, missingness and
-prevalence reported. Generated: [`DGT_MICRODATA_AUDIT.md`](DGT_MICRODATA_AUDIT.md).
+the decision is regenerated on every run. The national transfer test itself is checked: same
+target (24-hour death), same inclusion rule, no Catalan record in the test, coding validated,
+missingness and prevalence reported. Generated: [`DGT_MICRODATA_AUDIT.md`](DGT_MICRODATA_AUDIT.md).
 
 **Transportability** (`transport.py`). Each model is tested on records it could not have seen:
 inside the Catalan file (Barcelona municipality from the rest and the reverse, each demarcation
@@ -830,7 +838,8 @@ fail); and in Barcelona, each district scored by a model trained on the others. 
 score sits beside an in-domain reference (the same kind of model cross-validated inside the
 target domain, including the test year of the temporal holdouts: the target domain's native
 score) and the transfer gap, transferred minus native, is reported with the sample size, the
-positives and the calibration; a negative gap is ranking lost in the move. A reweighting to the national mix is a sensitivity check, not a national model.
+positives and the calibration; a negative gap is ranking lost in the move. A reweighting to the
+national mix is a sensitivity check, not a national model.
 
 **Why Barcelona is harder** (`diagnosis.py`). The fall from the rest of Catalonia (in-domain) to
 Barcelona (transferred) telescopes into a training-size cost (the rest of Catalonia with its
@@ -849,7 +858,7 @@ question answers the other.
 **The outward path toward Spain.** Five stages: held-out rows of the same source; later years;
 another region inside the source; another independently recorded Spanish dataset; national
 aggregates showing whether the training population resembles Spain. A transfer stage passes when
-the ROC-AUC interval stays above 0.5 and the transfer gap is no worse than -0.05;
-stage 5 passes when no shared variable's mix differs by more than 0.02 (Jensen-Shannon). Only a
-model that passes all five would be called potentially nationally transferable. Everything is
+the ROC-AUC interval stays above 0.5 and the transfer gap is no worse than −0.05; stage 5 passes
+when no shared variable's mix differs by more than 0.02 (Jensen-Shannon). Only a model that
+passes all five would be called potentially nationally transferable. Everything is
 generated in [`GENERALISABILITY.md`](GENERALISABILITY.md) and `reports/model_metrics.json`.

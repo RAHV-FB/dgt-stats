@@ -191,6 +191,16 @@ def forecast_card(tables: dict[str, pd.DataFrame] | None = None) -> str:
         "forecast_*.csv` tables and the constants in `src/dgt_stats/forecast.py`; do not edit "
         "by hand. The site page is `forecast.html`.",
         "",
+        (
+            "**Decision:** REPLACE with the naive forecast (last year's count) for ordinary "
+            "years: it does not beat that comparator on the held-back years; kept for its "
+            "lockdown-years result and the detectable change ([`MODEL_DECISIONS.md`]"
+            "(../MODEL_DECISIONS.md))."
+            if holdout_naive_better
+            else "**Decision:** KEEP: it beats the naive forecasts on the held-back years "
+            "([`MODEL_DECISIONS.md`](../MODEL_DECISIONS.md))."
+        ),
+        "",
         "## Task",
         "",
         "Forecast the number of people killed within 30 days on Spain's roads in each month of a "
@@ -293,10 +303,14 @@ def forecast_card(tables: dict[str, pd.DataFrame] | None = None) -> str:
         lines.append(
             "- In the flat held-back years last year's count does slightly better on all roads "
             f"({_pct(rmse('deaths_all', 'holdout', 'last_year'))} against "
-            f"{_pct(rmse('deaths_all', 'holdout', chosen))}); the model is kept because it is "
-            "far better when traffic or the trend moves "
+            f"{_pct(rmse('deaths_all', 'holdout', chosen))}). By the project's decision rule "
+            "(a model must beat its plain comparator on records it never saw) the forecast is "
+            "replaced by last year's count for ordinary years and is not presented as a "
+            "predictive model ([`MODEL_DECISIONS.md`](../MODEL_DECISIONS.md)). Separately, it is "
+            "far better when traffic moves sharply "
             f"({_pct(rmse('deaths_all', 'pandemic', chosen))} against "
-            f"{_pct(rmse('deaths_all', 'pandemic', 'last_year'))} in the lockdowns)."
+            f"{_pct(rmse('deaths_all', 'pandemic', 'last_year'))} in the lockdown years), and its "
+            "error sets the detectable change."
         )
     if urban_trend_better:
         lines.append(
@@ -335,6 +349,24 @@ def read_severity_tables(tables_dir: Path = TABLES_DIR) -> dict[str, pd.DataFram
 
 def _or(odds: float, low: float, high: float) -> str:
     return f"{odds:.2f} ({low:.2f} to {high:.2f})"
+
+
+def _severity_decision(tables_dir: Path = TABLES_DIR) -> str:
+    """The card's decision line, worded from the DGT microdata audit's checks."""
+    checks = pd.read_csv(tables_dir / "dgt_audit_checks.csv")
+    numbered = checks[checks.check.str.match(r"\d")]
+    failed = [c.split(" ", 1)[1] for c in numbered.loc[~numbered.passed, "check"]]
+    links = (
+        "([`DGT_MICRODATA_AUDIT.md`](../DGT_MICRODATA_AUDIT.md), "
+        "[`MODEL_DECISIONS.md`](../MODEL_DECISIONS.md))"
+    )
+    if not failed:
+        return f"**Decision:** the DGT microdata audit passes every check {links}."
+    return (
+        "**Decision:** KEEP as research/diagnostic model: a supporting association analysis, "
+        "not a predictive model. The DGT crash microdata do not train a predictive model: "
+        f"their audit fails {', '.join(failed)} {links}."
+    )
 
 
 def severity_card(tables: dict[str, pd.DataFrame] | None = None) -> str:
@@ -456,6 +488,8 @@ def severity_card(tables: dict[str, pd.DataFrame] | None = None) -> str:
         "tables (written by `python scripts/model.py`) and the predictor definitions in "
         "`src/dgt_stats/features.py`; do not edit by hand. The site page is `severity.html`, a "
         "supporting analysis.",
+        "",
+        _severity_decision(),
         "",
         "## Task",
         "",
