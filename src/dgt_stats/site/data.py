@@ -4,12 +4,13 @@ from __future__ import annotations
 
 import pandas as pd
 
-from dgt_stats import forecast
+from dgt_stats import factor_models, forecast
 from dgt_stats.paths import TABLES_DIR
 from dgt_stats.site.components import (
     DOCS_URL,
     REPO_URL,
     _change,
+    _fmt_int,
     _fmt_pct,
     _signed_pct,
     figure,
@@ -35,6 +36,13 @@ def _assumptions_section() -> str:
     )
     detect = read_table("forecast_detectability").set_index(["outcome", "horizon"])
     speeds = read_table("simulator_speed_sites")
+    upper = read_table("factor_naturalistic").set_index("zone").loc["all"]
+    distraction = read_table("factor_comparison").set_index(["lever", "zone"])
+    distraction = distraction.loc[("distraction", "all")]
+    killed_over_limit = sum(
+        factor_models.parameter("killed_drivers_bac", f"{band}_2023")
+        for band in ("0.51-1.20", "1.21-2.00", "over_2.00")
+    ) / factor_models.parameter("killed_drivers_analysed", "2023")
     split = read_table("risk_frequency_severity").set_index("year")
     index = read_table("risk_index").set_index(["outcome", "denominator", "year"])
     last = int(split.index.max())
@@ -141,6 +149,28 @@ def _assumptions_section() -> str:
             "measured mean on every kind of road",
             "Holds",
         ),
+        (
+            "Alcohol and drugs",
+            "The police record finds the drunk drivers in fatal crashes",
+            "The forensic toxicology of drivers killed in 2023 (INTCF), against the share of "
+            "fatal crashes the police record with a driver over the limit",
+            f"{_fmt_pct(killed_over_limit, 0)} of killed drivers over 0.5 g/L; a driver over the "
+            f"limit in {_fmt_pct(factor_models.presence('alcohol', 'interurban'), 0)} of "
+            "interurban and "
+            f"{_fmt_pct(factor_models.presence('alcohol', 'urban'), 0)} of urban fatal crashes "
+            "where every driver was tested",
+            "Holds, on a different count: drivers killed against crashes",
+        ),
+        (
+            "Distraction",
+            "The police record finds the distraction in fatal crashes",
+            "The share of crashes distraction causes in a naturalistic driving study, with "
+            "cameras in drivers' cars, applied to every death",
+            f"{_fmt_int(upper.avoided)} deaths a year against {_fmt_int(distraction.avoided)} on "
+            "the police record",
+            "Cannot be tested on Spanish data: the page gives the police record as its estimate "
+            "and the naturalistic figure as its ceiling",
+        ),
     ]
     frame = pd.DataFrame(rows, columns=["Page", "Assumption", "Test", "Result", "Verdict"])
     return (
@@ -239,6 +269,14 @@ def page_data(captions: dict[str, str]) -> str:
                 "TØI; European Commission; DGT; BOE",
                 "The Power Model exponents, the response of speeds to a new limit, car speeds "
                 "measured in Spain in 2022, the legal limits and DGT's values of a casualty: one "
+                "register, each value with its source, table and a verbatim quote.",
+            ),
+            (
+                "Evidence for the factor models",
+                "DGT; INTCF; EU DRUID; Dingus et al.; TØI and others",
+                "The police record of distraction and alcohol in fatal crashes (2022–2024), the "
+                "toxicology of killed drivers, the measured risks of alcohol, drugs and "
+                "distraction, roadside prevalence, and published evaluations of enforcement: one "
                 "register, each value with its source, table and a verbatim quote.",
             ),
         ],

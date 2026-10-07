@@ -99,11 +99,12 @@ report Table 6) at `https://www.esranet.eu/storage/minisites/esra2023countryfact
 (`https://www.esranet.eu/en/esra-123-dashboard/`) for the 2018 share (80.2 %, weighted n 906). The
 two values are typed into `driving_activity_by_age.csv` with their URLs.
 
-### E. Evidence for the simulator (`data/raw/evidence/`)
+### E. Evidence for the simulator and the factor models (`data/raw/evidence/`)
 
 | File | Rows | Content | Original name |
 |---|---:|---|---|
 | `simulator_parameters.csv` | 33 | Hand-typed register of every published value the simulator uses: Power Model exponents, the response of mean speed to a new limit, car speeds measured in Spain in 2022, the legal limits and DGT's values of a casualty, each with its source, its place in the source, the URL and a verbatim quote; see section 3 | compiled by this project |
+| `factor_parameters.csv` | 112 | Hand-typed register of every published value the distraction and alcohol-and-drug models and the enforcement comparison use: DGT's police record of factors in fatal crashes, the toxicology of killed drivers, measured crash risks, roadside prevalence and 17 published evaluations of enforcement, each with its source, its place in the source, the URL and a verbatim quote | compiled by this project |
 
 ## 2. Crash microdata: schema and content
 
@@ -250,6 +251,19 @@ No duplicate identifiers were found in any year.
   table S1 of TØI report 1034/2009; the response curve against figure 3.11.2 of the handbook; the
   limits against the consolidated text of the Reglamento General de Circulación and Real Decreto
   970/2020 in the BOE; and DGT's values against the two 2024 Universidad de Murcia reports.
+
+### Evidence register for the factor models (added October 2026)
+
+- `evidence/factor_parameters.csv`, 112 rows, each a value read in its publication with the table
+  or page, the URL and a verbatim quote; a test requires every quote to contain the value it
+  supports and the ends of its interval. DGT's Tabla 50 counts were read in the 2022, 2023 and
+  2024 reports and the 2024 errata, the toxicology in the INTCF reports for 2023 and 2024, the
+  DRUID risks in its final report, and the distraction risks in Dingus et al. (2016). The
+  enforcement evaluations were read in the Norwegian handbook's chapters and in the abstracts or
+  full texts of the four papers; Fell et al. (2014), whose figure could not be read verbatim, was
+  left out. Where a report's summary
+  and its own table disagree (the EDAP 2024 interval for any substance, 11.62 % in the summary and
+  11.92 % in table 6), the table is used.
 
 ## 4. What the data can and cannot support
 

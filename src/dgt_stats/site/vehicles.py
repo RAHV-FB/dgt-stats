@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
+import pandas as pd
+
 from dgt_stats.site.components import (
+    _fmt_pct,
+    _times,
     conclusion,
     downloads,
     figure,
@@ -102,9 +106,50 @@ def page_vehicles(captions: dict[str, str]) -> str:
         ]
     )
 
+    body += "<h2>How often they crash, and how often a crash is fatal</h2>"
+    split_rows = []
+    for group, row in summary.sort_values(
+        "fatal_involvement_per_bn_km", ascending=False
+    ).iterrows():
+        crashes = float(row.injury_involvement_per_bn_km / car.injury_involvement_per_bn_km)
+        deaths = float(row.fatal_involvement_per_bn_km / car.fatal_involvement_per_bn_km)
+        split_rows.append(
+            {
+                "Vehicle type": row.label,
+                "In injury crashes per bn km": f"{row.injury_involvement_per_bn_km:,.0f}",
+                "Share of those crashes that are fatal": _fmt_pct(
+                    float(row.fatal_involvement / row.injury_involvement)
+                ),
+                "In fatal crashes per bn km": f"{row.fatal_involvement_per_bn_km:.1f}",
+                "Crashes per km, against cars": "1 (reference)"
+                if group == "car"
+                else _times(crashes),
+                "Fatal share, against cars": "1 (reference)"
+                if group == "car"
+                else _times(deaths / crashes),
+                "Fatal crashes per km, against cars": "1 (reference)"
+                if group == "car"
+                else _times(deaths),
+            }
+        )
+    body += table(
+        pd.DataFrame(split_rows),
+        "Vehicles in injury crashes per kilometre, the share of those crashes that were fatal, "
+        "and their product, vehicles in fatal crashes per kilometre, 2022",
+    )
+    bike_crashes = float(bike.injury_involvement_per_bn_km / car.injury_involvement_per_bn_km)
+    truck_crashes = float(truck.injury_involvement_per_bn_km / car.injury_involvement_per_bn_km)
+    body += (
+        "<p>Per kilometre, the motorcycle's excess is in how often it crashes: "
+        f"{_times(bike_crashes)} a car's injury crashes, of which a share only "
+        f"{_times(bike_per_km / bike_crashes)} a car's is fatal. The heavy truck is the opposite: it is in "
+        f"{_times(truck_crashes)} a car's injury crashes per kilometre, but "
+        f"{_times(per_km / truck_crashes)} as many of them are fatal.</p>"
+    )
+
     body += "<h2>Who dies in the crash</h2>"
     body += (
-        "<p>The last column of that table is the second half of the finding. When a motorcycle is "
+        "<p>The last column of the first table is the second half of the finding. When a motorcycle is "
         f"in a fatal crash, {float(bike.occupant_deaths_per_fatal_involvement):.2f} of its own riders "
         f"are killed on average; for a car {float(car.occupant_deaths_per_fatal_involvement):.2f}; for "
         f"a heavy truck {float(truck.occupant_deaths_per_fatal_involvement):.2f}. A fatal crash "
@@ -119,13 +164,15 @@ def page_vehicles(captions: dict[str, str]) -> str:
     )
     body += "<h2>Conclusion</h2>"
     body += conclusion(
-        "Which vehicle looks most dangerous depends entirely on the divisor. Buses and heavy "
-        "trucks lead per vehicle on the road; motorcycles and mopeds lead per kilometre driven, "
-        "and by a wide margin. Neither ranking is wrong, but they answer different questions: "
-        "per vehicle asks what a fleet of that size costs in fatal crashes, per kilometre asks "
-        "what a journey of a given length costs. For heavy trucks the two rankings disagree "
-        f"by a factor of {per_vehicle / per_km:.1f}, and most of the people killed are outside "
-        "the truck."
+        "Per vehicle on the road a heavy truck is in a fatal crash "
+        f"{per_vehicle:.1f}× as often as a car; per kilometre, {per_km:.1f}×, because each truck "
+        f"is driven {float(truck.km_per_vehicle / car.km_per_vehicle):.1f}× as far. Per kilometre "
+        f"the motorcycle leads, at {bike_per_km:.0f}×, almost all of it from crashing "
+        f"{_times(bike_crashes)} as often; the truck's {per_km:.1f}× is all deadliness, and its "
+        f"own occupants are {float(truck.occupant_deaths_per_fatal_involvement):.2f} of the "
+        "deaths in each fatal crash it is in, so most of the people it kills are in other "
+        "vehicles or on foot: a measure built from a vehicle's own occupants would miss most of "
+        "the truck's toll."
     )
 
     body += limits(

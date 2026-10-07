@@ -35,22 +35,32 @@ def test_every_page_is_written_with_one_heading(built: Path) -> None:
         _scripts_are_only_the_simulator(slug, text)
         assert 'lang="en"' in text
         assert f'href="{slug}.html" aria-current="page"' in text
-    # Seven analyses, the simulator, the overview and the data in the main navigation; two
-    # supporting analyses in a second row; and a pointer for each page that was renamed.
-    assert len(site.PAGES) == 10 and len(site.SUPPORTING_PAGES) == 2
+    # Seven analyses, four models, the overview and the data in the main navigation; two
+    # supporting analyses in their own group; and a pointer for each page that was renamed.
+    assert len(site.PAGES) == 13 and len(site.SUPPORTING_PAGES) == 2
     expected = {slug for slug, _ in site.ALL_PAGES} | set(site.MOVED_PAGES)
     assert expected == {p.stem for p in built.glob("*.html")}
 
 
+# The pages that run a script, each loading its model's port and a block of its parameters.
+SCRIPTED_PAGES = {
+    "simulator": ("simulator-parameters", "simulator.js"),
+    "distraction": ("factor-parameters", "factors.js"),
+    "alcohol-drugs": ("factor-parameters", "factors.js"),
+    "enforcement": ("factor-parameters", "factors.js"),
+}
+
+
 def _scripts_are_only_the_simulator(slug: str, text: str) -> None:
-    """No page runs a script except the simulator, which loads its own file and a data block."""
+    """No page runs a script except the model pages, each loading its own file and a data block."""
     scripts = re.findall(r"<script[^>]*>", text)
-    if slug != "simulator":
+    if slug not in SCRIPTED_PAGES:
         assert not scripts, slug
         return
+    block, source = SCRIPTED_PAGES[slug]
     assert scripts == [
-        '<script type="application/json" id="simulator-parameters">',
-        '<script src="simulator.js" defer>',
+        f'<script type="application/json" id="{block}">',
+        f'<script src="{source}" defer>',
     ]
 
 
@@ -286,7 +296,8 @@ def test_front_page_leads_with_the_central_question(built: Path) -> None:
     for slug in ("severity", "policy"):
         assert f'href="{slug}.html"' in body
     assert site.PROFILE_URL in index and "Russell Howard" in index
-    assert len(body) < 10_000
+    # Concise: the findings, one table that splits each of them, and the framing around them.
+    assert len(body) < 16_000
 
 
 def test_every_analysis_page_ends_on_a_stated_conclusion(built: Path) -> None:
@@ -334,7 +345,7 @@ def test_simulator_page_carries_its_evidence_and_works_without_the_script(built:
     # the script, the interactive panel staying hidden until the script reveals it.
     assert f"{-comply.deaths_change:,.0f}" in text
     assert '<div id="simulator-panel" hidden>' in text
-    assert "The laws the page offers as starting points" in text
+    assert "The starting points:" in text
     # Every publication the simulator draws on is linked, and the register is downloadable.
     evidence = pd.read_csv(simulator_evidence_path())
     for url in evidence.url.unique():
@@ -343,7 +354,7 @@ def test_simulator_page_carries_its_evidence_and_works_without_the_script(built:
     # The model behind the detectability is reported against the naive forecasts.
     for name in ("k1_forecast_check", "k2_detectability"):
         assert f'src="figures/{name}.svg"' in text
-    assert "held back" in text
+    assert "held-back years" in text
     # The parameters block parses and names every interurban road and urban street.
     block = re.search(
         r'<script type="application/json" id="simulator-parameters">(.*?)</script>', text, re.S
@@ -356,7 +367,8 @@ def test_simulator_page_carries_its_evidence_and_works_without_the_script(built:
         "urban_50",
         "urban_30",
     }
-    assert set(parameters["levers"]) == {"motorway", "conventional", "urban_50"}
+    assert set(parameters["levers"]) == {"motorway", "conventional", "urban"}
+    assert set(parameters["groups"]) == {"motorway", "conventional", "urban"}
     assert {p["key"] for p in parameters["presets"]} == set(presets.index)
     # Every preset's chance of showing in a year's count is printed, never a bare yes or no.
     for key, row in presets.drop(index="current").iterrows():
@@ -372,3 +384,76 @@ def simulator_evidence_path() -> Path:
     from dgt_stats.paths import SIMULATOR_EVIDENCE_PATH
 
     return SIMULATOR_EVIDENCE_PATH
+
+
+def test_navigation_groups_its_pages_under_labels(built: Path) -> None:
+    text = (built / "speed.html").read_text(encoding="utf-8")
+    nav = re.search(r'<nav aria-label="Sections">(.*?)</nav>', text, re.S).group(1)
+    labels = re.findall(r'<span class="navlabel" id="(nav-\d+)">([^<]+)</span>', nav)
+    assert [label for _, label in labels] == [group for group, _ in site.NAV_GROUPS]
+    # Every link sits in a list labelled by its group, and no label is itself a list item, so a
+    # group's name can never be mistaken for a page.
+    for anchor, _ in labels:
+        assert f'<ul aria-labelledby="{anchor}">' in nav
+    assert "<li>Supporting analyses</li>" not in nav
+    links = re.findall(r'href="([a-z-]+)\.html"', nav)
+    assert links == [slug for _, pages in site.NAV_GROUPS for slug, _ in pages]
+    # A finding says where it sits and links to its neighbours.
+    assert '<p class="eyebrow">Finding 6 of 7</p>' in text
+    assert 'href="vehicles.html" rel="prev"' in text and 'href="factors.html" rel="next"' in text
+
+
+def test_simulator_controls_start_at_today_and_mark_a_new_limit(built: Path) -> None:
+    text = (built / "simulator.html").read_text(encoding="utf-8")
+    form = text[text.find('<form id="simulator"') : text.find("</form>")]
+    for group, limit in (("motorway", 120), ("conventional", 90), ("urban", 50)):
+        box = form[form.find(f'data-group="{group}"') :]
+        box = box[: box.find("</fieldset>")]
+        # Today's limit is stated as the current one, and the first, checked choice keeps it.
+        assert f"<strong>{limit} km/h</strong>" in box, group
+        first = re.search(rf'<input type="radio" name="limit-{group}" value="(\d+)" checked>', box)
+        assert first and int(first.group(1)) == limit, group
+        assert "No change" in box and f"No new limit: {limit} km/h stays." in box
+        # How drivers respond to a new limit is hidden until a new limit is chosen.
+        assert f'data-response="{group}" hidden' in box, group
+        assert f'id="compliance-{group}"' in box
+    assert 'data-state="unchanged"' in form and 'data-state="changed"' not in form
+
+
+def test_simulator_page_explains_a_higher_limit_everyone_keeps_to(built: Path) -> None:
+    text = (built / "simulator.html").read_text(encoding="utf-8")
+    presets = pd.read_csv(TABLES_DIR / "simulator_presets.csv").set_index("scenario")
+    kept = presets.loc["motorway_140_comply"]
+    assert kept.deaths_change > 0  # the page's claim that a higher limit kept costs lives
+    assert "A higher limit that everyone keeps to" in text
+    assert site._signed_int(kept.deaths_change) in text
+    even = pd.read_csv(TABLES_DIR / "simulator_break_even.csv")
+    assert f"{even.break_even_limit.iloc[0]:.0f} km/h" in text
+    for heading in ("What the model is", "What the model concludes", "The forecasting model"):
+        assert heading in text, heading
+    assert "Gradient-boosted trees" in text and "doi.org/10.1016/j.aap.2005.07.004" in text
+
+
+def test_drivers_page_chains_crashes_and_deaths_per_crash(built: Path) -> None:
+    text = (built / "drivers.html").read_text(encoding="utf-8")
+    ratios = pd.read_csv(TABLES_DIR / "q7_km_ratio.csv").set_index(["measure", "band"])
+    for band in ("18-34", "55-64", "65-74", "75+"):
+        crashes = ratios.loc[("involved_per_bn_km", band), "ratio"]
+        deadly = ratios.loc[("deaths_per_1000_involved", band), "ratio"]
+        deaths = ratios.loc[("deaths_per_bn_km", band), "ratio"]
+        assert crashes * deadly == pytest.approx(deaths)  # the chain holds in the table
+    older = pd.read_csv(TABLES_DIR / "q7_km_ratio_65_74.csv").set_index(["measure", "band"])
+    peers = older.loc[("involved_per_bn_km", "75+")]
+    assert f"{peers.ratio:.2f}× ({peers.low:.2f}–{peers.high:.2f})" in text
+    assert "= drivers killed per billion km" in text
+    for doi in ("10.1016/j.aap.2005.12.002", "10.1016/S0001-4575(01)00107-5"):
+        assert doi in text
+
+
+def test_overview_splits_every_comparison_into_crashes_and_deadliness(built: Path) -> None:
+    text = (built / "index.html").read_text(encoding="utf-8")
+    assert "Where the excess sits" in text
+    # The split shows both directions, not one story told everywhere.
+    body = text[text.find("Where the excess sits") :]
+    body = body[: body.find("</table>")]
+    assert "<td>crashes</td>" in body and "<td>deadliness</td>" in body

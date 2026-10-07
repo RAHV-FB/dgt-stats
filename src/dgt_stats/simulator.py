@@ -12,10 +12,11 @@ four links, and each link names where its numbers come from:
    percentile, separately for autopistas, autovías, conventional roads and urban streets at 50
    and at 30 km/h. A log-normal distribution through the last two reproduces both exactly
    (:class:`SpeedDistribution`); its mean is checked against the measured one.
-3. **From a law to a new mean speed.** Two levers. *A new limit*: drivers move their average speed
-   by only part of the change, by the amount of the curve fitted to 143 before-and-after results
-   in the Norwegian road-safety handbook (:func:`typical_response`), unless the reader sets the
-   share themselves. *Compliance*: a share of the drivers above the limit slow to it; the mean
+3. **From a law to a new mean speed.** Two levers, set separately for each kind of road. *A new
+   limit*: drivers move their average speed by only part of the change, by the amount of the curve
+   fitted to 143 before-and-after results in the Norwegian road-safety handbook
+   (:func:`typical_response`), unless the reader sets the share themselves. *Compliance*: a share
+   of the drivers above the limit in force (the new one, if there is one) slow to it; the mean
    then falls by that share of the expected excess over the limit, computed from the measured
    distribution (:meth:`SpeedDistribution.excess`).
 4. **From mean speed to casualties: the Power Model.** When the mean speed of traffic changes from
@@ -31,7 +32,14 @@ the result could ever be seen in the counts.
 
 A law sets one limit for autopistas and autovías together, as the Reglamento General de
 Circulación does, one for conventional roads and one for urban streets now at 50 km/h; each
-measured kind of road then responds from its own speeds (:data:`LEVERS`).
+measured kind of road then responds from its own speeds (:data:`LEVERS`). How drivers respond to a
+new limit and how many keep to the limit are set per kind of road (:data:`GROUPS`), so that a law
+on one kind of road says nothing about the others.
+
+Beside the casualties, each kind of road reports what the law does to the flow of traffic: the
+share of cars above the limit in force and the spread (standard deviation) of speeds. Keeping to a
+limit narrows the spread as well as lowering the mean; the Power Model counts only the mean, so the
+spread is shown and not turned into casualties.
 
 What is left out, deliberately: other interurban roads (service roads, local tracks), for which no
 speed was measured; urban casualties as a national count, because DGT does not publish how many
@@ -49,7 +57,7 @@ from functools import cache
 
 import numpy as np
 import pandas as pd
-from scipy import stats
+from scipy import optimize, stats
 
 from dgt_stats import forecast, io_traffic
 from dgt_stats.paths import PROCESSED_DATA_DIR, SIMULATOR_EVIDENCE_PATH
@@ -87,6 +95,13 @@ SITES = {
     "urban_50": "Urban streets at 50 km/h",
     "urban_30": "Urban streets at 30 km/h",
 }
+SITE_SHORT = {
+    "autopista": "Autopistas",
+    "autovia": "Autovías",
+    "conventional": "Conventional roads",
+    "urban_50": "Streets at 50 km/h",
+    "urban_30": "Streets at 30 km/h",
+}
 INTERURBAN_SITES = ("autopista", "autovia", "conventional")
 URBAN_SITES = ("urban_50", "urban_30")
 # What a law sets, and the measured sites each limit applies to: the Reglamento gives autopistas
@@ -94,20 +109,33 @@ URBAN_SITES = ("urban_50", "urban_30")
 LEVERS = {
     "motorway": ("autopista", "autovia"),
     "conventional": ("conventional",),
-    "urban_50": ("urban_50",),
+    "urban": ("urban_50",),
+}
+# The kinds of road a reader sets the response and compliance for. Streets at 30 km/h follow the
+# urban setting: their limit does not change, but their drivers can keep to it.
+GROUPS = {
+    "motorway": ("autopista", "autovia"),
+    "conventional": ("conventional",),
+    "urban": ("urban_50", "urban_30"),
+}
+GROUP_LABELS = {
+    "motorway": "Autopistas and autovías",
+    "conventional": "Conventional roads",
+    "urban": "Urban streets",
 }
 LEVER_LABELS = {
-    "motorway": "Autopistas and autovías (120 km/h)",
-    "conventional": "Conventional roads (90 km/h)",
-    "urban_50": "Urban streets now at 50 km/h",
+    "motorway": "Autopistas and autovías",
+    "conventional": "Conventional roads",
+    "urban": "Urban streets now at 50 km/h",
 }
 LEVER_OF = {site: lever for lever, sites in LEVERS.items() for site in sites}
+GROUP_OF = {site: group for group, sites in GROUPS.items() for site in sites}
 # The limits the page offers, inside the range of limit changes the response curve was fitted on
 # (−33 to +24 km/h).
 LIMIT_OPTIONS = {
     "motorway": (100, 110, 120, 130, 140),
     "conventional": (70, 80, 90, 100),
-    "urban_50": (30, 40, 50),
+    "urban": (30, 40, 50),
 }
 RESPONSE_RANGE = (-33, 24)
 
@@ -280,6 +308,31 @@ class SpeedDistribution:
         beyond = stats.norm.cdf((mu - math.log(limit)) / sigma)
         return math.exp(mu + sigma**2 / 2) * above - limit * beyond
 
+    def share_above(self, limit: float, scale: float = 1.0, compliance: float = 0.0) -> float:
+        """Share of cars above ``limit`` after scaling every speed, once ``compliance`` of them
+        have slowed to it."""
+        mu = self.mu + math.log(scale)
+        return (1 - compliance) * float(stats.norm.cdf((mu - math.log(limit)) / self.sigma))
+
+    def spread(self, limit: float, scale: float = 1.0, compliance: float = 0.0) -> float:
+        """Standard deviation of speeds (km/h) after scaling every speed, once ``compliance`` of
+        the cars above ``limit`` have slowed to it.
+
+        Every car above the limit that complies is moved to the limit, so the first two moments
+        lose ``compliance`` times the part of each above the limit, as for :meth:`excess`. The
+        spread is the fitted log-normal's: the measured statistics give no standard deviation.
+        """
+        mu, sigma = self.mu + math.log(scale), self.sigma
+        log_limit = math.log(limit)
+        beyond = stats.norm.cdf((mu - log_limit) / sigma)
+        first = math.exp(mu + sigma**2 / 2)
+        second = math.exp(2 * mu + 2 * sigma**2)
+        first_above = first * stats.norm.cdf((mu + sigma**2 - log_limit) / sigma)
+        second_above = second * stats.norm.cdf((mu + 2 * sigma**2 - log_limit) / sigma)
+        first -= compliance * (first_above - limit * beyond)
+        second -= compliance * (second_above - limit**2 * beyond)
+        return math.sqrt(second - first**2)
+
 
 def speed_distribution(site: str) -> SpeedDistribution:
     return SpeedDistribution(
@@ -304,25 +357,51 @@ def typical_response(limit_change: float) -> float:
     return a * limit_change**2 + b * limit_change
 
 
-def new_mean_speed(
+def speed_steps(
     site: str,
     new_limit: float | None = None,
     response_share: float | None = None,
     compliance: float = 0.0,
-) -> float:
-    """Mean speed after a law: a new limit (with a typical or set response) and compliance with it.
+) -> dict[str, float]:
+    """How a law moves the speeds on one kind of road, one step at a time.
 
     ``response_share`` is the share of the limit change that reaches the mean; ``None`` uses the
-    typical response. ``compliance`` is the share of drivers above the (new) limit who slow to
-    it.
+    typical response. ``compliance`` is the share of the drivers above the limit in force (the new
+    one, if there is one) who slow to it. ``limit_shift`` is the change in the mean that the new
+    limit brings, ``compliance_cut`` the fall that compliance then adds, and ``new_mean_speed``
+    their sum on the measured mean. The share above the limit and the spread describe the flow
+    under the limit in force, before and after.
     """
     distribution = speed_distribution(site)
     limit = distribution.limit if new_limit is None else float(new_limit)
     change = limit - distribution.limit
     shift = typical_response(change) if response_share is None else response_share * change
     shifted = distribution.mean + shift
-    excess = distribution.excess(limit, shifted / distribution.mean)
-    return shifted - compliance * excess
+    scale = shifted / distribution.mean
+    cut = compliance * distribution.excess(limit, scale)
+    return {
+        "limit": distribution.limit,
+        "new_limit": limit,
+        "mean_speed": distribution.mean,
+        "response_share": shift / change if change else math.nan,
+        "limit_shift": shift,
+        "compliance_cut": -cut,
+        "new_mean_speed": shifted - cut,
+        "share_above_limit": distribution.share_above(distribution.limit),
+        "new_share_above_limit": distribution.share_above(limit, scale, compliance),
+        "speed_sd": distribution.spread(distribution.limit),
+        "new_speed_sd": distribution.spread(limit, scale, compliance),
+    }
+
+
+def new_mean_speed(
+    site: str,
+    new_limit: float | None = None,
+    response_share: float | None = None,
+    compliance: float = 0.0,
+) -> float:
+    """Mean speed after a law: a new limit (with a typical or set response) and compliance with it."""
+    return speed_steps(site, new_limit, response_share, compliance)["new_mean_speed"]
 
 
 # --------------------------------------------------------------------------- casualties
@@ -356,48 +435,113 @@ def outcome_ratios(site: str, v1: float) -> dict[str, tuple[float, float, float]
     }
 
 
+# A response share or a compliance is given for every kind of road at once (a number), per kind of
+# road (a mapping from :data:`GROUPS` keys; a kind of road left out takes the default), or not at
+# all (``None``: the typical response, or no compliance beyond today's).
+Setting = float | dict[str, float] | None
+
+
+def for_group(setting: Setting, group: str, default: float | None) -> float | None:
+    """The value a :data:`Setting` gives one kind of road."""
+    if setting is None:
+        return default
+    if isinstance(setting, dict):
+        value = setting.get(group)
+        return default if value is None else float(value)
+    return float(setting)
+
+
 @dataclass(frozen=True)
 class Scenario:
-    """A law: a limit per lever (:data:`LEVERS`), how drivers respond, and compliance."""
+    """A law: a limit per lever (:data:`LEVERS`), and per kind of road (:data:`GROUPS`) how
+    drivers respond to a new limit and how many of those above the limit keep to it."""
 
     key: str
     label: str
     limits: dict[str, float]
-    response_share: float | None = None
-    compliance: float = 0.0
+    response_share: Setting = None
+    compliance: Setting = 0.0
 
     def limit(self, site: str) -> float | None:
         """The new limit on a measured site, or ``None`` where the law leaves it alone."""
         lever = LEVER_OF.get(site)
         return None if lever is None else self.limits.get(lever)
 
+    def response(self, site: str) -> float | None:
+        """The share of a limit change that reaches the mean on ``site``; ``None`` is typical."""
+        return for_group(self.response_share, GROUP_OF[site], None)
 
+    def compliance_on(self, site: str) -> float:
+        """The share of the drivers above the limit on ``site`` who slow to it."""
+        return float(for_group(self.compliance, GROUP_OF[site], 0.0))
+
+
+EVERYONE = 1.0
 PRESETS = (
     Scenario("current", "Today's limits and today's driving", {}),
-    Scenario("conventional_80", "Conventional roads 90 → 80 km/h", {"conventional": 80}),
-    Scenario("motorway_130", "Autopistas and autovías 120 → 130 km/h", {"motorway": 130}),
-    Scenario("motorway_110", "Autopistas and autovías 120 → 110 km/h", {"motorway": 110}),
-    Scenario("urban_30", "Urban streets at 50 → 30 km/h", {"urban_50": 30}),
+    Scenario("all_comply", "Everyone keeps to today's limits", {}, compliance=EVERYONE),
     Scenario("half_comply", "Half of today's speeders keep to the limit", {}, compliance=0.5),
-    Scenario("all_comply", "Every speeder keeps to today's limits", {}, compliance=1.0),
+    Scenario(
+        "conventional_comply",
+        "Everyone keeps to 90 km/h on conventional roads",
+        {},
+        compliance={"conventional": EVERYONE},
+    ),
+    Scenario(
+        "motorway_comply",
+        "Everyone keeps to 120 km/h on autopistas and autovías",
+        {},
+        compliance={"motorway": EVERYONE},
+    ),
+    Scenario("conventional_80", "Conventional roads 90 → 80 km/h", {"conventional": 80}),
+    Scenario("motorway_110", "Autopistas and autovías 120 → 110 km/h", {"motorway": 110}),
+    Scenario("motorway_130", "Autopistas and autovías 120 → 130 km/h", {"motorway": 130}),
+    Scenario(
+        "motorway_130_comply",
+        "Autopistas and autovías at 130 km/h, and everyone keeps to it",
+        {"motorway": 130},
+        compliance={"motorway": EVERYONE},
+    ),
+    Scenario("motorway_140", "Autopistas and autovías 120 → 140 km/h", {"motorway": 140}),
+    Scenario(
+        "motorway_140_comply",
+        "Autopistas and autovías at 140 km/h, and everyone keeps to it",
+        {"motorway": 140},
+        compliance={"motorway": EVERYONE},
+    ),
+    Scenario("urban_30", "Urban streets 50 → 30 km/h", {"urban": 30}),
+)
+
+
+SPEED_COLUMNS = (
+    "limit_shift",
+    "compliance_cut",
+    "share_above_limit",
+    "new_share_above_limit",
+    "speed_sd",
+    "new_speed_sd",
 )
 
 
 def site_effects(scenario: Scenario) -> pd.DataFrame:
-    """For each measured site: speeds before and after, and the ratio of each outcome."""
+    """For each measured site: speeds before and after, step by step, and each outcome's ratio."""
     records = []
     for site, label in SITES.items():
-        distribution = speed_distribution(site)
-        new_limit = scenario.limit(site)
-        v1 = new_mean_speed(site, new_limit, scenario.response_share, scenario.compliance)
+        steps = speed_steps(
+            site, scenario.limit(site), scenario.response(site), scenario.compliance_on(site)
+        )
+        v1 = steps["new_mean_speed"]
         record = {
             "scenario": scenario.key,
             "site": site,
             "site_label": label,
-            "limit": distribution.limit,
-            "new_limit": distribution.limit if new_limit is None else new_limit,
-            "mean_speed": distribution.mean,
+            "limit": steps["limit"],
+            "new_limit": steps["new_limit"],
+            "mean_speed": steps["mean_speed"],
             "new_mean_speed": v1,
+            "response_share": steps["response_share"],
+            "compliance": scenario.compliance_on(site),
+            **{column: steps[column] for column in SPEED_COLUMNS},
         }
         for outcome, (central, at_low, at_high) in outcome_ratios(site, v1).items():
             record[f"{outcome}_ratio"] = central
@@ -461,8 +605,11 @@ def interurban_effects(scenario: Scenario) -> pd.DataFrame:
             "scenario": scenario.key,
             "road_class": key,
             "road_class_label": ROAD_CLASSES[key],
+            "limit": float(site.limit),
+            "new_limit": float(site.new_limit),
             "mean_speed": float(site.mean_speed),
             "new_mean_speed": float(site.new_mean_speed),
+            **{column: float(site[column]) for column in SPEED_COLUMNS},
         }
         values = [0.0, 0.0, 0.0]
         for outcome in OUTCOMES:
@@ -500,8 +647,11 @@ def urban_effects(scenario: Scenario) -> pd.DataFrame:
             "scenario": scenario.key,
             "site": key,
             "site_label": SITES[key],
+            "limit": float(site.limit),
+            "new_limit": float(site.new_limit),
             "mean_speed": float(site.mean_speed),
             "new_mean_speed": float(site.new_mean_speed),
+            **{column: float(site[column]) for column in SPEED_COLUMNS},
         }
         for outcome in OUTCOMES:
             for suffix in ("", "_low", "_high"):
@@ -573,6 +723,8 @@ def presets() -> pd.DataFrame:
                 "deaths_change_high": float(total.deaths_change_high),
                 "seriously_injured_change": float(total.seriously_injured_change),
                 "slightly_injured_change": float(total.slightly_injured_change),
+                "injury_crashes_before": float(total.injury_crashes_before),
+                "injury_crashes_change": float(total.injury_crashes_change),
                 "value_euros": float(total.value_euros),
                 "value_euros_low": float(total.value_euros_low),
                 "value_euros_high": float(total.value_euros_high),
@@ -621,6 +773,64 @@ def limit_grid() -> pd.DataFrame:
 def preset_sites() -> pd.DataFrame:
     """Every preset scenario, site by site: speeds and outcome ratios (urban streets included)."""
     return pd.concat([site_effects(s) for s in PRESETS], ignore_index=True)
+
+
+def preset_roads() -> pd.DataFrame:
+    """Every preset scenario, road by road: speeds, casualties a year, value and time."""
+    frame = pd.concat([interurban_effects(s) for s in PRESETS], ignore_index=True)
+    keep = [c for c in frame.columns if not c.endswith(("_at_low_exponent", "_at_high_exponent"))]
+    return frame[keep]
+
+
+# The higher motorway limits the break-even table looks at, with everyone keeping to them.
+BREAK_EVEN_LIMITS = (130, 140)
+
+
+def _motorway_deaths_change(new_limit: float, response_share: float | None) -> float:
+    scenario = Scenario(
+        "b", "b", {"motorway": new_limit}, {"motorway": response_share}, {"motorway": EVERYONE}
+    )
+    effects = interurban_effects(scenario).set_index("road_class")
+    return float(effects.loc[list(GROUPS["motorway"]), "deaths_change"].sum())
+
+
+def break_even() -> pd.DataFrame:
+    """A higher motorway limit that everyone keeps to: when does it cost no lives against today?
+
+    Raising the limit lifts the mean by the drivers' response; everyone keeping to the new limit
+    takes off the speed above it. For each limit in :data:`BREAK_EVEN_LIMITS` this finds the share
+    of the rise that may reach the mean before deaths on autopistas and autovías exceed today's
+    (``break_even_share``), beside the share the evidence says is typical; and, with the typical
+    response, the highest limit everyone could keep to before deaths exceed today's
+    (``break_even_limit``, the same on every row).
+    """
+    today = parameter("limit", GROUPS["motorway"][0])
+    limit = optimize.brentq(
+        lambda x: _motorway_deaths_change(x, None), today + 1e-6, today + RESPONSE_RANGE[1]
+    )
+    records = []
+    for new_limit in BREAK_EVEN_LIMITS:
+        change = new_limit - today
+        typical = typical_response(change) / change
+        low, high = _motorway_deaths_change(new_limit, 0.0), _motorway_deaths_change(new_limit, 1.0)
+        share = (
+            optimize.brentq(lambda r: _motorway_deaths_change(new_limit, r), 0.0, 1.0)
+            if low < 0 < high
+            else math.nan
+        )
+        records.append(
+            {
+                "group": "motorway",
+                "limit": today,
+                "new_limit": new_limit,
+                "compliance": EVERYONE,
+                "typical_share": typical,
+                "deaths_change_typical": _motorway_deaths_change(new_limit, None),
+                "break_even_share": share,
+                "break_even_limit": limit,
+            }
+        )
+    return pd.DataFrame.from_records(records)
 
 
 def speed_sites() -> pd.DataFrame:
@@ -686,7 +896,9 @@ def browser_parameters(tables: dict[str, pd.DataFrame]) -> dict[str, object]:
         "sites": {
             site: {
                 "label": label,
+                "short": SITE_SHORT[site],
                 "lever": LEVER_OF.get(site),
+                "group": GROUP_OF[site],
                 "limit": float(sites.loc[site, "limit"]),
                 "mean": float(sites.loc[site, "mean_speed"]),
                 "mu": float(sites.loc[site, "lognormal_mu"]),
@@ -700,8 +912,13 @@ def browser_parameters(tables: dict[str, pd.DataFrame]) -> dict[str, object]:
                 "label": LEVER_LABELS[lever],
                 "limit": float(sites.loc[LEVERS[lever][0], "limit"]),
                 "options": list(LIMIT_OPTIONS[lever]),
+                "sites": list(LEVERS[lever]),
             }
             for lever in LEVERS
+        },
+        "groups": {
+            group: {"label": GROUP_LABELS[group], "sites": list(sites_of)}
+            for group, sites_of in GROUPS.items()
         },
         "exponents": {
             f"{outcome}|{environment}": [

@@ -435,14 +435,24 @@ A chain of four links, each with its source, run in the reader's browser.
 3. **From a law to a mean speed.** A law sets three limits (`LEVERS`): one for autopistas and
    autovías together, as the Reglamento General de Circulación does (120 km/h on both today), one
    for conventional roads (90) and one for urban streets now at 50 km/h; streets at 30 stay at 30.
-   Each measured site then responds from its own speeds. A change of limit moves the mean by
+   Each measured site then responds from its own speeds. How far drivers follow a new limit and
+   how many keep to the limit are set separately for each kind of road (`GROUPS`: autopistas and
+   autovías, conventional roads, urban streets at 50 and at 30), so that a law on one kind of road
+   leaves the others as they are; a single number still applies to all of them. A change of limit moves the mean by
    Elvik's curve through 143 before-and-after results (Trafikksikkerhetshåndboken, figure 3.11.2,
    published as `y = −0.0047x² + 0.2682x − 0.3125`, R² 0.51), with the intercept dropped so that no
    change means no change and offered only within the fitted range of −33 to +24 km/h, or by a
    share of the change the reader sets. Without its intercept the curve gives 7.2 km/h for a 20
    km/h cut and 3.5 for a 20 km/h rise, where the handbook rounds the scatter to about 8
-   and 5. Compliance brings a share of the drivers above the limit down to it, which lowers the
-   mean by that share of `E[(v − limit)+]` under the fitted distribution, scaled to the new mean.
+   and 5. Compliance brings a share of the drivers above the limit in force (the new one, if
+   there is one) down to it, which lowers the mean by that share of `E[(v − limit)+]` under the
+   fitted distribution, scaled to the new mean. `speed_steps` returns the two moves separately
+   (`limit_shift`, `compliance_cut`), and two measures of the flow under the limit in force: the
+   share of cars above it, `(1 − c) · P(v > limit)`, and the spread of speeds, the standard
+   deviation of the fitted distribution once the complying share `c` of the cars above the limit
+   has moved to it (`E[v]` and `E[v²]` each lose `c` times their part above the limit, net of the
+   limit's own contribution). The Power Model counts only the mean, so the spread is reported and
+   not turned into casualties.
 4. **From mean speed to casualties.** The Power Model: a count changes by `(v1 / v0) ** p`, with
    Elvik's 2009 exponents and 95 % intervals (TØI report 1034/2009, table S1) for deaths,
    seriously injured, slightly injured and injury crashes, separately for rural roads and motorways
@@ -479,16 +489,34 @@ about 217, against a fall of about 195 for all 1,284 interurban deaths in sectio
 include the other interurban roads. A
 change of under half a death a year counts as none, and no chance is computed for it.
 
-The presets, with drivers responding as they typically do (`simulator_presets.csv`):
+The presets, with drivers responding to a new limit as they typically do
+(`simulator_presets.csv`; road by road in `simulator_preset_roads.csv`):
 
-| Preset | Deaths a year | Light-vehicle hours a year | Chance the first year's count shows it |
-|---|---|---|---|
-| Every speeder keeps to today's limits | −335 (−370 to −298) | +134 million | over 99 % |
-| Half of today's speeders keep to the limit | −179 (−200 to −158) | +64.7 million | 78 % |
-| Conventional roads 90 → 80 km/h | −123 (−138 to −108) | +36.9 million | 45 % |
-| Autopistas and autovías 120 → 110 km/h | −41 (−46 to −36) | +30.2 million | 8 % |
-| Autopistas and autovías 120 → 130 km/h | +31 (27 to 35) | −20.3 million | 6 % |
-| Urban streets 50 → 30 km/h | no interurban change | no interurban change | not computed |
+| Preset | Deaths a year | Injury crashes a year | Light-vehicle hours a year | Chance the first year's count shows it |
+|---|---|---|---|---|
+| Everyone keeps to today's limits | −335 (−370 to −298) | −3,365 | +134 million | over 99 % |
+| Half of today's speeders keep to the limit | −179 (−200 to −158) | −1,702 | +64.7 million | 78 % |
+| Everyone keeps to 90 km/h on conventional roads | −280 (−309 to −249) | −2,675 | +96.8 million | 99 % |
+| Everyone keeps to 120 km/h on autopistas and autovías | −55 (−62 to −49) | −690 | +37.4 million | 12 % |
+| Conventional roads 90 → 80 km/h | −123 (−138 to −108) | −1,092 | +36.9 million | 45 % |
+| Autopistas and autovías 120 → 110 km/h | −41 (−46 to −36) | −486 | +30.2 million | 8 % |
+| Autopistas and autovías 120 → 130 km/h | +31 (+27 to +35) | +346 | −20.3 million | 6 % |
+| Autopistas and autovías at 130 km/h, and everyone keeps to it | +2 (+2 to +3) | +12 | −4.4 million | 3 % |
+| Autopistas and autovías 120 → 140 km/h | +50 (+43 to +57) | +547 | −31.6 million | 10 % |
+| Autopistas and autovías at 140 km/h, and everyone keeps to it | +39 (+33 to +44) | +418 | −26.2 million | 8 % |
+| Urban streets 50 → 30 km/h | no interurban change | no interurban change | no interurban change | not computed |
+
+**A higher limit that everyone keeps to** (`break_even`, `simulator_break_even.csv`). Raising the
+autopista and autovía limit to 140 km/h moves the mean up by the typical response, +3.5 km/h (17 %
+of the change), and every driver keeping to 140 takes off only what lies above 140: 1.4 km/h on
+autopistas, where 10 % of cars exceed 140 today, and 0.6 on autovías. Deaths on the two rise by
+about 39 a year against today, and by about 94 against everyone keeping to 120 (−55). Deaths would
+fall against today only if less than 2.4 % of the rise reached the mean. With the typical
+response and everyone keeping to the limit, the limit at which deaths equal today's is about
+129.5 km/h. The spread of speeds on autopistas narrows from 14.9 to 12.8 km/h at 140 kept by
+everyone, and to 7.9 km/h at 120 kept by everyone; for the narrower spread at 140 to cancel the
+rise it would have to cut deaths on the two roads by about 10 % on its own, and the Aarts and van
+Schagen (2006) review gives no dose-response from which to judge that.
 
 Full compliance is worth about €1.0 billion a year at DGT's values. Conventional roads at 80 km/h
 cost about 300,000 hours for each life saved, and autopistas and autovías at 130 km/h save about
@@ -527,11 +555,129 @@ which the Power Model does not count and which would make the compliance figures
 The browser code is a port of the Python. Its normal distribution function is W. J. Cody's
 rational approximation, as in R's `pnorm`, accurate to about one part in 10^15. A test runs it
 under Node on every combination of the page's limits (5 × 4 × 3 = 60), each with the response
-typical, 0, 35 % and 100 % of the change and compliance 0, 5 %, 50 % and 100 %, and on the
-presets: 967 scenarios, which must agree with the Python to one part in a million on every
-quantity the page shows (speeds, casualties, ranges, value and hours by road and in total, and the
-urban speeds, deaths with their range and admissions), on both thresholds and on the chance of
-detection.
+typical, 0, 35 % and 100 % of the change or set for some kinds of road only, and compliance 0,
+5 %, 50 % and 100 % or set for some kinds of road only, and on the presets: 1,512 scenarios,
+which must agree with the Python to one part in a million on every quantity the page shows
+(speeds and their steps, the share above the limit and the spread, casualties, ranges, value and
+hours by road and in total, and the urban speeds, deaths with their range and admissions), on
+both thresholds and on the chance of detection.
+
+### 12.1 Distraction, and alcohol and drugs (`factor_models.py`, `assets/factors.js`)
+
+The simulator asks what follows if every driver above the limit kept to it. Two further models ask
+the same of the other two behaviours the police record most often in fatal crashes: what if no
+driver were distracted, and what if none drank or took drugs. Both use the attributable fraction
+among the cases (Miettinen): if a factor is present in a share `s` of fatal crashes and multiplies
+the risk of one by `RR`, the share of deaths that would not happen without it is
+`s · (1 − 1/RR)`, and removing a share `x` of the factor removes `x` of those deaths. It is applied
+to each zone (interurban, urban) and road user (driver, passenger, pedestrian):
+
+    deaths avoided = x · deaths · s_zone · (1 − 1/RR)
+
+Every published value is a row of `data/raw/evidence/factor_parameters.csv` with its source, its
+place in the source, the URL and a verbatim quote; a test requires every quote to print its value
+and the ends of its interval, and fails on a value mistyped by a factor of 0.61, 1.37 or 1.9.
+
+- **Deaths.** People killed within 30 days by zone and road user, the mean of 2022–2024 in DGT's
+  yearbook table 2.2: 1,779 a year, 1,284 on interurban roads and 495 in towns.
+- **Presence.** DGT's yearly table of the factors in fatal crashes (Tabla 50 of the Principales
+  cifras, Spain without Cataluña and País Vasco) gives, for distraction, alcohol and inappropriate
+  speed, the fatal crashes on all roads with the factor and the interurban share. The urban count
+  is the difference, which needs both denominators: DGT prints them for 2022 and 2024, which are
+  pooled; 2023, with the all-roads counts and the interurban share only, is kept as a check on
+  stability. For alcohol every denominator is the fatal crashes in which all drivers were tested
+  (990 of 1,373 in 2024). Pooled shares: distraction 35 % of interurban and 17 % of urban fatal
+  crashes; alcohol 29 % and 27 %. Drugs have no row in Tabla 50: their presence is the share of
+  killed drivers whose blood held a drug of abuse and no alcohol (INTCF, the national forensic
+  toxicology of killed drivers; mean of 2023 and 2024, about 10 %), the same for both zones.
+  Drivers with drugs and alcohol below the legal limit are counted under neither, which
+  understates drugs.
+- **Risk.** For alcohol, the EU DRUID project's relative risks of being seriously injured or
+  killed: the 2023 killed drivers above 0.5 g/L split into 0.51–1.20 g/L (DRUID's 0.5–0.8 and
+  0.8–1.2 groups, geometric mean 7.0) and over 1.20 g/L (62.8), weighted by the INTCF counts; 81 %
+  are over 1.2 g/L, so the attributable fraction is 0.96. For drugs, DRUID's estimates for cocaine,
+  cannabis, amphetamines and opiates weighted by the drugs the police detected in killed drivers in
+  2023 (attributable fraction 0.57). For distraction, the naturalistic driving study of Dingus et
+  al. (2016): odds ratio 2.0 (1.8–2.4) for any observable distraction (attributable fraction
+  0.5), 3.6 for a handheld phone.
+- **Bounds.** `low` and `high` take the ends of DRUID's risk bands, and for distraction the low end
+  of the interval for any distraction (1.8) and every distraction a handheld phone (3.6). They say how sensitive the answer is to the risk, not how
+  complete the police record is. Two checks bound that instead: for alcohol, the INTCF share of
+  killed drivers over the limit, which agrees with the police record; for distraction, the
+  naturalistic study's own estimate that 36 % of crashes would not happen without distraction,
+  which applied to every death gives 640 a year against the police record's 266
+  (`naturalistic_distraction`, a sensitivity, not a second estimate). A third reading takes the
+  police record as a judgement that distraction caused the crash, so that no share of those
+  crashes would have happened anyway: 532 a year. And the risk of phone use rises with severity
+  (TØI's review: 2.5 times in damage-only crashes, 9.3 in fatal ones), so the 2.0 measured mostly
+  in minor crashes understates it for deaths. The police-record figure is the low end.
+- **Injury crashes.** The 2024 injury crashes with each factor recorded (13,164 with distraction,
+  3,630 with alcohol in tested crashes) times the attributable fraction.
+
+Results with each factor removed entirely: alcohol and drugs 582 deaths a year (497–644), 479 of
+them alcohol; distraction 266 (237–385), with 532 and 640 above it; 6,582 of the 13,164 injury
+crashes with distraction recorded in 2024 (9 % of injury crashes against 15 % of deaths; the crash
+counts cover Spain without Cataluña and País Vasco). The split of each zone's deaths by road user
+is proportional, because the police record gives each factor by crash: for alcohol it gives too
+many deaths to other road users, since 218 of the 292 people killed in 2024 in crashes with a drunk
+driver were drunk drivers themselves. Left out deliberately: psychoactive medicines (11–16 %
+of killed drivers), prescribed and not what roadside enforcement targets; the impairment of
+pedestrians themselves (43 % of those killed tested positive); and any interaction between
+factors beyond the combination below.
+
+The assumptions that carry most weight are said on the pages: the risks were measured abroad, for
+injury crashes (DRUID) or for crashes of any severity (Dingus) rather than fatal ones; presence is
+per crash and is applied to every death in the zone, drivers, passengers and pedestrians alike; and
+the police record can miss a factor (distraction most of all) or record it where it did not cause
+the crash.
+
+### 12.2 Which enforcement (`factor_models.comparison`, `share_needed`)
+
+The comparison puts the three levers on the same deaths. Speed is the simulator with a share of
+the drivers above the limit on every road slowing to it, read off a curve of 101 points from no
+driver to every driver (`speed_curve`); urban streets take the simulator's proportional fall on
+streets at 50 km/h, with 0 as the low end, because the urban evidence includes no effect, and the
+fall on streets at 30 as the high end, because DGT does not split urban deaths by the limit of the
+street. Alcohol and drugs, and distraction, are the models above at a share removed. Removing all
+three combines the shares as `1 − Π(1 − a_i)`, which assumes they act independently; alcohol and
+speed often occur together, so the combined figure is if anything high.
+
+With each factor removed: alcohol and drugs 582 (497–644), speed 449 (298–616), distraction 266
+(237–385) on the police record, all three 1,017 (57 % of deaths). `share_needed` inverts each
+lever for a number of lives: saving 100 a year takes removing about 17 % (16–20 %) of drink- and
+drug-driving, 20 % (14–31 %) of speeding, or 38 % (26–42 %) of distraction. For every lever
+73–84 % of the gain is on interurban roads; for speed, 280 of the 335 interurban lives are on
+conventional roads, and the 84 deaths a year on other interurban roads, where no speeds were
+measured, are left out. In towns alcohol and drugs lead on the central estimates (156 against 114
+for speed), but the urban speed figure takes every urban death to be on a street at 50 km/h: if
+32 % or more were on streets at 30 km/h, speed would lead there too.
+
+How much of each factor enforcement removes is not measured in Spain. The register carries 17
+published evaluations, each with a verbatim quote, of what an enforcement measure did to crashes
+where it was tried: fixed speed cameras (−47 % fatal crashes near them), section control (−41 %
+killed or seriously injured), mobile cameras, roadside checks, more of the existing speed
+enforcement (−9 %, −34 % to +26 %), Barcelona's ring-road cameras (−30 % crashes; no change on the
+city's arterial streets); breath-test checkpoints (−17 % alcohol-related crashes, 40 studies;
+TØI's chapter adds that their effect grows with how often they run and that, in 11 of 12 studies
+of enforcement levels, more enforcement went with fewer crashes), patrols stopping drivers on
+suspicion (−3 %, −9 % to +4 %), Norway's planning assumption that tripling random breath tests cuts
+fatal crashes by 3 %, the response of drug-impaired driving to the chance of being caught; handheld
+and texting bans (−2 % and +5 % crashes) and, from Zhu et al. (2021), handheld bans the police can
+enforce on their own (driver deaths −7 %, all deaths −2 %, an interval including no change), and
+from Ferdinand et al. (2014) texting bans of the same kind (all deaths −3 %, −5 % to 0 %). The
+page reads the ranking from the two together. Drink- and drug-driving has the strongest case: the
+largest prize on the central estimates, concentrated in a few drivers, and the most consistent
+evidence that more enforcement brings fewer crashes; drug testing (122,938 tests in 2024 against
+7.4 million breath tests) is its thinnest part, though no study measures what more of it would do.
+Speed is close behind, with the largest effects of any measure where cameras stand but a gain
+that depends on covering the roads where people die. Distraction is the least certain on both
+counts: 237 to 640 deaths a year, and bans that did not measurably change total deaths. The evaluations measure effects
+on crashes, not the share of a behaviour removed, and all but one are from outside Spain, so they
+are set beside the model's numbers rather than fed into them.
+
+The browser code (`factors.js`) is a port of the Python; a test runs it under Node on 54
+combinations of the three sliders at each of the three bounds and requires it to agree with the
+Python to one part in a billion.
 
 ## 13. Assumptions tested
 
@@ -547,6 +693,8 @@ listed with their results on the data page.
 | The fall in deaths was in how deadly crashes are | exact frequency × severity split | holds; the split, not the product, depends on recording (section 4) |
 | A forecast can show a law's effect | out-of-sample forecast errors | only for large effects: a fall of about 15 % of interurban deaths is detected four times in five in the first year, smaller ones less often (section 11) |
 | Two numbers describe how fast cars drive | log-normal checked on the measured mean | holds, within 0.7 km/h (section 12) |
+| The police record finds the drunk drivers in fatal crashes | the toxicology of drivers killed in 2023 (INTCF) | holds on a different count: 27 % of killed drivers over 0.5 g/L, a driver over the limit in 29 % of interurban and 27 % of urban fatal crashes where every driver was tested (section 12.1) |
+| The police record finds the distraction in fatal crashes | the share of crashes distraction causes in a naturalistic driving study | cannot be tested on Spanish data; the naturalistic figure, 640 deaths a year against the record's 266, is given as the ceiling (section 12.1) |
 
 ## 14. Supporting analysis: severity models (`features.py`, `models.py`, `scripts/model.py`)
 

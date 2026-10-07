@@ -96,11 +96,77 @@ def test_a_law_sets_one_limit_for_every_site_it_covers() -> None:
             low, high = simulator.RESPONSE_RANGE
             assert low <= option - limit <= high
     assert set(simulator.LEVER_OF) == set(simulator.SITES) - {"urban_30"}
+    assert set(simulator.GROUP_OF) == set(simulator.SITES)
+    assert set(simulator.GROUPS) == set(simulator.LEVERS)
     sites = simulator.site_effects(
-        simulator.Scenario("t", "t", {"motorway": 110, "urban_50": 30})
+        simulator.Scenario("t", "t", {"motorway": 110, "urban": 30})
     ).set_index("site")
     assert list(sites.new_limit) == [110, 110, 90, 30, 30]
     assert sites.loc["urban_30", "new_mean_speed"] == sites.loc["urban_30", "mean_speed"]
+
+
+def test_a_setting_for_one_kind_of_road_leaves_the_others_alone() -> None:
+    # Everyone keeping to a new motorway limit says nothing about conventional roads or towns.
+    scenario = simulator.Scenario("t", "t", {"motorway": 140}, None, {"motorway": 1.0})
+    sites = simulator.site_effects(scenario).set_index("site")
+    for site in ("conventional", "urban_50", "urban_30"):
+        assert sites.loc[site, "new_mean_speed"] == sites.loc[site, "mean_speed"], site
+        assert sites.loc[site, "compliance"] == 0
+    assert (sites.loc[["autopista", "autovia"], "new_share_above_limit"] == 0).all()
+    # A single number applies to every kind of road, a mapping only to those it names.
+    everywhere = simulator.Scenario("t", "t", {}, None, 0.5)
+    named = simulator.Scenario("t", "t", {}, None, {k: 0.5 for k in simulator.GROUPS})
+    assert simulator.site_effects(everywhere).new_mean_speed.tolist() == pytest.approx(
+        simulator.site_effects(named).new_mean_speed.tolist()
+    )
+    shares = simulator.Scenario("t", "t", {"motorway": 110, "conventional": 80}, {"motorway": 1.0})
+    sites = simulator.site_effects(shares).set_index("site")
+    assert sites.loc["autovia", "limit_shift"] == pytest.approx(-10)
+    assert sites.loc["conventional", "limit_shift"] == pytest.approx(
+        simulator.typical_response(-10)
+    )
+
+
+def test_the_speed_steps_add_up() -> None:
+    for site in simulator.SITES:
+        steps = simulator.speed_steps(site, None, None, 0.6)
+        assert steps["new_mean_speed"] == pytest.approx(
+            steps["mean_speed"] + steps["limit_shift"] + steps["compliance_cut"]
+        )
+        assert steps["compliance_cut"] <= 0
+        assert steps["new_share_above_limit"] == pytest.approx(0.4 * steps["share_above_limit"])
+        assert steps["new_speed_sd"] < steps["speed_sd"]
+    lever_site = {"motorway": "autovia", "conventional": "conventional", "urban": "urban_50"}
+    for lever, options in simulator.LIMIT_OPTIONS.items():
+        site = lever_site[lever]
+        for option in options:
+            steps = simulator.speed_steps(site, option)
+            change = option - steps["limit"]
+            if change:
+                assert steps["response_share"] == pytest.approx(
+                    simulator.typical_response(change) / change
+                )
+            else:
+                assert math.isnan(steps["response_share"])
+
+
+@pytest.mark.parametrize("compliance", [0.0, 0.4, 1.0])
+def test_the_spread_of_speeds_agrees_with_integration(compliance: float) -> None:
+    d = simulator.speed_distribution("autopista")
+    scale, limit = 1.03, 140.0
+    lognormal = stats.lognorm(s=d.sigma, scale=math.exp(d.mu) * scale)
+
+    def moment(power: int) -> float:
+        below, _ = integrate.quad(lambda v: v**power * lognormal.pdf(v), 0, limit)
+        above, _ = integrate.quad(lambda v: v**power * lognormal.pdf(v), limit, np.inf)
+        capped = limit**power * lognormal.sf(limit)
+        return below + (1 - compliance) * above + compliance * capped
+
+    expected = math.sqrt(moment(2) - moment(1) ** 2)
+    assert d.spread(limit, scale, compliance) == pytest.approx(expected, rel=1e-6)
+    assert d.share_above(limit, scale, compliance) == pytest.approx(
+        (1 - compliance) * lognormal.sf(limit), rel=1e-9
+    )
 
 
 def test_typical_response_is_partial_and_stays_inside_the_evidence() -> None:
@@ -231,6 +297,37 @@ def test_travel_time_counts_only_the_light_vehicles_the_speeds_were_measured_on(
 
 
 @processed
+def test_a_higher_limit_everyone_keeps_to_is_judged_against_both_baselines() -> None:
+    table = simulator.presets().set_index("scenario")
+    # Raising the limit with everyone keeping to it costs less than raising it alone, and more
+    # than everyone keeping to today's limit.
+    assert (
+        table.loc["motorway_comply", "deaths_change"]
+        < table.loc["motorway_140_comply", "deaths_change"]
+        < table.loc["motorway_140", "deaths_change"]
+    )
+    even = simulator.break_even().set_index("new_limit")
+    limit = float(even.break_even_limit.iloc[0])
+    assert 120 < limit < 140
+    at_limit = simulator.Scenario("b", "b", {"motorway": limit}, None, {"motorway": 1.0})
+    effects = simulator.interurban_effects(at_limit).set_index("road_class")
+    assert effects.loc[["autopista", "autovia"], "deaths_change"].sum() == pytest.approx(
+        0, abs=1e-6
+    )
+    for new_limit, row in even.iterrows():
+        if limit < new_limit:
+            assert row.break_even_share < row.typical_share
+            assert row.deaths_change_typical > 0
+        scenario = simulator.Scenario(
+            "b", "b", {"motorway": new_limit}, {"motorway": row.break_even_share}, {"motorway": 1.0}
+        )
+        effects = simulator.interurban_effects(scenario).set_index("road_class")
+        assert effects.loc[["autopista", "autovia"], "deaths_change"].sum() == pytest.approx(
+            0, abs=1e-6
+        )
+
+
+@processed
 def test_conventional_roads_carry_the_most_risk_per_kilometre() -> None:
     risk = simulator.class_risk().pivot(
         index="year", columns="road_class", values="deaths_per_bn_km"
@@ -254,9 +351,11 @@ def _page_grid() -> list[simulator.Scenario]:
     """Every combination of the page's limits, with response and compliance across their range."""
     levers = list(simulator.LIMIT_OPTIONS)
     scenarios = list(simulator.PRESETS)
+    shares = (None, 0.0, 0.35, 1.0, {"motorway": 0.2, "urban": 1.0})
+    compliances = (0.0, 0.05, 0.5, 1.0, {"conventional": 1.0, "urban": 0.5})
     for limits in itertools.product(*(simulator.LIMIT_OPTIONS[lever] for lever in levers)):
-        for share in (None, 0.0, 0.35, 1.0):
-            for compliance in (0.0, 0.05, 0.5, 1.0):
+        for share in shares:
+            for compliance in compliances:
                 key = f"{limits}-{share}-{compliance}"
                 scenarios.append(
                     simulator.Scenario(key, key, dict(zip(levers, limits)), share, compliance)
@@ -296,6 +395,7 @@ def test_the_browser_computes_exactly_what_the_python_computes(tmp_path: Path) -
         "value_euros_low",
         "value_euros_high",
         "vehicle_hours_change",
+        *simulator.SPEED_COLUMNS,
     ]
     tau = parameters["detect"]["tauInterurban"]
     published = pd.read_csv(TABLES_DIR / "simulator_presets.csv").set_index("scenario")
@@ -316,12 +416,14 @@ def test_the_browser_computes_exactly_what_the_python_computes(tmp_path: Path) -
                 "deaths_change_low",
                 "deaths_change_high",
                 "seriously_injured_change",
+                *simulator.SPEED_COLUMNS,
             ):
                 assert row[column] == pytest.approx(
                     float(urban.loc[row["site"], column]), rel=1e-6, abs=1e-9
                 ), (scenario.key, row["site"], column)
         total = simulator.totals(effects)
-        for column in [*columns[1:], "deaths_before"]:
+        totalled = [c for c in columns[1:] if c not in simulator.SPEED_COLUMNS]
+        for column in [*totalled, "deaths_before"]:
             assert computed["total"][column] == pytest.approx(
                 float(total[column]), rel=1e-6, abs=1e-6
             ), (scenario.key, "total", column)

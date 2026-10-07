@@ -146,10 +146,15 @@ RATE_LABELS = {
 }
 
 
-def km_rate_ratios(year: int = KM_YEAR) -> pd.DataFrame:
-    """Each band against the 35–54 baseline, for each of the three rates, with 95 % intervals."""
+def km_rate_ratios(year: int = KM_YEAR, reference_band: str = REFERENCE_BAND) -> pd.DataFrame:
+    """Each band against a reference band (35–54 unless named), for each of the three rates, with
+    95 % intervals.
+
+    The three rates chain: involvement per kilometre times deaths per driver involved is deaths
+    per kilometre, so for every band the first two ratios multiply to the third.
+    """
     frame = km_rates(year).set_index("band")
-    reference = frame.loc[REFERENCE_BAND]
+    reference = frame.loc[reference_band]
     records = []
     for measure, (count, exposure) in RATE_DEFINITIONS.items():
         for band, row in frame.iterrows():
@@ -162,7 +167,7 @@ def km_rate_ratios(year: int = KM_YEAR) -> pd.DataFrame:
                     "measure_label": RATE_LABELS[measure],
                     "band": band,
                     "band_label": agebands.band_label(band),
-                    "is_reference": band == REFERENCE_BAND,
+                    "is_reference": band == reference_band,
                     "ratio": ratio,
                     "low": low,
                     "high": high,
