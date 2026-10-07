@@ -2,7 +2,7 @@
 
 The source register, as of the published site (October 2026). Paths are relative to `data/raw/`,
 where the files are grouped by the body that publishes them (`dgt/`, `ine/`, `transportes/`,
-`cores/`, `comunidad_madrid/`, `catalonia/`, `barcelona/2025/`) and the values typed by hand from
+`cores/`, `comunidad_madrid/`, `catalonia/`, `barcelona/2025/`, `emef/`) and the values typed by hand from
 publications sit apart in `compiled/`. Every file is listed with size, SHA-256, source URL,
 description, the date added and, for the regional files, the name it was downloaded under in
 `data/raw/manifest.csv`; the generated [`RAW_FILE_INVENTORY.md`](RAW_FILE_INVENTORY.md) lists every
@@ -49,6 +49,12 @@ opens every file under `data/raw/` to count its rows.
   six tables of the crashes the Guàrdia Urbana attended in Barcelona in 2025, with the people,
   vehicle records, crash types and recorded causes (`barcelona/2025/`), downloaded as
   `download.csv` to `download(5).csv`; the source URL was not recorded at download.
+- **ATM, Idescat and Institut Metròpoli** (Enquesta de mobilitat en dia feiner, EMEF; published by
+  the Autoritat del Transport Metropolità on the Observatori de la Mobilitat de Catalunya,
+  <https://www.omc.cat/ca/w/enquesta-emef>): public-use microdata of the working-day mobility
+  survey of residents aged 16 and over in the ATM planning area (SIMMB), 2014–2024, one trip file,
+  one respondent file and one dictionary per year (`emef/<year>/`). Each file was compared byte for
+  byte with the copy served by omc.cat on 7 October 2026 and matched.
 - **ESRA** (E-Survey of Road users' Attitudes, coordinated by Vias institute): the national shares
   of adults who drive, 2018 and 2023, consulted online (section on thematic reports below) and
   typed into `compiled/driving_activity_by_age.csv`, which no code reads; none of its publications
@@ -78,6 +84,7 @@ renamed), and the three files under `compiled/` are hand-typed from the publicat
 | INE | population (`ine/ine_poblacion_provincias_edad_sexo.csv`), ECEPOV 2021 and EHMA 2008 (`ine/`) | Creative Commons Attribution 4.0 unless a product says otherwise; processed data are cited as "Elaboración propia con datos extraídos del sitio web del INE: www.ine.es"; keep the date of last update; do not suggest that INE endorses the reuse | <https://www.ine.es/aviso_legal/> |
 | Ministerio de Transportes y Movilidad Sostenible | MOVILIA 2006 and 2007 workbooks (`transportes/movilia_2006.xls`, `transportes/movilia_2007.xls`); the toll-motorway traffic series (`transportes/peaje_trafico_total.xls`); the roads chapter of the Anuario Estadístico 2023 (`transportes/anuario_carreteras_2023.pdf`) | reusable for commercial and non-commercial purposes: cite "Origen de los datos: Ministerio de Transportes y Movilidad Sostenible", keep the date of last update, do not distort the content, do not suggest endorsement, keep the metadata | <https://www.transportes.gob.es/ministerio/aviso-legal> |
 | Comunidad de Madrid, Instituto de Estadística | five MOVILIA 2006 tables for Madrid (`comunidad_madrid/movilia_madrid/`) | copying and distribution allowed provided the pages are not used directly for commercial purposes, the source is cited, the content is neither altered nor its meaning distorted, and no sponsorship is implied. These five files carry a condition the code licence does not; a commercial reuse of them goes back to the provider | <https://www.madrid.org/iestadis/fijas/otros/avisolegal.htm> |
+| ATM (Autoritat del Transport Metropolità), on omc.cat | the EMEF microdata and dictionaries in `emef/` | the OMC legal notice's open-data clause permits reproduction, distribution, public communication and transformation worldwide and without time limit under article 8 of Ley 37/2007, on four conditions: cite the rights holder (Consorci de l'Autoritat del Transport Metropolità de l'àrea de Barcelona), do not distort the meaning, cite the source, state the date of last update (the manifest descriptions give each file's date on omc.cat). The dictionaries add that results computed from the public-use files are the user's responsibility, not official statistics, and should be cited as "ATM, Idescat i Institut Metròpoli, <year>. Enquesta de mobilitat en dia feiner <year>. Autoritat del Transport Metropolità"; they also ask that no estimate resting on fewer than 20 sample observations be published | <https://www.omc.cat/ca/avis-legal>, read on 7 October 2026; the `Sumari` sheet of each dictionary |
 | Fundación MAPFRE | none archived; three driving-frequency rows typed into `compiled/driving_activity_by_age.csv` | a private foundation, not a public body, so the Ley 37/2007 regime applied to the DGT files does not reach it: the report offers no reuse licence and none was requested. The three shares (0.559 / 0.303 / 0.138 of Madrid drivers aged 65+, n 300, year inferred) are short quotations with attribution to "Mayores de 65 años y seguridad vial" and its URL; the PDF is not archived here and no code reads them | <https://app.mapfre.com/ccm/content/documentos/fundacion/seg-vial/investigacion/mayores-y-seguridad-vial.pdf>; the foundation's site publishes no reuse notice, only a privacy policy (<https://www.fundacionmapfre.org/politica-privacidad/>), as read on 22 September 2026 |
 | CORES | `cores/cores_consumos_pp.xlsx` | public-sector information within the scope of Ley 37/2007: CORES is a corporation of public law under the Ministerio para la Transición Ecológica and publishes these statistics as part of its statutory duty. Its site names no reuse licence, so the file is redistributed here on the same footing as the DGT statistics, applying the datos.gob.es conditions by this project's own choice: the source is named, the meaning is not distorted, the date of last update is kept (the `Actualizado el` cell of each sheet) and no endorsement is implied | <https://www.cores.es/es/estadisticas> |
 | Servei Català de Trànsit | `catalonia/accidents_morts_ferits_greus_catalunya_2010_2023.csv` | not recorded: the source URL was not kept at download, so the terms under which the file was published have not been read; this register states none for it until they are read at source | none recorded |
@@ -148,6 +155,23 @@ or of the DGT microdata.
 | `barcelona/2025/accidents_causes_mediates_gu_bcn_2025.csv` (`download(3).csv`) | 2025, 7,749 rows | mediate causes recorded for each crash (alcohol, speed, drugs, road surface, signals, weather, objects or animals); a single blank row means none was recorded | Barcelona (recorded causes), severity models (retrospective set only) |
 | `barcelona/2025/accidents_causa_conductor_gu_bcn_2025.csv` (`download(4).csv`) | 2025, 8,072 rows | driver-related causes recorded for each crash, with no key to the person or vehicle concerned, so they stay at crash level | Barcelona (recorded causes), severity models (retrospective set only) |
 | `barcelona/2025/accidents_tipus_gu_bcn_2025.csv` (`download(5).csv`) | 2025, 7,741 rows | the type of each crash (collision, run-over, fall...), one row per crash | Barcelona, severity models (crash type) |
+
+## Working-day mobility survey (`emef/`)
+
+Public-use microdata of the EMEF (Enquesta de mobilitat en dia feiner), the annual survey of the
+working-day (Monday to Friday, not a public holiday) mobility of residents aged 16 and over in the
+planning area of the ATM of the Barcelona area. Non-residents' trips, weekends and holidays are
+outside its scope, and the trips of people who make eight or more work trips a day (drivers,
+couriers, sales staff) are excluded apart from their journey to work. Every year has a respondent
+file with one row per respondent, those who made no trip on the reference day included, and a trip
+file whose `ID` values all appear in the respondent file.
+
+| File (downloaded as) | Coverage | Role |
+|---|---|---|
+| `emef/<year>/emef_<year>_trips.csv` (`Microdades_OMC_Despl_EMEF<year>.csv` for 2014–2017 and 2024; `Microdades Ús públic_EMEF<year>_Desplaçaments.csv` for 2018–2023) | 2014–2024, 32,334–45,552 trips a year | one row per trip on the reference day, keyed by respondent `ID` and trip order `ORDRE` |
+| `emef/<year>/emef_<year>_persons.csv` (`..._Indivi_...` or `..._Individus.csv` for 2014–2017, 2021, 2022 and 2024; `..._Opinió.csv` for 2018–2020 and 2023) | 2014–2024, 9,461–11,420 respondents a year | one row per respondent, with sex, age group, residence, the opinion module and the weights `PESAIX` (expansion) and `PESMOS` (sample) |
+| `emef/<year>/emef_<year>_dictionary.xlsx` | one per year | variable list, record layout and value labels of both files |
+| `emef/2022/emef_2022_dictionary_revised.xlsx` | 2022 | the dictionary the OMC page links today: identical to the first release except for the trip-file value-label sheet |
 
 ## Compiled registers (`compiled/`)
 

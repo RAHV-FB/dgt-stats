@@ -137,6 +137,24 @@ RULES: tuple[Rule, ...] = (
         "2007, Madrid region",
     ),
     Rule(
+        r"emef/(\d{4})/emef_\d{4}_trips",
+        "EMEF working-day mobility survey, public-use microdata (ATM)",
+        "one trip on the reference working day",
+        "{year}, ATM Barcelona area residents 16+",
+    ),
+    Rule(
+        r"emef/(\d{4})/emef_\d{4}_persons",
+        "EMEF working-day mobility survey, public-use microdata (ATM)",
+        "one respondent",
+        "{year}, ATM Barcelona area residents 16+",
+    ),
+    Rule(
+        r"emef/(\d{4})/emef_\d{4}_dictionary",
+        "EMEF dictionary of variables and value labels (ATM)",
+        "one variable or value label",
+        "{year}",
+    ),
+    Rule(
         r"compiled/evidence/",
         "values hand-typed from external studies (not observations)",
         "one published parameter",
