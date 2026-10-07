@@ -10,6 +10,7 @@ translated from the source field names and pipeline codes by the maps below.
 from __future__ import annotations
 
 import calendar
+import math
 import re
 from pathlib import Path
 
@@ -163,6 +164,13 @@ CAUSES = {
     "not_determined": "not determined",
 }
 
+# Catalan category labels shortened for the charts, so the label column leaves room for the data.
+CAT_SHORT_LABELS = {
+    "other unit": "other",
+    "generic limit for the road (value not recorded)": "generic limit (not recorded)",
+    "hit an object without leaving the road": "hit an object on the road",
+}
+
 # The external tests of the Catalan models, as a reader would name them.
 EXPERIMENT_LABELS = {
     "rest of Catalonia -> Barcelona municipality": "Rest of Catalonia to Barcelona city",
@@ -180,7 +188,7 @@ EXPERIMENT_LABELS = {
         "Spain outside Catalonia, trained on early years (DGT records)"
     ),
     "Catalonia reweighted to the national zone x crash-type mix -> Spain outside Catalonia": (
-        "Spain outside Catalonia, training reweighted to Spain's mix (DGT records)"
+        "Spain outside Catalonia, reweighted training (DGT records)"
     ),
 }
 
@@ -255,6 +263,11 @@ def _labelled(frame: pd.DataFrame, label: str = "label") -> pd.DataFrame:
     return frame
 
 
+def _roc_limits(highs: pd.Series) -> tuple[float, float]:
+    """A ROC-AUC axis from just below chance to just above the highest interval."""
+    return 0.45, math.ceil((float(highs.max()) + 0.02) * 20) / 20
+
+
 def _shares(
     frame: pd.DataFrame,
     dimension: str,
@@ -264,8 +277,10 @@ def _shares(
     reference: float,
     keep_order: bool = False,
     order: list[str] | None = None,
+    xlim: tuple[float, float] | None = None,
 ) -> Path:
-    block = _labelled(frame[frame.dimension == dimension])
+    # The overall share is the dotted reference line, not a row of its own.
+    block = _labelled(frame[(frame.dimension == dimension) & (frame.level != "all")])
     if order:
         block = block.set_index("level").reindex([o for o in order if o in set(block.level)])
         block = block.reset_index()
@@ -282,6 +297,7 @@ def _shares(
         reference_label="all",
         percent=True,
         keep_order=keep_order,
+        xlim=xlim,
     )
 
 
@@ -289,31 +305,25 @@ def _bars(values: pd.Series, path: Path, title: str, ylabel: str) -> Path:
     plots.apply_style()
     fig, axis = plt.subplots(figsize=(plots.FIGURE_WIDTH, 3.6))
     positions = np.arange(len(values))
-    axis.bar(
-        positions,
-        values.to_numpy(),
-        width=0.72,
-        color=plots.CATEGORICAL[0],
-        edgecolor=plots.SURFACE,
-        linewidth=2,
-    )
-    axis.set_xticks(positions, [str(v) for v in values.index], fontsize=8)
+    axis.bar(positions, values.to_numpy(), width=0.68, color=plots.ACCENT, linewidth=0)
+    axis.set_xticks(positions, [str(v) for v in values.index], fontsize=plots.NOTE_SIZE)
+    axis.tick_params(axis="x", length=0)
     axis.set_ylabel(ylabel)
     plots._thousands(axis)
-    axis.set_title(title)
+    plots._title(path, title)
     return plots.save(fig, path)
 
 
 def catalonia_figures(figures_dir: Path, captions: dict[str, str]) -> None:
     shares = table("cat_fatal_share")
     # The file's 'other unit' is any vehicle outside the named types; the figure says 'other'.
-    shares["label"] = shares.label.replace({"other unit": "other"})
+    shares["label"] = shares.label.replace(CAT_SHORT_LABELS)
     overall = shares[(shares.dimension == "unit type involved") & (shares.level == "all")]
     base = float(overall.share.iloc[0])
     n = f"{int(overall.n.iloc[0]):,} crashes"
     years = shares[shares.dimension == "year"].level.astype(int)
     period = f"{years.min()}–{years.max()}"
-    for name, dimension, title, by in (
+    charts = (
         ("cat1_fatal_by_road", "road type", "Fatal share by road type", "road type"),
         (
             "cat2_fatal_by_speed_limit",
@@ -328,7 +338,11 @@ def catalonia_figures(figures_dir: Path, captions: dict[str, str]) -> None:
             "type of road user or vehicle involved",
         ),
         ("cat4_fatal_by_crash_type", "crash subtype", "Fatal share by crash type", "crash type"),
-    ):
+    )
+    # The four charts share one scale, so the overall line and the axis line up down the page.
+    shown = _labelled(shares[shares.dimension.isin([c[1] for c in charts])])
+    top = math.ceil(float(shown.ci_high.max()) * 20) / 20
+    for name, dimension, title, by in charts:
         _shares(
             shares,
             dimension,
@@ -336,6 +350,7 @@ def catalonia_figures(figures_dir: Path, captions: dict[str, str]) -> None:
             title,
             "Fatal crashes among serious and fatal crashes",
             base,
+            xlim=(0, top),
         )
         captions[name] = _caption(
             f"Fatal crashes as a share of crashes with a death or serious injury, by {by}, "
@@ -400,6 +415,12 @@ def barcelona_figures(figures_dir: Path, captions: dict[str, str]) -> None:
     captions["bcn2_severity_by_age"] = people_caption("age band")
     crashes = table("bcn_crash_severity_share")
     crash_base = crashes[(crashes.dimension == "cause recorded") & (crashes.level == "all")]
+    # One crash type far above the rest is written out at the axis end, so that the scale is set
+    # by the others.
+    types = _labelled(crashes[crashes.dimension == "crash type"]).sort_values("share")
+    limit = None
+    if float(types.share.iloc[-1]) > 2 * float(types.ci_high.iloc[-2]):
+        limit = (0, math.ceil(float(types.ci_high.iloc[-2]) * 1.15 * 20) / 20)
     _shares(
         crashes,
         "crash type",
@@ -407,6 +428,7 @@ def barcelona_figures(figures_dir: Path, captions: dict[str, str]) -> None:
         "Crashes with a serious or fatal injury, by crash type",
         "Share of crashes",
         float(crash_base.share.iloc[0]),
+        xlim=limit,
     )
     captions["bcn4_crash_severity_by_type"] = _caption(
         "Crashes with at least one death or serious injury as a share of recorded crashes, by "
@@ -462,7 +484,9 @@ def model_figures(figures_dir: Path, captions: dict[str, str]) -> None:
         name = REGIONAL_MODELS[model]
         rows.append(
             {
-                "row": name,
+                "model": name,
+                "row": "Model",
+                "kind": "focal",
                 "auc": block.loc[row.estimator, "roc_auc"],
                 "low": row.roc_auc_low,
                 "high": row.roc_auc_high,
@@ -472,14 +496,25 @@ def model_figures(figures_dir: Path, captions: dict[str, str]) -> None:
             auc = rules.loc[model, "rule_roc_auc"]
             rows.append(
                 {
-                    "row": f"{name}: descriptive table ({rule_label(rules.loc[model, 'rule'])})",
+                    "model": name,
+                    "row": f"Descriptive table ({rule_label(rules.loc[model, 'rule'])})",
+                    "kind": "context",
                     "auc": auc,
                     "low": auc,
                     "high": auc,
                 }
             )
         auc = block.loc["baseline_prior", "roc_auc"]
-        rows.append({"row": f"{name}: baseline", "auc": auc, "low": auc, "high": auc})
+        rows.append(
+            {
+                "model": name,
+                "row": "Baseline (one probability for every case)",
+                "kind": "baseline",
+                "auc": auc,
+                "low": auc,
+                "high": auc,
+            }
+        )
     plots.dot_interval(
         pd.DataFrame(rows),
         "row",
@@ -490,7 +525,9 @@ def model_figures(figures_dir: Path, captions: dict[str, str]) -> None:
         "Test ROC-AUC: each model against its descriptive table and the baseline",
         xlabel="ROC-AUC on the test records (0.5 = chance)",
         reference=0.5,
-        keep_order=True,
+        style="kind",
+        group="model",
+        xlim=_roc_limits(pd.DataFrame(rows).high),
     )
     cat_test = tests.get("catalonia_crash_severity", "")
     bcn_test = tests.get("barcelona_person_severity", "")
@@ -602,6 +639,7 @@ def transport_figures(figures_dir: Path, captions: dict[str, str]) -> None:
             xlabel="ROC-AUC on the held-out records",
             reference=0.5,
             reference_label="chance",
+            xlim=_roc_limits(best[best.model == model].high),
         )
         captions[name] = _caption(shown, source)
     provinces = table("ml_transport_provinces")
@@ -630,6 +668,7 @@ def transport_figures(figures_dir: Path, captions: dict[str, str]) -> None:
         xlabel="ROC-AUC on the province's DGT records",
         reference=0.5,
         reference_label="chance",
+        xlim=_roc_limits(provinces.high),
     )
     captions["tr3_province_auc"] = _caption(
         "ROC-AUC of the harmonised Catalonia model, trained on the Catalan file, on DGT records "

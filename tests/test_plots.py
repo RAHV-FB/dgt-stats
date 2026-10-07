@@ -22,6 +22,7 @@ EXPECTED_FIGURES = {
     "m2_month_effects",
     "m3_lockdown",
     "a3_sex_ratios",
+    "a4_involved_per_km",
     "f1_speed_severity",
     "f2_factor_shares",
     "c3_speed_status",

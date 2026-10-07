@@ -15,7 +15,7 @@ PAGES = ("catalonia", "barcelona", "severity-models", "validation", "sources")
 MODULES = tuple(
     path.stem
     for path in sorted((PROJECT_ROOT / "src/dgt_stats/site").glob("*.py"))
-    if path.stem not in {"components", "data"}
+    if path.stem not in {"components", "data", "script", "style"}
 )
 NEEDED = (
     "cat_fatal_share",
@@ -149,7 +149,9 @@ def test_validation_page_keeps_population_differences_and_validation_apart(
         "<h2>How the crash populations differ</h2>",
         "<h2>What the tests support</h2>",
     ]
-    positions = [text.index(heading) for heading in headings]
+    positions = [
+        re.search(heading.replace("<h2>", "<h2[^>]*>"), text).start() for heading in headings
+    ]
     assert positions == sorted(positions)
     # The Barcelona comparison comes from the tables, and the parts of the fall in Barcelona are
     # published as a table rather than worked through on the page.

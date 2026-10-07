@@ -357,6 +357,20 @@ per driver involved need no kilometres and do not move (1.03 at 18–24 and 0.89
 intervals that include 1; 3.93 at 75 and over). Every band and measure, with both ratios and their
 intervals, is in `q7_owner_age_check.csv`.
 
+The owner-age kilometres cannot be corrected, because no source says who drives each car: DGT
+publishes drivers' recorded infractions by vehicle type, not by age, and its national crash
+microdata hold no records of drivers, so neither a split of kilometres between owners and other
+drivers nor a quasi-induced-exposure estimate is possible. `driver_risk.breakeven_km` turns the
+question round. For each band it gives the kilometres a year per B-permit holder at which the
+band's drivers would be involved in injury crashes no more often per km than drivers aged 35–54
+(and, for 75 and over, than drivers aged 65–74), with a 95% interval from the crash counts;
+divided by the kilometres credited to cars of owners that age, it equals the published per-km
+ratio. At 18–24 the distance needed is about 20,900 km a year (18,200 under the scenario), about
+twice the most credited per holder to any owner band (10,734 at 55–64); at 25–34 it is about
+14,000. At 75 and over it is about 8,200 against 35–54, almost exactly the 8,023 credited, and
+about 11,500 against 65–74, more than any owner band is credited with. The results are in
+`q7_breakeven_km.csv`.
+
 `denominator_contrast` puts the same deaths over residents, B-permit holders, drivers involved and
 kilometres of cars registered to owners of the band, as ratios to the 35–54 band, because the
 movement between them is the point: at 75 and over the ratio is 1.23 per resident, 3.10 per

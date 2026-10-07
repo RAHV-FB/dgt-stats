@@ -152,7 +152,7 @@ src/dgt_stats/microdata/             Catalonia and Barcelona: sources, staging, 
 src/dgt_stats/microdata/ml/          feature catalogue, source models, rule baselines, cards
 src/dgt_stats/microdata/validation/  harmonisation, transfer tests, diagnosis, DGT audit,
                                      generalisability, model decisions
-src/dgt_stats/site/    one module per page
+src/dgt_stats/site/    one module per page, the shared components, the stylesheet and the script
 tests/                 data-contract, reconciliation, model and page tests
 ```
 

@@ -1,6 +1,7 @@
 """Static site builder: plain HTML and one CSS file, from the result tables and figures.
 
-No template engine and no scripts. The navigation (``NAV_GROUPS``) follows the argument: the
+No template engine, and one small script (``script``) that only makes reading easier: every
+page works without it. The navigation (``NAV_GROUPS``) follows the argument: the
 national picture from DGT and INE with three supporting analyses, the Catalan and Barcelona crash
 records, the two severity models and their external validation, and the sources and methods.
 Every sentence that carries a number computes it from a committed result table at build time, so
@@ -10,7 +11,7 @@ CSV rather than printed.
 One module per page: ``overview``, ``trends``, ``long_run``, ``seasons``, ``drivers``,
 ``vehicles``, ``speed``, ``factors``, the supporting ``severity``, ``forecast`` and ``policy``,
 ``regional`` (Catalonia and Barcelona), ``models``, ``validation``, ``sources`` and ``data``. The
-shared furniture is in ``components``, the stylesheet in ``style``, the result tables several
+shared furniture is in ``components``, the stylesheet in ``style``, the script in ``script``, the result tables several
 pages quote in ``numbers`` and the helpers of the regional, model and validation pages in
 ``regional_common``.
 
@@ -37,6 +38,7 @@ from dgt_stats.site.components import (
     SUPPORTING_PAGES,
     WITHDRAWN_PAGES,
     WITHDRAWN_REASON,
+    WITHDRAWN_TITLES,
     _signed_pct,
     esc,
     mark_spanish,
@@ -53,6 +55,7 @@ from dgt_stats.site.models import page_severity_models
 from dgt_stats.site.overview import page_index
 from dgt_stats.site.policy import page_policy
 from dgt_stats.site.regional import page_barcelona, page_catalonia
+from dgt_stats.site.script import SCRIPT
 from dgt_stats.site.seasons import page_seasons
 from dgt_stats.site.severity import page_severity
 from dgt_stats.site.sources import page_sources
@@ -156,7 +159,7 @@ def page_withdrawn(slug: str) -> str:
     )
     return render_page(
         slug,
-        "This analysis was withdrawn",
+        WITHDRAWN_TITLES[slug],
         WITHDRAWN_REASON,
         body,
         head='\n<meta name="robots" content="noindex">',
@@ -177,12 +180,15 @@ def build(site_dir: Path = SITE_DIR) -> list[Path]:
             target = target_dir / path.name
             shutil.copyfile(path, target)
             written.append(target)
-    # The site runs no script: remove any left from the withdrawn simulator and factor models.
+    # The one script is the site's own; any other, such as those of the withdrawn simulator and
+    # factor models, is removed.
     for stale in site_dir.glob("*.js"):
         stale.unlink()
     style = site_dir / "style.css"
     style.write_text(STYLE.strip() + "\n", encoding="utf-8")
-    written.append(style)
+    script = site_dir / "site.js"
+    script.write_text(SCRIPT.strip() + "\n", encoding="utf-8")
+    written.extend([style, script])
     for slug, builder in PAGE_BUILDERS.items():
         target = site_dir / f"{slug}.html"
         target.write_text(builder(captions), encoding="utf-8")

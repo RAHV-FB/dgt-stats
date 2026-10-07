@@ -79,12 +79,20 @@ def test_the_committed_site_carries_no_withdrawn_result() -> None:
     from dgt_stats.site import WITHDRAWN_PAGES
 
     site_dir = PROJECT_ROOT / "site"
-    assert not list(site_dir.glob("*.js"))
+    # The one script is the site's own reading aid (menus and contents); none of the withdrawn
+    # models' scripts is shipped.
+    assert [path.name for path in site_dir.glob("*.js")] == ["site.js"]
+    script = (site_dir / "site.js").read_text(encoding="utf-8")
+    for word in ("simulat", "fetch(", "XMLHttpRequest", "evidence"):
+        assert word not in script, word
     for path in sorted(site_dir.glob("*.html")):
         text = path.read_text(encoding="utf-8")
         if path.stem in WITHDRAWN_PAGES:
-            # A withdrawal notice names what was withdrawn but carries no script or figure.
-            assert "<script" not in text and "<svg" not in text, path.name
+            # A withdrawal notice names what was withdrawn but carries no script of its own and
+            # no figure.
+            scripts = re.findall(r"<script[^>]*>", text)
+            assert scripts == ["<script>", '<script src="site.js" defer>'], path.name
+            assert "<svg" not in text and "<img" not in text, path.name
             continue
         for phrase in EXTERNAL_RESULTS:
             assert phrase not in text, (path.name, phrase)

@@ -479,6 +479,7 @@ def page_catalonia(captions: dict[str, str]) -> str:
         "Servei Català de Trànsit's file: how often they were fatal, and in which "
         "circumstances.",
         body,
+        scope=f"Catalonia · serious or fatal crashes · {period}",
     )
 
 
@@ -758,4 +759,5 @@ def page_barcelona(captions: dict[str, str]) -> str:
         f"Every crash Barcelona's city police attended in {year}, with each person involved: "
         "who was seriously hurt, in which kinds of crash, and the causes the police recorded.",
         body,
+        scope=f"Barcelona · police-attended crashes · {year}",
     )

@@ -221,16 +221,6 @@ def page_vehicles(captions: dict[str, str]) -> str:
         "alone would miss most of the deaths in crashes involving heavy trucks.</p>"
     )
 
-    body += limitation(
-        f"The kilometres are DGT's estimates for {year}, which DGT describes as valid for "
-        "aggregates rather than for individual vehicles. The estimates it published for "
-        f"{later_km_year} are built by a different method and cannot be joined to them (see "
-        f'<a href="trends.html">{_page_name("trends")}</a>), so the comparison covers a single '
-        "year. The kilometres cover all roads, so rates per kilometre cannot be split between "
-        "urban and interurban roads. The crash counts and the kilometres cover slightly "
-        "different sets of vehicles. The intervals in the result tables reflect the crash "
-        "counts only and treat the kilometres as exact."
-    )
     body += technical(
         "How the crash counts and the kilometres are matched",
         "<p>DGT models the kilometres from odometer readings taken at roadworthiness "
@@ -242,6 +232,16 @@ def page_vehicles(captions: dict[str, str]) -> str:
         f"differently; taken apart, light trucks would have {_fmt_pct(van_gap, 0)} of a van's "
         "rate per kilometre, and the data cannot show how much of that gap is real and how "
         "much comes from the split.</p>",
+    )
+    body += limitation(
+        f"The kilometres are DGT's estimates for {year}, which DGT describes as valid for "
+        "aggregates rather than for individual vehicles. The estimates it published for "
+        f"{later_km_year} are built by a different method and cannot be joined to them (see "
+        f'<a href="trends.html">{_page_name("trends")}</a>), so the comparison covers a single '
+        "year. The kilometres cover all roads, so rates per kilometre cannot be split between "
+        "urban and interurban roads. The crash counts and the kilometres cover slightly "
+        "different sets of vehicles. The intervals in the result tables reflect the crash "
+        "counts only and treat the kilometres as exact."
     )
     body += downloads(
         [

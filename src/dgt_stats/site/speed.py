@@ -100,8 +100,8 @@ def page_speed(captions: dict[str, str]) -> str:
         "concentrated on interurban roads other than motorways and dual carriageways, where any "
         "crash is more often fatal. Compared with other crashes on the same kind of road in the "
         f"same year, they had about twice as many deaths: {rate:.2f} times (95% interval "
-        f"{adjusted_ci}). This is an association in police crash records. It does not estimate "
-        "how many crashes or deaths speeding caused."
+        f"{adjusted_ci}). Police-recorded inappropriate speed is associated with greater crash "
+        "severity. This is not an estimate of causation."
     )
 
     body += "<h2>Deaths per crash by road type</h2>"

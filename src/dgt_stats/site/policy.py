@@ -348,7 +348,7 @@ def page_policy(captions: dict[str, str]) -> str:
         }
     )
     body += technical(
-        f"All {len(sensitivity)} specifications",
+        f"Detailed results of all {len(sensitivity)} specifications",
         table(
             shown,
             f"Step in deaths at {break_month} under each specification, monthly deaths "

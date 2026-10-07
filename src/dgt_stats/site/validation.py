@@ -17,6 +17,7 @@ from dgt_stats.site.components import (
     _fmt_int,
     _fmt_pct,
     _join,
+    compare,
     downloads,
     figure,
     read_table,
@@ -337,12 +338,25 @@ def page_validation(captions: dict[str, str]) -> str:
         f"applied it to the {_fmt_int(national.test_n)} crashes with a death or serious injury "
         "that DGT recorded elsewhere in Spain. Its ROC-AUC, which measures how well it ranks "
         "fatal crashes above the others on a scale from 0.5 (chance) to 1 (perfect), was "
-        f"{national.roc_auc:.3f}, against {national.in_domain_cv_roc_auc:.3f} for a model "
-        "trained directly on those DGT records: little ranking ability was lost in the "
-        "transfer. That does not establish that the Catalonia model can be used nationally. The "
-        "full model uses variables DGT does not record, Catalonia's serious crashes differ from "
-        "the rest of Spain's in road type, crash type and recording practice, and in Barcelona "
-        "city the model's probabilities did not carry over even where its ranking did."
+        "almost the same as that of a model trained directly on those DGT records. That does "
+        "not establish that the Catalonia model can be used nationally. The full model uses "
+        "variables DGT does not record, Catalonia's serious crashes differ from the rest of "
+        "Spain's in road type, crash type and recording practice, and in Barcelona city the "
+        "model's probabilities did not carry over even where its ranking did."
+    )
+    body += compare(
+        [
+            (
+                f"{national.roc_auc:.3f}",
+                "ROC-AUC of the Catalonia-trained model on DGT's records of serious crashes "
+                "elsewhere in Spain",
+            ),
+            (
+                f"{national.in_domain_cv_roc_auc:.3f}",
+                "ROC-AUC of a model of the same kind trained on those DGT records",
+            ),
+        ],
+        "Little ranking performance was lost in this test.",
     )
     body += (
         "<p>Every test on this page scores crashes that played no part in training and sets "
@@ -850,7 +864,7 @@ def page_validation(captions: dict[str, str]) -> str:
     )
     with_province = primary.loc["catalonia_crash_severity", "roc_auc"]
     body += technical(
-        "All external tests",
+        "Detailed results of every external test",
         table(
             pd.DataFrame(
                 {
