@@ -1,81 +1,124 @@
-"""Vehicle types per vehicle and per kilometre driven."""
+"""Vehicle types compared per vehicle on the road and per kilometre driven."""
 
 from __future__ import annotations
+
+import re
 
 import pandas as pd
 
 from dgt_stats.site.components import (
+    NAV_GROUPS,
+    _fmt_int,
     _fmt_pct,
-    _times,
-    conclusion,
     downloads,
     figure,
-    key_figures,
-    limits,
+    limitation,
     read_table,
     render_page,
+    summary,
     table,
+    technical,
 )
 
 
+def _page_name(slug: str) -> str:
+    """A page's name as the navigation gives it, so a link never types a year of its own."""
+    return {s: name for _, pages in NAV_GROUPS for s, name in pages}[slug]
+
+
+def _x(value: float) -> str:
+    """A ratio to cars, to one decimal: the rates rest on one year of modelled kilometres.
+
+    Every ratio on the page, in the prose and in the tables, uses this one precision.
+    """
+    return f"{value:.1f}×"
+
+
 def page_vehicles(captions: dict[str, str]) -> str:
-    summary = read_table("q6_summary_2022").set_index("group")
+    rates = read_table("q6_summary_2022").set_index("group")
     split = read_table("q6_van_light_truck_split").set_index("group")
-    car, truck, bike = summary.loc["car"], summary.loc["heavy_truck"], summary.loc["motorcycle"]
+    year = int(read_table("q6_rates_2022").year.iloc[0])
+    car, truck, bike = rates.loc["car"], rates.loc["heavy_truck"], rates.loc["motorcycle"]
+    # DGT's two kilometre releases, read from the table that sets them side by side.
+    km_years = sorted(
+        int(match.group(1))
+        for column in read_table("risk_km_crosscheck").columns
+        if (match := re.fullmatch(r"billion_km_(\d{4})", column))
+    )
+
     per_vehicle = float(
         truck.fatal_involvement_per_100k_vehicles / car.fatal_involvement_per_100k_vehicles
     )
     per_km = float(truck.fatal_involvement_per_bn_km / car.fatal_involvement_per_bn_km)
+    bike_per_vehicle = float(
+        bike.fatal_involvement_per_100k_vehicles / car.fatal_involvement_per_100k_vehicles
+    )
     bike_per_km = float(bike.fatal_involvement_per_bn_km / car.fatal_involvement_per_bn_km)
     truck_distance = float(truck.km_per_vehicle / car.km_per_vehicle)
     bike_crashes = float(bike.injury_involvement_per_bn_km / car.injury_involvement_per_bn_km)
     truck_crashes = float(truck.injury_involvement_per_bn_km / car.injury_involvement_per_bn_km)
+    bike_fatal_share = bike_per_km / bike_crashes
+    truck_fatal_share = per_km / truck_crashes
     truck_occupants = float(truck.occupant_deaths_per_fatal_involvement)
     bike_occupants = float(bike.occupant_deaths_per_fatal_involvement)
-    # The paragraphs below describe these directions; stop if the tables no longer show them.
-    if not (
-        per_vehicle > per_km > 1
-        and float(bike.km_per_vehicle) < float(car.km_per_vehicle)
-        and bike_per_km > per_km
-        and bike_crashes > bike_per_km / bike_crashes > 1
-        and truck_crashes < 1 < per_km
-        and truck_occupants < 0.5 < bike_occupants
-        and summary.fatal_involvement_per_bn_km.idxmax() == "motorcycle"
-    ):
-        raise ValueError("vehicles page: the 2022 rates no longer read as described")
+    car_occupants = float(car.occupant_deaths_per_fatal_involvement)
+    van_gap = float(
+        split.loc["light_truck", "fatal_involvement_per_bn_km"]
+        / split.loc["van", "fatal_involvement_per_bn_km"]
+    )
+    top_per_vehicle = set(rates.fatal_involvement_per_100k_vehicles.nlargest(2).index)
+    top_per_km = set(rates.fatal_involvement_per_bn_km.nlargest(2).index)
 
-    body = key_figures(
-        [
-            ("Heavy truck vs car, per vehicle", f"{per_vehicle:.1f}×", "in a fatal crash, 2022"),
-            (
-                "Heavy truck vs car, per kilometre",
-                f"{per_km:.1f}×",
-                "the same crashes, distance as the divisor",
-            ),
-            ("Motorcycle vs car, per kilometre", f"{bike_per_km:.0f}×", "in a fatal crash"),
-            (
-                "Truck occupants killed",
-                f"{truck_occupants:.2f}",
-                f"per fatal crash a heavy truck is in; {bike_occupants:.2f} for a motorcycle",
-            ),
-        ]
+    # Each sentence below describes one of these directions; stop if the tables no longer show it.
+    checks = {
+        "heavy trucks exceed cars both ways, by less per kilometre": per_vehicle > per_km > 1,
+        "a heavy truck is driven further than a car": truck_distance > 1,
+        "a motorcycle is driven less than a car, and its ratio rises per kilometre": (
+            float(bike.km_per_vehicle) < float(car.km_per_vehicle)
+            and 1 < bike_per_vehicle < bike_per_km
+        ),
+        "buses and heavy trucks lead per vehicle": top_per_vehicle == {"bus", "heavy_truck"},
+        "motorcycles and mopeds lead per kilometre": top_per_km == {"motorcycle", "moped"},
+        "the motorcycle's excess is mostly frequency": bike_crashes > bike_fatal_share > 1,
+        "the heavy truck's excess is severity, by a wide margin": truck_crashes < 1
+        and truck_fatal_share > 2,
+        "most deaths in heavy-truck fatal crashes are outside the truck": truck_occupants < 0.5,
+        "heavy trucks kill fewer of their own occupants per kilometre than cars": float(
+            truck.occupant_deaths_per_bn_km
+        )
+        < float(car.occupant_deaths_per_bn_km),
+        "DGT has two kilometre releases, and the comparison uses the earlier": (
+            len(km_years) == 2 and km_years[0] == year
+        ),
+    }
+    failed = [claim for claim, holds in checks.items() if not holds]
+    if failed:
+        raise ValueError(f"vehicles page: the tables no longer support: {failed}")
+    later_km_year = km_years[1]
+
+    body = summary(
+        f"In {year} a heavy truck (over 3,500 kg) was involved in a fatal crash "
+        f"{_x(per_vehicle)} as often as a car per vehicle on the road, and {_x(per_km)} as "
+        "often per kilometre driven. The two figures differ because each heavy truck is driven "
+        f"{_x(truck_distance)} as far as a car. Motorcycles move the other way. Each is driven "
+        f"{_fmt_int(bike.km_per_vehicle)} km a year against {_fmt_int(car.km_per_vehicle)} km "
+        f"for a car, so a rate {_x(bike_per_vehicle)} a car's per vehicle becomes "
+        f"{_x(bike_per_km)} a car's per kilometre."
     )
     body += (
-        f'<p class="answer">A heavy truck is in a fatal crash {per_vehicle:.1f} times as often as '
-        f"a car per vehicle on the road, and {per_km:.1f} times as often per kilometre driven. "
-        f"The difference between the two is distance: each truck is driven {truck_distance:.1f} "
-        "times as far as a car. Motorcycles move the other way. Each is driven "
-        f"{float(bike.km_per_vehicle):,.0f} km a year against {float(car.km_per_vehicle):,.0f} "
-        f"for a car, so a modest rate per vehicle becomes {bike_per_km:.0f} times a car's rate "
-        "once distance is the divisor.</p>"
+        "<p>The ranking of vehicle types therefore depends on the denominator. Per vehicle on "
+        "the road, buses and heavy trucks have the highest rates of involvement in fatal "
+        "crashes; per kilometre, motorcycles and mopeds do.</p>"
     )
     body += figure(
         "v1_per_vehicle_vs_per_km",
-        "Ranking of vehicle types in fatal crashes per vehicle and per kilometre",
+        f"Slope chart of six vehicle types ranked by involvement in fatal crashes in {year}, "
+        "per 100,000 vehicles on the left and per billion kilometres on the right. Buses and "
+        "heavy trucks fall in the ranking and motorcycles and mopeds rise to the top.",
         captions,
     )
 
-    shown = summary.reset_index()[
+    shown = rates.reset_index()[
         [
             "label",
             "n_vehicles",
@@ -89,130 +132,136 @@ def page_vehicles(captions: dict[str, str]) -> str:
     ].rename(
         columns={
             "label": "Vehicle type",
-            "n_vehicles": "Circulating",
-            "km_per_vehicle": "Km per vehicle",
-            "vehicle_km_bn": "Billion km",
+            "n_vehicles": "Vehicles in circulation",
+            "km_per_vehicle": "Km per vehicle a year",
+            "vehicle_km_bn": "Total distance (billion km)",
             "fatal_involvement_per_100k_vehicles": "In fatal crashes per 100,000 vehicles",
-            "fatal_involvement_per_bn_km": "In fatal crashes per bn km",
-            "occupant_deaths_per_bn_km": "Own occupants killed per bn km",
+            "fatal_involvement_per_bn_km": "In fatal crashes per billion km",
+            "occupant_deaths_per_bn_km": "Own occupants killed per billion km",
             "occupant_deaths_per_fatal_involvement": "Own occupants killed per fatal crash",
         }
     )
-    shown = shown.sort_values("In fatal crashes per bn km", ascending=False)
+    shown = shown.sort_values("In fatal crashes per billion km", ascending=False)
     body += table(
         shown,
-        "Fleet, kilometres and fatal-crash rates by vehicle type, 2022. Sources: DGT statistical "
-        "tables 2022; DGT, Kilómetros recorridos estimados a partir de la ITV 2022",
+        f"Fleet, distance driven, involvement in fatal crashes and occupant deaths by vehicle "
+        f"type, Spain, {year}.",
         {
-            "Circulating": "int",
-            "Km per vehicle": "int",
-            "Billion km": "dec",
+            "Vehicles in circulation": "int",
+            "Km per vehicle a year": "int",
+            "Total distance (billion km)": "dec",
             "In fatal crashes per 100,000 vehicles": "dec",
-            "In fatal crashes per bn km": "dec",
-            "Own occupants killed per bn km": "dec",
+            "In fatal crashes per billion km": "dec",
+            "Own occupants killed per billion km": "dec",
             "Own occupants killed per fatal crash": "dec2",
         },
     )
-    body += downloads(
-        [
-            ("q6_summary_2022", "rates by type"),
-            (
-                "q6_rates_2022",
-                "rates with intervals by measure; by zone only counts and rates per vehicle, "
-                "since the kilometres are for all roads",
-            ),
-            ("q6_vehicle_km_2022", "fleet and kilometres"),
-            ("q6_vehicle_groups", "how the source categories map to these groups"),
-            ("q6_van_light_truck_split", "vans and light trucks taken separately"),
-        ]
-    )
 
-    body += "<h2>How often they crash, and how often a crash is fatal</h2>"
+    body += "<h2>Frequency for motorcycles, severity for heavy trucks</h2>"
+    body += (
+        "<p>A rate of fatal crashes per kilometre is the product of involvement in injury "
+        "crashes per kilometre and the share of those crashes that were fatal. Motorcycles and "
+        "heavy trucks reach high rates by opposite routes.</p>"
+    )
     split_rows = []
-    for group, row in summary.sort_values(
-        "fatal_involvement_per_bn_km", ascending=False
-    ).iterrows():
+    for group, row in rates.sort_values("fatal_involvement_per_bn_km", ascending=False).iterrows():
         crashes = float(row.injury_involvement_per_bn_km / car.injury_involvement_per_bn_km)
         deaths = float(row.fatal_involvement_per_bn_km / car.fatal_involvement_per_bn_km)
+        reference = group == "car"
         split_rows.append(
             {
                 "Vehicle type": row.label,
-                "In injury crashes per bn km": f"{row.injury_involvement_per_bn_km:,.0f}",
-                "Share of those crashes that are fatal": _fmt_pct(
+                "In injury crashes per billion km": f"{row.injury_involvement_per_bn_km:,.0f}",
+                "Share of those crashes that were fatal": _fmt_pct(
                     float(row.fatal_involvement / row.injury_involvement)
                 ),
-                "In fatal crashes per bn km": f"{row.fatal_involvement_per_bn_km:.1f}",
-                "Crashes per km, against cars": "1 (reference)"
-                if group == "car"
-                else _times(crashes),
-                "Fatal share, against cars": "1 (reference)"
-                if group == "car"
-                else _times(deaths / crashes),
-                "Fatal crashes per km, against cars": "1 (reference)"
-                if group == "car"
-                else _times(deaths),
+                "In fatal crashes per billion km": f"{row.fatal_involvement_per_bn_km:.1f}",
+                "Injury crashes per km, relative to cars": "1 (reference)"
+                if reference
+                else _x(crashes),
+                "Share fatal, relative to cars": "1 (reference)"
+                if reference
+                else _x(deaths / crashes),
+                "Fatal crashes per km, relative to cars": "1 (reference)"
+                if reference
+                else _x(deaths),
             }
         )
     body += table(
         pd.DataFrame(split_rows),
-        "Vehicles in injury crashes per kilometre, the share of those crashes that were fatal, "
-        "and their product, vehicles in fatal crashes per kilometre, 2022",
+        "Involvement in injury crashes per kilometre and the share of those crashes that were "
+        f"fatal, by vehicle type, Spain, {year}.",
     )
     body += (
-        "<p>Per kilometre, the motorcycle's excess is mostly in how often it is in a crash: "
-        f"{_times(bike_crashes)} a car's injury crashes, of which a share only "
-        f"{_times(bike_per_km / bike_crashes)} a car's is fatal. The heavy truck is the "
-        f"opposite: it is in {_times(truck_crashes)} a car's injury crashes per kilometre, but "
-        f"the share of them that is fatal is {_times(per_km / truck_crashes)} a car's.</p>"
+        f"<p>Motorcycles are involved in {_x(bike_crashes)} as many injury crashes per "
+        "kilometre as cars, and the share of those crashes that are fatal is only "
+        f"{_x(bike_fatal_share)} a car's: their excess is mostly one of frequency. Heavy "
+        f"trucks are involved in fewer injury crashes per kilometre than cars "
+        f"({_x(truck_crashes)}), but the share of those crashes that are fatal is "
+        f"{_x(truck_fatal_share)} a car's: their excess is one of severity. Both profiles "
+        "describe each vehicle as it is used, together with the roads, drivers and journeys "
+        "that go with it.</p>"
     )
 
-    body += "<h2>Who dies in the crash</h2>"
+    body += "<h2>Who dies in crashes involving heavy trucks</h2>"
     body += (
-        "<p>The last column of the first table is the second half of the finding. When a "
-        f"motorcycle is in a fatal crash, {bike_occupants:.2f} of its own riders are killed on "
-        f"average; for a car {float(car.occupant_deaths_per_fatal_involvement):.2f}; for a heavy "
-        f"truck {truck_occupants:.2f}. A fatal crash has at least one death, so a figure of "
-        f"{truck_occupants:.2f} means that in at least {_fmt_pct(1 - truck_occupants, 0)} of the "
-        "fatal crashes a heavy truck was in, nobody in the truck died: everyone killed was in "
-        "another vehicle or on foot. A measure built from a vehicle's own occupants' deaths "
-        "would miss most of the deaths in crashes involving trucks.</p>"
+        "<p>Involvement counts the crash, whoever died in it. The occupant columns of the first "
+        "table count only the deaths of each vehicle's own occupants. Own occupants killed per "
+        f"fatal crash average {truck_occupants:.2f} for a heavy truck, {car_occupants:.2f} for "
+        f"a car and {bike_occupants:.2f} for a motorcycle. Every fatal crash has at least one "
+        f"death, so a figure of {truck_occupants:.2f} means that in at least "
+        f"{_fmt_pct(1 - truck_occupants, 0)} of the fatal crashes involving a heavy truck, "
+        "nobody in the truck died: everyone killed was in another vehicle or on foot.</p>"
     )
-    van_gap = float(
-        split.loc["light_truck", "fatal_involvement_per_bn_km"]
-        / split.loc["van", "fatal_involvement_per_bn_km"]
-    )
-    body += "<h2>Conclusion</h2>"
-    body += conclusion(
-        "Per vehicle on the road a heavy truck was in a fatal crash "
-        f"{per_vehicle:.1f}× as often as a car in 2022; per kilometre, {per_km:.1f}×, the "
-        f"difference being that each truck is driven {truck_distance:.1f}× as far. Per "
-        f"kilometre the motorcycle leads, at {bike_per_km:.0f}×, mostly from being in injury "
-        f"crashes {_times(bike_crashes)} as often; the truck is in fewer injury crashes per "
-        f"kilometre than a car ({_times(truck_crashes)}) but a larger share of them are fatal, "
-        f"and its own occupants averaged {truck_occupants:.2f} deaths per fatal crash it was in, "
-        f"so in at least {_fmt_pct(1 - truck_occupants, 0)} of those crashes everyone killed was "
-        "outside the truck. These are "
-        "recorded rates for one year, not the effect of the vehicle on the outcome."
+    body += (
+        "<p>The choice of measure reverses the comparison with cars. Counted by the deaths of "
+        "their own occupants, heavy trucks have a lower rate per kilometre than cars "
+        f"({float(truck.occupant_deaths_per_bn_km):.1f} against "
+        f"{float(car.occupant_deaths_per_bn_km):.1f} per billion km). Counted by involvement in "
+        f"fatal crashes, their rate is {_x(per_km)} a car's. A measure built from occupant deaths "
+        "alone would miss most of the deaths in crashes involving heavy trucks.</p>"
     )
 
-    body += limits(
-        "Kilometres exist for 2022 only, so this is a cross-section, not a trend. They are "
-        "modelled from inspection odometer readings, and DGT's own note says they are valid for "
-        "aggregates rather than for individual vehicles. They are annualised over readings taken "
-        "across 2014 to 2023, so they describe a normal year imputed to the 2022 fleet rather "
-        "than 2022 travel. The two sides of the division do not cover quite the same vehicles: the "
-        "crash counts include foreign-registered vehicles, and the kilometres include the "
-        "distance Spanish vehicles drive abroad; quadricycles are counted with mopeds and "
-        "motorcycles in the kilometres but in the 'other' row of the crash tables. Vans and light "
-        "trucks are one group because the "
-        f"crash record and the register split them differently; taken apart, light trucks would "
-        f"show {van_gap:.0%} of a van's rate per kilometre; the data do not establish whether "
-        "that gap is real or comes from the split. The intervals come from the crash counts and treat the kilometres as known."
+    body += limitation(
+        f"The kilometres are DGT's estimates for {year}, which DGT describes as valid for "
+        "aggregates rather than for individual vehicles. The estimates it published for "
+        f"{later_km_year} are built by a different method and cannot be joined to them (see "
+        f'<a href="trends.html">{_page_name("trends")}</a>), so the comparison covers a single '
+        "year. The kilometres cover all roads, so rates per kilometre cannot be split between "
+        "urban and interurban roads. The crash counts and the kilometres cover slightly "
+        "different sets of vehicles. The intervals in the result tables reflect the crash "
+        "counts only and treat the kilometres as exact."
+    )
+    body += technical(
+        "How the crash counts and the kilometres are matched",
+        "<p>DGT models the kilometres from odometer readings taken at roadworthiness "
+        f"inspections over several years, annualised and attached to the {year} fleet. The "
+        "crash counts include foreign-registered vehicles, and the kilometres include Spanish "
+        "vehicles' travel abroad. Quadricycles count with mopeds and motorcycles in the "
+        "kilometres but among other vehicles in the crash tables. Vans and light trucks form "
+        "one group because the crash records and the vehicle register divide them "
+        f"differently; taken apart, light trucks would have {_fmt_pct(van_gap, 0)} of a van's "
+        "rate per kilometre, and the data do not establish whether that gap is real or an "
+        "artefact of the split.</p>",
+    )
+    body += downloads(
+        [
+            ("q6_summary_2022", "rates by vehicle type"),
+            (
+                "q6_rates_2022",
+                "rates with 95% intervals (urban and interurban roads only as counts and "
+                "rates per vehicle)",
+            ),
+            ("q6_vehicle_km_2022", "fleet and kilometres"),
+            ("q6_vehicle_groups", "how the source categories map to these groups"),
+            ("q6_van_light_truck_split", "vans and light trucks separately"),
+        ],
+        method=("data.html#rates", "rates and denominators"),
     )
     return render_page(
         "vehicles",
-        "Vehicle risk per kilometre",
-        "How different vehicle types look when the divisor is distance driven rather than the "
-        "number of vehicles on the road.",
+        "Vehicle type, distance driven and crash severity",
+        f"Six vehicle types compared by their involvement in fatal crashes in Spain in {year}, "
+        "per vehicle on the road and per kilometre driven, and by who dies in those crashes.",
         body,
     )

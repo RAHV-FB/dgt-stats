@@ -38,25 +38,32 @@ header { padding-top: 28px; }
 .masthead { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; }
 .masthead a { color: var(--ink); text-decoration: none; font-weight: 600; font-size: 1.05rem; letter-spacing: 0.01em; }
 .masthead .strap { font-family: var(--sans); font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-2); }
-/* Navigation: labelled groups, each a small caption over its links and ruled off from the next,
-   so that a group label never reads as a page. */
+/* Navigation: each section a small label followed by its links, ruled off from the next, so that
+   a label never reads as a page. The supporting analyses sit inside the Spain section. */
 nav[aria-label="Sections"] {
-  margin: 14px 0 0; padding: 7px 0 0; border-top: 1px solid var(--ink); border-bottom: 1px solid var(--rule);
-  display: flex; flex-wrap: wrap; gap: 0;
+  margin: 14px 0 0; padding: 8px 0 4px; border-top: 1px solid var(--ink); border-bottom: 1px solid var(--rule);
+  display: flex; flex-wrap: wrap; align-items: baseline; row-gap: 2px;
 }
-.navgroup { padding: 0 16px 0 0; margin: 0 16px 6px 0; border-right: 1px solid var(--rule); }
+.navgroup {
+  display: flex; flex-wrap: nowrap; align-items: baseline; column-gap: 10px; min-width: 0;
+  padding: 0 14px 0 0; margin: 0 14px 0 0; border-right: 1px solid var(--rule);
+}
+.navgroup > ul { flex: 1 1 auto; min-width: 0; }
 .navgroup:last-child { border-right: 0; margin-right: 0; padding-right: 0; }
 .navlabel {
-  display: block; font-family: var(--sans); font-size: 0.6rem; letter-spacing: 0.1em;
-  text-transform: uppercase; color: var(--ink-2); line-height: 1.2; padding-top: 1px;
+  font-family: var(--sans); font-size: 0.6rem; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--ink-2); white-space: nowrap;
 }
-nav ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0 13px; }
+nav ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 12px; }
 nav a {
-  display: inline-block; padding: 3px 0 6px; color: var(--ink); text-decoration: none;
-  font-family: var(--sans); font-size: 0.8rem;
+  display: inline-block; padding: 3px 0 5px; color: var(--ink); text-decoration: none;
+  font-family: var(--sans); font-size: 0.8rem; white-space: nowrap;
 }
 nav a:hover { color: var(--accent); }
 nav a[aria-current="page"] { font-weight: 600; box-shadow: inset 0 -2px 0 var(--accent); }
+.navwide { flex: 1 1 30rem; border-right: 0; margin-right: 0; padding-right: 0; }
+nav li.navsub { display: flex; flex: 0 0 auto; flex-wrap: nowrap; align-items: baseline; column-gap: 10px; padding-left: 12px; border-left: 1px solid var(--rule); }
+nav li.navsub > ul { flex-wrap: nowrap; }
 .eyebrow {
   font-family: var(--sans); font-size: 0.7rem; letter-spacing: 0.08em; text-transform: uppercase;
   color: var(--accent); margin: 0 0 6px;
@@ -78,30 +85,8 @@ h3 { font-size: 1.05rem; font-weight: 600; margin: 30px 0 6px; max-width: var(--
 p, li { max-width: var(--measure); }
 p { margin: 0 0 1em; }
 p.lead { font-size: 1.12rem; color: var(--ink-2); line-height: 1.5; margin-bottom: 26px; }
-p.answer { font-size: 1.18rem; line-height: 1.5; margin: 0 0 1.2em; }
-p.answer strong, p.answer em { font-weight: 600; font-style: normal; }
+p.summary { font-size: 1.12rem; line-height: 1.55; margin: 0 0 1.2em; }
 a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
-
-/* Key figures: a bulletin's indicator strip, ruled rather than boxed. */
-.figures + h2, .figures + p + h2 { border-top: 0; padding-top: 0; margin-top: 34px; }
-.figures { display: flex; flex-wrap: wrap; margin: 0 0 32px; border-top: 2px solid var(--ink); border-bottom: 1px solid var(--rule); }
-.keyfig { flex: 1 1 11rem; padding: 12px 18px 13px 0; margin-right: 18px; border-right: 1px solid var(--rule); }
-.keyfig:last-child { border-right: 0; margin-right: 0; }
-.keyfig .label {
-  font-family: var(--sans); font-size: 0.7rem; letter-spacing: 0.07em; text-transform: uppercase;
-  color: var(--ink-2); line-height: 1.35; min-height: 2.7em;
-}
-.keyfig .value { font-size: 1.95rem; font-weight: 600; font-variant-numeric: tabular-nums lining-nums; line-height: 1.1; margin: 5px 0 3px; letter-spacing: -0.02em; }
-.keyfig .gloss { font-family: var(--sans); font-size: 0.76rem; line-height: 1.35; color: var(--ink-2); }
-
-/* Findings: a numbered editorial list on the front page. */
-.finding { max-width: var(--measure); margin: 0 0 30px; }
-.finding h3 { margin: 0 0 6px; font-size: 1.12rem; line-height: 1.3; }
-.finding h3 .num { font-family: var(--sans); font-size: 0.72rem; letter-spacing: 0.08em; color: var(--accent); display: block; margin-bottom: 3px; }
-.finding h3 a { color: var(--ink); text-decoration: none; box-shadow: inset 0 -1px 0 var(--rule-strong); }
-.finding h3 a:hover { box-shadow: inset 0 -2px 0 var(--accent); }
-.finding p { margin: 0 0 6px; }
-.finding p.method { font-family: var(--sans); font-size: 0.81rem; line-height: 1.45; color: var(--ink-2); }
 
 /* Figures and tables break out of the text column. */
 figure { margin: 26px 0 30px; max-width: var(--wide); }
@@ -130,10 +115,7 @@ thead th:first-child { text-align: left; }
 tbody th, tbody td { padding: 5px 14px 5px 0; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--rule); }
 tbody th { font-weight: 400; text-align: left; }
 tbody tr:last-child th, tbody tr:last-child td { border-bottom: 1px solid var(--rule-strong); }
-th.wrap, td.wrap { white-space: normal; min-width: 22ch; max-width: 40ch; text-align: left; }
-tbody tr.group th { font-weight: 600; padding-top: 14px; border-bottom: 1px solid var(--rule-strong); }
-table.live { min-width: 0; }
-table.live thead th { white-space: normal; }
+th.wrap, td.wrap { white-space: normal; min-width: 14ch; max-width: 36ch; text-align: left; }
 .table-wrap:focus-visible, .figure-wrap:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 
 .downloads { font-family: var(--sans); font-size: 0.78rem; color: var(--ink-2); margin: 0 0 30px; max-width: 46rem; }
@@ -147,14 +129,11 @@ table.live thead th { white-space: normal; }
 .conclusion { max-width: var(--measure); margin: 26px 0 0; padding-left: 16px; border-left: 3px solid var(--accent); }
 .conclusion p { margin: 0; }
 
-/* Source, coverage and unit behind a figure or table: one line closed, a short list open. */
-details.about { font-family: var(--sans); font-size: 0.8rem; line-height: 1.5; color: var(--ink-2); max-width: 46rem; margin: -18px 0 26px; }
-details.about summary { cursor: pointer; color: var(--accent); }
-details.about summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-details.about dl { display: grid; grid-template-columns: 9rem 1fr; gap: 2px 12px; margin: 8px 0 0; }
-details.about dt { color: var(--ink); font-weight: 600; }
-details.about dd { margin: 0; }
-p.level { font-family: var(--sans); font-size: 0.8rem; color: var(--ink-2); margin: -8px 0 14px; }
+/* Technical detail behind a result: closed by default, a reader opens it when needed. */
+details.technical { font-family: var(--sans); font-size: 0.82rem; line-height: 1.5; color: var(--ink-2); max-width: var(--wide); margin: 18px 0 26px; border-top: 1px solid var(--rule); padding-top: 8px; }
+details.technical summary { cursor: pointer; color: var(--accent); }
+details.technical summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+details.technical p { font-family: var(--sans); font-size: 0.82rem; max-width: 46rem; margin: 8px 0; }
 
 footer {
   border-top: 1px solid var(--rule); margin-top: 20px; padding-top: 18px; padding-bottom: 40px;
@@ -166,11 +145,13 @@ footer p { max-width: 46rem; }
   body { font-size: 18px; }
   h1 { font-size: 1.85rem; }
   header, main, footer { padding-left: 16px; padding-right: 16px; }
-  details.about dl { grid-template-columns: 1fr; }
-  .navgroup { flex: 1 1 100%; border-right: 0; margin-right: 0; padding-right: 0; display: flex; gap: 10px; align-items: baseline; }
-  .navlabel { flex: 0 0 5.5rem; }
-  .keyfig { flex-basis: 100%; border-right: 0; border-bottom: 1px solid var(--rule); margin-right: 0; padding-right: 0; }
-  .keyfig:last-child { border-bottom: 0; }
+  figure img { min-width: 0; }
+  caption { max-width: calc(100vw - 32px); }
+  .navgroup { flex: 1 1 100%; border-right: 0; margin-right: 0; padding-right: 0; }
+  .navgroup > .navlabel { flex: 0 0 5.5rem; white-space: normal; }
+  nav li.navsub { flex: 1 1 auto; padding-left: 0; border-left: 0; flex-direction: column; align-items: flex-start; }
+  nav li.navsub > ul { flex-wrap: wrap; }
+  nav li.navsub .navlabel { padding-top: 4px; }
 }
 @media print {
   nav, .downloads { display: none; }

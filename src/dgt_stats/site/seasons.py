@@ -1,9 +1,11 @@
-"""Seasons and mobility: deaths by month, raw and per tonne of road fuel sold."""
+"""Seasonal variation in road deaths: deaths by month, as a count and per tonne of road fuel sold,
+and the fall in deaths during the lockdown beside road fuel, petrol and toll-motorway traffic."""
 
 from __future__ import annotations
 
 import pandas as pd
 
+from dgt_stats import seasonality
 from dgt_stats.site.components import (
     _fmt_pct,
     _join,
@@ -11,10 +13,9 @@ from dgt_stats.site.components import (
     conclusion,
     downloads,
     figure,
-    key_figures,
-    limits,
     read_table,
     render_page,
+    summary,
 )
 from dgt_stats.site.numbers import _season_numbers
 
@@ -42,6 +43,25 @@ def _month_run(months: list[int]) -> str:
     return _join([MONTHS[m - 1] for m in months])
 
 
+def _count_word(value: int) -> str:
+    """A small count in words."""
+    words = ("two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven")
+    return words[value - 2] if 2 <= value <= 11 else str(value)
+
+
+def _years(years: tuple[int, ...]) -> str:
+    """Consecutive years as a range with an en dash, otherwise as a list in words."""
+    years = tuple(sorted(years))
+    if len(years) > 1 and years == tuple(range(years[0], years[-1] + 1)):
+        return f"{years[0]}–{years[-1]}"
+    return _join([str(year) for year in years])
+
+
+def _interval(row: pd.Series) -> str:
+    """A month effect's 95% interval, both ends unsigned: '1.06–1.18'."""
+    return f"{float(row.low):.2f}–{float(row.high):.2f}"
+
+
 def page_seasons(captions: dict[str, str]) -> str:
     numbers = _season_numbers()
     effects, lockdown = numbers["effects"], numbers["lockdown"]
@@ -59,11 +79,14 @@ def page_seasons(captions: dict[str, str]) -> str:
     below = [m for m in range(1, 13) if float(effect(FUEL, m).high) < 1]
     others_above = [m for m in above if m not in (7, 8)]
     pooled = effect(FUEL, 1)
+    first, last = int(pooled.first_year), int(pooled.last_year)
     left_out = sorted(
-        set(range(int(pooled.first_year), int(pooled.last_year) + 1))
-        - {int(year) for year in str(pooled.years).split()}
+        set(range(first, last + 1)) - {int(year) for year in str(pooled.years).split()}
     )
+    lockdown_year = seasonality.LOCKDOWN_YEAR
+    baseline = _years(seasonality.LOCKDOWN_BASELINE)
     april = lockdown.loc[4]
+    deaths_fall = float(april.deaths_change)
     traffic_falls = {
         "road fuel sold": float(april.road_fuel_tonnes_change),
         "petrol sold": float(april.petrol_tonnes_change),
@@ -75,147 +98,151 @@ def page_seasons(captions: dict[str, str]) -> str:
         "the summer excess smaller per tonne than as a count": float(july_fuel.rate_ratio)
         < float(july.rate_ratio)
         and float(august_fuel.rate_ratio) < float(august.rate_ratio),
+        "more road fuel is sold in July and August than in the average month": float(
+            profile.loc[7, FUEL]
+        )
+        > 100
+        and float(profile.loc[8, FUEL]) > 100,
         "months below the average month per tonne of fuel": bool(below),
         "road fuel sold falls from July to August while petrol rises": float(profile.loc[8, FUEL])
         < float(profile.loc[7, FUEL])
         and float(profile.loc[8, "petrol_tonnes"]) > float(profile.loc[7, "petrol_tonnes"]),
-        "April 2020 deaths fell more than road fuel, less than petrol and toll traffic": (
+        "April lockdown deaths fell more than road fuel, less than petrol and toll traffic": (
             traffic_falls["road fuel sold"]
-            > float(april.deaths_change)
+            > deaths_fall
             > max(traffic_falls["petrol sold"], traffic_falls["toll-motorway traffic"])
         ),
+        "deaths per tonne of road fuel fell in the April lockdown": float(
+            april.deaths_per_road_fuel_tonnes_change
+        )
+        < 0,
+        "August deaths below petrol sold and toll-motorway traffic on the index": float(
+            profile.loc[8, "deaths_all"]
+        )
+        < min(float(profile.loc[8, "petrol_tonnes"]), float(profile.loc[8, "toll_intensity"])),
+        "the pooled years leave out the lockdown year": lockdown_year in left_out,
     }
     failed = [name for name, ok in checks.items() if not ok]
     if failed:
         raise ValueError(f"seasons page: the tables no longer support: {failed}")
 
-    body = key_figures(
-        [
-            ("July deaths", _times(float(july.rate_ratio)), "the average month, as a count"),
-            (
-                "July, per tonne of road fuel",
-                _times(float(july_fuel.rate_ratio)),
-                "the average month",
-            ),
-            (
-                "August, per tonne of road fuel",
-                _times(float(august_fuel.rate_ratio)),
-                f"{_times(float(august.rate_ratio))} as a count",
-            ),
-            (
-                "Deaths, April 2020",
-                _fmt_pct(float(april.deaths_change), 0),
-                f"road fuel sold {_fmt_pct(float(april.road_fuel_tonnes_change), 0)}",
-            ),
-        ]
+    def fall(value: float) -> str:
+        return _fmt_pct(-value, 0)
+
+    body = summary(
+        "Road deaths in Spain peak in summer. Once each year's overall level is removed, July "
+        f"has {_times(float(july.rate_ratio))} the deaths of an average month and August "
+        f"{_times(float(august.rate_ratio))}. More road fuel is sold in those months, and part "
+        "of the excess goes with it. Per tonne of road fuel sold, the one monthly series that "
+        f"covers every road and every vehicle, July and August stand at "
+        f"{_times(float(july_fuel.rate_ratio))} and {_times(float(august_fuel.rate_ratio))}: "
+        "smaller, but with 95% intervals that lie wholly above the average month. On the same "
+        f"basis {_month_run(below)} are below the average month"
+        + (f" and {_month_run(others_above)} above it" if others_above else "")
+        + f". In April {lockdown_year}, under the lockdown, deaths fell "
+        f"{fall(deaths_fall)} and road fuel sold {fall(traffic_falls['road fuel sold'])} "
+        f"against the average April of {baseline}."
     )
-    body += (
-        '<p class="answer">Road deaths in July and August run '
-        f"{_times(float(july.rate_ratio))} and {_times(float(august.rate_ratio))} the average "
-        "month. Divided by road fuel sold, the only monthly traffic series that covers every "
-        f"road and every vehicle, they are {_times(float(july_fuel.rate_ratio))} and "
-        f"{_times(float(august_fuel.rate_ratio))}: smaller, but both still above the average "
-        "month, outside their intervals. Per tonne of road fuel, "
-        f"{_month_run(below)} are below the average month"
-        + (f", and {_month_run(others_above)} above it" if others_above else "")
-        + ". Road fuel is fuel sold, not kilometres driven, so these are month effects per "
-        "tonne of fuel, not per kilometre.</p>"
-    )
+
+    body += "<h2>Deaths, fuel sales and motorway traffic by month</h2>"
     body += figure(
         "m1_season_profile",
-        "Deaths and three traffic series by month, average month = 100",
+        "Index of deaths, road fuel sold, petrol sold and toll-motorway traffic by month of the "
+        "year, with the average month at 100",
         captions,
     )
     body += (
-        "<p>No series counts kilometres on all Spanish roads month by month. Road fuel sold "
-        "(petrol plus diesel) covers every road and every vehicle and is the one series used "
-        "here as a denominator. Two narrower series are shown beside deaths as traffic indices "
-        "only: petrol sold, which leaves out every diesel vehicle, and average daily traffic per "
-        "kilometre on the state toll motorways, a small part of the network. They do not move "
-        "together. In August the deaths index stands at "
-        f"{float(profile.loc[8, 'deaths_all']):.0f}, road fuel sold at "
+        "<p>No series counts the kilometres driven on all Spanish roads month by month. Road "
+        "fuel sold (petrol plus diesel) is the one series used to divide deaths; as on the "
+        "annual pages, a rate per tonne of fuel stands "
+        'in for a rate per kilometre (<a href="trends.html">Trends since 2019</a>). Two '
+        "narrower series are shown beside deaths only: petrol sold, which leaves out every "
+        "diesel vehicle, and traffic on the state toll motorways, measured directly but on a "
+        "small part of the network, as vehicles per kilometre of motorway. The three series "
+        "diverge in summer. In the average August, deaths stand at "
+        f"{float(profile.loc[8, 'deaths_all']):.0f} on this index, road fuel sold at "
         f"{float(profile.loc[8, FUEL]):.0f} (down from {float(profile.loc[7, FUEL]):.0f} in "
         f"July), petrol sold at {float(profile.loc[8, 'petrol_tonnes']):.0f} (up from "
         f"{float(profile.loc[7, 'petrol_tonnes']):.0f}) and toll-motorway traffic at "
-        f"{float(profile.loc[8, 'toll_intensity']):.0f}. Which of them is closest to "
-        "kilometres driven on all roads is not something these data can establish, so neither "
-        "narrow series is used to divide all-road deaths.</p>"
+        f"{float(profile.loc[8, 'toll_intensity']):.0f}. Which of them comes closest to the "
+        "kilometres driven on all roads is unknown.</p>"
+    )
+
+    body += "<h2>Month effects</h2>"
+    body += (
+        "<p>The month effects come from a model of monthly deaths with a separate level for "
+        "each year, so that the long-run trend does not enter the seasonal pattern. A second "
+        "version adds road fuel sold as the denominator, which turns each month effect into "
+        "deaths per tonne of fuel against the average month. The intervals allow for monthly "
+        "counts that vary more than chance alone would produce. Both versions pool "
+        f"{_count_word(int(pooled.n_years))} years from {first} to {last}, leaving out "
+        f"{_join([str(year) for year in left_out])}.</p>"
     )
     body += figure(
         "m2_month_effects",
-        "Month effects on deaths with no exposure and per tonne of road fuel",
+        "Deaths in each month against the average month, as a count and per tonne of road "
+        "fuel sold, with 95% intervals",
         captions,
     )
     body += (
-        "<p>With year effects taking out the trend, July's deaths are "
-        f"{_times(float(july.rate_ratio))} the average month as a count and "
-        f"{_times(float(july_fuel.rate_ratio))} per tonne of road fuel (interval "
-        f"{float(july_fuel.low):.2f} to {float(july_fuel.high):.2f}); August's are "
-        f"{_times(float(august.rate_ratio))} and {_times(float(august_fuel.rate_ratio))} "
-        f"({float(august_fuel.low):.2f} to {float(august_fuel.high):.2f}). Per tonne of road "
-        f"fuel, {_month_run(below)} run between "
-        f"{min(float(effect(FUEL, m).rate_ratio) for m in below):.2f} and "
-        f"{max(float(effect(FUEL, m).rate_ratio) for m in below):.2f}"
+        f"<p>Per tonne of road fuel, the 95% intervals for July ({_interval(july_fuel)}) and "
+        f"August ({_interval(august_fuel)}) lie above 1. {_month_run(below)} lie between "
+        f"{_times(min(float(effect(FUEL, m).rate_ratio) for m in below))} and "
+        f"{_times(max(float(effect(FUEL, m).rate_ratio) for m in below))}, with intervals "
+        "below 1"
         + (
-            f", and {_month_run(others_above)} "
-            + _join([f"{float(effect(FUEL, m).rate_ratio):.2f}" for m in others_above])
+            f"; {_month_run(others_above)}, at "
+            + _join([_times(float(effect(FUEL, m).rate_ratio)) for m in others_above])
+            + (", has an interval" if len(others_above) == 1 else ", have intervals")
+            + " above 1"
             if others_above
             else ""
         )
-        + "; the other months are not distinguishable from the average month.</p>"
+        + ". The intervals of the other months include the average month.</p>"
     )
 
-    body += "<h2>The 2020 lockdown</h2>"
+    body += f"<h2>The {lockdown_year} lockdown</h2>"
     body += figure(
-        "m3_lockdown", "2020 against 2017–2019, month by month: deaths and traffic", captions
+        "m3_lockdown",
+        f"Change in deaths, road fuel sold, petrol sold and toll-motorway traffic in each month "
+        f"of {lockdown_year}, against the same month of {baseline}",
+        captions,
     )
     body += (
-        f"<p>In April 2020, the one full month of the strictest lockdown, deaths fell "
-        f"{_fmt_pct(-float(april.deaths_change), 0)} on the 2017–2019 average. Road fuel sold "
-        f"fell {_fmt_pct(-traffic_falls['road fuel sold'], 0)}, petrol sold "
-        f"{_fmt_pct(-traffic_falls['petrol sold'], 0)} and toll-motorway traffic "
-        f"{_fmt_pct(-traffic_falls['toll-motorway traffic'], 0)}: deaths fell by more than road "
-        "fuel and by less than the two narrower series. Per tonne of road fuel, deaths fell "
-        f"{_fmt_pct(-float(april.deaths_per_road_fuel_tonnes_change), 0)}. Without a monthly "
-        "count of kilometres on all roads these series cannot say whether each kilometre driven "
-        "that month became more or less dangerous, and this page does not claim either.</p>"
+        f"<p>April {lockdown_year} was the one full month under the strictest restrictions. "
+        f"Against the average April of {baseline}, deaths fell {fall(deaths_fall)}, road fuel "
+        f"sold {fall(traffic_falls['road fuel sold'])}, petrol sold "
+        f"{fall(traffic_falls['petrol sold'])} and toll-motorway traffic "
+        f"{fall(traffic_falls['toll-motorway traffic'])}. Deaths therefore fell by more than "
+        "road fuel and by less than the two narrower series, and per tonne of road fuel they "
+        f"fell {fall(float(april.deaths_per_road_fuel_tonnes_change))}.</p>"
+    )
+
+    body += "<h2>What the summer excess means</h2>"
+    body += conclusion(
+        "Both results depend on the measure set against deaths. Measured against road fuel "
+        "sold, deaths rise more than fuel sales in summer and fell more than fuel sales in "
+        "the April lockdown. Against petrol sales or toll-motorway traffic, August deaths "
+        "stand below both series on the monthly index, and in April deaths fell less than "
+        "either. None of these series measures risk per "
+        "kilometre driven, so whether each kilometre became more or less dangerous during the "
+        "lockdown, and how much of the summer excess would remain per kilometre, is unknown. "
+        "The firm result concerns fuel: in July and August more people die on Spanish roads "
+        "than the fuel sold in those months would predict."
     )
     body += downloads(
         [
             ("season_profile", "monthly indices"),
-            ("season_month_effects", "month effects, raw and per tonne of road fuel"),
-            ("season_lockdown", "2020 month by month"),
-        ]
-    )
-    body += "<h2>Conclusion</h2>"
-    body += conclusion(
-        "Per tonne of road fuel sold, the only monthly traffic series that covers every road and "
-        f"vehicle, July and August stay above the average month "
-        f"({_times(float(july_fuel.rate_ratio))} and {_times(float(august_fuel.rate_ratio))}, "
-        f"against {_times(float(july.rate_ratio))} and {_times(float(august.rate_ratio))} as "
-        "a count): the summer excess is smaller per tonne of fuel than as a count, but it does "
-        f"not disappear. {_month_run(below)} are below the average month per tonne of fuel"
-        + (f", and {_month_run(others_above)} above it" if others_above else "")
-        + ". These are rates per tonne of fuel sold, not per kilometre driven. In April 2020 "
-        f"deaths fell {_fmt_pct(-float(april.deaths_change), 0)}, by more than road fuel sold "
-        "and less than petrol sold or toll-motorway traffic; the series cannot tell whether "
-        "the roads became more or less dangerous per kilometre that month."
-    )
-    body += limits(
-        "Road fuel is fuel sold by month, not fuel burnt, and it mixes freight with private "
-        "travel, so a month effect per tonne is not a month effect per kilometre. Petrol sold "
-        "and toll-motorway traffic are shown only as traffic indices: petrol leaves out diesel "
-        "vehicles, and the toll network is a small part of the roads that shrank as concessions "
-        "expired, which is why its intensity per kilometre is read rather than "
-        "vehicle-kilometres. Monthly deaths are small counts, so single months carry wide "
-        f"intervals; the month effects pool {int(pooled.n_years)} years from "
-        f"{int(pooled.first_year)} to {int(pooled.last_year)}, with "
-        f"{_join([str(year) for year in left_out])} left out."
+            ("season_month_effects", "month effects, as a count and per tonne of road fuel"),
+            ("season_lockdown", f"{lockdown_year} month by month"),
+        ],
+        method=("data.html#rates", "rates and denominators"),
     )
     return render_page(
         "seasons",
-        "Seasonality and mobility",
-        "Is the summer peak in road deaths only a peak in driving? Divide each month by road "
-        "fuel sold, the one monthly traffic series that covers every road, and see what is left.",
+        "Seasonal variation in road deaths",
+        f"Monthly road deaths in Spain from {first} to {last}, set beside sales of road fuel "
+        f"and petrol and traffic on the toll motorways, with the {lockdown_year} lockdown "
+        "treated separately.",
         body,
     )

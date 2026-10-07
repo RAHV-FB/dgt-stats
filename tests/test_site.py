@@ -8,12 +8,10 @@ from dgt_stats import site, summaries
 from dgt_stats.paths import FIGURES_DIR, TABLES_DIR
 from dgt_stats.site import components
 
-# The analysis pages in navigation order: everything in the main row but the overview and data.
-# The national pages the overview's first question summarises, one finding each: the seven
-# findings and the monthly deaths page. The regional, model, generalisability and sources pages
-# answer the overview's other three questions in their own sections.
-ANALYSIS_PAGES = tuple(slug for slug, _ in components.FINDING_PAGES) + ("forecast",)
-REGIONAL_PAGES = ("catalonia", "barcelona", "severity-models", "transport", "sources")
+# The national analysis pages in navigation order, and the monthly deaths forecast; then the
+# regional, model, validation and sources pages.
+ANALYSIS_PAGES = tuple(slug for slug, _ in components.SPAIN_PAGES) + ("forecast",)
+REGIONAL_PAGES = ("catalonia", "barcelona", "severity-models", "validation", "sources")
 
 pytestmark = pytest.mark.skipif(
     not (FIGURES_DIR / "captions.json").exists()
@@ -39,22 +37,22 @@ def test_every_page_is_written_with_one_heading(built: Path) -> None:
         _runs_no_script(slug, text)
         assert 'lang="en"' in text
         assert f'href="{slug}.html" aria-current="page"' in text
-    # The navigation follows the source hierarchy: Spain (seven findings, two supporting
-    # analyses), Catalonia, Barcelona, the models, generalisability, sources and methods; a
+    # The navigation follows the argument: Spain (seven pages and three supporting analyses),
+    # the regional records, the models and their external validation, and the methods; a
     # pointer for each page that was renamed; and a notice for each withdrawn analysis.
     assert [group for group, _ in site.NAV_GROUPS] == [
-        "Start",
-        "Spain: DGT and INE",
-        "Spain: supporting",
-        "Catalonia",
-        "Barcelona",
+        "Overview",
+        "Spain",
+        "Supporting analyses",
+        "Regional data",
         "Models",
-        "Generalisability",
-        "Sources and methods",
+        "Methods",
     ]
     assert len(site.PAGES) == 14 and len(site.SUPPORTING_PAGES) == 3
-    # Only models that beat their descriptive comparator are in the Models group.
-    assert [slug for slug, _ in dict(site.NAV_GROUPS)["Models"]] == ["severity-models"]
+    assert [slug for slug, _ in dict(site.NAV_GROUPS)["Models"]] == [
+        "severity-models",
+        "validation",
+    ]
     expected = (
         {slug for slug, _ in site.ALL_PAGES} | set(site.MOVED_PAGES) | set(site.WITHDRAWN_PAGES)
     )
@@ -226,7 +224,7 @@ def test_drivers_page_separates_the_two_questions(built: Path) -> None:
     )
     fatality_men = ratios.loc[("car", "18+", "deaths_per_1000_involved")]
     assert f"{fatality_men.ratio:.2f}× ({fatality_men.low:.2f}–{fatality_men.high:.2f})" in text
-    assert "No file in this repository measures kilometres driven by sex" in text
+    assert "None of the data sources records kilometres driven by sex" in text
     assert "drivers_sex_travel" not in text
     assert 'src="figures/a3_sex_ratios.svg"' in text
 
@@ -333,7 +331,12 @@ def test_trend_pages_show_every_denominator_and_the_projection(built: Path) -> N
     assert components._fmt_pct(float(coverage.outside_share.min())) in long_run
     assert components._fmt_pct(float(coverage.outside_share.max())) in long_run
     assert "carries more traffic" not in long_run and "carried more traffic" not in long_run
-    assert "diagnostic" in long_run
+    assert "diagnostic" not in long_run
+    assert "check on road fuel as a measure of traffic" in long_run
+    # The long-run fall split into crashes per tonne of fuel and deaths per crash, and the
+    # road-type comparison per measured kilometre, live on this page.
+    assert 'src="figures/l3_frequency_severity.svg"' in long_run
+    assert 'href="tables/road_class_risk.csv"' in long_run
     seasons = (built / "seasons.html").read_text(encoding="utf-8")
     for name in ("m1_season_profile", "m2_month_effects", "m3_lockdown"):
         assert f'src="figures/{name}.svg"' in seasons
@@ -373,7 +376,7 @@ def test_every_page_has_a_description_and_every_image_an_alt(built: Path) -> Non
         description = re.search(r'<meta name="description" content="([^"]*)"', text)
         assert description and len(description.group(1)) > 40, page.name
         if page.name == "index.html":
-            assert "<title>Road safety in Spain · every number from published data" in text
+            assert "<title>Road safety in Spain</title>" in text
         else:
             assert re.search(r"<title>[^<]+ · Road safety in Spain</title>", text), page.name
         for image in re.findall(r"<img[^>]*>", text):
@@ -382,30 +385,83 @@ def test_every_page_has_a_description_and_every_image_an_alt(built: Path) -> Non
         _runs_no_script(page.stem, text)
 
 
-def test_front_page_leads_with_the_central_question(built: Path) -> None:
+def test_front_page_is_an_overview_of_the_study(built: Path) -> None:
     index = (built / "index.html").read_text(encoding="utf-8")
     body = index[index.find("<main>") : index.find("</main>")]
-    # One finding per analysis page, in navigation order, and four key figures.
-    assert body.count('<div class="finding">') == len(ANALYSIS_PAGES)
-    assert body.count('<div class="keyfig">') == 4
-    positions = [body.find(f'href="{slug}.html"') for slug in ANALYSIS_PAGES]
-    assert all(p > 0 for p in positions) and positions == sorted(positions)
-    # The supporting analyses are linked from a paragraph that says why they are not central.
-    assert "does not claim" in body
-    for slug in ("severity", "policy"):
-        assert f'href="{slug}.html"' in body
+    # Declarative sections in the order of the argument: no numbered questions, no finding blocks;
+    # the page opens on a summary paragraph.
+    headings = re.findall(r"<h2>([^<]+)</h2>", body)
+    assert headings == [
+        "National trends",
+        "Frequency and severity across drivers, vehicles and roads",
+        "Crash records and severity models in Catalonia and Barcelona",
+        "External validation",
+        "Further analyses, data and methods",
+    ]
+    assert '<div class="finding">' not in body and "Finding 1" not in body
+    assert body.find('<p class="summary">') < body.find("<h2>")
+    # Each section links the pages it summarises; the scope of the data is set out on the
+    # sources page.
+    sections = dict(zip(headings, re.split(r"<h2>[^<]+</h2>", body)[1:]))
+    expected = {
+        "National trends": ("trends", "long-run", "seasons"),
+        "Frequency and severity across drivers, vehicles and roads": (
+            "drivers",
+            "vehicles",
+            "speed",
+            "factors",
+            "long-run",
+        ),
+        "Crash records and severity models in Catalonia and Barcelona": (
+            "catalonia",
+            "barcelona",
+            "severity-models",
+        ),
+        "External validation": ("validation",),
+        "Further analyses, data and methods": ("severity", "forecast", "policy", "sources", "data"),
+    }
+    for heading, slugs in expected.items():
+        for slug in slugs:
+            assert f'href="{slug}.html"' in sections[heading], (heading, slug)
+    assert 'href="sources.html#scope"' in body
+    # Under every denominator, the change in deaths since the base year is quoted.
+    risk = pd.read_csv(TABLES_DIR / "risk_index.csv")
+    latest = risk[risk.year == risk.year.max()].set_index(["outcome", "denominator"])
+    for denominator in ("count", "residents", "licence_holders", "vehicles", "road_fuel"):
+        change = components._change(latest.loc[("deaths_30d", denominator), "ratio_to_base"])
+        assert change in sections["National trends"], denominator
+    # Only the two retained models are presented, each against its descriptive table; the DGT
+    # association analysis is not among them.
+    rules = pd.read_csv(TABLES_DIR / "ml_rule_comparison.csv").set_index("model")
+    models = sections["Crash records and severity models in Catalonia and Barcelona"]
+    for model, name in (
+        ("catalonia_crash_severity", "Catalonia severity model"),
+        ("barcelona_person_severity", "Barcelona person-severity model"),
+    ):
+        row = rules.loc[model]
+        assert name in models, name
+        assert f"{row.model_roc_auc:.2f} against {row.rule_roc_auc:.2f}" in models, model
+    assert "DGT" not in models
+    # The national validation: both scores to three decimals, the crashes and fatal crashes, and
+    # national use not claimed.
+    selected = pd.read_csv(TABLES_DIR / "ml_selected.csv")
+    chosen = selected[selected.primary].set_index("model").estimator
+    transport = pd.read_csv(TABLES_DIR / "ml_transport_validation.csv")
+    national = transport[
+        transport.experiment.eq("Catalonia -> Spain outside Catalonia")
+        & transport.model.eq("catalonia_common_dgt")
+        & transport.estimator.eq(chosen["catalonia_common_dgt"])
+        & transport.status.eq("reported")
+    ].iloc[0]
+    validation = sections["External validation"]
+    assert f"{national.roc_auc:.3f} against {national.in_domain_cv_roc_auc:.3f}" in validation
+    assert components._fmt_int(national.test_n) in validation
+    assert components._fmt_int(national.test_positives) in validation
+    assert "not established" in validation
     assert site.PROFILE_URL in index and "Russell Howard" in index
-    # The other three questions follow the national findings, in order, each linking its page.
-    sections = [body.find(f"<h2>{n}. ") for n in (1, 2, 3, 4)]
-    assert all(p > 0 for p in sections) and sections == sorted(sections)
-    for slug in REGIONAL_PAGES[:-1]:
-        assert f'href="{slug}.html"' in body, slug
-    assert 'id="cannot-answer"' in body
-    # Concise: the findings, one table that splits each of them, the three regional answers and
-    # the framing around them.
-    assert len(body) < 30_000
-    # Nothing on the overview or the data page comes from the withdrawn external-study models,
-    # and the per-km age ratios are quoted as ranges on owner-age kilometres.
+    # Concise, and nothing from the withdrawn external-study models; the per-km age ratios are
+    # quoted as ranges on owner-age kilometres.
+    assert len(body) < 25_000
     data = (built / "data.html").read_text(encoding="utf-8")
     for text in (body, data):
         for phrase in ("simulator", "Power Model", "DRUID", "Dingus", "per unit of traffic"):
@@ -415,20 +471,24 @@ def test_front_page_leads_with_the_central_question(built: Path) -> None:
     assert f"{low:.2f}–{high:.2f}×" in body
 
 
-def test_every_analysis_page_ends_on_a_stated_conclusion(built: Path) -> None:
-    for slug in ANALYSIS_PAGES + ("severity", "policy"):
+def test_any_closing_synthesis_follows_the_evidence(built: Path) -> None:
+    # A page keeps a closing synthesis only where it adds to the summary; where it has one, the
+    # synthesis is the last thing in the argument, not a box in the middle of it.
+    for slug in ANALYSIS_PAGES + ("severity", "policy") + REGIONAL_PAGES:
         text = (built / f"{slug}.html").read_text(encoding="utf-8")
-        assert text.count('<div class="conclusion">') == 1, slug
         body = text[text.find("<main>") : text.find("</main>")]
-        # The conclusion is the last thing in the argument, not a box in the middle of it.
-        assert body.rfind('<div class="conclusion">') > body.rfind("<table>"), slug
+        assert body.count('<div class="conclusion">') <= 1, slug
+        if '<div class="conclusion">' in body:
+            assert body.rfind('<div class="conclusion">') > body.rfind("<table>"), slug
 
 
 def test_supporting_pages_say_they_are_supporting(built: Path) -> None:
-    for slug in ("severity", "policy"):
+    # The section line above the title says so; the prose does not restate the site's structure.
+    for slug in ("severity", "forecast", "policy"):
         text = (built / f"{slug}.html").read_text(encoding="utf-8")
         body = text[text.find("<main>") : text.find("</main>")]
-        assert body.find("Supporting analysis.") < body.find("<h2>"), slug
+        assert body.startswith('<main>\n<p class="eyebrow">Spain · supporting analysis</p>'), slug
+        assert "Supporting analysis." not in body, slug
 
 
 def test_no_page_uses_an_em_dash(built: Path) -> None:
@@ -476,35 +536,52 @@ def test_forecast_page_reports_the_model_on_years_it_had_not_seen(built: Path) -
     assert "Gradient-boosted trees" in body and site.esc("Last year's count") in body
     for name in ("forecast_validation", "forecast_detectability", "forecast_coefficients"):
         assert f'href="tables/{name}.csv"' in body
-    # The tree comparator picked with the held-back years is disclosed, not offered as a choice.
-    assert "A comparator disclosed, not chosen." in body
-    assert "never a candidate" in body
+    # The tree setting found by looking at the held-back years is reported after the test.
+    assert "One comparison was made after the test." in body
+    assert "is not an independent test" in body
     # Detectability is generic: nothing ties it to a speed law or any withdrawn model's effect.
     for word in ("simulator", "speed law", "km/h", "Power Model", "law shows"):
         assert word not in body, word
-    assert '<p class="eyebrow">Spain: supporting</p>' in body
-    assert "Not one of the site's predictive models." in body
+    eyebrow = '<p class="eyebrow">Spain · supporting analysis</p>'
+    assert eyebrow in body
+    # The eyebrow carries the supporting status; the prose states what the model is used for.
+    assert "supporting analysis" not in body.replace(eyebrow, "")
+    assert (
+        "Its main use is to measure how large a change in deaths the annual counts can reveal"
+        in body
+    )
+    # The comparison made after the test sits in a collapsed technical block.
+    after = body.find("One comparison was made after the test.")
+    assert body.rfind('<details class="technical">', 0, after) > body.rfind("</details>", 0, after)
 
 
 def test_navigation_groups_its_pages_under_labels(built: Path) -> None:
     text = (built / "speed.html").read_text(encoding="utf-8")
     nav = re.search(r'<nav aria-label="Sections">(.*?)</nav>', text, re.S).group(1)
     labels = re.findall(r'<span class="navlabel" id="(nav-\d+)">([^<]+)</span>', nav)
-    assert [label for _, label in labels] == [group for group, _ in site.NAV_GROUPS]
-    # Every link sits in a list labelled by its group, and no label is itself a list item, so a
+    # Every section but the overview link is labelled, in navigation order.
+    assert [label for _, label in labels] == [group for group, _ in site.NAV_GROUPS][1:]
+    # Every link sits in a list labelled by its group, and no label is itself a link, so a
     # group's name can never be mistaken for a page.
     for anchor, _ in labels:
         assert f'<ul aria-labelledby="{anchor}">' in nav
-    assert "<li>Spain: supporting</li>" not in nav
+    assert "<li>Supporting analyses</li>" not in nav
     links = re.findall(r'href="([a-z-]+)\.html"', nav)
     assert links == [slug for _, pages in site.NAV_GROUPS for slug, _ in pages]
-    # A finding says where it sits and links to its neighbours.
-    assert '<p class="eyebrow">Finding 6 of 7</p>' in text
+    # A page names its section and links to its neighbours in reading order.
+    assert '<p class="eyebrow">Spain</p>' in text
     assert 'href="vehicles.html" rel="prev"' in text and 'href="factors.html" rel="next"' in text
-    # The last national finding leads on to the next layer: the Catalan crash records.
-    last = (built / "factors.html").read_text(encoding="utf-8")
-    pager = re.search(r'<nav class="pager"[^>]*>(.*?)</nav>', last, re.S).group(1)
-    assert 'href="speed.html" rel="prev"' in pager and 'href="catalonia.html" rel="next"' in pager
+    # The last national page leads on to the supporting analyses, and the last of those to the
+    # regional crash records.
+    for slug, before, after in (
+        ("factors", "speed", "severity"),
+        ("policy", "forecast", "catalonia"),
+        ("validation", "severity-models", "sources"),
+    ):
+        page = (built / f"{slug}.html").read_text(encoding="utf-8")
+        pager = re.search(r'<nav class="pager"[^>]*>(.*?)</nav>', page, re.S).group(1)
+        assert f'href="{before}.html" rel="prev"' in pager, slug
+        assert f'href="{after}.html" rel="next"' in pager, slug
 
 
 def test_drivers_page_chains_crashes_and_deaths_per_crash(built: Path) -> None:
@@ -540,15 +617,21 @@ def test_vehicles_page_quotes_per_km_rates_for_all_roads_only(built: Path) -> No
     rates = pd.read_csv(TABLES_DIR / "q6_rates_2022.csv")
     assert rates[rates.zone != "all"].per_billion_km.isna().all()
     assert rates[rates.zone == "all"].per_billion_km.notna().all()
-    assert "by zone only counts and rates per vehicle" in text
-    assert text.count('<div class="conclusion">') == 1
-    assert text.rfind("</table>") < text.find('<div class="conclusion">')
+    assert "urban and interurban roads only as counts and rates per vehicle" in text
+    assert "rates per kilometre cannot be split between urban and interurban roads" in text
+    # At most one closing synthesis, and only after the evidence; no generic heading.
+    conclusions = text.count('<div class="conclusion">')
+    assert conclusions <= 1
+    if conclusions:
+        assert text.rfind("</table>") < text.find('<div class="conclusion">')
+    assert "Interpretation" not in text
 
 
 def test_overview_splits_every_comparison_into_crashes_and_deadliness(built: Path) -> None:
     text = (built / "index.html").read_text(encoding="utf-8")
-    assert "Where the excess sits" in text
+    assert "Mainly from" in text
     # The split shows both directions, not one story told everywhere.
-    body = text[text.find("Where the excess sits") :]
+    body = text[text.find("Mainly from") :]
     body = body[: body.find("</table>")]
-    assert "<td>crashes</td>" in body and "<td>deadliness</td>" in body
+    assert re.search(r"<td[^>]*>how often crashes happen</td>", body)
+    assert re.search(r"<td[^>]*>how deadly crashes are</td>", body)

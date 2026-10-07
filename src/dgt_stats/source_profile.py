@@ -201,7 +201,8 @@ def dgt_aggregates() -> list[tuple[str, str, str]]:
         ),
         (
             "severity definition",
-            "deaths within 30 days (24 hours in the monthly series); hospitalised injuries",
+            "deaths within 30 days (the monthly series is also published with deaths within 24 "
+            "hours); hospitalised injuries",
             "documentation",
         ),
         (

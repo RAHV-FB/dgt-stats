@@ -518,8 +518,10 @@ def calibration(
     path: Path,
     title: str,
     series: str | None = None,
+    xlabel: str = "Mean predicted probability in the decile",
 ) -> Path:
-    """Observed share against mean predicted probability by decile, with the diagonal."""
+    """Observed share against mean predicted probability by bin (deciles by default), with the
+    diagonal."""
     apply_style()
     fig, axis = plt.subplots(figsize=(FIGURE_WIDTH, 4.6))
     groups = [(None, frame)] if series is None else list(frame.groupby(series, sort=False))
@@ -544,7 +546,7 @@ def calibration(
     _percent(axis, 1)
     axis.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(lambda v, _: f"{v * 100:.1f}%"))
     axis.set_title(title)
-    axis.set_xlabel("Mean predicted probability in the decile")
+    axis.set_xlabel(xlabel)
     axis.set_ylabel("Observed share")
     if len(groups) >= 2:
         axis.legend(loc="upper left", bbox_to_anchor=(0, -0.14), ncol=min(len(groups), 4))

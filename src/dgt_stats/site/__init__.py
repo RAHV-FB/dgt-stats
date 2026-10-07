@@ -1,19 +1,18 @@
 """Static site builder: plain HTML and one CSS file, from the result tables and figures.
 
-No template engine and no scripts. The navigation (``NAV_GROUPS``) follows the source hierarchy
-of ``dgt_stats.layers``: Spain from DGT and INE (seven findings and two supporting analyses), the
-Catalan crash records, the Barcelona crash and person records, the models that beat a descriptive
-table, how far they generalise, and the sources and methods. Descriptive, predictive and
-transportability findings sit on separate pages.
+No template engine and no scripts. The navigation (``NAV_GROUPS``) follows the argument: the
+national picture from DGT and INE with three supporting analyses, the Catalan and Barcelona crash
+records, the two severity models and their external validation, and the sources and methods.
 Every sentence that carries a number computes it from a committed result table at build time, so
 the prose cannot drift from the tables; full tables are copied into ``site/tables`` and linked as
 CSV rather than printed.
 
-One module per national page (``overview``, ``trends``, ``long_run``, ``seasons``, ``drivers``,
-``vehicles``, ``speed``, ``factors``, ``forecast``, ``data``, and the supporting ``severity`` and
-``policy``), the regional, model, generalisability and sources pages in ``microdata_pages``, with
-the shared furniture in ``components``, the stylesheet in ``style`` and the result tables several
-pages quote in ``numbers``.
+One module per page: ``overview``, ``trends``, ``long_run``, ``seasons``, ``drivers``,
+``vehicles``, ``speed``, ``factors``, the supporting ``severity``, ``forecast`` and ``policy``,
+``regional`` (Catalonia and Barcelona), ``models``, ``validation``, ``sources`` and ``data``. The
+shared furniture is in ``components``, the stylesheet in ``style``, the result tables several
+pages quote in ``numbers`` and the helpers of the regional, model and validation pages in
+``regional_common``.
 
 Two kinds of old URL are kept alive. A renamed page (``MOVED_PAGES``) refreshes to its successor.
 A withdrawn analysis (``WITHDRAWN_PAGES``: the speed-law simulator and the distraction,
@@ -50,20 +49,17 @@ from dgt_stats.site.drivers import page_drivers
 from dgt_stats.site.factors import page_factors
 from dgt_stats.site.forecast import page_forecast
 from dgt_stats.site.long_run import page_long_run
-from dgt_stats.site.microdata_pages import (
-    page_barcelona,
-    page_catalonia,
-    page_severity_models,
-    page_sources,
-    page_transport,
-)
+from dgt_stats.site.models import page_severity_models
 from dgt_stats.site.overview import page_index
 from dgt_stats.site.policy import page_policy
+from dgt_stats.site.regional import page_barcelona, page_catalonia
 from dgt_stats.site.seasons import page_seasons
 from dgt_stats.site.severity import page_severity
+from dgt_stats.site.sources import page_sources
 from dgt_stats.site.speed import page_speed
 from dgt_stats.site.style import STYLE
 from dgt_stats.site.trends import page_trends
+from dgt_stats.site.validation import page_validation
 from dgt_stats.site.vehicles import page_vehicles
 
 __all__ = [
@@ -106,7 +102,7 @@ PAGE_BUILDERS = {
     "barcelona": page_barcelona,
     "severity-models": page_severity_models,
     "forecast": page_forecast,
-    "transport": page_transport,
+    "validation": page_validation,
     "sources": page_sources,
     "data": page_data,
 }
@@ -118,8 +114,8 @@ def page_moved(old: str, new: str) -> str:
     return render_page(
         old,
         "This page has moved",
-        f"This page is now {title}; the site was reorganised around measuring road risk.",
-        f'<p>Its content is now on <a href="{new}.html">{esc(title)}</a>.</p>',
+        f"What was on this page is now on the page {title}.",
+        f'<p><a href="{new}.html">Continue to {esc(title)}</a>.</p>',
         head=f'\n<meta http-equiv="refresh" content="0; url={new}.html">'
         f'\n<link rel="canonical" href="{new}.html">',
     )
@@ -157,8 +153,9 @@ def page_withdrawn(slug: str) -> str:
         "<p>The project now keeps only results computed from rows and columns of the files in "
         "the repository; studies published elsewhere may explain a definition or a method, but "
         "they do not supply an observation, a coefficient or a relative risk. What the "
-        f"repository's own data show on these subjects is on these pages: {links}. The sources "
-        'and methods are on the <a href="data.html">data page</a>.</p>'
+        f"repository's own data show on these subjects is on these pages: {links}. Sources and "
+        'methods are described under <a href="sources.html">Data sources and scope</a> and '
+        '<a href="data.html">Methodology</a>.</p>'
     )
     return render_page(
         slug,

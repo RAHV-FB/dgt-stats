@@ -19,80 +19,68 @@ PROFILE_URL = "https://github.com/RAHV-FB"
 DOCS_URL = f"{REPO_URL}/blob/main/docs"
 
 
-# The navigation follows the source hierarchy (dgt_stats.layers): Spain from DGT and INE (the
-# seven findings in reading order, then two supporting analyses), the Catalan and Barcelona crash
-# records, the models that survived the comparison with a descriptive table, how far they
-# generalise, and what each source is.
-FINDINGS = "Spain: DGT and INE"
-SUPPORTING = "Spain: supporting"
-CATALONIA = "Catalonia"
-BARCELONA = "Barcelona"
+# The navigation follows the argument rather than the repository: the national picture from DGT
+# and INE (with three supporting analyses), the regional crash records, the two severity models and
+# their external validation, and the sources and methods.
+OVERVIEW = "Overview"
+SPAIN = "Spain"
+SUPPORTING = "Supporting analyses"
+REGIONAL = "Regional data"
 MODELS = "Models"
-GENERALISABILITY = "Generalisability"
-REFERENCE = "Sources and methods"
+METHODS = "Methods"
 NAV_GROUPS: tuple[tuple[str, tuple[tuple[str, str], ...]], ...] = (
-    ("Start", (("index", "Overview"),)),
+    (OVERVIEW, (("index", "Overview"),)),
     (
-        FINDINGS,
+        SPAIN,
         (
-            ("trends", "2019–2024"),
-            ("long-run", "Long run"),
+            ("trends", "Trends since 2019"),
+            ("long-run", "Long-run trends"),
             ("seasons", "Seasons"),
-            ("drivers", "Age and sex"),
+            ("drivers", "Drivers"),
             ("vehicles", "Vehicles"),
             ("speed", "Speed"),
-            ("factors", "Factors"),
+            ("factors", "Recorded factors"),
         ),
     ),
     (
         SUPPORTING,
         (
-            ("severity", "Associations in DGT records"),
-            ("forecast", "Monthly deaths"),
-            ("policy", "The 2006 break"),
+            ("severity", "Crash circumstances"),
+            ("forecast", "Monthly deaths forecast"),
+            ("policy", "The 2006 points licence"),
         ),
     ),
-    (CATALONIA, (("catalonia", "Serious and fatal crashes"),)),
-    (BARCELONA, (("barcelona", "Crashes and people"),)),
-    (MODELS, (("severity-models", "Severity models"),)),
-    (GENERALISABILITY, (("transport", "How far the results reach"),)),
-    (REFERENCE, (("sources", "Four layers of data"), ("data", "Data and methods"))),
+    (REGIONAL, (("catalonia", "Catalonia"), ("barcelona", "Barcelona"))),
+    (MODELS, (("severity-models", "Severity models"), ("validation", "External validation"))),
+    (METHODS, (("sources", "Data sources and scope"), ("data", "Methodology"))),
 )
+# A group drawn inside another in the navigation: the supporting analyses belong to Spain.
+NAV_PARENT = {SUPPORTING: SPAIN}
+# The line above a page's title: the part of the argument the page belongs to.
+EYEBROWS = {
+    SPAIN: "Spain",
+    SUPPORTING: "Spain · supporting analysis",
+    REGIONAL: "Regional data",
+    MODELS: "Models",
+    METHODS: "Methods",
+}
 
 
-# The main pages, and the supporting analyses outside the central question.
+# The main pages, and the supporting analyses outside the central argument.
 PAGES: tuple[tuple[str, str], ...] = tuple(
     page for group, pages in NAV_GROUPS if group != SUPPORTING for page in pages
 )
 SUPPORTING_PAGES: tuple[tuple[str, str], ...] = dict(NAV_GROUPS)[SUPPORTING]
-FINDING_PAGES: tuple[tuple[str, str], ...] = dict(NAV_GROUPS)[FINDINGS]
+SPAIN_PAGES: tuple[tuple[str, str], ...] = dict(NAV_GROUPS)[SPAIN]
 
 
 ALL_PAGES = PAGES + SUPPORTING_PAGES
-
-
-SUPPORTING_NOTES = {
-    "severity": (
-        "<strong>Supporting analysis.</strong> This page describes associations in DGT's "
-        "crash records: which recorded circumstances go with a fatal outcome, given an injury "
-        "crash. It is not a predictive model and not a model of crash causation, which these "
-        "data cannot support: DGT's national crash microdata have no driver, vehicle or speed "
-        "records, and their audit keeps them out of model training (see the "
-        '<a href="sources.html">sources page</a>). The models are on the '
-        '<a href="severity-models.html">models page</a>.'
-    ),
-    "policy": (
-        "<strong>Supporting analysis.</strong> A dated policy change is the only kind of "
-        "intervention the monthly series can test, and this page shows how weak even that test "
-        "is: the headline effect did not survive its falsification checks. The site makes no "
-        "causal claim about policies or campaigns. For how the same series moved against its "
-        'pre-2020 trend and against road fuel, see the <a href="long-run.html">long-run page</a>.'
-    ),
-}
+# Every page in reading order, as the navigation lists them; the pager follows it.
+READING_ORDER: tuple[str, ...] = tuple(slug for _, pages in NAV_GROUPS for slug, _ in pages)
 
 
 # Pages that existed under another name, kept as pointers so old links still arrive somewhere.
-MOVED_PAGES = {"older-drivers": "drivers", "context": "long-run"}
+MOVED_PAGES = {"older-drivers": "drivers", "context": "long-run", "transport": "validation"}
 
 
 # Pages whose analysis was withdrawn, each with the reason. Their URLs stay alive as short notices
@@ -235,16 +223,17 @@ def mark_spanish(text: str) -> str:
 
 
 def figure(name: str, alt: str, captions: dict[str, str]) -> str:
+    # The image links to its SVG, so a reader on a small screen can open the chart full size.
     return (
         f'<figure><div class="figure-wrap" role="region" tabindex="0" aria-label="{esc(alt)}">'
-        f'<img src="figures/{name}.svg" alt="{esc(alt)}"'
-        f'{_svg_dimensions(name)} loading="lazy"></div>'
+        f'<a href="figures/{name}.svg"><img src="figures/{name}.svg" alt="{esc(alt)}"'
+        f'{_svg_dimensions(name)} loading="lazy"></a></div>'
         f"<figcaption>{mark_spanish(esc(captions.get(name, '')))}</figcaption></figure>"
     )
 
 
-# A text column whose longest cell is longer than this wraps instead of scrolling.
-WRAP_COLUMN_CHARS = 40
+# A text column whose longest cell is longer than this wraps instead of widening the table.
+WRAP_COLUMN_CHARS = 24
 
 
 def table(
@@ -304,29 +293,16 @@ def table(
     )
 
 
-def downloads(items: list[tuple[str, str]]) -> str:
-    """A one-line list of the full result tables behind a section, as CSV links."""
+def downloads(items: list[tuple[str, str]], method: tuple[str, str] | None = None) -> str:
+    """The result tables behind a page, as CSV links, and optionally where its method is set out.
+
+    ``method`` is ``(href, label)``, for example ``("data.html#rates", "how rates are built")``.
+    """
     links = ", ".join(f'<a href="tables/{name}.csv">{esc(label)}</a>' for name, label in items)
-    return f'<p class="downloads">Full results: {links} (CSV).</p>'
-
-
-def key_figures(items: list[tuple[str, str, str]]) -> str:
-    """The indicator strip at the head of a page: label, figure, one line of gloss."""
-    cells = "".join(
-        f'<div class="keyfig"><div class="label">{esc(label)}</div>'
-        f'<div class="value">{esc(value)}</div><div class="gloss">{esc(gloss)}</div></div>'
-        for label, value, gloss in items
-    )
-    return f'<div class="figures">{cells}</div>'
-
-
-def finding(number: int, href: str, heading: str, text: str, method: str) -> str:
-    """One numbered finding on the front page."""
-    return (
-        f'<div class="finding"><h3><span class="num">Finding {number}</span>'
-        f'<a href="{esc(href)}">{esc(heading)}</a></h3>'
-        f'<p>{esc(text)}</p><p class="method">{esc(method)}</p></div>'
-    )
+    text = f"Result tables (CSV): {links}."
+    if method:
+        text += f' Method: <a href="{method[0]}">{esc(method[1])}</a>.'
+    return f'<p class="downloads">{text}</p>'
 
 
 def note(text: str) -> str:
@@ -338,56 +314,85 @@ def conclusion(text: str) -> str:
     return f'<div class="conclusion"><p>{text}</p></div>'
 
 
-def limits(text: str) -> str:
-    return f'<p class="limit"><strong>Limits.</strong> {text}</p>'
+def summary(text: str) -> str:
+    """The opening paragraph of a page: its principal result, stated plainly."""
+    return f'<p class="summary">{text}</p>'
+
+
+def limitation(text: str) -> str:
+    """A short methodological limitation, used only where a page needs one beyond the methodology."""
+    return f'<p class="limit"><strong>Limitations.</strong> {text}</p>'
+
+
+def technical(label: str, body: str) -> str:
+    """Technical detail a reader can open: full metrics, specifications, diagnostics."""
+    return f'<details class="technical"><summary>{esc(label)}</summary>{body}</details>'
+
+
+def _nav_list(group: str, pages: tuple[tuple[str, str], ...], slug: str, index: int) -> str:
+    current = ' aria-current="page"'
+    return "".join(
+        f'<li><a href="{s}.html"{current if s == slug else ""}>{esc(name)}</a></li>'
+        for s, name in pages
+    )
 
 
 def _nav(slug: str) -> str:
-    """The navigation: each group a label over its links, so a group never reads as a page."""
-    current = ' aria-current="page"'
+    """The navigation: each section a small label over its links, so a label never reads as a page.
+
+    A group with a parent (the supporting analyses) is drawn as a labelled list inside its parent's.
+    """
+    children: dict[str, list[tuple[int, str, tuple[tuple[str, str], ...]]]] = {}
+    for index, (label, pages) in enumerate(NAV_GROUPS):
+        if label in NAV_PARENT:
+            children.setdefault(NAV_PARENT[label], []).append((index, label, pages))
     groups = []
     for index, (label, pages) in enumerate(NAV_GROUPS):
-        links = "".join(
-            f'<li><a href="{s}.html"{current if s == slug else ""}>{esc(name)}</a></li>'
-            for s, name in pages
-        )
+        if label in NAV_PARENT:
+            continue
+        links = _nav_list(label, pages, slug, index)
+        for child_index, child, child_pages in children.get(label, []):
+            links += (
+                f'<li class="navsub"><span class="navlabel" id="nav-{child_index}">'
+                f"{esc(child)}</span>"
+                f'<ul aria-labelledby="nav-{child_index}">'
+                f"{_nav_list(child, child_pages, slug, child_index)}</ul></li>"
+            )
+        if label == OVERVIEW:
+            groups.append(f'<div class="navgroup"><ul>{links}</ul></div>')
+            continue
+        wide = " navwide" if label in children else ""
         groups.append(
-            f'<div class="navgroup"><span class="navlabel" id="nav-{index}">{esc(label)}</span>'
-            f'<ul aria-labelledby="nav-{index}">{links}</ul></div>'
+            f'<div class="navgroup{wide}"><span class="navlabel" id="nav-{index}">{esc(label)}'
+            f'</span><ul aria-labelledby="nav-{index}">{links}</ul></div>'
         )
     return f'<nav aria-label="Sections">{"".join(groups)}</nav>'
 
 
 def _place(slug: str) -> tuple[str, str]:
-    """Where a page sits: a line above its title, and links to the findings either side."""
-    for label, pages in NAV_GROUPS:
-        slugs = [s for s, _ in pages]
-        if slug not in slugs or label == "Start":
-            continue
-        if label != FINDINGS:
-            return f'<p class="eyebrow">{esc(label)}</p>', ""
-        position = slugs.index(slug)
-        eyebrow = f'<p class="eyebrow">Finding {position + 1} of {len(slugs)}</p>'
-        links = []
-        if position > 0:
-            before, name = pages[position - 1]
-            links.append(f'<a href="{before}.html" rel="prev">← {esc(name)}</a>')
-        if position < len(pages) - 1:
-            after, name = pages[position + 1]
-        else:
-            after, name = dict(NAV_GROUPS)[CATALONIA][0]
-        links.append(f'<a href="{after}.html" rel="next">{esc(name)} →</a>')
-        return eyebrow, f'<nav class="pager" aria-label="Findings">{"".join(links)}</nav>'
-    return "", ""
+    """Where a page sits: its section above the title, and the pages either side in reading order."""
+    titles = dict(ALL_PAGES)
+    if slug not in READING_ORDER or slug == "index":
+        return "", ""
+    group = next(label for label, pages in NAV_GROUPS if slug in dict(pages))
+    eyebrow = f'<p class="eyebrow">{esc(EYEBROWS[group])}</p>'
+    position = READING_ORDER.index(slug)
+    links = []
+    if position > 0:
+        before = READING_ORDER[position - 1]
+        links.append(f'<a href="{before}.html" rel="prev">← {esc(titles[before])}</a>')
+    if position < len(READING_ORDER) - 1:
+        after = READING_ORDER[position + 1]
+        links.append(f'<a href="{after}.html" rel="next">{esc(titles[after])} →</a>')
+    return eyebrow, f'<nav class="pager" aria-label="Reading order">{"".join(links)}</nav>'
+
+
+SITE_TITLE = "Road safety in Spain"
 
 
 def render_page(slug: str, title: str, lead: str, body: str, head: str = "") -> str:
     eyebrow, pager = _place(slug)
-    page_title = (
-        "Road safety in Spain · every number from published data"
-        if slug == "index"
-        else esc(title) + " · Road safety in Spain"
-    )
+    page_title = SITE_TITLE if slug == "index" else esc(title) + " · " + SITE_TITLE
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -400,8 +405,8 @@ def render_page(slug: str, title: str, lead: str, body: str, head: str = "") -> 
 <body>
 <header>
 <div class="masthead">
-<a href="index.html">Road safety in Spain</a>
-<span class="strap">Every number from published data</span>
+<a href="index.html">{SITE_TITLE}</a>
+<span class="strap">An independent analysis of official crash data</span>
 </div>
 {_nav(slug)}
 </header>
@@ -411,11 +416,12 @@ def render_page(slug: str, title: str, lead: str, body: str, head: str = "") -> 
 {body}
 {pager}</main>
 <footer>
-<p>An independent analysis by <a href="{PROFILE_URL}">RAHV-FB</a> (Russell Howard) from Dirección
-General de Tráfico open data, INE resident population and the Ministerio de Transportes and CORES
-traffic series. Sources, definitions and checks are on the <a href="data.html">data page</a>; every
-number is regenerated from the raw files by the code in the
-<a href="{REPO_URL}">repository</a>.</p>
+<p>{SITE_TITLE}, an independent analysis by <a href="{PROFILE_URL}">Russell Howard (RAHV-FB)</a>.
+Data from the Dirección General de Tráfico, INE, the Ministerio de Transportes, CORES, the Servei
+Català de Trànsit and the Ajuntament de Barcelona. All results are computed from the published
+files by the code in the repository.</p>
+<p><a href="sources.html">Data sources</a> · <a href="data.html">Methodology</a> ·
+<a href="{REPO_URL}">Repository</a></p>
 </footer>
 </body>
 </html>

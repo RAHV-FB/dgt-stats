@@ -8,7 +8,15 @@ import pytest
 from dgt_stats.paths import FIGURES_DIR, PROJECT_ROOT, TABLES_DIR
 from dgt_stats.site.components import _fmt_int, _fmt_pct
 
-PAGES = ("catalonia", "barcelona", "severity-models", "transport", "sources")
+PAGES = ("catalonia", "barcelona", "severity-models", "validation", "sources")
+# The modules that write the pages, and the helpers they share. Two are left out: components,
+# whose navigation labels and publication titles carry years, and data, which cites a law by its
+# number.
+MODULES = tuple(
+    path.stem
+    for path in sorted((PROJECT_ROOT / "src/dgt_stats/site").glob("*.py"))
+    if path.stem not in {"components", "data"}
+)
 NEEDED = (
     "cat_fatal_share",
     "bcn_person_severity_share",
@@ -41,7 +49,10 @@ def _table(name: str) -> pd.DataFrame:
 
 
 def test_page_code_types_no_year_and_no_result() -> None:
-    source = (PROJECT_ROOT / "src/dgt_stats/site/microdata_pages.py").read_text(encoding="utf-8")
+    source = "\n".join(
+        (PROJECT_ROOT / f"src/dgt_stats/site/{name}.py").read_text(encoding="utf-8")
+        for name in MODULES
+    )
     strings = re.findall(r'"[^"\n]*"', source)
     years = [s for s in strings if re.search(r"\b(19|20)\d\d\b", s)]
     assert not years, years
@@ -50,13 +61,15 @@ def test_page_code_types_no_year_and_no_result() -> None:
     assert not shares, shares
 
 
-def test_every_microdata_page_states_source_coverage_and_unit(pages: dict[str, str]) -> None:
-    for slug in ("catalonia", "barcelona", "transport"):
-        assert '<details class="about">' in pages[slug], slug
-        assert "One row is" in pages[slug]
+def test_microdata_pages_open_with_a_summary_and_link_their_tables(pages: dict[str, str]) -> None:
     for slug, text in pages.items():
-        assert text.count('<div class="conclusion">') == 1, slug
-        assert text.rindex('<div class="conclusion">') > text.rindex("</table>"), slug
+        # The old furniture is gone: no source block, no layer line.
+        assert '<details class="about">' not in text and "One row is" not in text, slug
+        assert '<p class="level">' not in text and "Layer:" not in text, slug
+        assert text.count('<p class="summary">') == 1, slug
+        assert 'href="tables/' in text, slug
+    for slug in ("catalonia", "barcelona"):
+        assert 'href="data.html#records"' in pages[slug], slug
 
 
 def test_catalonia_headline_numbers_come_from_the_tables(pages: dict[str, str]) -> None:
@@ -79,7 +92,10 @@ def test_barcelona_headline_numbers_come_from_the_tables(pages: dict[str, str]) 
 
 def test_model_scores_come_from_the_tables(pages: dict[str, str]) -> None:
     selected = _table("ml_selected")
-    for row in selected[selected.primary].itertuples():
+    # The three models trained on regional records; the harmonised ones are validation
+    # instruments, reported on the validation page.
+    regional = _table("ml_rule_comparison").model
+    for row in selected[selected.primary & selected.model.isin(regional)].itertuples():
         assert f"{row.roc_auc:.2f}" in pages["severity-models"], row.model
         if not row.probabilities_shown_as_estimates:
             assert "not reliable as the share of similar cases" in pages["severity-models"]
@@ -92,8 +108,8 @@ def test_transfer_scores_and_the_small_barcelona_benchmark_come_from_the_tables(
     fitted = transport[transport.estimator.ne("baseline_prior")]
     bcn = fitted[fitted.experiment.str.match(r"Catalonia -> Barcelona \d")].iloc[0]
     assert bcn.status != "reported"
-    assert _fmt_int(bcn.test_positives) in pages["transport"]
-    assert "too few" in pages["transport"]
+    assert _fmt_int(bcn.test_positives) in pages["validation"]
+    assert "too few" in pages["validation"]
     national = (
         fitted[
             fitted.experiment.eq("Catalonia -> Spain outside Catalonia")
@@ -102,12 +118,8 @@ def test_transfer_scores_and_the_small_barcelona_benchmark_come_from_the_tables(
         .sort_values("roc_auc")
         .iloc[-1]
     )
-    assert f"{national.roc_auc:.2f}" in pages["transport"]
-
-
-def test_every_microdata_page_names_its_layer(pages: dict[str, str]) -> None:
-    for slug, text in pages.items():
-        assert re.search(r'<p class="level">Layers?: <a href="sources.html">', text), slug
+    assert f"{national.roc_auc:.3f}" in pages["validation"]
+    assert f"{national.in_domain_cv_roc_auc:.3f}" in pages["validation"]
 
 
 def test_models_page_follows_the_decisions(pages: dict[str, str]) -> None:
@@ -120,29 +132,51 @@ def test_models_page_follows_the_decisions(pages: dict[str, str]) -> None:
         decisions.decision.eq("REPLACE with descriptive table") & decisions.variant.eq("context")
     ]
     for model in replaced.model:
-        assert "a table, not a model" in text, model
+        assert "used in place of the model" in text, model
     assert "MODEL_DECISIONS.md" in text
 
 
-def test_transport_page_keeps_representativeness_and_transportability_apart(
+def test_validation_page_keeps_population_differences_and_validation_apart(
     pages: dict[str, str],
 ) -> None:
-    text = pages["transport"]
-    a = text.index("A. How the populations differ")
-    b = text.index("B. Do the models keep their ranking?")
-    c = text.index("C. The outward path toward Spain")
-    assert a < b < c
+    text = pages["validation"]
+    # The main external test leads; how the populations differ follows the tests it qualifies.
+    headings = [
+        "<h2>Validation on DGT records outside Catalonia</h2>",
+        "<h2>Validation within Catalonia</h2>",
+        "<h2>Validation in Barcelona</h2>",
+        "<h2>Population differences</h2>",
+        "<h2>Scope of generalisation</h2>",
+    ]
+    positions = [text.index(heading) for heading in headings]
+    assert positions == sorted(positions)
+    # The fall in Barcelona and its three parts, to three decimals so that they add up.
     verdicts = _table("ml_barcelona_diagnosis_verdicts")
     full = verdicts[verdicts.features.str.startswith("full")]
-    assert any(f"{v:.2f}" in text for v in full.intrinsic_difference)
+    chosen = _table("ml_selected").query("primary").set_index("model").estimator
+    row = full.set_index("estimator").loc[chosen["catalonia_crash_severity"]]
+    for value in (
+        row.total_drop,
+        row.training_size_cost,
+        row.intrinsic_difference,
+        row.transport_cost,
+    ):
+        assert f"{value:.3f}" in text, value
     path = _table("ml_outward_path")
     if not path.verdict.eq("potentially nationally transferable").any():
-        assert "none is called nationally transferable" in text
+        assert "national use of the models is not established" in text
 
 
 def test_sources_page_states_the_dgt_audit_decision(pages: dict[str, str]) -> None:
     checks = _table("dgt_audit_checks")
-    assert checks.decision.iloc[0].replace("'", "&#x27;") in pages["sources"]
+    text = pages["sources"]
+    if checks.decision.iloc[0].startswith("DGT microdata stay"):
+        assert "They are not used to train a predictive severity model" in text
+    artefacts = _table("dgt_audit_artefacts")
+    died = artefacts[artefacts.target.str.contains("30 days")].iloc[0]
+    assert f"{died.roc_auc_unrecorded_flags_only:.2f}" in text
+    assert f"{died.roc_auc_recorded_values:.2f}" in text
+    assert "DGT_MICRODATA_AUDIT.md" in text and 'id="scope"' in text
 
 
 def test_the_models_group_holds_only_models_that_beat_their_comparator() -> None:
