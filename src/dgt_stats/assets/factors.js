@@ -195,6 +195,8 @@
         : () => renderFactorPage(doc, P, form, mode);
     form.addEventListener("input", render);
     form.addEventListener("change", render);
+    // A browser that restores the controls after Back does so after DOMContentLoaded: redraw then.
+    if (doc.defaultView) doc.defaultView.addEventListener("pageshow", render);
     for (const button of doc.querySelectorAll("button[data-set]")) {
       button.addEventListener("click", function () {
         const value = Number(button.dataset.set);

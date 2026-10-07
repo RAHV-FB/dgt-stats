@@ -135,6 +135,8 @@ tbody th { font-weight: 400; text-align: left; }
 tbody tr:last-child th, tbody tr:last-child td { border-bottom: 1px solid var(--rule-strong); }
 th.wrap, td.wrap { white-space: normal; min-width: 22ch; max-width: 40ch; text-align: left; }
 tbody tr.group th { font-weight: 600; padding-top: 14px; border-bottom: 1px solid var(--rule-strong); }
+table.live { min-width: 0; }
+table.live thead th { white-space: normal; }
 .table-wrap:focus-visible, .figure-wrap:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 
 .downloads { font-family: var(--sans); font-size: 0.78rem; color: var(--ink-2); margin: 0 0 30px; max-width: 46rem; }

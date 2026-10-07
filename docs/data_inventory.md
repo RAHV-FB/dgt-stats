@@ -104,7 +104,7 @@ two values are typed into `driving_activity_by_age.csv` with their URLs.
 | File | Rows | Content | Original name |
 |---|---:|---|---|
 | `simulator_parameters.csv` | 33 | Hand-typed register of every published value the simulator uses: Power Model exponents, the response of mean speed to a new limit, car speeds measured in Spain in 2022, the legal limits and DGT's values of a casualty, each with its source, its place in the source, the URL and a verbatim quote; see section 3 | compiled by this project |
-| `factor_parameters.csv` | 98 | Hand-typed register of every published value the distraction and alcohol-and-drug models and the enforcement comparison use: DGT's police record of factors in fatal crashes, the toxicology of killed drivers, measured crash risks, roadside prevalence and 17 published evaluations of enforcement, each with its source, its place in the source, the URL and a verbatim quote | compiled by this project |
+| `factor_parameters.csv` | 112 | Hand-typed register of every published value the distraction and alcohol-and-drug models and the enforcement comparison use: DGT's police record of factors in fatal crashes, the toxicology of killed drivers, measured crash risks, roadside prevalence and 17 published evaluations of enforcement, each with its source, its place in the source, the URL and a verbatim quote | compiled by this project |
 
 ## 2. Crash microdata: schema and content
 
@@ -254,7 +254,7 @@ No duplicate identifiers were found in any year.
 
 ### Evidence register for the factor models (added October 2026)
 
-- `evidence/factor_parameters.csv`, 98 rows, each a value read in its publication with the table
+- `evidence/factor_parameters.csv`, 112 rows, each a value read in its publication with the table
   or page, the URL and a verbatim quote; a test requires every quote to contain the value it
   supports and the ends of its interval. DGT's Tabla 50 counts were read in the 2022, 2023 and
   2024 reports and the 2024 errata, the toxicology in the INTCF reports for 2023 and 2024, the

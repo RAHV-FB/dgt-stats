@@ -30,11 +30,12 @@ source, the URL and a verbatim quote.
 - *How much each factor multiplies the risk*: for alcohol and drugs, the EU DRUID project's risk
   bands for being seriously injured or killed, weighted by the blood alcohol INTCF measured in
   killed drivers and by the drugs the police found in them; for distraction, the naturalistic
-  driving study of Dingus et al. (2016), 2.0 for any observable distraction and 3.6 for a handheld
-  phone.
+  driving study of Dingus et al. (2016), 2.0 (1.8–2.4) for any observable distraction and 3.6 for
+  a handheld phone.
 
 **The bounds.** ``low`` and ``high`` take the ends of the published risk ranges (DRUID's bands;
-for distraction, any distraction against a handheld phone). They say how sensitive the answer is
+for distraction, the low end of the interval for any distraction, 1.8, and every distraction a
+handheld phone, 3.6). They say how sensitive the answer is
 to the risk, not how uncertain the police record is. Two cross-checks bound that instead: for
 alcohol, the INTCF share of killed drivers over the limit, which agrees with the police record;
 for distraction, the naturalistic study's own estimate that 36 % of crashes would not happen
@@ -297,8 +298,11 @@ def attributable_fraction(factor: str, bound: str = "value") -> float:
     if factor == "drugs":
         return sum(w * _af(rr) for w, rr in drug_rr_mix(bound).values())
     if factor == "distraction":
-        scope = "handheld_phone" if bound == "high" else "any_observable"
-        return _af(parameter("or_distraction", scope))
+        # Low and central: any distraction, the low end and the centre of its interval. High:
+        # every distraction a handheld phone, the riskiest common kind.
+        if bound == "high":
+            return _af(parameter("or_distraction", "handheld_phone"))
+        return _af(parameter("or_distraction", "any_observable", bound))
     raise KeyError(factor)
 
 
@@ -383,17 +387,24 @@ def factor_inputs() -> pd.DataFrame:
 
 
 def naturalistic_distraction() -> pd.DataFrame:
-    """The upper cross-check: distraction as common in Spanish fatal crashes as in observed crashes.
+    """The upper cross-check: the share of crashes the naturalistic study attributes to distraction.
 
     The naturalistic study saw distraction in 68.3 % of crashes and estimated that 36 % would not
     have happened without it. Applied to every death, that is the most distraction could account
     for if the police record misses most of it; it is a sensitivity, not a second estimate.
+
+    ``record_as_cause`` reads the police record the other way: as a judgement that distraction
+    caused the crash, not that it was merely present, so that no share of those crashes would
+    have happened anyway. It is the record times the deaths, without the attributable fraction.
     """
     base = casualties()
     par = parameter("par_distraction", "naturalistic")
     base["avoided"] = base.deaths * par
-    out = base.groupby("zone")[["deaths", "avoided"]].sum().reset_index()
-    out.loc[len(out)] = ["all", out.deaths.sum(), out.avoided.sum()]
+    base["record_as_cause"] = [
+        deaths * presence("distraction", zone) for deaths, zone in zip(base.deaths, base.zone)
+    ]
+    out = base.groupby("zone")[["deaths", "avoided", "record_as_cause"]].sum().reset_index()
+    out.loc[len(out)] = ["all", out.deaths.sum(), out.avoided.sum(), out.record_as_cause.sum()]
     out["par"] = par
     out["police_share_all"] = _pooled_share("distraction", "all")
     out["naturalistic_share_of_crashes"] = parameter("distraction_share_of_crashes", "naturalistic")

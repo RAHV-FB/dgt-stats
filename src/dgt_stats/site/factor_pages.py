@@ -32,6 +32,12 @@ from dgt_stats.site.components import (
 ROLE_LABELS = {"driver": "Drivers", "passenger": "Passengers", "pedestrian": "Pedestrians"}
 ZONE_LABELS = {"interurban": "Interurban roads", "urban": "Urban streets"}
 BOUND_LABELS = {"value": "central", "low": "low", "high": "high"}
+# The police record gives each factor by crash, not by road user, so the model splits each zone's
+# deaths avoided in proportion to who died there; every table by road user says so.
+ROLE_NOTE = (
+    ". The split by who died follows each zone's deaths: the police record gives each factor by "
+    "crash, not by road user"
+)
 BOUNDS = factor_models.BOUNDS
 # The enforcement comparison asks what share of each factor must go to save this many lives a year.
 LIVES = 100
@@ -40,6 +46,8 @@ MOBILE_CHAPTER = (
     "8-14-forbud-mot-bruk-av-handholdt-mobiltelefon-i-bil/"
 )
 TRAFFIC_RULES = "https://www.boe.es/buscar/act.php?id=BOE-A-2003-23514"
+CAMERA_CHAPTER = "https://www.tshandbok.no/del-2/8-kontroll-og-sanksjoner/doc735/"
+ALCOHOL_CHAPTER = "https://www.tshandbok.no/del-2/8-kontroll-og-sanksjoner/doc733/"
 TABLES = (
     "factor_casualties",
     "factor_inputs",
@@ -111,27 +119,29 @@ def _role_table(frame: pd.DataFrame, factor: str, caption: str) -> str:
             "Range": _range(total),
         }
     )
-    return table(pd.DataFrame(rows), caption)
+    return table(pd.DataFrame(rows), caption + ROLE_NOTE)
 
 
 def _live_table(factor_group: str) -> str:
-    """The table the sliders fill: deaths avoided by zone and road user."""
+    """The table the sliders fill: deaths avoided by zone, and within it by road user."""
     rows = ""
     for zone in factor_models.ZONES:
+        rows += (
+            f'<tr class="group"><th scope="rowgroup" colspan="2">{esc(ZONE_LABELS[zone])}</th></tr>'
+        )
         for role, label in ROLE_LABELS.items():
             rows += (
-                f'<tr><th scope="row">{esc(ZONE_LABELS[zone])}</th><td>{esc(label)}</td>'
+                f'<tr><th scope="row">{esc(label)}</th>'
                 f'<td data-out="avoided-{zone}-{role}"></td></tr>'
             )
         rows += (
-            f'<tr class="total"><th scope="row">{esc(ZONE_LABELS[zone])}</th><td>All</td>'
-            f'<td data-out="avoided-{zone}"></td></tr>'
+            f'<tr class="total"><th scope="row">All</th><td data-out="avoided-{zone}"></td></tr>'
         )
     return (
         '<div class="table-wrap" role="region" tabindex="0" aria-label="Deaths avoided a year">'
-        "<table><caption>Deaths a year avoided at the settings above, by zone and by who "
-        "died</caption>"
-        '<thead><tr><th scope="col">Where</th><th scope="col">Who died</th>'
+        '<table class="live"><caption>Deaths a year avoided at the settings above, by zone and by '
+        f"who died{esc(ROLE_NOTE)}</caption>"
+        '<thead><tr><th scope="col">Who died</th>'
         '<th scope="col">Deaths avoided a year</th></tr></thead>'
         f"<tbody>{rows}</tbody></table></div>"
     )
@@ -160,16 +170,21 @@ def _slider(name: str, label: str, hint: str, value: int = 100) -> str:
     )
 
 
-def _panel(mode: str, title: str, controls: str, results: str) -> str:
+def _panel(
+    mode: str,
+    title: str,
+    controls: str,
+    results: str,
+    fallback: str = "the table below gives its results with each factor removed entirely",
+) -> str:
     return (
         '<div id="factor-panel" hidden>'
-        f'<form id="factor-model" class="simulator" data-mode="{mode}">'
+        f'<form id="factor-model" class="simulator" data-mode="{mode}" autocomplete="off">'
         f'<p class="simulator-title">{esc(title)}</p>'
         f'<fieldset class="road" data-state="settings"><legend>Settings</legend>{controls}'
         "</fieldset></form>"
         f"{results}</div>"
-        '<noscript><p class="note">The model needs JavaScript; the tables below give its results '
-        "with each factor removed entirely.</p></noscript>"
+        f'<noscript><p class="note">The model needs JavaScript; {esc(fallback)}.</p></noscript>'
     )
 
 
@@ -188,7 +203,14 @@ def page_distraction(captions: dict[str, str]) -> str:
     presence_u = float(inputs.loc[("distraction", "presence_urban"), "value"])
     af = inputs.loc[("distraction", "attributable_fraction")]
     any_or = factor_models.parameter("or_distraction", "any_observable")
+    any_low = factor_models.parameter("or_distraction", "any_observable", "low")
+    any_high = factor_models.parameter("or_distraction", "any_observable", "high")
     phone_or = factor_models.parameter("or_distraction", "handheld_phone")
+    phone_fatal = factor_models.parameter("rr_phone_use", "fatal_crashes")
+    phone_fatal_low = factor_models.parameter("rr_phone_use", "fatal_crashes", "low")
+    phone_fatal_high = factor_models.parameter("rr_phone_use", "fatal_crashes", "high")
+    phone_damage = factor_models.parameter("rr_phone_use", "property_damage_crashes")
+    injury_crashes = factor_models.parameter("injury_crashes", "all_2024")
     par = factor_models.parameter("par_distraction", "naturalistic")
     seen = factor_models.parameter("distraction_share_of_crashes", "naturalistic")
     all_share = shares[
@@ -196,19 +218,24 @@ def page_distraction(captions: dict[str, str]) -> str:
     ].share.iloc[0]
     by_year = shares[(shares.factor == "distraction") & (shares.zone == "all")].set_index("year")
     upper = float(natural.loc["all", "avoided"])
-    if not (inter.avoided > urban.avoided and upper > total.avoided_high):
+    as_cause = float(natural.loc["all", "record_as_cause"])
+    crash_share = float(crashes.avoided) / injury_crashes
+    injury_presence = float(crashes.recorded) / injury_crashes
+    if not (
+        inter.avoided > urban.avoided
+        and total.avoided_high < as_cause < upper
+        and crash_share < total.avoided / total.deaths
+        and injury_presence < all_share
+    ):
         raise ValueError("distraction page: the results no longer read as described")
-    drivers = sum(
-        float(_row(frame, "distraction", zone, "driver").avoided) for zone in factor_models.ZONES
-    )
 
     body = key_figures(
         [
             (
                 "If no driver were distracted",
                 _signed_int(-total.avoided),
-                f"deaths a year, of {_fmt_int(total.deaths)}; {_signed_int(-total.avoided_high)} "
-                "if every distraction were a handheld phone",
+                f"deaths a year, of {_fmt_int(total.deaths)}, on the police record "
+                f"({_signed_int(-total.avoided_low)} to {_signed_int(-total.avoided_high)})",
             ),
             (
                 "Fatal crashes with distraction",
@@ -218,13 +245,14 @@ def page_distraction(captions: dict[str, str]) -> str:
             (
                 "Injury crashes it causes",
                 _signed_int(-crashes.avoided),
-                f"a year, of the {_fmt_int(crashes.recorded)} with distraction recorded (2024)",
+                f"a year, of the {_fmt_int(crashes.recorded)} with distraction recorded (2024, "
+                "Spain without Cataluña and País Vasco)",
             ),
             (
-                "Upper check",
+                "Ceiling",
                 _signed_int(-upper),
-                f"deaths a year if distraction is as common in fatal crashes as in observed "
-                f"driving ({_fmt_pct(par, 0)} of crashes)",
+                f"deaths a year if distraction caused the {_fmt_pct(par, 0)} of crashes a camera "
+                f"study attributes to it (it was present in {_fmt_pct(seen, 0)})",
             ),
         ]
     )
@@ -235,13 +263,14 @@ def page_distraction(captions: dict[str, str]) -> str:
         f"{_fmt_int(inter.avoided)} of them on interurban roads, where the police record "
         f"distraction in {_fmt_pct(presence_i, 0)} of fatal crashes, against "
         f"{_fmt_int(urban.avoided)} in towns, where they record it in "
-        f"{_fmt_pct(presence_u, 0)}. Distraction is present in more fatal crashes than any other "
-        "recorded factor, but a distracted driver is only about twice as likely to crash as an "
-        f"attentive one, so only half of those crashes are caused by it. If every distracted "
-        f"driver had been on a handheld phone, which multiplies the risk by {phone_or:g}, the "
-        f"figure would be {_fmt_int(total.avoided_high)}; and if the police record misses as "
-        "much distraction as cameras in cars suggest, it could be as high as "
-        f"{_fmt_int(upper)}.</p>"
+        f"{_fmt_pct(presence_u, 0)}. Distraction is in more fatal crashes than any other recorded "
+        "factor, but cameras in cars found a distracted driver only about twice as likely to "
+        "crash as an attentive one, so the model counts half of those crashes as caused by it. "
+        "That figure is the low end. Read the police record as a judgement that distraction "
+        f"caused the crash and it is {_fmt_int(as_cause)}; if the record misses as much "
+        f"distraction as the cameras saw, up to {_fmt_int(upper)}; and the risk of phone use "
+        f"rises with the severity of the crash, to {phone_fatal:g} times in fatal crashes. Of the "
+        "three factors on this site, distraction is the one whose toll is least certain.</p>"
     )
     body += _try("Try the model", "Choose how much distraction is removed and how risky it is.")
 
@@ -256,11 +285,16 @@ def page_distraction(captions: dict[str, str]) -> str:
             (
                 "How often distraction is there",
                 "The share of fatal crashes in which the police recorded distraction as a "
-                f"concurrent factor: {_fmt_pct(all_share, 0)} on all roads in "
-                f"{_join([y for y in by_year.index if y.isdigit()])} "
-                f"({_join([_fmt_pct(float(by_year.loc[y, 'share']), 0) for y in by_year.index if y.isdigit()])}), "
-                f"{_fmt_pct(presence_i, 0)} on interurban roads and {_fmt_pct(presence_u, 0)} on urban "
-                "streets, from "
+                f"concurrent factor: {_fmt_pct(all_share, 0)} on all roads in 2022 and 2024 "
+                "pooled ("
+                + _join(
+                    [
+                        f"{_fmt_pct(float(by_year.loc[y, 'share']), 0)} in {y}"
+                        for y in sorted(y for y in by_year.index if y.isdigit())
+                    ]
+                )
+                + f"), {_fmt_pct(presence_i, 0)} on interurban roads and {_fmt_pct(presence_u, 0)} "
+                "on urban streets, from "
                 + _source(
                     "fatal_crashes_distraction", "all_2024", "DGT's table of concurrent factors"
                 )
@@ -270,9 +304,10 @@ def page_distraction(captions: dict[str, str]) -> str:
                 "How much it raises the risk",
                 "In the "
                 + _source("or_distraction", "any_observable", "largest naturalistic driving study")
-                + f", with cameras in 3,500 cars, a driver doing anything that took attention off "
-                f"the road was {any_or:g} times as likely to crash; on a handheld phone, "
-                f"{phone_or:g} times.",
+                + ", with cameras in drivers' own cars, a driver doing anything that took "
+                f"attention off the road was {any_or:g} times as likely to crash ({any_low:g} to "
+                f"{any_high:g}); on a handheld phone, {phone_or:g} times. Most of its crashes "
+                "caused damage only.",
             ),
             (
                 "The deaths it causes",
@@ -293,6 +328,7 @@ def page_distraction(captions: dict[str, str]) -> str:
     controls += _bound_choices(
         {
             "value": f"Any distraction, {any_or:g}× (central)",
+            "low": f"The low end of that risk, {any_low:g}×",
             "high": f"Every distraction a handheld phone, {phone_or:g}× (high)",
         }
     )
@@ -309,7 +345,8 @@ def page_distraction(captions: dict[str, str]) -> str:
         frame,
         "distraction",
         "Deaths a year avoided if no driver were distracted, by zone and by who died; the range "
-        "runs from any distraction (2.0×) to every distraction a handheld phone (3.6×)",
+        f"runs from the low end of the risk of any distraction ({any_low:g}×) to every "
+        f"distraction a handheld phone ({phone_or:g}×)",
     )
 
     body += "<h2>Two ways to count distraction</h2>"
@@ -324,19 +361,28 @@ def page_distraction(captions: dict[str, str]) -> str:
         "minor crashes, so the page does not use it as its estimate. It uses it as a ceiling: if "
         "the police record misses as much distraction as the cameras suggest, distraction "
         f"would account for up to {_fmt_int(upper)} deaths a year, "
-        f"{_fmt_int(float(natural.loc['interurban', 'avoided']))} of them on interurban roads. "
-        "The truth lies between the record and the ceiling, and nearer the record for the most "
-        "serious crashes, which are investigated most thoroughly.</p>"
+        f"{_fmt_int(float(natural.loc['interurban', 'avoided']))} of them on interurban roads.</p>"
+        "<p>Two more things push the police-record figure up. Officers may record distraction "
+        "only where they judge it caused the crash; then none of those crashes would have "
+        "happened anyway, the halving does not apply, and the figure is "
+        f"{_fmt_int(as_cause)}. And the risk was measured in crashes most of which caused damage "
+        "only, while "
+        + _source("rr_phone_use", "fatal_crashes", "TØI's review")
+        + f" puts the risk of phone use at {phone_damage:g} times in damage-only crashes and "
+        f"{phone_fatal:g} times ({phone_fatal_low:g} to {phone_fatal_high:g}) in fatal ones. "
+        f"So {_fmt_int(total.avoided)} is the low end of what distraction costs, and the "
+        f"evidence allows anything up to about {_fmt_int(upper)}.</p>"
     )
 
     body += "<h2>What the model concludes</h2>"
     findings = [
         (
-            f"Distraction causes about one road death in {round(total.deaths / total.avoided)}.",
+            "On the police record, distraction causes about one road death in "
+            f"{round(total.deaths / total.avoided)}.",
             f"{_fmt_int(total.avoided)} a year ({_fmt_int(total.avoided_low)} to "
             f"{_fmt_int(total.avoided_high)}), {_fmt_pct(total.avoided / total.deaths, 0)} of "
-            f"{_fmt_int(total.deaths)}, on the police record; up to {_fmt_int(upper)} if the record "
-            "misses as much as the cameras suggest.",
+            f"{_fmt_int(total.deaths)}; {_fmt_int(as_cause)} if the record is read as a judgement "
+            f"of cause, and up to {_fmt_int(upper)} on what the cameras saw.",
         ),
         (
             "Most of the gain is on interurban roads.",
@@ -346,17 +392,12 @@ def page_distraction(captions: dict[str, str]) -> str:
             f"{_fmt_pct(inter.deaths / total.deaths, 0)} of the deaths.",
         ),
         (
-            "It is mostly drivers who die.",
-            f"{_fmt_int(drivers)} of the {_fmt_int(total.avoided)} deaths avoided are drivers, "
-            "often the distracted driver; pedestrians are "
-            f"{_fmt_int(sum(float(_row(frame, 'distraction', z, 'pedestrian').avoided) for z in factor_models.ZONES))}.",
-        ),
-        (
-            "Crashes fall more than deaths.",
-            f"About {_fmt_int(crashes.avoided)} of the {_fmt_int(crashes.recorded)} injury crashes "
-            "a year with distraction recorded would not happen: distraction is recorded in "
-            "a larger share of injury crashes than of any other factor, so its weight in crashes "
-            "is larger than in deaths.",
+            "Deaths fall more than crashes, in proportion.",
+            f"About {_fmt_int(crashes.avoided)} of the {_fmt_int(injury_crashes)} injury crashes "
+            f"of 2024 ({_fmt_pct(crash_share, 0)}; Spain without Cataluña and País Vasco) would "
+            f"not happen, against {_fmt_pct(total.avoided / total.deaths, 0)} of deaths: the "
+            f"police record distraction in {_fmt_pct(injury_presence, 0)} of injury crashes but "
+            f"{_fmt_pct(all_share, 0)} of fatal ones.",
         ),
     ]
     body += (
@@ -380,19 +421,21 @@ def page_distraction(captions: dict[str, str]) -> str:
     )
     body += "<h2>Conclusion</h2>"
     body += conclusion(
-        f"Removing distraction would save about {_fmt_int(total.avoided)} lives a year in Spain "
-        f"({_fmt_int(total.avoided_low)} to {_fmt_int(total.avoided_high)}), "
-        f"{_fmt_int(inter.avoided)} of them on interurban roads, and avoid about "
-        f"{_fmt_int(crashes.avoided)} injury crashes. Distraction is the factor the police "
-        "record most often in fatal crashes but not the deadliest, because it doubles the risk "
-        "where alcohol multiplies it many times. The police record is a floor: on what cameras "
-        f"in cars see, the figure could be up to {_fmt_int(upper)}."
+        "On the police record and the risk measured in cars, removing distraction would save "
+        f"about {_fmt_int(total.avoided)} lives a year in Spain ({_fmt_int(total.avoided_low)} to "
+        f"{_fmt_int(total.avoided_high)}), {_fmt_int(inter.avoided)} of them on interurban "
+        f"roads, and avoid about {_fmt_int(crashes.avoided)} injury crashes. That is the low end: "
+        f"read as a judgement of cause the record gives {_fmt_int(as_cause)}, the camera study "
+        f"{_fmt_int(upper)}, and phone use is riskier in fatal crashes than the risk the model "
+        "uses. Distraction may therefore cost as many lives as drink-driving; the evidence only "
+        f"establishes that it costs at least about {_fmt_int(total.avoided_low)}."
     )
     body += limits(
         "The police record is a judgement made after the crash and covers Spain without Cataluña "
         "and País Vasco; the urban share is the difference between all roads and interurban "
         "roads, whose percentage DGT rounds. The risk comes from one American naturalistic study "
-        "of crashes of every severity; fatal crashes may differ. Removing a share of distraction "
+        "whose crashes mostly caused damage only; the risk of phone use is higher in fatal "
+        "crashes, so the figure is if anything low. Removing a share of distraction "
         "is taken to remove the same share of its crashes. A crash with several factors counts "
         "fully here and on the other factor pages, so the factors cannot be added; the "
         "enforcement page combines them."
@@ -433,7 +476,18 @@ def page_impairment(captions: dict[str, str]) -> str:
         for band in ("0.51-1.20", "1.21-2.00", "over_2.00")
     )
     pedestrians = factor_models.parameter("killed_pedestrians_positive_share", "2024")
-    if not (alcohol.avoided > drugs.avoided and inter.avoided > urban.avoided):
+    comparison = read_table("factor_comparison").set_index(["lever", "zone"])
+    speed = comparison.loc[("speed", "all")]
+    distraction = comparison.loc[("distraction", "all")]
+    distraction_ceiling = float(
+        read_table("factor_naturalistic").set_index("zone").loc["all", "avoided"]
+    )
+    if not (
+        alcohol.avoided > drugs.avoided
+        and inter.avoided > urban.avoided
+        and alcohol.avoided > speed.avoided > distraction.avoided
+        and speed.avoided_high > alcohol.avoided
+    ):
         raise ValueError("alcohol page: the results no longer read as described")
 
     body = key_figures(
@@ -529,7 +583,9 @@ def page_impairment(captions: dict[str, str]) -> str:
     controls += _slider(
         "drugs",
         "Share of drug-driving removed",
-        "Drugs of abuse without alcohol; drugs taken with alcohol count under alcohol.",
+        "Drugs of abuse in drivers with no alcohol. Drivers with drugs and alcohol count under "
+        "alcohol if they were over the limit, and under neither if they were below it, so drugs "
+        "are if anything understated.",
     )
     controls += _bound_choices(
         {
@@ -552,7 +608,11 @@ def page_impairment(captions: dict[str, str]) -> str:
         frame,
         "alcohol_drugs",
         "Deaths a year avoided if no driver drank or took drugs, by zone and by who died; the "
-        "range runs between the ends of DRUID's risk bands",
+        "range runs between the ends of DRUID's risk bands. In 2024, "
+        f"{_fmt_int(factor_models.parameter('killed_drivers_alcohol_positive', 'all_2024'))} of "
+        f"the {_fmt_int(factor_models.parameter('deaths_in_alcohol_crashes', 'all_2024'))} "
+        "people killed in crashes with a drunk driver were drunk drivers themselves (DGT), so "
+        "this split gives too many to the other road users",
     )
 
     rows = []
@@ -561,8 +621,12 @@ def page_impairment(captions: dict[str, str]) -> str:
         rows.append(
             {
                 "Substance": label,
-                "Present": _fmt_pct(float(inputs.loc[(factor, "presence_interurban"), "value"]), 0)
-                + (" of interurban fatal crashes" if factor == "alcohol" else " of killed drivers"),
+                "Present": (
+                    f"{_fmt_pct(presence_i, 0)} of interurban and {_fmt_pct(presence_u, 0)} of "
+                    "urban fatal crashes (where every driver was tested)"
+                    if factor == "alcohol"
+                    else f"{_fmt_pct(drug_share, 0)} of killed drivers"
+                ),
                 "Share caused by it": _fmt_pct(
                     float(inputs.loc[(factor, "attributable_fraction"), "value"]), 0
                 ),
@@ -575,11 +639,15 @@ def page_impairment(captions: dict[str, str]) -> str:
     body += "<h2>What the model concludes</h2>"
     findings = [
         (
-            "Alcohol is the deadliest of the recorded factors.",
+            "Alcohol is the deadliest single factor on the central estimates.",
             f"{_fmt_int(alcohol.avoided)} deaths a year ({_fmt_int(alcohol.avoided_low)} to "
-            f"{_fmt_int(alcohol.avoided_high)}). It is present in fewer fatal crashes than "
-            "distraction, but nearly every one of those deaths is caused by it, because "
-            f"{_fmt_pct(top_weight, 0)} of the drunk drivers killed were over 1.2 g/L.",
+            f"{_fmt_int(alcohol.avoided_high)}), against {_fmt_int(speed.avoided)} for speeding, "
+            f"whose range ({_fmt_int(speed.avoided_low)} to {_fmt_int(speed.avoided_high)}) "
+            f"overlaps it, and {_fmt_int(distraction.avoided)} for distraction on the police "
+            f"record, which could be as high as {_fmt_int(distraction_ceiling)}. It is present in "
+            "fewer fatal crashes than distraction, but nearly every one "
+            f"of those deaths is caused by it, because {_fmt_pct(top_weight, 0)} of the drunk "
+            "drivers killed were over 1.2 g/L.",
         ),
         (
             "Drugs add less, and less certainly.",
@@ -597,10 +665,14 @@ def page_impairment(captions: dict[str, str]) -> str:
             f"{_fmt_pct(presence_u, 0)}, but there are fewer deaths.",
         ),
         (
-            "The record undercounts drink-driving crashes, not deaths.",
-            f"About {_fmt_int(crashes.avoided)} injury crashes a year with alcohol recorded would "
-            "not happen, a floor: only the crashes in which drivers were tested, about two in "
-            "five, can record it.",
+            "Removing drink-driving would also avoid about "
+            f"{_fmt_int(round(float(crashes.avoided), -2))} recorded injury crashes a year.",
+            f"{_fmt_int(crashes.avoided)} ({_fmt_int(crashes.avoided_low)} to "
+            f"{_fmt_int(crashes.avoided_high)}) of the {_fmt_int(crashes.recorded)} injury crashes "
+            "with alcohol recorded in 2024, Spain without Cataluña and País Vasco. The count is a "
+            "floor, since only crashes in which drivers were tested, about two in five, can record "
+            "alcohol; the share caused is taken from killed drivers, who are drunker than those in "
+            "minor crashes, so it is high for those.",
         ),
     ]
     body += (
@@ -627,9 +699,11 @@ def page_impairment(captions: dict[str, str]) -> str:
         f"would die in Spain ({_fmt_int(both.avoided_low)} to {_fmt_int(both.avoided_high)}), "
         f"{_fmt_pct(both.avoided / both.deaths, 0)} of all road deaths: "
         f"{_fmt_int(alcohol.avoided)} from alcohol and {_fmt_int(drugs.avoided)} from drugs, "
-        f"{_fmt_int(inter.avoided)} of them on interurban roads. That is more than any other "
-        "factor on this site, because the drivers involved are so far over the limit that "
-        "almost every one of their fatal crashes is caused by it."
+        f"{_fmt_int(inter.avoided)} of them on interurban roads. On the central estimates that "
+        f"is more than speeding ({_fmt_int(speed.avoided)}, whose range reaches "
+        f"{_fmt_int(speed.avoided_high)}) or distraction on the police record "
+        f"({_fmt_int(distraction.avoided)}), because the drivers involved are so far over the "
+        "limit that almost every one of their fatal crashes is caused by it."
     )
     body += limits(
         "The police record of alcohol covers only the fatal crashes in which every driver was "
@@ -637,7 +711,10 @@ def page_impairment(captions: dict[str, str]) -> str:
         "rounded interurban percentage. DRUID measured the risk of serious injury, which is "
         "lower than the risk of death it also reports, so the attributable share is if anything "
         "low. Drug positives count any detection, which overstates impairment, most for "
-        "cannabis. Psychoactive medicines, found in "
+        "cannabis; drivers with drugs and alcohol below the limit are counted nowhere, which "
+        "understates drugs; and the drug share is measured on killed drivers and applied to "
+        "every death, pedestrians included, which likely overstates it for pedestrians struck by "
+        "drivers who survived. Psychoactive medicines, found in "
         f"{_fmt_pct(factor_models.parameter('killed_drivers_medicines_share', '2024'), 0)} "
         "of killed drivers in 2024, are left out, as is the impairment of pedestrians "
         f"themselves ({_fmt_pct(pedestrians, 0)} of those killed tested positive), which "
@@ -712,7 +789,8 @@ ENFORCEMENT_STUDIES: dict[str, tuple[str, str, str]] = {
     ),
     "drug_detection_risk": (
         "Alcohol and drugs",
-        "A 60% higher chance that a drug-driver is caught (Norway)",
+        "A 60% higher chance that a drug-driver is caught (Norway): the prediction of a curve "
+        "fitted to two roadside surveys",
         "Drug-impaired driving, not crashes: no study has measured random drug tests on crashes",
     ),
     "handheld_ban_crashes": ("Distraction", "Bans on handheld phones (US)", "All crashes"),
@@ -725,7 +803,7 @@ ENFORCEMENT_STUDIES: dict[str, tuple[str, str, str]] = {
     "phone_ban_total_deaths": (
         "Distraction",
         "Comprehensive handheld bans (US)",
-        "All deaths, drivers and others",
+        "All deaths in crashes involving passenger vehicles",
     ),
     "texting_ban_primary_deaths": (
         "Distraction",
@@ -778,7 +856,7 @@ def _live_comparison() -> str:
         )
     return (
         '<div class="table-wrap" role="region" tabindex="0" aria-label="Deaths avoided by lever">'
-        "<table><caption>Deaths a year avoided at the settings above</caption>"
+        '<table class="live"><caption>Deaths a year avoided at the settings above</caption>'
         '<thead><tr><th scope="col">Lever</th><th scope="col">Interurban roads</th>'
         '<th scope="col">Urban streets</th><th scope="col">All roads</th></tr></thead>'
         f"<tbody>{rows}</tbody></table></div>"
@@ -790,6 +868,8 @@ def page_enforcement(captions: dict[str, str]) -> str:
     curve = read_table("factor_speed_curve")
     presets = read_table("simulator_presets").set_index("scenario")
     speeds = read_table("simulator_speed_sites").set_index("site")
+    baseline = read_table("simulator_baseline").set_index("road_class")
+    natural = read_table("factor_naturalistic").set_index("zone")
 
     def cell(lever: str, zone: str = "all") -> pd.Series:
         return comparison[(comparison.lever == lever) & (comparison.zone == zone)].iloc[0]
@@ -804,69 +884,108 @@ def page_enforcement(captions: dict[str, str]) -> str:
     over_limit = factor_models.parameter("drivers_over_limit_share", "roadside_2024")
     handheld = 1 - factor_models.parameter("drivers_not_using_handheld_share", "baseline_2021")
     speeders = 1 - float(speeds.loc["conventional", "share_within_limit"])
+    fastest = float(speeds.loc["conventional", "v85"])
     alcohol_share = factor_models.presence("alcohol", "interurban")
     distraction_share = factor_models.presence("distraction", "interurban")
-    tests = factor_models.parameter("alcohol_tests_millions", "atgc_2023")
-    positive = factor_models.parameter("alcohol_tests_positive_share", "atgc_2023")
+    breath_tests = factor_models.parameter("alcohol_tests", "atgc_2024")
+    breath_positive = factor_models.parameter(
+        "alcohol_tests_preventive_positive_share", "atgc_2024"
+    )
+    drug_tests = factor_models.parameter("drug_tests", "atgc_2024")
+    fines = factor_models.parameter("traffic_fines", "dgt_2024")
+    checkpoint_studies = factor_models.parameter("checkpoint_studies", "alcohol")
+    level_studies = factor_models.parameter("enforcement_level_studies", "alcohol")
+    speed_fines = factor_models.parameter("traffic_fines_speed_share", "dgt_2024")
+    killed_over_limit = sum(
+        factor_models.parameter("killed_drivers_bac", f"{band}_2023")
+        for band in ("0.51-1.20", "1.21-2.00", "over_2.00")
+    ) / factor_models.parameter("killed_drivers_analysed", "2023")
+    killed_drugs = factor_models.drug_share()
+    ceiling = float(natural.loc["all", "avoided"])
+    other_roads = float(baseline.loc["other_interurban", "deaths"])
+    urban_alcohol = cell("alcohol_drugs", "urban")
+    urban_speed = cell("speed", "urban")
+    # The share of urban deaths on 30 km/h streets at which speed would overtake alcohol and drugs
+    # in towns: the urban speed figure runs from all deaths at 50 (central) to all at 30 (high).
+    urban_30_tipping = (urban_alcohol.avoided - urban_speed.avoided) / (
+        urban_speed.avoided_high - urban_speed.avoided
+    )
     if not (impaired.avoided > speed.avoided > distracted.avoided):
         raise ValueError("enforcement page: the ranking no longer reads as described")
+    if not (speed.avoided_high > impaired.avoided_low and ceiling > impaired.avoided):
+        raise ValueError("enforcement page: the overlaps the page describes have changed")
     if not all(
         cell(lever, "interurban").avoided > cell(lever, "urban").avoided
         for lever in factor_models.LEVERS
     ):
         raise ValueError("enforcement page: interurban roads no longer lead for every lever")
+    if not 0 < urban_30_tipping < 1:
+        raise ValueError("enforcement page: the town ranking no longer depends on the street mix")
+    interurban_shares = [
+        float(cell(lever, "interurban").avoided / cell(lever, "all").avoided)
+        for lever in factor_models.LEVERS
+    ]
 
     body = key_figures(
         [
             (
                 "No drink- or drug-driving",
                 _signed_int(-impaired.avoided),
-                f"deaths a year ({_signed_int(-impaired.avoided_low)} to {_signed_int(-impaired.avoided_high)})",
+                f"deaths a year ({_signed_int(-impaired.avoided_low)} to "
+                f"{_signed_int(-impaired.avoided_high)})",
             ),
             (
                 "Every driver at the limit",
                 _signed_int(-speed.avoided),
-                f"deaths a year ({_signed_int(-speed.avoided_low)} to {_signed_int(-speed.avoided_high)})",
+                f"deaths a year ({_signed_int(-speed.avoided_low)} to "
+                f"{_signed_int(-speed.avoided_high)}); "
+                f"{_signed_int(-cell('speed', 'interurban').avoided)} on interurban roads",
             ),
             (
                 "No distracted driving",
                 _signed_int(-distracted.avoided),
-                f"deaths a year ({_signed_int(-distracted.avoided_low)} to {_signed_int(-distracted.avoided_high)})",
+                f"deaths a year on the police record ({_signed_int(-distracted.avoided_low)} to "
+                f"{_signed_int(-distracted.avoided_high)}); up to {_signed_int(-ceiling)}",
             ),
             (
                 "All three together",
                 _signed_int(-together.avoided),
-                f"deaths a year, {_fmt_pct(float(together.share), 0)} of {_fmt_int(together.deaths)}; "
-                "not the sum, because crashes share factors",
+                f"deaths a year, {_fmt_pct(float(together.share), 0)} of "
+                f"{_fmt_int(together.deaths)}; not the sum, because crashes share factors",
             ),
         ]
     )
     body += (
-        '<p class="answer">Removing drink- and drug-driving would save the most lives, about '
-        f"{_fmt_int(impaired.avoided)} a year, then every driver keeping to the limit, about "
-        f"{_fmt_int(speed.avoided)}, then ending distracted driving, about "
-        f"{_fmt_int(distracted.avoided)} on the police record. But the largest prize is not where "
-        "more enforcement is surest to pay. The best-measured gains are on speed: automatic "
-        f"cameras cut fatal crashes near them by {_fall('fixed_cameras')} and crashes killing or "
-        f"seriously injuring someone on section-controlled stretches by "
-        f"{_fall('section_control')}, and in Spain cut crashes on Barcelona's ring roads by "
-        f"{_fall('barcelona_cameras')}. Spain already breath-tests {tests:g} million drivers a "
-        "year, and the studies suggest more of the same buys little, so the alcohol and drug "
-        "prize lies in reaching the few drivers who cause it. Enforcement against distraction "
-        "has the weakest evidence of the three. For every lever most of the gain is on "
-        "interurban roads; for speed, on conventional roads.</p>"
+        '<p class="answer">On the central estimates, removing drink- and drug-driving would save '
+        f"the most lives, about {_fmt_int(impaired.avoided)} a year, then every driver keeping to "
+        f"the limit, about {_fmt_int(speed.avoided)}, then ending distraction, about "
+        f"{_fmt_int(distracted.avoided)} on the police record. The first two overlap within their "
+        "ranges, and distraction's figure is the least certain: it could be as high as "
+        f"{_fmt_int(ceiling)}. For both drink-driving and speeding, more enforcement goes with "
+        "fewer crashes, but the evidence is more consistent for drink-driving: breath-test "
+        f"checkpoints, the most studied measure here ({checkpoint_studies:.0f} studies), cut "
+        f"alcohol-related crashes by {_fall('checkpoints_alcohol_crashes')} across the areas "
+        "where they run, and work better the more often they run. Automatic speed cameras show "
+        f"larger effects, {_point('section_control')} to {_point('fixed_cameras')} fewer fatal or "
+        "serious crashes in international reviews, but only on the stretches they cover. Phone "
+        "bans have not "
+        "measurably changed total deaths. So higher enforcement against drink- and drug-driving "
+        "has the strongest case for cutting total deaths, with speed cameras close behind; for "
+        f"every lever {_fmt_pct(min(interurban_shares), 0)} to "
+        f"{_fmt_pct(max(interurban_shares), 0)} of the gain is on interurban roads.</p>"
     )
     body += _try("Compare the levers", "Remove a share of each factor and see the deaths saved.")
 
-    body += "<h2>The ceiling: each factor removed</h2>"
+    body += '<h2 id="ceiling">The ceiling: each factor removed</h2>'
     body += (
         "<p>Each lever is taken to its limit with its own model: the "
         '<a href="simulator.html">speed-law simulator</a> with every driver above the limit '
         'slowing to it, and the <a href="alcohol-drugs.html">alcohol and drugs</a> and '
         '<a href="distraction.html">distraction</a> models with no driver affected. The ranges '
-        "come from each model's risk evidence. The three cannot be added: a crash with a drunk, "
-        "speeding driver is avoided once, not twice. Removing all three together, if they act "
-        "independently, avoids "
+        "come from each model's risk evidence; distraction's police-record figure is its low "
+        f"end, and a camera study puts its ceiling at {_fmt_int(ceiling)}. The three cannot be "
+        "added: a crash with a drunk, speeding driver is avoided once, not twice. Removing all "
+        "three together, if they act independently, avoids "
         f"{_fmt_int(together.avoided)} deaths a year, {_fmt_pct(float(together.share), 0)} of "
         "the total; alcohol and speed often go together, so the true combined figure is if "
         "anything lower.</p>"
@@ -889,7 +1008,7 @@ def page_enforcement(captions: dict[str, str]) -> str:
         {
             "value": "Central estimates",
             "low": "Low ends of the risk evidence",
-            "high": "High ends of the risk evidence",
+            "high": "High ends (for distraction, every distraction a handheld phone)",
         }
     )
     controls += (
@@ -907,7 +1026,14 @@ def page_enforcement(captions: dict[str, str]) -> str:
         '<p class="also-line">Largest first: <strong data-out="ranking"></strong></p></div>'
         + _live_comparison()
     )
-    body += _panel("compare", "Compare the three levers", controls, results)
+    body += _panel(
+        "compare",
+        "Compare the three levers",
+        controls,
+        results,
+        fallback="the table above, under 'The ceiling: each factor removed', gives its results "
+        "with each factor removed entirely",
+    )
 
     body += "<h2>How concentrated each problem is</h2>"
     rows = [
@@ -915,14 +1041,15 @@ def page_enforcement(captions: dict[str, str]) -> str:
             "Factor": "Alcohol",
             "Drivers on the road": f"{_fmt_pct(over_limit, 1)} over the limit (random roadside "
             "tests, 2024)",
-            "Interurban fatal crashes": _fmt_pct(alcohol_share, 0),
-            "Risk once present": f"about {factor_models.parameter('rr_druid_injured', 'alcohol_over_1.2'):.0f}× "
-            "above 1.2 g/L",
+            "Interurban fatal crashes": f"{_fmt_pct(alcohol_share, 0)} (where every driver was "
+            "tested)",
+            "Risk once present": f"about "
+            f"{factor_models.parameter('rr_druid_injured', 'alcohol_over_1.2'):.0f}× above 1.2 g/L",
         },
         {
             "Factor": "Speeding",
             "Drivers on the road": f"{_fmt_pct(speeders, 0)} of cars above 90 km/h on "
-            "conventional roads (radar, 2022)",
+            f"conventional roads, the fastest 15% at {fastest:.0f} km/h or more (radar, 2022)",
             "Interurban fatal crashes": _fmt_pct(factor_models.presence("speed", "interurban"), 0)
             + " recorded as inappropriate speed",
             "Risk once present": "rises with every km/h (Power Model)",
@@ -933,7 +1060,8 @@ def page_enforcement(captions: dict[str, str]) -> str:
             "(roadside observation, 2021)",
             "Interurban fatal crashes": _fmt_pct(distraction_share, 0),
             "Risk once present": f"{factor_models.parameter('or_distraction', 'any_observable'):g}×; "
-            f"{factor_models.parameter('or_distraction', 'handheld_phone'):g}× on a handheld phone",
+            f"{factor_models.parameter('or_distraction', 'handheld_phone'):g}× on a handheld "
+            "phone, more in fatal crashes",
         },
     ]
     body += table(
@@ -942,17 +1070,22 @@ def page_enforcement(captions: dict[str, str]) -> str:
         "how much it raises the risk",
     )
     body += (
-        "<p>The three problems have different shapes, and the shape decides what enforcement "
-        f"can do. Drink-driving is rare on the road, {_fmt_pct(over_limit, 1)} of drivers, but "
-        "each drunk driver is very dangerous, so a small group causes a large share of deaths. "
-        f"The Guardia Civil already breath-tests about {tests:g} million drivers a year, of whom "
-        f"{_fmt_pct(positive, 1)} are positive; what decides the gain is whether the tests reach "
-        "the few drivers who drink heavily, at the times they drive. Speeding is the opposite: "
-        f"{_fmt_pct(speeders, 0)} of cars on conventional roads are over the limit, each by a "
-        "few km/h, so the gain comes from moving everyone a little, which automatic cameras can "
-        f"do at scale. Distraction sits between them: {_fmt_pct(handheld, 0)} of drivers are "
-        "seen holding a device, distraction of some kind is common, and it is the hardest of "
-        "the three to detect from outside the car.</p>"
+        "<p>The three problems have different shapes. Drink-driving is rare on the road, "
+        f"{_fmt_pct(over_limit, 1)} of drivers stopped at random, but each drunk driver is very "
+        "dangerous, so a small group causes a large share of deaths. The Guardia Civil carried "
+        f"out {breath_tests / 1e6:.1f} million breath tests in 2024 on the roads it polices, "
+        "which leave out Cataluña, País Vasco and towns with their own police "
+        + _source("alcohol_tests", "atgc_2024", "(DGT)")
+        + f"; {_fmt_pct(breath_positive, 0)} of its routine tests were positive. Drug tests are "
+        f"far rarer, {_fmt_int(drug_tests)}, one for every "
+        f"{round(breath_tests / drug_tests)} breath tests, although drugs without alcohol were "
+        f"found in {_fmt_pct(killed_drugs, 0)} of killed drivers against "
+        f"{_fmt_pct(killed_over_limit, 0)} over the alcohol limit (INTCF). Speeding is "
+        f"widespread: {_fmt_pct(speeders, 0)} of cars on conventional roads are over 90 km/h and "
+        f"the fastest 15% go at {fastest:.0f} km/h or more, and under the Power Model the "
+        "fastest carry most of the gain. Distraction is common, "
+        f"{_fmt_pct(handheld, 0)} of drivers are seen holding a device, and it is the hardest "
+        "of the three to detect from outside the car.</p>"
     )
 
     needed = {
@@ -960,10 +1093,14 @@ def page_enforcement(captions: dict[str, str]) -> str:
         for lever in factor_models.LEVERS
     }
 
+    if any(math.isnan(share) for shares in needed.values() for share in shares.values()):
+        raise ValueError(f"enforcement page: some lever cannot save {LIVES} lives a year")
+
     def need(lever: str) -> str:
         shares = needed[lever]
-        ends = sorted({_fmt_pct(shares["low"], 0), _fmt_pct(shares["high"], 0)})
-        spread = f" ({ends[0]} to {ends[1]})" if len(ends) == 2 else ""
+        low, high = sorted((shares["low"], shares["high"]))
+        ends = (_fmt_pct(low, 0), _fmt_pct(high, 0))
+        spread = f" ({ends[0]} to {ends[1]})" if ends[0] != ends[1] else ""
         return f"about {_fmt_pct(shares['value'], 0)}{spread}"
 
     body += "<h2>How far enforcement reaches each</h2>"
@@ -971,43 +1108,56 @@ def page_enforcement(captions: dict[str, str]) -> str:
         f"<p>To save {LIVES} lives a year, enforcement would have to remove "
         f"{need('alcohol_drugs')} of drink- and drug-driving, {need('speed')} of speeding (that "
         f"share of the drivers above the limit slowing to it), or {need('distraction')} of "
-        "distracted driving; the ranges come from the risk evidence. The studies below are the "
-        "best available on each lever. They measure what an enforcement measure did to crashes "
-        "where it was tried, not how much of the behaviour it removed, and all but one are from "
-        "outside Spain.</p>"
+        "distracted driving on the police record; the ranges come from the risk evidence. The "
+        "studies below are the best available on each lever. They measure what an enforcement "
+        "measure did to crashes where it was tried, not how much of the behaviour it removed, "
+        "and all but one are from outside Spain.</p>"
     )
     body += _enforcement_evidence()
     body += (
-        "<p><strong>Speed.</strong> Automatic cameras have the largest and most often "
-        f"replicated effects: fatal crashes near fixed cameras fall by {_fall('fixed_cameras')}, "
-        "and crashes killing or seriously injuring someone on section-controlled stretches by "
-        f"{_fall('section_control')}. The one Spanish evaluation found crashes on Barcelona's "
-        f"ring roads fell by {_fall('barcelona_cameras')}, with no change on the city's "
-        "arterial streets, so the gain is on fast roads. It stays where the cameras are: the "
-        "national gain depends on how many of the deaths happen on the roads they cover. Simply "
-        "more of the enforcement already in place is the least certain result, a change of "
-        f"{_change('more_speed_enforcement')} in people killed or seriously injured.</p>"
-        "<p><strong>Alcohol and drugs.</strong> Breath-test checkpoints cut alcohol-related "
-        f"crashes by {_fall('checkpoints_alcohol_crashes')} where they were brought in. Spain "
-        f"has them: the Guardia Civil carried out {tests:g} million tests in 2023, "
-        f"{_fmt_pct(positive, 1)} of them positive. On doing more of the same the evidence "
-        "points to small gains: patrols stopping the drivers the police suspect show "
-        f"{_change('dui_patrols')} in fatal crashes, and Norway's road safety planners assume "
-        "three times as many random breath tests would cut fatal crashes by "
-        f"{_fall('breath_tests_tripled')}. For drugs no study has measured what random testing "
-        "does to crashes; in Norway a 60% higher chance of being caught went with "
-        f"{_fall('drug_detection_risk')} less drug-impaired driving. The prize is large because "
-        f"a few drivers, {_fmt_pct(over_limit, 1)} of those stopped at random, are very "
-        "dangerous; reaching them, at the times and places they drive, matters more than the "
-        "number of tests. How far better targeting would go has not been measured.</p>"
-        "<p><strong>Distraction.</strong> Bans on handheld phones cut crashes by "
-        f"{_fall('handheld_ban_crashes')}; after bans on texting crashes changed by "
-        f"{_change('texting_ban_crashes')}. Where the police could enforce a full handheld ban "
-        f"on its own, driver deaths fell by {_fall('phone_ban_driver_deaths')}, but all deaths "
-        f"changed by {_change('phone_ban_total_deaths')}, and after texting bans of the same "
-        f"kind by {_change('texting_ban_primary_deaths')}: both intervals include no change. "
-        "A review of 32 studies of police enforcement of phone bans found it may cut phone use "
-        "and fatal crashes, but with results that vary and are uncertain "
+        "<p><strong>Speed.</strong> Automatic cameras show the largest effects, where they "
+        f"stand: fatal crashes fall by {_fall('fixed_cameras')} near fixed cameras, mostly "
+        "measured within half a kilometre to a kilometre of them, and crashes killing or "
+        f"seriously injuring someone by {_fall('section_control')} on section-controlled "
+        f'stretches (<a href="{esc(CAMERA_CHAPTER)}">TØI, ch. 8.2</a>). Two Spanish studies from '
+        "Barcelona (Pérez et al. 2007; Novoa et al. 2010) are among those pooled; the later "
+        f"found crashes on the city's ring roads fell by {_fall('barcelona_cameras')}, with no "
+        "change on its arterial streets. Spain already has fixed and section cameras: "
+        f"{_fmt_pct(speed_fines, 0)} of DGT's {fines / 1e6:.1f} million fines in 2024 were for "
+        "speed, issued by the Guardia Civil, fixed and section cameras and helicopters "
+        + _source("traffic_fines_speed_share", "dgt_2024", "(DGT)")
+        + ". How much more a new camera would save depends on how many deaths happen on the "
+        "stretches it covers, which DGT's public data do not show. More hours of speed checks go "
+        "with fewer crashes, more so for fatal crashes, in TØI's dose-response curves, but the "
+        "studies vary widely: pooled, more of the enforcement already in place changed the "
+        f"number killed or seriously injured by {_change('more_speed_enforcement')}.</p>"
+        "<p><strong>Alcohol and drugs.</strong> Breath-test checkpoints are the most studied "
+        f"measure on this page: across {checkpoint_studies:.0f} studies, alcohol-related crashes "
+        "fell by "
+        f"{_fall('checkpoints_alcohol_crashes')} in the areas where they ran, and all crashes by "
+        f"{_fall('checkpoints_all_crashes')} in the studies with a control group. More is "
+        "better: the effect grows with how often checkpoints run, testing every driver stopped "
+        f"works better than testing only on suspicion, and of {level_studies:.0f} studies of how "
+        "much enforcement there was, most of them American, all but one found more enforcement "
+        "went with fewer crashes "
+        f'(<a href="{esc(ALCOHOL_CHAPTER)}">TØI, ch. 8.7</a>). How much more Spain would gain '
+        f"from its {breath_tests / 1e6:.1f} million tests a year has not been measured; "
+        "Norway's planners assume that three times as many random tests would cut fatal crashes "
+        f"by {_fall('breath_tests_tripled')}, an assumption rather than a measurement. Patrols "
+        "stopping only the drivers the police suspect showed no clear effect, "
+        f"{_change('dui_patrols')} in fatal crashes. For drugs no study has measured what random "
+        "testing does to crashes; a curve fitted to two Norwegian roadside surveys predicts that "
+        "a 60% higher chance of being caught would cut drug-impaired driving by "
+        f"{_fall('drug_detection_risk')}.</p>"
+        "<p><strong>Distraction.</strong> Bans on handheld phones changed crashes by "
+        f"{_change('handheld_ban_crashes')}, not a significant change, and bans on texting went "
+        f"with {_change('texting_ban_crashes')}. Comprehensive handheld bans went with "
+        f"{_fall('phone_ban_driver_deaths')} fewer driver deaths, also where the police could "
+        "enforce them on their own, but total deaths changed by "
+        f"{_change('phone_ban_total_deaths')}, and after texting bans the police could enforce "
+        f"on their own by {_change('texting_ban_primary_deaths')}: both intervals include no "
+        "change. Police enforcement of a ban has been shown to reduce handheld phone use, but "
+        "its effect on crashes varies between studies and is uncertain "
         f'(<a href="{esc(MOBILE_CHAPTER)}">TØI, ch. 8.14</a>). Spain already bans using a '
         "phone at the wheel unless hands-free "
         f'(<a href="{esc(TRAFFIC_RULES)}">Reglamento General de Circulación, art. 18.2</a>).</p>'
@@ -1028,23 +1178,23 @@ def page_enforcement(captions: dict[str, str]) -> str:
             }
         )
     body += table(pd.DataFrame(zone_rows), "Deaths a year avoided, factor removed, by zone")
-    urban_lead = max(factor_models.LEVERS, key=lambda lever: cell(lever, "urban").avoided)
-    if urban_lead != "alcohol_drugs":
-        raise ValueError("enforcement page: alcohol and drugs no longer lead in towns")
     body += (
-        "<p>For every lever most of the gain is on interurban roads, which carry "
+        f"<p>For every lever {_fmt_pct(min(interurban_shares), 0)} to "
+        f"{_fmt_pct(max(interurban_shares), 0)} of the gain is on interurban roads, which carry "
         f"{_fmt_pct(float(cell('speed', 'interurban').deaths / together.deaths), 0)} of deaths. "
-        "Within them, for speed, conventional roads lead: everyone keeping to 90 km/h there "
+        "For speed the prize there is on conventional roads: everyone keeping to 90 km/h on them "
         f"saves {_fmt_int(-conventional.deaths_change)} of the "
-        f"{_fmt_int(cell('speed', 'interurban').avoided)} interurban lives full speed compliance "
-        "saves, so that is where cameras would pay most. In towns alcohol and drugs lead on the "
-        f"central estimates, {_fmt_int(cell('alcohol_drugs', 'urban').avoided)} lives against "
-        f"{_fmt_int(cell('speed', 'urban').avoided)} for speed and "
-        f"{_fmt_int(cell('distraction', 'urban').avoided)} for distraction. The urban speed "
-        "figure is the least certain: it is 0 at the low end, because the evidence for town "
-        f"streets includes no effect, and {_fmt_int(cell('speed', 'urban').avoided_high)} if "
-        "every urban death were on a street at 30 km/h; DGT does not say which streets they "
-        "happen on.</p>"
+        f"{_fmt_int(cell('speed', 'interurban').avoided)} interurban lives full compliance saves. "
+        "Cameras reach it only on the stretches they cover: section control along whole "
+        "stretches, a fixed camera about a kilometre. The speed figure leaves out the "
+        f"{_fmt_int(other_roads)} deaths a year on other interurban roads, where no speeds were "
+        "measured. In towns alcohol and drugs lead on the central estimates, "
+        f"{_fmt_int(urban_alcohol.avoided)} lives against {_fmt_int(urban_speed.avoided)} for "
+        f"speed and {_fmt_int(cell('distraction', 'urban').avoided)} for distraction. But the "
+        "urban speed figure takes every urban death to be on a street at 50 km/h, the smaller "
+        "effect, because DGT does not say on which streets they happen: if "
+        f"{_fmt_pct(urban_30_tipping, 0)} or more were on streets at 30 km/h, speed would lead "
+        "in towns too. At the low end of the evidence the urban speed effect is 0.</p>"
     )
     body += downloads(
         [
@@ -1056,16 +1206,32 @@ def page_enforcement(captions: dict[str, str]) -> str:
     )
 
     body += "<h2>Conclusion</h2>"
-    body += conclusion(_enforcement_conclusion(impaired, speed, distracted, needed, tests))
+    body += conclusion(
+        _enforcement_conclusion(
+            impaired,
+            speed,
+            distracted,
+            ceiling,
+            needed,
+            {
+                "over_limit": over_limit,
+                "breath_tests": breath_tests,
+                "drug_tests": drug_tests,
+                "killed_drugs": killed_drugs,
+                "killed_over_limit": killed_over_limit,
+            },
+        )
+    )
     body += limits(
         "Each lever uses its own model, so the comparison inherits each one's limits: the speed "
-        "model applies international dose-response evidence to measured Spanish speeds; the "
-        "alcohol, drug and distraction models apply measured risks to the police record of "
-        "fatal crashes. Urban speed is a range because DGT does not split urban deaths by the "
-        "limit of the street. The combined figure assumes the factors act independently. "
-        "Removing a share of a factor is not the same as an enforcement measure: how much of "
-        "each factor a given measure removes is what the studies above estimate, on roads "
-        "outside Spain."
+        "model applies international dose-response evidence to measured Spanish speeds on "
+        "autopistas, autovías and conventional roads; the alcohol, drug and distraction models "
+        "apply measured risks to the police record of fatal crashes. Urban speed is a range "
+        "because DGT does not split urban deaths by the limit of the street. The combined "
+        "figure assumes the factors act independently. Removing a share of a factor is not the "
+        "same as an enforcement measure: the studies above report how crashes changed where a "
+        "measure was tried, mostly outside Spain, not how much of the factor it removed, so the "
+        "two are set side by side rather than combined."
     )
     return render_page(
         "enforcement",
@@ -1165,23 +1331,27 @@ def _point(name: str) -> str:
     return _fall(name).split(" (")[0]
 
 
-def _enforcement_conclusion(impaired, speed, distracted, needed, tests) -> str:
+def _enforcement_conclusion(impaired, speed, distracted, ceiling, needed, facts) -> str:
     return (
-        "The largest prize is drink- and drug-driving, about "
-        f"{_fmt_int(impaired.avoided)} deaths a year if it were removed, against "
-        f"{_fmt_int(speed.avoided)} for speeding and {_fmt_int(distracted.avoided)} for "
-        f"distraction on the police record. Saving {LIVES} lives a year takes removing about "
-        f"{_fmt_pct(needed['alcohol_drugs']['value'], 0)} of drink- and drug-driving, "
-        f"{_fmt_pct(needed['speed']['value'], 0)} of speeding or "
-        f"{_fmt_pct(needed['distraction']['value'], 0)} of distraction. Higher enforcement is "
-        "surest to save lives on speed: automatic cameras cut fatal and serious crashes by "
-        f"{_point('section_control')} to {_point('fixed_cameras')} where they stand, including on "
-        "fast roads in Spain, and their reach grows with every road they cover, above all "
-        "conventional interurban roads. For alcohol and drugs Spain already runs about "
-        f"{tests:g} million breath tests a year, and the evidence says more of the same buys "
-        "little; the remaining gain depends on reaching the few heavy drinkers and drug users "
-        "who cause most of those deaths, which no study here measures. Enforcement against "
-        "distraction has the weakest evidence on both counts: the smallest recorded prize and "
-        "bans that changed total deaths by "
-        f"{_change('phone_ban_total_deaths')}."
+        "Higher enforcement against drink- and drug-driving has the strongest case for cutting "
+        "total deaths. It is the largest prize on the central estimates, about "
+        f"{_fmt_int(impaired.avoided)} deaths a year, and saving {LIVES} takes removing about "
+        f"{_fmt_pct(needed['alcohol_drugs']['value'], 0)} of it; it is concentrated in a few "
+        f"drivers, {_fmt_pct(facts['over_limit'], 1)} of those stopped at random; and the "
+        "evidence that more enforcement brings fewer crashes is the most consistent, from "
+        "checkpoints that work across the areas where they run and work better the more often "
+        "they run. Drug testing is the thinnest part of it, one test for every "
+        f"{round(facts['breath_tests'] / facts['drug_tests'])} breath tests although drugs "
+        f"without alcohol were found in {_fmt_pct(facts['killed_drugs'], 0)} of killed drivers, "
+        "but no study has measured what more of it would do to crashes. Speed is close behind: "
+        f"{_fmt_int(speed.avoided)} a year ({_fmt_int(speed.avoided_low)} to "
+        f"{_fmt_int(speed.avoided_high)}), {_fmt_pct(needed['speed']['value'], 0)} of speeding to "
+        f"save {LIVES}, and automatic cameras have the largest effects of any measure here, "
+        f"{_point('section_control')} to {_point('fixed_cameras')} fewer fatal or serious "
+        "crashes near them, but only on the stretches they cover, so the gain depends on placing "
+        "them where people die: interurban and above all conventional roads. Distraction is the "
+        "least certain on both counts: its toll could be anywhere from about "
+        f"{_fmt_int(distracted.avoided_low)} to {_fmt_int(ceiling)} deaths a year, and phone bans "
+        "have not measurably changed total deaths. For all three, most of the gain is on "
+        "interurban roads; in towns, on the central estimates, it is drink- and drug-driving."
     )

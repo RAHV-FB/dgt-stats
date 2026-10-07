@@ -590,27 +590,37 @@ and the ends of its interval, and fails on a value mistyped by a factor of 0.61,
   crashes; alcohol 29 % and 27 %. Drugs have no row in Tabla 50: their presence is the share of
   killed drivers whose blood held a drug of abuse and no alcohol (INTCF, the national forensic
   toxicology of killed drivers; mean of 2023 and 2024, about 10 %), the same for both zones.
+  Drivers with drugs and alcohol below the legal limit are counted under neither, which
+  understates drugs.
 - **Risk.** For alcohol, the EU DRUID project's relative risks of being seriously injured or
   killed: the 2023 killed drivers above 0.5 g/L split into 0.51–1.20 g/L (DRUID's 0.5–0.8 and
   0.8–1.2 groups, geometric mean 7.0) and over 1.20 g/L (62.8), weighted by the INTCF counts; 81 %
   are over 1.2 g/L, so the attributable fraction is 0.96. For drugs, DRUID's estimates for cocaine,
   cannabis, amphetamines and opiates weighted by the drugs the police detected in killed drivers in
   2023 (attributable fraction 0.57). For distraction, the naturalistic driving study of Dingus et
-  al. (2016): odds ratio 2.0 for any observable distraction (attributable fraction 0.5), 3.6 for a
-  handheld phone.
-- **Bounds.** `low` and `high` take the ends of DRUID's risk bands, and for distraction any
-  distraction against a handheld phone. They say how sensitive the answer is to the risk, not how
+  al. (2016): odds ratio 2.0 (1.8–2.4) for any observable distraction (attributable fraction
+  0.5), 3.6 for a handheld phone.
+- **Bounds.** `low` and `high` take the ends of DRUID's risk bands, and for distraction the low end
+  of the interval for any distraction (1.8) and every distraction a handheld phone (3.6). They say how sensitive the answer is to the risk, not how
   complete the police record is. Two checks bound that instead: for alcohol, the INTCF share of
   killed drivers over the limit, which agrees with the police record; for distraction, the
   naturalistic study's own estimate that 36 % of crashes would not happen without distraction,
   which applied to every death gives 640 a year against the police record's 266
-  (`naturalistic_distraction`, a sensitivity, not a second estimate).
+  (`naturalistic_distraction`, a sensitivity, not a second estimate). A third reading takes the
+  police record as a judgement that distraction caused the crash, so that no share of those
+  crashes would have happened anyway: 532 a year. And the risk of phone use rises with severity
+  (TØI's review: 2.5 times in damage-only crashes, 9.3 in fatal ones), so the 2.0 measured mostly
+  in minor crashes understates it for deaths. The police-record figure is the low end.
 - **Injury crashes.** The 2024 injury crashes with each factor recorded (13,164 with distraction,
   3,630 with alcohol in tested crashes) times the attributable fraction.
 
 Results with each factor removed entirely: alcohol and drugs 582 deaths a year (497–644), 479 of
-them alcohol; distraction 266 (266–385), with 640 as the naturalistic ceiling; 6,582 of the 13,164
-injury crashes with distraction recorded. Left out deliberately: psychoactive medicines (11–16 %
+them alcohol; distraction 266 (237–385), with 532 and 640 above it; 6,582 of the 13,164 injury
+crashes with distraction recorded in 2024 (9 % of injury crashes against 15 % of deaths; the crash
+counts cover Spain without Cataluña and País Vasco). The split of each zone's deaths by road user
+is proportional, because the police record gives each factor by crash: for alcohol it gives too
+many deaths to other road users, since 218 of the 292 people killed in 2024 in crashes with a drunk
+driver were drunk drivers themselves. Left out deliberately: psychoactive medicines (11–16 %
 of killed drivers), prescribed and not what roadside enforcement targets; the impairment of
 pedestrians themselves (43 % of those killed tested positive); and any interaction between
 factors beyond the combination below.
@@ -632,26 +642,36 @@ street. Alcohol and drugs, and distraction, are the models above at a share remo
 three combines the shares as `1 − Π(1 − a_i)`, which assumes they act independently; alcohol and
 speed often occur together, so the combined figure is if anything high.
 
-With each factor removed: alcohol and drugs 582, speed 449 (298–616), distraction 266, all three
-1,017 (57 % of deaths). `share_needed` inverts each lever for a number of lives: saving 100 a year
-takes removing about 17 % (16–20 %) of drink- and drug-driving, 20 % (14–31 %) of speeding, or 38 %
-(26–38 %) of distraction. For every lever 73–84 % of the gain is on
-interurban roads; for speed, 280 of the 335 interurban lives are on conventional roads.
+With each factor removed: alcohol and drugs 582 (497–644), speed 449 (298–616), distraction 266
+(237–385) on the police record, all three 1,017 (57 % of deaths). `share_needed` inverts each
+lever for a number of lives: saving 100 a year takes removing about 17 % (16–20 %) of drink- and
+drug-driving, 20 % (14–31 %) of speeding, or 38 % (26–42 %) of distraction. For every lever
+73–84 % of the gain is on interurban roads; for speed, 280 of the 335 interurban lives are on
+conventional roads, and the 84 deaths a year on other interurban roads, where no speeds were
+measured, are left out. In towns alcohol and drugs lead on the central estimates (156 against 114
+for speed), but the urban speed figure takes every urban death to be on a street at 50 km/h: if
+32 % or more were on streets at 30 km/h, speed would lead there too.
 
 How much of each factor enforcement removes is not measured in Spain. The register carries 17
 published evaluations, each with a verbatim quote, of what an enforcement measure did to crashes
 where it was tried: fixed speed cameras (−47 % fatal crashes near them), section control (−41 %
 killed or seriously injured), mobile cameras, roadside checks, more of the existing speed
 enforcement (−9 %, −34 % to +26 %), Barcelona's ring-road cameras (−30 % crashes; no change on the
-city's arterial streets); breath-test checkpoints (−17 % alcohol-related crashes), drink-driving
-patrols (−3 %, −9 % to +4 %), Norway's planning assumption that tripling random breath tests cuts
+city's arterial streets); breath-test checkpoints (−17 % alcohol-related crashes, 40 studies;
+TØI's chapter adds that their effect grows with how often they run and that, in 11 of 12 studies
+of enforcement levels, more enforcement went with fewer crashes), patrols stopping drivers on
+suspicion (−3 %, −9 % to +4 %), Norway's planning assumption that tripling random breath tests cuts
 fatal crashes by 3 %, the response of drug-impaired driving to the chance of being caught; handheld
 and texting bans (−2 % and +5 % crashes) and, from Zhu et al. (2021), handheld bans the police can
 enforce on their own (driver deaths −7 %, all deaths −2 %, an interval including no change), and
 from Ferdinand et al. (2014) texting bans of the same kind (all deaths −3 %, −5 % to 0 %). The
-page reads the ranking from the two together: alcohol and drugs is the largest prize, speed the
-lever on which more enforcement is best shown to pay (automatic cameras on fast roads, above all
-conventional roads), and distraction the weakest on both counts. The evaluations measure effects
+page reads the ranking from the two together. Drink- and drug-driving has the strongest case: the
+largest prize on the central estimates, concentrated in a few drivers, and the most consistent
+evidence that more enforcement brings fewer crashes; drug testing (122,938 tests in 2024 against
+7.4 million breath tests) is its thinnest part, though no study measures what more of it would do.
+Speed is close behind, with the largest effects of any measure where cameras stand but a gain
+that depends on covering the roads where people die. Distraction is the least certain on both
+counts: 237 to 640 deaths a year, and bans that did not measurably change total deaths. The evaluations measure effects
 on crashes, not the share of a behaviour removed, and all but one are from outside Spain, so they
 are set beside the model's numbers rather than fed into them.
 

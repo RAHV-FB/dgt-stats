@@ -56,14 +56,15 @@ def test_every_published_value_carries_its_source_and_quote() -> None:
         for bound in (row.low, row.high):
             if not pd.isna(bound):
                 assert _printed(row.quote, float(bound), row.unit), (row.parameter, bound)
-    # The check catches a mistyped value.
-    for factor in (0.61, 1.37, 1.9):
+    # The check catches a mistyped value, and a flipped sign wherever the unit carries one in the
+    # quote; the sign of a relative change is checked row by row below.
+    for factor in (0.61, 1.37, 1.9, -1):
         caught = [
             not _printed(row.quote, float(row.value) * factor, row.unit)
             for row in rows.itertuples()
-            if row.unit != "ratio_range"
+            if row.unit != "ratio_range" and not (factor == -1 and row.unit == "relative_change")
         ]
-        assert sum(caught) >= 0.95 * len(caught), factor
+        assert all(caught), factor
 
 
 def test_every_enforcement_study_is_described_and_bracketed() -> None:
@@ -76,10 +77,12 @@ def test_every_enforcement_study_is_described_and_bracketed() -> None:
     for row in rows.itertuples():
         if not pd.isna(row.low):
             assert row.low <= row.value <= row.high, row.applies_to
-    # The one Spanish study and the two camera meta-analyses the page leans on are falls.
-    effects = rows.set_index("applies_to").value
-    assert (effects[["fixed_cameras", "section_control", "barcelona_cameras"]] < 0).all()
-    assert effects["texting_ban_crashes"] > 0
+    # Every effect points the way its quote does: only texting bans went with more crashes. A
+    # change is below 0 for a fall, a rate ratio below 1.
+    effects = rows.set_index("applies_to")
+    for name, row in effects.iterrows():
+        change = row.value - 1 if row.unit == "rate_ratio" else row.value
+        assert (change > 0) == (name == "texting_ban_crashes"), name
 
 
 def test_the_risk_bounds_bracket_the_central_estimate() -> None:
@@ -90,8 +93,11 @@ def test_the_risk_bounds_bracket_the_central_estimate() -> None:
         assert 0 < low <= value <= high < 1, factor
     # Almost every death in a crash with a driver far over the limit is caused by the alcohol.
     assert factor_models.attributable_fraction("alcohol") > 0.9
-    # A distracted driver crashes twice as often: half of those crashes are caused by it.
+    # A distracted driver crashes twice as often: half of those crashes are caused by it. The low
+    # end is the low end of that odds ratio's interval, 1.8; the high end a handheld phone, 3.6.
     assert factor_models.attributable_fraction("distraction") == pytest.approx(0.5)
+    assert factor_models.attributable_fraction("distraction", "low") == pytest.approx(1 - 1 / 1.8)
+    assert factor_models.attributable_fraction("distraction", "high") == pytest.approx(1 - 1 / 3.6)
     weights = factor_models.alcohol_rr_bands()
     assert sum(w for w, _ in weights.values()) == pytest.approx(1)
     assert sum(w for w, _ in factor_models.drug_rr_mix().values()) == pytest.approx(1)
@@ -113,9 +119,12 @@ def test_the_urban_share_is_what_all_roads_leave_after_interurban_roads() -> Non
 
 
 def test_the_drug_share_leaves_out_drivers_who_also_had_alcohol() -> None:
+    # 2023: drug positives less those with alcohol, of the drivers analysed. 2024: the drug share
+    # less the alcohol-and-drug combinations, which INTCF gives as shares of the 452 positives.
     share_2023 = (196 - 94) / 862
-    assert share_2023 < factor_models.parameter("killed_drivers_drugs", "2023") / 862
-    assert 0.05 < factor_models.drug_share() < 0.15
+    share_2024 = 0.164 - (0.131 + 0.031) * 452 / 937
+    assert share_2024 == pytest.approx(0.086, abs=0.001)
+    assert factor_models.drug_share() == pytest.approx((share_2023 + share_2024) / 2)
 
 
 def test_combining_factors_removes_the_overlap() -> None:
