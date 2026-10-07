@@ -24,52 +24,52 @@ Target: `fatal` = 1 if D_GRAVETAT is 'Accident mortal' (equivalently F_MORTS > 0
 
 | column | kind | status | feature_sets | geography_variant | reason |
 |---|---|---|---|---|---|
-| year | numeric | safe | context, retrospective | all | calendar year of the crash; also the split variable |
-| month | categorical | safe | context, retrospective | all | month of the crash |
-| weekday | categorical | safe | context, retrospective | all | day of the week, from the date |
-| hour_band | categorical | safe | context, retrospective | all | hour of the crash in six bands, from `hor` |
-| D_TIPUS_VIA | categorical | safe | context, retrospective | all | recorded road type |
-| D_TITULARITAT_VIA | categorical | safe | context, retrospective | all | recorded road owner ('NA' on urban streets) |
-| D_SUBZONA | categorical | safe | context, retrospective | all | recorded zone detail (urban street, interurban road, through-town road) |
-| D_FUNC_ESP_VIA | categorical | safe | context, retrospective | all | recorded special road function |
-| D_INTER_SECCIO | categorical | safe | context, retrospective | all | recorded intersection or road section |
-| D_SUBTIPUS_TRAM | categorical | safe | context, retrospective | all | recorded junction type |
-| D_REGULACIO_PRIORITAT | categorical | safe | context, retrospective | all | recorded priority regulation |
-| D_SUPERFICIE | categorical | safe | context, retrospective | all | recorded surface |
-| D_LLUMINOSITAT | categorical | safe | context, retrospective | all | recorded lighting |
-| D_CLIMATOLOGIA | categorical | safe | context, retrospective | all | recorded weather |
-| D_VENT | categorical | safe | context, retrospective | all | recorded wind |
-| D_BOIRA | categorical | safe | context, retrospective | all | recorded fog present |
-| D_CIRCULACIO_MESURES_ESP | categorical | safe | context, retrospective | all | recorded special traffic measures |
-| D_SUBTIPUS_ACCIDENT | categorical | safe | context, retrospective | all | recorded accident subtype |
-| speed_limit_category | categorical | safe | context, retrospective | all | posted speed limit in bands, or 'generic limit' where the record has no value (the road's limit, not a vehicle's speed) |
-| n_units | numeric | safe | context, retrospective | all | units involved (vehicles and pedestrians) |
-| single_unit | binary | safe | context, retrospective | all | one unit involved |
-| involves_pedestrian | binary | safe | context, retrospective | all | at least one unit of this type involved (n_pedestrians) |
-| involves_bicycle | binary | safe | context, retrospective | all | at least one unit of this type involved (n_bicycles) |
-| involves_moped | binary | safe | context, retrospective | all | at least one unit of this type involved (n_mopeds) |
-| involves_motorcycle | binary | safe | context, retrospective | all | at least one unit of this type involved (n_motorcycles) |
-| involves_light_vehicle | binary | safe | context, retrospective | all | at least one unit of this type involved (n_light_vehicles) |
-| involves_heavy_vehicle | binary | safe | context, retrospective | all | at least one unit of this type involved (n_heavy_vehicles) |
-| involves_other_unit | binary | safe | context, retrospective | all | at least one unit of this type involved (n_other_units) |
-| demarcation | categorical | safe | context, retrospective | broad | demarcation (province): broad geography |
-| comarca | categorical | safe | context, retrospective | comarca | comarca (43): finer geography |
-| municipality | categorical | safe | context, retrospective | granular | municipality (about 900): granular geography, tested for memorisation |
-| D_INFLUIT_BOIRA | categorical | questionable | retrospective | all | the police's retrospective judgement that this condition influenced the crash; fatal crashes may be investigated more fully, so the recording can depend on the outcome: retrospective feature set only |
-| D_INFLUIT_CARACT_ENTORN | categorical | questionable | retrospective | all | the police's retrospective judgement that this condition influenced the crash; fatal crashes may be investigated more fully, so the recording can depend on the outcome: retrospective feature set only |
-| D_INFLUIT_CIRCULACIO | categorical | questionable | retrospective | all | the police's retrospective judgement that this condition influenced the crash; fatal crashes may be investigated more fully, so the recording can depend on the outcome: retrospective feature set only |
-| D_INFLUIT_ESTAT_CLIMA | categorical | questionable | retrospective | all | the police's retrospective judgement that this condition influenced the crash; fatal crashes may be investigated more fully, so the recording can depend on the outcome: retrospective feature set only |
-| D_INFLUIT_INTEN_VENT | categorical | questionable | retrospective | all | the police's retrospective judgement that this condition influenced the crash; fatal crashes may be investigated more fully, so the recording can depend on the outcome: retrospective feature set only |
-| D_INFLUIT_LLUMINOSITAT | categorical | questionable | retrospective | all | the police's retrospective judgement that this condition influenced the crash; fatal crashes may be investigated more fully, so the recording can depend on the outcome: retrospective feature set only |
-| D_INFLUIT_MESU_ESP | categorical | questionable | retrospective | all | the police's retrospective judgement that this condition influenced the crash; fatal crashes may be investigated more fully, so the recording can depend on the outcome: retrospective feature set only |
-| D_INFLUIT_OBJ_CALCADA | categorical | questionable | retrospective | all | the police's retrospective judgement that this condition influenced the crash; fatal crashes may be investigated more fully, so the recording can depend on the outcome: retrospective feature set only |
-| D_INFLUIT_SOLCS_RASES | categorical | questionable | retrospective | all | the police's retrospective judgement that this condition influenced the crash; fatal crashes may be investigated more fully, so the recording can depend on the outcome: retrospective feature set only |
-| D_INFLUIT_VISIBILITAT | categorical | questionable | retrospective | all | the police's retrospective judgement that this condition influenced the crash; fatal crashes may be investigated more fully, so the recording can depend on the outcome: retrospective feature set only |
-| D_TRACAT_ALTIMETRIC | categorical | questionable | retrospective | all | recorded vertical alignment; its 'Sense especificar' level is much less often fatal than the rest, so it partly records how fully the crash was documented, which follows the outcome: retrospective feature set only |
-| D_CARACT_ENTORN | categorical | questionable | retrospective | all | recorded roadside profile; its 'Sense Especificar' level is much less often fatal than the rest, so it partly records how fully the crash was documented, which follows the outcome: retrospective feature set only |
-| D_SENTITS_VIA | categorical | questionable | retrospective | all | recorded one-way or two-way; its 'Sense especificar' level is much less often fatal than the rest, so it partly records how fully the crash was documented, which follows the outcome: retrospective feature set only |
-| D_CARRIL_ESPECIAL | categorical | questionable | retrospective | all | recorded special lane; its 'NA' level is much less often fatal than the rest, so it partly records how fully the crash was documented, which follows the outcome: retrospective feature set only |
-| D_ACC_AMB_FUGA | categorical | questionable | retrospective | all | a driver left the scene: behaviour after the crash that may depend on its outcome; retrospective feature set only |
+| year | numeric | safe | context, retrospective_administrative | all | calendar year of the crash; also the split variable |
+| month | categorical | safe | context, retrospective_administrative | all | month of the crash |
+| weekday | categorical | safe | context, retrospective_administrative | all | day of the week, from the date |
+| hour_band | categorical | safe | context, retrospective_administrative | all | hour of the crash in six bands, from `hor` |
+| D_TIPUS_VIA | categorical | safe | context, retrospective_administrative | all | recorded road type |
+| D_TITULARITAT_VIA | categorical | safe | context, retrospective_administrative | all | recorded road owner ('NA' on urban streets) |
+| D_SUBZONA | categorical | safe | context, retrospective_administrative | all | recorded zone detail (urban street, interurban road, through-town road) |
+| D_FUNC_ESP_VIA | categorical | safe | context, retrospective_administrative | all | recorded special road function |
+| D_INTER_SECCIO | categorical | safe | context, retrospective_administrative | all | recorded intersection or road section |
+| D_SUBTIPUS_TRAM | categorical | safe | context, retrospective_administrative | all | recorded junction type |
+| D_REGULACIO_PRIORITAT | categorical | safe | context, retrospective_administrative | all | recorded priority regulation |
+| D_SUPERFICIE | categorical | safe | context, retrospective_administrative | all | recorded surface |
+| D_LLUMINOSITAT | categorical | safe | context, retrospective_administrative | all | recorded lighting |
+| D_CLIMATOLOGIA | categorical | safe | context, retrospective_administrative | all | recorded weather |
+| D_VENT | categorical | safe | context, retrospective_administrative | all | recorded wind |
+| D_BOIRA | categorical | safe | context, retrospective_administrative | all | recorded fog present |
+| D_CIRCULACIO_MESURES_ESP | categorical | safe | context, retrospective_administrative | all | recorded special traffic measures |
+| D_SUBTIPUS_ACCIDENT | categorical | safe | context, retrospective_administrative | all | recorded accident subtype |
+| speed_limit_category | categorical | safe | context, retrospective_administrative | all | posted speed limit in bands, or 'generic limit' where the record has no value (the road's limit, not a vehicle's speed) |
+| n_units | numeric | safe | context, retrospective_administrative | all | units involved (vehicles and pedestrians) |
+| single_unit | binary | safe | context, retrospective_administrative | all | one unit involved |
+| involves_pedestrian | binary | safe | context, retrospective_administrative | all | at least one unit of this type involved (n_pedestrians) |
+| involves_bicycle | binary | safe | context, retrospective_administrative | all | at least one unit of this type involved (n_bicycles) |
+| involves_moped | binary | safe | context, retrospective_administrative | all | at least one unit of this type involved (n_mopeds) |
+| involves_motorcycle | binary | safe | context, retrospective_administrative | all | at least one unit of this type involved (n_motorcycles) |
+| involves_light_vehicle | binary | safe | context, retrospective_administrative | all | at least one unit of this type involved (n_light_vehicles) |
+| involves_heavy_vehicle | binary | safe | context, retrospective_administrative | all | at least one unit of this type involved (n_heavy_vehicles) |
+| involves_other_unit | binary | safe | context, retrospective_administrative | all | at least one unit of this type involved (n_other_units) |
+| demarcation | categorical | safe | context, retrospective_administrative | broad | demarcation (province): broad geography |
+| comarca | categorical | safe | context, retrospective_administrative | comarca | comarca (43): finer geography |
+| municipality | categorical | safe | context, retrospective_administrative | granular | municipality (about 900): granular geography, tested for memorisation |
+| D_INFLUIT_BOIRA | categorical | questionable | retrospective_administrative | all | the police's retrospective judgement that this condition influenced the crash; fatal crashes may be investigated more fully, so the recording can depend on the outcome: retrospective administrative set only |
+| D_INFLUIT_CARACT_ENTORN | categorical | questionable | retrospective_administrative | all | the police's retrospective judgement that this condition influenced the crash; fatal crashes may be investigated more fully, so the recording can depend on the outcome: retrospective administrative set only |
+| D_INFLUIT_CIRCULACIO | categorical | questionable | retrospective_administrative | all | the police's retrospective judgement that this condition influenced the crash; fatal crashes may be investigated more fully, so the recording can depend on the outcome: retrospective administrative set only |
+| D_INFLUIT_ESTAT_CLIMA | categorical | questionable | retrospective_administrative | all | the police's retrospective judgement that this condition influenced the crash; fatal crashes may be investigated more fully, so the recording can depend on the outcome: retrospective administrative set only |
+| D_INFLUIT_INTEN_VENT | categorical | questionable | retrospective_administrative | all | the police's retrospective judgement that this condition influenced the crash; fatal crashes may be investigated more fully, so the recording can depend on the outcome: retrospective administrative set only |
+| D_INFLUIT_LLUMINOSITAT | categorical | questionable | retrospective_administrative | all | the police's retrospective judgement that this condition influenced the crash; fatal crashes may be investigated more fully, so the recording can depend on the outcome: retrospective administrative set only |
+| D_INFLUIT_MESU_ESP | categorical | questionable | retrospective_administrative | all | the police's retrospective judgement that this condition influenced the crash; fatal crashes may be investigated more fully, so the recording can depend on the outcome: retrospective administrative set only |
+| D_INFLUIT_OBJ_CALCADA | categorical | questionable | retrospective_administrative | all | the police's retrospective judgement that this condition influenced the crash; fatal crashes may be investigated more fully, so the recording can depend on the outcome: retrospective administrative set only |
+| D_INFLUIT_SOLCS_RASES | categorical | questionable | retrospective_administrative | all | the police's retrospective judgement that this condition influenced the crash; fatal crashes may be investigated more fully, so the recording can depend on the outcome: retrospective administrative set only |
+| D_INFLUIT_VISIBILITAT | categorical | questionable | retrospective_administrative | all | the police's retrospective judgement that this condition influenced the crash; fatal crashes may be investigated more fully, so the recording can depend on the outcome: retrospective administrative set only |
+| D_TRACAT_ALTIMETRIC | categorical | questionable | retrospective_administrative | all | recorded vertical alignment; its 'Sense especificar' level is much less often fatal than the rest, so it partly records how fully the crash was documented, which follows the outcome: retrospective administrative set only |
+| D_CARACT_ENTORN | categorical | questionable | retrospective_administrative | all | recorded roadside profile; its 'Sense Especificar' level is much less often fatal than the rest, so it partly records how fully the crash was documented, which follows the outcome: retrospective administrative set only |
+| D_SENTITS_VIA | categorical | questionable | retrospective_administrative | all | recorded one-way or two-way; its 'Sense especificar' level is much less often fatal than the rest, so it partly records how fully the crash was documented, which follows the outcome: retrospective administrative set only |
+| D_CARRIL_ESPECIAL | categorical | questionable | retrospective_administrative | all | recorded special lane; its 'NA' level is much less often fatal than the rest, so it partly records how fully the crash was documented, which follows the outcome: retrospective administrative set only |
+| D_ACC_AMB_FUGA | categorical | questionable | retrospective_administrative | all | a driver left the scene: behaviour after the crash that may depend on its outcome; retrospective administrative set only |
 | F_MORTS | numeric | direct_leakage | none | all | deaths: defines the target |
 | n_deaths | numeric | direct_leakage | none | all | deaths: defines the target |
 | D_GRAVETAT | categorical | direct_leakage | none | all | the severity label itself |
@@ -108,21 +108,21 @@ documentation-dependent.
 
 | column | status | level | rows | share_of_rows | target_share_level | target_share_other_rows | ratio |
 |---|---|---|---|---|---|---|---|
-| D_TITULARITAT_VIA | safe | NA | 11,543 | 50.7% | 8.5% | 17.0% | 0.497 |
-| D_SUBTIPUS_TRAM | safe | NA | 15,288 | 67.2% | 14.9% | 8.2% | 1.807 |
-| D_REGULACIO_PRIORITAT | safe | NA | 16,160 | 71.0% | 14.5% | 8.2% | 1.757 |
-| D_CIRCULACIO_MESURES_ESP | safe | NA | 45 | 0.2% | 0.0% | 12.7% | 0.000 |
+| D_TITULARITAT_VIA | safe | nan | 11,543 | 50.7% | 8.5% | 17.0% | 0.497 |
+| D_SUBTIPUS_TRAM | safe | nan | 15,288 | 67.2% | 14.9% | 8.2% | 1.807 |
+| D_REGULACIO_PRIORITAT | safe | nan | 16,160 | 71.0% | 14.5% | 8.2% | 1.757 |
+| D_CIRCULACIO_MESURES_ESP | safe | nan | 45 | 0.2% | 0.0% | 12.7% | 0.000 |
 | D_INFLUIT_BOIRA | questionable | Sense especificar | 2,683 | 11.8% | 5.9% | 13.6% | 0.433 |
 | D_INFLUIT_CARACT_ENTORN | questionable | Sense especificar | 813 | 3.6% | 2.3% | 13.1% | 0.179 |
 | D_INFLUIT_INTEN_VENT | questionable | Sense especificar | 2,645 | 11.6% | 5.9% | 13.6% | 0.435 |
 | D_INFLUIT_VISIBILITAT | questionable | Sense especificar | 1,510 | 6.6% | 6.5% | 13.1% | 0.495 |
-| D_TRACAT_ALTIMETRIC | questionable | NA | 8,236 | 36.2% | 10.1% | 14.1% | 0.714 |
+| D_TRACAT_ALTIMETRIC | questionable | nan | 8,236 | 36.2% | 10.1% | 14.1% | 0.714 |
 | D_TRACAT_ALTIMETRIC | questionable | Sense especificar | 4,775 | 21.0% | 3.8% | 15.0% | 0.254 |
-| D_CARACT_ENTORN | questionable | NA | 37 | 0.2% | 0.0% | 12.7% | 0.000 |
+| D_CARACT_ENTORN | questionable | nan | 37 | 0.2% | 0.0% | 12.7% | 0.000 |
 | D_CARACT_ENTORN | questionable | Sense Especificar | 8,516 | 37.4% | 8.6% | 15.1% | 0.566 |
-| D_SENTITS_VIA | questionable | NA | 3,888 | 17.1% | 8.7% | 13.5% | 0.646 |
+| D_SENTITS_VIA | questionable | nan | 3,888 | 17.1% | 8.7% | 13.5% | 0.646 |
 | D_SENTITS_VIA | questionable | Sense especificar | 623 | 2.7% | 3.4% | 12.9% | 0.260 |
-| D_CARRIL_ESPECIAL | questionable | NA | 1,551 | 6.8% | 1.8% | 13.5% | 0.134 |
+| D_CARRIL_ESPECIAL | questionable | nan | 1,551 | 6.8% | 1.8% | 13.5% | 0.134 |
 | D_CARRIL_ESPECIAL | questionable | Sense Especificar | 21 | 0.1% | 4.8% | 12.7% | 0.375 |
 | D_ACC_AMB_FUGA | questionable | Sense Especificar | 179 | 0.8% | 3.9% | 12.7% | 0.307 |
 

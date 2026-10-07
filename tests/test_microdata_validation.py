@@ -81,7 +81,8 @@ def test_diagnosis_components_telescope_to_the_total_drop() -> None:
         ["features", "estimator"]
     ):
         g = group.set_index("component").value
-        assert sum(g[p] for p in parts) == pytest.approx(g["total drop"], abs=1e-9)
+        # The table is written to six significant digits, so allow the rounding of four values.
+        assert sum(g[p] for p in parts) == pytest.approx(g["total drop"], abs=1e-5)
 
 
 def test_strategies_score_the_same_rows_for_every_strategy() -> None:
