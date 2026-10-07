@@ -41,13 +41,17 @@ DGT_BANDS: dict[str, Band] = {
     "75+": (75, None),
 }
 
-# Bands for the kilometre-based driver-risk comparison: they nest both DGT's driver bands and
-# the owner-age bands of its kilometre release, so numerator and denominator use the same cuts.
-# 15-17 exists only in the driver tables (no car licence before 18, and no owner band below 18),
-# and is reported but never compared.
+# Bands for the driver comparisons. DGT's driver tables, its driver census and the owner-age
+# bands of its kilometre release all use the cuts of DGT_BANDS from 18 up, so each band below is a
+# sum of whole source bands and numerator and denominator use the same cuts. The five-year source
+# bands are pooled because most of them hold too few driver deaths a year for a stable rate; the
+# young adults are kept in two bands, split at 25, and 35-54 is the reference. 15-17 exists only
+# in the driver tables (no car licence before 18, and no owner band below 18) and is never
+# compared.
 EXPOSURE_BANDS: dict[str, Band] = {
     "15-17": (15, 17),
-    "18-34": (18, 34),
+    "18-24": (18, 24),
+    "25-34": (25, 34),
     "35-54": (35, 54),
     "55-64": (55, 64),
     "65-74": (65, 74),
@@ -65,7 +69,7 @@ BAND_LABELS: dict[str, str] = {
     "65-69": "65–69",
     "70-74": "70–74",
     "65-74": "65–74",
-    "18-34": "18–34",
+    "18-24": "18–24",
     "35-54": "35–54",
     "15-17": "15–17",
     "75+": "75 and over",

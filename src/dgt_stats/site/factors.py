@@ -12,7 +12,6 @@ from dgt_stats.site.components import (
     _signed_pct,
     downloads,
     figure,
-    limitation,
     read_table,
     render_page,
     summary,
@@ -116,37 +115,39 @@ def page_factors(captions: dict[str, str]) -> str:
         return f"{int(row.first_year)}–{int(row.last_year)}"
 
     body = summary(
-        "Within years of consistent recording, the share of injury crashes in which the police "
-        "recorded alcohol rose on interurban roads from "
-        f"{share(alcohol_inter.share_first)} in {int(alcohol_inter.first_year)} to "
-        f"{share(alcohol_inter.share_last)} in {int(alcohol_inter.last_year)}, and the share "
-        f"with inappropriate speed recorded fell from {share(speed_all.share_first)} to "
-        f"{share(speed_all.share_last)} across all roads. The series for distraction on urban "
-        "streets breaks twice and is compared only within the runs between its breaks; the drug "
-        "series breaks, or is too small to test, between every pair of consecutive years."
+        f"DGT's speed report counts, for each year from {first} to {last}, the injury crashes in "
+        "Spain outside Catalonia and the Basque Country in which the police recorded each of "
+        "five factors: alcohol, inappropriate speed, distraction, illegal manoeuvres and drugs. "
+        "Where the recording is consistent from year to year, recorded alcohol rose on "
+        f"interurban roads from {share(alcohol_inter.share_first)} of injury crashes in "
+        f"{int(alcohol_inter.first_year)} to {share(alcohol_inter.share_last)} in "
+        f"{int(alcohol_inter.last_year)}, and recorded inappropriate speed fell across all roads "
+        f"from {share(speed_all.share_first)} to {share(speed_all.share_last)}. Distraction on "
+        "urban streets and drug-related crashes cannot be followed across the period: their "
+        "series jump in ways that point to changes in recording."
     )
     body += (
         "<p>Each share is the proportion of injury crashes in which officers recorded the "
-        "factor; a crash can carry several factors, so the shares overlap. The shares describe "
-        "the police record of crashes that happened and do not measure how often drivers drink, "
-        'speed or are distracted on the road (<a href="data.html#records">Methodology</a>).</p>'
+        "factor. A crash can carry several factors, so the shares overlap, and a recorded factor "
+        "is a police judgement about the crash, not a finding that it caused the crash. The "
+        "shares describe the police record of crashes that happened; they do not measure how "
+        "often drivers drink, speed or are distracted on the road. The report gives deaths only "
+        'for crashes with speed recorded, which <a href="speed.html">Speed</a> compares with '
+        "other crashes; for the other factors deaths per crash cannot be computed.</p>"
     )
 
-    body += "<h2>Comparable years</h2>"
+    body += "<h2>Which years can be compared</h2>"
     body += (
-        "<p>A factor's share can move because something changed on the road or because the way "
-        "crashes are recorded changed. Every year-to-year change in every factor's share was "
-        "therefore tested "
+        "<p>A factor's share can move because something changed on the road, because the way "
+        "crashes are recorded changed, or both. Every year-to-year change in every series was tested "
         f"against a fixed rule: a rise of more than {_fmt_pct(factors.BREAK_RATIO - 1, 0)} or a "
-        f"fall of more than {_fmt_pct(1 - 1 / factors.BREAK_RATIO, 0)} in a single year (the "
-        "same ratio in either direction), or fewer than "
-        f"{_fmt_int(factors.MIN_CRASHES)} crashes in either year, marks a break in "
-        "comparability. A series is compared only within the runs of years between its breaks. "
-        f"Of the {len(changes)} year-to-year changes, {n_breaks} are breaks or too small to test. "
-        "The rule locates a discontinuity; whether a break, or a trend within a run, is "
-        "behavioural or recording-related is left open. The threshold is a convention, and "
-        "every change is published with its test result so that another threshold can be "
-        "applied.</p>"
+        f"fall of more than {_fmt_pct(1 - 1 / factors.BREAK_RATIO, 0)} in a single year, or "
+        f"fewer than {_fmt_int(factors.MIN_CRASHES)} crashes in either year, marks a break in "
+        "comparability, and a series is compared only within the runs of years between its "
+        f"breaks. Of the {len(changes)} year-to-year changes, {n_breaks} are breaks or too small "
+        "to test. The rule finds discontinuities; it cannot say whether a break, or a trend "
+        "within a run, comes from behaviour, from recording or from both. The threshold is a convention, and "
+        "every change is published with its test so that another threshold can be applied.</p>"
     )
     body += figure(
         "f2_factor_shares",
@@ -183,9 +184,9 @@ def page_factors(captions: dict[str, str]) -> str:
         f"injury crashes. On urban streets the series breaks in {urban_alcohol_year} and rises "
         f"within the later run, from {share(alcohol_urban.share_first)} in "
         f"{int(alcohol_urban.first_year)} to {share(alcohol_urban.share_last)} in "
-        f"{int(alcohol_urban.last_year)}. More recorded alcohol can mean more drinking drivers or "
-        "more breath tests after crashes; DGT's enforcement statistics, which would separate the "
-        "two, are outside this study.</p>"
+        f"{int(alcohol_urban.last_year)}. More recorded alcohol can reflect more drinking "
+        "drivers, more breath tests after crashes, or both, and these data cannot separate "
+        "them.</p>"
     )
     body += (
         "<p>Recorded inappropriate speed fell on both kinds of road without a break: from "
@@ -200,31 +201,22 @@ def page_factors(captions: dict[str, str]) -> str:
         f"{manoeuvres_reached}.</p>"
     )
 
-    body += "<h2>Series with breaks in recording</h2>"
+    body += "<h2>Series that break</h2>"
     body += (
         "<p>Recorded distraction on urban streets rose "
         f"{_fmt_pct(float(rise.share_ratio) - 1, 0)} in {int(rise.to_year)} and fell "
-        f"{_fmt_pct(1 - float(fall.share_ratio), 0)} in "
-        f"{int(fall.to_year)}, while the interurban series has no break. The urban series is "
-        "therefore compared only within "
+        f"{_fmt_pct(1 - float(fall.share_ratio), 0)} in {int(fall.to_year)}, while the "
+        "interurban series moved smoothly, so the urban series is compared only within "
         + _join([run(row) for row in urban_runs.itertuples(index=False)])
         + ". Recorded alcohol on urban streets rose "
-        f"{_fmt_pct(urban_alcohol_ratio - 1, 0)} in the same year, {urban_alcohol_year}. Drugs "
-        f"were recorded in at most {_fmt_int(drugs.max())} crashes a year; the count climbed "
-        f"{drugs_multiple:.0f}-fold from {int(drugs.index.min())} to {drugs_peak_year} and "
-        f"collapsed in {drugs_collapse}. "
-        "Every year-to-year change in the drug series either has too few crashes or breaks the "
-        "rule, so the drug series is left uninterpreted. In "
-        f"{status_jump}, too, the share of drivers with no speed status in DGT's driver tables "
-        f"jumped to {_fmt_pct(float(status.loc[status_jump]), 0)}, from "
-        f"{_fmt_pct(float(status.loc[status_jump - 1]), 0)} the year before; the reason for the "
-        "shared timing is unknown.</p>"
-    )
-
-    body += limitation(
-        "The report gives deaths only for crashes with inappropriate speed recorded, which "
-        '<a href="speed.html">Speed</a> compares with other crashes. Deaths per crash with '
-        "alcohol, distraction or the other factors recorded cannot be computed from it."
+        f"{_fmt_pct(urban_alcohol_ratio - 1, 0)} in the same year, {urban_alcohol_year}, which "
+        f"is also the year DGT's driver tables lost the speed status of half of drivers (from "
+        f"{_fmt_pct(float(status.loc[status_jump - 1]), 0)} to "
+        f"{_fmt_pct(float(status.loc[status_jump]), 0)} unrecorded); the reason for the shared "
+        f"timing is unknown. Drugs were recorded in at most {_fmt_int(drugs.max())} crashes a "
+        f"year, and the count climbed {drugs_multiple:.0f}-fold from {int(drugs.index.min())} to "
+        f"{drugs_peak_year} before collapsing in {drugs_collapse}. Every year-to-year change in "
+        "the drug series breaks the rule or has too few crashes, so it is not interpreted.</p>"
     )
     body += downloads(
         [
@@ -237,8 +229,8 @@ def page_factors(captions: dict[str, str]) -> str:
     return render_page(
         "factors",
         "Recorded crash factors",
-        f"DGT's thematic report on speed counts, for each year from {first} to {last}, the "
-        "injury crashes in Spain outside Catalonia and the Basque Country in which the police "
-        "recorded alcohol, inappropriate speed, distraction, illegal manoeuvres or drugs.",
+        "How often the police recorded alcohol, inappropriate speed, distraction, illegal "
+        f"manoeuvres and drugs in injury crashes from {first} to {last}, and which of those "
+        "series can be compared from year to year.",
         body,
     )

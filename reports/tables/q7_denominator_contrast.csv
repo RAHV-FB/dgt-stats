@@ -1,16 +1,20 @@
 denominator,denominator_label,band,band_label,driver_deaths,exposure,ratio,low,high
+residents,Per resident,25-34,25–34,67,5504183,1.048499958,0.7902847247,1.391083655
 residents,Per resident,35-54,35–54,170,14643180,1,0.8084892128,1.236874882
 residents,Per resident,55-64,55–64,76,6937044,0.9436818944,0.7200644709,1.236744144
 residents,Per resident,65-74,65–74,59,5068556,1.002661275,0.7456531495,1.348253721
 residents,Per resident,75+,75 and over,71,4981669,1.227636974,0.9306613071,1.619378102
+b_permit_holders,Per B-permit holder,25-34,25–34,67,3816658,1.200831662,0.9051015329,1.593187757
 b_permit_holders,Per B-permit holder,35-54,35–54,170,11628923,1,0.8084892128,1.236874882
 b_permit_holders,Per B-permit holder,55-64,55–64,76,5271844,0.9861469033,0.752466856,1.292396744
 b_permit_holders,Per B-permit holder,65-74,65–74,59,3267400,1.235208525,0.9185924995,1.660954233
 b_permit_holders,Per B-permit holder,75+,75 and over,71,1569029,3.095408363,2.346603151,4.083158641
+drivers_involved,Per driver involved,25-34,25–34,67,18561,0.8897321075,0.6706168063,1.180440477
 drivers_involved,Per driver involved,35-54,35–54,170,41902,1,0.8084892128,1.236874882
 drivers_involved,Per driver involved,55-64,55–64,76,14234,1.316050219,1.004195387,1.724752178
 drivers_involved,Per driver involved,65-74,65–74,59,7018,2.072165692,1.541015807,2.786389753
 drivers_involved,Per driver involved,75+,75 and over,71,4456,3.927344493,2.977286963,5.180567059
+kilometres,Per km driven by cars registered to owners of this age,25-34,25–34,67,2.912579783e+10,1.627887854,1.226986128,2.159778993
 kilometres,Per km driven by cars registered to owners of this age,35-54,35–54,170,1.20302993e+11,1,0.8084892128,1.236874882
 kilometres,Per km driven by cars registered to owners of this age,55-64,55–64,76,5.658595739e+10,0.9504569152,0.7252340645,1.245623161
 kilometres,Per km driven by cars registered to owners of this age,65-74,65–74,59,2.839608107e+10,1.470351317,1.093462087,1.977144907

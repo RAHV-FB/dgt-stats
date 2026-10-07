@@ -63,8 +63,9 @@ def test_page_code_types_no_year_and_no_result() -> None:
 
 def test_microdata_pages_open_with_a_summary_and_link_their_tables(pages: dict[str, str]) -> None:
     for slug, text in pages.items():
-        # The old furniture is gone: no source block, no layer line.
-        assert '<details class="about">' not in text and "One row is" not in text, slug
+        # The old furniture is gone: no source block, no layer line. (A model's description
+        # may say in prose what one row is; the old per-page "unit" block is what is banned.)
+        assert '<details class="about">' not in text, slug
         assert '<p class="level">' not in text and "Layer:" not in text, slug
         assert text.count('<p class="summary">') == 1, slug
         assert 'href="tables/' in text, slug
@@ -98,7 +99,7 @@ def test_model_scores_come_from_the_tables(pages: dict[str, str]) -> None:
     for row in selected[selected.primary & selected.model.isin(regional)].itertuples():
         assert f"{row.roc_auc:.2f}" in pages["severity-models"], row.model
         if not row.probabilities_shown_as_estimates:
-            assert "not reliable as the share of similar cases" in pages["severity-models"]
+            assert "probabilities cannot be read literally" in pages["severity-models"]
 
 
 def test_transfer_scores_and_the_small_barcelona_benchmark_come_from_the_tables(
@@ -142,26 +143,30 @@ def test_validation_page_keeps_population_differences_and_validation_apart(
     text = pages["validation"]
     # The main external test leads; how the populations differ follows the tests it qualifies.
     headings = [
-        "<h2>Validation on DGT records outside Catalonia</h2>",
-        "<h2>Validation within Catalonia</h2>",
-        "<h2>Validation in Barcelona</h2>",
-        "<h2>Population differences</h2>",
-        "<h2>Scope of generalisation</h2>",
+        "<h2>Tested on DGT records outside Catalonia</h2>",
+        "<h2>Tested on a later year and on provinces left out</h2>",
+        "<h2>Tested on Barcelona city</h2>",
+        "<h2>How the crash populations differ</h2>",
+        "<h2>What the tests support</h2>",
     ]
     positions = [text.index(heading) for heading in headings]
     assert positions == sorted(positions)
-    # The fall in Barcelona and its three parts, to three decimals so that they add up.
+    # The Barcelona comparison comes from the tables, and the parts of the fall in Barcelona are
+    # published as a table rather than worked through on the page.
+    chosen = _table("ml_selected").query("primary").set_index("model").estimator
+    transport = _table("ml_transport_validation")
+    to_bcn = transport[
+        transport.experiment.str.startswith("rest of Catalonia -> Barcelona municipality")
+        & transport.model.eq("catalonia_crash_severity")
+        & transport.estimator.eq(chosen["catalonia_crash_severity"])
+        & transport.status.eq("reported")
+    ].iloc[0]
     verdicts = _table("ml_barcelona_diagnosis_verdicts")
     full = verdicts[verdicts.features.str.startswith("full")]
-    chosen = _table("ml_selected").query("primary").set_index("model").estimator
     row = full.set_index("estimator").loc[chosen["catalonia_crash_severity"]]
-    for value in (
-        row.total_drop,
-        row.training_size_cost,
-        row.intrinsic_difference,
-        row.transport_cost,
-    ):
+    for value in (to_bcn.roc_auc, to_bcn.in_domain_cv_roc_auc, to_bcn.roc_auc + row.total_drop):
         assert f"{value:.3f}" in text, value
+    assert 'href="tables/ml_barcelona_diagnosis_components.csv"' in text
     path = _table("ml_outward_path")
     if not path.verdict.eq("potentially nationally transferable").any():
         assert "national use of the models is not established" in text

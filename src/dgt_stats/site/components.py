@@ -93,34 +93,27 @@ WITHDRAWN_REASON = (
 WITHDRAWN_PAGES = {
     "simulator": (
         "This page simulated what new speed limits, and drivers keeping to them, would do to "
-        "deaths and injuries on Spanish roads. Every change in casualties it reported came from "
-        "values published elsewhere: car speeds measured for the EU Baseline project, a curve of "
-        "how far the average speed follows a new limit fitted to before-and-after studies in "
-        "other countries, the exponents of Elvik's Power Model and money values per casualty. "
-        "The Spanish crash records carry no speeds, so none of those links could be estimated or "
-        "checked here. The model of monthly deaths that was on this page is fitted only to the "
-        "repository's data and now has a page of its own."
+        "deaths and injuries. Its results came from speeds measured in other countries and from "
+        "published estimates of how casualties respond to speed. The Spanish crash records carry "
+        "no speeds, so none of those links could be estimated or checked here."
     ),
     "distraction": (
-        "This page estimated how many deaths a year would not happen if no driver were "
-        "distracted. It multiplied the share of fatal crashes in which the police recorded "
-        "distraction, typed from DGT reports rather than read from a file in this repository, by "
-        "the crash risk of distraction measured in a naturalistic driving study in the United "
-        "States, and set the result against a ceiling taken from the same study. The repository "
-        "holds no Spanish data on how much distraction raises the risk of a crash."
+        "This page estimated how many deaths a year distraction causes, by combining the share "
+        "of fatal crashes in which the police recorded distraction with a crash risk measured "
+        "in a driving study in the United States. The repository holds no Spanish data on how "
+        "much distraction raises the risk of a crash."
     ),
     "alcohol-drugs": (
-        "This page estimated how many deaths a year would not happen if no driver drank or took "
-        "drugs. It applied relative risks by blood alcohol band and by drug from the EU DRUID "
-        "project, weighted by forensic toxicology figures typed from INTCF reports, to the share "
-        "of fatal crashes in which the police recorded alcohol. The repository holds no Spanish "
-        "data on how much alcohol or drugs raise the risk of a crash."
+        "This page estimated how many deaths a year alcohol and drugs cause, by applying "
+        "relative risks from a European study to the share of fatal crashes in which the police "
+        "recorded alcohol. The repository holds no Spanish data on how much alcohol or drugs "
+        "raise the risk of a crash."
     ),
     "enforcement": (
         "This page ranked enforcement against speeding, drink- and drug-driving and distraction "
-        "by the deaths each would avoid. The ranking combined the three withdrawn models with "
-        "published evaluations of checkpoints, cameras and phone bans in other countries. The "
-        "repository holds no data on the effect of enforcement in Spain."
+        "by the deaths each would avoid, combining the three withdrawn models with evaluations "
+        "from other countries. The repository holds no data on the effect of enforcement in "
+        "Spain."
     ),
 }
 

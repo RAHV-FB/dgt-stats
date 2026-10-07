@@ -1,7 +1,10 @@
 scope,scope_label,band,band_label,measure,measure_label,ratio,low,high
-motor,Drivers of motor vehicles,18-34,18–34,involved_per_1000_licences,"Involved in an injury crash, per 1,000 licence holders",2.009101379,1.986511766,2.03194787
-motor,Drivers of motor vehicles,18-34,18–34,deaths_per_million_licences,"Killed, per million licence holders",6.089557924,4.917426363,7.541082057
-motor,Drivers of motor vehicles,18-34,18–34,deaths_per_1000_involved,"Killed, per 1,000 drivers involved",3.030985886,2.447575028,3.753460196
+motor,Drivers of motor vehicles,18-24,18–24,involved_per_1000_licences,"Involved in an injury crash, per 1,000 licence holders",1.986121731,1.948889967,2.024064775
+motor,Drivers of motor vehicles,18-24,18–24,deaths_per_million_licences,"Killed, per million licence holders",6.399633988,4.434947975,9.234677703
+motor,Drivers of motor vehicles,18-24,18–24,deaths_per_1000_involved,"Killed, per 1,000 drivers involved",3.222176107,2.232968858,4.649603072
+motor,Drivers of motor vehicles,25-34,25–34,involved_per_1000_licences,"Involved in an injury crash, per 1,000 licence holders",1.990543465,1.962641752,2.01884184
+motor,Drivers of motor vehicles,25-34,25–34,deaths_per_million_licences,"Killed, per million licence holders",5.829544908,4.479320922,7.586773624
+motor,Drivers of motor vehicles,25-34,25–34,deaths_per_1000_involved,"Killed, per 1,000 drivers involved",2.928619751,2.250300484,3.811408169
 motor,Drivers of motor vehicles,35-54,35–54,involved_per_1000_licences,"Involved in an injury crash, per 1,000 licence holders",2.112263555,2.091931376,2.132793349
 motor,Drivers of motor vehicles,35-54,35–54,deaths_per_million_licences,"Killed, per million licence holders",7.209772501,6.025378369,8.626980139
 motor,Drivers of motor vehicles,35-54,35–54,deaths_per_1000_involved,"Killed, per 1,000 drivers involved",3.413292097,2.852569394,4.084234715
@@ -17,9 +20,12 @@ motor,Drivers of motor vehicles,75+,75 and over,deaths_per_1000_involved,"Killed
 motor,Drivers of motor vehicles,18+,18 and over,involved_per_1000_licences,"Involved in an injury crash, per 1,000 licence holders",1.986142554,1.973144543,1.99922619
 motor,Drivers of motor vehicles,18+,18 and over,deaths_per_million_licences,"Killed, per million licence holders",6.422628915,5.735700078,7.191826911
 motor,Drivers of motor vehicles,18+,18 and over,deaths_per_1000_involved,"Killed, per 1,000 drivers involved",3.233720007,2.887859215,3.621002377
-car,Car drivers,18-34,18–34,involved_per_1000_licences,"Involved in an injury crash, per 1,000 licence holders",1.451042567,1.431777294,1.470567064
-car,Car drivers,18-34,18–34,deaths_per_million_licences,"Killed, per million licence holders",4.398014056,3.363958022,5.749931336
-car,Car drivers,18-34,18–34,deaths_per_1000_involved,"Killed, per 1,000 drivers involved",3.030933866,2.318304162,3.962620717
+car,Car drivers,18-24,18–24,involved_per_1000_licences,"Involved in an injury crash, per 1,000 licence holders",1.472982648,1.441091954,1.505579069
+car,Car drivers,18-24,18–24,deaths_per_million_licences,"Killed, per million licence holders",4.523049585,2.934094174,6.972502018
+car,Car drivers,18-24,18–24,deaths_per_1000_involved,"Killed, per 1,000 drivers involved",3.070674044,1.991940759,4.733594131
+car,Car drivers,25-34,25–34,involved_per_1000_licences,"Involved in an injury crash, per 1,000 licence holders",1.40863971,1.385017376,1.432664937
+car,Car drivers,25-34,25–34,deaths_per_million_licences,"Killed, per million licence holders",4.19613208,2.980932966,5.906715996
+car,Car drivers,25-34,25–34,deaths_per_1000_involved,"Killed, per 1,000 drivers involved",2.978854033,2.116178427,4.193205654
 car,Car drivers,35-54,35–54,involved_per_1000_licences,"Involved in an injury crash, per 1,000 licence holders",1.425416994,1.409281816,1.441736906
 car,Car drivers,35-54,35–54,deaths_per_million_licences,"Killed, per million licence holders",3.47671613,2.784903693,4.340385299
 car,Car drivers,35-54,35–54,deaths_per_1000_involved,"Killed, per 1,000 drivers involved",2.43908705,1.953746662,3.044993372

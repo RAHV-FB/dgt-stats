@@ -169,16 +169,15 @@ def page_trends(captions: dict[str, str]) -> str:
     crash_width = dispersion["crashes"] ** 0.5
     body += (
         "<h2>Ordinary year-to-year variation</h2>"
-        "<p>If road casualties were independent events, each occurring by chance, a year's count "
-        "would scatter around its trend with a variance equal to its mean, the pattern known as "
-        "Poisson variation. Spain's annual counts scatter more than that. Over "
+        "<p>Annual counts move around their trend more than pure chance would make them. Over "
         f"{scatter_years}, the last segment of the long-run trend before the pandemic, the "
-        f"variance around the trend was {_fmt_dec(dispersion['deaths_30d'])} times the Poisson "
-        f"variance for deaths, {_fmt_dec(dispersion['hospitalised_30d'])} times for hospital "
-        f"admissions and {_fmt_dec(dispersion['crashes'], 0)} times for injury crashes. Each "
-        "interval in the table is widened by the square root of its own count's factor, so that "
-        "it spans the variation of an ordinary year: a change outside it is larger than the "
-        "count's ordinary movement from one year to the next.</p>"
+        f"variance around the trend was {_fmt_dec(dispersion['deaths_30d'])} times the "
+        "pure-chance (Poisson) variance for deaths, "
+        f"{_fmt_dec(dispersion['hospitalised_30d'])} times for hospital admissions and "
+        f"{_fmt_dec(dispersion['crashes'], 0)} times for injury crashes. Each interval in the "
+        "table is widened by the square root of its own count's factor, so that it spans an "
+        "ordinary year's movement: a change outside it is larger than the count usually moves "
+        "from one year to the next.</p>"
     )
     rows = []
     for frame in (deaths, hosp):
@@ -216,16 +215,15 @@ def page_trends(captions: dict[str, str]) -> str:
         "<p>Per resident, and for drivers per licence holder and occupants per registered "
         "vehicle, the rise in hospital admissions stays within ordinary variation. Admissions "
         "rose while the number of injury crashes fell, so more people were admitted to "
-        "hospital per crash. Two explanations fit these tables: crashes became more serious, or "
-        "admissions were traced back to crashes more completely. A change in tracing would move "
-        "the series without any change on the road, and the tables do not distinguish the "
-        "two.</p>"
+        "hospital per crash. That can reflect more serious crashes, more complete tracing of "
+        "admissions back to crashes, or both. A change in tracing would move the series without "
+        "any change on the road, and the tables cannot separate the two.</p>"
     )
 
     # Why the same deaths read differently under each denominator, argued from the table above.
     body += (
         "<h2>Denominators and what they measure</h2>"
-        "<p>Each denominator measures a different opportunity for harm. Residents measure a "
+        "<p>Each denominator answers a different question. Residents measure a "
         "population: deaths per resident describe the burden of road deaths on everyone living "
         "in Spain, whether or not they travel. Licence holders and registered vehicles measure "
         "who or what could be on the road, without saying how much each is used. Road fuel sold "
@@ -243,8 +241,7 @@ def page_trends(captions: dict[str, str]) -> str:
         f"{_fmt_pct(1 - moved['road_fuel'])}. The same deaths therefore fall per resident and "
         "rise per tonne of fuel. Both rates are correct, and they describe different things: "
         "the burden on a population, and deaths in proportion to the traffic that fuel stands "
-        "for. A change that appears under one denominator and reverses under another says more "
-        "about the denominators than about the roads.</p>"
+        "for.</p>"
     )
 
     last_rows = efficiency[(efficiency.year == last) & (efficiency.outcome == "deaths_30d")]
@@ -274,9 +271,9 @@ def page_trends(captions: dict[str, str]) -> str:
     )
     body += (
         '<h2 id="road-fuel">Road fuel as a measure of traffic</h2>'
-        "<p>Risk on the road is best expressed per kilometre travelled, but no Spanish source "
-        "counts vehicle-kilometres on all roads every year, and road fuel sold stands in for "
-        "them. The kilometres a tonne represents can change with fuel economy, electric driving, "
+        "<p>Deaths are best related to the kilometres travelled, but no Spanish source counts "
+        "vehicle-kilometres on all roads every year, and road fuel sold stands in for them. The "
+        "kilometres a tonne represents can change with fuel economy, electric driving, "
         "the mix of freight and private travel, and fuel bought in Spain but burnt elsewhere, "
         "and no available series measures that drift on all roads. The change per tonne of fuel "
         "therefore cannot be converted into a change per kilometre. A hypothetical case shows "

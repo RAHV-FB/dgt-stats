@@ -449,12 +449,10 @@ def read_km_by_owner_age_2024() -> pd.DataFrame:
         }
     )
     out["is_company"] = out.owner_band == KM_OWNER_COMPANY
+    # Each owner band is kept at the driver tables' own cuts (DGT_BANDS), so that the analysis can
+    # sum whole source bands without splitting one; the mopeds' 15 and 16-17 both fall in 15-17.
     out["band"] = [
-        None
-        if company
-        else agebands.band_for(
-            *agebands.parse_age_label(_owner_label(label)), agebands.EXPOSURE_BANDS
-        )
+        None if company else _fine_band(*agebands.parse_age_label(_owner_label(label)))
         for label, company in zip(out.owner_band, out.is_company)
     ]
     published = read_km_means_2024().set_index("vehicle_group")

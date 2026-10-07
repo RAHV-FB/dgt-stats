@@ -125,7 +125,7 @@ def page_moved(old: str, new: str) -> str:
 WITHDRAWN_SUCCESSORS = {
     "forecast": "the model of monthly deaths, fitted only to the repository's series",
     "speed": "deaths per crash where the police recorded speed, and the speed record itself",
-    "factors": "the recorded concurrent factors, alcohol and distraction among them",
+    "factors": "how often the police record alcohol, distraction and other factors in crashes",
 }
 WITHDRAWN_RELATED = {
     "simulator": ("forecast", "speed"),
@@ -150,12 +150,9 @@ def page_withdrawn(slug: str) -> str:
     )
     body = (
         f"<p>{esc(WITHDRAWN_PAGES[slug])}</p>"
-        "<p>The project now keeps only results computed from rows and columns of the files in "
-        "the repository; studies published elsewhere may explain a definition or a method, but "
-        "they do not supply an observation, a coefficient or a relative risk. What the "
-        f"repository's own data show on these subjects is on these pages: {links}. Sources and "
-        'methods are described under <a href="sources.html">Data sources and scope</a> and '
-        '<a href="data.html">Methodology</a>.</p>'
+        f"<p>What the repository's own data show on this subject is on these pages: {links}. "
+        'The <a href="data.html">methodology</a> explains how the results on the site are '
+        "produced.</p>"
     )
     return render_page(
         slug,

@@ -29,9 +29,9 @@ REGIONAL_SOURCES = f"{CAT_SOURCE}; {BCN_SOURCE}"
 
 # The three models trained on regional records, in the order the figures show them.
 REGIONAL_MODELS = {
-    "catalonia_crash_severity": "Catalonia severity model",
+    "catalonia_crash_severity": "Catalonia crash-severity model",
     "barcelona_person_severity": "Barcelona person-severity model",
-    "barcelona_crash_severity": "Barcelona crash model",
+    "barcelona_crash_severity": "Barcelona crash-severity model",
 }
 # The two validation instruments: the Catalan model restricted to variables recorded alike.
 VALIDATION_MODELS = {
@@ -318,8 +318,8 @@ def catalonia_figures(figures_dir: Path, captions: dict[str, str]) -> None:
         (
             "cat2_fatal_by_speed_limit",
             "speed limit",
-            "Fatal share by recorded speed limit",
-            "recorded speed limit",
+            "Fatal share by posted speed limit (the road's limit, not vehicle speed)",
+            "posted speed limit (the limit signposted on the road, not a measured speed)",
         ),
         (
             "cat3_fatal_by_unit",
@@ -398,21 +398,6 @@ def barcelona_figures(figures_dir: Path, captions: dict[str, str]) -> None:
         order=ages,
     )
     captions["bcn2_severity_by_age"] = people_caption("age band")
-    frequency = table("bcn_frequency")
-    hours = frequency[frequency.dimension == "hour"].assign(level=lambda d: d.level.astype(int))
-    hours = hours.set_index("level").sort_index().crashes
-    _bars(
-        hours,
-        figures_dir / "bcn3_crashes_by_hour.svg",
-        "Recorded crashes by hour of day",
-        "Crashes",
-    )
-    captions["bcn3_crashes_by_hour"] = _caption(
-        f"Crashes attended by the Guàrdia Urbana by hour of the day, Barcelona, {year}; counts "
-        "of recorded crashes, not rates",
-        BCN_SOURCE,
-        f"{int(hours.sum()):,} crashes",
-    )
     crashes = table("bcn_crash_severity_share")
     crash_base = crashes[(crashes.dimension == "cause recorded") & (crashes.level == "all")]
     _shares(
@@ -589,8 +574,8 @@ def transport_figures(figures_dir: Path, captions: dict[str, str]) -> None:
         (
             "catalonia_crash_severity",
             "tr1_catalonia_transfer",
-            "Catalonia severity model on held-out places and years",
-            "ROC-AUC of the Catalonia severity model on records held out of its training: a "
+            "Catalonia crash-severity model on held-out places and years",
+            "ROC-AUC of the Catalonia crash-severity model on records held out of its training: a "
             "later year, each province of Catalonia in turn, and Barcelona city against the rest "
             "of Catalonia, with 95% intervals where computed",
             CAT_SOURCE,

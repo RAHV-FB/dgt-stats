@@ -250,9 +250,9 @@ No duplicate identifiers were found in any year.
   companies are a row of their own (2,176,619 vehicles, 40.4 bn km in 2024) and carry no age.
 - The age in that table is the registered owner's. Checked against B-permit holders by age
   (`NUM_PERMISOS_B` in the 2024 census text file), it does not hold as a stand-in for the driver's
-  at either end: there are 0.46 cars per B-permit holder at 18–34 and 1.14 at 75+
-  (`q7_owner_age_check.csv`). Per-km ratios by age are therefore published as ranges, from a
-  transfer scenario to the published ratio, and deaths per driver involved, which need no
+  at either end: there are 0.23 cars per B-permit holder at 18–24, 0.56 at 25–34 and 1.14 at 75+
+  (`q7_owner_age_check.csv`). Per-km ratios by age are therefore published as sensitivity
+  ranges, from a transfer scenario to the published ratio, and deaths per driver involved, which need no
   kilometres, are given beside them ([`methodology.md`](methodology.md), section 7).
 
 ### Monthly traffic series

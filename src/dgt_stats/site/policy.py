@@ -185,33 +185,40 @@ def page_policy(captions: dict[str, str]) -> str:
     if failed:
         raise ValueError(f"policy page: the tables no longer support: {failed}")
 
+    crosses = sensitivity[sensitivity.level_high > 0]
+    phrases = _crossing_phrases(crosses)
     body = summary(
-        f"Monthly road deaths in Spain fell around {licence_date}, when the points-based "
-        "driving licence came into force. The size of the fall depends on how the earlier "
-        "trend is projected. A straight-line trend gives a step of "
-        f"{_signed_pct(float(linear.level_change))}; the trend the earlier months themselves "
-        f"favour, which steepens in {_month(chosen.knot)}, gives "
-        f"{_signed_pct(float(main.level_change))} (95% interval "
-        f"{_signed_pct(float(main.level_low))} to {_signed_pct(float(main.level_high))}). "
-        "When a step model with a straight-line trend is fitted at each of "
-        f"{int(true_calendar.n_fits)} Julys "
-        f"on a common window, {it.date.year} shows the largest fall, but only narrowly; "
-        "against forecasts made before each July it ranks "
-        f"{_ordinal(int(true_forecast['rank']))} of {int(true_forecast.n_fits)}. The series "
-        "supports a modest fall in deaths around the change. It gives no basis for "
-        "attributing that fall to the licence."
+        f"Spain's points-based driving licence came into force on {licence_date}. Monthly road "
+        "deaths fell around that date, but the series cannot show that the licence caused the "
+        "fall. A model of monthly deaths with a step at the change estimates a change in deaths "
+        f"of {_signed_pct(float(main.level_change))} (95% interval "
+        f"{_signed_pct(float(main.level_low))} to {_signed_pct(float(main.level_high))}) when "
+        "the earlier trend is projected the way the earlier months favour, and "
+        f"{_signed_pct(float(linear.level_change))} with a straight-line trend. Compared with "
+        "the same estimate at other Julys, the fall was large but not exceptional: the largest "
+        f"of {int(true_calendar.n_fits)}, but only narrowly, and "
+        f"{_ordinal(int(true_forecast['rank']))} of {int(true_forecast.n_fits)} against "
+        "forecasts made before each July. Deaths had already begun to fall faster in "
+        f"{pd.Timestamp(chosen.knot).year}, and speed cameras, a reform of the Penal Code and the "
+        "recession came close enough to the licence that one national series cannot separate "
+        "their effects."
     )
 
-    body += "<h2>The before-and-after estimate</h2>"
+    body += "<h2>The estimate</h2>"
     body += (
-        "<p>A monthly national series can test only a change with a known date, and even "
-        "then the test is weak. An interrupted time-series analysis fits the months before a "
-        "change, projects them forward and measures how far the months after fall below the "
-        "projection. The model is a Poisson regression of monthly deaths within 30 days, from "
-        f"{_month(it.pre_start)} to {_month(it.post_end)}, with a term for each calendar "
-        f"month, a pre-existing trend, and a step and a change of slope at {break_month}. A "
-        "straight line through the months before the change gives a step of "
-        f"{_signed_pct(float(linear.level_change))}.</p>"
+        "<p>An interrupted time series fits the months before a change, projects them forward "
+        "and measures how far the months after fall below the projection. The model here is a "
+        "Poisson regression of monthly deaths within 30 days, from "
+        f"{_month(it.pre_start)} to {_month(it.post_end)}, with a term for each calendar month, "
+        f"a trend, and a step and a change of slope at {break_month}. The result depends on how "
+        "the earlier trend is projected. A straight line through the months before the change "
+        f"gives a step of {_signed_pct(float(linear.level_change))}. But the earlier months "
+        "themselves favour a trend that bends: among trends with one bend, the best fit places "
+        f"it at {_month(chosen.knot)}, where the decline steepened, and it fits those months "
+        f"better than the straight line by {float(straight.delta_aic):.0f} points of AIC (a "
+        "measure of fit that penalises extra terms; a difference of more than 10 is usually "
+        "read as strong evidence). The choice uses only the months before the change. With the "
+        f"bend in place the estimated step is {_signed_pct(float(main.level_change))}.</p>"
     )
     body += figure(
         "p1_points_series",
@@ -219,19 +226,6 @@ def page_policy(captions: dict[str, str]) -> str:
         "and two projections of deaths without the change: the preferred pre-trend (dashed) "
         "and a straight-line pre-trend (dotted)",
         captions,
-    )
-    body += "<h2>The choice of pre-trend</h2>"
-    body += (
-        "<p>The straight line can be tested against alternatives on the months before the "
-        "change alone, so the choice does not look at the outcome. Among trends with a single "
-        f"bend, the best fit places the bend at {_month(chosen.knot)}, where the decline "
-        "steepened, and it fits the earlier months better than the straight line by "
-        f"{float(straight.delta_aic):.0f} points of AIC. (Akaike's information criterion "
-        "rewards fit and penalises extra parameters; lower is better, and a difference of more "
-        "than 10 points is usually read as strong evidence.) With the bend in place, the "
-        f"estimated step at {break_month} shrinks by about "
-        f"{abs(float(linear.level_change) - float(main.level_change)) * 100:.0f} percentage "
-        f"points, to {_signed_pct(float(main.level_change))}.</p>"
     )
     candidates = trend.assign(
         label=[
@@ -251,14 +245,19 @@ def page_policy(captions: dict[str, str]) -> str:
         ),
     )
 
-    body += "<h2>Comparison with other Julys</h2>"
+    body += "<h2>How unusual the fall was</h2>"
     body += (
-        "<p>Spanish road deaths peak every July and August, so a break placed on 1 July may "
-        "partly capture an ordinary summer movement. A placebo test repeats the estimate at "
-        "Julys when the licence cannot have acted, each with a straight-line trend on a common "
-        f"window of {pre_months} months before and {post_months} after; years whose window "
-        f"contains {break_month} or the pandemic are left out. If the {it.date.year} fall is "
-        "exceptional, it should stand out among these Julys.</p>"
+        "<p>Spanish road deaths peak every July and August, so a break placed on 1 July can "
+        "pick up an ordinary summer movement. The same step model, with a straight-line trend "
+        f"on a common window of {pre_months} months before and {post_months} after, was "
+        f"therefore fitted at every July whose window avoids {break_month} and the pandemic. "
+        f"July {it.date.year} gives the largest fall of the {int(true_calendar.n_fits)}, "
+        f"{_signed_pct(float(true_calendar.level_change), 1)}, but only narrowly: July "
+        f"{int(runner_up.year)} gives {_signed_pct(float(runner_up.level_change), 1)} and July "
+        f"{int(third.year)} {_signed_pct(float(third.level_change), 1)}, and their intervals "
+        f"overlap. Ranking first of {int(true_calendar.n_fits)} corresponds to a one-sided "
+        f"p-value of about {1 / float(true_calendar.n_fits):.2f}, short of conventional "
+        "significance.</p>"
     )
     body += figure(
         "p2_july_placebos",
@@ -267,43 +266,18 @@ def page_policy(captions: dict[str, str]) -> str:
         captions,
     )
     body += (
-        f"<p>On this common window July {it.date.year} gives the largest fall of the "
-        f"{int(true_calendar.n_fits)}, {_signed_pct(float(true_calendar.level_change), 1)}, "
-        f"but only narrowly: July {int(runner_up.year)} gives "
-        f"{_signed_pct(float(runner_up.level_change), 1)} and July {int(third.year)} "
-        f"{_signed_pct(float(third.level_change), 1)}, and their intervals overlap. A rank of "
-        f"{int(true_calendar['rank'])} of {int(true_calendar.n_fits)} corresponds to a "
-        f"one-sided empirical p-value of about {1 / float(true_calendar.n_fits):.2f}, which is "
-        "suggestive but short of conventional significance.</p>"
-    )
-    body += (
-        "<p>A second test uses no step at all. For each July, a model with a trend and calendar "
-        f"months is fitted to the {pre_months} months before it and used to forecast the "
-        f"{post_months} months after; the measure is how far the recorded months fall below "
-        f"that forecast. After {break_month} they fall "
-        f"{abs(float(true_forecast.log_ratio)) * 100:.0f}% below it, a rank of "
-        f"{int(true_forecast['rank'])} of {int(true_forecast.n_fits)} among the Julys: the "
-        f"months after July {int(beyond.iloc[0].year)} fell further below their own forecast"
-        + (
-            f", and so did those after July {_join([str(int(y)) for y in beyond.year.iloc[1:]])}"
-            if len(beyond) > 1
-            else ""
-        )
-        + ". This is the clearest evidence against reading the straight-line estimate of "
-        f"{_signed_pct(float(linear.level_change))} as an effect of the licence.</p>"
-    )
-
-    body += "<h2>Twelve months either side of each July</h2>"
-    body += (
-        "<p>A check without any model divides the deaths in the twelve months from each July "
-        "by those in the twelve months before it. Each side contains one of every calendar "
-        f"month, so seasonality cancels exactly. Across July {it.date.year} deaths fell "
-        f"{abs(math.expm1(float(true_transition.twelve_month_ratio))) * 100:.1f}%, the "
-        f"{_ordinal(int(true_transition['rank']))} largest fall of the "
-        f"{int(true_transition.n_ranked)} years that can be measured; the larger falls all came "
-        f"later, in {_join([str(int(year)) for year in sorted(larger.year)])}. The series was "
-        f"falling steeply on both sides of {it.date.year}, the same pattern the choice of "
-        "pre-trend revealed.</p>"
+        "<p>Two checks that use no step point the same way. Forecasting the "
+        f"{post_months} months after each July from the {pre_months} months before it, the "
+        f"months after {break_month} fall {abs(float(true_forecast.log_ratio)) * 100:.0f}% below "
+        f"their forecast, {_ordinal(int(true_forecast['rank']))} of "
+        f"{int(true_forecast.n_fits)} Julys: the months after July "
+        f"{_join([str(int(y)) for y in beyond.year])} fell further below their own forecasts. "
+        "Dividing the deaths in the twelve months "
+        "from each July by those in the twelve months before it, which cancels the seasons, "
+        f"deaths fell {abs(math.expm1(float(true_transition.twelve_month_ratio))) * 100:.1f}% "
+        f"across July {it.date.year}, the {_ordinal(int(true_transition['rank']))} largest fall "
+        f"of the {int(true_transition.n_ranked)} years that can be measured; the larger falls "
+        f"all came later, in {_join([str(int(year)) for year in sorted(larger.year)])}.</p>"
     )
     largest = ranked.nsmallest(8, "twelve_month_ratio")
     show = pd.concat([largest, ranked[ranked.year == it.date.year]]).drop_duplicates("year")
@@ -333,40 +307,32 @@ def page_policy(captions: dict[str, str]) -> str:
         ),
     )
 
-    body += f"<h2>Traffic and other changes around {it.date.year}</h2>"
-    body += (
-        "<p>A fall in deaths can reflect a fall in traffic. Two monthly series reach back "
-        f"before {it.date.year}: CORES's national road-fuel consumption, which "
-        "covers every road, and traffic on the state toll-motorway network, measured directly "
-        "on a small part of it as its average daily intensity (vehicles a day on the average "
-        "kilometre, so that newly opened sections do not inflate it). Adding either series to "
-        f"the model barely moves the estimate: {_signed_pct(float(fuel.level_change))} with "
-        f"fuel and {_signed_pct(float(toll.level_change))} with toll-motorway intensity, "
-        f"against {_signed_pct(float(main.level_change))} without either. Neither measures "
-        "the kilometres driven on all roads, so this shows only that the step does not follow "
-        "these two series.</p>"
+    with_fuel = _signed_pct(float(fuel.level_change))
+    with_toll = _signed_pct(float(toll.level_change))
+    adjusted = (
+        f"to {with_fuel} in both cases"
+        if with_fuel == with_toll
+        else f"to {with_fuel} and {with_toll}"
     )
+    body += "<h2>Why the fall cannot be attributed to the licence</h2>"
     body += (
-        "<p>Other changes overlap the licence. The decline in deaths had already steepened in "
-        f"{pd.Timestamp(chosen.knot).year}, before any of them. Automatic speed cameras were "
-        "being installed on the main road network under the national road-safety plan over "
-        "the same years. The reform of the Penal Code that made serious speeding and "
-        f"drink-driving criminal offences came into force in {_month(it.second_break)}, "
-        f"{penal_months} months after the licence, and the recession that followed reduced "
-        "traffic and freight.</p>"
-    )
-
-    body += "<h2>Sensitivity to the specification</h2>"
-    crosses = sensitivity[sensitivity.level_high > 0]
-    phrases = _crossing_phrases(crosses)
-    body += (
+        "<p>The step does not follow the available traffic series: adding national road-fuel "
+        "consumption (CORES) or traffic intensity on the state toll motorways to the model "
+        f"barely moves it, {adjusted}, against "
+        f"{_signed_pct(float(main.level_change))} without either. But neither series measures "
+        "kilometres on all roads, and other changes overlap the licence. The decline had "
+        f"already steepened in {pd.Timestamp(chosen.knot).year}. Automatic speed cameras were "
+        "being installed on the main road network over the same years. The Penal Code reform "
+        "that made serious speeding and drink-driving criminal offences came into force in "
+        f"{_month(it.second_break)}, {penal_months} months after the licence, and the recession "
+        "that followed reduced traffic and freight. A single national series cannot separate "
+        "these from the licence.</p>"
         f"<p>The estimate was repeated under {len(sensitivity)} specifications. The "
-        "straight-line pre-trend gives the largest fall of all of them. "
-        f"{_count_word(len(crosses))} give an interval that includes no change"
+        "straight-line pre-trend gives the largest fall of all of them, and "
+        f"{_count_word(len(crosses)).lower()} give an interval that includes no change"
         + (": " + _join(phrases) + "." if phrases else ".")
-        + " A fall of about "
-        f"{abs(float(main.level_change)) * 100:.0f}%, with a wide interval, is as much as the "
-        "series supports.</p>"
+        + f" A fall of about {abs(float(main.level_change)) * 100:.0f}%, with a wide interval, "
+        "is as much as the series supports.</p>"
     )
     shown = sensitivity.reset_index()
     shown = pd.DataFrame(
@@ -389,31 +355,16 @@ def page_policy(captions: dict[str, str]) -> str:
             f"{_month(it.pre_start)} to {_month(it.post_end)} unless stated.",
         ),
     )
-
-    body += (
-        f"<h2>The {speed_limit.date.year} speed limit on conventional roads</h2>"
+    body += technical(
+        f"The {speed_limit.date.year} speed limit on conventional roads",
         "<p>The lower speed limit on conventional roads was examined with a different design, "
         "comparing conventional roads with motorways and dual carriageways month by month. "
-        "That design "
-        "fails its placebo test: a break placed in "
+        "That design fails its placebo test: a break placed in "
         f"{_month(failed_placebo.break_date.iloc[0])}, before the change, produces a divergence "
         f"of its own ({_signed_pct(float(failed_placebo.level_change.iloc[0]))}, with an "
         "interval that excludes zero), so no estimate of the speed-limit change is reported. "
         'The fits are published (<a href="tables/q8_speed_placebo.csv">placebos</a>, '
-        '<a href="tables/q8_speed_sensitivity.csv">specifications</a>).</p>'
-    )
-
-    body += "<h2>The fall and the licence</h2>"
-    body += (
-        "<p>The monthly series shows a fall in deaths of about "
-        f"{abs(float(main.level_change)) * 100:.0f}% around {break_month}. The fall survives "
-        "the pre-trend the earlier months favour and is the largest of the July placebos, "
-        "though narrowly, while the forecast test and the twelve-month comparison place "
-        f"{it.date.year} within the range of other years. Whether the fall was unusual is "
-        "therefore only partly settled. That the points licence caused it is a separate "
-        "claim, which the series cannot test: speed cameras, the Penal Code reform and the "
-        "recession overlapped or closely followed the licence, and a single national series "
-        "cannot separate their effects from the licence's.</p>"
+        '<a href="tables/q8_speed_sensitivity.csv">specifications</a>).</p>',
     )
     body += limitation(
         "Monthly deaths vary more than a Poisson model assumes and are correlated from month "
@@ -438,6 +389,7 @@ def page_policy(captions: dict[str, str]) -> str:
         "policy",
         f"The {it.date.year} points-based licence",
         f"Spain's monthly road deaths from {it.pre_start.year} to {it.post_end.year}, before "
-        "and after the points-based driving licence came into force.",
+        "and after the points-based driving licence came into force: how large the fall was, "
+        "how unusual, and why it cannot be attributed to the licence.",
         body,
     )

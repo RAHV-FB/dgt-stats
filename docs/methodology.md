@@ -1,18 +1,20 @@
 # Methodology
 
-How the numbers on the site are made, as built (October 2026). The site answers four questions,
-each from its own data:
+How the numbers on the site are made, as built (October 2026). Most of the study is descriptive
+analysis of published data; a smaller part fits predictive models to individual crash records. In
+order:
 
-1. **Spain.** What is happening across the country, and what changes when road risk is measured
-   against residents, licence holders, vehicles and traffic rather than counted (sections 1 to
-   10, 12 and 15). This part ends with a forecasting model of monthly deaths (section 11). The
-   forecast, the associations in DGT's crash records (section 13) and the 2006 case study
-   (section 14) are supporting analyses.
+1. **Spain.** National trends, and how deaths compare between years, drivers, vehicles and roads
+   once each count is divided by a denominator that could contain it (residents, licence holders,
+   vehicles, fuel, kilometres), with each death rate split into crash frequency and severity where
+   the data allow (sections 1 to 10, 12 and 15). The forecast of monthly deaths (section 11), the
+   associations in DGT's crash records (section 13) and the 2006 case study (section 14) are
+   supporting analyses.
 2. **Individual crash records.** What the Catalan and Barcelona crash records show (section 19).
-3. **Which models earn their place.** A severity model is presented only if it beats a
-   descriptive table of outcome shares on the same test rows; otherwise the table replaces it
-   (section 20).
-4. **How far they generalise.** Whether a model holds in later years, other places and another
+3. **Predictive models.** A severity model is presented only if it ranks later, unseen records
+   better than a descriptive table of outcome shares on the same test rows; otherwise the table
+   replaces it (section 20).
+4. **External validation.** Whether a model holds in later years, other places and another
    recording source, and how the training population differs from Spain (section 21).
 
 The data are in four layers, each with one role (`src/dgt_stats/layers.py`): the **national
@@ -294,18 +296,23 @@ fuel (`deaths_per_road_fuel_tonnes_change`).
 
 ## 7. Age and driving exposure (`driver_risk.py`, `agebands.py`)
 
-The question is whether older drivers are riskier, and the answer depends on the divisor. The
-denominator used is **kilometres driven**, from DGT's 2024 release *Kilómetros anualizados
-recorridos por el parque móvil*, whose additional material gives vehicles, total annual kilometres
-and mean annual kilometres **by vehicle category and by the age band of the registered owner**.
+Two questions are asked of car drivers by age, and kept apart. How often a driver already
+involved in an injury crash dies needs no measure of driving. How often drivers of each age are
+involved in crashes is set against **kilometres driven by cars registered to owners of each age**,
+taken from DGT's 2024 release *Kilómetros anualizados recorridos por el parque móvil*, whose additional
+material gives vehicles, total annual kilometres and mean annual kilometres **by vehicle category
+and by the age band of the registered owner** (18–20, 21–24, then five-year bands to 75+).
 
 - **Numerator**: car drivers involved in injury crashes (table 4.2) and killed within 30 days
   (table 4.1.1), car rows only, both zones and both sexes, 2024, the same year as the kilometres.
 - **Denominator**: kilometres driven in 2024 by cars whose registered owner is in the band.
-- **Bands** (`agebands.EXPOSURE_BANDS`): 18–34, 35–54 (the baseline), 55–64, 65–74, 75+. They nest
-  both DGT's driver bands and the owner bands of the kilometre release exactly, so numerator and
-  denominator are cut in the same places and **the baseline is built the same way as the older
-  groups**. The 15–17 row exists only in the driver tables and is reported, never compared.
+- **Bands** (`agebands.EXPOSURE_BANDS`): 18–24, 25–34, 35–54 (the baseline), 55–64, 65–74, 75+.
+  Each is a sum of whole source bands of DGT's driver tables, its driver census and the kilometre
+  release, which share the same cuts from 18 up, so numerator and denominator are cut in the same
+  places and no published band is split. The five-year source bands are pooled because most hold
+  too few driver deaths a year for a stable rate. The kilometre reader stages each owner band at
+  the source's own cuts (`DGT_BANDS`), and `driver_risk` sums them. The 15–17 row exists only in
+  the driver tables and is reported, never compared.
   Drivers of unrecorded age (2.2 % of those involved in 2024, 2,243 of 100,660 car drivers
   involved; 2.0 % and 2.3 % in 2022 and 2023) are kept as their own row.
 
@@ -332,25 +339,30 @@ arithmetic it raises the 75-and-over ratio of deaths per km from 3.99 to 4.76.
 **Owner's age against driver's age** (`owner_age_check`). The check uses holders of a B (car) permit
 (`io_exposure.b_permit_holders_by_age`, `NUM_PERMISOS_B` of the 2024 census text file). If every car
 were registered to the person who drives it, cars per B-permit holder would say how many cars each
-driver has. Cars registered to owners aged 18–34 come to 0.46 per B-permit holder of that age, with
-6,247 km per holder, against 0.80 cars and 10,345 km at 35–54; at 75 and over there are 1.14 cars
-per B-permit holder, more cars than there are B-permit holders of that age. So the owner's age does
-not stand for the driver's at either end of the range. No band supports an owner-equals-driver
-reference either (0.93 and 0.94 cars per B-permit holder at 55–64 and 65–74 do not show that the
-owner drives), so 35–54 is kept as the reference and the per-km ratios are published as ranges. One
-end of each range is the published ratio; the other is a scenario, not an estimate: 15.29 billion km
-move from the 35–54 band to 18–34 until the two drive the same distance per B-permit holder, as if
-the whole gap were young drivers' driving registered to owners aged 35–54. The data say neither how
-much of the gap that is nor which older band holds it. Under the scenario the 18–34 involvement
-ratio per km goes from 2.57 to 1.55 and the 75-and-over one from 1.02 to 0.89; deaths per driver
-involved need no kilometres and do not move. Every band and measure, with both ratios and their
+driver has. Cars registered to owners aged 18–24 come to 0.23 per B-permit holder of that age, with
+3,095 km per holder, and those of owners aged 25–34 to 0.56, with 7,631 km, against 0.80 cars and
+10,345 km at 35–54; at 75 and over there are 1.14 cars per B-permit holder, more cars than there
+are B-permit holders of that age. So the owner's age does not stand for the driver's at either end
+of the range, and least of all at 18–24. No band supports an owner-equals-driver reference either
+(0.93 and 0.94 cars per B-permit holder at 55–64 and 65–74 do not show that the owner drives), so
+35–54 is kept as the reference and the per-km ratios are published as ranges. One end of each range
+is the published ratio; the other is a scenario, not an estimate: 15.29 billion km move from the
+35–54 band to 18–24 (9.95 billion) and 25–34 (5.34 billion) until all three have the same
+kilometres per B-permit holder (9,030 km a year), as if the whole gap were young drivers' driving
+registered to owners aged 35–54. The data say neither how much of the gap that is nor which older
+band holds it, so the two ends form a sensitivity range, not a confidence interval, and the true
+ratio need not lie between them. Under the scenario the 18–24 involvement ratio per km goes from
+6.75 to 2.02, the 25–34 one from 1.83 to 1.35 and the 75-and-over one from 1.02 to 0.89; deaths
+per driver involved need no kilometres and do not move (1.03 at 18–24 and 0.89 at 25–34, both with
+intervals that include 1; 3.93 at 75 and over). Every band and measure, with both ratios and their
 intervals, is in `q7_owner_age_check.csv`.
 
 `denominator_contrast` puts the same deaths over residents, B-permit holders, drivers involved and
 kilometres of cars registered to owners of the band, as ratios to the 35–54 band, because the
 movement between them is the point: at 75 and over the ratio is 1.23 per resident, 3.10 per
-B-permit holder, 3.93 per driver involved and 3.99 per owner-age km. Residents start at 35 because
-INE publishes five-year groups and no resident count can be cut at 18.
+B-permit holder, 3.93 per driver involved and 3.99 per owner-age km. The contrast starts at 25
+because INE publishes residents in five-year groups (15–19, 20–24) and no resident count can be cut
+at 18.
 
 **Sources considered and not used**, with the reason (registered in
 [`data_sources.md`](data_sources.md)): MOVILIA 2006/2007 count trips and travel time, not
@@ -529,7 +541,7 @@ listed with their results on the data page.
 | A year's count varies only by chance | dispersion around the 2013–2019 trend | fails for all three counts, least for deaths and most for injury crashes; intervals widened (section 4); against 2019, the 2024 rise in admissions is beyond an ordinary year as a count and per tonne of road fuel, and no change in injury crashes is |
 | Road fuel tracks the kilometres driven | measured interurban vehicle-km against national road fuel (the scopes differ, so a diagnostic of the proxy, not a rate) | cannot be tested on all roads: the measured kilometres cover only State, regional and provincial interurban roads; per measured km, interurban deaths in 2023 are +5 % on trend, inside the interval; 8.7 % to 11.2 % of interurban deaths are on roads the kilometres leave out (section 5) |
 | CORES road fuel includes the biofuel blended into it, and a tonne means the same every year | each subtotal against the sum of its products, biofuels included, every month; the published biofuel share | holds: biofuel was 6.6 % of road fuel by mass in 2019 and 7.8 % in 2023, and as it carries less energy per tonne it cannot explain the rise in interurban kilometres per tonne (section 5) |
-| The owner's age stands for the driver's | cars and km per B-permit holder by band | does not hold at either end (0.46 cars per B-permit holder at 18–34, 1.14 at 75+); per-km ratios published as ranges; deaths per driver involved need no kilometres (section 7) |
+| The owner's age stands for the driver's | cars and km per B-permit holder by band | does not hold at either end (0.23 cars per B-permit holder at 18–24, 0.56 at 25–34, 1.14 at 75+); per-km ratios published as ranges; deaths per driver involved need no kilometres (section 7) |
 | The fall in deaths was in how deadly crashes are | exact frequency × severity split | holds; the split, not the product, depends on recording (section 4) |
 | A forecast can show a change in the counts | out-of-sample forecast errors | only for large changes: a fall of about 15 % of interurban deaths is detected four times in five in the first year, smaller ones less often (section 11) |
 
@@ -684,19 +696,22 @@ a removed figure cannot linger.
 The navigation (`NAV_GROUPS` in `src/dgt_stats/site/components.py`) follows the source hierarchy of
 `layers.py`:
 
-- **Start**: the overview.
-- **Spain: DGT and INE**: the seven findings in reading order (2019–2024, the long run, seasons,
-  age and sex, vehicles, speed, factors).
-- **Spain: supporting**: associations in DGT records (section 13), monthly deaths (the forecast,
-  section 11) and the 2006 break (section 14); the first and the last open with a note that says
-  why they are supporting analyses.
-- **Catalonia**: serious and fatal crashes.
-- **Barcelona**: crashes and people.
-- **Models**: the severity models (section 20). The deaths forecast left this group because it
-  does not beat last year's count in the held-back ordinary years (section 11).
-- **Generalisability**: how far the results reach (section 21).
-- **Sources and methods**: the four layers of data, and data and methods (with the assumptions
-  tested, section 12).
+- **Overview**: what the study is, its data, its main results and where to read on. It quotes no
+  model metric.
+- **Spain**: trends since 2019, the long run, seasons, drivers (age and sex), vehicles, speed and
+  recorded factors, with three **supporting analyses** inside it: crash circumstances (section 13),
+  the monthly deaths forecast (section 11) and the 2006 points licence (section 14). The line above
+  each supporting page's title says so.
+- **Regional data**: Catalonia's serious and fatal crashes, and Barcelona's crashes and people.
+- **Models**: the severity models (section 20) and their external validation (section 21). The
+  deaths forecast is not in this group because it does not beat last year's monthly counts in the
+  held-back ordinary years (section 11).
+- **Methods**: data sources and scope, and methodology (definitions, with the assumptions tested,
+  section 12).
+
+Every page opens with a summary of its main result and says near the start what kind of analysis
+it is (a rate comparison, an association, a predictive model or a data check); each important
+limitation is stated once, beside the result it changes.
 
 Pages renamed in an earlier reorganisation (`older-drivers.html`, `context.html`) are kept as
 pointers that refresh to their successors. The four withdrawn analyses (`simulator.html`,
@@ -712,8 +727,8 @@ printed: the default on a page is one figure, one interpretation and one limits 
 Tests check that every internal link and anchor resolves, every image has alt text, every page has
 one heading and a description, that no page runs a script, and that each page's headline numbers
 match the tables they come from. The site builder is the `dgt_stats.site` package: one module per
-national page, the regional, model, generalisability and sources pages in `microdata_pages`, and the
-shared furniture in `components`.
+page (the Catalonia and Barcelona pages share `regional`), the result tables several pages quote in
+`numbers`, and the shared furniture in `components`.
 
 ## 17. Reproducibility
 

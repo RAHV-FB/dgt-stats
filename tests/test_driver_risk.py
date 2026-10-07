@@ -32,6 +32,19 @@ def test_car_kilometres_cover_the_fleet_and_keep_company_cars_apart() -> None:
     assert per_car["35-54"] > per_car["55-64"] > per_car["65-74"] > per_car["75+"]
 
 
+def test_young_bands_are_sums_of_whole_owner_bands() -> None:
+    # The raw release cuts cars by owner age at 18-20, 21-24, 25-29 and 30-34; the analysis bands
+    # are sums of those, so no published band is split. Pinned to km_edad_propietario_2024.xlsx.
+    km = driver_risk.car_kilometres().set_index("band")
+    assert int(km.loc["18-24", "n_vehicles"]) == 71_983 + 319_531
+    assert int(km.loc["18-24", "total_km"]) == 940_337_806 + 4_247_553_830
+    assert int(km.loc["25-34", "n_vehicles"]) == 828_667 + 1_306_721
+    assert int(km.loc["25-34", "total_km"]) == 11_328_232_029 + 17_797_565_804
+    staged = io_exposure.read_exposure("km_edad_propietario_2024")
+    cars = staged[(staged.vehicle_group == "car") & ~staged.is_company]
+    assert set(cars.band) <= set(agebands.DGT_BANDS)  # staged at the source's own cuts
+
+
 def test_car_driver_counts_keep_unknown_age_visible() -> None:
     counts = driver_risk.car_driver_counts().set_index("band")
     assert agebands.UNKNOWN in counts.index
@@ -188,17 +201,19 @@ def test_b_permit_holders_are_a_subset_of_the_census() -> None:
 def test_owner_age_check_gives_every_band_and_measure_both_readings() -> None:
     check = driver_risk.owner_age_check().set_index("band")
     assert list(check.index) == list(driver_risk.COMPARED_BANDS)
-    young, base = check.loc[driver_risk.TRANSFER_BAND], check.loc[driver_risk.REFERENCE_BAND]
-    # The transfer equalises kilometres per B-permit holder in the two bands and moves no other.
+    young = list(driver_risk.TRANSFER_BANDS)
+    pool = [*young, driver_risk.REFERENCE_BAND]
+    # The transfer equalises kilometres per B-permit holder across the young bands and the
+    # reference, adds kilometres to each young band, and moves no other band's.
     per_holder = check.billion_km_transfer / check.b_permit_holders
-    assert per_holder[driver_risk.TRANSFER_BAND] == pytest.approx(
-        per_holder[driver_risk.REFERENCE_BAND]
+    for band in young:
+        assert per_holder[band] == pytest.approx(per_holder[driver_risk.REFERENCE_BAND])
+        assert check.loc[band, "transfer_bn_km"] > 0
+    assert check.loc[young, "transfer_bn_km"].sum() == pytest.approx(
+        -check.loc[driver_risk.REFERENCE_BAND, "transfer_bn_km"]
     )
-    assert young.transfer_bn_km == pytest.approx(-base.transfer_bn_km)
     assert check.transfer_bn_km.sum() == pytest.approx(0.0, abs=1e-9)
-    assert (
-        check.drop([driver_risk.TRANSFER_BAND, driver_risk.REFERENCE_BAND]).transfer_bn_km == 0
-    ).all()
+    assert (check.drop(pool).transfer_bn_km == 0).all()
     published = driver_risk.km_rate_ratios().set_index(["measure", "band"])
     for measure in driver_risk.RATE_DEFINITIONS:
         for band in check.index:
@@ -210,7 +225,7 @@ def test_owner_age_check_gives_every_band_and_measure_both_readings() -> None:
         low, high = check[f"{measure}_range_low"], check[f"{measure}_range_high"]
         assert (low <= high).all()
         assert (low == check[[f"{measure}_ratio", f"{measure}_ratio_transfer"]].min(axis=1)).all()
-        # Adding kilometres to 18-34 and taking them from the reference lowers every other
+        # Adding kilometres to the young bands and taking them from the reference lowers every
         # band's ratio to the reference.
         assert (check[f"{measure}_ratio_transfer"] <= check[f"{measure}_ratio"] + 1e-12).all()
     # Deaths per driver involved need no kilometres and have no transfer reading.

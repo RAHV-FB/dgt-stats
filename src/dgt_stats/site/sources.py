@@ -56,7 +56,7 @@ SCOPE: tuple[tuple[str, str], ...] = (
         "coordinates, detailed road geometry or traffic volume.",
     ),
     (
-        "Risk per trip or per kilometre in Catalonia or Barcelona",
+        "Rates per trip or per kilometre in Catalonia or Barcelona",
         "Neither source has a measure of travel; their only rates are per resident, at province "
         "level.",
     ),
@@ -122,7 +122,7 @@ def _source_table(numbers: dict[str, str], inventory: pd.DataFrame) -> str:
             f"Spain, every province, {numbers['dgt_span']}",
             f"One row per crash with at least one victim ({numbers['dgt_rows']} crashes).",
             "Counts and shares by zone and road type; the association analysis of crash "
-            "circumstances; the external test of the Catalonia severity model.",
+            "circumstances; the external test of the Catalonia crash-severity model.",
         ),
         (
             "Yearbook series",
@@ -144,7 +144,7 @@ def _source_table(numbers: dict[str, str], inventory: pd.DataFrame) -> str:
             "Speed-factor report",
             "DGT",
             f"Spain outside Catalonia and the Basque Country, {numbers['factor_span']}",
-            "Injury crashes with each recorded concurrent factor, and deaths in those with speed.",
+            "Injury crashes with each police-recorded factor, and deaths in those with speed.",
             "Speed and the other recorded factors; never added to national totals.",
         ),
         (
@@ -201,7 +201,7 @@ def _source_table(numbers: dict[str, str], inventory: pd.DataFrame) -> str:
             f"Catalonia, {numbers['cat_span']}",
             "One row per crash with at least one death or serious injury "
             f"({numbers['cat_rows']} crashes).",
-            "The analysis of Catalan crashes; the Catalonia severity model and its validation.",
+            "The analysis of Catalan crashes; the Catalonia crash-severity model and its validation.",
         ),
         (
             "Barcelona crash records",
@@ -210,7 +210,7 @@ def _source_table(numbers: dict[str, str], inventory: pd.DataFrame) -> str:
             f"Six linked tables: {numbers['bcn_crashes']} crashes, {numbers['bcn_people']} "
             "person records, vehicle records, crash types and recorded causes.",
             "The analysis of Barcelona crashes and people; the Barcelona person-severity model; "
-            "tests of the Catalonia severity model.",
+            "tests of the Catalonia crash-severity model.",
         ),
     ]
     frame = pd.DataFrame(
@@ -265,14 +265,14 @@ def _meeting(cat_dgt: pd.DataFrame) -> str:
         "the Catalan file's fatal crashes equal DGT's crashes with a death within 24 hours in "
         f"every province-year of {period} "
         '(<a href="catalonia.html#dgt-agreement">Catalonia</a>). In '
-        "held-out tests, versions of the Catalonia severity model restricted to the variables "
+        "held-out tests, versions of the Catalonia crash-severity model restricted to the variables "
         "another source records in the same way score DGT's crash records elsewhere in Spain "
         "and Barcelona's crashes, without merging either with the Catalan file "
         '(<a href="validation.html">External validation</a>).</p>'
     )
 
 
-def _audit() -> str:
+def _audit(validation: pd.DataFrame) -> str:
     checks = read_table("dgt_audit_checks")
     artefacts = read_table("dgt_audit_artefacts")
     regional = read_table("dgt_audit_regional")
@@ -314,22 +314,32 @@ def _audit() -> str:
         "the artefact shares fall either side of the limit",
     )
     severity = f'<a href="severity.html">{esc(TITLES["severity"])}</a>'
+    tables_year = int(validation[validation.check.eq("table_1_1_province")].year.max())
     return (
         "<h2>Uneven recording in the national crash records</h2>"
-        "<p>The national records reconcile with every published total, so they are the right "
-        "source for counts, trends and comparisons between provinces. A model trained on them "
-        "would also need each variable to mean the same everywhere. An audit with criteria "
-        "fixed in advance found the file complete and consistent, but found two problems in "
-        "what its variables mean.</p>"
-        "<p>First, fields are recorded unevenly between provinces. Of the "
+        f"<p>All {_fmt_int(len(validation))} of the repository's reconciliation checks pass. "
+        "Those on the national crash records check that each crash has one identifier and every "
+        "code is in DGT's dictionary, and compare the file's crashes and victims per year with "
+        "DGT's yearbook, its crashes and deaths by province and month with DGT's "
+        f"{tables_year} tables, its deaths and vehicles by type with DGT's statistical tables, "
+        "and its counts for the speed report's provinces with that report; the others check "
+        "the driver census and the yearbook's driver tables "
+        '(<a href="data.html#checks">checks on the data</a>). The crash file therefore matches '
+        "the published totals it was checked against, which makes it the right source for "
+        "counts, trends and comparisons between provinces. A model trained on it would also "
+        "need each "
+        "variable to mean the same everywhere. An audit with criteria fixed in advance found "
+        "the file complete and consistent, but found two problems in what its variables mean: "
+        "fields are recorded unevenly between provinces, and the blanks themselves carry "
+        "information about the outcome.</p>"
+        "<p>Of the "
         f"{len(regional)} circumstance fields examined, {_words(comparable)} have a share of blanks "
         f"that varies by no more than {dgt_audit.MAX_REGIONAL_SPREAD * 100:.0f} percentage "
         "points across the provinces with at least "
         f"{_fmt_int(dgt_audit.MIN_PROVINCE_CRASHES)} crashes. The fields that record who had "
         f"right of way are blank in {_fmt_pct(priority.province_min.min(), 0)} of crashes in "
         f"one province and {_fmt_pct(priority.province_max.max(), 0)} in another.</p>"
-        "<p>Second, the blanks themselves carry information about the outcome. A model that "
-        "sees only which fields were left blank ranks crashes with a death within 30 days with "
+        "<p>A model that sees only which fields were left blank ranks crashes with a death within 30 days with "
         f"a ROC-AUC of {float(died_30.roc_auc_unrecorded_flags_only):.2f} "
         '(<a href="data.html#models">ranking measure</a>), against '
         f"{float(died_30.roc_auc_recorded_values):.2f} for a model that sees the recorded "
@@ -337,18 +347,19 @@ def _audit() -> str:
         "the recorded model's gain over chance, above the "
         f"{_fmt_pct(dgt_audit.MAX_ARTEFACT_SHARE, 0)} limit set in advance; among crashes with "
         "a death or serious injury, the population of the external test, the share is "
-        f"{_fmt_pct(float(died_24.artefact_share_of_lift), 0)}, below it. A model trained on all of Spain "
-        "would learn, in part, how completely each province records its crashes.</p>"
+        f"{_fmt_pct(float(died_24.artefact_share_of_lift), 0)}, below it. A model trained on all "
+        "of Spain would partly be ranking crashes by how completely each province records "
+        "them.</p>"
         "<p>The national records are therefore used to describe Spain, including the "
         f"associations reported under {severity}, and, on the variables validated against the "
-        "Catalan file, as an external test of the Catalonia severity model. They are not used "
+        "Catalan file, as an external test of the Catalonia crash-severity model. They are not used "
         "to train a predictive severity model. The full audit is published as the "
         f'<a href="{DOCS_URL}/DGT_MICRODATA_AUDIT.md">DGT microdata audit</a>.</p>'
     )
 
 
 def _scope() -> str:
-    items = "".join(f"<li><strong>{esc(what)}.</strong> {esc(why)}</li>" for what, why in SCOPE)
+    items = "".join(f"<li>{esc(what)}. {esc(why)}</li>" for what, why in SCOPE)
     return (
         '<h2 id="scope">Scope of the data</h2>'
         f"<p>Several quantities lie outside what the files record:</p><ul>{items}</ul>"
@@ -366,7 +377,7 @@ def page_sources(captions: dict[str, str]) -> str:
     _check(
         bool(validation.passed.astype(bool).all()),
         "sources",
-        "the national records reconcile with every published total",
+        "every reconciliation check passes",
     )
     shares = read_table("cat_fatal_share")
     overall = shares[(shares.dimension == "unit type involved") & (shares.level == "all")].iloc[0]
@@ -406,16 +417,17 @@ def page_sources(captions: dict[str, str]) -> str:
         "Beside DGT's national statistics, the study uses three sets of police crash records: "
         "DGT's national file of injury crashes, the Servei Català de Trànsit's file of crashes "
         "with a death or serious injury in Catalonia, and the Guàrdia Urbana's records for "
-        "Barcelona city. Each is analysed separately. No record is linked across sources; they "
-        "meet only at aggregate totals and in held-out tests of the models. The national crash "
-        "records describe Spain but do not train a model, because their fields are recorded "
-        "unevenly between provinces and their blanks carry information about the outcome."
+        "Barcelona city. Each is analysed separately. No record is linked across sources, "
+        "because they share no identifier; they meet only at aggregate totals and in tests of "
+        "the models. The national crash records describe Spain but do not train a model, "
+        "because their fields are recorded unevenly between provinces and their blanks carry "
+        "information about the outcome."
     )
     body += "<h2>The sources</h2>"
     body += _source_table(numbers, inventory)
     body += _crash_records(numbers)
     body += _meeting(read_table("cat_vs_dgt_province_year"))
-    body += _audit()
+    body += _audit(validation)
     body += _scope()
     body += downloads(
         [

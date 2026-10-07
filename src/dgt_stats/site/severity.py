@@ -239,7 +239,7 @@ def page_severity(captions: dict[str, str]) -> str:
         "the fatal regression keeps its ordering of later years' crashes": numbers["auc_fatal"]
         >= 0.75
         and numbers["auc_serious"] > 0.5,
-        "the Catalonia severity model's crashes are already selected for severity": float(
+        "the Catalonia crash-severity model's crashes are already selected for severity": float(
             catalonia_model.prevalence
         )
         > 5 * float(numbers["fatal_share"]),
@@ -262,19 +262,16 @@ def page_severity(captions: dict[str, str]) -> str:
     pedestrian = fatal.loc[("crash_type", "pedestrian struck")]
 
     body = summary(
-        "Among injury crashes, those in wet conditions and those at a junction were less often "
-        "fatal than comparable crashes on a dry road or away from a junction. The comparison "
-        "uses odds ratios: the odds of a death with a circumstance present divided by the odds "
-        "without it, the other recorded circumstances held equal, so that 1 means no "
-        "difference and a value below 1 a lower chance of death. Wet conditions, "
-        "counted once rather than split between rain and a wet road surface, go with "
-        f"{wet_alone:.2f}× the odds of a death, and a junction with {junction_full:.2f}×. The "
-        "highest odds ratios belong to two kinds of crash: compared with a side collision, a "
-        f"head-on collision has {float(head_on.odds_ratio):.2f}× the odds of a death and a "
-        f"pedestrian struck {float(pedestrian.odds_ratio):.2f}×. The analysis concerns how a "
-        "crash ends, given an injury crash. It says nothing about how often crashes happen. "
-        "These are associations in DGT's national crash records, which are not used to "
-        'train a predictive model (<a href="sources.html">Data sources and scope</a>).'
+        "Among the injury crashes in DGT's national records, a death was most strongly "
+        "associated with the type of crash: compared with a side collision, a head-on "
+        f"collision had {float(head_on.odds_ratio):.2f} times the odds of a death and a "
+        f"pedestrian struck {float(pedestrian.odds_ratio):.2f} times, other recorded "
+        "circumstances held equal. Crashes in wet conditions and at junctions were less often "
+        f"fatal than otherwise similar crashes: {wet_alone:.2f} times the odds of a death for "
+        f"wet conditions and {junction_full:.2f} times at a junction. An odds ratio of 1 would "
+        "mean no difference. These are associations in police records of crashes that "
+        "happened, given that an injury crash occurred. They say nothing about how often crashes "
+        "happen, and they do not show why some crashes are deadlier."
     )
 
     body += "<h2>The records and the regression</h2>"
@@ -282,9 +279,12 @@ def page_severity(captions: dict[str, str]) -> str:
         f"<p>DGT's national records hold {_fmt_int(numbers['n'])} injury crashes for "
         f"{first_year}–{last_year}, of which {_fmt_pct(numbers['fatal_share'])} had at least "
         "one death within 30 days. The file has one row per crash and no fields for drivers, "
-        "vehicles or people. Two logistic "
-        "regressions are fitted, one for at least one death within 30 days and one for a death "
-        "or a hospitalisation. Their predictors are the circumstances the police record: zone, "
+        "vehicles or people. Its fields are recorded too unevenly between provinces to train a "
+        'predictive model (<a href="sources.html">data sources and scope</a>), but they can '
+        "describe associations. Two logistic regressions are fitted, one for at least one death "
+        "within 30 days and one for a death or a hospitalisation; an odds ratio compares the "
+        "odds of the outcome with a circumstance present and without it, holding the other "
+        "circumstances equal. The circumstances are those the police record: zone, "
         "road type, crash type, junction, lighting, weather, road surface, alignment, time of "
         "day, weekend, number of vehicles and year. A missing value is kept as a level of its "
         "own, so no crash is dropped, and levels with fewer than "
@@ -330,8 +330,7 @@ def page_severity(captions: dict[str, str]) -> str:
         f"could drive the result. Removing the {_count(int(widest.n_excluded))} provinces that "
         "record most of them leaves the odds ratio at "
         f"{_ci(float(widest.odds_ratio), float(widest.or_low), float(widest.or_high))}, "
-        "inside the full model's interval. Only the restriction to conventional roads removes "
-        "the association; removing those provinces barely moves it.</p>"
+        "inside the full model's interval.</p>"
     )
 
     shown = variants[variants.outcome.isin(["fatal", "serious"])].copy()
@@ -459,46 +458,39 @@ def page_severity(captions: dict[str, str]) -> str:
         {"Death": "pct", "Death or hospitalisation": "pct"},
     )
 
-    body += "<h2>Stability over time</h2>"
-    body += (
+    body += technical(
+        "How stable the associations are over time",
         f"<p>Fitted on {train_span} without a year term and applied to the crashes of "
         f"{test_span}, the fatal-outcome regression keeps its ordering of crashes: ROC-AUC "
         f"{numbers['auc_fatal']:.2f} for a death and {numbers['auc_serious']:.2f} for a death "
-        'or a hospitalisation (<a href="data.html#models">Methodology</a>). The '
-        '<a href="severity-models.html">Catalonia severity model</a>'
-        "'s ROC-AUC of "
-        f"{float(catalonia_model.roc_auc):.2f} measures a different task: there a death is "
-        "picked out among crashes with a death or serious injury, a population already "
-        "selected for severity; here, among all injury crashes, of which "
-        f"{_fmt_pct(numbers['fatal_share'])} were fatal. As probabilities, the fitted "
-        "values improve little on giving every crash the training years' share of each "
+        "or a hospitalisation (0.5 is chance and 1 a perfect ranking). This is not the task of "
+        'the <a href="severity-models.html">Catalonia crash-severity model</a>, whose ROC-AUC of '
+        f"{float(catalonia_model.roc_auc):.2f} picks out deaths among crashes already selected "
+        "for a death or serious injury; here the deaths are picked out among all injury "
+        f"crashes, of which {_fmt_pct(numbers['fatal_share'])} were fatal. As probabilities, the "
+        "fitted values improve little on giving every crash the training years' share of each "
         "outcome: their Brier score (mean squared error) is "
         f"{_fmt_pct(float(fatal_holdout.brier_skill))} lower for a death and "
         f"{_fmt_pct(float(serious_holdout.brier_skill))} lower for a death or a "
         "hospitalisation.</p>"
-    )
-    body += (
-        "<p>The regression was also refitted one year at a time. Of the "
-        f"{len(stability)} yearly estimates for its {len(terms)} {_join(term_labels)} terms, "
-        f"{outside} fall outside the full model's interval, more in "
+        "<p>Refitted one year at a time, "
+        f"{outside} of the {len(stability)} yearly estimates for the regression's {len(terms)} "
+        f"{_join(term_labels)} terms fall outside the full model's interval, more in "
         f"{_join([str(year) for year in top_years])} than in any other year ("
         f"{_join([str(int(outside_by_year.loc[year])) for year in top_years])}): the years in "
         "which the coding of junctions and of urban road types changed "
         '(<a href="data.html#records">coding breaks</a>). '
         f"Road type accounts for {int(outside_by_term.get('Road type', 0))} of the {outside}."
-        "</p>"
+        "</p>",
     )
 
-    body += "<h2>Severity and frequency</h2>"
+    body += "<h2>Limits of these associations</h2>"
     body += (
         "<p>A circumstance can raise the number of crashes and lower the share that are fatal "
-        "at the same time, and these records observe only the second: they contain no measure "
-        "of how much driving takes place on wet roads or through junctions. Why the fatal share "
-        "is lower is also untested, since the file has no data on speed, vehicles or "
-        "drivers. Two associations hold throughout: wet conditions and "
-        "junctions go with lower odds that an injury crash is fatal in every model variant and "
-        "in the refit without Catalonia's crashes. The association with hail and snow "
-        "disappears on conventional roads and remains unresolved.</p>"
+        "at the same time, and these records observe only the fatal share: they contain no "
+        "measure of how much driving takes place on wet roads or through junctions. Why the "
+        "fatal share is lower is also untested, since the file has no data on speed, vehicles "
+        "or drivers.</p>"
     )
     body += downloads(
         [
@@ -520,7 +512,8 @@ def page_severity(captions: dict[str, str]) -> str:
     return render_page(
         "severity",
         "Crash circumstances and fatal outcomes",
-        "A logistic regression relates the circumstances recorded for each injury crash in "
-        f"DGT's national records, {first_year}–{last_year}, to whether anyone died.",
+        "Which circumstances recorded by the police go with a death once an injury crash has "
+        f"happened, in DGT's national records for {first_year}–{last_year}: an analysis of "
+        "associations, not a predictive model.",
         body,
     )
