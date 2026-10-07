@@ -79,9 +79,9 @@ LIMITS = {
     "catalonia_crash_severity": [
         "The data contain only crashes with a death or serious injury: the model compares fatal "
         "with serious crashes and says nothing about crashes with only minor injuries or none.",
-        "Recording completeness follows the outcome (fatal crashes are documented more fully); "
-        "the fields where this is visible are kept out of the primary model and shown in the "
-        "recording check.",
+        "How often some fields are left 'not specified' differs sharply between fatal and "
+        "serious crashes (the file does not say why); those fields are kept out of the primary "
+        "model and shown in the recording check.",
         "No vehicle speeds, no person records, no alcohol or drug tests: `C_VELOCITAT_VIA` is the "
         "road's limit, and is a code rather than a limit wherever the generic limit applies.",
         "Severity definitions are those of the Servei Català de Trànsit export; the file does not "

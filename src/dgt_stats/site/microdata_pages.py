@@ -326,12 +326,13 @@ def page_catalonia(captions: dict[str, str]) -> str:
     names = ", ".join(ca(c) for c in sorted(set(outcome_dependent.column)))
     worst = outcome_dependent.sort_values("ratio_fatal_to_serious").iloc[0]
     body += (
-        '<p>Some fields are left "not specified" far more often for serious crashes than for '
-        f"fatal ones: fatal crashes are documented more fully. For {ca(worst.column)} the level "
+        '<p>Some fields are left "not specified" at very different rates for serious and for '
+        f"fatal crashes. For {ca(worst.column)} the level "
         f'"{esc(worst.level)}" covers {_fmt_pct(worst.rate_serious)} of serious crashes and '
-        f"{_fmt_pct(worst.rate_fatal)} of fatal ones. Such a field partly records how a crash "
-        "was investigated, which follows its outcome, so the severity model leaves these out of "
-        f"its main version: {names}. Recording also differs by place and year (see the "
+        f"{_fmt_pct(worst.rate_fatal)} of fatal ones. The file does not say why; whatever the "
+        "reason, the placeholder itself carries information about the outcome, so the severity "
+        f"model leaves these fields out of its main version: {names}. Recording also differs by "
+        "place and year (see the "
         f'<a href="{DOCS_URL}/DATA_QUALITY_MICRODATA.md">data-quality report</a>).</p>'
     )
     body += downloads(
@@ -844,6 +845,35 @@ def page_severity_models(captions: dict[str, str]) -> str:
             },
         )
 
+    body += "<h2>Spain: a national test, not a national model</h2>"
+    transport = read_table("ml_transport_validation")
+    audit = read_table("dgt_audit_checks")
+    national = transport[
+        transport.experiment.eq("Catalonia -> Spain outside Catalonia")
+        & transport.estimator.eq(primary.loc["catalonia_common_dgt"].estimator)
+        & transport.status.eq("reported")
+    ].iloc[0]
+    failed_checks = audit[~audit.passed & audit.check.str.match(r"\d")]
+    allowed = audit.decision.iloc[0].startswith("DGT microdata may train")
+    _check(not allowed, "severity models", "the DGT audit keeps DGT records out of training")
+    body += (
+        "<p>No model on this page is trained on the national DGT crash records: their audit "
+        f"fails {len(failed_checks)} of its checks ("
+        + ", ".join(esc(c.split(" ", 1)[1]) for c in failed_checks.check)
+        + '; <a href="sources.html">sources page</a>), so they describe Spain rather than train '
+        "a model of it. They are used instead to test the Catalan model, restricted to the "
+        "variables both sources record the same way, on crashes recorded by other police forces "
+        f"outside Catalonia: the target domain's own model scores "
+        f"{national.in_domain_cv_roc_auc:.3f}, the transferred Catalan model "
+        f"{national.roc_auc:.3f}, a gap of {national.transfer_gap:+.3f} on "
+        f"{_fmt_int(national.test_n)} crashes ({_fmt_int(national.test_positives)} fatal), "
+        f"calibration slope {national.calibration_slope:.2f}. How far that reaches is on the "
+        '<a href="transport.html">generalisability page</a>. The DGT records still support a '
+        '<a href="severity.html">supporting association analysis</a>, which is not a predictive '
+        'model, and the national deaths series supports the <a href="forecast.html">monthly '
+        "deaths forecast</a>.</p>"
+    )
+
     body += "<h2>Models that were not built</h2>"
     insufficient = rare[rare.verdict.str.startswith("insufficient")]
     enough = rare[~rare.verdict.str.startswith("insufficient")]
@@ -852,10 +882,8 @@ def page_severity_models(captions: dict[str, str]) -> str:
         f"defensible task here. {len(insufficient)} recorded causes have fewer than 100 crashes "
         "(insufficient data for a reliable model, and no synthetic oversampling is used to "
         f"pretend otherwise); the {len(enough)} with more are compared descriptively on the "
-        "Barcelona page instead, because whether a cause is recorded reflects police "
-        "investigation and testing as much as the crash. The DGT crash microdata do not train a "
-        'model either: their recording differs between provinces (see the <a href="sources.html">'
-        "sources page</a>).</p>"
+        "Barcelona page instead: a recorded cause is the police's coding after the event, and "
+        "the files do not show how fully each crash was investigated or tested.</p>"
     )
     body += table(
         pd.DataFrame(
@@ -923,16 +951,23 @@ def page_transport(captions: dict[str, str]) -> str:
     verdicts = read_table("ml_barcelona_diagnosis_verdicts")
     strategies = read_table("ml_domain_strategies")
     national_checks = read_table("dgt_audit_transfer").set_index("check")
+    selected = read_table("ml_selected")
+    chosen_estimator = selected[selected.primary].set_index("model").estimator
     fitted = transport[transport.estimator.ne("baseline_prior")]
-    reported = fitted[fitted.status.eq("reported")]
+    # Each model is shown with the estimator chosen on its own validation data, never the better
+    # of two after seeing the transfer results.
+    reported = fitted[
+        fitted.status.eq("reported")
+        & (fitted.estimator == fitted.model.map(chosen_estimator).fillna(fitted.estimator))
+    ]
 
-    def best(prefix: str, model: str):
+    def test_row(prefix: str, model: str):
         part = reported[(reported.model == model) & reported.experiment.str.startswith(prefix)]
-        return part.sort_values("roc_auc", ascending=False).iloc[0]
+        return part.iloc[0]
 
-    to_bcn = best("rest of Catalonia -> Barcelona municipality", "catalonia_crash_severity")
-    from_bcn = best("Barcelona municipality -> rest of Catalonia", "catalonia_crash_severity")
-    national = best("Catalonia -> Spain outside Catalonia", "catalonia_common_dgt")
+    to_bcn = test_row("rest of Catalonia -> Barcelona municipality", "catalonia_crash_severity")
+    from_bcn = test_row("Barcelona municipality -> rest of Catalonia", "catalonia_crash_severity")
+    national = test_row("Catalonia -> Spain outside Catalonia", "catalonia_common_dgt")
     bcn2025 = fitted[fitted.experiment.str.match(r"Catalonia -> Barcelona \d")].iloc[0]
     bcn_year = _year_label(read_table("bcn_person_severity_share"))
     rates = read_table("gen_province_rates")
@@ -956,7 +991,7 @@ def page_transport(captions: dict[str, str]) -> str:
     _check(main.intrinsic_difference > 0, "transport", "Barcelona's crashes are harder to rank")
     gap_reading = (
         ", an interval that includes zero"
-        if not main.transport_gap_excludes_zero
+        if not main.transport_cost_excludes_zero
         else ", an interval that excludes zero"
     )
     _check(
@@ -968,7 +1003,7 @@ def page_transport(captions: dict[str, str]) -> str:
     _check(
         abs(
             main.total_drop
-            - (main.training_size_cost + main.intrinsic_difference + main.transport_gap)
+            - (main.training_size_cost + main.intrinsic_difference + main.transport_cost)
         )
         < 1e-6,
         "transport",
@@ -984,13 +1019,13 @@ def page_transport(captions: dict[str, str]) -> str:
         [
             (
                 "Rest of Catalonia → Barcelona",
-                f"{to_bcn.roc_auc:.2f}",
-                f"in-domain {to_bcn.in_domain_cv_roc_auc:.2f}, gap {to_bcn.transfer_gap:+.2f}",
+                f"{to_bcn.roc_auc:.3f}",
+                f"native {to_bcn.in_domain_cv_roc_auc:.3f}, gap {to_bcn.transfer_gap:+.3f}",
             ),
             (
                 "Catalonia → rest of Spain",
-                f"{national.roc_auc:.2f}",
-                f"in-domain {national.in_domain_cv_roc_auc:.2f}, gap {national.transfer_gap:+.2f}",
+                f"{national.roc_auc:.3f}",
+                f"native {national.in_domain_cv_roc_auc:.3f}, gap {national.transfer_gap:+.3f}",
             ),
             (
                 "Barcelona's intrinsic difference",
@@ -1015,7 +1050,7 @@ def page_transport(captions: dict[str, str]) -> str:
         f"of {main.total_drop:.2f} from what it achieves inside the rest of Catalonia splits into "
         f"{main.training_size_cost:.2f} for Barcelona's smaller training set, "
         f"{main.intrinsic_difference:.2f} because Barcelona's crashes are harder to rank with "
-        f"these variables ({urban_reading}), and {main.transport_gap:+.2f} for the move itself"
+        f"these variables ({urban_reading}), and {main.transport_cost:.2f} for the move itself"
         f"{gap_reading}. Restricted to the variables DGT records the same way, the model "
         f"ranks crashes elsewhere in Spain at {national.roc_auc:.2f} against "
         f"{national.in_domain_cv_roc_auc:.2f} in-domain. Transfer shows that associations hold "
@@ -1065,11 +1100,7 @@ def page_transport(captions: dict[str, str]) -> str:
 
     body += "<h2>B. Do the models keep their ranking?</h2>"
     body += figure("tr1_catalonia_transfer", "Transfer of the full Catalan model", captions)
-    shown = (
-        reported[reported.in_domain_cv_roc_auc.notna()]
-        .sort_values("roc_auc", ascending=False)
-        .drop_duplicates(["model", "experiment"])
-    )
+    shown = reported[reported.in_domain_cv_roc_auc.notna()].drop_duplicates(["model", "experiment"])
     body += table(
         pd.DataFrame(
             {
@@ -1078,26 +1109,24 @@ def page_transport(captions: dict[str, str]) -> str:
                 "Train n": shown.train_n,
                 "Test n": shown.test_n,
                 "Test positives": shown.test_positives,
-                "ROC-AUC": shown.roc_auc,
-                "In-domain": shown.in_domain_cv_roc_auc,
-                "Gap": shown.transfer_gap,
+                "Native": shown.in_domain_cv_roc_auc.map("{:.3f}".format),
+                "Transferred": shown.roc_auc.map("{:.3f}".format),
+                "Gap": shown.transfer_gap.map("{:+.3f}".format),
                 "Calibration slope": shown.calibration_slope,
             }
         ),
-        "Every transfer test with its in-domain reference (a model trained inside the test "
-        "domain); gap = in-domain minus transferred",
+        "Every external test: the target domain's native score (a model trained and "
+        "cross-validated inside it), the transferred score and the gap (transferred minus native; "
+        "negative = ranking lost)",
         {
             "Train n": "int",
             "Test n": "int",
             "Test positives": "int",
-            "ROC-AUC": "dec2",
-            "In-domain": "dec2",
-            "Gap": "dec2",
             "Calibration slope": "dec2",
         },
     )
     body += (
-        "<p>A negative gap means the transferred model, trained on many more crashes, beat a "
+        "<p>A positive gap means the transferred model, trained on many more crashes, beat a "
         "model trained on the small target domain: the training size outweighed the change of "
         f"place. Trained on Barcelona alone and tested on the rest of Catalonia the model scores "
         f"{from_bcn.roc_auc:.2f}: Barcelona is not a proxy for Catalonia.</p>"

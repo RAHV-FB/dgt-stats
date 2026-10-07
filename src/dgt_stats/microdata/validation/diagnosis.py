@@ -19,7 +19,7 @@ ability for four different reasons, and each has its own measurement:
   Barcelona's in-domain score against the transferred score, on the same Barcelona crashes.
 
 These telescope exactly: rest in-domain minus rest-to-Barcelona = training-size cost + intrinsic
-difference + transport gap. Differences on the same rows get paired bootstrap intervals; the
+difference + transport cost. Differences on the same rows get paired bootstrap intervals; the
 intrinsic difference compares two sets of crashes and gets independent ones.
 
 **Domain-specific against pooled.** For each target domain (Barcelona, the rest of Catalonia,
@@ -362,7 +362,7 @@ def decomposition(
                 "independent bootstrap (different crashes)",
             )
             paired(
-                "transport gap",
+                "transport cost",
                 f"{code_bcn} - {code_transfer}: Barcelona trained inside "
                 "it against trained on the rest of Catalonia (negative: the larger foreign "
                 "training set more than makes up for the change of domain)",
@@ -383,7 +383,7 @@ def decomposition(
                     **base,
                     "component": "total drop",
                     "definition": f"{code_in_rest} - {code_transfer}: = training-size cost + "
-                    "intrinsic difference + transport gap",
+                    "intrinsic difference + transport cost",
                     "value": float(
                         roc_auc_score(y_rest, p_rest) - roc_auc_score(y_bcn, p_transfer)
                     ),
@@ -513,7 +513,7 @@ def verdicts(components: pd.DataFrame, strategies_frame: pd.DataFrame) -> pd.Dat
     from dgt_stats.microdata.ml.rules import MIN_GAIN
 
     out = []
-    parts = ("training-size cost", "intrinsic difference", "transport gap")
+    parts = ("training-size cost", "intrinsic difference", "transport cost")
     for (feats, estimator), group in components.groupby(["features", "estimator"]):
         if feats.startswith("full against"):
             continue
@@ -540,8 +540,8 @@ def verdicts(components: pd.DataFrame, strategies_frame: pd.DataFrame) -> pd.Dat
                 ),
                 "material_components": "; ".join(material) or "none",
                 "largest_component": largest,
-                "transport_gap_excludes_zero": bool(
-                    g.loc["transport gap", "low"] > 0 or g.loc["transport gap", "high"] < 0
+                "transport_cost_excludes_zero": bool(
+                    g.loc["transport cost", "low"] > 0 or g.loc["transport cost", "high"] < 0
                 ),
             }
         )

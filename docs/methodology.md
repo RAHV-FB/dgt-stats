@@ -957,14 +957,15 @@ left out, later Barcelona years from earlier years elsewhere); across sources wi
 restricted to variables recorded the same way (validated on the overlap; road class and junction
 fail); and in Barcelona, each district scored by a model trained on the others. Every transfer
 score sits beside an in-domain reference (the same kind of model cross-validated inside the
-target domain, including the test year of the temporal holdouts) and the transfer gap is
-reported. A reweighting to the national mix is a sensitivity check, not a national model.
+target domain, including the test year of the temporal holdouts: the target domain's native
+score) and the transfer gap, transferred minus native, is reported with the sample size, the
+positives and the calibration; a negative gap is ranking lost in the move. A reweighting to the national mix is a sensitivity check, not a national model.
 
 **Why Barcelona is harder** (`diagnosis.py`). The fall from the rest of Catalonia (in-domain) to
 Barcelona (transferred) telescopes into a training-size cost (the rest of Catalonia with its
 training folds cut to Barcelona's size), an intrinsic difference (that size-matched score
 against Barcelona's own in-domain score, and against the rest of Catalonia's urban crashes) and
-a transport gap (Barcelona in-domain against transferred, on the same crashes). Feature loss is
+a transport cost (Barcelona in-domain minus transferred, on the same crashes). Feature loss is
 measured separately, full against Barcelona-common features on the same rows. Domain-specific,
 other-domain, pooled, pooled-with-flag and universal (common-feature) models are compared on the
 same held-out crashes of each target domain (Barcelona, the rest of Catalonia, urban, interurban).
@@ -977,7 +978,7 @@ question answers the other.
 **The outward path toward Spain.** Five stages: held-out rows of the same source; later years;
 another region inside the source; another independently recorded Spanish dataset; national
 aggregates showing whether the training population resembles Spain. A transfer stage passes when
-the ROC-AUC interval stays above 0.5 and the score is at most 0.05 below its in-domain reference;
+the ROC-AUC interval stays above 0.5 and the transfer gap is no worse than -0.05;
 stage 5 passes when no shared variable's mix differs by more than 0.02 (Jensen-Shannon). Only a
 model that passes all five would be called potentially nationally transferable. Everything is
 generated in [`GENERALISABILITY.md`](GENERALISABILITY.md) and `reports/model_metrics.json`.

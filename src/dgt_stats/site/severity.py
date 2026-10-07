@@ -1,4 +1,7 @@
-"""Supporting analysis: the crash-severity models.
+"""Supporting analysis: associations in DGT crash records (the crash-severity regressions).
+
+A description of which recorded circumstances go with a fatal outcome in DGT's injury-crash
+records, not a predictive model: the project does not train a severity model on DGT's file.
 
 Every number is read from the ``q3_*`` tables that ``scripts/model.py`` writes; the qualitative
 sentences are guarded by checks that stop the build when the tables stop supporting them. The
@@ -7,6 +10,8 @@ reported and explained, never read as an effect.
 """
 
 from __future__ import annotations
+
+import math
 
 import pandas as pd
 
@@ -135,10 +140,22 @@ def page_severity(captions: dict[str, str]) -> str:
         raise ValueError(f"severity page: the tables no longer support: {failed}")
 
     fatal_holdout, serious_holdout = holdout.loc["fatal"], holdout.loc["serious"]
+    # The missing-value levels are among the strongest terms of the fatal regression: one
+    # reason the file is used to describe associations and not to train a predictive model.
+    ranked = fatal[(fatal.index.get_level_values("predictor") != "year")].dropna(
+        subset=["odds_ratio"]
+    )
+    ranked = ranked[~ranked.is_reference.astype(bool)]
+    strongest = ranked.reindex(
+        ranked.odds_ratio.map(lambda v: abs(math.log(v))).sort_values(ascending=False).index
+    )
+    if not strongest.head(3).is_nuisance.astype(bool).any():
+        raise ValueError("severity page: no missing-value level is among the strongest terms")
+    top_nuisance = strongest[strongest.is_nuisance.astype(bool)].iloc[0]
     body = key_figures(
         [
             (
-                "Injury crashes modelled",
+                "Injury crashes described",
                 f"{numbers['n']:,}",
                 f"{first_year}–{last_year}, none dropped",
             ),
@@ -149,9 +166,9 @@ def page_severity(captions: dict[str, str]) -> str:
                 "against a dry road, everything else held constant",
             ),
             (
-                "Holdout discrimination",
+                "Holdout check, fatal",
                 f"{numbers['auc_fatal']:.2f}",
-                f"area under the ROC curve, {test_span} scored by a {train_span} fit",
+                f"area under the ROC curve: {train_span} associations scored on {test_span}",
             ),
         ]
     )
@@ -164,11 +181,17 @@ def page_severity(captions: dict[str, str]) -> str:
         "twice, worth about "
         f"{wet_alone:.2f} on its own. These are associations in the police record of crashes "
         "that happened, given an injury crash. It says nothing about how often crashes happen.</p>"
+        "<p>This page describes associations in DGT's records; it is not the project's "
+        "predictive model. Levels that record a missing value rather than what happened are "
+        "among the strongest terms of the regression ("
+        f"{str(top_nuisance.predictor_label).lower()} “{top_nuisance.name[1]}”, odds ratio "
+        f"{float(top_nuisance.odds_ratio):.2f}), which is one reason DGT's file is used here to "
+        "describe associations and not to train a model that predicts severity.</p>"
     )
 
     body += "<h2>Testing the finding</h2>"
     body += (
-        "<p>The models are two logistic regressions on every injury crash of "
+        "<p>The description is two logistic regressions on every injury crash of "
         f"{first_year} to {last_year}, one for a death and one for a death or a "
         "hospitalisation. The predictors are the circumstances the police record: zone, road "
         "type, crash type, junction, lighting, weather, surface, alignment, time of day, "
@@ -320,11 +343,12 @@ def page_severity(captions: dict[str, str]) -> str:
         "<p>The large ratios are for the kind of crash. A head-on collision carries "
         f"{head_on.odds_ratio:.1f} times the odds of a death of a side collision, and a pedestrian "
         f"struck {pedestrian.odds_ratio:.1f} times, against {junction_full:.2f} for a junction and "
-        f"{wet_alone:.2f} for a wet road. Fitted on {train_span} and scored on {test_span}, "
-        f"the fatal model reaches an area under the ROC curve of {numbers['auc_fatal']:.2f} and "
-        f"the serious model {numbers['auc_serious']:.2f}: it ranks crashes far better than "
-        "chance. Its probabilities improve less on the simplest forecast, the training years' "
-        "share of fatal crashes given to every crash: the Brier score is "
+        f"{wet_alone:.2f} for a wet road. As a check that the associations carry across "
+        f"years, the regressions were fitted on {train_span} without a year term and scored on "
+        f"{test_span}: the area under the ROC curve is {numbers['auc_fatal']:.2f} for a death "
+        f"and {numbers['auc_serious']:.2f} for a death or a hospitalisation, far better than "
+        "chance at ranking, while the fitted probabilities improve little on the training "
+        "years' share of each outcome given to every crash: the Brier score is "
         f"{_fmt_pct(float(fatal_holdout.brier_skill))} better for a death and "
         f"{_fmt_pct(float(serious_holdout.brier_skill))} better for a death or a "
         "hospitalisation.</p>"
@@ -334,8 +358,9 @@ def page_severity(captions: dict[str, str]) -> str:
     )
     body += table(
         profiles,
-        f"Predicted probability of each outcome for named crash profiles ({last_year}; "
-        "circumstances not named are at their reference level)",
+        f"Fitted share of each outcome for named crash profiles ({last_year}; circumstances "
+        "not named are at their reference level): the associations combined for illustration, "
+        "not a prediction",
         {"Fatal": "pct2", "Serious": "pct"},
     )
     body += downloads(
@@ -380,8 +405,9 @@ def page_severity(captions: dict[str, str]) -> str:
     )
     return render_page(
         "severity",
-        "Crash severity",
+        "Associations in DGT crash records",
         "Which recorded circumstances go with a fatal outcome once an injury crash has "
-        "happened, and how those associations hold up under sensitivity fits.",
+        "happened, and how those associations hold up under sensitivity fits: a description "
+        "of DGT's records, not a predictive model.",
         note(SUPPORTING_NOTES["severity"]) + body,
     )

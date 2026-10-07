@@ -157,7 +157,7 @@ hashed, as the record of what the withdrawn models used.
   whatever the road (100 even on urban streets): a code. `speed_limit_kmh` keeps posted limits
   only.
 - **Recording artefacts**: the "not specified" levels of several fields are far rarer among fatal
-  crashes (fatal crashes are documented more fully) and vary by year and place; those fields are
+  crashes (the file does not say why) and vary by year and place; those fields are
   excluded from the primary model (`recording.py`, `ML_LEAKAGE_AUDIT.md`). Structural `NA`s
   (road owner on urban streets, junction type away from junctions) are kept.
 - **Allowed joins**: none at record level. Aggregates by province-year with the DGT microdata and

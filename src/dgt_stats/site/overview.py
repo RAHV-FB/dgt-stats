@@ -396,7 +396,8 @@ def page_index(captions: dict[str, str]) -> str:
         "relative risk is taken from a study made elsewhere, and the forecasting model is "
         "fitted only to Spain's monthly deaths and road fuel. Two analyses built earlier in the "
         "project are kept as supporting material because they are careful but outside this "
-        'question: a <a href="severity.html">model of crash severity</a> and a '
+        'question: <a href="severity.html">associations in DGT crash records</a>, which '
+        "describe crash severity and are not a predictive model, and a "
         '<a href="policy.html">test of the 2006 points licence</a> whose headline did not '
         "survive its own falsification tests. Road design and municipal hotspots are not "
         "analysed: DGT's national files carry no road geometry, traffic volume or "

@@ -76,7 +76,7 @@ def test_every_source_model_is_compared_with_a_lookup_table() -> None:
 
 def test_diagnosis_components_telescope_to_the_total_drop() -> None:
     components = _table("ml_barcelona_diagnosis_components")
-    parts = ("training-size cost", "intrinsic difference", "transport gap")
+    parts = ("training-size cost", "intrinsic difference", "transport cost")
     for (_, _), group in components[~components.features.str.startswith("full against")].groupby(
         ["features", "estimator"]
     ):
@@ -94,9 +94,11 @@ def test_strategies_score_the_same_rows_for_every_strategy() -> None:
 
 def test_every_transfer_test_with_a_reference_reports_its_gap() -> None:
     transport = _table("ml_transport_validation")
-    with_reference = transport[transport.in_domain_cv_roc_auc.notna() & transport.roc_auc.notna()]
+    fitted = transport[transport.estimator.ne("baseline_prior")]
+    with_reference = fitted[fitted.in_domain_cv_roc_auc.notna() & fitted.roc_auc.notna()]
     assert not with_reference.empty
-    gap = with_reference.in_domain_cv_roc_auc - with_reference.roc_auc
+    # Transferred minus native: negative is ranking lost in the move.
+    gap = with_reference.roc_auc - with_reference.in_domain_cv_roc_auc
     # Six significant digits in the table: allow the rounding of three values.
     assert np.allclose(gap, with_reference.transfer_gap, rtol=0, atol=5e-6)
     temporal = transport[

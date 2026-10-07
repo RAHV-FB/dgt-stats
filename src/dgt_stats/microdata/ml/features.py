@@ -106,8 +106,8 @@ _CAT_CONDITIONS = [
     ("D_SUBTIPUS_ACCIDENT", "accident subtype"),
 ]
 # Fields whose "not specified" (or unexplained "NA") level is far less often fatal than the rest
-# in the training years: they record how fully a crash was documented, and fatal crashes are
-# documented more fully, so the level partly follows the outcome. Checked on every build by
+# in the training years: the placeholder's rate differs by outcome (the file does not say why),
+# so the level carries information about the outcome. Checked on every build by
 # ``recording_check`` and the tests.
 DOCUMENTATION_DEPENDENT = {
     "D_TRACAT_ALTIMETRIC": ("vertical alignment", "Sense especificar"),

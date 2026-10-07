@@ -377,7 +377,8 @@ STAGES = {
     5: "national aggregates: does the training population resemble Spain?",
 }
 # Declared before any result is read. A transfer test passes when its ROC-AUC interval stays
-# above 0.5 and, where an in-domain reference exists, it is at most MAX_TRANSFER_GAP below it.
+# above 0.5 and, where an in-domain reference exists, its transfer gap (transferred minus native)
+# is no worse than -MAX_TRANSFER_GAP.
 # The training population resembles Spain when no shared variable's mix differs by more than
 # MAX_RESEMBLANCE_JSD (Jensen-Shannon divergence, DGT records, one definition everywhere).
 MAX_TRANSFER_GAP = 0.05
@@ -463,7 +464,7 @@ def _test_passes(row) -> bool:
     low = row.get("roc_auc_low", math.nan)
     gap = row.get("transfer_gap", math.nan)
     above = (low > 0.5) if pd.notna(low) else (row.roc_auc > 0.5)
-    return bool(above and (pd.isna(gap) or gap <= MAX_TRANSFER_GAP))
+    return bool(above and (pd.isna(gap) or gap >= -MAX_TRANSFER_GAP))
 
 
 def _resemblance(tables: dict[str, pd.DataFrame], comparison: str) -> tuple[str, str, float]:
@@ -629,8 +630,8 @@ def _diagnosis_text(verdicts: pd.DataFrame, components: pd.DataFrame) -> list[st
         lines.append(
             f"- {row.features}, {modelling_label(row.estimator)}: the drop "
             f"{row.total_drop:+.3f} splits into training size {row.training_size_cost:+.3f}, "
-            f"intrinsic difference {row.intrinsic_difference:+.3f} and transport gap "
-            f"{row.transport_gap:+.3f}. Material (interval excludes 0 and at least 0.02): "
+            f"intrinsic difference {row.intrinsic_difference:+.3f} and transport cost "
+            f"{row.transport_cost:+.3f}. Material (interval excludes 0 and at least 0.02): "
             f"{row.material_components}. Against the rest of Catalonia's urban crashes at the "
             f"same training size the intrinsic difference is "
             f"{row.intrinsic_difference_against_urban:+.3f} ("
@@ -820,9 +821,9 @@ def document(tables: dict[str, pd.DataFrame]) -> str:
         a = alignment.iloc[0]
         lines += [
             f"DGT's 'alignment unknown' code covers {a.share_a:.1%} of these crashes in Catalonia "
-            f"and {a.share_b:.1%} elsewhere: a difference in how crashes are recorded, not in the "
-            "roads. Recording differences are themselves a reason a model may not transfer (see "
-            "[`DGT_MICRODATA_AUDIT.md`](DGT_MICRODATA_AUDIT.md)).",
+            f"and {a.share_b:.1%} elsewhere. 'Unknown' describes the record, not the road; the "
+            "data do not show whether the roads differ. Differences in how often a field is left "
+            "unrecorded are measured in [`DGT_MICRODATA_AUDIT.md`](DGT_MICRODATA_AUDIT.md).",
             "",
         ]
     lines += [
@@ -856,10 +857,11 @@ def document(tables: dict[str, pd.DataFrame]) -> str:
         ),
         "",
         "`in_domain_cv_roc_auc`: the same kind of model trained and cross-validated inside the",
-        "test domain (on `in_domain_train_n` rows per fold). `transfer_gap` = in-domain minus",
-        "transferred; positive means moving domain cost ranking ability. A negative gap means the",
-        "larger foreign training set outweighed the change of domain, so read it with the",
-        "training sizes.",
+        "test domain (on `in_domain_train_n` rows per fold): the target domain's native score.",
+        "`transfer_gap` = transferred minus native; negative means the move lost ranking ability.",
+        "A positive gap means the larger foreign training set outweighed the change of domain, so",
+        "read it with the training sizes. A transferred score is never read without its native",
+        "reference.",
         "",
         "### Why the Catalan model ranks Barcelona's crashes less well",
         "",
@@ -885,7 +887,7 @@ def document(tables: dict[str, pd.DataFrame]) -> str:
         ),
         "",
         "The components (they telescope: total drop = training size + intrinsic difference +",
-        "transport gap):",
+        "transport cost):",
         "",
         _md(
             components[
@@ -948,7 +950,8 @@ def document(tables: dict[str, pd.DataFrame]) -> str:
         "",
         "Five stages, each on real held-out records or published aggregates. A transfer stage",
         f"passes when the ROC-AUC interval stays above 0.5 and the score is at most "
-        f"{MAX_TRANSFER_GAP} below the in-domain reference; stage 5 passes when no shared "
+        f"{MAX_TRANSFER_GAP} below the target domain's native reference (transfer gap at least "
+        f"-{MAX_TRANSFER_GAP}); stage 5 passes when no shared "
         f"variable's mix differs between the training population and Spain by more than "
         f"{MAX_RESEMBLANCE_JSD} (Jensen-Shannon). Only a model that passes all five would be",
         "called potentially nationally transferable; no model jumps from Barcelona or Catalonia",

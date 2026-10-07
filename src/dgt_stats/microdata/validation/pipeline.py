@@ -63,6 +63,9 @@ def documents() -> dict[str, pd.DataFrame]:
     results = reporting.load()
     tables = reporting.read_tables(("ml_", "cat_", "bcn_", "mq_", "dgt_audit_"))
     tables["ml_common_feature_validation"] = harmonise.validate_dgt()
+    audit = {name: tables[name] for name in tables if name.startswith("dgt_audit_")}
+    if audit:
+        dgt_audit.DOC.write_text(dgt_audit.document(audit), encoding="utf-8")
     tables.update(generalisability.run(tables))
     tables.update(decisions.run(tables))
     reporting.write_docs([results[t.name] for t in features.TABLES], tables)

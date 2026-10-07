@@ -329,7 +329,7 @@ def transfer_checks(tables: dict[str, pd.DataFrame]) -> list[dict]:
             ("DGT outside Catalonia", test),
         )
     }
-    gap = float(national.in_domain_cv_roc_auc - national.roc_auc)
+    gap = float(national.roc_auc - national.in_domain_cv_roc_auc)
     return [
         {
             "check": "target equivalence",
@@ -379,9 +379,11 @@ def transfer_checks(tables: dict[str, pd.DataFrame]) -> list[dict]:
             "check": "in-domain reference and transfer gap",
             "criterion": "a model trained on DGT crashes outside Catalonia, same fields "
             "(5-fold CV), against the transferred Catalan model on the same crashes",
-            "evidence": f"in-domain ROC-AUC {national.in_domain_cv_roc_auc:.3f}, transferred "
-            f"{national.roc_auc:.3f} ({national.roc_auc_low:.3f}-{national.roc_auc_high:.3f}); "
-            f"gap {gap:+.3f}",
+            "evidence": f"target-domain native ROC-AUC {national.in_domain_cv_roc_auc:.3f}, "
+            f"transferred {national.roc_auc:.3f} ({national.roc_auc_low:.3f}-"
+            f"{national.roc_auc_high:.3f}); gap (transferred minus native) {gap:+.3f}; "
+            f"n={int(national.test_n):,}, positives={int(national.test_positives):,}, "
+            f"calibration slope {national.calibration_slope:.2f}",
             "passed": True,
         },
     ]
@@ -415,6 +417,42 @@ def _md(frame: pd.DataFrame, pct: tuple[str, ...] = (), dec: tuple[str, ...] = (
                 cells.append(str(value).replace("|", "/"))
         lines.append("| " + " | ".join(cells) + " |")
     return "\n".join(lines)
+
+
+def _meaning(checks: pd.DataFrame) -> list[str]:
+    """What the checks imply, worded from their results."""
+    status = checks.set_index("check").passed
+    file_ok = all(status[c] for c in status.index if c[:1] in "12345")
+    lines = [
+        "- The file checks (1-5) "
+        + (
+            "pass: the file is the complete published universe, so it is the right source for "
+            "national counts, trends, province comparisons and descriptive shares."
+            if file_ok
+            else "do not all pass: national counts from it are read with the failing checks above."
+        )
+    ]
+    if not status.get("6 comparable across regions", True):
+        lines.append(
+            "- Several fields are left unrecorded at very different rates in different provinces. "
+            "A field's unrecorded share then varies with where the crash was recorded as well as "
+            "with the crash; the data do not establish whether the difference lies in recording "
+            "practice or in the crashes. A model trained on all of Spain would learn it."
+        )
+    if not status.get("7 recording artefacts do not dominate", True):
+        lines.append(
+            "- Which fields were left unrecorded ranks the outcome on its own (check 7), so a "
+            "model's score on these records would partly measure how completely crashes were "
+            "recorded."
+        )
+    lines.append(
+        "- The file enters modelling only through fields validated against the Catalan file on "
+        "the crashes both hold, as an external test: the Catalan model scored on crashes recorded "
+        "outside Catalonia, its transfer gap always beside the target domain's native score."
+        if decide(checks).startswith("DGT microdata stay")
+        else "- The file passes every check and may train a model."
+    )
+    return lines
 
 
 def document(out: dict[str, pd.DataFrame]) -> str:
@@ -492,15 +530,7 @@ def document(out: dict[str, pd.DataFrame]) -> str:
         "",
         "## What this means",
         "",
-        "- The DGT file is complete and internally consistent (checks 1-5): it is the right "
-        "source for national counts, trends and province comparisons, and for the descriptive "
-        "shares the site reports.",
-        "- Fields whose recording differs between provinces measure, in part, *who recorded the "
-        "crash*. A model trained on all of Spain would learn that, so the file is used in "
-        "modelling only through fields validated against the Catalan file on the same crashes.",
-        "- The national transfer test is a test of the Catalan model on a separately recorded "
-        "population with the same target and inclusion rule; its transfer gap is reported beside "
-        "the in-domain reference, never alone.",
+        *_meaning(checks),
         "",
     ]
     return "\n".join(lines)

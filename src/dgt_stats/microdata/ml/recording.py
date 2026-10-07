@@ -1,6 +1,5 @@
 """Is a field's "not specified" level a circumstance, or a trace of how fully a crash was recorded?
 
-A crash with a death is investigated and documented more fully than one with a serious injury.
 Where a field's placeholder ("Sense especificar", or an unexplained "NA") is much rarer among fatal
 crashes, the placeholder carries the outcome back into the features: a model can learn "this
 record is incomplete, so the crash was not fatal". This module measures that for every categorical

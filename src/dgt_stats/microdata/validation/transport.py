@@ -826,14 +826,17 @@ def run(results: dict[str, modelling.TaskResult]) -> dict[str, pd.DataFrame]:
     validation = pd.DataFrame(
         reference + geographic + common_reference + dgt_rows + bcn_rows + districts
     )
-    # The transfer gap: in-domain reference minus the transferred score (positive = the move
-    # costs ranking ability). The in-domain model trains on four fifths of the test domain, so a
-    # negative gap can mean the larger foreign training set outweighs the change of domain.
+    # The transfer gap: the transferred score minus the target domain's native (in-domain)
+    # reference, so a negative gap is ranking lost in the move. The in-domain model trains on four
+    # fifths of the test domain, so a positive gap can mean the larger foreign training set
+    # outweighs the change of domain. The prior-only baseline has no gap.
     validation["in_domain_train_n"] = (validation.test_n * (modelling.N_FOLDS - 1)) // (
         modelling.N_FOLDS
     )
     validation.loc[validation.in_domain_cv_roc_auc.isna(), "in_domain_train_n"] = np.nan
-    validation["transfer_gap"] = validation.in_domain_cv_roc_auc - validation.roc_auc
+    validation["transfer_gap"] = (validation.roc_auc - validation.in_domain_cv_roc_auc).where(
+        validation.estimator.ne("baseline_prior")
+    )
     return {
         "ml_transport_validation": validation,
         "ml_transport_provinces": provinces,

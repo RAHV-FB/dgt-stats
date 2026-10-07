@@ -58,12 +58,12 @@ ALL_PAGES = PAGES + SUPPORTING_PAGES
 
 SUPPORTING_NOTES = {
     "severity": (
-        "<strong>Supporting analysis.</strong> This model describes the outcome of a crash by "
-        "where, when and how it happened. It is kept because it is careful and because it shows "
-        "which recorded circumstances go with a fatal outcome, but a multivariate model of crash "
-        "causation is not what these data are best at: DGT's national crash microdata have no "
-        "driver, vehicle or speed records. The central question of the site is on the "
-        '<a href="index.html">overview</a>.'
+        "<strong>Supporting analysis.</strong> This page describes associations in DGT's "
+        "crash records: which recorded circumstances go with a fatal outcome, given an injury "
+        "crash. It is kept because it is careful, but it is not a predictive model and not a "
+        "model of crash causation, which these data cannot support: DGT's national crash "
+        "microdata have no driver, vehicle or speed records. The central question of the site is "
+        'on the <a href="index.html">overview</a>.'
     ),
     "policy": (
         "<strong>Supporting analysis.</strong> A dated policy change is the only kind of "
