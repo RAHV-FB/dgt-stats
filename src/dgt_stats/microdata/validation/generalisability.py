@@ -600,7 +600,8 @@ def outward_path(tables: dict[str, pd.DataFrame]) -> pd.DataFrame:
                 "population differs from Spain's: national use not established"
             )
         else:
-            verdict = f"supported up to stage {highest} ({STAGES[highest] if highest else 'none'})"
+            name = STAGE_NAMES.get(model, {}).get(highest, STAGES[highest]) if highest else "none"
+            verdict = f"supported up to stage {highest} ({name})"
         verdicts[model] = (highest, verdict)
     out["highest_consecutive_stage"] = out.model.map(lambda m: verdicts[m][0])
     out["verdict"] = out.model.map(lambda m: verdicts[m][1])

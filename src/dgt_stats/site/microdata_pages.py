@@ -40,6 +40,8 @@ MODEL_NAMES = {
     "barcelona_crash_severity": "Barcelona: crash with a serious or fatal injury",
     "catalonia_common_dgt": "Catalonia, restricted to DGT-common variables",
     "catalonia_common_bcn": "Catalonia, restricted to Barcelona-common variables",
+    "dgt_crash_severity": "Spain: fatal crash in DGT records (association analysis)",
+    "dgt_monthly_deaths_forecast": "Spain: monthly deaths forecast",
 }
 CARDS = {
     "catalonia_crash_severity": "models/catalonia_fatal_severity.md",
@@ -339,9 +341,10 @@ def page_catalonia(captions: dict[str, str]) -> str:
     names = ", ".join(ca(c) for c in sorted(set(outcome_dependent.column)))
     worst = outcome_dependent.sort_values("ratio_fatal_to_serious").iloc[0]
     body += (
-        '<p>Some fields are left "not specified" at very different rates for serious and for '
-        f"fatal crashes. For {ca(worst.column)} the level "
-        f'"{esc(worst.level)}" covers {_fmt_pct(worst.rate_serious)} of serious crashes and '
+        '<p>Some fields are left blank or "not specified" at very different rates for serious '
+        f"and for fatal crashes. For {ca(worst.column)} "
+        + ("a blank" if pd.isna(worst.level) else f'the level "{esc(worst.level)}"')
+        + f" covers {_fmt_pct(worst.rate_serious)} of serious crashes and "
         f"{_fmt_pct(worst.rate_fatal)} of fatal ones. The file does not say why; whatever the "
         "reason, the placeholder itself carries information about the outcome, so the severity "
         f"model leaves these fields out of its main version: {names}. Recording also differs by "
@@ -590,13 +593,13 @@ def page_barcelona(captions: dict[str, str]) -> str:
     )
 
 
-def layer_line(key: str) -> str:
-    """The line under a page's lead that names its layer in the source hierarchy."""
-    layer = layers.BY_KEY[key]
-    return (
-        f'<p class="level">Layer: <a href="sources.html">{esc(layer.title)}</a>. '
-        f"Unit: {esc(layer.unit)}.</p>"
-    )
+def layer_line(*keys: str) -> str:
+    """The line under a page's lead that names its layer, or layers, in the source hierarchy."""
+    chosen = [layers.BY_KEY[key] for key in keys]
+    plural = "s" if len(chosen) > 1 else ""
+    names = "; ".join(f'<a href="sources.html">{esc(layer.title)}</a>' for layer in chosen)
+    units = "; ".join(esc(layer.unit) for layer in chosen)
+    return f'<p class="level">Layer{plural}: {names}. Unit{plural}: {units}.</p>'
 
 
 # ----------------------------------------------------------------------------- models
@@ -692,7 +695,7 @@ def page_severity_models(captions: dict[str, str]) -> str:
         for m in source_models
     ]
     figures.append(("Kept as models", f"{len(kept)} of {len(source_models)}", "the rest: a table"))
-    body = layer_line("validation") + key_figures(figures)
+    body = layer_line("catalonia", "barcelona") + key_figures(figures)
     body += (
         '<p class="answer">Every model here is asked one question before anything else: does '
         "it rank recorded crashes or people better than a plain table of outcome shares? "
@@ -1356,7 +1359,7 @@ def page_sources(captions: dict[str, str]) -> str:
     decision = checks.decision.iloc[0]
     failed = checks[~checks.passed & checks.check.str.match(r"\d")]
     _check(not comparison.empty, "sources", "the source comparison exists")
-    body = layer_line("validation")
+    body = layer_line(*layers.BY_KEY)
     body += (
         '<p class="answer">The project reads four kinds of data, and each answers a different '
         "kind of question. DGT and INE are the national context: trends, denominators and "

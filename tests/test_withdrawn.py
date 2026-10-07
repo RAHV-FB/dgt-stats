@@ -52,3 +52,39 @@ def test_no_summary_table_carries_a_withdrawn_result() -> None:
     }
     assert not names & withdrawn
     assert {"road_class_baseline", "road_class_risk"} <= names
+
+
+WITHDRAWN_TABLES = re.compile(
+    r"^(simulator_|factor_(deaths|comparison|casualties|inputs|naturalistic|crashes"
+    r"|recorded_shares|speed_curve)|drivers_sex_travel)"
+)
+EXTERNAL_RESULTS = (
+    "Power Model",
+    "DRUID",
+    "Dingus",
+    "INTCF",
+    "lives a year",
+    "attributable",
+    "simulator.js",
+    "factors.js",
+)
+
+
+def test_no_committed_result_table_is_a_withdrawn_one() -> None:
+    tables = PROJECT_ROOT / "reports" / "tables"
+    assert not [path.name for path in tables.glob("*.csv") if WITHDRAWN_TABLES.match(path.name)]
+
+
+def test_the_committed_site_carries_no_withdrawn_result() -> None:
+    from dgt_stats.site import WITHDRAWN_PAGES
+
+    site_dir = PROJECT_ROOT / "site"
+    assert not list(site_dir.glob("*.js"))
+    for path in sorted(site_dir.glob("*.html")):
+        text = path.read_text(encoding="utf-8")
+        if path.stem in WITHDRAWN_PAGES:
+            # A withdrawal notice names what was withdrawn but carries no script or figure.
+            assert "<script" not in text and "<svg" not in text, path.name
+            continue
+        for phrase in EXTERNAL_RESULTS:
+            assert phrase not in text, (path.name, phrase)

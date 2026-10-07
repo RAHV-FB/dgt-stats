@@ -39,7 +39,7 @@ def test_road_group_panel_covers_every_month_and_sums_to_the_microdata() -> None
     # Snapshots of the two series, kept as a tripwire on the shape of the panel.
     assert treated.loc["2016-01-01"] == 67 and treated.loc["2016-07-01"] == 110
     assert control.loc["2016-01-01"] == 24 and control.loc["2016-07-01"] == 30
-    # The panel reconciles to the microdata for the road-type codes methodology section 15 names.
+    # The panel reconciles to the microdata for the road-type codes methodology section 14 names.
     crashes = summaries.read_crashes(["TIPO_VIA", "TOTAL_MU30DF"])
     codes = [*policy.TREATED_CODES, *policy.CONTROL_CODES]
     assert panel.deaths.sum() == crashes[crashes.TIPO_VIA.isin(codes)].TOTAL_MU30DF.sum() == 10_741

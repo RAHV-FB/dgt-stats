@@ -151,11 +151,16 @@ def _fmt_int(value: object) -> str:
 
 
 def _fmt_pct(value: object, decimals: int = 1) -> str:
-    return "" if pd.isna(value) else _minus(f"{float(value) * 100:.{decimals}f}%")
+    # Adding 0.0 turns a value that rounds to -0 into 0, so no zero carries a minus sign.
+    return (
+        ""
+        if pd.isna(value)
+        else _minus(f"{round(float(value) * 100, decimals) + 0.0:.{decimals}f}%")
+    )
 
 
 def _fmt_dec(value: object, decimals: int = 1) -> str:
-    return "" if pd.isna(value) else _minus(f"{float(value):,.{decimals}f}")
+    return "" if pd.isna(value) else _minus(f"{round(float(value), decimals) + 0.0:,.{decimals}f}")
 
 
 def _signed_pct(value: float, decimals: int = 0) -> str:

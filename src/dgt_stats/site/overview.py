@@ -176,6 +176,10 @@ def page_index(captions: dict[str, str]) -> str:
         > float(urban_distraction.share_ratio.iloc[-1]),
         "the forecast beats last year's count in the lockdowns": rmse("pandemic", chosen)
         < rmse("pandemic", "last_year"),
+        "last year's count beats the forecast in ordinary held-out years": rmse(
+            "holdout", "last_year"
+        )
+        < rmse("holdout", chosen),
         "deaths per crash fell more than crashes per tonne of fuel": severity < frequency,
         "recorded alcohol rose on interurban roads": float(alcohol.share_last)
         > float(alcohol.share_first),
@@ -227,7 +231,7 @@ def page_index(captions: dict[str, str]) -> str:
         "changes sign. Each answer can then be split in two, how often crashes happen and how "
         "deadly they are, and the split shows where the extra deaths are recorded: for "
         f"{_join(by_place['deadliness'])} it is how deadly the crash is; for "
-        f"{_join(by_place['crashes'])} it is mostly how often crashes happen. The last page "
+        f"{_join(by_place['crashes'])} it is mostly how often crashes happen. A supporting page "
         "asks how large a change in deaths a year of counts can show at all.</p>"
     )
 
@@ -344,7 +348,7 @@ def page_index(captions: dict[str, str]) -> str:
                 ]
             )
             + ", single-year changes the break rule flags, and drugs cannot be compared in any year.",
-            "DGT's concurrent-factor tables, with a recording-break rule applied to every "
+            "DGT's concurrent-factor tables, with a break rule applied to every "
             "year-to-year change before any trend is read.",
         ),
         (
@@ -353,7 +357,9 @@ def page_index(captions: dict[str, str]) -> str:
             f"{_fmt_pct(float(one_year.mde), 0)} down or {_fmt_pct(rise, 0)} up",
             "A Poisson model of monthly deaths, fitted only to DGT's series and CORES road fuel, "
             "forecasts a year's deaths with an error of "
-            f"{_fmt_pct(rmse('holdout', chosen))} in years it had not seen and "
+            f"{_fmt_pct(rmse('holdout', chosen))} in ordinary years it had not seen, where "
+            "repeating last year's count does better "
+            f"({_fmt_pct(rmse('holdout', 'last_year'))}), and "
             f"{_fmt_pct(rmse('pandemic', chosen))} in the lockdown years, when repeating last "
             f"year's count was off by {_fmt_pct(rmse('pandemic', 'last_year'))}. Against that "
             "forecast one year of deaths on all roads shows a fall of "
@@ -403,9 +409,12 @@ def page_index(captions: dict[str, str]) -> str:
         "association, and a policy or campaign effect is never read off a time series. Every "
         "result comes from the rows of files in the repository: no observation, coefficient or "
         "relative risk is taken from a study made elsewhere, and the forecasting model is "
-        "fitted only to Spain's monthly deaths and road fuel. Two national analyses are kept as "
-        'supporting material: <a href="severity.html">associations in DGT crash records</a>, '
-        "which describe crash severity and are not a predictive model, and a "
+        "fitted only to Spain's monthly deaths and road fuel. Three national analyses are kept "
+        'as supporting material: <a href="severity.html">associations in DGT crash records</a>, '
+        "which describe crash severity and are not a predictive model; the "
+        '<a href="forecast.html">monthly deaths forecast</a>, which does not beat repeating '
+        "last year's count in ordinary years and is kept to measure how large a change a year "
+        "can show; and a "
         '<a href="policy.html">test of the 2006 points licence</a> whose headline did not '
         "survive its own falsification tests. Road design and municipal hotspots are not "
         "analysed: DGT's national files carry no road geometry, traffic volume or "

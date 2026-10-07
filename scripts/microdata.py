@@ -95,7 +95,7 @@ def run(step: str, force: bool) -> None:
     elif step == "validate":
         tables = pipeline.run()
         for row in tables["ml_model_decisions"].itertuples():
-            log.info("decision %s: %s", row.model, row.keep)
+            log.info("decision %s (%s): %s", row.model, row.variant, row.decision)
     elif step == "documents":
         pipeline.documents()
     elif step == "sources":

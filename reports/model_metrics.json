@@ -3987,7 +3987,7 @@
    "value": 0.852902,
    "evidence": "5-fold CV, grouped by crash: ROC-AUC 0.853 (folds 0.832-0.875)",
    "highest_consecutive_stage": 3,
-   "verdict": "supported up to stage 3 (another region inside the training source)"
+   "verdict": "supported up to stage 3 (another district of the same city)"
   },
   {
    "model": "barcelona_person_severity",
@@ -3997,7 +3997,7 @@
    "value": 0.843214,
    "evidence": "train months 1-9 with 5-fold cross-validation grouped by crash; test months 10-12: ROC-AUC 0.843 (0.813-0.874); n=4,049, positives=58",
    "highest_consecutive_stage": 3,
-   "verdict": "supported up to stage 3 (another region inside the training source)"
+   "verdict": "supported up to stage 3 (another district of the same city)"
   },
   {
    "model": "barcelona_person_severity",
@@ -4007,7 +4007,7 @@
    "value": 0.864012,
    "evidence": "leave one district out (pooled out-of-district scores): ROC-AUC 0.864 (0.843-0.883), in-domain 0.855, gap +0.009",
    "highest_consecutive_stage": 3,
-   "verdict": "supported up to stage 3 (another region inside the training source)"
+   "verdict": "supported up to stage 3 (another district of the same city)"
   },
   {
    "model": "barcelona_person_severity",
@@ -4017,7 +4017,7 @@
    "value": null,
    "evidence": "no other person-level crash data in the repository (it would need person microdata from another recording source, such as DGT's victim register)",
    "highest_consecutive_stage": 3,
-   "verdict": "supported up to stage 3 (another region inside the training source)"
+   "verdict": "supported up to stage 3 (another district of the same city)"
   },
   {
    "model": "barcelona_person_severity",
@@ -4027,7 +4027,7 @@
    "value": 0.233359,
    "evidence": "Barcelona city vs Spain outside Catalonia (injury crashes): differs on alignment_recorded (JSD 0.233), crash_type (JSD 0.207), road_class (JSD 0.131), zone (JSD 0.092), weather (JSD 0.046), vehicles (JSD 0.032), surface (JSD 0.023); fatal share of severe crashes 9.1% against 15.4%",
    "highest_consecutive_stage": 3,
-   "verdict": "supported up to stage 3 (another region inside the training source)"
+   "verdict": "supported up to stage 3 (another district of the same city)"
   },
   {
    "model": "barcelona_crash_severity",
@@ -4037,7 +4037,7 @@
    "value": 0.77845,
    "evidence": "5-fold CV, random rows (stratified): ROC-AUC 0.778 (folds 0.743-0.838)",
    "highest_consecutive_stage": 3,
-   "verdict": "supported up to stage 3 (another region inside the training source)"
+   "verdict": "supported up to stage 3 (another district of the same city)"
   },
   {
    "model": "barcelona_crash_severity",
@@ -4047,7 +4047,7 @@
    "value": 0.737332,
    "evidence": "train months 1-9 with 5-fold cross-validation grouped by crash; test months 10-12: ROC-AUC 0.737 (0.686-0.782); n=1,994, positives=58",
    "highest_consecutive_stage": 3,
-   "verdict": "supported up to stage 3 (another region inside the training source)"
+   "verdict": "supported up to stage 3 (another district of the same city)"
   },
   {
    "model": "barcelona_crash_severity",
@@ -4057,7 +4057,7 @@
    "value": 0.767151,
    "evidence": "leave one district out (pooled out-of-district scores): ROC-AUC 0.767 (0.741-0.792), in-domain 0.775, gap -0.008",
    "highest_consecutive_stage": 3,
-   "verdict": "supported up to stage 3 (another region inside the training source)"
+   "verdict": "supported up to stage 3 (another district of the same city)"
   },
   {
    "model": "barcelona_crash_severity",
@@ -4067,7 +4067,7 @@
    "value": null,
    "evidence": "the Catalan file holds only serious or fatal crashes, so it cannot test a model of serious-or-fatal against lower severity",
    "highest_consecutive_stage": 3,
-   "verdict": "supported up to stage 3 (another region inside the training source)"
+   "verdict": "supported up to stage 3 (another district of the same city)"
   },
   {
    "model": "barcelona_crash_severity",
@@ -4077,7 +4077,7 @@
    "value": 0.233359,
    "evidence": "Barcelona city vs Spain outside Catalonia (injury crashes): differs on alignment_recorded (JSD 0.233), crash_type (JSD 0.207), road_class (JSD 0.131), zone (JSD 0.092), weather (JSD 0.046), vehicles (JSD 0.032), surface (JSD 0.023); fatal share of severe crashes 9.1% against 15.4%",
    "highest_consecutive_stage": 3,
-   "verdict": "supported up to stage 3 (another region inside the training source)"
+   "verdict": "supported up to stage 3 (another district of the same city)"
   }
  ],
  "rule_comparison": [
@@ -5608,7 +5608,7 @@
    "highest_validated_level_name": "later time",
    "next_level_blocked_by": "one national series: no other domain",
    "calibration": "not applicable (counts)",
-   "usefulness": "does not beat last year's count on the held-out ordinary years. In the lockdown years, scored apart, 0.073 against 0.192 for Naive: same months last year",
+   "usefulness": "does not beat last year's count on the held-out ordinary years, so the naive forecast replaces it there. In the lockdown years, scored apart, 0.073 against 0.192 for Naive: same months last year",
    "question_answered": "is a year's death count outside what the series' normal variation predicts",
    "question_not_answered": "why a change happened; any measure's effect",
    "decision": "REPLACE with descriptive table"

@@ -371,7 +371,8 @@ def national_rows(tables: dict[str, pd.DataFrame]) -> list[dict]:
                     "usefulness": (
                         "beats the naive forecasts on the held-out ordinary years"
                         if beats
-                        else "does not beat last year's count on the held-out ordinary years"
+                        else "does not beat last year's count on the held-out ordinary years, "
+                        "so the naive forecast replaces it there"
                     )
                     + shock_text.replace("; in", ". In"),
                     "question_answered": "is a year's death count outside what the series' "

@@ -31,7 +31,7 @@ linked across sources and there is no merged crash database.
 
 | Layer | Sources | Used for |
 |---|---|---|
-| **National context** | DGT crash microdata, yearbook series and tables, driver census, kilometre estimates; INE residents; traffic and fuel series | trends, exposure and denominators, rates, province and year comparisons, the monthly deaths forecast |
+| **National context** | DGT crash microdata, yearbook series and tables, driver census, kilometre estimates; INE residents; traffic and fuel series | trends, exposure and denominators, rates, province and year comparisons, the supporting association analysis and monthly deaths forecast |
 | **Crash microdata: Catalonia** | Servei Català de Trànsit, crashes with a death or serious injury | the crash-severity model and its temporal and geographic validation |
 | **Rich microdata: Barcelona** | Guàrdia Urbana crash, person, vehicle and cause tables | person and crash analysis, the person-severity model, checks of the Catalan model |
 | **Validation** | not a source: a use | harmonisation and transfer tests across the layers |
@@ -103,14 +103,16 @@ cd dgt-stats
 python -m venv .venv && source .venv/bin/activate   # Windows PowerShell: .venv\Scripts\Activate.ps1
 python -m pip install -r requirements.lock          # pinned and hashed
 
-python scripts/ingest.py all          # data/raw -> data/staging/dgt, 482 reconciliation checks (~6 min)
+python scripts/ingest.py all          # data/raw -> data/staging/dgt, 482 reconciliation checks (~5 min)
 python scripts/build_tables.py        # data/processed/dgt_accidentes.parquet
-python scripts/model.py               # associations in DGT records (~2 min)
+python scripts/model.py               # supporting association analysis of DGT records (~2 min)
+python scripts/analyse.py tables      # national result tables, the forecast among them (~1 min)
 python scripts/microdata.py all       # Catalonia and Barcelona: inventory, staging, processed tables,
-                                      # features, descriptive tables, source models, validation and
-                                      # the generated documents (about an hour; set OMP_NUM_THREADS=1
-                                      # if other heavy jobs share the machine)
-python scripts/analyse.py all         # reports/tables/*.csv and reports/figures/*.svg
+                                      # features, descriptive tables, source models, validation, model
+                                      # decisions and the generated documents (~30 min; set
+                                      # OMP_NUM_THREADS=1 if other heavy jobs share the machine)
+python scripts/analyse.py figures     # reports/figures/*.svg and captions.json, regional ones included
+python scripts/analyse.py cards       # docs/models/dgt_*.md, which quote the DGT microdata audit
 python scripts/build_site.py          # site/
 pytest                                # the test suite, the reconciliation checks among them
 pytest -m slow                        # SHA-256 of every raw file against data/raw/manifest.csv
@@ -123,7 +125,7 @@ site's HTML are committed, so the pages can be read and reviewed without rebuild
 
 Every pull request and every push to `main` runs [`ci.yml`](.github/workflows/ci.yml): Ruff, then
 the national data layers and the regional data layers from the raw files, then `pytest`. It does
-not refit the regional models or rerun the validation (about an hour); the tests that need their
+not refit the regional models or rerun the validation (about half an hour); the tests that need their
 outputs read the committed tables. A push to `main` that touches the site or its inputs runs
 [`pages.yml`](.github/workflows/pages.yml), which renders `site/` from the committed tables.
 

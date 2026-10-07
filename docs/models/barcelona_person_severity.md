@@ -61,7 +61,7 @@ All estimators and both feature sets on the same test rows:
 
 Calibration slope 0.63 (95% interval 0.48–0.77), calibration intercept +0.06, mean predicted 0.014 against 0.014 observed.
 
-The pre-declared rule (slope between 0.8 and 1.25, mean prediction within 25% of the prevalence) fails: probabilities are **not** shown as risk estimates; the model is used only to rank profiles.
+The pre-declared rule (slope between 0.8 and 1.25, mean prediction within 25% of the prevalence) fails: probabilities are **not** shown as estimates for groups of similar cases; the model is used only to rank profiles.
 
 | bin | n | positives | mean_predicted | observed |
 |---|---|---|---|---|

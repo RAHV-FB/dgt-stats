@@ -296,9 +296,10 @@ def page_forecast(captions: dict[str, str]) -> str:
         "year's count does slightly better "
         f"({_fmt_pct(rmse('deaths_all', 'holdout', 'last_year'))} against "
         f"{_fmt_pct(rmse('deaths_all', 'holdout', chosen))}; the worst year is {worst_year}, "
-        "forecast from a window that includes the lockdowns). A before-and-after comparison has "
-        "to hold in years when traffic or the trend moves, and whether the years ahead will be "
-        "flat is not known when the forecast is made, so the model is the one used.</p>"
+        "forecast from a window that includes the lockdowns), so as a forecast of an ordinary "
+        "year the model is replaced by last year's count. It is still the reference for how "
+        "large a change a year can show: that has to hold in years when traffic or the trend "
+        "moves, and whether the years ahead will be flat is not known in advance.</p>"
     )
     body += (
         "<p><strong>A comparator disclosed, not chosen.</strong> Looking at the held-back years "
@@ -351,8 +352,8 @@ def page_forecast(captions: dict[str, str]) -> str:
     body += "<h2>Conclusion</h2>"
     body += conclusion(
         "Fitted only to Spain's own monthly deaths and road fuel, a small Poisson model "
-        "forecasts a year's deaths about as well as last year's count in flat years and far "
-        "better when traffic or the trend moves, and gradient-boosted trees given the same "
+        "forecasts a year's deaths a little less well than last year's count in flat years and "
+        "far better when traffic or the trend moves, and gradient-boosted trees given the same "
         "inputs and tuned the same way do not beat it. Its error means that one year of "
         "national counts shows a change in "
         f"deaths reliably only from about {_fmt_pct(one_all.mde, 0)} down or "

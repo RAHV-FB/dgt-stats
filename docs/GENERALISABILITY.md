@@ -343,8 +343,8 @@ to Spain without the stages between.
 
 | model | stage 1 | stage 2 | stage 3 | stage 4 | stage 5 | verdict |
 |---|---|---|---|---|---|---|
-| barcelona_crash_severity | passed | passed | passed | not run | failed | supported up to stage 3 (another region inside the training source) |
-| barcelona_person_severity | passed | passed | passed | not run | failed | supported up to stage 3 (another region inside the training source) |
+| barcelona_crash_severity | passed | passed | passed | not run | failed | supported up to stage 3 (another district of the same city) |
+| barcelona_person_severity | passed | passed | passed | not run | failed | supported up to stage 3 (another district of the same city) |
 | catalonia_common_bcn | passed | passed | passed | not testable | failed | supported up to stage 3 (another region inside the training source) |
 | catalonia_common_dgt | passed | passed | passed | passed | failed | keeps its ranking on independently recorded Spanish crashes, but the training population differs from Spain's: national use not established |
 | catalonia_crash_severity | passed | passed | passed | not run | failed | supported up to stage 3 (another region inside the training source) |

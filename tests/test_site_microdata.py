@@ -107,7 +107,7 @@ def test_transfer_scores_and_the_small_barcelona_benchmark_come_from_the_tables(
 
 def test_every_microdata_page_names_its_layer(pages: dict[str, str]) -> None:
     for slug, text in pages.items():
-        assert '<p class="level">Layer: <a href="sources.html">' in text, slug
+        assert re.search(r'<p class="level">Layers?: <a href="sources.html">', text), slug
 
 
 def test_models_page_follows_the_decisions(pages: dict[str, str]) -> None:

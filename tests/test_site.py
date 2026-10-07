@@ -297,7 +297,9 @@ def test_factors_page_reads_trends_only_within_comparable_runs(built: Path) -> N
     assert f"{alcohol.share_first.iloc[0] * 100:.1f}%" in text
     assert f"{alcohol.share_last.iloc[0] * 100:.1f}%" in text
     assert 'src="figures/f2_factor_shares.svg"' in text
-    assert "recording break" in text and "Drugs" in text
+    assert "break in comparability" in text and "Drugs" in text
+    # A break is a threshold, never an explanation of what changed.
+    assert "behavioural or recording-related" in text
 
 
 def test_trend_pages_show_every_denominator_and_the_projection(built: Path) -> None:

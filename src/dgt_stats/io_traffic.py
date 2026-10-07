@@ -17,7 +17,7 @@ monthly too. Two published Spanish series are monthly and reach back past 2006:
   deaths happen, and the network itself changes as concessions expire.
 
 Neither is vehicle-kilometres on all Spanish roads by month, which does not exist. What each is
-and is not is set out in ``docs/methodology.md`` §§4–6, §11 (the forecasting model) and §15 (the
+and is not is set out in ``docs/methodology.md`` §§4–6, §11 (the forecasting model) and §14 (the
 2006 case study); here they are only parsed.
 
 A third series is annual and measured: the Ministerio de Transportes' yearbook table 1.2.14 gives

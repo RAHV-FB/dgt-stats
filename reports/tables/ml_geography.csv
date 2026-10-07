@@ -11,9 +11,9 @@ catalonia_crash_severity,retrospective_administrative,none,logistic,0.764292,0.7
 catalonia_crash_severity,retrospective_administrative,none,boosted_trees,0.853017,0.793512,0.796321,0.0566958
 catalonia_crash_severity,retrospective_administrative,broad,logistic,0.766921,0.78085,0.786631,-0.0197093
 catalonia_crash_severity,retrospective_administrative,broad,boosted_trees,0.930415,0.796212,0.795898,0.134516
-catalonia_crash_severity,retrospective_administrative,comarca,logistic,0.773584,0.78342,0.790768,-0.0171842
+catalonia_crash_severity,retrospective_administrative,comarca,logistic,0.773584,0.78342,0.790768,-0.017184
 catalonia_crash_severity,retrospective_administrative,comarca,boosted_trees,0.873621,0.803677,0.805499,0.0681222
-catalonia_crash_severity,retrospective_administrative,granular,logistic,0.772351,0.784748,0.789401,-0.0170503
+catalonia_crash_severity,retrospective_administrative,granular,logistic,0.772351,0.784749,0.789401,-0.0170505
 catalonia_crash_severity,retrospective_administrative,granular,boosted_trees,0.896026,0.790352,0.798605,0.0974209
 barcelona_person_severity,context,none,logistic,0.874129,0.839135,0.845484,0.0286446
 barcelona_person_severity,context,none,boosted_trees,0.988482,0.861223,0.847629,0.140852
