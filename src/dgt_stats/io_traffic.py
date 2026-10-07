@@ -17,7 +17,7 @@ monthly too. Two published Spanish series are monthly and reach back past 2006:
   deaths happen, and the network itself changes as concessions expire.
 
 Neither is vehicle-kilometres on all Spanish roads by month, which does not exist. What each is
-and is not is set out in ``docs/methodology.md`` §§4–6, §11 (the forecasting model) and §15 (the
+and is not is set out in ``docs/methodology.md`` §§4–6, §11 (the forecasting model) and §14 (the
 2006 case study); here they are only parsed.
 
 A third series is annual and measured: the Ministerio de Transportes' yearbook table 1.2.14 gives
@@ -25,7 +25,8 @@ vehicle-kilometres on the whole interurban network of the State, the regions and
 councils, by type of road, from 2004, built from the traffic-count plans of each network. It
 leaves out interurban roads run by municipalities, which the Ministry puts at up to a tenth of
 traffic, and it is not comparable across 2007–2008, when the road inventory was redone. It is
-used in §5 (the check on fuel) and §12 (the simulator's risk per kilometre and travel time).
+used in §5 (interurban deaths per measured kilometre) and by ``road_class`` (deaths per measured
+kilometre on motorways and conventional roads).
 """
 
 from __future__ import annotations

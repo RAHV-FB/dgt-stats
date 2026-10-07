@@ -1,0 +1,3 @@
+universe,target,rows,positives,prevalence,roc_auc_recorded_values,roc_auc_unrecorded_flags_only,artefact_share_of_lift,artefacts_dominate
+every crash with victims,death within 30 days,200000,3265,0.016325,0.833928,0.724133,0.671201,True
+crashes with a death or serious injury within 24 hours (the transfer test's universe),death within 24 hours,82783,12260,0.148098,0.732691,0.61498,0.494133,False

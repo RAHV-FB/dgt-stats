@@ -1,0 +1,16 @@
+person_role,injury_severity,person_records
+driver,fatal,7
+driver,minor,5759
+driver,not_recorded,1305
+driver,serious,161
+driver,uninjured,6894
+passenger,minor,1706
+passenger,not_recorded,14
+passenger,serious,25
+passenger,uninjured,264
+pedestrian,excluded_natural_death,1
+pedestrian,fatal,6
+pedestrian,minor,865
+pedestrian,not_recorded,32
+pedestrian,serious,61
+pedestrian,uninjured,100

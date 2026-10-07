@@ -15,7 +15,7 @@ import pandas as pd
 
 from dgt_stats import agebands
 from dgt_stats.paths import (
-    INTERIM_DATA_DIR,
+    DGT_STAGING_DIR,
     SERIES_PATH,
     TABLE_YEARS,
     TABLES_2024_PATH,
@@ -1090,7 +1090,7 @@ def read_driver_infractions_all(years: tuple[int, ...] = TABLE_YEARS) -> pd.Data
     return out
 
 
-# --------------------------------------------------------------------------- interim layer
+# --------------------------------------------------------------------------- staging layer
 
 TABLE_BUILDERS = {
     "series_annual": read_series_annual,
@@ -1111,16 +1111,16 @@ TABLE_BUILDERS = {
 }
 
 
-def interim_path(name: str) -> Path:
-    return INTERIM_DATA_DIR / f"{name}.parquet"
+def staging_path(name: str) -> Path:
+    return DGT_STAGING_DIR / f"{name}.parquet"
 
 
 def build_tables(force: bool = False) -> list[Path]:
-    """Write every published-table frame to ``data/interim`` as Parquet."""
+    """Write every published-table frame to ``data/staging/dgt`` as Parquet."""
     written: list[Path] = []
-    INTERIM_DATA_DIR.mkdir(parents=True, exist_ok=True)
+    DGT_STAGING_DIR.mkdir(parents=True, exist_ok=True)
     for name, builder in TABLE_BUILDERS.items():
-        target = interim_path(name)
+        target = staging_path(name)
         if target.exists() and not force:
             log.info("tables %s: exists, skipping", name)
             written.append(target)
@@ -1134,4 +1134,4 @@ def build_tables(force: bool = False) -> list[Path]:
 
 
 def read_table(name: str) -> pd.DataFrame:
-    return pd.read_parquet(interim_path(name))
+    return pd.read_parquet(staging_path(name))

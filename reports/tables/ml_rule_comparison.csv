@@ -1,0 +1,4 @@
+model,rule,rule_groups_in_training,test_n,test_positives,model_estimator,model_roc_auc,rule_roc_auc,roc_auc_gain,roc_auc_gain_low,roc_auc_gain_high,model_pr_auc,rule_pr_auc,pr_auc_gain_low,pr_auc_gain_high,model_adds_signal_over_table
+catalonia_crash_severity,D_SUBTIPUS_ACCIDENT x D_SUBZONA,40,1732,209,boosted_trees,0.790231,0.695324,0.0949068,0.0674859,0.122539,0.414544,0.245573,0.112908,0.223352,True
+barcelona_person_severity,person_role x associated_vehicle_group,35,4049,58,boosted_trees,0.843214,0.779977,0.0632371,0.0198398,0.105863,0.0681727,0.0435998,-0.0242129,0.0915119,True
+barcelona_crash_severity,accident_type,17,1994,58,logistic,0.737332,0.734397,0.00293442,-0.0387152,0.0505249,0.0908958,0.0843606,-0.0317208,0.0394948,False

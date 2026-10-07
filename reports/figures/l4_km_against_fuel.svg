@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" standalone="no"?>
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
   "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
-<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="558.395pt" height="315.868823pt" viewBox="0 0 558.395 315.868823" xmlns="http://www.w3.org/2000/svg" version="1.1">
+<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="738.441406pt" height="315.868823pt" viewBox="0 0 738.441406 315.868823" xmlns="http://www.w3.org/2000/svg" version="1.1">
  <metadata>
   <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
    <cc:Work>
@@ -21,8 +21,8 @@
  <g id="figure_1">
   <g id="patch_1">
    <path d="M 0 315.868823 
-L 558.395 315.868823 
-L 558.395 0 
+L 738.441406 315.868823 
+L 738.441406 0 
 L 0 0 
 z
 " style="fill: #fcfcfb"/>
@@ -407,7 +407,7 @@ L 494.639844 260.026359
 " style="fill: none; stroke: #e6e5e1; stroke-linejoin: miter; stroke-linecap: square"/>
    </g>
    <g id="text_17">
-    <text style="font-size: 10.5px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start; fill: #0b0b0b" x="48.239844" y="15.178359" transform="rotate(-0 48.239844 15.178359)">Interurban deaths against the 2013–2019 trend: per kilometre and per tonne of fuel</text>
+    <text style="font-size: 10.5px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start; fill: #0b0b0b" x="48.239844" y="15.178359" transform="rotate(-0 48.239844 15.178359)">Interurban deaths against the 2013–2019 trend: per measured kilometre, and over national road fuel as a diagnostic</text>
    </g>
    <g id="legend_1">
     <g id="line2d_29">
@@ -417,16 +417,16 @@ L 74.339844 299.756713
 " style="fill: none; stroke: #2a78d6; stroke-width: 2; stroke-linecap: round"/>
     </g>
     <g id="text_18">
-     <text style="font-size: 9px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start; fill: #0b0b0b" x="81.539844" y="302.906713" transform="rotate(-0 81.539844 302.906713)">Interurban deaths per vehicle-km (measured)</text>
+     <text style="font-size: 9px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start; fill: #0b0b0b" x="81.539844" y="302.906713" transform="rotate(-0 81.539844 302.906713)">Interurban deaths per measured interurban vehicle-km</text>
     </g>
     <g id="line2d_30">
-     <path d="M 305.34875 299.756713 
-L 314.34875 299.756713 
-L 323.34875 299.756713 
+     <path d="M 348.4925 299.756713 
+L 357.4925 299.756713 
+L 366.4925 299.756713 
 " style="fill: none; stroke-dasharray: 7.4,3.2; stroke-dashoffset: 0; stroke: #eb6834; stroke-width: 2"/>
     </g>
     <g id="text_19">
-     <text style="font-size: 9px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start; fill: #0b0b0b" x="330.54875" y="302.906713" transform="rotate(-0 330.54875 302.906713)">Interurban deaths per tonne of road fuel (proxy)</text>
+     <text style="font-size: 9px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start; fill: #0b0b0b" x="373.6925" y="302.906713" transform="rotate(-0 373.6925 302.906713)">Interurban deaths over national road fuel (scopes differ; fuel-proxy diagnostic)</text>
     </g>
    </g>
   </g>

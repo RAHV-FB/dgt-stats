@@ -1,10 +1,10 @@
-"""Build the processed crash table from the interim layer.
+"""Build the processed crash table from the staging layer.
 
 Usage:
     python scripts/build_tables.py [--force]
 
-Reads data/interim/microdata/accidentes_all.parquet, adds the derived fields and English labels
-from dgt_stats.derive, and writes data/processed/accidentes.parquet.
+Reads data/staging/dgt/microdata/accidentes_all.parquet, adds the derived fields and English labels
+from dgt_stats.derive, and writes data/processed/dgt_accidentes.parquet.
 """
 
 from __future__ import annotations
@@ -18,11 +18,11 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from dgt_stats import derive, io_microdata  # noqa: E402
-from dgt_stats.paths import PROCESSED_DATA_DIR  # noqa: E402
+from dgt_stats.paths import DGT_PROCESSED_CRASHES, PROCESSED_DATA_DIR  # noqa: E402
 
 log = logging.getLogger("build_tables")
 
-PROCESSED_CRASHES = PROCESSED_DATA_DIR / "accidentes.parquet"
+PROCESSED_CRASHES = DGT_PROCESSED_CRASHES
 
 
 def build(force: bool = False) -> Path:

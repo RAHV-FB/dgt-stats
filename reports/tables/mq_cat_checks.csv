@@ -1,0 +1,20 @@
+check,value
+rows (crashes),24478
+source columns,58
+first date,2010-01-01
+last date,2023-12-31
+dates that do not parse,0
+rows whose date year differs from Any,0
+"hours that do not parse as H,MM",0
+rows identical in every source column,0
+rows identical in every source column except the time,14
+rows where victims = deaths + serious + minor,24478
+rows where units = the sum of the unit types (pedestrians included),24476
+fatal label with no death recorded,0
+serious label with a death recorded,0
+serious label with no serious injury recorded,0
+fatal crashes,3093
+serious (non-fatal) crashes,21385
+municipalities,894
+comarques,43
+demarcations,4

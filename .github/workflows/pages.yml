@@ -6,7 +6,6 @@ on:
     paths:
       - "site/**"
       - "reports/**"
-      - "data/raw/evidence/**"
       - "src/dgt_stats/**"
       - "scripts/build_site.py"
       - ".github/workflows/pages.yml"

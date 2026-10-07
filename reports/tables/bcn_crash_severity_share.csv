@@ -1,0 +1,89 @@
+dataset,unit,outcome,dimension,level,n,events,label,share,ci_low,ci_high,small_n
+Barcelona 2025,crash,serious or fatal injury,crash type,collision with a fixed object,664,10,collision with a fixed object,0.0150602,0.00820054,0.0274989,False
+Barcelona 2025,crash,serious or fatal injury,crash type,collision with an animal,12,0,collision with an animal,0,0,0.242501,True
+Barcelona 2025,crash,serious or fatal injury,crash type,fall (two-wheeler),472,14,fall (two-wheeler),0.029661,0.017749,0.0491673,False
+Barcelona 2025,crash,serious or fatal injury,crash type,fall inside a vehicle,402,23,fall inside a vehicle,0.0572139,0.0384236,0.0843869,False
+Barcelona 2025,crash,serious or fatal injury,crash type,front-side collision,1235,56,front-side collision,0.0453441,0.0350826,0.0584254,False
+Barcelona 2025,crash,serious or fatal injury,crash type,head-on collision,147,9,head-on collision,0.0612245,0.0325411,0.112257,False
+Barcelona 2025,crash,serious or fatal injury,crash type,multiple rear-end collision,193,0,multiple rear-end collision,0,0,0.0195162,False
+Barcelona 2025,crash,serious or fatal injury,crash type,not recorded,3,0,not recorded,0,0,0.561506,True
+Barcelona 2025,crash,serious or fatal injury,crash type,other,160,0,other,0,-1.73472e-18,0.023447,False
+Barcelona 2025,crash,serious or fatal injury,crash type,other run-off-road,2,2,other run-off-road,1,0.342372,1,True
+Barcelona 2025,crash,serious or fatal injury,crash type,overturn (more than two wheels),8,0,overturn (more than two wheels),0,0,0.324416,True
+Barcelona 2025,crash,serious or fatal injury,crash type,pedestrian struck,885,65,pedestrian struck,0.0734463,0.0580411,0.0925387,False
+Barcelona 2025,crash,serious or fatal injury,crash type,rear collision while catching up,43,26,rear collision while catching up,0.604651,0.455788,0.736349,False
+Barcelona 2025,crash,serious or fatal injury,crash type,rear-end collision,1672,2,rear-end collision,0.00119617,0.000328088,0.00435111,False
+Barcelona 2025,crash,serious or fatal injury,crash type,run-off-road with collision,13,1,run-off-road with collision,0.0769231,0.0137101,0.333145,True
+Barcelona 2025,crash,serious or fatal injury,crash type,run-off-road with overturn,4,0,run-off-road with overturn,0,0,0.4899,True
+Barcelona 2025,crash,serious or fatal injury,crash type,side collision,1826,44,side collision,0.0240964,0.0179985,0.0321925,False
+Barcelona 2025,crash,serious or fatal injury,district,Ciutat Vella,398,7,Ciutat Vella,0.0175879,0.00854503,0.0358545,False
+Barcelona 2025,crash,serious or fatal injury,district,Eixample,1925,73,Eixample,0.0379221,0.0302685,0.0474162,False
+Barcelona 2025,crash,serious or fatal injury,district,Gràcia,417,13,Gràcia,0.0311751,0.0183076,0.0526017,False
+Barcelona 2025,crash,serious or fatal injury,district,Horta-Guinardó,602,24,Horta-Guinardó,0.0398671,0.0269346,0.058635,False
+Barcelona 2025,crash,serious or fatal injury,district,Les Corts,590,25,Les Corts,0.0423729,0.0288633,0.0618033,False
+Barcelona 2025,crash,serious or fatal injury,district,Nou Barris,474,13,Nou Barris,0.0274262,0.0160967,0.0463542,False
+Barcelona 2025,crash,serious or fatal injury,district,Sant Andreu,560,7,Sant Andreu,0.0125,0.00606783,0.0255751,False
+Barcelona 2025,crash,serious or fatal injury,district,Sant Martí,1048,37,Sant Martí,0.0353053,0.025721,0.048284,False
+Barcelona 2025,crash,serious or fatal injury,district,Sants-Montjuïc,927,27,Sants-Montjuïc,0.0291262,0.0200932,0.0420458,False
+Barcelona 2025,crash,serious or fatal injury,district,Sarrià-Sant Gervasi,800,26,Sarrià-Sant Gervasi,0.0325,0.0222738,0.0471947,False
+Barcelona 2025,crash,serious or fatal injury,shift,afternoon,3721,105,afternoon,0.0282182,0.0233645,0.034045,False
+Barcelona 2025,crash,serious or fatal injury,shift,morning,3168,110,morning,0.0347222,0.0288895,0.041682,False
+Barcelona 2025,crash,serious or fatal injury,shift,night,852,37,night,0.0434272,0.0316685,0.0592848,False
+Barcelona 2025,crash,serious or fatal injury,weekday,Friday,1306,36,Friday,0.0275651,0.0199765,0.0379249,False
+Barcelona 2025,crash,serious or fatal injury,weekday,Monday,1095,34,Monday,0.0310502,0.0223036,0.0430758,False
+Barcelona 2025,crash,serious or fatal injury,weekday,Saturday,854,26,Saturday,0.030445,0.0208597,0.0442358,False
+Barcelona 2025,crash,serious or fatal injury,weekday,Sunday,655,32,Sunday,0.048855,0.0348161,0.0681549,False
+Barcelona 2025,crash,serious or fatal injury,weekday,Thursday,1244,44,Thursday,0.0353698,0.026452,0.0471483,False
+Barcelona 2025,crash,serious or fatal injury,weekday,Tuesday,1268,39,Tuesday,0.0307571,0.02258,0.0417689,False
+Barcelona 2025,crash,serious or fatal injury,weekday,Wednesday,1319,41,Wednesday,0.0310842,0.0229951,0.0418968,False
+Barcelona 2025,crash,serious or fatal injury,vehicles involved,1,1977,97,1,0.0490642,0.0403863,0.0594913,False
+Barcelona 2025,crash,serious or fatal injury,vehicles involved,2,5173,140,2,0.0270636,0.0229803,0.0318488,False
+Barcelona 2025,crash,serious or fatal injury,vehicles involved,3,449,14,3,0.0311804,0.0186626,0.0516525,False
+Barcelona 2025,crash,serious or fatal injury,vehicles involved,4 or more,142,1,4 or more,0.00704225,0.00124418,0.0388102,False
+Barcelona 2025,crash,serious or fatal injury,mediate causes recorded,none_recorded,7268,238,none_recorded,0.0327463,0.0288951,0.0370912,False
+Barcelona 2025,crash,serious or fatal injury,mediate causes recorded,recorded,473,14,recorded,0.0295983,0.0177113,0.0490647,False
+Barcelona 2025,crash,serious or fatal injury,driver causes recorded,blank,436,20,blank,0.0458716,0.029888,0.0697878,False
+Barcelona 2025,crash,serious or fatal injury,driver causes recorded,not_determined,631,20,not_determined,0.0316957,0.0206101,0.048449,False
+Barcelona 2025,crash,serious or fatal injury,driver causes recorded,recorded,6674,212,recorded,0.0317651,0.0278195,0.0362494,False
+Barcelona 2025,crash,serious or fatal injury,pedestrian cause,crossing outside a pedestrian crossing,140,12,crossing outside a pedestrian crossing,0.0857143,0.0497108,0.143847,False
+Barcelona 2025,crash,serious or fatal injury,pedestrian cause,disobeying other signals,9,0,disobeying other signals,0,0,0.299153,True
+Barcelona 2025,crash,serious or fatal injury,pedestrian cause,disobeying the traffic light,204,16,disobeying the traffic light,0.0784314,0.0488511,0.123596,False
+Barcelona 2025,crash,serious or fatal injury,pedestrian cause,none recorded,7220,213,none recorded,0.0295014,0.0258415,0.0336616,False
+Barcelona 2025,crash,serious or fatal injury,pedestrian cause,other,115,7,other,0.0608696,0.0297947,0.120335,False
+Barcelona 2025,crash,serious or fatal injury,pedestrian cause,walking on the carriageway,53,4,walking on the carriageway,0.0754717,0.0297391,0.178587,False
+Barcelona 2025,crash,serious or fatal injury,vehicle type present,all,7741,252,all,0.0325539,0.0288266,0.036745,False
+Barcelona 2025,crash,serious or fatal injury,vehicle type present,car,4334,106,car,0.0244578,0.0202629,0.0294949,False
+Barcelona 2025,crash,serious or fatal injury,vehicle type present,taxi,483,14,taxi,0.0289855,0.017343,0.0480614,False
+Barcelona 2025,crash,serious or fatal injury,vehicle type present,motorcycle,3864,149,motorcycle,0.0385611,0.0329339,0.0451048,False
+Barcelona 2025,crash,serious or fatal injury,vehicle type present,moped,347,8,moped,0.0230548,0.0117274,0.0448269,False
+Barcelona 2025,crash,serious or fatal injury,vehicle type present,bicycle,834,22,bicycle,0.0263789,0.0174836,0.0396174,False
+Barcelona 2025,crash,serious or fatal injury,vehicle type present,personal mobility vehicle,553,17,personal mobility vehicle,0.0307414,0.0192804,0.0486772,False
+Barcelona 2025,crash,serious or fatal injury,vehicle type present,van or light truck,1152,34,van or light truck,0.0295139,0.0211961,0.0409591,False
+Barcelona 2025,crash,serious or fatal injury,vehicle type present,heavy truck,194,4,heavy truck,0.0206186,0.00804653,0.0518074,False
+Barcelona 2025,crash,serious or fatal injury,vehicle type present,bus or coach,689,33,bus or coach,0.0478955,0.0343047,0.0664998,False
+Barcelona 2025,crash,serious or fatal injury,vehicle type present,tram or train,22,2,tram or train,0.0909091,0.0252949,0.278154,True
+Barcelona 2025,crash,serious or fatal injury,vehicle type present,other,97,5,other,0.0515464,0.0222157,0.115045,False
+Barcelona 2025,crash,serious or fatal injury,vehicle type present,not recorded,133,2,not recorded,0.0150376,0.0041335,0.0531707,False
+Barcelona 2025,crash,serious or fatal injury,cause recorded,all,7741,252,all,0.0325539,0.0288266,0.036745,False
+Barcelona 2025,crash,serious or fatal injury,cause recorded,alcohol (mediate),337,5,alcohol (mediate),0.0148368,0.00635351,0.0342566,False
+Barcelona 2025,crash,serious or fatal injury,cause recorded,excessive or inappropriate speed (mediate),38,7,excessive or inappropriate speed (mediate),0.184211,0.0922165,0.334192,False
+Barcelona 2025,crash,serious or fatal injury,cause recorded,drugs or medication (mediate),8,0,drugs or medication (mediate),0,0,0.324416,True
+Barcelona 2025,crash,serious or fatal injury,cause recorded,road surface in poor condition (mediate),58,1,road surface in poor condition (mediate),0.0172414,0.00304996,0.0914107,False
+Barcelona 2025,crash,serious or fatal injury,cause recorded,state of the signalling (mediate),8,1,state of the signalling (mediate),0.125,0.0224169,0.470895,True
+Barcelona 2025,crash,serious or fatal injury,cause recorded,weather (mediate),10,0,weather (mediate),0,-2.77556e-17,0.27754,True
+Barcelona 2025,crash,serious or fatal injury,cause recorded,objects or animals on the road (mediate),22,0,objects or animals on the road (mediate),0,1.38778e-17,0.14866,True
+Barcelona 2025,crash,serious or fatal injury,cause recorded,lack of attention to driving (driver),2082,50,lack of attention to driving (driver),0.0240154,0.0182635,0.0315205,False
+Barcelona 2025,crash,serious or fatal injury,cause recorded,not keeping a safe distance (driver),1002,14,not keeping a safe distance (driver),0.0139721,0.00834078,0.0233159,False
+Barcelona 2025,crash,serious or fatal injury,cause recorded,improper or careless turn (driver),794,26,improper or careless turn (driver),0.0327456,0.0224428,0.047548,False
+Barcelona 2025,crash,serious or fatal injury,cause recorded,disobeying a traffic light (driver),722,48,disobeying a traffic light (driver),0.066482,0.050508,0.0870449,False
+Barcelona 2025,crash,serious or fatal injury,cause recorded,careless lane change (driver),694,18,careless lane change (driver),0.0259366,0.0164679,0.0406247,False
+Barcelona 2025,crash,serious or fatal injury,cause recorded,disobeying other signals (driver),427,13,disobeying other signals (driver),0.030445,0.0178768,0.0513867,False
+Barcelona 2025,crash,serious or fatal injury,cause recorded,faulty or improper overtaking (driver),295,10,faulty or improper overtaking (driver),0.0338983,0.018515,0.061265,False
+Barcelona 2025,crash,serious or fatal injury,cause recorded,careless merging into traffic (driver),225,12,careless merging into traffic (driver),0.0533333,0.0307685,0.0908947,False
+Barcelona 2025,crash,serious or fatal injury,cause recorded,not respecting a pedestrian crossing (driver),212,12,not respecting a pedestrian crossing (driver),0.0566038,0.0326725,0.0963184,False
+Barcelona 2025,crash,serious or fatal injury,cause recorded,careless reversing (driver),201,6,careless reversing (driver),0.0298507,0.013751,0.0635848,False
+Barcelona 2025,crash,serious or fatal injury,cause recorded,not giving way to the right (driver),67,5,not giving way to the right (driver),0.0746269,0.0322956,0.163092,False
+Barcelona 2025,crash,serious or fatal injury,cause recorded,invading the opposite carriageway (driver),39,1,invading the opposite carriageway (driver),0.025641,0.00454059,0.131813,False
+Barcelona 2025,crash,serious or fatal injury,cause recorded,mechanical failure or breakdown (driver),30,0,mechanical failure or breakdown (driver),0,-1.38778e-17,0.113517,False
+Barcelona 2025,crash,serious or fatal injury,cause recorded,other (driver),201,5,other (driver),0.0248756,0.010671,0.0569012,False
+Barcelona 2025,crash,serious or fatal injury,cause recorded,not determined (driver),645,21,not determined (driver),0.0325581,0.0213919,0.0492595,False

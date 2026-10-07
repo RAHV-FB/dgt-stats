@@ -1,0 +1,10 @@
+comparison,outcome,events_a,n_a,share_a,low_a,high_a,events_b,n_b,share_b,low_b,high_b
+Catalonia vs Spain outside Catalonia,"crashes with a death or serious injury (24 h), share of injury crashes",14812,217966,0.0679556,0.0669066,0.0690197,67971,657047,0.103449,0.102715,0.104188
+Catalonia vs Spain outside Catalonia,fatal (24 h) among crashes with a death or serious injury,1803,14812,0.121726,0.116558,0.12709,10457,67971,0.153845,0.151152,0.156577
+Catalonia vs Spain outside Catalonia,fatal (30 days) among injury crashes,2261,217966,0.0103732,0.00995637,0.0108072,12072,657047,0.0183731,0.0180512,0.0187007
+Barcelona city vs rest of Catalonia,"crashes with a death or serious injury (24 h), share of injury crashes",1912,71042,0.0269137,0.025749,0.0281295,12900,146924,0.0878005,0.0863641,0.0892584
+Barcelona city vs rest of Catalonia,fatal (24 h) among crashes with a death or serious injury,174,1912,0.0910042,0.078919,0.10473,1629,12900,0.126279,0.120658,0.132123
+Barcelona city vs rest of Catalonia,fatal (30 days) among injury crashes,269,71042,0.00378649,0.0033609,0.00426575,1992,146924,0.013558,0.0129793,0.0141622
+Barcelona city vs Spain outside Catalonia,"crashes with a death or serious injury (24 h), share of injury crashes",1912,71042,0.0269137,0.025749,0.0281295,67971,657047,0.103449,0.102715,0.104188
+Barcelona city vs Spain outside Catalonia,fatal (24 h) among crashes with a death or serious injury,174,1912,0.0910042,0.078919,0.10473,10457,67971,0.153845,0.151152,0.156577
+Barcelona city vs Spain outside Catalonia,fatal (30 days) among injury crashes,269,71042,0.00378649,0.0033609,0.00426575,12072,657047,0.0183731,0.0180512,0.0187007

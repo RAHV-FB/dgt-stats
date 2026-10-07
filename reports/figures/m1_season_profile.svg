@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" standalone="no"?>
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
   "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
-<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="573.690625pt" height="286.818263pt" viewBox="0 0 573.690625 286.818263" xmlns="http://www.w3.org/2000/svg" version="1.1">
+<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="616.229687pt" height="286.818263pt" viewBox="0 0 616.229687 286.818263" xmlns="http://www.w3.org/2000/svg" version="1.1">
  <metadata>
   <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
    <cc:Work>
@@ -21,8 +21,8 @@
  <g id="figure_1">
   <g id="patch_1">
    <path d="M 0 286.818263 
-L 573.690625 286.818263 
-L 573.690625 0 
+L 616.229687 286.818263 
+L 616.229687 0 
 L 0 0 
 z
 " style="fill: #fcfcfb"/>
@@ -459,7 +459,7 @@ L 477.77875 237.850359
 " style="fill: none; stroke: #e6e5e1; stroke-linejoin: miter; stroke-linecap: square"/>
    </g>
    <g id="text_20">
-    <text style="font-size: 10.5px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start; fill: #0b0b0b" x="31.37875" y="15.178359" transform="rotate(-0 31.37875 15.178359)">Deaths and three measures of traffic by month (average month = 100)</text>
+    <text style="font-size: 10.5px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start; fill: #0b0b0b" x="31.37875" y="15.178359" transform="rotate(-0 31.37875 15.178359)">Deaths and three traffic series by month (average month = 100)</text>
    </g>
    <g id="legend_1">
     <g id="line2d_32">
@@ -484,31 +484,31 @@ L 176.605 270.706153
      </g>
     </g>
     <g id="text_22">
-     <text style="font-size: 9px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start; fill: #0b0b0b" x="183.805" y="273.856153" transform="rotate(-0 183.805 273.856153)">Road fuel (petrol + diesel)</text>
+     <text style="font-size: 9px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start; fill: #0b0b0b" x="183.805" y="273.856153" transform="rotate(-0 183.805 273.856153)">Road fuel sold (petrol + diesel)</text>
     </g>
     <g id="line2d_34">
-     <path d="M 320.073437 270.706153 
-L 329.073437 270.706153 
-L 338.073437 270.706153 
+     <path d="M 341.342969 270.706153 
+L 350.342969 270.706153 
+L 359.342969 270.706153 
 " style="fill: none; stroke-dasharray: 12.8,3.2,2,3.2; stroke-dashoffset: 0; stroke: #1baf7a; stroke-width: 2"/>
      <g>
-      <use xlink:href="#maa7bf12502" x="329.073437" y="270.706153" style="fill: #1baf7a; stroke: #1baf7a"/>
+      <use xlink:href="#maa7bf12502" x="350.342969" y="270.706153" style="fill: #1baf7a; stroke: #1baf7a"/>
      </g>
     </g>
     <g id="text_23">
-     <text style="font-size: 9px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start; fill: #0b0b0b" x="345.273437" y="273.856153" transform="rotate(-0 345.273437 273.856153)">Petrol only</text>
+     <text style="font-size: 9px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start; fill: #0b0b0b" x="366.542969" y="273.856153" transform="rotate(-0 366.542969 273.856153)">Petrol sold only</text>
     </g>
     <g id="line2d_35">
-     <path d="M 410.8525 270.706153 
-L 419.8525 270.706153 
-L 428.8525 270.706153 
+     <path d="M 453.391562 270.706153 
+L 462.391562 270.706153 
+L 471.391562 270.706153 
 " style="fill: none; stroke-dasharray: 2,3.3; stroke-dashoffset: 0; stroke: #eda100; stroke-width: 2"/>
      <g>
-      <use xlink:href="#m631b4de9ad" x="419.8525" y="270.706153" style="fill: #eda100; stroke: #eda100"/>
+      <use xlink:href="#m631b4de9ad" x="462.391562" y="270.706153" style="fill: #eda100; stroke: #eda100"/>
      </g>
     </g>
     <g id="text_24">
-     <text style="font-size: 9px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start; fill: #0b0b0b" x="436.0525" y="273.856153" transform="rotate(-0 436.0525 273.856153)">Toll-motorway traffic per km</text>
+     <text style="font-size: 9px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start; fill: #0b0b0b" x="478.591562" y="273.856153" transform="rotate(-0 478.591562 273.856153)">Toll-motorway traffic per km</text>
     </g>
    </g>
   </g>

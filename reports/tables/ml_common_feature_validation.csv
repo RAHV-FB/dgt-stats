@@ -1,0 +1,16 @@
+field,a_priori_status,overlap_jsd,validated,enters_cross_source_tests
+year,exact,0,True,True
+month,exact,1.1961e-07,True,True
+weekday,exact,2.88418e-08,True,True
+hour_band,exact,3.13944e-09,True,True
+zone,defensible,3.3239e-08,True,True
+road_class,defensible,0.0562674,False,False
+crash_type,defensible,3.87292e-05,True,True
+lighting,defensible,8.61709e-10,True,True
+weather,defensible,4.00469e-05,True,True
+surface,defensible,7.15379e-10,True,True
+junction,defensible,0.00866726,False,False
+vehicles,defensible,0.000322143,True,True
+speed_limit,unusable,,False,False
+unit_types,unusable,,False,False
+geography,unusable,,False,False

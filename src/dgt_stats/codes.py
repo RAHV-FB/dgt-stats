@@ -1,8 +1,8 @@
 """Code lists for the DGT crash microdata and the missing-value states they use.
 
-The dictionary workbook (`data/raw/microdata/diccionario.xlsx`) has one sheet per coded column with
-two columns, ``Valor`` and ``Etiqueta``. A handful of sheets describe free-text or numeric fields and
-are not code lists. Missing information is encoded four different ways in the microdata and must stay
+The dictionary workbook (`data/raw/dgt/microdata/diccionario.xlsx`) has one sheet per coded column
+with two columns, ``Valor`` and ``Etiqueta``. A handful of sheets describe free-text or numeric
+fields and are not code lists. Missing information is encoded four different ways in the microdata and must stay
 distinguishable:
 
 * ``999``  "Sin especificar": the field was not reported.

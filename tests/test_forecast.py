@@ -86,7 +86,7 @@ def test_minimum_detectable_effect_is_the_power_formula() -> None:
 
 
 data = pytest.mark.skipif(
-    not (io_tables.interim_path("series_monthly").exists() and CORES_FUEL_PATH.exists()),
+    not (io_tables.staging_path("series_monthly").exists() and CORES_FUEL_PATH.exists()),
     reason="run `python scripts/ingest.py tables` first",
 )
 

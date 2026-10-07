@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import math
+
 import pandas as pd
 
 from dgt_stats.site.components import (
@@ -29,6 +31,45 @@ def page_speed(captions: dict[str, str]) -> str:
     shares = read_table("q9_infraction_shares")
     status = shares[shares.zone == "all"].set_index("year")
     first_status, last_status = int(status.index.min()), int(status.index.max())
+    yearly = numbers["yearly"]
+    by_type = yearly[yearly.totals_source == "microdata"]
+    first_type, last_type = int(by_type.year.min()), int(by_type.year.max())
+    types_span = f"{first_type}–{last_type}"
+    status_jump = int(status.share_unknown.diff().idxmax())
+    crude, rate = float(adjusted.crude_ratio), float(adjusted.rate_ratio)
+    # The share of the crude ratio, on the log scale, that the road type accounts for.
+    where_share = 1 - math.log(rate) / math.log(crude)
+    checks = {
+        "the adjusted ratio is above one and below the crude one": 1 < rate < crude,
+        "the adjusted ratio's interval excludes no difference": float(adjusted.ratio_low) > 1,
+        "urban streets carry the largest ratio": float(pooled.loc["urban"].rate_ratio)
+        == float(pooled.rate_ratio.drop(index="adjusted").max()),
+        "the speed status jump is a lasting one": bool(
+            (
+                status.share_unknown.loc[status_jump:] > 2 * status.share_unknown.loc[first_status]
+            ).all()
+        ),
+    }
+    speed_changes = read_table("factor_changes")
+    checks["the two readings of the driver tables point in opposite directions"] = bool(
+        status.loc[last_status, "share_speed_infraction"]
+        < status.loc[first_status, "share_speed_infraction"]
+        and status.loc[last_status, "share_among_known"]
+        > status.loc[first_status, "share_among_known"]
+    )
+    checks["the concurrent-factor speed series has no break"] = not bool(
+        speed_changes[speed_changes.factor == "Inappropriate speed"].is_break.any()
+    )
+    types = pooled.drop(index="adjusted")
+    checks["speed crashes concentrate where every crash is more often fatal"] = bool(
+        types.speed_crashes.idxmax() == "other_interurban"
+        and types.loc["other_interurban", "speed_crashes"] / types.speed_crashes.sum()
+        > types.loc["other_interurban", "other_crashes"] / types.other_crashes.sum()
+        and types.other_deaths_per_100.idxmax() == "other_interurban"
+    )
+    failed = [claim for claim, holds in checks.items() if not holds]
+    if failed:
+        raise ValueError(f"speed page: the tables no longer support: {failed}")
 
     body = key_figures(
         [
@@ -62,9 +103,11 @@ def page_speed(captions: dict[str, str]) -> str:
         '<p class="answer">Crashes in which the police recorded inappropriate speed are a small '
         f"share of injury crashes, {_fmt_pct(float(latest.share_of_crashes), 0)} in {last}, and "
         f"a large share of deaths, {_fmt_pct(float(latest.share_of_deaths), 0)}. Per crash they "
-        f"kill {_times(float(adjusted.crude_ratio))} as many people as the rest. About half of "
-        "that is where they happen: speed crashes concentrate on conventional interurban roads, "
-        "where every crash is more often fatal. Compared on the same kind of road in the same "
+        f"kill {_times(crude)} as many people as the rest. On a log scale "
+        f"{_fmt_pct(where_share, 0)} of that ratio goes with where they happen: speed crashes "
+        "concentrate on interurban roads other than autopistas and autovías, where every crash "
+        "is more often fatal. "
+        "Compared on the same kind of road in the same "
         f"year the ratio is {_ratio_ci(float(adjusted.rate_ratio), float(adjusted.ratio_low), float(adjusted.ratio_high))}.</p>"
     )
     body += figure(
@@ -88,7 +131,7 @@ def page_speed(captions: dict[str, str]) -> str:
         )
     body += table(
         pd.DataFrame(rows),
-        "Injury crashes 2016–2023 in Spain without Cataluña and País Vasco. Sources: DGT "
+        f"Injury crashes {types_span} in Spain without Cataluña and País Vasco. Sources: DGT "
         "Informe temático Factor Velocidad and crash microdata for the same provinces",
         {
             "Speed crashes": "int",
@@ -99,7 +142,7 @@ def page_speed(captions: dict[str, str]) -> str:
     body += (
         "<p>The ratio is not the same everywhere. On urban streets, where an ordinary injury "
         "crash rarely kills, a crash with speed recorded kills "
-        f"{_times(float(urban.rate_ratio))} as often; on conventional interurban roads "
+        f"{_times(float(urban.rate_ratio))} as often; on other interurban roads "
         f"{_times(float(other.rate_ratio))}; on dual carriageways "
         f"{_times(float(dual.rate_ratio))}. The single adjusted ratio averages over that "
         "variation, and the page leads with it only because it is the fairest one-number "
@@ -109,24 +152,30 @@ def page_speed(captions: dict[str, str]) -> str:
     body += "<h2>What the ratio can and cannot mean</h2>"
     body += (
         "<p>Speed here is a concurrent factor written by a police officer after the crash, not a "
-        "measured speed. Two biases pull on the ratio in opposite directions. A fatal crash is "
-        "investigated more thoroughly, so speed is more likely to be found and recorded when "
-        "someone has died: that inflates the ratio. Speed that was present but not recorded "
-        "sits in the comparison group: that deflates it. Neither can be measured from these "
-        "tables. What the data do support is the direction and rough size: where speed is "
-        "judged to have played a part, a crash is about twice as likely to kill, on the same "
-        "kind of road. That is consistent with what the physics of impact energy predicts. It is "
-        "not an estimate of how many deaths speed caused.</p>"
+        "measured speed. Two possible biases pull on the ratio in opposite directions. If fatal "
+        "crashes are investigated more thoroughly, speed may be recorded more often when "
+        "someone has died, which would inflate the ratio; the data do not show whether this "
+        "happens. Speed that was present but not recorded sits in the comparison group, which "
+        "would deflate it. Neither can be measured from these tables. What the data do support "
+        "is the direction and rough size: where the police recorded speed, crashes have about "
+        f"{_times(rate)} as many deaths per crash, on the same kind of road. It is an "
+        "association in the police record, not an estimate of how many deaths speed caused.</p>"
     )
     body += (
         "<p>The report covers Spain without Cataluña and País Vasco, which keep their own "
-        "records. Its totals for that scope are reproduced exactly by the crash microdata "
-        "restricted to the same provinces, every year from 2016 to 2023; that check is what "
-        "allows the report's speed-related crashes to be set against microdata totals for road "
-        "types the report does not total.</p>"
+        "records. Its totals for that scope, all roads, interurban roads and urban streets, are "
+        "reproduced exactly by the crash microdata restricted to the same provinces, every year "
+        f"from {first_type} to {last_type}; that check is what allows the report's "
+        "speed-related crashes to be set against microdata totals for road types the report "
+        "does not total. The check is on those three zone totals only. Within interurban roads "
+        "the report's road types are matched to DGT's road-type codes by name (autopistas to "
+        "codes 1 and 2, autovías to code 3, the rest to other interurban roads), and that match "
+        "is not reconciled road type by road type: the three interurban rows add up to the "
+        "checked interurban total, so a mismatch would move crashes between them, and the "
+        "ratios by interurban road type and the adjusted ratio rest on it.</p>"
     )
 
-    body += "<h2>A published series that changes meaning in 2016</h2>"
+    body += f"<h2>A published series that changes meaning in {status_jump}</h2>"
     body += figure(
         "c3_speed_status",
         f"Drivers in injury crashes by recorded speed status, {first_status}–{last_status}",
@@ -140,7 +189,8 @@ def page_speed(captions: dict[str, str]) -> str:
         "<p>DGT's driver tables record, for each driver in an injury crash, whether the police "
         f"noted a speed infraction. In {first_status}, "
         f"{_fmt_pct(status.loc[first_status, 'share_unknown'], 0)} of drivers had no speed "
-        f"status recorded. In 2016 that jumped to {_fmt_pct(status.loc[2016, 'share_unknown'], 0)} "
+        f"status recorded. In {status_jump} that jumped to "
+        f"{_fmt_pct(status.loc[status_jump, 'share_unknown'], 0)} "
         "and it has stayed there. The two obvious readings of the table now point in opposite "
         "directions: the share of <em>all</em> drivers with a speed infraction fell from "
         f"{_fmt_pct(all_first)} to {_fmt_pct(all_last)}, while the share among drivers with a "
@@ -151,32 +201,34 @@ def page_speed(captions: dict[str, str]) -> str:
     body += downloads(
         [
             ("speed_severity", "by year and road type"),
-            ("speed_severity_pooled", "pooled 2016–2023 and adjusted"),
+            ("speed_severity_pooled", f"pooled {types_span} and adjusted"),
             ("q9_infraction_shares", "speed status in the driver tables"),
         ]
     )
     body += "<h2>Conclusion</h2>"
     body += conclusion(
         "Speed is recorded in a small share of injury crashes and a large share of deaths. On "
-        "the same kind of road in the same year, a crash with speed recorded kills about twice "
-        "as often as one without, and on urban streets far more. The data support speed as a "
-        "severity factor of that order. They do not support a count of deaths caused by speed, "
-        "because the record is a judgement made after the fact, and they do not support a "
-        "trend in speeding from DGT's driver tables, which change meaning in 2016. For the size "
-        'of speed\'s effect the <a href="simulator.html">simulator</a> therefore uses speeds '
-        "measured by radar and the Power Model, which was estimated from changes in measured "
-        "speed, not from police records."
+        f"the same kind of road in the same year, a crash with speed recorded kills about "
+        f"{_times(rate)} as often as one without, and on urban streets "
+        f"{_times(float(urban.rate_ratio))}. The data support speed as a recorded circumstance "
+        "associated with severity, of that order. They do not support a count of deaths caused "
+        "by speed, because the record is a judgement made after the fact, and they do not "
+        "support a trend in speeding from DGT's driver tables, which change meaning in "
+        f"{status_jump}. The crash records carry no measured speed, so how much a change in "
+        "speeds would change deaths cannot be estimated from them."
     )
     body += limits(
         "The concurrent-factor record is the police's judgement, may name several factors for "
         "one crash, and is not a measured speed. The report excludes Cataluña and País Vasco. "
-        "The road-type comparison starts in 2016, where the microdata start, and the adjusted "
-        "ratio is overdispersed because the urban ratio is so different from the rest."
+        f"The road-type comparison starts in {first_type}, where the microdata start; its "
+        "interurban road types rest on a name match between the report and DGT's codes that is "
+        "checked only through the interurban total; and the adjusted ratio is overdispersed "
+        "because the urban ratio is so different from the rest."
     )
     return render_page(
         "speed",
         "Speed as a severity factor",
-        "How much deadlier is a crash when speed is involved, on the same kind of road? About "
-        "twice, with two biases the data cannot measure pulling in opposite directions.",
+        "How much deadlier is a crash when speed is recorded, on the same kind of road? About "
+        f"{_times(rate)}, with two biases the data cannot measure pulling in opposite directions.",
         body,
     )

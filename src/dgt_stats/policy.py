@@ -17,9 +17,9 @@ import numpy as np
 import pandas as pd
 
 from dgt_stats import io_tables
-from dgt_stats.paths import PROCESSED_DATA_DIR
+from dgt_stats.paths import DGT_PROCESSED_CRASHES
 
-PROCESSED_CRASHES = PROCESSED_DATA_DIR / "accidentes.parquet"
+PROCESSED_CRASHES = DGT_PROCESSED_CRASHES
 
 TREATED = "conventional"
 CONTROL = "motorway_dual"
@@ -154,18 +154,6 @@ def monthly_by_road_group(crashes: pd.DataFrame | None = None) -> pd.DataFrame:
     return out.sort_values(["group", "period"]).reset_index(drop=True)
 
 
-def fleet_offset(periods: pd.Series) -> pd.Series:
-    """Registered vehicles for each month, the annual series interpolated between mid-years."""
-    annual = io_tables.read_table("series_annual")
-    fleet = annual[(annual.metric == "vehicle_fleet") & (annual.zone == "all")]
-    fleet = fleet.dropna(subset=["value"]).sort_values("year")
-    knots = pd.to_datetime(fleet.year.astype(int).astype(str) + "-07-01")
-    x = knots.astype("int64").to_numpy(dtype=float)
-    y = fleet.value.to_numpy(dtype=float)
-    target = pd.to_datetime(periods).astype("int64").to_numpy(dtype=float)
-    return pd.Series(np.interp(target, x, y), index=periods.index, name="fleet")
-
-
 def window(frame: pd.DataFrame, start: pd.Timestamp, end: pd.Timestamp) -> pd.DataFrame:
     """Rows with ``period`` between ``start`` and ``end`` inclusive."""
     return frame[(frame.period >= start) & (frame.period <= end)].reset_index(drop=True)
@@ -173,7 +161,7 @@ def window(frame: pd.DataFrame, start: pd.Timestamp, end: pd.Timestamp) -> pd.Da
 
 EXPOSURE_SERIES = {
     "fuel": "CORES road-fuel consumption",
-    "toll": "toll-motorway vehicle-kilometres",
+    "toll": "toll-motorway average daily intensity",
 }
 
 
@@ -181,16 +169,19 @@ def exposure_covariate(periods: pd.Series, name: str) -> pd.DataFrame:
     """The log of a monthly traffic series, centred, as one design column.
 
     ``fuel`` is CORES's national road-fuel consumption (petrol plus road diesel, tonnes) and
-    ``toll`` the vehicle-kilometres on the state toll-motorway network. Both are centred on their
-    own mean over the window, so the intercept keeps its meaning. A month the series does not cover
-    raises rather than being filled.
+    ``toll`` the average daily intensity on the state toll-motorway network (vehicles a day on the
+    average kilometre, ``imd``). The toll network's vehicle-kilometres are not used: they grow with
+    the length of the network in service, which steps up in July 2006 as new sections open, the
+    very month of the break, whereas the intensity is a traffic level per kilometre. Both series
+    are centred on their own mean over the window, so the intercept keeps its meaning. A month the
+    series does not cover raises rather than being filled.
     """
     from dgt_stats import io_traffic
 
     if name == "fuel":
         source = io_traffic.read_cores_fuel().set_index("period").road_fuel_tonnes
     elif name == "toll":
-        source = io_traffic.read_toll_traffic().set_index("period").veh_km_millions
+        source = io_traffic.read_toll_traffic().set_index("period").imd
     else:
         raise ValueError(f"unknown exposure series {name!r}")
     values = pd.to_datetime(periods).map(source)
@@ -385,7 +376,6 @@ def segmented_fit(
     start: pd.Timestamp | None = None,
     end: pd.Timestamp | None = None,
     family: str = "poisson",
-    offset: bool = False,
     slope: bool = True,
     second_break: pd.Timestamp | None = None,
     pandemic: bool = False,
@@ -395,10 +385,11 @@ def segmented_fit(
 ) -> ItsFit:
     """Segmented regression of monthly deaths with a level (and slope) change at ``break_date``.
 
-    ``offset`` divides by the registered fleet; ``exposure_series`` instead adds the log of a
-    monthly traffic series as a free covariate (``fuel`` or ``toll``, see ``exposure_covariate``),
-    which lets the data say how much of the movement in deaths the traffic series explains rather
-    than imposing proportionality.
+    ``exposure_series`` adds the log of a monthly traffic series as a free covariate (``fuel`` or
+    ``toll``, see ``exposure_covariate``), which lets the data say how much of the movement in
+    deaths the traffic series explains rather than imposing proportionality. No series is used as
+    an offset: the registered fleet, the only monthly-interpolable count of vehicles, does not
+    correspond to deaths of every road user, pedestrians and cyclists included.
     """
     break_date = break_date or intervention.date
     frame = window(series, start or intervention.pre_start, end or intervention.post_end)
@@ -408,15 +399,14 @@ def segmented_fit(
     design = _segmented_design(
         frame, break_date, slope, second_break, pandemic, trend, knots, covariates
     )
-    exposure = fleet_offset(frame.period) if offset else None
-    params, coefficients, dispersion, mu = _fit(frame.deaths, design, family, exposure)
+    params, coefficients, dispersion, mu = _fit(frame.deaths, design, family, None)
     counterfactual_design = design.copy()
     for column in ("post", "post_t", "post2"):
         if column in counterfactual_design:
             counterfactual_design[column] = 0.0
     out = frame[["period", "deaths"]].copy()
     out["fitted"] = mu
-    out["counterfactual"] = _predict(counterfactual_design, params, exposure)
+    out["counterfactual"] = _predict(counterfactual_design, params, None)
     out["post"] = (frame.period >= break_date).to_numpy()
     level = _change(coefficients, "post")
     slope_change = _change(coefficients, "post_t", scale=12.0)
@@ -909,14 +899,8 @@ def points_licence_fits() -> dict[str, pd.DataFrame]:
             it.post_end,
         ),
         (
-            "Toll-motorway vehicle-kilometres as a covariate",
+            "Toll-motorway traffic intensity as a covariate",
             segmented_fit(series, it, variant="toll", exposure_series="toll", **fixed),
-            it.pre_start,
-            it.post_end,
-        ),
-        (
-            "Registered fleet as exposure offset",
-            segmented_fit(series, it, variant="fleet_offset", offset=True, **fixed),
             it.pre_start,
             it.post_end,
         ),

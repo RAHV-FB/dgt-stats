@@ -1,0 +1,36 @@
+feature_table,column,status,level,rows,share_of_rows,target_share_level,target_share_other_rows,ratio
+catalonia_crash_severity,D_TITULARITAT_VIA,safe,NA,11543,0.507474,0.08464,0.170222,0.497233
+catalonia_crash_severity,D_TITULARITAT_VIA,safe,Sense Especificar,15,0.000659457,0.133333,0.126787,1.05163
+catalonia_crash_severity,D_FUNC_ESP_VIA,safe,Sense especificar,3,0.000131891,0.333333,0.126764,2.62955
+catalonia_crash_severity,D_SUBTIPUS_TRAM,safe,NA,15288,0.672118,0.148548,0.0821936,1.80729
+catalonia_crash_severity,D_SUBTIPUS_TRAM,safe,Sense especificar,1,4.39638e-05,0,0.126797,0
+catalonia_crash_severity,D_REGULACIO_PRIORITAT,safe,NA,16160,0.710455,0.144864,0.0824476,1.75704
+catalonia_crash_severity,D_SUPERFICIE,safe,Sense especificar,4,0.000175855,0,0.126814,0
+catalonia_crash_severity,D_LLUMINOSITAT,safe,Sense especificar,6,0.000263783,0,0.126825,0
+catalonia_crash_severity,D_CLIMATOLOGIA,safe,Sense especificar,4,0.000175855,0,0.126814,0
+catalonia_crash_severity,D_VENT,safe,Sense especificar,6,0.000263783,0,0.126825,0
+catalonia_crash_severity,D_CIRCULACIO_MESURES_ESP,safe,NA,45,0.00197837,0,0.127043,0
+catalonia_crash_severity,D_SUBTIPUS_ACCIDENT,safe,Sense Especificar,1,4.39638e-05,0,0.126797,0
+catalonia_crash_severity,D_INFLUIT_BOIRA,questionable,Sense especificar,2683,0.117955,0.0588893,0.135872,0.433417
+catalonia_crash_severity,D_INFLUIT_CARACT_ENTORN,questionable,Sense especificar,813,0.0357425,0.0233702,0.130625,0.178911
+catalonia_crash_severity,D_INFLUIT_CIRCULACIO,questionable,Sense especificar,6,0.000263783,0,0.126825,0
+catalonia_crash_severity,D_INFLUIT_ESTAT_CLIMA,questionable,Sense especificar,6,0.000263783,0,0.126825,0
+catalonia_crash_severity,D_INFLUIT_INTEN_VENT,questionable,Sense especificar,2645,0.116284,0.0589792,0.135715,0.434582
+catalonia_crash_severity,D_INFLUIT_LLUMINOSITAT,questionable,Sense especificar,6,0.000263783,0,0.126825,0
+catalonia_crash_severity,D_INFLUIT_MESU_ESP,questionable,Sense especificar,6,0.000263783,0,0.126825,0
+catalonia_crash_severity,D_INFLUIT_OBJ_CALCADA,questionable,Sense especificar,6,0.000263783,0,0.126825,0
+catalonia_crash_severity,D_INFLUIT_SOLCS_RASES,questionable,Sense especificar,6,0.000263783,0,0.126825,0
+catalonia_crash_severity,D_INFLUIT_VISIBILITAT,questionable,Sense especificar,1510,0.0663853,0.0649007,0.131192,0.494699
+catalonia_crash_severity,D_TRACAT_ALTIMETRIC,questionable,NA,8236,0.362086,0.10102,0.14142,0.714327
+catalonia_crash_severity,D_TRACAT_ALTIMETRIC,questionable,Sense especificar,4775,0.209927,0.0381152,0.150353,0.253504
+catalonia_crash_severity,D_CARACT_ENTORN,questionable,NA,37,0.00162666,0,0.126998,0
+catalonia_crash_severity,D_CARACT_ENTORN,questionable,Sense Especificar,8516,0.374395,0.085721,0.15137,0.5663
+catalonia_crash_severity,D_SENTITS_VIA,questionable,NA,3888,0.170931,0.0871914,0.134956,0.646073
+catalonia_crash_severity,D_SENTITS_VIA,questionable,Sense especificar,623,0.0273894,0.0337079,0.129413,0.260468
+catalonia_crash_severity,D_CARRIL_ESPECIAL,questionable,NA,1551,0.0681878,0.0180529,0.134749,0.133974
+catalonia_crash_severity,D_CARRIL_ESPECIAL,questionable,Sense Especificar,21,0.000923239,0.047619,0.126865,0.375353
+catalonia_crash_severity,D_ACC_AMB_FUGA,questionable,Sense Especificar,179,0.00786952,0.0391061,0.127487,0.306746
+barcelona_person_severity,sex,safe,not recorded,62,0.00525468,0,0.0172105,0
+barcelona_person_severity,pedestrian_location,safe,not recorded,80,0.00678024,0.025,0.0170663,1.46488
+barcelona_person_severity,accident_type,safe,not recorded,2,0.000169506,0,0.017123,0
+barcelona_crash_severity,accident_type,safe,not recorded,2,0.000348008,0,0.0337685,0

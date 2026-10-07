@@ -3,7 +3,7 @@
 Source: INE, Estadística Continua de Población, table 56947 "Población residente por fecha, sexo,
 grupo de edad y nacionalidad (agrupación de países)", provincial level, 2002 onwards, quarterly
 reference dates. The full CSV is about 330 MB; the extract keeps nationality = Total and the
-1 January and 1 July reference dates only (about 11 MB) and is committed under data/raw/exposure.
+1 January and 1 July reference dates only (about 11 MB) and is committed under data/raw/ine.
 
 Usage:
     python scripts/fetch_ine.py                   # download, filter, write the extract
@@ -24,13 +24,13 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from dgt_stats.paths import RAW_EXPOSURE_DIR  # noqa: E402
+from dgt_stats.paths import RAW_INE_DIR  # noqa: E402
 
 log = logging.getLogger("fetch_ine")
 
 TABLE_ID = 56947
 SOURCE_URL = f"https://www.ine.es/jaxiT3/files/t/es/csv_bdsc/{TABLE_ID}.csv?nocab=1"
-TARGET = RAW_EXPOSURE_DIR / "ine_poblacion_provincias_edad_sexo.csv"
+TARGET = RAW_INE_DIR / "ine_poblacion_provincias_edad_sexo.csv"
 REFERENCES = {"1 de enero": "1 January", "1 de julio": "1 July"}
 
 

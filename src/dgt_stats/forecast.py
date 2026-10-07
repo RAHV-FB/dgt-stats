@@ -1,21 +1,29 @@
-"""Predicting a year's road deaths, and how likely the counts are to show a change in them.
+"""Predicting a year's road deaths, and how large a change in them the counts can detect.
 
-A law is judged by comparing the deaths after it with the deaths that would have happened without
-it. The second number is a forecast, and its error decides what the comparison can see. This
-module builds that forecast as a small, validated model and measures its error honestly, out of
-sample, so that the simulator can say how likely the counts are to show a simulated effect.
+Any before-and-after reading of the death counts compares the deaths after a change with the
+deaths there would have been without it. The second number is a forecast, and its error decides
+how large a change the comparison can see. This module builds that forecast as a small model of
+Spain's monthly deaths, fitted and validated only on the repository's own series (DGT's monthly
+30-day deaths and CORES road fuel), and measures its error out of sample. Nothing in it comes
+from an external study: its result is the minimum detectable change, a property of the Spanish
+death series and of how well its recent past predicts its next years.
 
 **The model** is a Poisson regression (a generalised linear model) of monthly 30-day deaths, fitted
-on the four years before the year it predicts:
+on the four years before the year it predicts, separately for all roads, interurban roads and
+urban streets; one row is one month of Spain:
 
     log E[deaths] = month of year + linear trend + b · log(road fuel) + calendar
 
 where *road fuel* is CORES automotive petrol plus diesel for that month (the traffic) and the
 *calendar* terms count the month's Fridays, Saturdays and Sundays. Traffic and calendar are known
 once the month is over, so the forecast is the deaths the month's traffic and calendar would have
-produced on the recent trend: the counterfactual a before-and-after comparison needs. Easter is
-left out: in a four-year window it often falls in the same month every year, and its effect
-cannot then be told from that month's.
+been associated with on the recent trend: the counterfactual a before-and-after comparison needs.
+Fuel is national and covers every road, so it is a predictor with a fitted coefficient, not a
+denominator for urban or interurban deaths. It is also observed after any change being judged:
+for a change that itself alters how much people drive, conditioning on fuel removes the part of
+the change that works through traffic, and the comparison then speaks only of deaths for the
+traffic there was. Easter is left out: in a four-year window it often falls in the same month
+every year, and its effect cannot then be told from that month's.
 
 **How it was chosen.** Four specifications and windows of three to eight years were compared by
 rolling-origin forecasts: fit on the years before a year, predict that year's twelve months, move
@@ -30,19 +38,19 @@ selection years from ``TREE_LEAF_CANDIDATES``.
 The result is a split verdict, and the page reports it as one. In the years when the trend moved
 (the selection years) or traffic collapsed (the lockdowns) the model beats last year's count by a
 wide margin; in the flat held-back years last year's count does slightly better. A
-counterfactual for a law has to survive both kinds of year, so the model is the one used. The
-trees, tuned the same way, do worse than the model in every zone and every kind of year: a tree
-cannot extend a trend beyond the years it has seen, and with 48 rows a small leaf fits the noise.
-Trees with leaves of at least 8, worse on the selection years, would have beaten both the model
-and last year's count on the flat held-back years in every zone and lost to the model in the
-lockdowns; larger leaves did worse again on the held-back years. A setting that wins only in
-flat years cannot be picked in advance, because whether the years ahead will be flat is not known
-when a forecast is made.
+counterfactual has to survive both kinds of year, so the model is the one used. The trees, tuned
+the same way, do worse than the model in every zone and every kind of year: a tree cannot extend
+a trend beyond the years it has seen, and with 48 rows a small leaf fits the noise. Looking at
+the held-back years afterwards, trees with larger leaves, worse on the selection years, would
+have beaten both the model and last year's count there; that leaf size was found with the test
+years, so it is reported only as a disclosed comparator and is never a candidate. A setting that
+wins only in flat years cannot be picked in advance, because whether the years ahead will be flat
+is not known when a forecast is made.
 
 **What the error means.** The forecast error of a sum of ``n`` years, measured the same way at each
 horizon, splits into Poisson chance (``1 / expected deaths``) and an extra, multiplicative part
 ``tau_n`` that comes from the trend drifting away from the extrapolation. The second part grows
-with the horizon, which is why waiting longer after a law does not make it easier to see. The
+with the horizon, which is why waiting longer after a change does not make it easier to see. The
 chance that a two-sided comparison at the 5 % level shows a change in its own direction
 (:func:`detection_power`) is ``Φ(d − z_0.975)``, with ``d = |log(1 + change / expected)| / sigma``
 and ``sigma = sqrt(1 / expected + tau_n²)``. It is 80 % for a fall of
@@ -50,7 +58,9 @@ and ``sigma = sqrt(1 / expected + tau_n²)``. It is 80 % for a fall of
     MDE = 1 − exp(−(z_0.975 + z_0.80) · sigma),
 
 the minimum detectable effect, and for a rise of ``exp((z_0.975 + z_0.80) · sigma) − 1``. The MDE
-is the change detected four times in five, not a line below which nothing shows.
+is the change detected four times in five, not a line below which nothing shows. ``tau_n`` is
+measured on every forecast origin from 2006 on, the selection years included, so it describes the
+chosen model's error over the whole period rather than on the held-back years alone.
 """
 
 from __future__ import annotations
@@ -335,7 +345,7 @@ def horizon_errors() -> pd.DataFrame:
     Each origin year from 2006 is fitted on the four years before it and the next ``n`` years are
     predicted with their observed traffic and calendar. Forecast spans that contain 2020 or 2021
     are left out; fits whose four-year window contains them (origins 2022–2024) are kept, because
-    a forecast made for a law today is fitted on such a window too, and they raise the error.
+    a forecast made today is fitted on such a window too, and they raise the error.
     ``tau`` is the error left once Poisson chance on the observed total is taken out: the drift of
     the trend, which applies to any count of deaths in the same zone whatever its size.
     """
@@ -436,8 +446,11 @@ def coefficients() -> pd.DataFrame:
 
     The traffic coefficient is an elasticity (a 1 % change in road fuel goes with a ``b`` % change
     in deaths, month for month, given the season and the trend); the calendar coefficients are
-    the proportional change in a month's deaths for one more Friday, Saturday or Sunday. With
-    four years of data these are imprecise, and they are reported with that in view.
+    the proportional change in a month's deaths associated with one more Friday, Saturday or
+    Sunday. With four years of data these are imprecise, and they are reported with that in view.
+    The window is the four years to the last complete one (``first_year`` to ``last_year``), so
+    with data to 2024 it starts in 2021, a year of pandemic restrictions, whose low traffic months
+    weigh on the fuel coefficient.
     """
     panel = model_panel()
     last = int(panel.year.max())

@@ -1,0 +1,160 @@
+feature_table,column,kind,missing,missing_share,source_placeholder_rows,treatment
+catalonia_crash_severity,year,numeric,0,0,0,none needed
+catalonia_crash_severity,month,categorical,0,0,0,explicit 'not recorded' category; source placeholders kept as categories
+catalonia_crash_severity,weekday,categorical,0,0,0,explicit 'not recorded' category; source placeholders kept as categories
+catalonia_crash_severity,hour_band,categorical,0,0,0,explicit 'not recorded' category; source placeholders kept as categories
+catalonia_crash_severity,D_TIPUS_VIA,categorical,0,0,0,explicit 'not recorded' category; source placeholders kept as categories
+catalonia_crash_severity,D_TITULARITAT_VIA,categorical,0,0,12524,explicit 'not recorded' category; source placeholders kept as categories
+catalonia_crash_severity,D_SUBZONA,categorical,0,0,0,explicit 'not recorded' category; source placeholders kept as categories
+catalonia_crash_severity,D_FUNC_ESP_VIA,categorical,0,0,3,explicit 'not recorded' category; source placeholders kept as categories
+catalonia_crash_severity,D_INTER_SECCIO,categorical,0,0,0,explicit 'not recorded' category; source placeholders kept as categories
+catalonia_crash_severity,D_SUBTIPUS_TRAM,categorical,0,0,16495,explicit 'not recorded' category; source placeholders kept as categories
+catalonia_crash_severity,D_REGULACIO_PRIORITAT,categorical,0,0,17488,explicit 'not recorded' category; source placeholders kept as categories
+catalonia_crash_severity,D_SUPERFICIE,categorical,0,0,4,explicit 'not recorded' category; source placeholders kept as categories
+catalonia_crash_severity,D_LLUMINOSITAT,categorical,0,0,6,explicit 'not recorded' category; source placeholders kept as categories
+catalonia_crash_severity,D_CLIMATOLOGIA,categorical,0,0,4,explicit 'not recorded' category; source placeholders kept as categories
+catalonia_crash_severity,D_VENT,categorical,0,0,6,explicit 'not recorded' category; source placeholders kept as categories
+catalonia_crash_severity,D_BOIRA,categorical,0,0,0,explicit 'not recorded' category; source placeholders kept as categories
+catalonia_crash_severity,D_CIRCULACIO_MESURES_ESP,categorical,0,0,49,explicit 'not recorded' category; source placeholders kept as categories
+catalonia_crash_severity,D_SUBTIPUS_ACCIDENT,categorical,0,0,1,explicit 'not recorded' category; source placeholders kept as categories
+catalonia_crash_severity,speed_limit_category,categorical,0,0,0,explicit 'not recorded' category; source placeholders kept as categories
+catalonia_crash_severity,n_units,numeric,0,0,0,none needed
+catalonia_crash_severity,single_unit,binary,0,0,0,none needed
+catalonia_crash_severity,involves_pedestrian,binary,0,0,0,none needed
+catalonia_crash_severity,involves_bicycle,binary,0,0,0,none needed
+catalonia_crash_severity,involves_moped,binary,0,0,0,none needed
+catalonia_crash_severity,involves_motorcycle,binary,0,0,0,none needed
+catalonia_crash_severity,involves_light_vehicle,binary,0,0,0,none needed
+catalonia_crash_severity,involves_heavy_vehicle,binary,0,0,0,none needed
+catalonia_crash_severity,involves_other_unit,binary,0,0,0,none needed
+catalonia_crash_severity,demarcation,categorical,0,0,0,explicit 'not recorded' category; source placeholders kept as categories
+catalonia_crash_severity,comarca,categorical,0,0,0,explicit 'not recorded' category; source placeholders kept as categories
+catalonia_crash_severity,municipality,categorical,0,0,0,explicit 'not recorded' category; source placeholders kept as categories
+catalonia_crash_severity,D_INFLUIT_BOIRA,categorical,0,0,2894,explicit 'not recorded' category; source placeholders kept as categories
+catalonia_crash_severity,D_INFLUIT_CARACT_ENTORN,categorical,0,0,971,explicit 'not recorded' category; source placeholders kept as categories
+catalonia_crash_severity,D_INFLUIT_CIRCULACIO,categorical,0,0,6,explicit 'not recorded' category; source placeholders kept as categories
+catalonia_crash_severity,D_INFLUIT_ESTAT_CLIMA,categorical,0,0,6,explicit 'not recorded' category; source placeholders kept as categories
+catalonia_crash_severity,D_INFLUIT_INTEN_VENT,categorical,0,0,2855,explicit 'not recorded' category; source placeholders kept as categories
+catalonia_crash_severity,D_INFLUIT_LLUMINOSITAT,categorical,0,0,6,explicit 'not recorded' category; source placeholders kept as categories
+catalonia_crash_severity,D_INFLUIT_MESU_ESP,categorical,0,0,6,explicit 'not recorded' category; source placeholders kept as categories
+catalonia_crash_severity,D_INFLUIT_OBJ_CALCADA,categorical,0,0,6,explicit 'not recorded' category; source placeholders kept as categories
+catalonia_crash_severity,D_INFLUIT_SOLCS_RASES,categorical,0,0,6,explicit 'not recorded' category; source placeholders kept as categories
+catalonia_crash_severity,D_INFLUIT_VISIBILITAT,categorical,0,0,1598,explicit 'not recorded' category; source placeholders kept as categories
+catalonia_crash_severity,D_TRACAT_ALTIMETRIC,categorical,0,0,14146,explicit 'not recorded' category; source placeholders kept as categories
+catalonia_crash_severity,D_CARACT_ENTORN,categorical,0,0,9386,explicit 'not recorded' category; source placeholders kept as categories
+catalonia_crash_severity,D_SENTITS_VIA,categorical,0,0,5037,explicit 'not recorded' category; source placeholders kept as categories
+catalonia_crash_severity,D_CARRIL_ESPECIAL,categorical,0,0,1763,explicit 'not recorded' category; source placeholders kept as categories
+catalonia_crash_severity,D_ACC_AMB_FUGA,categorical,0,0,196,explicit 'not recorded' category; source placeholders kept as categories
+catalonia_crash_severity,cat_crash_id,categorical,0,0,0,explicit 'not recorded' category; source placeholders kept as categories
+barcelona_person_severity,age,numeric,101,0.00637304,0,"median imputation with a missing indicator, fitted on training rows"
+barcelona_person_severity,sex,categorical,83,0.00523725,0,explicit 'not recorded' category; source placeholders kept as categories
+barcelona_person_severity,person_role,categorical,0,0,0,explicit 'not recorded' category; source placeholders kept as categories
+barcelona_person_severity,associated_vehicle_group,categorical,0,0,0,explicit 'not recorded' category; source placeholders kept as categories
+barcelona_person_severity,pedestrian_location,categorical,103,0.00649924,0,explicit 'not recorded' category; source placeholders kept as categories
+barcelona_person_severity,hour,numeric,0,0,0,none needed
+barcelona_person_severity,weekday,categorical,0,0,0,explicit 'not recorded' category; source placeholders kept as categories
+barcelona_person_severity,month,categorical,0,0,0,explicit 'not recorded' category; source placeholders kept as categories
+barcelona_person_severity,accident_type,categorical,3,0.000189298,0,explicit 'not recorded' category; source placeholders kept as categories
+barcelona_person_severity,n_vehicles,numeric,0,0,0,none needed
+barcelona_person_severity,vehicle_records_include_car,binary,0,0,0,none needed
+barcelona_person_severity,vehicle_records_include_taxi,binary,0,0,0,none needed
+barcelona_person_severity,vehicle_records_include_motorcycle,binary,0,0,0,none needed
+barcelona_person_severity,vehicle_records_include_moped,binary,0,0,0,none needed
+barcelona_person_severity,vehicle_records_include_bicycle,binary,0,0,0,none needed
+barcelona_person_severity,vehicle_records_include_personal_mobility_vehicle,binary,0,0,0,none needed
+barcelona_person_severity,vehicle_records_include_van_or_light_truck,binary,0,0,0,none needed
+barcelona_person_severity,vehicle_records_include_heavy_truck,binary,0,0,0,none needed
+barcelona_person_severity,vehicle_records_include_bus_or_coach,binary,0,0,0,none needed
+barcelona_person_severity,vehicle_records_include_tram_or_train,binary,0,0,0,none needed
+barcelona_person_severity,vehicle_records_include_other,binary,0,0,0,none needed
+barcelona_person_severity,vehicle_records_include_not_recorded,binary,0,0,0,none needed
+barcelona_person_severity,district,categorical,0,0,0,explicit 'not recorded' category; source placeholders kept as categories
+barcelona_person_severity,neighbourhood,categorical,0,0,0,explicit 'not recorded' category; source placeholders kept as categories
+barcelona_person_severity,mediate_alcohol_recorded,binary,0,0,0,none needed
+barcelona_person_severity,mediate_speed_recorded,binary,0,0,0,none needed
+barcelona_person_severity,mediate_drugs_medication_recorded,binary,0,0,0,none needed
+barcelona_person_severity,mediate_road_surface_recorded,binary,0,0,0,none needed
+barcelona_person_severity,mediate_signalling_recorded,binary,0,0,0,none needed
+barcelona_person_severity,mediate_weather_recorded,binary,0,0,0,none needed
+barcelona_person_severity,mediate_object_or_animal_recorded,binary,0,0,0,none needed
+barcelona_person_severity,driver_cause_inattention_recorded,binary,0,0,0,none needed
+barcelona_person_severity,driver_cause_following_distance_recorded,binary,0,0,0,none needed
+barcelona_person_severity,driver_cause_improper_turn_recorded,binary,0,0,0,none needed
+barcelona_person_severity,driver_cause_traffic_light_recorded,binary,0,0,0,none needed
+barcelona_person_severity,driver_cause_lane_change_recorded,binary,0,0,0,none needed
+barcelona_person_severity,driver_cause_other_signal_recorded,binary,0,0,0,none needed
+barcelona_person_severity,driver_cause_overtaking_recorded,binary,0,0,0,none needed
+barcelona_person_severity,driver_cause_merging_recorded,binary,0,0,0,none needed
+barcelona_person_severity,driver_cause_pedestrian_crossing_recorded,binary,0,0,0,none needed
+barcelona_person_severity,driver_cause_reversing_recorded,binary,0,0,0,none needed
+barcelona_person_severity,driver_cause_right_of_way_recorded,binary,0,0,0,none needed
+barcelona_person_severity,driver_cause_wrong_side_recorded,binary,0,0,0,none needed
+barcelona_person_severity,driver_cause_mechanical_failure_recorded,binary,0,0,0,none needed
+barcelona_person_severity,driver_cause_other_recorded,binary,0,0,0,none needed
+barcelona_person_severity,driver_cause_not_determined_recorded,binary,0,0,0,none needed
+barcelona_person_severity,driver_cause_status,categorical,0,0,0,explicit 'not recorded' category; source placeholders kept as categories
+barcelona_person_severity,pedestrian_cause,categorical,0,0,0,explicit 'not recorded' category; source placeholders kept as categories
+barcelona_person_severity,person_record_id,categorical,0,0,0,explicit 'not recorded' category; source placeholders kept as categories
+barcelona_person_severity,Numero_expedient,categorical,0,0,0,explicit 'not recorded' category; source placeholders kept as categories
+barcelona_crash_severity,hour,numeric,0,0,0,none needed
+barcelona_crash_severity,weekday,categorical,0,0,0,explicit 'not recorded' category; source placeholders kept as categories
+barcelona_crash_severity,month,categorical,0,0,0,explicit 'not recorded' category; source placeholders kept as categories
+barcelona_crash_severity,accident_type,categorical,3,0.000387547,0,explicit 'not recorded' category; source placeholders kept as categories
+barcelona_crash_severity,n_vehicles,numeric,0,0,0,none needed
+barcelona_crash_severity,vehicle_records_include_car,binary,0,0,0,none needed
+barcelona_crash_severity,vehicle_records_include_taxi,binary,0,0,0,none needed
+barcelona_crash_severity,vehicle_records_include_motorcycle,binary,0,0,0,none needed
+barcelona_crash_severity,vehicle_records_include_moped,binary,0,0,0,none needed
+barcelona_crash_severity,vehicle_records_include_bicycle,binary,0,0,0,none needed
+barcelona_crash_severity,vehicle_records_include_personal_mobility_vehicle,binary,0,0,0,none needed
+barcelona_crash_severity,vehicle_records_include_van_or_light_truck,binary,0,0,0,none needed
+barcelona_crash_severity,vehicle_records_include_heavy_truck,binary,0,0,0,none needed
+barcelona_crash_severity,vehicle_records_include_bus_or_coach,binary,0,0,0,none needed
+barcelona_crash_severity,vehicle_records_include_tram_or_train,binary,0,0,0,none needed
+barcelona_crash_severity,vehicle_records_include_other,binary,0,0,0,none needed
+barcelona_crash_severity,vehicle_records_include_not_recorded,binary,0,0,0,none needed
+barcelona_crash_severity,district,categorical,0,0,0,explicit 'not recorded' category; source placeholders kept as categories
+barcelona_crash_severity,neighbourhood,categorical,0,0,0,explicit 'not recorded' category; source placeholders kept as categories
+barcelona_crash_severity,mediate_alcohol_recorded,binary,0,0,0,none needed
+barcelona_crash_severity,mediate_speed_recorded,binary,0,0,0,none needed
+barcelona_crash_severity,mediate_drugs_medication_recorded,binary,0,0,0,none needed
+barcelona_crash_severity,mediate_road_surface_recorded,binary,0,0,0,none needed
+barcelona_crash_severity,mediate_signalling_recorded,binary,0,0,0,none needed
+barcelona_crash_severity,mediate_weather_recorded,binary,0,0,0,none needed
+barcelona_crash_severity,mediate_object_or_animal_recorded,binary,0,0,0,none needed
+barcelona_crash_severity,driver_cause_inattention_recorded,binary,0,0,0,none needed
+barcelona_crash_severity,driver_cause_following_distance_recorded,binary,0,0,0,none needed
+barcelona_crash_severity,driver_cause_improper_turn_recorded,binary,0,0,0,none needed
+barcelona_crash_severity,driver_cause_traffic_light_recorded,binary,0,0,0,none needed
+barcelona_crash_severity,driver_cause_lane_change_recorded,binary,0,0,0,none needed
+barcelona_crash_severity,driver_cause_other_signal_recorded,binary,0,0,0,none needed
+barcelona_crash_severity,driver_cause_overtaking_recorded,binary,0,0,0,none needed
+barcelona_crash_severity,driver_cause_merging_recorded,binary,0,0,0,none needed
+barcelona_crash_severity,driver_cause_pedestrian_crossing_recorded,binary,0,0,0,none needed
+barcelona_crash_severity,driver_cause_reversing_recorded,binary,0,0,0,none needed
+barcelona_crash_severity,driver_cause_right_of_way_recorded,binary,0,0,0,none needed
+barcelona_crash_severity,driver_cause_wrong_side_recorded,binary,0,0,0,none needed
+barcelona_crash_severity,driver_cause_mechanical_failure_recorded,binary,0,0,0,none needed
+barcelona_crash_severity,driver_cause_other_recorded,binary,0,0,0,none needed
+barcelona_crash_severity,driver_cause_not_determined_recorded,binary,0,0,0,none needed
+barcelona_crash_severity,driver_cause_status,categorical,0,0,0,explicit 'not recorded' category; source placeholders kept as categories
+barcelona_crash_severity,pedestrian_cause,categorical,0,0,0,explicit 'not recorded' category; source placeholders kept as categories
+barcelona_crash_severity,Numero_expedient,categorical,0,0,0,explicit 'not recorded' category; source placeholders kept as categories
+catalonia_common_dgt,dgt_year,numeric,0,0,0,none needed
+catalonia_common_dgt,dgt_month,categorical,0,0,0,explicit 'not recorded' category; source placeholders kept as categories
+catalonia_common_dgt,dgt_weekday,categorical,0,0,0,explicit 'not recorded' category; source placeholders kept as categories
+catalonia_common_dgt,dgt_hour_band,categorical,0,0,0,explicit 'not recorded' category; source placeholders kept as categories
+catalonia_common_dgt,dgt_zone,categorical,0,0,0,explicit 'not recorded' category; source placeholders kept as categories
+catalonia_common_dgt,dgt_crash_type,categorical,0,0,0,explicit 'not recorded' category; source placeholders kept as categories
+catalonia_common_dgt,dgt_lighting,categorical,0,0,0,explicit 'not recorded' category; source placeholders kept as categories
+catalonia_common_dgt,dgt_weather,categorical,0,0,0,explicit 'not recorded' category; source placeholders kept as categories
+catalonia_common_dgt,dgt_surface,categorical,0,0,0,explicit 'not recorded' category; source placeholders kept as categories
+catalonia_common_dgt,dgt_vehicles,categorical,0,0,0,explicit 'not recorded' category; source placeholders kept as categories
+catalonia_common_bcn,bcn_weekday,categorical,0,0,0,explicit 'not recorded' category; source placeholders kept as categories
+catalonia_common_bcn,bcn_hour_band,categorical,0,0,0,explicit 'not recorded' category; source placeholders kept as categories
+catalonia_common_bcn,bcn_crash_type,categorical,0,0,0,explicit 'not recorded' category; source placeholders kept as categories
+catalonia_common_bcn,bcn_involves_pedestrian,binary,0,0,0,none needed
+catalonia_common_bcn,bcn_involves_motorcycle,binary,0,0,0,none needed
+catalonia_common_bcn,bcn_involves_moped,binary,0,0,0,none needed
+catalonia_common_bcn,bcn_involves_bicycle,binary,0,0,0,none needed
+catalonia_common_bcn,bcn_vehicles,categorical,0,0,0,explicit 'not recorded' category; source placeholders kept as categories

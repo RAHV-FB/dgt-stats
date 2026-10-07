@@ -6,12 +6,23 @@ Zone,ZONA,4,urban motorway or dual carriageway,False
 Zone,ZONA,999,not specified (no crash takes this value),False
 Zone,ZONA,998,not applicable (no crash takes this value),False
 Zone,ZONA,any other value or empty,not specified (no crash takes this value),False
-Road type,road_group,urban_street,urban street,True
-Road type,road_group,conventional,conventional,False
-Road type,road_group,dual_carriageway,dual carriageway,False
-Road type,road_group,motorway,motorway,False
-Road type,road_group,other,other road,False
-Road type,road_group,any other value or empty,"urban street (merged: the not specified level's 85 crashes, fewer than 500)",True
+Road type,TIPO_VIA,1,motorway,False
+Road type,TIPO_VIA,2,motorway,False
+Road type,TIPO_VIA,3,autovía,False
+Road type,TIPO_VIA,4,conventional,False
+Road type,TIPO_VIA,5,conventional,False
+Road type,TIPO_VIA,6,conventional,False
+Road type,TIPO_VIA,9,urban street,True
+Road type,TIPO_VIA,7,other road,False
+Road type,TIPO_VIA,8,other road,False
+Road type,TIPO_VIA,10,other road,False
+Road type,TIPO_VIA,11,other road,False
+Road type,TIPO_VIA,12,other road,False
+Road type,TIPO_VIA,13,other road,False
+Road type,TIPO_VIA,14,other road,False
+Road type,TIPO_VIA,999,urban street (the not specified level was merged; no crash takes this code),True
+Road type,TIPO_VIA,998,not applicable (no crash takes this value),False
+Road type,TIPO_VIA,any other value or empty,"urban street (merged: the not specified level's 85 crashes, fewer than 500)",True
 Crash type,TIPO_ACCIDENTE,1,head-on collision,False
 Crash type,TIPO_ACCIDENTE,2,side collision,True
 Crash type,TIPO_ACCIDENTE,3,side collision,True

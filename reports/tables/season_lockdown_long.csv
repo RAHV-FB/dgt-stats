@@ -11,30 +11,30 @@ month,month_label,series,change,series_label
 10,Oct,deaths_change,-0.1879699248,"Deaths, all roads"
 11,Nov,deaths_change,-0.3006993007,"Deaths, all roads"
 12,Dec,deaths_change,-0.1279826464,"Deaths, all roads"
-1,Jan,road_fuel_tonnes_change,0.03399887526,Road fuel (petrol + diesel)
-2,Feb,road_fuel_tonnes_change,0.05133746083,Road fuel (petrol + diesel)
-3,Mar,road_fuel_tonnes_change,-0.2630447948,Road fuel (petrol + diesel)
-4,Apr,road_fuel_tonnes_change,-0.5772034479,Road fuel (petrol + diesel)
-5,May,road_fuel_tonnes_change,-0.4229844944,Road fuel (petrol + diesel)
-6,Jun,road_fuel_tonnes_change,-0.2033751543,Road fuel (petrol + diesel)
-7,Jul,road_fuel_tonnes_change,-0.05951478576,Road fuel (petrol + diesel)
-8,Aug,road_fuel_tonnes_change,-0.1129991757,Road fuel (petrol + diesel)
-9,Sep,road_fuel_tonnes_change,-0.05226650649,Road fuel (petrol + diesel)
-10,Oct,road_fuel_tonnes_change,-0.09013695959,Road fuel (petrol + diesel)
-11,Nov,road_fuel_tonnes_change,-0.1690142615,Road fuel (petrol + diesel)
-12,Dec,road_fuel_tonnes_change,-0.08384966037,Road fuel (petrol + diesel)
-1,Jan,petrol_tonnes_change,0.1272649182,Petrol only
-2,Feb,petrol_tonnes_change,0.1629224679,Petrol only
-3,Mar,petrol_tonnes_change,-0.3270033823,Petrol only
-4,Apr,petrol_tonnes_change,-0.763591737,Petrol only
-5,May,petrol_tonnes_change,-0.5461442154,Petrol only
-6,Jun,petrol_tonnes_change,-0.2092356999,Petrol only
-7,Jul,petrol_tonnes_change,0.005979325036,Petrol only
-8,Aug,petrol_tonnes_change,-0.04982659993,Petrol only
-9,Sep,petrol_tonnes_change,-0.01714937141,Petrol only
-10,Oct,petrol_tonnes_change,-0.08011181735,Petrol only
-11,Nov,petrol_tonnes_change,-0.1965904674,Petrol only
-12,Dec,petrol_tonnes_change,-0.09791551905,Petrol only
+1,Jan,road_fuel_tonnes_change,0.03399887526,Road fuel sold (petrol + diesel)
+2,Feb,road_fuel_tonnes_change,0.05133746083,Road fuel sold (petrol + diesel)
+3,Mar,road_fuel_tonnes_change,-0.2630447948,Road fuel sold (petrol + diesel)
+4,Apr,road_fuel_tonnes_change,-0.5772034479,Road fuel sold (petrol + diesel)
+5,May,road_fuel_tonnes_change,-0.4229844944,Road fuel sold (petrol + diesel)
+6,Jun,road_fuel_tonnes_change,-0.2033751543,Road fuel sold (petrol + diesel)
+7,Jul,road_fuel_tonnes_change,-0.05951478576,Road fuel sold (petrol + diesel)
+8,Aug,road_fuel_tonnes_change,-0.1129991757,Road fuel sold (petrol + diesel)
+9,Sep,road_fuel_tonnes_change,-0.05226650649,Road fuel sold (petrol + diesel)
+10,Oct,road_fuel_tonnes_change,-0.09013695959,Road fuel sold (petrol + diesel)
+11,Nov,road_fuel_tonnes_change,-0.1690142615,Road fuel sold (petrol + diesel)
+12,Dec,road_fuel_tonnes_change,-0.08384966037,Road fuel sold (petrol + diesel)
+1,Jan,petrol_tonnes_change,0.1272649182,Petrol sold only
+2,Feb,petrol_tonnes_change,0.1629224679,Petrol sold only
+3,Mar,petrol_tonnes_change,-0.3270033823,Petrol sold only
+4,Apr,petrol_tonnes_change,-0.763591737,Petrol sold only
+5,May,petrol_tonnes_change,-0.5461442154,Petrol sold only
+6,Jun,petrol_tonnes_change,-0.2092356999,Petrol sold only
+7,Jul,petrol_tonnes_change,0.005979325036,Petrol sold only
+8,Aug,petrol_tonnes_change,-0.04982659993,Petrol sold only
+9,Sep,petrol_tonnes_change,-0.01714937141,Petrol sold only
+10,Oct,petrol_tonnes_change,-0.08011181735,Petrol sold only
+11,Nov,petrol_tonnes_change,-0.1965904674,Petrol sold only
+12,Dec,petrol_tonnes_change,-0.09791551905,Petrol sold only
 1,Jan,toll_intensity_change,0.0911453258,Toll-motorway traffic per km
 2,Feb,toll_intensity_change,0.09744722631,Toll-motorway traffic per km
 3,Mar,toll_intensity_change,-0.3973813977,Toll-motorway traffic per km

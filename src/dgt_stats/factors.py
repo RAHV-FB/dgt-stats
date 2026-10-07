@@ -17,11 +17,12 @@ direction can be measured from these tables, so the page reports the ratio as wh
 
 **Other factors across years.** A factor's share of injury crashes can only be compared between
 years that recorded it the same way. ``factor_consistency`` flags every year-to-year change in a
-factor's share larger than ``BREAK_RATIO`` (a 25 % jump or fall in a single year, which no road
-behaviour produces across 20,000–50,000 crashes) as a recording break, and treats a change it
-cannot test (fewer than ``MIN_CRASHES`` crashes in either year) as a break too.
-``comparable_windows`` lists the runs of years between breaks, within which a change in share can
-be read as a change in what the police recorded, not in how they recorded it.
+factor's share larger than ``BREAK_RATIO`` (a rise of more than 25 %, or a fall of more than 20 %,
+in a single year) as a break in comparability, and treats a change it cannot test (fewer than
+``MIN_CRASHES`` crashes in either year) as a break too. The threshold is a rule, not evidence about
+the cause: the data do not establish whether a break is behavioural or recording-related.
+``comparable_windows`` lists the runs of years between breaks, within which a change in share is
+compared.
 """
 
 from __future__ import annotations
@@ -34,9 +35,9 @@ import statsmodels.api as sm
 import statsmodels.formula.api as smf
 
 from dgt_stats import io_reports, rates
-from dgt_stats.paths import PROCESSED_DATA_DIR
+from dgt_stats.paths import DGT_PROCESSED_CRASHES
 
-PROCESSED_CRASHES = PROCESSED_DATA_DIR / "accidentes.parquet"
+PROCESSED_CRASHES = DGT_PROCESSED_CRASHES
 
 # Provinces outside the speed report's scope: Barcelona, Girona, Lleida, Tarragona (Cataluña) and
 # Araba/Álava, Gipuzkoa, Bizkaia (País Vasco), by INE code.

@@ -1,0 +1,102 @@
+dataset,unit,outcome,dimension,level,n,events,label,share,ci_low,ci_high,small_n
+Catalonia 2010-2023,crash with a death or serious injury,fatal,zone,Carretera,11026,2112,interurban road,0.191547,0.18431,0.199,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,zone,Travessera,1180,137,through-town road,0.116102,0.0990564,0.135639,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,zone,Zona urbana,12272,844,urban street,0.0687744,0.0644305,0.0733883,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,road type,Altres,616,98,other,0.159091,0.132332,0.190076,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,road type,Autopista,224,46,motorway,0.205357,0.157636,0.263014,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,road type,Autovia,496,82,dual carriageway,0.165323,0.135227,0.200562,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,road type,Camí rural/pista forestal,188,25,rural track,0.132979,0.0917197,0.188937,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,road type,Carretera convencional,10540,1981,conventional road,0.187951,0.180606,0.195522,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,road type,Via urbana( inclou carrer i carrer residencial),12414,861,urban street,0.0693572,0.0650198,0.073961,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,speed limit,generic limit for the road (value not recorded),17969,2129,generic limit for the road (value not recorded),0.118482,0.113838,0.123289,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,speed limit,posted 10-30 km/h,1251,92,posted 10-30 km/h,0.0735412,0.0603454,0.089348,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,speed limit,posted 100-120 km/h,591,141,posted 100-120 km/h,0.238579,0.205974,0.27456,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,speed limit,posted 40-50 km/h,2381,262,posted 40-50 km/h,0.110038,0.0980905,0.123241,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,speed limit,posted 60-70 km/h,1061,204,posted 60-70 km/h,0.192271,0.169685,0.217078,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,speed limit,posted 80-90 km/h,1216,265,posted 80-90 km/h,0.217928,0.195631,0.242001,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,speed limit,"posted, implausible value",9,0,"posted, implausible value",0,0,0.299153,True
+Catalonia 2010-2023,crash with a death or serious injury,fatal,lighting,Alba o capvespre,1149,180,dawn or dusk,0.156658,0.136789,0.178815,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,lighting,"De dia, dia clar",16986,1872,"daylight, clear",0.110208,0.105587,0.115006,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,lighting,"De dia, dia fosc",906,154,"daylight, overcast",0.169978,0.146925,0.195818,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,lighting,"De nit, il·luminació artificial insuficient",1081,160,"night, inadequate street lighting",0.148011,0.128089,0.170426,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,lighting,"De nit, il·luminació artificial suficient",2713,267,"night, adequate street lighting",0.098415,0.0877675,0.110198,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,lighting,"De nit, sense llum artificial",1637,460,"night, no street lighting",0.281002,0.259759,0.30327,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,lighting,Sense especificar,6,0,not specified,0,0,0.390343,True
+Catalonia 2010-2023,crash with a death or serious injury,fatal,crash type,Altres,1430,149,other,0.104196,0.0894069,0.121106,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,crash type,Atropellament,5171,569,pedestrian struck,0.110037,0.101795,0.118857,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,crash type,Bolcada a la calcada,2347,185,fall or overturn on the road,0.078824,0.0685976,0.0904269,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,crash type,Col.lisió d'un vehicle contra un obstacle de la calcada,1360,217,collision with an obstacle,0.159559,0.141059,0.179977,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,crash type,Col.lisió de vehicles en marxa,10916,1351,collision between moving vehicles,0.123763,0.117718,0.130074,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,crash type,Sense especificar,1,0,not specified,0,0,0.793457,True
+Catalonia 2010-2023,crash with a death or serious injury,fatal,crash type,Sortida de la calcada sense especificar,3253,622,run-off-road,0.191208,0.178061,0.205083,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,crash subtype,Altres,1430,149,other,0.104196,0.0894069,0.121106,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,crash subtype,Atropellament,5171,569,pedestrian struck,0.110037,0.101795,0.118857,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,crash subtype,Caiguda en la via,2347,185,fall on the road,0.078824,0.0685976,0.0904269,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,crash subtype,Col·lisió frontal,2157,539,head-on collision,0.249884,0.232069,0.268589,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,crash subtype,Encalç,1986,237,rear-end collision,0.119335,0.105807,0.134333,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,crash subtype,Envestida (frontal lateral),4574,405,front-side collision,0.0885439,0.0806525,0.097126,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,crash subtype,Fregament o col·lisió lateral,2199,170,side collision,0.0773079,0.0668673,0.0892227,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,crash subtype,Resta sortides de via,2843,557,other run-off-road,0.19592,0.181744,0.210916,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,crash subtype,Sense Especificar,1,0,not specified,0,0,0.793457,True
+Catalonia 2010-2023,crash with a death or serious injury,fatal,crash subtype,Sortida de via amb atropellament,12,2,run-off-road striking a pedestrian,0.166667,0.0469641,0.448036,True
+Catalonia 2010-2023,crash with a death or serious injury,fatal,crash subtype,Sortida de via amb bolcada,80,9,run-off-road with overturn,0.1125,0.0603262,0.200184,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,crash subtype,Sortida de via amb xoc o col·lisió,318,54,run-off-road with collision,0.169811,0.132543,0.214962,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,crash subtype,Xoc amb animal a la calçada,49,1,hit an animal,0.0204082,0.00361158,0.106938,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,crash subtype,Xoc contra objecte/obstacle sense sortida prèvia de via,1311,216,hit an object without leaving the road,0.16476,0.145664,0.185815,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,intersection,Arribant o eixint intersecció fins 50m,1307,138,within 50 m of a junction,0.105585,0.090065,0.123417,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,intersection,Dintre intersecció,6730,516,inside a junction,0.0766716,0.0705535,0.0832728,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,intersection,En secció,16441,2439,road section,0.148349,0.142997,0.153864,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,weather,Bon temps,23230,2907,fine,0.12514,0.120947,0.129457,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,weather,Calamarsa,12,0,hail,0,0,0.242501,True
+Catalonia 2010-2023,crash with a death or serious injury,fatal,weather,Nevant,11,1,snow,0.0909091,0.0162318,0.377365,True
+Catalonia 2010-2023,crash with a death or serious injury,fatal,weather,Pluja dèbil,956,148,light rain,0.154812,0.133267,0.179119,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,weather,Pluja forta,265,37,heavy rain,0.139623,0.103022,0.186522,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,weather,Sense especificar,4,0,not specified,0,0,0.4899,True
+Catalonia 2010-2023,crash with a death or serious injury,fatal,surface,Gelat,25,7,icy,0.28,0.142837,0.47577,True
+Catalonia 2010-2023,crash with a death or serious injury,fatal,surface,Inundat,132,18,flooded,0.136364,0.0880277,0.205267,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,surface,Mullat,859,109,wet,0.126892,0.106281,0.150825,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,surface,Nevat,11,0,snow-covered,0,2.77556e-17,0.25884,True
+Catalonia 2010-2023,crash with a death or serious injury,fatal,surface,Relliscós,169,17,slippery,0.100592,0.0637561,0.155182,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,surface,Sec i net,23278,2942,dry and clean,0.126385,0.122178,0.130716,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,surface,Sense especificar,4,0,not specified,0,0,0.4899,True
+Catalonia 2010-2023,crash with a death or serious injury,fatal,hour,00-05,1809,378,00-05,0.208955,0.190846,0.228298,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,hour,06-09,3950,538,06-09,0.136203,0.125859,0.147253,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,hour,10-13,6111,627,10-13,0.102602,0.0952418,0.110461,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,hour,14-17,5706,672,14-17,0.117771,0.109663,0.126393,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,hour,18-21,5679,677,18-21,0.119211,0.11104,0.127897,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,hour,22-23,1223,201,22-23,0.16435,0.144637,0.186165,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,weekday,Friday,3867,467,Friday,0.120765,0.110869,0.131414,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,weekday,Monday,3316,411,Monday,0.123945,0.113162,0.135597,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,weekday,Saturday,3711,507,Saturday,0.136621,0.125946,0.148048,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,weekday,Sunday,3370,490,Sunday,0.145401,0.133903,0.157706,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,weekday,Thursday,3456,423,Thursday,0.122396,0.111886,0.133744,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,weekday,Tuesday,3402,414,Tuesday,0.121693,0.111132,0.133108,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,weekday,Wednesday,3356,381,Wednesday,0.113528,0.103234,0.124706,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,demarcation,Barcelona,15043,1554,Barcelona,0.103304,0.098541,0.108269,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,demarcation,Girona,3453,561,Girona,0.162467,0.15054,0.175145,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,demarcation,Lleida,2593,431,Lleida,0.166217,0.152384,0.181038,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,demarcation,Tarragona,3389,547,Tarragona,0.161405,0.149402,0.174174,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,year,2010,1984,303,2010,0.152722,0.137565,0.169221,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,year,2011,1868,247,2011,0.132227,0.117618,0.148346,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,year,2012,1950,243,2012,0.124615,0.11069,0.140017,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,year,2013,1902,220,2013,0.115668,0.102062,0.130822,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,year,2014,1912,215,2014,0.112448,0.099057,0.127393,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,year,2015,1901,238,2015,0.125197,0.111072,0.140834,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,year,2016,1793,202,2016,0.11266,0.0988456,0.128131,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,year,2017,1719,213,2017,0.123909,0.109167,0.140329,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,year,2018,1745,233,2018,0.133524,0.118367,0.150292,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,year,2019,1732,228,2019,0.13164,0.116529,0.148381,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,year,2020,1208,149,2020,0.123344,0.105986,0.143091,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,year,2021,1448,182,2021,0.125691,0.1096,0.143762,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,year,2022,1584,211,2022,0.133207,0.117357,0.150832,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,year,2023,1732,209,2023,0.12067,0.106162,0.136856,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,units involved,one unit,6593,899,one unit,0.136357,0.128285,0.144852,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,units involved,two or more units,17885,2194,two or more units,0.122673,0.117945,0.127562,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,unit type involved,all,24478,3093,all,0.126358,0.122255,0.130579,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,unit type involved,pedestrian,5374,587,pedestrian,0.10923,0.101167,0.11785,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,unit type involved,bicycle,2060,135,bicycle,0.065534,0.0556355,0.0770499,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,unit type involved,moped,1815,85,moped,0.046832,0.0380321,0.0575461,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,unit type involved,motorcycle,9457,940,motorcycle,0.0993973,0.0935287,0.105591,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,unit type involved,light vehicle,17465,2234,light vehicle,0.127913,0.123041,0.132948,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,unit type involved,heavy vehicle,2717,756,heavy vehicle,0.278248,0.261719,0.295403,False
+Catalonia 2010-2023,crash with a death or serious injury,fatal,unit type involved,other unit,696,69,other unit,0.0991379,0.0790879,0.123589,False

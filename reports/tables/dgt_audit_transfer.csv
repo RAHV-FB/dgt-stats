@@ -1,0 +1,8 @@
+check,criterion,evidence,passed
+target equivalence,the Catalan file's fatal crashes are DGT's crashes with a death within 24 hours (same count in every province-year both hold),32 of 32 province-years equal,True
+inclusion equivalence,the Catalan file holds the crashes DGT records with a death or serious injury within 24 hours (counts within 2% in every province-year),Catalan / DGT count ratio 1.000 to 1.005,True
+no Catalan records in the national test,test rows exclude the four Catalan provinces; the model is trained on the Catalan file only,"0 test rows in a Catalan province, 0 without a province, of 67,971",True
+prevalence,"reported, not a pass/fail: a shift moves calibration, not ranking","training 12.6%, national test 15.4%; mean predicted 14.2%",True
+feature coding,only fields whose two codings agree on the crashes both sources hold (Jensen-Shannon divergence at most 0.005),"10 fields used, largest divergence 0.00032; excluded: road_class, junction, speed_limit, unit_types, geography",True
+missingness,reported: mean share 'not specified' over the fields used,Catalan file 0.0%; DGT Catalonia 0.0%; DGT outside Catalonia 0.8%,True
+in-domain reference and transfer gap,"a model trained on DGT crashes outside Catalonia, same fields (5-fold CV), against the transferred Catalan model on the same crashes","target-domain native ROC-AUC 0.712, transferred 0.708 (0.702-0.712); gap (transferred minus native) -0.004; n=67,971, positives=10,457, calibration slope 1.10",True

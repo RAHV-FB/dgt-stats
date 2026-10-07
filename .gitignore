@@ -20,10 +20,12 @@ venv/
 .DS_Store
 
 # Local data: raw source files are tracked; derived layers are generated
-data/interim/**
-!data/interim/.gitkeep
+data/staging/**
+!data/staging/.gitkeep
 data/processed/**
 !data/processed/.gitkeep
+data/features/**
+!data/features/.gitkeep
 
 # Generated reports: placeholders plus the published tables and figures
 reports/figures/**

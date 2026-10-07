@@ -97,7 +97,7 @@ def test_canonical_columns_match_the_raw_headers() -> None:
 @pytest.mark.skipif(
     not io.all_years_path().exists(), reason="run `python scripts/ingest.py microdata` first"
 )
-def test_interim_row_counts_match_audit() -> None:
+def test_staging_row_counts_match_audit() -> None:
     frame = io.read_all()
     assert list(frame.columns) == list(io.CANONICAL_COLUMNS)
     counts = frame.groupby("ANYO").size().to_dict()

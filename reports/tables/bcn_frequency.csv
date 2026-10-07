@@ -1,0 +1,54 @@
+dimension,level,crashes,serious_or_fatal_crashes,deaths,serious_injuries
+month,1,601,22,1,22
+month,2,551,17,0,17
+month,3,641,16,0,19
+month,4,594,26,1,25
+month,5,701,26,3,23
+month,6,734,22,0,24
+month,7,789,28,1,29
+month,8,493,18,1,17
+month,9,643,19,1,18
+month,10,722,26,1,25
+month,11,662,23,2,21
+month,12,610,9,0,9
+hour,0,125,6,0,7
+hour,1,108,5,1,4
+hour,2,66,4,0,5
+hour,3,48,0,0,0
+hour,4,74,1,0,1
+hour,5,76,6,0,6
+hour,6,136,4,0,4
+hour,7,289,19,0,19
+hour,8,439,10,0,10
+hour,9,466,22,0,22
+hour,10,401,18,0,18
+hour,11,455,13,1,12
+hour,12,444,14,0,14
+hour,13,538,10,1,9
+hour,14,540,16,3,16
+hour,15,495,14,0,15
+hour,16,494,11,0,11
+hour,17,534,13,2,11
+hour,18,506,17,0,19
+hour,19,473,13,0,13
+hour,20,393,16,1,15
+hour,21,286,5,1,4
+hour,22,190,9,1,8
+hour,23,165,6,0,6
+weekday,Friday,1306,36,1,35
+weekday,Monday,1095,34,2,37
+weekday,Saturday,854,26,0,26
+weekday,Sunday,655,32,2,31
+weekday,Thursday,1244,44,3,42
+weekday,Tuesday,1268,39,2,38
+weekday,Wednesday,1319,41,1,40
+district,Ciutat Vella,398,7,0,7
+district,Eixample,1925,73,1,76
+district,Gràcia,417,13,3,10
+district,Horta-Guinardó,602,24,1,23
+district,Les Corts,590,25,1,24
+district,Nou Barris,474,13,0,13
+district,Sant Andreu,560,7,1,6
+district,Sant Martí,1048,37,2,35
+district,Sants-Montjuïc,927,27,0,28
+district,Sarrià-Sant Gervasi,800,26,2,27

@@ -1,4 +1,4 @@
-"""Reconciliation checks between the interim layer and the published DGT totals.
+"""Reconciliation checks between the staging layer and the published DGT totals.
 
 Each check returns :class:`Result` rows. ``run_all`` writes them to ``reports/tables/validation.csv``
 together with a per-year missingness profile of the crash microdata.
@@ -77,7 +77,7 @@ def check_row_counts(crashes: pd.DataFrame, annual: pd.DataFrame) -> list[Result
             float(expected.loc[year]),
             float(actual.get(year, 0)),
             expected.loc[year] == actual.get(year, 0),
-            "" if year in actual.index else "year missing from interim layer",
+            "" if year in actual.index else "year missing from staging layer",
         )
         for year in MICRODATA_YEARS
     ]

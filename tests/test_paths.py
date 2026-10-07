@@ -9,10 +9,8 @@ from dgt_stats.paths import (
     CENSUS_YEARS,
     DATA_DIR,
     DICTIONARY_PATH,
-    DRIVING_ACTIVITY_PATH,
     MANIFEST,
     MICRODATA_YEARS,
-    MOVILIA_2006_PATH,
     POPULATION_PATH,
     PROJECT_ROOT,
     RAW_DATA_DIR,
@@ -72,8 +70,7 @@ def test_expected_source_files_exist() -> None:
         assert census_age_raw_path(year).is_file(), year
     for year in CENSUS_TABLE_YEARS:
         assert census_tables_raw_path(year).is_file(), year
-    for path in (POPULATION_PATH, DRIVING_ACTIVITY_PATH, MOVILIA_2006_PATH):
-        assert path.is_file(), path
+    assert POPULATION_PATH.is_file(), POPULATION_PATH
 
 
 def test_yearly_tables_exist_for_every_year() -> None:

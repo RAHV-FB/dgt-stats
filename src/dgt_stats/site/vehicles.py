@@ -27,6 +27,22 @@ def page_vehicles(captions: dict[str, str]) -> str:
     )
     per_km = float(truck.fatal_involvement_per_bn_km / car.fatal_involvement_per_bn_km)
     bike_per_km = float(bike.fatal_involvement_per_bn_km / car.fatal_involvement_per_bn_km)
+    truck_distance = float(truck.km_per_vehicle / car.km_per_vehicle)
+    bike_crashes = float(bike.injury_involvement_per_bn_km / car.injury_involvement_per_bn_km)
+    truck_crashes = float(truck.injury_involvement_per_bn_km / car.injury_involvement_per_bn_km)
+    truck_occupants = float(truck.occupant_deaths_per_fatal_involvement)
+    bike_occupants = float(bike.occupant_deaths_per_fatal_involvement)
+    # The paragraphs below describe these directions; stop if the tables no longer show them.
+    if not (
+        per_vehicle > per_km > 1
+        and float(bike.km_per_vehicle) < float(car.km_per_vehicle)
+        and bike_per_km > per_km
+        and bike_crashes > bike_per_km / bike_crashes > 1
+        and truck_crashes < 1 < per_km
+        and truck_occupants < 0.5 < bike_occupants
+        and summary.fatal_involvement_per_bn_km.idxmax() == "motorcycle"
+    ):
+        raise ValueError("vehicles page: the 2022 rates no longer read as described")
 
     body = key_figures(
         [
@@ -39,18 +55,19 @@ def page_vehicles(captions: dict[str, str]) -> str:
             ("Motorcycle vs car, per kilometre", f"{bike_per_km:.0f}×", "in a fatal crash"),
             (
                 "Truck occupants killed",
-                f"{float(truck.occupant_deaths_per_fatal_involvement):.2f}",
-                "per fatal crash a heavy truck is in; 0.93 for a motorcycle",
+                f"{truck_occupants:.2f}",
+                f"per fatal crash a heavy truck is in; {bike_occupants:.2f} for a motorcycle",
             ),
         ]
     )
     body += (
         f'<p class="answer">A heavy truck is in a fatal crash {per_vehicle:.1f} times as often as '
         f"a car per vehicle on the road, and {per_km:.1f} times as often per kilometre driven. "
-        "The gap between those two numbers is the difference between blaming the vehicle and "
-        "describing how much it is used. Motorcycles move the other way. "
-        f"They are driven little, so a modest rate per vehicle becomes {bike_per_km:.0f} times a "
-        "car's rate once distance is the divisor.</p>"
+        f"The difference between the two is distance: each truck is driven {truck_distance:.1f} "
+        "times as far as a car. Motorcycles move the other way. Each is driven "
+        f"{float(bike.km_per_vehicle):,.0f} km a year against {float(car.km_per_vehicle):,.0f} "
+        f"for a car, so a modest rate per vehicle becomes {bike_per_km:.0f} times a car's rate "
+        "once distance is the divisor.</p>"
     )
     body += figure(
         "v1_per_vehicle_vs_per_km",
@@ -99,7 +116,11 @@ def page_vehicles(captions: dict[str, str]) -> str:
     body += downloads(
         [
             ("q6_summary_2022", "rates by type"),
-            ("q6_rates_2022", "rates with intervals, by zone and measure"),
+            (
+                "q6_rates_2022",
+                "rates with intervals by measure; by zone only counts and rates per vehicle, "
+                "since the kilometres are for all roads",
+            ),
             ("q6_vehicle_km_2022", "fleet and kilometres"),
             ("q6_vehicle_groups", "how the source categories map to these groups"),
             ("q6_van_light_truck_split", "vans and light trucks taken separately"),
@@ -137,26 +158,24 @@ def page_vehicles(captions: dict[str, str]) -> str:
         "Vehicles in injury crashes per kilometre, the share of those crashes that were fatal, "
         "and their product, vehicles in fatal crashes per kilometre, 2022",
     )
-    bike_crashes = float(bike.injury_involvement_per_bn_km / car.injury_involvement_per_bn_km)
-    truck_crashes = float(truck.injury_involvement_per_bn_km / car.injury_involvement_per_bn_km)
     body += (
-        "<p>Per kilometre, the motorcycle's excess is in how often it crashes: "
+        "<p>Per kilometre, the motorcycle's excess is mostly in how often it is in a crash: "
         f"{_times(bike_crashes)} a car's injury crashes, of which a share only "
-        f"{_times(bike_per_km / bike_crashes)} a car's is fatal. The heavy truck is the opposite: it is in "
-        f"{_times(truck_crashes)} a car's injury crashes per kilometre, but "
-        f"{_times(per_km / truck_crashes)} as many of them are fatal.</p>"
+        f"{_times(bike_per_km / bike_crashes)} a car's is fatal. The heavy truck is the "
+        f"opposite: it is in {_times(truck_crashes)} a car's injury crashes per kilometre, but "
+        f"the share of them that is fatal is {_times(per_km / truck_crashes)} a car's.</p>"
     )
 
     body += "<h2>Who dies in the crash</h2>"
     body += (
-        "<p>The last column of the first table is the second half of the finding. When a motorcycle is "
-        f"in a fatal crash, {float(bike.occupant_deaths_per_fatal_involvement):.2f} of its own riders "
-        f"are killed on average; for a car {float(car.occupant_deaths_per_fatal_involvement):.2f}; for "
-        f"a heavy truck {float(truck.occupant_deaths_per_fatal_involvement):.2f}. A fatal crash "
-        "kills at least one person, so a figure of 0.18 means that in most fatal crashes involving "
-        "a heavy truck the people killed were in the other vehicle or on foot. A truck's risk per "
-        "kilometre is mostly a risk to other people, which is exactly what a measure built from "
-        "its own occupants' deaths would miss.</p>"
+        "<p>The last column of the first table is the second half of the finding. When a "
+        f"motorcycle is in a fatal crash, {bike_occupants:.2f} of its own riders are killed on "
+        f"average; for a car {float(car.occupant_deaths_per_fatal_involvement):.2f}; for a heavy "
+        f"truck {truck_occupants:.2f}. A fatal crash has at least one death, so a figure of "
+        f"{truck_occupants:.2f} means that in at least {_fmt_pct(1 - truck_occupants, 0)} of the "
+        "fatal crashes a heavy truck was in, nobody in the truck died: everyone killed was in "
+        "another vehicle or on foot. A measure built from a vehicle's own occupants' deaths "
+        "would miss most of the deaths in crashes involving trucks.</p>"
     )
     van_gap = float(
         split.loc["light_truck", "fatal_involvement_per_bn_km"]
@@ -164,15 +183,16 @@ def page_vehicles(captions: dict[str, str]) -> str:
     )
     body += "<h2>Conclusion</h2>"
     body += conclusion(
-        "Per vehicle on the road a heavy truck is in a fatal crash "
-        f"{per_vehicle:.1f}× as often as a car; per kilometre, {per_km:.1f}×, because each truck "
-        f"is driven {float(truck.km_per_vehicle / car.km_per_vehicle):.1f}× as far. Per kilometre "
-        f"the motorcycle leads, at {bike_per_km:.0f}×, almost all of it from crashing "
-        f"{_times(bike_crashes)} as often; the truck's {per_km:.1f}× is all deadliness, and its "
-        f"own occupants are {float(truck.occupant_deaths_per_fatal_involvement):.2f} of the "
-        "deaths in each fatal crash it is in, so most of the people it kills are in other "
-        "vehicles or on foot: a measure built from a vehicle's own occupants would miss most of "
-        "the truck's toll."
+        "Per vehicle on the road a heavy truck was in a fatal crash "
+        f"{per_vehicle:.1f}× as often as a car in 2022; per kilometre, {per_km:.1f}×, the "
+        f"difference being that each truck is driven {truck_distance:.1f}× as far. Per "
+        f"kilometre the motorcycle leads, at {bike_per_km:.0f}×, mostly from being in injury "
+        f"crashes {_times(bike_crashes)} as often; the truck is in fewer injury crashes per "
+        f"kilometre than a car ({_times(truck_crashes)}) but a larger share of them are fatal, "
+        f"and its own occupants averaged {truck_occupants:.2f} deaths per fatal crash it was in, "
+        f"so in at least {_fmt_pct(1 - truck_occupants, 0)} of those crashes everyone killed was "
+        "outside the truck. These are "
+        "recorded rates for one year, not the effect of the vehicle on the outcome."
     )
 
     body += limits(
@@ -182,10 +202,12 @@ def page_vehicles(captions: dict[str, str]) -> str:
         "across 2014 to 2023, so they describe a normal year imputed to the 2022 fleet rather "
         "than 2022 travel. The two sides of the division do not cover quite the same vehicles: the "
         "crash counts include foreign-registered vehicles, and the kilometres include the "
-        "distance Spanish vehicles drive abroad. Vans and light trucks are one group because the "
+        "distance Spanish vehicles drive abroad; quadricycles are counted with mopeds and "
+        "motorcycles in the kilometres but in the 'other' row of the crash tables. Vans and light "
+        "trucks are one group because the "
         f"crash record and the register split them differently; taken apart, light trucks would "
-        f"show {van_gap:.0%} of a van's rate per kilometre, a gap with no plausible cause but the "
-        "coding. The intervals come from the crash counts and treat the kilometres as known."
+        f"show {van_gap:.0%} of a van's rate per kilometre; the data do not establish whether "
+        "that gap is real or comes from the split. The intervals come from the crash counts and treat the kilometres as known."
     )
     return render_page(
         "vehicles",

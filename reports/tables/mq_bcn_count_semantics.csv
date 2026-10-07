@@ -1,0 +1,19 @@
+check,value
+count cells holding an explicit zero (all five count columns),0
+blank cells in Numero_morts,7730
+blank cells in Numero_lesionats_greus,7500
+blank cells in Numero_lesionats_lleus,1095
+blank cells in Numero_victimes,890
+blank cells in Numero_vehicles_implicats,0
+crashes where victims = deaths + serious + minor (blank read as 0),7741
+crashes,7741
+crashes where serious-injury persons = Numero_lesionats_greus,7739
+crashes where minor-injury persons = Numero_lesionats_lleus,7729
+crashes where persons died within 24 h = Numero_morts,7741
+crashes where persons died (any time) = Numero_morts,7739
+persons recorded as died within 24 h,11
+persons recorded as died after 24 h,2
+persons recorded as natural death,1
+deaths in the crash table (Numero_morts),11
+serious injuries in the crash table,249
+persons with a serious injury,247

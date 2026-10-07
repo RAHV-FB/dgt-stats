@@ -1,0 +1,6 @@
+road_class,road_class_label,injury_crashes,deaths,seriously_injured,slightly_injured,deaths_outside_km_coverage,injury_crashes_outside_km_coverage,outside_coverage_death_share,outside_coverage_crash_share,first_year,last_year
+autopista,Autopistas,3679.333333,93,306,5611.333333,6,735.6666667,0.06451612903,0.1999456423,2022,2024
+autovia,Autovías,7839.333333,257,666.3333333,11740.33333,9.666666667,1052,0.03761348898,0.1341950846,2022,2024
+conventional,Conventional roads,20643.33333,850,2951.666667,26496.33333,42.66666667,4319,0.05019607843,0.2092200872,2022,2024
+other_interurban,Other interurban roads,2638.666667,84,333.6666667,3247,65,1684.666667,0.7738095238,0.6384537645,2022,2024
+urban,Urban streets,65605.33333,495,4851.666667,75797.66667,,,,,2022,2024

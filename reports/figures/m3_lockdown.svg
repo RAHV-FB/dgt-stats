@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" standalone="no"?>
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
   "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
-<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="584.0575pt" height="286.818263pt" viewBox="0 0 584.0575 286.818263" xmlns="http://www.w3.org/2000/svg" version="1.1">
+<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="626.596563pt" height="286.818263pt" viewBox="0 0 626.596563 286.818263" xmlns="http://www.w3.org/2000/svg" version="1.1">
  <metadata>
   <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
    <cc:Work>
@@ -21,8 +21,8 @@
  <g id="figure_1">
   <g id="patch_1">
    <path d="M 0 286.818263 
-L 584.0575 286.818263 
-L 584.0575 0 
+L 626.596563 286.818263 
+L 626.596563 0 
 L 0 0 
 z
 " style="fill: #fcfcfb"/>
@@ -469,31 +469,31 @@ L 186.971875 270.706153
      </g>
     </g>
     <g id="text_21">
-     <text style="font-size: 9px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start; fill: #0b0b0b" x="194.171875" y="273.856153" transform="rotate(-0 194.171875 273.856153)">Road fuel (petrol + diesel)</text>
+     <text style="font-size: 9px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start; fill: #0b0b0b" x="194.171875" y="273.856153" transform="rotate(-0 194.171875 273.856153)">Road fuel sold (petrol + diesel)</text>
     </g>
     <g id="line2d_32">
-     <path d="M 330.440312 270.706153 
-L 339.440312 270.706153 
-L 348.440312 270.706153 
+     <path d="M 351.709844 270.706153 
+L 360.709844 270.706153 
+L 369.709844 270.706153 
 " style="fill: none; stroke-dasharray: 12.8,3.2,2,3.2; stroke-dashoffset: 0; stroke: #1baf7a; stroke-width: 2"/>
      <g>
-      <use xlink:href="#maa7bf12502" x="339.440312" y="270.706153" style="fill: #1baf7a; stroke: #1baf7a"/>
+      <use xlink:href="#maa7bf12502" x="360.709844" y="270.706153" style="fill: #1baf7a; stroke: #1baf7a"/>
      </g>
     </g>
     <g id="text_22">
-     <text style="font-size: 9px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start; fill: #0b0b0b" x="355.640312" y="273.856153" transform="rotate(-0 355.640312 273.856153)">Petrol only</text>
+     <text style="font-size: 9px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start; fill: #0b0b0b" x="376.909844" y="273.856153" transform="rotate(-0 376.909844 273.856153)">Petrol sold only</text>
     </g>
     <g id="line2d_33">
-     <path d="M 421.219375 270.706153 
-L 430.219375 270.706153 
-L 439.219375 270.706153 
+     <path d="M 463.758437 270.706153 
+L 472.758437 270.706153 
+L 481.758437 270.706153 
 " style="fill: none; stroke-dasharray: 2,3.3; stroke-dashoffset: 0; stroke: #eda100; stroke-width: 2"/>
      <g>
-      <use xlink:href="#m631b4de9ad" x="430.219375" y="270.706153" style="fill: #eda100; stroke: #eda100"/>
+      <use xlink:href="#m631b4de9ad" x="472.758437" y="270.706153" style="fill: #eda100; stroke: #eda100"/>
      </g>
     </g>
     <g id="text_23">
-     <text style="font-size: 9px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start; fill: #0b0b0b" x="446.419375" y="273.856153" transform="rotate(-0 446.419375 273.856153)">Toll-motorway traffic per km</text>
+     <text style="font-size: 9px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start; fill: #0b0b0b" x="488.958437" y="273.856153" transform="rotate(-0 488.958437 273.856153)">Toll-motorway traffic per km</text>
     </g>
    </g>
   </g>

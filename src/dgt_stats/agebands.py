@@ -1,9 +1,9 @@
 """Age bands shared by every exposure and outcome table.
 
 DGT's driver tables and driver census use 15–17, 18–20, 21–24 and then five-year bands up to
-"more than 74"; INE population uses five-year groups; MOVILIA uses six broad bands. Everything is
-mapped onto the analysis bands below. A source band is accepted only when it nests inside exactly
-one analysis band, so nothing is split silently: a band that straddles two analysis bands raises.
+"more than 74"; INE population uses five-year groups. Everything is mapped onto the analysis bands
+below. A source band is accepted only when it nests inside exactly one analysis band, so nothing is
+split silently: a band that straddles two analysis bands raises.
 """
 
 from __future__ import annotations
@@ -52,16 +52,6 @@ EXPOSURE_BANDS: dict[str, Band] = {
     "55-64": (55, 64),
     "65-74": (65, 74),
     "75+": (75, None),
-}
-
-# MOVILIA 2006 bands.
-MOVILIA_BANDS: dict[str, Band] = {
-    "0-14": (0, 14),
-    "15-29": (15, 29),
-    "30-39": (30, 39),
-    "40-49": (40, 49),
-    "50-64": (50, 64),
-    "65+": (65, None),
 }
 
 UNKNOWN = "unknown"
