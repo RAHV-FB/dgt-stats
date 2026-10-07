@@ -13,6 +13,7 @@ import re
 import pandas as pd
 
 from dgt_stats import layers
+from dgt_stats.microdata.validation import decisions as decision_rules
 from dgt_stats.site.components import (
     DOCS_URL,
     _fmt_int,
@@ -599,8 +600,8 @@ def page_severity_models(captions: dict[str, str]) -> str:
     source_models = [m for m in MODEL_NAMES if m in rules.index]
     choice = decisions[decisions.variant.eq("context") | ~decisions.model.isin(source_models)]
     choice = choice.drop_duplicates("model").set_index("model")
-    kept = [m for m in source_models if choice.loc[m, "keep"] == "keep: primary model"]
-    replaced = [m for m in source_models if choice.loc[m, "keep"].startswith("replace")]
+    kept = [m for m in source_models if choice.loc[m, "decision"] in decision_rules.FEATURED]
+    replaced = [m for m in source_models if choice.loc[m, "decision"] == decision_rules.REPLACE]
     for name in source_models:
         _check(primary.loc[name].roc_auc_low > 0.5, "severity models", f"{name} beats chance")
         _check(
@@ -703,16 +704,19 @@ def page_severity_models(captions: dict[str, str]) -> str:
         "per trip or kilometre: the data have no exposure.</p>"
     )
     body += "<h2>Which models earn their place</h2>"
-    order = [m for m in choice.index]
+    shown_decisions = decisions.copy()
     body += table(
         pd.DataFrame(
             {
-                "Model": [MODEL_NAMES.get(m, m.replace("_", " ")) for m in order],
-                "One row is": choice.observation.reindex(order),
-                "Target": choice.target.reindex(order),
-                "Real use": choice.real_use.reindex(order),
-                "Against a descriptive table": choice.over_descriptive_table.reindex(order),
-                "Decision": choice.keep.reindex(order),
+                "Model": [MODEL_NAMES.get(m, m.replace("_", " ")) for m in shown_decisions.model],
+                "Variant": shown_decisions.variant.str.replace("_", " "),
+                "Unit": shown_decisions.unit,
+                "Target": shown_decisions.target,
+                "Baseline": shown_decisions.baseline,
+                "ML": shown_decisions.ml,
+                "Usefulness": shown_decisions.usefulness,
+                "Highest validated level": shown_decisions.highest_validated_level_name,
+                "Decision": shown_decisions.decision,
             }
         ),
         "Model decisions (rules declared before the results were read)",

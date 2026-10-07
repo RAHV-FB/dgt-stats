@@ -292,8 +292,10 @@ def model_card(task: modelling.TaskResult, tables: dict[str, pd.DataFrame]) -> s
             for v in provenance["sources"].values()
         )
         + ".",
-        f"- **Decision:** {decision.keep} ({decision.reason}).",
-        f"- **Use:** {decision.real_use}.",
+        f"- **Layer:** {decision.layer}.",
+        f"- **Decision:** {decision.decision} ({decision.usefulness}).",
+        f"- **What it does:** {decision.question_answered}.",
+        f"- **Not answered:** {decision.question_not_answered}.",
         "",
         "## Data and split",
         "",
@@ -403,7 +405,10 @@ def model_card(task: modelling.TaskResult, tables: dict[str, pd.DataFrame]) -> s
         "",
         "## Validation outside its own test rows",
         "",
-        f"The outward path ([`GENERALISABILITY.md`](../GENERALISABILITY.md)): {decision.outward_path}.",
+        f"Highest validated level on the outward path "
+        f"([`GENERALISABILITY.md`](../GENERALISABILITY.md)): "
+        f"{decision.highest_validated_level_name}; the next level is blocked by "
+        f"{decision.next_level_blocked_by}. Transfer evidence: {decision.transfer_evidence}.",
         "",
         _md(path),
         "",

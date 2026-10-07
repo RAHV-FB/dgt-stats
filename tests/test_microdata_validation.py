@@ -130,20 +130,39 @@ def test_the_national_test_holds_no_catalan_record() -> None:
 
 
 def test_model_decisions_follow_the_declared_rules() -> None:
+    from dgt_stats.microdata.validation import decisions as rules_module
+
     decisions = _table("ml_model_decisions")
     comparison = _table("ml_rule_comparison").set_index("model")
     selected = _table("ml_selected")
+    assert set(decisions.decision) <= set(rules_module.OUTCOMES)
     for model in selected.loc[selected.primary, "model"]:
         assert model in set(decisions.model), model
     for row in decisions.itertuples():
-        if row.model in comparison.index and row.variant == "context":
+        if row.decision == rules_module.DROP:
+            continue
+        if row.variant in ("retrospective", "retrospective_administrative"):
+            assert row.decision == rules_module.KEEP_RESEARCH
+        if row.model.startswith("catalonia_common"):
+            assert row.decision == rules_module.KEEP_RESEARCH
+        if row.model in comparison.index and row.variant in ("context",):
             adds = bool(comparison.loc[row.model, "model_adds_signal_over_table"])
             if not adds:
-                assert row.keep == "replace with the descriptive table", row.model
-            if row.keep == "keep: primary model":
-                assert adds
-        if row.variant in ("retrospective", "retrospective_administrative"):
-            assert row.keep == "keep as a diagnostic"
+                assert row.decision == rules_module.REPLACE, row.model
+            else:
+                assert row.decision in rules_module.FEATURED, row.model
+
+
+def test_the_decision_rules_apply_in_the_declared_order() -> None:
+    from dgt_stats.microdata.validation import decisions as d
+
+    base = dict(beats_chance=True, holds_later=True, research=False, calibrated=True)
+    assert d.decide(**{**base, "beats_chance": False}, beats_table=True) == d.DROP
+    assert d.decide(**{**base, "holds_later": False}, beats_table=True) == d.DROP
+    assert d.decide(**{**base, "research": True}, beats_table=False) == d.KEEP_RESEARCH
+    assert d.decide(**base, beats_table=False) == d.REPLACE
+    assert d.decide(**base, beats_table=True) == d.KEEP_PREDICTIVE
+    assert d.decide(**{**base, "calibrated": False}, beats_table=True) == d.KEEP_RANKING
 
 
 def test_every_source_answers_every_question() -> None:

@@ -116,7 +116,9 @@ def test_models_page_follows_the_decisions(pages: dict[str, str]) -> None:
     text = pages["severity-models"]
     for row in rules.itertuples():
         assert f"{row.rule_roc_auc:.2f}" in text, row.model
-    replaced = decisions[decisions.keep.eq("replace with the descriptive table")]
+    replaced = decisions[
+        decisions.decision.eq("REPLACE with descriptive table") & decisions.variant.eq("context")
+    ]
     for model in replaced.model:
         assert "a table, not a model" in text, model
     assert "MODEL_DECISIONS.md" in text
