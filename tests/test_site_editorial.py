@@ -83,15 +83,16 @@ def test_navigation_follows_the_argument(built: dict[str, str]) -> None:
     assert [slug for slug, _ in groups["Regional data"]] == ["catalonia", "barcelona"]
     assert [slug for slug, _ in groups["Methods"]] == ["sources", "data"]
     assert dict(groups["Methods"])["sources"] == "Data sources and scope"
-    # The supporting analyses are drawn inside the Spain section of the navigation.
-    assert components.NAV_PARENT == {"Supporting analyses": "Spain"}
+    # The supporting analyses are a section of their own, straight after the Spain pages.
     nav = re.search(r'<nav aria-label="Sections">(.*?)</nav>', built["speed"], re.S).group(1)
     links = re.findall(r'href="([a-z-]+)\.html"', nav)
     assert links == list(components.READING_ORDER)
-    spain = nav[nav.find(">Spain<") : nav.find(">Regional data<")]
-    assert ">Supporting analyses<" in spain
-    for slug, _ in groups["Supporting analyses"]:
-        assert f'href="{slug}.html"' in spain
+    supporting = nav[
+        nav.find('id="menu-supporting-analyses"') : nav.find('id="menu-regional-data"')
+    ]
+    assert [slug for slug, _ in groups["Supporting analyses"]] == re.findall(
+        r'href="([a-z-]+)\.html"', supporting
+    )
     # Each page names its section above the title and links to its neighbours in reading order.
     assert '<p class="eyebrow">Spain</p>' in built["speed"]
     assert 'href="vehicles.html" rel="prev"' in built["speed"]
@@ -181,7 +182,7 @@ def test_headings_and_leads_are_statements(built: dict[str, str]) -> None:
 
 def test_the_footer_is_short_and_shared(built: dict[str, str]) -> None:
     footers = {
-        slug: re.search(r"<footer>(.*?)</footer>", built[slug], re.S).group(1) for slug in LIVE
+        slug: re.search(r"<footer[^>]*>(.*?)</footer>", built[slug], re.S).group(1) for slug in LIVE
     }
     assert len(set(footers.values())) == 1
     footer = footers["index"]
@@ -233,13 +234,21 @@ def test_the_models_page_presents_two_models_and_one_table(built: dict[str, str]
         assert "monthly deaths" not in table_html.lower()
     assert "ROC-AUC" in visible
     # The three decisions are in the section headings, where a reader scanning the page sees them.
-    headings = [re.sub(r"<[^>]+>", "", h) for h in re.findall(r"<h2>(.*?)</h2>", main, re.S)]
+    # Each is labelled in words, not by colour, and the label is read out as the decision.
+    headings = re.findall(r"<h2[^>]*>(.*?)</h2>", main, re.S)
     for name, decision in (
-        ("Catalonia crash-severity model", "(kept)"),
-        ("Barcelona person-severity model", "(kept for ranking only)"),
-        ("Barcelona crash-severity model", "(replaced by a table)"),
+        ("Catalonia crash-severity model", "Kept"),
+        ("Barcelona person-severity model", "Ranking only"),
+        ("Barcelona crash-severity model", "Replaced by table"),
     ):
-        assert any(name in h and h.endswith(decision) for h in headings), (name, decision)
+        label = (
+            '<span class="decision-label"><span class="visually-hidden">Decision: </span>'
+            f"<span>{decision}</span></span>"
+        )
+        assert f"{name} {label}" in headings, (name, decision)
+    # Each model's section opens on the same short definition table.
+    for term in ("Unit", "Outcome", "Simple benchmark ROC-AUC", "Model ROC-AUC", "Decision"):
+        assert main.count(f"<dt>{term}</dt>") == 3, term
     # ROC-AUC is explained once, after the first comparison it is used for, not before it.
     explained = visible.find("ROC-AUC measures ranking")
     assert visible.find("ROC-AUC") < explained and visible.count("ROC-AUC measures ranking") == 1

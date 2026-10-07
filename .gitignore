@@ -32,6 +32,7 @@ reports/figures/**
 !reports/figures/.gitkeep
 !reports/figures/*.svg
 !reports/figures/captions.json
+!reports/figures/titles.json
 reports/tables/**
 !reports/tables/.gitkeep
 !reports/tables/*.csv

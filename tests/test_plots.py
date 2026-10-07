@@ -22,6 +22,7 @@ EXPECTED_FIGURES = {
     "m2_month_effects",
     "m3_lockdown",
     "a3_sex_ratios",
+    "a4_involved_per_km",
     "f1_speed_severity",
     "f2_factor_shares",
     "c3_speed_status",
@@ -103,11 +104,13 @@ def test_percent_ticks_keep_the_decimals_they_need() -> None:
         "20%",
     ]
     assert plots._percent_text(0.05, decimals=1) == "5.0%"
+    # Negative ticks carry a true minus sign, as the site's text does.
     assert [plots._percent_text(v, signed=True) for v in (-0.05, 0.0, 0.1)] == [
-        "-5%",
+        "\u22125%",
         "0%",
         "+10%",
     ]
+    assert plots._tick(-1500) == "\u22121,500" and plots._tick(-0.25) == "\u22120.25"
 
 
 def test_series_styles_differ_beyond_colour() -> None:
@@ -149,6 +152,39 @@ def test_dot_interval(tmp_path: Path) -> None:
         reference_label="Spain",
     )
     _svg_ok(out)
+
+
+def test_charts_embed_the_glyphs_of_their_serif(tmp_path: Path) -> None:
+    import base64
+    import io
+    import re
+
+    from fontTools.ttLib import TTFont
+
+    frame = pd.DataFrame(
+        {
+            "label": ["Línea à", "B (n=2)", "C"],
+            "group": ["Heading one", "Heading one", "Heading two"],
+            "v": [0.2, 0.4, 0.3],
+            "lo": [0.1, 0.3, 0.2],
+            "hi": [0.3, 0.5, 0.4],
+        }
+    )
+    paths = [tmp_path / "first.svg", tmp_path / "second.svg"]
+    for path in paths:
+        plots.dot_interval(frame, "label", "v", "lo", "hi", path, "Dots", group="group")
+    text = paths[0].read_text(encoding="utf-8")
+    # The same chart twice is the same bytes: the embedded subsets carry no timestamp.
+    assert text == paths[1].read_text(encoding="utf-8")
+    # Text is set in the serif with a fallback, and both weights in use are embedded.
+    assert "font-family: 'STIX Two Text', 'Times New Roman', serif" in text
+    faces = dict(re.findall(r"font-weight:(\d+);src:url\(data:font/woff;base64,([^)]+)\)", text))
+    assert set(faces) == {"400", "600"}
+    # Each subset holds the characters the chart writes in that weight, accents included.
+    regular = TTFont(io.BytesIO(base64.b64decode(faces["400"])))
+    assert {ord(c) for c in "Línea à(n=2)"} <= set(regular.getBestCmap())
+    heading = TTFont(io.BytesIO(base64.b64decode(faces["600"])))
+    assert {ord(c) for c in "Heading one"} <= set(heading.getBestCmap())
 
 
 def test_forest_and_calibration(tmp_path: Path) -> None:

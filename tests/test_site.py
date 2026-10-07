@@ -7,6 +7,7 @@ import pytest
 from dgt_stats import site, summaries
 from dgt_stats.paths import FIGURES_DIR, TABLES_DIR
 from dgt_stats.site import components
+from dgt_stats.site.script import JS_FLAG
 
 # The national analysis pages in navigation order, and the monthly deaths forecast; then the
 # regional, model, validation and sources pages.
@@ -57,15 +58,21 @@ def test_every_page_is_written_with_one_heading(built: Path) -> None:
         {slug for slug, _ in site.ALL_PAGES} | set(site.MOVED_PAGES) | set(site.WITHDRAWN_PAGES)
     )
     assert expected == {p.stem for p in built.glob("*.html")}
-    # The site runs no script, and the withdrawn models' scripts and registers are not shipped.
-    assert not list(built.glob("*.js"))
+    # The site's one script is its own reading aid; the withdrawn models' scripts and registers
+    # are not shipped.
+    assert [p.name for p in built.glob("*.js")] == ["site.js"]
     published = {p.name for p in (built / "tables").glob("*.csv")}
     assert not published & {"simulator_evidence.csv", "factor_evidence.csv"}
 
 
 def _runs_no_script(slug: str, text: str) -> None:
-    """No page runs a script: the simulator and factor models that did were withdrawn."""
-    assert not re.findall(r"<script[^>]*>", text), slug
+    """No page runs a script of its own: the simulator and factor models that did were withdrawn.
+
+    Every page loads only the site's reading aid (menus and contents), after a one-line flag that
+    says scripting is on; both are the same on every page.
+    """
+    assert re.findall(r"<script[^>]*>", text) == ["<script>", '<script src="site.js" defer>'], slug
+    assert JS_FLAG in text, slug
 
 
 def test_moved_pages_point_to_their_successors(built: Path) -> None:
@@ -133,15 +140,31 @@ def test_figures_are_copied_and_captioned(built: Path) -> None:
     for name in captions:
         assert (built / "figures" / f"{name}.svg").exists(), name
     text = (built / "long-run.html").read_text(encoding="utf-8")
-    assert site.mark_spanish(site.esc(captions["l1_trend_projection"])) in text
+    # The caption is set in two parts: what is shown, then its source on a line of its own.
+    shown, source = components._split_source(captions["l1_trend_projection"])
+    assert source.startswith("Source: ")
+    assert f"<figcaption><p>{site.mark_spanish(site.esc(shown))}</p>" in text
+    assert f'<p class="figure-source">{site.mark_spanish(site.esc(source))}</p>' in text
 
 
 def test_table_formats_numbers() -> None:
     frame = pd.DataFrame({"Year": [2024], "Crashes": [101996], "Share": [0.1234]})
     out = site.table(frame, "Caption", {"Crashes": "int", "Share": "pct"})
-    assert "<td>101,996</td>" in out
-    assert "<td>12.3%</td>" in out
-    assert "<caption>Caption</caption>" in out
+    # Numbers are right-aligned and the row label is a header cell.
+    assert '<th scope="row">2024</th>' in out
+    assert '<td class="num">101,996</td>' in out
+    assert '<td class="num">12.3%</td>' in out
+    # The title is set above the scrolling box, and the caption carries it for screen readers.
+    assert out.index('<p class="table-title" aria-hidden="true">Caption</p>') < out.index(
+        '<div class="table-wrap"'
+    )
+    assert '<caption class="visually-hidden">Caption</caption>' in out
+    # A table of numbers keeps its columns; a table of prose alone is stacked on a small screen.
+    assert "<table>" in out
+    prose = pd.DataFrame({"Source": ["DGT"], "Publisher": ["DGT"], "Use": ["deaths"]})
+    stacked = site.table(prose, "Sources. Each source used.")
+    assert '<table class="stack">' in stacked and 'data-label="Use"' in stacked
+    assert '<p class="table-note" aria-hidden="true">Each source used.</p>' in stacked
 
 
 def test_severity_page_leads_with_the_adverse_finding(built: Path) -> None:
@@ -188,12 +211,16 @@ def test_drivers_page_separates_the_two_questions(built: Path) -> None:
     rates = pd.read_csv(TABLES_DIR / "q7_km_rates.csv").set_index("band")
     fatality = ratios.loc[("deaths_per_1000_involved", "75+")]
     # Deaths per driver involved need no exposure, so they are quoted as a point with its interval,
-    # and they lead the page: the opening summary carries them, before any per-km range.
+    # and they lead the page: the opening summary carries the rates, and the key result of the
+    # first section the ratio and its interval, before any per-km range.
     opening = re.search(r'<p class="summary">(.*?)</p>', body, re.S).group(1)
-    assert (
-        f"{fatality.ratio:.2f}" in opening and f"{fatality.low:.2f}–{fatality.high:.2f}" in opening
-    )
     assert f"{rates.loc['75+', 'deaths_per_1000_involved']:.1f}" in opening
+    key = re.search(r'<div class="key-result">(.*?)</div>', body, re.S).group(1)
+    assert f'<p class="key-value">{fatality.ratio:.2f}×</p>' in key
+    assert f"95% interval {fatality.low:.2f}–{fatality.high:.2f}" in key
+    assert body.find('<div class="key-result">') < body.find(
+        '<h2 id="crashes-relative-to-kilometres'
+    )
     assert f"{fatality.ratio:.2f}× ({fatality.low:.2f}–{fatality.high:.2f})" in text
     # The young drivers are split at 25 wherever the sources allow, with 35-54 the reference.
     owner = pd.read_csv(TABLES_DIR / "q7_owner_age_check.csv").set_index("band")
@@ -285,8 +312,10 @@ def test_speed_page_carries_severity_and_the_recording_discontinuity(built: Path
     assert f"{adjusted.ratio_low:.2f}–{adjusted.ratio_high:.2f}" in opening
     assert f"{adjusted.crude_ratio:.2f}" in opening  # the unadjusted ratio is shown beside it
     # The summary says plainly that a recorded factor is an association, not a cause.
-    assert "association in police crash records" in opening
-    assert "does not estimate how many crashes or deaths speeding caused" in opening
+    assert (
+        "Police-recorded inappropriate speed is associated with greater crash severity" in opening
+    )
+    assert "This is not an estimate of causation." in opening
     # The two biases are named, in both directions.
     assert "which would raise it" in text and "which would lower it" in text
     shares = pd.read_csv(TABLES_DIR / "q9_infraction_shares.csv")
@@ -412,57 +441,63 @@ def test_every_page_has_a_description_and_every_image_an_alt(built: Path) -> Non
 def test_front_page_is_an_overview_of_the_study(built: Path) -> None:
     index = (built / "index.html").read_text(encoding="utf-8")
     body = index[index.find("<main>") : index.find("</main>")]
-    # What the project is, its data, its main results and where to read on: no numbered
-    # questions, no finding blocks, and the page opens on a summary paragraph.
-    headings = re.findall(r"<h2>([^<]+)</h2>", body)
-    assert headings == ["Data", "Main results", "Reading on"]
+    # What the project is, its main findings, where to read on and its data: no numbered
+    # questions, no boxed finding blocks, and the page opens on a summary paragraph.
+    headings = re.findall(r"<h2[^>]*>([^<]+)</h2>", body)
+    assert headings == ["Main findings", "Explore the study"]
     assert '<div class="finding">' not in body and "Finding 1" not in body
-    assert body.find('<p class="summary">') < body.find("<h2>")
+    assert body.find('<p class="summary">') < body.find("<h2")
     opening = re.search(r'<p class="summary">(.*?)</p>', body, re.S).group(1)
     assert "ordinary statistical analysis" in opening and "predictive models" in opening
-    sections = dict(zip(headings, re.split(r"<h2>[^<]+</h2>", body)[1:]))
-    expected = {
-        "Data": ("sources",),
-        "Main results": (
-            "trends",
-            "long-run",
-            "drivers",
-            "vehicles",
-            "speed",
-            "factors",
-            "catalonia",
-            "barcelona",
-            "severity-models",
-            "validation",
-        ),
-        "Reading on": ("seasons", "severity", "forecast", "policy", "data"),
-    }
-    for heading, slugs in expected.items():
-        for slug in slugs:
-            assert f'href="{slug}.html"' in sections[heading], (heading, slug)
+    sections = dict(zip(headings, re.split(r"<h2[^>]*>[^<]+</h2>", body)[1:]))
+    # A short list of findings, each a single number with the sentences saying what it measures.
+    findings = re.search(r'<ol class="findings">(.*?)</ol>', body, re.S).group(1)
+    items = re.findall(r"<li>(.*?)</li>", findings, re.S)
+    assert 4 <= len(items) <= 7
+    for item in items:
+        assert item.count('<p class="finding-value">') == 1
+    for slug in ("trends", "long-run", "drivers", "speed", "factors", "severity-models"):
+        assert f'href="{slug}.html' in sections["Main findings"], slug
+    assert 'href="validation.html' in sections["Main findings"]
+    # The study index lists every page once, in the groups a reader would look for.
+    explore = re.search(r'<div class="explore">(.*?)</div>', body, re.S).group(1)
+    groups = re.findall(r"<h3[^>]*>([^<]+)</h3>", explore)
+    assert groups == [
+        "National trends and exposure",
+        "Drivers and vehicles",
+        "Recorded crash factors",
+        "Catalonia and Barcelona",
+        "Predictive severity models",
+        "Sources and methodology",
+    ]
+    linked = re.findall(r'href="([a-z-]+)\.html"', explore)
+    assert sorted(linked) == sorted(slug for slug, _ in site.ALL_PAGES if slug != "index")
+    # The data line closes the page quietly and links the sources.
+    provenance = re.search(r'<div class="provenance">(.*?)</div>', body, re.S).group(1)
+    assert 'href="sources.html"' in provenance
     # The headline numbers are computed from the tables.
     risk = pd.read_csv(TABLES_DIR / "risk_index.csv")
     latest = risk[(risk.year == risk.year.max()) & (risk.outcome == "deaths_30d")]
     deaths = latest[latest.denominator == "count"].iloc[0]
-    assert components._fmt_int(deaths["count"]) in sections["Main results"]
+    assert components._fmt_int(deaths["count"]) in sections["Main findings"]
     ratios = pd.read_csv(TABLES_DIR / "q7_km_ratio.csv").set_index(["measure", "band"])
     oldest = ratios.loc[("deaths_per_1000_involved", "75+")]
-    assert f"{oldest.ratio:.1f} times as often" in sections["Main results"]
+    assert f"{oldest.ratio:.1f} times as often" in sections["Main findings"]
     owner = pd.read_csv(TABLES_DIR / "q7_owner_age_check.csv").set_index("band")
     low, high = owner.loc[
         "18-24", ["involved_per_bn_km_range_low", "involved_per_bn_km_range_high"]
     ]
     # The published owner-age ratio and the reassignment scenario, both from the table.
-    assert f"{high:.1f} times as many injury crashes per kilometre" in sections["Main results"]
-    assert f"the ratio falls to {low:.1f}" in sections["Main results"]
+    assert f"{high:.1f} times as many injury crashes per kilometre" in sections["Main findings"]
+    assert f"the ratio falls to {low:.1f}" in sections["Main findings"]
     # A reader can follow the front page without the modelling vocabulary of the deeper pages.
     visible = re.sub(r"<[^>]+>", " ", body)
     for jargon in ("ROC-AUC", "calibration slope", "Jensen", "transportab", "odds ratio"):
         assert jargon not in visible, jargon
-    assert "national use" in sections["Main results"]
+    assert "national use" in sections["Main findings"]
     assert site.PROFILE_URL in index and "Russell Howard" in index
     # Short, and nothing from the withdrawn external-study models.
-    assert len(body) < 12_000
+    assert len(body) < 9_000
     data = (built / "data.html").read_text(encoding="utf-8")
     for text in (body, data):
         for phrase in ("simulator", "Power Model", "DRUID", "Dingus", "per unit of traffic"):
@@ -485,7 +520,10 @@ def test_supporting_pages_say_they_are_supporting(built: Path) -> None:
     for slug in ("severity", "forecast", "policy"):
         text = (built / f"{slug}.html").read_text(encoding="utf-8")
         body = text[text.find("<main>") : text.find("</main>")]
-        assert body.startswith('<main>\n<p class="eyebrow">Spain · supporting analysis</p>'), slug
+        assert body.startswith(
+            '<main>\n<header class="page-header" id="content">\n'
+            '<p class="eyebrow">Spain · supporting analysis</p>'
+        ), slug
         assert "Supporting analysis." not in body, slug
 
 
@@ -558,13 +596,17 @@ def test_forecast_page_reports_the_model_on_years_it_had_not_seen(built: Path) -
 def test_navigation_groups_its_pages_under_labels(built: Path) -> None:
     text = (built / "speed.html").read_text(encoding="utf-8")
     nav = re.search(r'<nav aria-label="Sections">(.*?)</nav>', text, re.S).group(1)
-    labels = re.findall(r'<span class="navlabel" id="(nav-\d+)">([^<]+)</span>', nav)
+    labels = re.findall(r'<span class="nav-label" id="(label-[a-z-]+)">([^<]+)</span>', nav)
     # Every section but the overview link is labelled, in navigation order.
     assert [label for _, label in labels] == [group for group, _ in site.NAV_GROUPS][1:]
-    # Every link sits in a list labelled by its group, and no label is itself a link, so a
-    # group's name can never be mistaken for a page.
-    for anchor, _ in labels:
-        assert f'<ul aria-labelledby="{anchor}">' in nav
+    # Every link sits in a list labelled by its group, opened by a button that names the group;
+    # no label is itself a link, so a group's name can never be mistaken for a page. The section
+    # holding the current page says so.
+    for anchor, label in labels:
+        menu = anchor.replace("label-", "menu-")
+        assert f'<ul class="nav-menu" id="{menu}" aria-labelledby="{anchor}">' in nav
+        assert re.search(rf'aria-expanded="false" aria-controls="{menu}">{label}[<]', nav)
+    assert nav.count("(current section)") == 1
     assert "<li>Supporting analyses</li>" not in nav
     links = re.findall(r'href="([a-z-]+)\.html"', nav)
     assert links == [slug for _, pages in site.NAV_GROUPS for slug, _ in pages]

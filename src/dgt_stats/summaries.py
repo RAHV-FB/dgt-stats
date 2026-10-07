@@ -272,6 +272,7 @@ SUMMARIES = {
     "q7_km_ratio_65_74": lambda: driver_risk.km_rate_ratios(reference_band="65-74"),
     "q7_company_km": driver_risk.company_km_sensitivity,
     "q7_owner_age_check": driver_risk.owner_age_check,
+    "q7_breakeven_km": driver_risk.breakeven_km,
     "q7_denominator_contrast": driver_risk.denominator_contrast,
     "q7_licence_share": licence_share_by_age,
     # Vehicles per kilometre

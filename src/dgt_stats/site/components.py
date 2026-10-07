@@ -9,6 +9,7 @@ import re
 import pandas as pd
 
 from dgt_stats.paths import FIGURES_DIR, TABLES_DIR
+from dgt_stats.site.script import JS_FLAG
 
 REPO_URL = "https://github.com/RAHV-FB/dgt-stats"
 
@@ -54,8 +55,6 @@ NAV_GROUPS: tuple[tuple[str, tuple[tuple[str, str], ...]], ...] = (
     (MODELS, (("severity-models", "Severity models"), ("validation", "External validation"))),
     (METHODS, (("sources", "Data sources and scope"), ("data", "Methodology"))),
 )
-# A group drawn inside another in the navigation: the supporting analyses belong to Spain.
-NAV_PARENT = {SUPPORTING: SPAIN}
 # The line above a page's title: the part of the argument the page belongs to.
 EYEBROWS = {
     SPAIN: "Spain",
@@ -90,6 +89,13 @@ WITHDRAWN_REASON = (
     "This analysis was withdrawn because its results came from coefficients published in "
     "external studies rather than from data in this repository."
 )
+# What each withdrawn page was, as its notice names it.
+WITHDRAWN_TITLES = {
+    "simulator": "Speed-limit simulator",
+    "distraction": "Deaths attributed to distraction",
+    "alcohol-drugs": "Deaths attributed to alcohol and drugs",
+    "enforcement": "Ranking of enforcement measures",
+}
 WITHDRAWN_PAGES = {
     "simulator": (
         "This page simulated what new speed limits, and drivers keeping to them, would do to "
@@ -175,22 +181,35 @@ def read_captions() -> dict[str, str]:
         return json.load(handle)
 
 
+_TITLES: dict[str, str] = {}
+
+
+def read_titles() -> dict[str, str]:
+    """The title printed above each figure (``reports/figures/titles.json``)."""
+    if not _TITLES:
+        path = FIGURES_DIR / "titles.json"
+        if path.exists():
+            with path.open(encoding="utf-8") as handle:
+                _TITLES.update(json.load(handle))
+    return _TITLES
+
+
 _SVG_SIZE = re.compile(r'<svg[^>]*?\swidth="([\d.]+)pt"[^>]*?\sheight="([\d.]+)pt"')
 
 
 _SVG_VIEWBOX = re.compile(r'<svg[^>]*?\sviewBox="[\d.\-]+ [\d.\-]+ ([\d.]+) ([\d.]+)"')
 
 
-def _svg_dimensions(name: str) -> str:
-    """``width`` and ``height`` attributes for the image, so the space is reserved before it loads."""
+def _svg_size(name: str) -> tuple[float, float] | None:
+    """A chart's own width and height, in points, from its SVG."""
     path = FIGURES_DIR / f"{name}.svg"
     if not path.exists():
-        return ""
+        return None
     head = path.read_text(encoding="utf-8")[:2000]
     match = _SVG_SIZE.search(head) or _SVG_VIEWBOX.search(head)
     if not match:
-        return ""
-    return f' width="{float(match.group(1)):.0f}" height="{float(match.group(2)):.0f}"'
+        return None
+    return float(match.group(1)), float(match.group(2))
 
 
 # The Spanish titles and terms the pages quote inside English sentences. Organisations, places and
@@ -215,18 +234,76 @@ def mark_spanish(text: str) -> str:
     return text
 
 
-def figure(name: str, alt: str, captions: dict[str, str]) -> str:
-    # The image links to its SVG, so a reader on a small screen can open the chart full size.
+# Charts are shown at one fixed multiple of their own size, so that their text is the same size on
+# every chart, and never wider than the column. They shrink with the column down to a smaller
+# multiple that keeps their text near 11px, and below that scroll sideways inside the figure
+# rather than shrinking further; a phone shows them at that multiple.
+FIGURE_SCALE = 1.45
+SMALL_SCALE = 1.2
+
+
+def _split_source(caption: str) -> tuple[str, str]:
+    """A caption's description and its 'Source: …' line."""
+    marker = " Source: "
+    if marker in caption:
+        shown, source = caption.split(marker, 1)
+        return shown, "Source: " + source
+    return caption, ""
+
+
+def figure(name: str, alt: str, captions: dict[str, str], title: str | None = None) -> str:
+    """A figure in three parts: a title stating what is shown, the chart, and a caption giving
+    the denominator, period, interval and source. The chart links to its SVG at full size."""
+    heading = title or read_titles().get(name, "")
+    shown, source = _split_source(captions.get(name, ""))
+    size = _svg_size(name)
+    dims = ""
+    if size:
+        width, height = size
+        dims = (
+            f' width="{width:.0f}" height="{height:.0f}"'
+            f' style="--w: {width * FIGURE_SCALE:.0f}px; --w-small: {width * SMALL_SCALE:.0f}px"'
+        )
+    title_html = (
+        f'<p class="figure-title" id="figure-{name}">{mark_spanish(esc(heading))}</p>'
+        if heading
+        else ""
+    )
+    labelled = f' aria-labelledby="figure-{name}"' if heading else ""
+    source_html = f'<p class="figure-source">{mark_spanish(esc(source))}</p>' if source else ""
     return (
-        f'<figure><div class="figure-wrap" role="region" tabindex="0" aria-label="{esc(alt)}">'
-        f'<a href="figures/{name}.svg"><img src="figures/{name}.svg" alt="{esc(alt)}"'
-        f'{_svg_dimensions(name)} loading="lazy"></a></div>'
-        f"<figcaption>{mark_spanish(esc(captions.get(name, '')))}</figcaption></figure>"
+        f"<figure{labelled}>{title_html}"
+        '<p class="figure-tools">Scroll sideways to see the whole chart, or '
+        f'<a href="figures/{name}.svg">open it at full size</a>.</p>'
+        f'<div class="figure-media" role="region" tabindex="0" aria-label="Chart: {esc(heading or alt)}">'
+        f'<a href="figures/{name}.svg"><img src="figures/{name}.svg" alt="{esc(alt)}"{dims}'
+        ' loading="lazy" decoding="async"></a></div>'
+        f"<figcaption><p>{mark_spanish(esc(shown))}</p>{source_html}</figcaption></figure>"
     )
 
 
 # A text column whose longest cell is longer than this wraps instead of widening the table.
 WRAP_COLUMN_CHARS = 24
+
+# A cell that reads as a number: a value, a range or a value with its interval in brackets, with
+# an optional sign, percentage or multiplication sign ("1,234", "−7%", "2.02–6.75×",
+# "−6.0% to +10.1%", "0.79 (0.76–0.82)", "1 (reference)").
+_NUMBER = re.compile(
+    r"[−\-+]?\d[\d.,]*\s?[%×]?(?:\s?(?:[–\-]|to)\s?[−\-+]?\d[\d.,]*\s?[%×]?)?(?:\s*\(.*\))?"
+)
+
+
+def _numeric(values: pd.Series) -> bool:
+    cells = [str(v).strip() for v in values if not pd.isna(v) and str(v).strip()]
+    return bool(cells) and sum(bool(_NUMBER.fullmatch(c)) for c in cells) >= 0.8 * len(cells)
+
+
+def _caption_parts(caption: str) -> tuple[str, str]:
+    """A table caption's first sentence, shown as the table's title, and the rest as its note."""
+    match = re.match(r"(.+?[.:])\s+(?=[A-Z0-9“\"(])(.+)$", caption, re.S)
+    if not match:
+        return caption, ""
+    return match.group(1), match.group(2)
 
 
 def table(
@@ -234,10 +311,14 @@ def table(
     caption: str,
     formats: dict[str, str] | None = None,
     spanish_columns: tuple[str, ...] = (),
+    reference_rows: tuple[str, ...] = (),
 ) -> str:
     """Render a frame as an HTML table.
 
     ``formats`` maps column -> 'int' | 'pct' | 'pct0' | 'pct2' | 'dec' | 'dec2' | 'dec4' | 'year'.
+    Numeric columns are right-aligned and the others left-aligned. A row whose first cell is in
+    ``reference_rows``, or with a cell marked '(reference)', is lightly shaded as the row the
+    others are compared with. The caption's first sentence is set as the table's title.
     """
     formats = formats or {}
     assert not frame.columns.duplicated().any(), list(frame.columns)
@@ -252,59 +333,104 @@ def table(
         "dec2": lambda v: _fmt_dec(v, 2),
         "dec4": lambda v: _fmt_dec(v, 4),
     }
+    texts = pd.DataFrame(
+        {
+            column: [
+                formatters[formats[column]](v)
+                if formats.get(column)
+                else ("" if pd.isna(v) else str(v))
+                for v in frame[column]
+            ]
+            for column in frame.columns
+        }
+    )
     wrap = {
         column
         for column in frame.columns
-        if not formats.get(column)
-        and frame[column].map(lambda v: len("" if pd.isna(v) else str(v))).max() > WRAP_COLUMN_CHARS
+        if not formats.get(column) and texts[column].map(len).max() > WRAP_COLUMN_CHARS
     }
+    numeric = {
+        column
+        for position, column in enumerate(frame.columns)
+        if position > 0 and (formats.get(column) or _numeric(texts[column]))
+    }
+
+    def classes(column: str) -> str:
+        names = [n for n, on in (("num", column in numeric), ("wrap", column in wrap)) if on]
+        return f' class="{" ".join(names)}"' if names else ""
+
+    # A table of prose alone is set as a list of records on a small screen, each cell under its
+    # column's name, rather than scrolling sideways.
+    stacked = not numeric and len(frame.columns) >= 3
     rows = []
-    for _, row in frame.iterrows():
+    for index in range(len(texts)):
         cells = []
+        values = texts.iloc[index]
+        reference = str(values.iloc[0]) in reference_rows or any(
+            "(reference)" in str(v) for v in values
+        )
         for position, column in enumerate(frame.columns):
-            value = row[column]
-            kind = formats.get(column)
-            text = formatters[kind](value) if kind else ("" if pd.isna(value) else str(value))
-            content = esc(text)
+            content = esc(values[column])
             if content and column in spanish_columns:
                 content = f'<span lang="es">{content}</span>'
-            cls = ' class="wrap"' if column in wrap else ""
             if position == 0:
-                cells.append(f'<th scope="row"{cls}>{content}</th>')
+                # A row shaded as the reference says so in words too, for screen readers.
+                if reference and not any("(reference)" in str(v) for v in values):
+                    content += '<span class="visually-hidden"> (reference)</span>'
+                cells.append(f'<th scope="row"{classes(column)}>{content}</th>')
             else:
-                cells.append(f"<td{cls}>{content}</td>")
-        rows.append("<tr>" + "".join(cells) + "</tr>")
+                label = f' data-label="{esc(column)}"' if stacked else ""
+                cells.append(f"<td{classes(column)}{label}>{content}</td>")
+        row_class = ' class="is-reference"' if reference else ""
+        rows.append(f"<tr{row_class}>" + "".join(cells) + "</tr>")
     head = "".join(
-        f'<th scope="col"{" class=" + chr(34) + "wrap" + chr(34) if column in wrap else ""}>'
-        f"{esc(column)}</th>"
-        for column in frame.columns
+        f'<th scope="col"{classes(column)}>{esc(column)}</th>' for column in frame.columns
     )
+    # The title and note are set above the table, outside the box that scrolls sideways, so they
+    # are never cut off on a small screen; the caption carries the same words for screen readers.
+    title, note = _caption_parts(caption)
+    title = title.rstrip(".:")
+    shown = f'<p class="table-title" aria-hidden="true">{mark_spanish(esc(title))}</p>'
+    if note:
+        shown += f'<p class="table-note" aria-hidden="true">{mark_spanish(esc(note))}</p>'
+    spoken = esc(title) + (f". {esc(note)}" if note else "")
+    table_class = ' class="stack"' if stacked else ""
     return (
-        f'<div class="table-wrap" role="region" tabindex="0" aria-label="{esc(caption)}">'
-        f"<table><caption>{mark_spanish(esc(caption))}</caption>"
-        f"<thead><tr>{head}</tr></thead><tbody>{''.join(rows)}</tbody></table></div>"
+        f'<div class="table-block">{shown}'
+        '<p class="table-tools" hidden>Scroll sideways to see the whole table.</p>'
+        f'<div class="table-wrap" role="region" tabindex="0" aria-label="{esc(title)}">'
+        f'<table{table_class}><caption class="visually-hidden">{spoken}</caption>'
+        f"<thead><tr>{head}</tr></thead><tbody>{''.join(rows)}</tbody></table></div></div>"
     )
+
+
+SOURCE_REGISTER = f"{DOCS_URL}/data_sources.md"
 
 
 def downloads(items: list[tuple[str, str]], method: tuple[str, str] | None = None) -> str:
-    """The result tables behind a page, as CSV links, and optionally where its method is set out.
+    """The page's closing 'Data and method' block: its result tables as CSV files, where its
+    method is set out, and where its sources are documented.
 
     ``method`` is ``(href, label)``, for example ``("data.html#rates", "how rates are built")``.
     """
-    links = ", ".join(f'<a href="tables/{name}.csv">{esc(label)}</a>' for name, label in items)
-    text = f"Result tables (CSV): {links}."
+    links = "".join(
+        f'<li><a href="tables/{name}.csv">{esc(label[:1].upper() + label[1:])}</a></li>'
+        for name, label in items
+    )
+    many = ' class="many"' if len(items) > 5 else ""
+    rows = f"<dt>Result tables (CSV)</dt><dd><ul{many}>{links}</ul></dd>"
     if method:
-        text += f' Method: <a href="{method[0]}">{esc(method[1])}</a>.'
-    return f'<p class="downloads">{text}</p>'
-
-
-def note(text: str) -> str:
-    return f'<div class="note"><p>{text}</p></div>'
-
-
-def conclusion(text: str) -> str:
-    """The flat statement of what the page has established, at the foot of the argument."""
-    return f'<div class="conclusion"><p>{text}</p></div>'
+        label = method[1][:1].upper() + method[1][1:]
+        rows += f'<dt>Method</dt><dd><a href="{method[0]}">{esc(label)}</a></dd>'
+    rows += (
+        '<dt>Source documentation</dt><dd><a href="sources.html">Data sources and scope</a>'
+        f' · <a href="{SOURCE_REGISTER}">Source register</a></dd>'
+    )
+    return (
+        '<section class="data-method" aria-labelledby="data-and-method">'
+        '<h2 id="data-and-method">Data and method</h2>'
+        f"<dl>{rows}</dl></section>"
+    )
 
 
 def summary(text: str) -> str:
@@ -312,59 +438,210 @@ def summary(text: str) -> str:
     return f'<p class="summary">{text}</p>'
 
 
-def limitation(text: str) -> str:
-    """A short methodological limitation, used only where a page needs one beyond the methodology."""
-    return f'<p class="limit"><strong>Limitations.</strong> {text}</p>'
-
-
-def technical(label: str, body: str) -> str:
-    """Technical detail a reader can open: full metrics, specifications, diagnostics."""
-    return f'<details class="technical"><summary>{esc(label)}</summary>{body}</details>'
-
-
-def _nav_list(group: str, pages: tuple[tuple[str, str], ...], slug: str, index: int) -> str:
-    current = ' aria-current="page"'
-    return "".join(
-        f'<li><a href="{s}.html"{current if s == slug else ""}>{esc(name)}</a></li>'
-        for s, name in pages
+def key_result(value: str, text: str) -> str:
+    """One headline number with a sentence saying exactly what it measures. Used sparingly."""
+    return (
+        f'<div class="key-result"><p class="key-value">{value}</p>'
+        f'<p class="key-text">{text}</p></div>'
     )
 
 
-def _nav(slug: str) -> str:
-    """The navigation: each section a small label over its links, so a label never reads as a page.
+def compare(items: list[tuple[str, str]], note: str = "") -> str:
+    """Two numbers side by side, each with what it measures, and a sentence reading them."""
+    cells = "".join(
+        f'<div class="compare-item"><p class="compare-value">{value}</p>'
+        f'<p class="compare-label">{label}</p></div>'
+        for value, label in items
+    )
+    note_html = f'<p class="compare-note">{note}</p>' if note else ""
+    return f'<div class="compare"><div class="compare-items">{cells}</div>{note_html}</div>'
 
-    A group with a parent (the supporting analyses) is drawn as a labelled list inside its parent's.
+
+def facts(rows: list[tuple[str, str]], label: str) -> str:
+    """A short definition list that can be read in a few seconds (a model's unit, outcome,
+    benchmark, score and decision)."""
+    items = "".join(f"<div><dt>{esc(term)}</dt><dd>{value}</dd></div>" for term, value in rows)
+    return f'<dl class="facts" aria-label="{esc(label)}">{items}</dl>'
+
+
+def decision_label(text: str) -> str:
+    """A model's decision, set after its section heading as a quiet label."""
+    return (
+        '<span class="decision-label"><span class="visually-hidden">Decision: </span>'
+        f"<span>{esc(text)}</span></span>"
+    )
+
+
+def evidence_note(text: str) -> str:
+    """A note at the head of a section whose evidence is weaker than the page's main result."""
+    return f'<div class="evidence-note"><p>{text}</p></div>'
+
+
+def limitation(text: str) -> str:
+    """A short methodological limitation, kept next to the results it qualifies."""
+    return (
+        '<aside class="limit" aria-label="Limitations">'
+        f'<p><span class="limit-label">Limitations</span>{text}</p></aside>'
+    )
+
+
+def technical(label: str, body: str) -> str:
+    """Secondary detail a reader can open: full counts, specifications, diagnostics. The label
+    says exactly what is inside."""
+    return (
+        f'<details class="technical"><summary>{esc(label)}</summary>'
+        f'<div class="technical-body">{body}</div></details>'
+    )
+
+
+def _slug(text: str) -> str:
+    plain = re.sub(r"<[^>]+>", "", text)
+    plain = html.unescape(plain).lower()
+    plain = re.sub(r"[^a-z0-9]+", "-", plain).strip("-")
+    return plain[:60].rstrip("-") or "section"
+
+
+# A page gets a contents list when it has at least this many sections and this much text.
+TOC_MIN_SECTIONS = 3
+TOC_MIN_CHARS = 6000
+
+
+# A model's decision set after its section heading; the contents list leaves it out.
+DECISION_LABEL = re.compile(r'<span class="decision-label">.*?</span></span>', re.S)
+
+
+def _sections(body: str) -> tuple[str, list[tuple[str, str]]]:
+    """Give every section heading of a page an id, and list the headings for its contents.
+
+    The closing 'Data and method' block is not a section of the argument and is left out.
     """
-    children: dict[str, list[tuple[int, str, tuple[tuple[str, str], ...]]]] = {}
-    for index, (label, pages) in enumerate(NAV_GROUPS):
-        if label in NAV_PARENT:
-            children.setdefault(NAV_PARENT[label], []).append((index, label, pages))
-    groups = []
-    for index, (label, pages) in enumerate(NAV_GROUPS):
-        if label in NAV_PARENT:
-            continue
-        links = _nav_list(label, pages, slug, index)
-        for child_index, child, child_pages in children.get(label, []):
-            links += (
-                f'<li class="navsub"><span class="navlabel" id="nav-{child_index}">'
-                f"{esc(child)}</span>"
-                f'<ul aria-labelledby="nav-{child_index}">'
-                f"{_nav_list(child, child_pages, slug, child_index)}</ul></li>"
-            )
-        if label == OVERVIEW:
-            groups.append(f'<div class="navgroup"><ul>{links}</ul></div>')
-            continue
-        wide = " navwide" if label in children else ""
-        groups.append(
-            f'<div class="navgroup{wide}"><span class="navlabel" id="nav-{index}">{esc(label)}'
-            f'</span><ul aria-labelledby="nav-{index}">{links}</ul></div>'
+    seen: set[str] = set()
+    entries: list[tuple[str, str]] = []
+
+    def name(match: re.Match[str]) -> str:
+        attributes, text = match.group(1), match.group(2)
+        plain = DECISION_LABEL.sub("", text).strip()
+        found = re.search(r'id="([^"]+)"', attributes)
+        anchor = found.group(1) if found else _slug(plain)
+        base, number = anchor, 2
+        while anchor in seen:
+            anchor, number = f"{base}-{number}", number + 1
+        seen.add(anchor)
+        if anchor != "data-and-method":
+            entries.append((anchor, plain))
+        if found:
+            return match.group(0)
+        return f'<h2 id="{anchor}"{attributes}>{text}</h2>'
+
+    body = re.sub(r"<h2([^>]*)>(.*?)</h2>", name, body, flags=re.S)
+    return body, entries
+
+
+# The switch between the light and dark themes: a half-filled circle, named for screen readers
+# and pressed while the dark theme is on. Hidden until the script can work it.
+THEME_TOGGLE = (
+    '<button class="theme-toggle" type="button" aria-pressed="false" title="Dark mode" hidden>'
+    '<span class="visually-hidden">Dark mode</span>'
+    '<svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">'
+    '<circle cx="8" cy="8" r="6.25" fill="none" stroke="currentColor" stroke-width="1.5"/>'
+    '<path d="M8 1.75a6.25 6.25 0 0 1 0 12.5z" fill="currentColor"/></svg></button>'
+)
+
+
+def _number(body: str) -> str:
+    """Number a page's figures and tables in reading order, as a printed paper does.
+
+    The number goes before each title; a table's hidden caption, which is what a screen reader
+    announces for it, carries the same number.
+    """
+    counts = {"figure": 0, "table": 0}
+
+    def figure_title(match: re.Match[str]) -> str:
+        counts["figure"] += 1
+        return f'{match.group(0)}<span class="figure-label">Figure {counts["figure"]}.</span> '
+
+    def table_block(match: re.Match[str]) -> str:
+        counts["table"] += 1
+        label = f"Table {counts['table']}."
+        block = match.group(0).replace(
+            '<p class="table-title" aria-hidden="true">',
+            f'<p class="table-title" aria-hidden="true"><span class="table-label">{label}</span> ',
+            1,
         )
-    return f'<nav aria-label="Sections">{"".join(groups)}</nav>'
+        return block.replace(
+            '<caption class="visually-hidden">', f'<caption class="visually-hidden">{label} ', 1
+        )
+
+    pattern = re.compile(
+        r'<p class="figure-title" id="[^"]+">|<div class="table-block">.*?</table></div></div>',
+        re.S,
+    )
+    return pattern.sub(
+        lambda m: figure_title(m) if m.group(0).startswith("<p") else table_block(m), body
+    )
+
+
+def _block_end(html_text: str, start: int) -> int:
+    """The position just after the <div> that opens at ``start`` and everything nested in it."""
+    depth = 0
+    for match in re.finditer(r"<(/?)div\b", html_text[start:]):
+        depth += -1 if match.group(1) else 1
+        if depth == 0:
+            return html_text.index(">", start + match.start()) + 1
+    raise ValueError("unclosed <div>")
+
+
+def _toc_lists(entries: list[tuple[str, str]]) -> tuple[str, str]:
+    items = "".join(f'<li><a href="#{anchor}">{text}</a></li>' for anchor, text in entries)
+    rail = (
+        '<aside class="toc-rail"><nav class="toc" aria-label="On this page">'
+        f'<p class="toc-title">On this page</p><ol>{items}</ol></nav></aside>'
+    )
+    inline = (
+        f'<details class="toc-inline"><summary>On this page</summary><ol>{items}</ol></details>'
+    )
+    return rail, inline
+
+
+def _nav(slug: str) -> str:
+    """The site navigation: each section a menu of its pages, the current one marked.
+
+    On a wide screen each section is a button opening its list; on a small screen the whole list
+    is shown under a 'Menu' button, sections as labels. Without scripting every list is reachable
+    from the keyboard and the small-screen list is shown open.
+    """
+    groups = []
+    for label, pages in NAV_GROUPS:
+        if label == OVERVIEW:
+            current = ' aria-current="page"' if slug == "index" else ""
+            groups.append(
+                f'<li class="nav-group"><a class="nav-top" href="index.html"{current}>'
+                f"{esc(pages[0][1])}</a></li>"
+            )
+            continue
+        key = _slug(label)
+        is_current = slug in dict(pages)
+        links = "".join(
+            f'<li><a href="{s}.html"{" aria-current=" + chr(34) + "page" + chr(34) if s == slug else ""}>'
+            f"{esc(name)}</a></li>"
+            for s, name in pages
+        )
+        marker = '<span class="visually-hidden"> (current section)</span>' if is_current else ""
+        groups.append(
+            f'<li class="nav-group{" is-current" if is_current else ""}">'
+            f'<button class="nav-trigger" type="button" aria-expanded="false" '
+            f'aria-controls="menu-{key}">{esc(label)}{marker}</button>'
+            f'<span class="nav-label" id="label-{key}">{esc(label)}</span>'
+            f'<ul class="nav-menu" id="menu-{key}" aria-labelledby="label-{key}">{links}</ul></li>'
+        )
+    return f'<nav aria-label="Sections"><ul class="nav-groups">{"".join(groups)}</ul></nav>'
 
 
 def _place(slug: str) -> tuple[str, str]:
     """Where a page sits: its section above the title, and the pages either side in reading order."""
     titles = dict(ALL_PAGES)
+    if slug in WITHDRAWN_PAGES:
+        return '<p class="eyebrow">Withdrawn analysis</p>', ""
     if slug not in READING_ORDER or slug == "index":
         return "", ""
     group = next(label for label, pages in NAV_GROUPS if slug in dict(pages))
@@ -373,48 +650,87 @@ def _place(slug: str) -> tuple[str, str]:
     links = []
     if position > 0:
         before = READING_ORDER[position - 1]
-        links.append(f'<a href="{before}.html" rel="prev">← {esc(titles[before])}</a>')
+        links.append(
+            f'<a href="{before}.html" rel="prev"><span class="pager-label">Previous</span>'
+            f'<span class="pager-title">{esc(titles[before])}</span></a>'
+        )
     if position < len(READING_ORDER) - 1:
         after = READING_ORDER[position + 1]
-        links.append(f'<a href="{after}.html" rel="next">{esc(titles[after])} →</a>')
+        links.append(
+            f'<a href="{after}.html" rel="next"><span class="pager-label">Next</span>'
+            f'<span class="pager-title">{esc(titles[after])}</span></a>'
+        )
     return eyebrow, f'<nav class="pager" aria-label="Reading order">{"".join(links)}</nav>'
 
 
 SITE_TITLE = "Road safety in Spain"
 
 
-def render_page(slug: str, title: str, lead: str, body: str, head: str = "") -> str:
+def render_page(
+    slug: str, title: str, lead: str, body: str, head: str = "", scope: str = ""
+) -> str:
+    """A whole page: the site header and navigation, the page's opening (section, title, one
+    sentence and, for a regional page, its source and scope), its argument with a contents list
+    when it is long, the reading-order links and the footer."""
     eyebrow, pager = _place(slug)
     page_title = SITE_TITLE if slug == "index" else esc(title) + " · " + SITE_TITLE
+    body, entries = _sections(_number(body))
+    visible = len(re.sub(r"<[^>]+>", "", body))
+    rail = ""
+    if len(entries) >= TOC_MIN_SECTIONS and visible >= TOC_MIN_CHARS:
+        rail, inline = _toc_lists(entries)
+        opening = re.search(r'<p class="summary">.*?</p>', body, re.S)
+        cut = opening.end() if opening else 0
+        # A headline number that follows the summary stays with it, before the contents.
+        if re.match(r'<div class="(compare|key-result)">', body[cut:]):
+            cut = _block_end(body, cut)
+        body = body[:cut] + inline + body[cut:]
+    scope_html = f'<p class="scope">{scope}</p>' if scope else ""
+    body_class = ' class="home"' if slug == "index" else ""
+    page_class = "page has-toc" if rail else "page"
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
 <title>{page_title}</title>
 <meta name="description" content="{esc(lead)}">
-<link rel="stylesheet" href="style.css">{head}
+<link rel="preload" href="fonts/NunitoSans.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="style.css">
+{JS_FLAG}
+<script src="site.js" defer></script>{head}
 </head>
-<body>
-<header>
-<div class="masthead">
-<a href="index.html">{SITE_TITLE}</a>
-<span class="strap">An independent analysis of official crash data</span>
-</div>
+<body{body_class}>
+<a class="skip-link" href="#content">Skip to content</a>
+<header class="site-header">
+<div class="site-header-inner">
+<a class="site-title" href="index.html">{SITE_TITLE}</a>
+<button class="nav-toggle" type="button" aria-expanded="false" aria-controls="site-nav" hidden>Menu</button>
+<div class="site-nav" id="site-nav">
 {_nav(slug)}
+</div>
+{THEME_TOGGLE}
+</div>
 </header>
+<div class="{page_class}">
 <main>
+<header class="page-header" id="content">
 {eyebrow}<h1>{esc(title)}</h1>
-<p class="lead">{esc(lead)}</p>
+<p class="lead">{esc(lead)}</p>{scope_html}
+</header>
 {body}
-{pager}</main>
-<footer>
+{pager}</main>{rail}
+</div>
+<footer class="site-footer">
+<div class="site-footer-inner">
 <p>{SITE_TITLE}, an independent analysis by <a href="{PROFILE_URL}">Russell Howard (RAHV-FB)</a>.
 Data from the Dirección General de Tráfico, INE, the Ministerio de Transportes, CORES, the Servei
 Català de Trànsit and the Ajuntament de Barcelona. All results are computed from the published
 files by the code in the repository.</p>
 <p><a href="sources.html">Data sources</a> · <a href="data.html">Methodology</a> ·
 <a href="{REPO_URL}">Repository</a></p>
+</div>
 </footer>
 </body>
 </html>

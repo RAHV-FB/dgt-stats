@@ -15,6 +15,7 @@ import logging
 import re
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
 from dgt_stats import agebands, driver_risk, factors, plots, policy, summaries
@@ -22,6 +23,8 @@ from dgt_stats.microdata import charts as microdata_charts
 from dgt_stats.paths import FIGURES_DIR, TABLES_DIR
 
 CAPTIONS_PATH = FIGURES_DIR / "captions.json"
+# The title the page prints above each figure; the SVGs carry none (``plots.TITLES``).
+TITLES_PATH = FIGURES_DIR / "titles.json"
 log = logging.getLogger(__name__)
 
 SERIES_SOURCE = "DGT, Series históricas del Anuario de Accidentes 2024"
@@ -45,12 +48,12 @@ CONTRAST_PANELS = {
     "residents": "Per resident",
     "b_permit_holders": "Per B-permit holder",
     "drivers_involved": "Per driver involved",
-    "kilometres": "Per km of cars\nof owners this age",
+    "kilometres": "Per km, by owner's age",
 }
 
 SPEED_STATUS_LABELS = {
     "speed_infraction": "Speed infraction recorded",
-    "too_slow": "Driving too slowly",
+    "too_slow": "Driving too slowly (too few to show)",
     "none": "No speed infraction recorded",
     "unknown": "No speed status recorded",
 }
@@ -73,7 +76,8 @@ def _ranges(text: str) -> str:
 def build_all(
     figures_dir: Path = FIGURES_DIR, frames: dict[str, pd.DataFrame] | None = None
 ) -> dict[str, str]:
-    """Write every figure as SVG and return ``{figure name: caption}``; also saves captions.json.
+    """Write every figure as SVG and return ``{figure name: caption}``; also saves captions.json
+    and titles.json, the title the page prints above each figure.
 
     ``frames`` are the summaries by registry name; when omitted they are computed here.
     """
@@ -86,6 +90,7 @@ def build_all(
 
     figures_dir.mkdir(parents=True, exist_ok=True)
     captions: dict[str, str] = {}
+    plots.TITLES.clear()
     _trend_figures(figures_dir, captions, summary)
     _long_run_figures(figures_dir, captions, summary)
     _season_figures(figures_dir, captions, summary)
@@ -107,6 +112,13 @@ def build_all(
 
     target = figures_dir / CAPTIONS_PATH.name
     target.write_text(json.dumps(captions, indent=2, ensure_ascii=False), encoding="utf-8")
+    missing = sorted(set(captions) - set(plots.TITLES))
+    if missing:
+        raise ValueError(f"figures drawn without a title: {missing}")
+    titles = {name: plots.TITLES[name] for name in captions}
+    (figures_dir / TITLES_PATH.name).write_text(
+        json.dumps(titles, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
     stale = sorted(path.name for path in figures_dir.glob("*.svg") if path.stem not in captions)
     for name in stale:
         (figures_dir / name).unlink()
@@ -135,6 +147,7 @@ def _speed_status_figure(figures_dir: Path, captions: dict[str, str], summary) -
         figures_dir / "c3_speed_status.svg",
         "Drivers in injury crashes by recorded speed status, all roads",
         order=list(SPEED_STATUS_LABELS.values()),
+        colors=[plots.ACCENT, plots.CATEGORICAL[1], "#d4d4cf", "#8f8f8a"],
     )
     captions["c3_speed_status"] = _caption(
         "Drivers involved in injury crashes by the police record of a speed infraction, Spain, "
@@ -177,6 +190,7 @@ def _trend_figures(figures_dir: Path, captions: dict[str, str], summary) -> None
         xlabel=f"Ratio, {last} to {base} (dotted line: no change)",
         reference=1.0,
         from_zero=False,
+        shared=True,
     )
     captions["r1_risk_change"] = _caption(
         f"Each outcome's {last} rate as a ratio to its {base} rate, under every denominator it "
@@ -187,8 +201,13 @@ def _trend_figures(figures_dir: Path, captions: dict[str, str], summary) -> None
     )
 
 
+# Panel titles short enough to sit on one line over a third of the figure.
+LONG_RUN_PANELS = {"Vehicle occupant deaths per registered vehicle": "Occupant deaths per vehicle"}
+
+
 def _long_run_figures(figures_dir: Path, captions: dict[str, str], summary) -> None:
     series = summary("longrun_series")
+    series = series.assign(measure_label=series.measure_label.replace(LONG_RUN_PANELS))
     order = list(dict.fromkeys(series.measure_label))
     plots.trend_projection(
         series,
@@ -218,13 +237,12 @@ def _long_run_figures(figures_dir: Path, captions: dict[str, str], summary) -> N
         zero_based=False,
         reference=1.0,
         band=("ratio_low", "ratio_high"),
-        end_labels=False,
     )
     sources = f"{SERIES_SOURCE}; {VEHICLE_FLEET_SOURCE}; {FUEL_SOURCE}"
     captions["l2_observed_over_trend"] = _caption(
         "Observed deaths within 30 days as a ratio to the pre-pandemic trend of each measure "
         "(fitted to 2019, projected from 2020), with the range allowed by the trend's 95% "
-        f"prediction interval shaded, Spain, {int(zoom.year.min())}–{int(zoom.year.max())}; "
+        f"prediction intervals as dotted lines, Spain, {int(zoom.year.min())}–{int(zoom.year.max())}; "
         "1 means on trend",
         sources,
     )
@@ -260,12 +278,11 @@ def _long_run_figures(figures_dir: Path, captions: dict[str, str], summary) -> N
         zero_based=False,
         reference=1.0,
         band=("ratio_low", "ratio_high"),
-        end_labels=False,
     )
     captions["l4_km_against_fuel"] = _caption(
         f"Interurban deaths within 30 days as a ratio to a trend fitted to {fit_first}–2019 and "
         "projected from 2020, per measured vehicle-kilometre and, as a check, over national "
-        "road fuel sold, with 95% prediction intervals shaded, Spain, "
+        "road fuel sold, with 95% prediction intervals as dotted lines, Spain, "
         f"{int(check.year.min())}–{int(check.year.max())}; the kilometres leave out roads run "
         f"by municipalities and other bodies, which account for {outside} of interurban deaths "
         f"({covered})",
@@ -291,7 +308,7 @@ def _long_run_figures(figures_dir: Path, captions: dict[str, str], summary) -> N
         series="measure_label",
         ylabel=f"Index, {base} = 100",
         reference=100,
-        end_labels=False,
+        focal=labels["deaths_per_fuel_index"],
     )
     captions["l3_frequency_severity"] = _caption(
         "Deaths within 30 days per tonne of road fuel sold (petrol plus diesel) and its two "
@@ -327,6 +344,12 @@ def _forecast_figures(figures_dir: Path, captions: dict[str, str], summary) -> N
         ylabel="Deaths (30 days), all roads",
         zero_based=True,
         end_labels=False,
+        colors={
+            labels["observed"]: plots.TEXT_PRIMARY,
+            labels["model"]: plots.ACCENT,
+            labels["naive_last_year"]: plots.NEUTRAL,
+        },
+        linestyles={labels["naive_last_year"]: (0, (5, 2))},
     )
     captions["k1_forecast_check"] = _caption(
         f"Road deaths within 30 days in each year, Spain, {first}–{last}, against two "
@@ -366,6 +389,7 @@ def _season_figures(figures_dir: Path, captions: dict[str, str], summary) -> Non
         "Deaths and three measures of road use by month (average month = 100)",
         order=list(dict.fromkeys(profile.series_label)),
         reference=100,
+        focal=profile.series_label.iloc[0],
     )
     effects = summary("season_month_effects")
     pooled = [int(year) for year in str(effects.years.iloc[0]).split()]
@@ -395,6 +419,7 @@ def _season_figures(figures_dir: Path, captions: dict[str, str], summary) -> Non
         xlabel="Deaths against the average month (dotted line: the same)",
         reference=1.0,
         from_zero=False,
+        shared=True,
     )
     captions["m2_month_effects"] = _caption(
         "Deaths within 30 days in each month against the average month of the same year, raw "
@@ -412,6 +437,7 @@ def _season_figures(figures_dir: Path, captions: dict[str, str], summary) -> Non
         order=list(dict.fromkeys(lockdown.series_label)),
         reference=0,
         percent=True,
+        focal=lockdown.series_label.iloc[0],
     )
     captions["m3_lockdown"] = _caption(
         "Change in deaths within 30 days and in three measures of road use (road fuel sold, petrol "
@@ -456,11 +482,13 @@ def _sex_figures(figures_dir: Path, captions: dict[str, str], summary) -> None:
 
 def _factor_figures(figures_dir: Path, captions: dict[str, str], summary) -> None:
     pooled = summary("speed_severity_pooled")
+    adjusted = pooled.road_type == "adjusted"
     shown = pooled.assign(
-        label=pooled.road_type_label.where(
-            pooled.road_type != "adjusted", "All roads, adjusted for road type and year"
-        )
+        label=pooled.road_type_label.where(~adjusted, "Adjusted for road type and year"),
+        block=np.where(adjusted, "All roads", "By road type"),
+        kind=np.where(adjusted, "summary", "focal"),
     )
+    shown = pd.concat([shown[~adjusted], shown[adjusted]])
     plots.dot_interval(
         shown,
         "label",
@@ -471,7 +499,8 @@ def _factor_figures(figures_dir: Path, captions: dict[str, str], summary) -> Non
         "Deaths per crash when speed is recorded, against other crashes",
         xlabel="Ratio of deaths per 100 crashes (dotted line: the same)",
         reference=1.0,
-        keep_order=True,
+        style="kind",
+        group="block",
     )
     captions["f1_speed_severity"] = _caption(
         "Deaths within 30 days per 100 injury crashes in which the police recorded "
@@ -588,6 +617,8 @@ def _severity_figures(figures_dir: Path, captions: dict[str, str]) -> None:
         ],
         xlabel="Odds ratio against the reference level (dotted line: no difference)",
         reference=1.0,
+        from_zero=False,
+        shared=True,
     )
     captions["s2_adverse_conditions"] = _caption(
         "Odds ratios for at least one death in an injury crash under each adverse condition "
@@ -619,8 +650,9 @@ def _age_figures(figures_dir: Path, captions: dict[str, str], summary) -> None:
         "Car drivers killed per 1,000 involved in an injury crash, by age (2024)",
         xlabel="Drivers killed within 30 days per 1,000 drivers involved",
         reference=float(reference.deaths_per_1000_involved),
-        reference_label=agebands.band_label(driver_risk.REFERENCE_BAND),
+        reference_label=f"{agebands.band_label(driver_risk.REFERENCE_BAND)} rate",
         keep_order=True,
+        reference_row=agebands.band_label(driver_risk.REFERENCE_BAND),
     )
     captions["a1_killed_per_involved"] = _caption(
         "Car drivers who died within 30 days per 1,000 car drivers involved in an injury crash, "
@@ -628,6 +660,42 @@ def _age_figures(figures_dir: Path, captions: dict[str, str], summary) -> None:
         "no estimate of distance driven enters the rate",
         TABLES_SOURCE,
         f"{int(rates.drivers_involved.sum()):,} drivers involved",
+    )
+
+    check = summary("q7_owner_age_check")
+    involved = rates.set_index("band")
+    per_km = check.assign(
+        label=[agebands.band_label(band) for band in check.band],
+        published=lambda f: f.band.map(involved.involved_per_bn_km),
+        low=lambda f: f.band.map(involved.involved_per_bn_km_low),
+        high=lambda f: f.band.map(involved.involved_per_bn_km_high),
+        scenario=lambda f: f.drivers_involved / f.billion_km_transfer,
+    )
+    plots.dot_range(
+        per_km,
+        "label",
+        "published",
+        "low",
+        "high",
+        "scenario",
+        figures_dir / "a4_involved_per_km.svg",
+        "Car drivers involved in injury crashes per billion km, by age (2024)",
+        xlabel="Drivers involved per billion km of cars registered to owners of each age "
+        "(log scale)",
+        value_label="On the published kilometres, by owner age (with 95% interval)",
+        alternative_label="With kilometres moved from 35–54 to the two young bands (scenario)",
+        log=True,
+        reference=float(involved.loc[driver_risk.REFERENCE_BAND, "involved_per_bn_km"]),
+        reference_label=f"{agebands.band_label(driver_risk.REFERENCE_BAND)} rate",
+    )
+    captions["a4_involved_per_km"] = _caption(
+        "Car drivers involved in injury crashes per billion kilometres driven by cars registered "
+        "to owners of the same age band, Spain, 2024, with 95% intervals that treat the "
+        "kilometres as known; the grey band runs to the rate under a scenario that moves "
+        "kilometres from the 35–54 band to 18–24 and 25–34 until all three have the same "
+        "kilometres per licence holder, a sensitivity range rather than an interval",
+        f"{TABLES_SOURCE}; {KM_2024_SOURCE}; {CENSUS_SOURCE}",
+        f"{int(check.drivers_involved.sum()):,} drivers involved",
     )
 
     contrast = summary("q7_denominator_contrast")
@@ -675,6 +743,7 @@ def _vehicle_figures(figures_dir: Path, captions: dict[str, str], summary) -> No
         "Vehicles in fatal crashes: the ranking per vehicle and per kilometre, 2022",
         "per 100,000 vehicles",
         "per billion km",
+        highlight=["Motorcycles", "Trucks over 3,500 kg"],
     )
     captions["v1_per_vehicle_vs_per_km"] = _caption(
         "Vehicles of each type involved in fatal crashes (deaths within 30 days) per 100,000 "

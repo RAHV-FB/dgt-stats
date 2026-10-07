@@ -10,6 +10,7 @@ is checked against them.
 
 from __future__ import annotations
 
+import calendar
 import re
 
 import pandas as pd
@@ -25,8 +26,10 @@ from dgt_stats.site.components import (
     _fmt_int,
     _fmt_pct,
     _join,
+    decision_label,
     downloads,
     esc,
+    facts,
     figure,
     read_table,
     render_page,
@@ -146,11 +149,34 @@ SOURCE_TYPE = {label: code for code, label in ACCIDENT_TYPES.items()}
 SUBGROUP_DIMENSIONS = ("all", "role", "associated vehicle", "age band", "sex")
 WORDS = {1: "one", 2: "two", 3: "three", 4: "four", 5: "five", 9: "nine", 10: "ten"}
 FRACTIONS = {5: "fifth", 10: "tenth"}
+# The decision on each model, as its section heading labels it.
+DECISIONS = {CATALONIA: "Kept", PERSON: "Ranking only", CRASH: "Replaced by table"}
 CATALAN_DESIGN = re.compile(r"train (\d{4})-(\d{4}), choose on (\d{4})-(\d{4}), test (\d{4})")
 BARCELONA_DESIGN = re.compile(
     r"train months (\d+)-(\d+) with \d+-fold cross-validation grouped by crash; "
     r"test months (\d+)-(\d+)"
 )
+
+
+def _brief(
+    unit: str, outcome: str, tested: str, benchmark: str, model: str, decision: str, name: str
+) -> str:
+    """The definition table that opens each model's section."""
+    return facts(
+        [
+            ("Unit", unit),
+            ("Outcome", outcome),
+            ("Test records", tested),
+            ("Simple benchmark ROC-AUC", benchmark),
+            ("Model ROC-AUC", model),
+            ("Decision", decision),
+        ],
+        f"{name}: summary",
+    )
+
+
+def _title(name: str) -> str:
+    return name[:1].upper() + name[1:]
 
 
 def _word(value: int) -> str:
@@ -346,12 +372,20 @@ def page_severity_models(captions: dict[str, str]) -> str:
         PAGE,
         "the Catalan model's calibration does not carry over to Barcelona city",
     )
-    body += f"<h2>The {NAMES[CATALONIA]} (kept)</h2>"
+    body += f"<h2>{_title(NAMES[CATALONIA])} {decision_label(DECISIONS[CATALONIA])}</h2>"
+    body += _brief(
+        "One crash in Catalonia in which someone was killed or seriously injured",
+        "Anyone killed within 24 hours",
+        f"{_fmt_int(cat.n)} crashes of {test_year}, {_fmt_int(cat.positives)} fatal",
+        f"{rule.rule_roc_auc:.2f}, a table of fatal shares by {RULE_LABELS[rule.rule][0]}",
+        f"{cat.roc_auc:.2f} (95% interval {cat.roc_auc_low:.2f}–{cat.roc_auc_high:.2f})",
+        "Kept: it ranks crashes better than its table, and its probabilities can be read as "
+        f"estimates for Catalan crashes like those of {test_year}",
+        NAMES[CATALONIA],
+    )
     body += (
-        "<p>This model estimates, for a crash in Catalonia in which someone was killed or "
-        "seriously injured, the probability that it was fatal. One row is one such crash in the "
-        "Servei Català de Trànsit's file, and the outcome is whether anyone died within 24 "
-        f"hours. The model uses what the police recorded about "
+        "<p>The model estimates the probability that a crash in the Servei Català de Trànsit's "
+        "file was fatal from what the police recorded about "
         f"{_inputs(CATALONIA, catalogue, cat.feature_set)}. It cannot predict whether a crash "
         "will happen: the file contains only crashes in which someone was killed or seriously "
         "injured, so the model says nothing about how likely a journey, or an ordinary crash, "
@@ -469,11 +503,25 @@ def page_severity_models(captions: dict[str, str]) -> str:
         if predicted == observed
         else f"{predicted} predicted against {observed} observed"
     )
-    body += f"<h2>The {NAMES[PERSON]} (kept for ranking only)</h2>"
+    test_span = (
+        f"{calendar.month_name[int(barcelona.group(3))]}–"
+        f"{calendar.month_name[int(barcelona.group(4))]} {year}"
+    )
+    body += f"<h2>{_title(NAMES[PERSON])} {decision_label(DECISIONS[PERSON])}</h2>"
+    body += _brief(
+        f"One person involved in a crash attended by Barcelona's police in {year}",
+        "Seriously injured (more than 24 hours in hospital) or killed",
+        f"{_fmt_int(person.n)} people, {test_span}; {_fmt_int(person.positives)} seriously or "
+        "fatally injured",
+        f"{rule.rule_roc_auc:.2f}, a table of shares by {RULE_LABELS[rule.rule][0]}",
+        f"{person.roc_auc:.2f} (95% interval {person.roc_auc_low:.2f}–{person.roc_auc_high:.2f})",
+        "Ranking only: it orders people better than its table, but its scores are too extreme "
+        "to read as probabilities",
+        NAMES[PERSON],
+    )
     body += (
-        "<p>This model predicts, for a person involved in a crash in Barcelona, whether they "
-        "were seriously injured (a hospital stay of more than 24 hours) or killed. One row is one person recorded by the Guàrdia Urbana in a crash in "
-        f"{year}: a driver, a passenger or a pedestrian. The model uses "
+        "<p>Each person in the Guàrdia Urbana's records is a driver, a passenger or a "
+        "pedestrian. The model uses "
         f"{_inputs(PERSON, catalogue, person.feature_set)}. It cannot predict who will be in a "
         "crash: everyone in the data was in one, and the records hold no measure of how much "
         "each group travels.</p>"
@@ -596,10 +644,20 @@ def page_severity_models(captions: dict[str, str]) -> str:
         PAGE,
         "the two rear collision types are in the table, with their source categories",
     )
-    body += f"<h2>The {NAMES[CRASH]} (replaced by a table)</h2>"
+    body += f"<h2>{_title(NAMES[CRASH])} {decision_label(DECISIONS[CRASH])}</h2>"
+    body += _brief(
+        f"One crash attended by Barcelona's police in {year}",
+        "Anyone seriously or fatally injured",
+        f"{_fmt_int(crash.n)} crashes, {test_span}; {_fmt_int(crash.positives)} with a serious "
+        "or fatal injury",
+        f"{rule.rule_roc_auc:.2f}, a table of shares by {RULE_LABELS[rule.rule][0]}",
+        f"{crash.roc_auc:.2f} (95% interval {crash.roc_auc_low:.2f}–{crash.roc_auc_high:.2f})",
+        "Replaced by table: the model ranks crashes no better than the table, which is shown "
+        "below instead",
+        NAMES[CRASH],
+    )
     body += (
-        "<p>This model predicted, for a crash attended by the Guàrdia Urbana, whether someone "
-        "was seriously or fatally injured. One row is one crash, and the model used "
+        "<p>The model used "
         f"{_inputs(CRASH, catalogue, crash.feature_set)}. On the {_fmt_int(crash.n)} crashes of "
         f"the test months ({_fmt_int(crash.positives)} with a serious or fatal injury) it "
         f"reached a ROC-AUC of {crash.roc_auc:.2f}, against {rule.rule_roc_auc:.2f} for a table "
@@ -824,7 +882,7 @@ def page_severity_models(captions: dict[str, str]) -> str:
         f'monthly deaths forecast</a>. The <a href="{DOCS_URL}/ML_LEAKAGE_AUDIT.md">audit of '
         "variables recorded after the crash</a> sets out which were excluded.</p>"
     )
-    body += technical("Technical details: test metrics, rules and checks", details)
+    body += technical("Detailed model diagnostics", details)
     body += downloads(
         [
             ("ml_rule_comparison", "models against tables"),

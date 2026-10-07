@@ -283,7 +283,7 @@ def page_long_run(captions: dict[str, str]) -> str:
         measure: float(frame.dispersion.iloc[0]) for measure, frame in by_measure.items()
     }
     body += technical(
-        "Trend specification",
+        "How the trends were fitted",
         "<p>Each series is a segmented log-linear Poisson regression (a joinpoint model) with "
         "quasi-likelihood errors: the variance is the mean multiplied by a dispersion factor "
         "estimated from the data and never set below 1. Occupant deaths per registered vehicle "
@@ -334,8 +334,8 @@ def page_long_run(captions: dict[str, str]) -> str:
         "l2_observed_over_trend",
         "Observed deaths as a ratio to each measure's pre-pandemic trend, for the count, "
         "occupant deaths per registered vehicle and deaths per tonne of road fuel. The count "
-        f"and the per-vehicle measure fall below the shaded range in {pandemic}; deaths "
-        f"per tonne of fuel rise above it in {last - 1} and {last}.",
+        f"and the per-vehicle measure fall below their dotted interval bounds in {pandemic}; "
+        f"deaths per tonne of fuel rise above theirs in {last - 1} and {last}.",
         captions,
     )
     rows = []
@@ -443,8 +443,8 @@ def page_long_run(captions: dict[str, str]) -> str:
     body += figure(
         "l4_km_against_fuel",
         "Interurban deaths as a ratio to their pre-pandemic trend. The line per measured "
-        "kilometre stays within the shaded range; the line over national road fuel, shown as "
-        f"a check on fuel as a measure of traffic, rises above it in {km_last}.",
+        "kilometre stays within its dotted interval bounds; the line over national road fuel, "
+        f"shown as a check on fuel as a measure of traffic, rises above its own in {km_last}.",
         captions,
     )
     body += (

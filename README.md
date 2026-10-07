@@ -146,13 +146,16 @@ docs/                  data contract, source comparison, audits, methodology, mo
 reports/tables/        result tables (CSV), committed; the site links them for download
 reports/figures/       figures (SVG) and their captions
 scripts/               ingest · build_tables · model · microdata · analyse · build_site
+                       (build_fonts: the font subsets, run by hand)
 src/dgt_stats/         national layer: readers (io_*), codes, validation, analyses, forecast
 src/dgt_stats/layers.py              the four layers and their roles
 src/dgt_stats/microdata/             Catalonia and Barcelona: sources, staging, tables, audits
 src/dgt_stats/microdata/ml/          feature catalogue, source models, rule baselines, cards
 src/dgt_stats/microdata/validation/  harmonisation, transfer tests, diagnosis, DGT audit,
                                      generalisability, model decisions
-src/dgt_stats/site/    one module per page
+src/dgt_stats/fonts/   the charts' serif (STIX Two Text), embedded into each SVG
+src/dgt_stats/site/    one module per page, the shared components, the stylesheet, the script
+                       and the web fonts (Nunito Sans for Avenir Next, STIX Two Text)
 tests/                 data-contract, reconciliation, model and page tests
 ```
 
@@ -177,6 +180,11 @@ CORES series are public-sector information on the same terms. The Catalan file i
 the Servei Català de Trànsit and the Barcelona files by the Ajuntament de Barcelona on their open
 data portals, each under its own terms. Every published figure is an aggregate and nothing on the
 site identifies a person.
+
+The fonts are not covered by the MIT licence either. Nunito Sans and STIX Two Text, in
+`src/dgt_stats/site/fonts` and `src/dgt_stats/fonts`, and the subsets of STIX Two Text embedded in
+the SVG figures, are under the SIL Open Font License 1.1, whose text ships beside them. Avenir Next
+is not distributed: pages ask for it by name and use it where the reader's system has it.
 
 ---
 

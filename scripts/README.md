@@ -1,7 +1,7 @@
 # Scripts
 
-The command-line entry points. `fetch_ine.py` stands outside the build; the rest run in the order
-below:
+The command-line entry points. `fetch_ine.py` and `build_fonts.py` stand outside the build; the
+rest run in the order below:
 
 - `ingest.py {microdata,tables,exposure,reports,validate,all} [--years Y ...] [--force] [-v]`: the
   DGT, INE, traffic and fuel files under `data/raw/` parsed into `data/staging/dgt/`, the speed
@@ -19,6 +19,9 @@ below:
 - `analyse.py {tables,figures,cards,all}`: the national result tables, every figure and its
   caption, and the cards of the two national models;
 - `build_site.py`: `site/`;
+- `build_fonts.py <source font directory>`: stands outside the build too; it cuts the committed
+  font subsets (the site's web fonts and the charts' serif) from the open fonts in the
+  google/fonts repository, and is needed only to change the character set or update a font;
 - `fetch_ine.py [--from-file CSV]`: rebuilds the committed INE population extract
   (`data/raw/ine/ine_poblacion_provincias_edad_sexo.csv`) from INE table 56947, or filters an
   already downloaded copy.

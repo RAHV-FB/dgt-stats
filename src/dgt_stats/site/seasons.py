@@ -12,6 +12,7 @@ from dgt_stats.site.components import (
     _times,
     downloads,
     figure,
+    limitation,
     read_table,
     render_page,
     summary,
@@ -215,12 +216,12 @@ def page_seasons(captions: dict[str, str]) -> str:
         f"fell {fall(float(april.deaths_per_road_fuel_tonnes_change))}.</p>"
     )
 
-    body += (
-        "<p>Both results depend on the measure set against deaths. Against road fuel sold, "
+    body += limitation(
+        "Both results depend on the measure set against deaths. Against road fuel sold, "
         "deaths rise more than fuel sales in summer and fell more than fuel sales in the April "
         "lockdown; against petrol sales or toll-motorway traffic, the reverse. None of these "
         "series measures kilometres driven on all roads, so how much of the summer excess would "
-        "remain per kilometre is unknown.</p>"
+        "remain per kilometre is unknown."
     )
     body += downloads(
         [
