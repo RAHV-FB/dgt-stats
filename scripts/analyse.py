@@ -6,8 +6,9 @@ Usage:
     python scripts/analyse.py cards      # docs/models/dgt_*.md (needs model.py and the DGT audit)
     python scripts/analyse.py all
 
-Run after scripts/model.py and scripts/microdata.py: the figures include the regional ones, and
-the card of the DGT association analysis quotes the DGT microdata audit.
+Run ``tables`` before ``scripts/microdata.py validate``, which decides the forecast from them, and
+``figures`` and ``cards`` after it: the figures include the regional ones, and the card of the DGT
+association analysis quotes the DGT microdata audit.
 """
 
 from __future__ import annotations

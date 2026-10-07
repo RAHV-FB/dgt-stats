@@ -264,6 +264,14 @@ def source_rows(tables: dict[str, pd.DataFrame]) -> list[dict]:
 
 
 def national_rows(tables: dict[str, pd.DataFrame]) -> list[dict]:
+    # The national models are decided from tables other scripts write; a missing one would drop
+    # its model from the decision table silently.
+    for name, script in (
+        ("q3_holdout_summary", "scripts/model.py"),
+        ("forecast_validation", "scripts/analyse.py tables"),
+    ):
+        if not (TABLES_DIR / f"{name}.csv").exists():
+            raise FileNotFoundError(f"{name}.csv is missing: run {script} before the validation")
     rows = []
     checks = tables.get("dgt_audit_checks")
     artefacts = tables.get("dgt_audit_artefacts")

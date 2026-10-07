@@ -68,6 +68,10 @@ def forecast_numbers() -> dict:
     hindsight = str(trees.drop(index=tree).holdout.idxmin())
     holdout_all = selection[(selection.outcome == "deaths_all") & (selection.set == "holdout")]
     checks = {
+        "on urban streets the month-and-trend form scored better in the selection years": rmse(
+            "deaths_urban", "selection", "trend"
+        )
+        < rmse("deaths_urban", "selection", chosen),
         "the model is chosen on the selection years": bool(
             selection[selection.chosen & (selection.family == "model")].method.eq(chosen).all()
         ),
