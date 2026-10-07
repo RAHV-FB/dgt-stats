@@ -67,7 +67,7 @@ def test_the_severity_card_states_its_design_and_its_nuisance_levels() -> None:
     assert "one DGT injury crash" in card and "Brier skill" in card
     assert "associations in DGT crash records" in card and "not the project's predictive" in card
     assert "(nuisance)" in card and "is_nuisance" in card
-    assert "—" not in card
+    assert "\u2014" not in card
     # No external study explains or supports anything in the card.
     for word in ("et al", "doi.org", "literature", "Elvik"):
         assert word not in card, word

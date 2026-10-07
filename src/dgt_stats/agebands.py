@@ -54,16 +54,6 @@ EXPOSURE_BANDS: dict[str, Band] = {
     "75+": (75, None),
 }
 
-# MOVILIA 2006 bands.
-MOVILIA_BANDS: dict[str, Band] = {
-    "0-14": (0, 14),
-    "15-29": (15, 29),
-    "30-39": (30, 39),
-    "40-49": (40, 49),
-    "50-64": (50, 64),
-    "65+": (65, None),
-}
-
 UNKNOWN = "unknown"
 
 BAND_LABELS: dict[str, str] = {

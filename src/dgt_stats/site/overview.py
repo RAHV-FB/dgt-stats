@@ -26,6 +26,7 @@ from dgt_stats.site.components import (
     render_page,
     table,
 )
+from dgt_stats.site.microdata_pages import overview_sections
 from dgt_stats.site.numbers import (
     _age_numbers,
     _factor_numbers,
@@ -226,6 +227,7 @@ def page_index(captions: dict[str, str]) -> str:
         "asks how large a change in deaths a year of counts can show at all.</p>"
     )
 
+    body += "<h2>1. What is happening across Spain</h2>"
     findings = [
         (
             "trends.html",
@@ -387,6 +389,8 @@ def page_index(captions: dict[str, str]) -> str:
         captions,
     )
 
+    body += overview_sections()
+
     body += "<h2>What this site does not claim</h2>"
     body += (
         "<p>It attributes no cause from Spanish data. DGT's national microdata have one row per "
@@ -394,10 +398,9 @@ def page_index(captions: dict[str, str]) -> str:
         "association, and a policy or campaign effect is never read off a time series. Every "
         "result comes from the rows of files in the repository: no observation, coefficient or "
         "relative risk is taken from a study made elsewhere, and the forecasting model is "
-        "fitted only to Spain's monthly deaths and road fuel. Two analyses built earlier in the "
-        "project are kept as supporting material because they are careful but outside this "
-        'question: <a href="severity.html">associations in DGT crash records</a>, which '
-        "describe crash severity and are not a predictive model, and a "
+        "fitted only to Spain's monthly deaths and road fuel. Two national analyses are kept as "
+        'supporting material: <a href="severity.html">associations in DGT crash records</a>, '
+        "which describe crash severity and are not a predictive model, and a "
         '<a href="policy.html">test of the 2006 points licence</a> whose headline did not '
         "survive its own falsification tests. Road design and municipal hotspots are not "
         "analysed: DGT's national files carry no road geometry, traffic volume or "
@@ -414,9 +417,9 @@ def page_index(captions: dict[str, str]) -> str:
     return render_page(
         "index",
         "Road safety in Spain",
-        "What changes when you stop counting crashes and start measuring road risk: seven "
-        "questions answered from DGT data, each with the denominator that decides it, and a "
-        "model of monthly deaths that says how large a change a year of counts can show.",
+        "Four questions, answered separately from published data: what is happening across "
+        "Spain, what individual Catalan and Barcelona crash records show, which models give "
+        "predictive value beyond a descriptive table, and how far they keep working elsewhere.",
         body,
     )
 

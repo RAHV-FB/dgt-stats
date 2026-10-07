@@ -1444,3 +1444,117 @@ def unanswerable_section(heading_level: int = 2) -> str:
         f'<h{heading_level} id="cannot-answer">What the current data still cannot answer'
         f"</h{heading_level}><ul>{items}</ul>"
     )
+
+
+# ----------------------------------------------------------------------------- overview sections
+def overview_sections() -> str:
+    """Questions 2-4 of the overview: what the crash records show (descriptive), which models
+    earn their place (predictive) and how far they reach (transportability), kept apart."""
+    shares = read_table("cat_fatal_share")
+    people = read_table("bcn_person_severity_share")
+    decisions = read_table("ml_model_decisions")
+    transport = read_table("ml_transport_validation")
+    path = read_table("ml_outward_path")
+    verdicts = read_table("ml_barcelona_diagnosis_verdicts")
+    selected = read_table("ml_selected")
+    chosen = selected[selected.primary].set_index("model").estimator
+    cat_years = read_table("cat_frequency").year
+    period = f"{int(cat_years.min())}–{int(cat_years.max())}"
+    bcn_year = _year_label(people)
+
+    def share(frame, dimension, level):
+        return frame[(frame.dimension == dimension) & (frame.level == level)].iloc[0]
+
+    overall = share(shares, "unit type involved", "all")
+    interurban = share(shares, "zone", "Carretera")
+    urban = share(shares, "zone", "Zona urbana")
+    heavy = share(shares, "unit type involved", "heavy vehicle")
+    pedestrian = share(people, "road user", "pedestrian")
+    motorcycle = share(people, "road user", "motorcycle driver")
+    car = share(people, "road user", "car driver")
+    _check(interurban.ci_low > urban.ci_high, "overview", "interurban crashes more often fatal")
+    _check(pedestrian.share > motorcycle.share > car.share, "overview", "road-user ordering")
+
+    def external(prefix: str, model: str):
+        part = transport[
+            transport.experiment.str.startswith(prefix)
+            & transport.model.eq(model)
+            & transport.estimator.eq(chosen[model])
+            & transport.status.eq("reported")
+        ]
+        return part.iloc[0]
+
+    national = external("Catalonia -> Spain outside Catalonia", "catalonia_common_dgt")
+    to_bcn = external("rest of Catalonia -> Barcelona municipality", "catalonia_crash_severity")
+    main = (
+        verdicts[verdicts.features.str.startswith("full")]
+        .set_index("estimator")
+        .loc[chosen["catalonia_crash_severity"]]
+    )
+    transferable = path.drop_duplicates("model").verdict.eq("potentially nationally transferable")
+
+    body = "<h2>2. What individual crash records show</h2>"
+    body += (
+        f"<p>Catalonia records every crash with a death or serious injury: {_fmt_int(overall.n)} "
+        f"in {period}, of which {_fmt_pct(overall.share)} were fatal. The fatal share was "
+        f"{_fmt_pct(interurban.share)} on interurban roads against {_fmt_pct(urban.share)} on "
+        f"urban streets, and {_fmt_pct(heavy.share)} when a heavy vehicle was involved. In "
+        f"Barcelona in {bcn_year}, {_fmt_pct(pedestrian.share)} of the pedestrians recorded in "
+        f"crashes were seriously or fatally injured, against {_fmt_pct(motorcycle.share)} of "
+        f"motorcycle drivers and {_fmt_pct(car.share, 2)} of car drivers. These are shares among "
+        "recorded crashes and people, not risks: neither source has trips or kilometres. "
+        'Details: <a href="catalonia.html">Catalonia</a>, <a href="barcelona.html">Barcelona'
+        "</a>.</p>"
+    )
+
+    body += "<h2>3. Which models earn their place</h2>"
+    main_rows = decisions[
+        ~decisions.variant.isin(["retrospective", "retrospective_administrative"])
+    ]
+    featured = main_rows[main_rows.decision.isin(decision_rules.FEATURED)]
+    body += (
+        "<p>Every model is first compared with a plain table of outcome shares on records it "
+        f"never saw. {len(featured)} of the {len(main_rows)} models pass and are shown as models; "
+        "the rest are kept for research or replaced by their table. They rank recorded cases by "
+        "how severe the outcome was; none predicts whether a crash happens or estimates a "
+        "causal effect.</p>"
+    )
+    body += table(
+        pd.DataFrame(
+            {
+                "Model": [MODEL_NAMES.get(m, m.replace("_", " ")) for m in main_rows.model],
+                "One row is": main_rows.unit,
+                "Against a descriptive table": main_rows.usefulness,
+                "Decision": main_rows.decision,
+            }
+        ),
+        "Model decisions (details on the models page)",
+    )
+
+    body += "<h2>4. How far the models reach</h2>"
+    body += (
+        "<p>A transferred score is read only beside the target domain's own model. Restricted to "
+        "the variables both sources record alike, the Catalan model on crashes recorded outside "
+        f"Catalonia: native {national.in_domain_cv_roc_auc:.3f}, transferred "
+        f"{national.roc_auc:.3f}, gap {national.transfer_gap:+.3f} "
+        f"({_fmt_int(national.test_n)} crashes, {_fmt_int(national.test_positives)} fatal). "
+        f"The full Catalan model on Barcelona: native {to_bcn.in_domain_cv_roc_auc:.3f}, "
+        f"transferred {to_bcn.roc_auc:.3f}, gap {to_bcn.transfer_gap:+.3f}; most of the fall from "
+        f"the rest of Catalonia is Barcelona being harder to rank "
+        f"({main.intrinsic_difference:.2f}) and its smaller training set "
+        f"({main.training_size_cost:.2f}), not the move ({main.transport_cost:.2f}). "
+        + (
+            "No model passes every stage of the outward path, so none is called nationally "
+            "transferable. "
+            if not transferable.any()
+            else ""
+        )
+        + 'Details: <a href="transport.html">how far the results reach</a>.</p>'
+    )
+    _check(
+        main.intrinsic_difference + main.training_size_cost > main.transport_cost,
+        "overview",
+        "most of the Barcelona fall is difficulty and training size, not the move",
+    )
+    body += unanswerable_section()
+    return body

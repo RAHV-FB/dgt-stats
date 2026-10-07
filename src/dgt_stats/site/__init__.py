@@ -1,17 +1,19 @@
 """Static site builder: plain HTML and one CSS file, from the result tables and figures.
 
-No template engine and no scripts. The site answers one question, what changes when road risk is
-measured rather than counted, in seven analysis pages, a forecasting model of monthly deaths, an
-overview and a data page, with two supporting analyses (the severity model and the 2006 break)
-kept apart; the navigation shows them in labelled groups (``NAV_GROUPS``).
+No template engine and no scripts. The navigation (``NAV_GROUPS``) follows the source hierarchy
+of ``dgt_stats.layers``: Spain from DGT and INE (seven findings and two supporting analyses), the
+Catalan crash records, the Barcelona crash and person records, the models that beat a descriptive
+table, how far they generalise, and the sources and methods. Descriptive, predictive and
+transportability findings sit on separate pages.
 Every sentence that carries a number computes it from a committed result table at build time, so
 the prose cannot drift from the tables; full tables are copied into ``site/tables`` and linked as
 CSV rather than printed.
 
-One module per page (``overview``, ``trends``, ``long_run``, ``seasons``, ``drivers``,
+One module per national page (``overview``, ``trends``, ``long_run``, ``seasons``, ``drivers``,
 ``vehicles``, ``speed``, ``factors``, ``forecast``, ``data``, and the supporting ``severity`` and
-``policy``), with the shared furniture in ``components``, the stylesheet in ``style`` and the
-result tables several pages quote in ``numbers``.
+``policy``), the regional, model, generalisability and sources pages in ``microdata_pages``, with
+the shared furniture in ``components``, the stylesheet in ``style`` and the result tables several
+pages quote in ``numbers``.
 
 Two kinds of old URL are kept alive. A renamed page (``MOVED_PAGES``) refreshes to its successor.
 A withdrawn analysis (``WITHDRAWN_PAGES``: the speed-law simulator and the distraction,
@@ -49,6 +51,13 @@ from dgt_stats.site.drivers import page_drivers
 from dgt_stats.site.factors import page_factors
 from dgt_stats.site.forecast import page_forecast
 from dgt_stats.site.long_run import page_long_run
+from dgt_stats.site.microdata_pages import (
+    page_barcelona,
+    page_catalonia,
+    page_severity_models,
+    page_sources,
+    page_transport,
+)
 from dgt_stats.site.overview import page_index
 from dgt_stats.site.policy import page_policy
 from dgt_stats.site.seasons import page_seasons
@@ -93,10 +102,15 @@ PAGE_BUILDERS = {
     "vehicles": page_vehicles,
     "speed": page_speed,
     "factors": page_factors,
-    "forecast": page_forecast,
-    "data": page_data,
     "severity": page_severity,
     "policy": page_policy,
+    "catalonia": page_catalonia,
+    "barcelona": page_barcelona,
+    "severity-models": page_severity_models,
+    "forecast": page_forecast,
+    "transport": page_transport,
+    "sources": page_sources,
+    "data": page_data,
 }
 
 
@@ -189,4 +203,7 @@ def build(site_dir: Path = SITE_DIR) -> list[Path]:
         target = site_dir / f"{slug}.html"
         target.write_text(page_withdrawn(slug), encoding="utf-8")
         written.append(target)
+    # A page no builder wrote any more is dead: remove it rather than leave it published.
+    for stale in set(site_dir.glob("*.html")) - set(written):
+        stale.unlink()
     return written

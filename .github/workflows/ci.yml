@@ -50,26 +50,30 @@ jobs:
             'src/dgt_stats/derive.py', 'src/dgt_stats/labels.py',
             'scripts/ingest.py', 'scripts/build_tables.py') }}
 
-      - name: Build the interim layer and reconcile against DGT's published totals
+      - name: Build the staging layer and reconcile against DGT's published totals
         run: python scripts/ingest.py all
 
       - name: Build the processed layer
         run: python scripts/build_tables.py
 
-      - name: Fit the severity models
+      - name: Fit the associations in DGT crash records
         run: python scripts/model.py
 
-      # The crash-level microdata layer (Catalonia, Barcelona): staging, canonical tables, the
-      # data-quality report, the feature tables and the descriptive tables, rebuilt from the raw
-      # files on every run (about a minute). The models and their transfer tests take about a
-      # quarter of an hour and write committed tables, so CI does not refit them; the tests check
-      # the feature tables, the leakage catalogue and the split isolation directly.
-      - name: Build the microdata layer
+      # The regional crash-record layers (Catalonia, Barcelona): staging, canonical tables, the
+      # data-quality report, the feature tables, the descriptive tables and the source comparison,
+      # rebuilt from the raw files on every run (a few minutes). The source models and their
+      # validation take about an hour and write committed tables, so CI does not refit them; the
+      # tests check the feature tables, the leakage catalogue, the split isolation, the decision
+      # rules and the committed validation tables directly.
+      - name: Build the regional layers
+        env:
+          OMP_NUM_THREADS: "1"
         run: |
           python scripts/microdata.py build
           python scripts/microdata.py quality
           python scripts/microdata.py features
           python scripts/microdata.py analyse
+          python scripts/microdata.py sources
 
       - name: Test
         run: pytest

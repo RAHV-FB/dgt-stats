@@ -15,6 +15,7 @@ from pathlib import Path
 import pandas as pd
 
 from dgt_stats import agebands, plots, policy, summaries
+from dgt_stats.microdata import charts as microdata_charts
 from dgt_stats.paths import FIGURES_DIR, TABLES_DIR
 
 CAPTIONS_PATH = FIGURES_DIR / "captions.json"
@@ -90,6 +91,9 @@ def build_all(
     _vehicle_figures(figures_dir, captions, summary)
     _policy_figures(figures_dir, captions, summary)
     _data_figures(figures_dir, captions)
+    # The regional crash-record figures (Catalonia, Barcelona, models, generalisability); skipped
+    # when the microdata tables are not built.
+    microdata_charts.build(figures_dir, captions)
 
     target = figures_dir / CAPTIONS_PATH.name
     target.write_text(json.dumps(captions, indent=2, ensure_ascii=False), encoding="utf-8")

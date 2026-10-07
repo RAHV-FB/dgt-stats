@@ -19,13 +19,21 @@ PROFILE_URL = "https://github.com/RAHV-FB"
 DOCS_URL = f"{REPO_URL}/blob/main/docs"
 
 
-# The navigation, in labelled groups: where to start, the seven findings in reading order, the
-# models fitted to the same data, two careful analyses kept outside the central question, and the
-# reference.
+# The navigation follows the source hierarchy (dgt_stats.layers): Spain from DGT and INE (the
+# seven findings in reading order, then two supporting analyses), the Catalan and Barcelona crash
+# records, the models that survived the comparison with a descriptive table, how far they
+# generalise, and what each source is.
+FINDINGS = "Spain: DGT and INE"
+SUPPORTING = "Spain: supporting"
+CATALONIA = "Catalonia"
+BARCELONA = "Barcelona"
+MODELS = "Models"
+GENERALISABILITY = "Generalisability"
+REFERENCE = "Sources and methods"
 NAV_GROUPS: tuple[tuple[str, tuple[tuple[str, str], ...]], ...] = (
     ("Start", (("index", "Overview"),)),
     (
-        "Findings",
+        FINDINGS,
         (
             ("trends", "2019–2024"),
             ("long-run", "Long run"),
@@ -36,13 +44,16 @@ NAV_GROUPS: tuple[tuple[str, tuple[tuple[str, str], ...]], ...] = (
             ("factors", "Factors"),
         ),
     ),
-    ("Models", (("forecast", "Deaths forecast"),)),
-    ("Supporting analyses", (("severity", "Severity model"), ("policy", "The 2006 break"))),
-    ("Reference", (("data", "Data and methods"),)),
+    (
+        SUPPORTING,
+        (("severity", "Associations in DGT records"), ("policy", "The 2006 break")),
+    ),
+    (CATALONIA, (("catalonia", "Serious and fatal crashes"),)),
+    (BARCELONA, (("barcelona", "Crashes and people"),)),
+    (MODELS, (("severity-models", "Severity models"), ("forecast", "Deaths forecast"))),
+    (GENERALISABILITY, (("transport", "How far the results reach"),)),
+    (REFERENCE, (("sources", "Four layers of data"), ("data", "Data and methods"))),
 )
-SUPPORTING = "Supporting analyses"
-FINDINGS = "Findings"
-MODELS = "Models"
 
 
 # The main pages, and the supporting analyses outside the central question.
@@ -60,10 +71,11 @@ SUPPORTING_NOTES = {
     "severity": (
         "<strong>Supporting analysis.</strong> This page describes associations in DGT's "
         "crash records: which recorded circumstances go with a fatal outcome, given an injury "
-        "crash. It is kept because it is careful, but it is not a predictive model and not a "
-        "model of crash causation, which these data cannot support: DGT's national crash "
-        "microdata have no driver, vehicle or speed records. The central question of the site is "
-        'on the <a href="index.html">overview</a>.'
+        "crash. It is not a predictive model and not a model of crash causation, which these "
+        "data cannot support: DGT's national crash microdata have no driver, vehicle or speed "
+        "records, and their audit keeps them out of model training (see the "
+        '<a href="sources.html">sources page</a>). The models are on the '
+        '<a href="severity-models.html">models page</a>.'
     ),
     "policy": (
         "<strong>Supporting analysis.</strong> A dated policy change is the only kind of "
@@ -367,7 +379,7 @@ def _place(slug: str) -> tuple[str, str]:
         if position < len(pages) - 1:
             after, name = pages[position + 1]
         else:
-            after, name = dict(NAV_GROUPS)[MODELS][0]
+            after, name = dict(NAV_GROUPS)[CATALONIA][0]
         links.append(f'<a href="{after}.html" rel="next">{esc(name)} →</a>')
         return eyebrow, f'<nav class="pager" aria-label="Findings">{"".join(links)}</nav>'
     return "", ""

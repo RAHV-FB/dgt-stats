@@ -35,11 +35,21 @@ def test_every_page_is_written_with_one_heading(built: Path) -> None:
         _runs_no_script(slug, text)
         assert 'lang="en"' in text
         assert f'href="{slug}.html" aria-current="page"' in text
-    # Seven analyses, one model, the overview and the data in the main navigation; two
-    # supporting analyses in their own group; a pointer for each page that was renamed; and a
-    # notice for each analysis that was withdrawn.
-    assert len(site.PAGES) == 10 and len(site.SUPPORTING_PAGES) == 2
-    assert [slug for slug, _ in dict(site.NAV_GROUPS)["Models"]] == ["forecast"]
+    # The navigation follows the source hierarchy: Spain (seven findings, two supporting
+    # analyses), Catalonia, Barcelona, the models, generalisability, sources and methods; a
+    # pointer for each page that was renamed; and a notice for each withdrawn analysis.
+    assert [group for group, _ in site.NAV_GROUPS] == [
+        "Start",
+        "Spain: DGT and INE",
+        "Spain: supporting",
+        "Catalonia",
+        "Barcelona",
+        "Models",
+        "Generalisability",
+        "Sources and methods",
+    ]
+    assert len(site.PAGES) == 15 and len(site.SUPPORTING_PAGES) == 2
+    assert [slug for slug, _ in dict(site.NAV_GROUPS)["Models"]] == ["severity-models", "forecast"]
     expected = (
         {slug for slug, _ in site.ALL_PAGES} | set(site.MOVED_PAGES) | set(site.WITHDRAWN_PAGES)
     )
@@ -470,16 +480,16 @@ def test_navigation_groups_its_pages_under_labels(built: Path) -> None:
     # group's name can never be mistaken for a page.
     for anchor, _ in labels:
         assert f'<ul aria-labelledby="{anchor}">' in nav
-    assert "<li>Supporting analyses</li>" not in nav
+    assert "<li>Spain: supporting</li>" not in nav
     links = re.findall(r'href="([a-z-]+)\.html"', nav)
     assert links == [slug for _, pages in site.NAV_GROUPS for slug, _ in pages]
     # A finding says where it sits and links to its neighbours.
     assert '<p class="eyebrow">Finding 6 of 7</p>' in text
     assert 'href="vehicles.html" rel="prev"' in text and 'href="factors.html" rel="next"' in text
-    # The last finding leads on to the model of the same counts.
+    # The last national finding leads on to the next layer: the Catalan crash records.
     last = (built / "factors.html").read_text(encoding="utf-8")
     pager = re.search(r'<nav class="pager"[^>]*>(.*?)</nav>', last, re.S).group(1)
-    assert 'href="speed.html" rel="prev"' in pager and 'href="forecast.html" rel="next"' in pager
+    assert 'href="speed.html" rel="prev"' in pager and 'href="catalonia.html" rel="next"' in pager
 
 
 def test_drivers_page_chains_crashes_and_deaths_per_crash(built: Path) -> None:
