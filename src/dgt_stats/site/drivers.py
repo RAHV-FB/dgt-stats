@@ -678,7 +678,7 @@ def page_drivers(captions: dict[str, str]) -> str:
     # ------------------------------------------------------------------- per kilometre
     body += (
         '<h2 id="involvement-in-crashes-per-kilometre-driven">'
-        "Crashes per kilometre: highest at 18–29</h2>"
+        "Crashes per kilometre: highest at 18–29, not established at older ages</h2>"
     )
     body += (
         "<p>No national source counts kilometres by the age of the driver, so they are estimated, "

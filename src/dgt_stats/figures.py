@@ -820,9 +820,11 @@ def _driver_exposure_figures(figures_dir: Path, captions: dict[str, str]) -> Non
         "car kilometres. "
         "The grey bands are sensitivity ranges, not intervals: other regional profiles, the "
         "licence-calibrated transfer, other treatments of trip distances, other survey years, "
-        "professionals' work driving, the older sample's employment and the age mix of "
-        "non-working days. The rows for 65–74 and 75 and over rest on assumptions splitting the "
-        "65+ kilometres (Madrid survey ratios or licence holding) and carry no point estimate",
+        "professionals' work driving, the older sample's employment, the age mix of "
+        "non-working days, and other age mixes for the kilometres the survey does not cover, "
+        "alone and with each regional profile. The rows for 65–74 and 75 and over rest on "
+        "assumptions splitting the 65+ kilometres (Madrid survey ratios or licence holding) and "
+        "carry no point estimate",
         f"{TABLES_SOURCE}; {EMEF_SOURCE}; {EDM_SOURCE}; {KM_2024_SOURCE}; {POPULATION_SOURCE}",
         f"{int(central.involved.sum()):,} drivers involved",
     )
