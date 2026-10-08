@@ -434,20 +434,45 @@ was revised in October 2026 after an independent audit.
   bounds), the survey years, professionals' unrecorded work driving (25 % or 50 % of their work
   trips, `V02C_3` or `V02D1`, taken as car trips of the group's mean car-trip length), the older
   sample's employed share set to the census share (`emef_employment_benchmark.csv`: 4.3–4.4 % in
-  2019–2021, as in the census for Catalonia, and 6.0–8.3 % in 2022–2024), and the two weekend
-  mixes. The sensitivity range on the site is the span of all of them: 1.64–3.63 at 18–29,
-  1.12–1.64 at 30–44 and 0.99–1.65 at 65+, against central ratios of 2.53, 1.40 and 1.19.
+  2019–2021, as in the census for Catalonia, and 6.0–8.3 % in 2022–2024), the two weekend mixes,
+  and the credible age mixes of the kilometres the survey does not cover, alone and combined with
+  each regional profile (next item). The sensitivity range on the site is the span of all of them:
+  1.49–3.75 at 18–29, 1.12–1.72 at 30–44 and 0.85–1.75 at 65+, against central ratios of 2.53,
+  1.40 and 1.19. It is not a bound: other choices taken together would widen it.
+- **Coverage of DGT's kilometres** (`exposure_risk.coverage`; `risk_coverage*.csv`). Method A's
+  working-day kilometres over the 248 working days of 2024 (262 weekdays less the fourteen paid
+  public holidays the law allows) are 146.5 billion, 51 % of DGT's 289.8 billion. The rest is
+  sized part by part, each at the setting that explains least and most: professionals' work
+  driving (3–7 %, from the EMEF's counts of their work trips), Spain's higher driving per resident
+  (3–14 %: 1.05 times the car trips per resident of the province in MOVILIA 2006, 1.18–1.25 times
+  Catalonia's car kilometres per resident in DGT's 2024 kilometres by the owner's community),
+  non-working days (15–30 %, at 60 % to 100 % of a working day's driving) and the months outside
+  the fieldwork (−1 % to 2 %, from monthly petrol and diesel sales and toll-motorway traffic
+  against the 2024 fieldwork days). Between nothing and 29 % of the total is left unexplained.
+  Company-registered cars (14 %) and hire cars (4 %, the bound on visitors' driving in Spanish
+  cars) overlap these parts and are not added. With the remainder at its largest, the
+  non-working days and the remainder are given other age mixes: measured ones (DGT kilometres by
+  the private owner's age; MOVILIA 2007 car journeys over 50 km per resident; the two weekend
+  mixes) count as credible, and two constructed allocations (equal kilometres per B-licence holder
+  at every age; no driving at 65+) are reported as bounds, because every measured mix gives older
+  licence holders less driving than middle-aged ones and older residents some. Alone, the credible
+  scenarios stay inside the other ranges (1.95–2.90 at 18–29, 1.03–1.36 at 65+); combined with the
+  regional profiles they set both ends of the published ranges. `risk_coverage_scenarios.csv`
+  holds every scenario, bounds included, flagged.
 - **75 and over.** The public EMEF files stop at 65+. `national.older_split` divides the measured
   65+ kilometres between 65–74 and 75+ under three stated assumptions (EDM2018 kilometres per
   resident by sex; EDM2018 kilometres per licence holder applied to Spain's licence holders; equal
   kilometres per licence holder at 65–74 and 75+), keeps the 65+ total, and gives a 95 % interval
-  under each (`risk_older_split.csv`). The former fourth assumption, the registered owners' split,
-  was dropped because owner kilometres credit too much driving to older owners.
-  `national.older_sensitivity` repeats the split under every 65+ variant
-  (`risk_older_sensitivity.csv`: 0.76–1.54 at 65–74 and 1.13–3.09 at 75+), and
-  `barcelona.older_ratios` applies it to the Barcelona check (`risk_barcelona_older.csv`: 0.80–1.82
-  at 75+), where the direction is not established. The results are published only as ranges
-  labelled model-dependent.
+  under each (`risk_older_split.csv`: 1.36–2.24 at 75+). The former fourth assumption, the
+  registered owners' split, was dropped because owner kilometres credit too much driving to older
+  owners. `national.older_sensitivity` repeats the split under every 65+ variant, the weekend
+  mixes and the credible coverage scenarios, alone and with each regional profile
+  (`risk_older_sensitivity.csv`: 0.66–1.63 at 65–74 and 0.97–3.28 at 75+). In 2 of its 405
+  combinations, Barcelona city's profile with the equal-licence split and a weekend mix for the
+  uncovered kilometres, 75+ is at or below the 45–64 rate, so the direction is not established
+  nationally, as in the Barcelona check (`barcelona.older_ratios`, `risk_barcelona_older.csv`:
+  0.80–1.82 at 75+). The results are published only as ranges labelled model-dependent, apart from
+  the counted deaths once involved, which need no kilometres.
 - **A working-day check in Barcelona** (`exposure_risk.barcelona`). Guàrdia Urbana crashes in the
   city in 2025 with at least one casualty, on the 248 working days of 2025, are set against EMEF
   2022–2024 kilometres driven inside the city by residents of the survey area; the check is not
@@ -470,7 +495,8 @@ was revised in October 2026 after an independent audit.
   municipality in the last four weekends, asked in both waves, with the means of transport of the
   most recent weekend only; it does not measure weekend driving), and MOVILIA 2006 table 64 (car or
   motorcycle trips on an average weekend day against a working day, by age, Spain). Both lower the
-  65+ ratio, to 1.05–1.11.
+  65+ ratio, to 1.05–1.11. The coverage scenarios apply the same mixes to all the non-working days
+  and to the unexplained kilometres.
 - **Quasi-induced exposure** is not applied. It needs one record per driver in each crash, with
   age and an indicator of fault. DGT's national microdata are crash-level. The Guàrdia Urbana's
   driver-cause table has no person, vehicle or order key and records each cause once per crash,
@@ -505,10 +531,12 @@ the raw release, and the drivers page explains the difference.
 
 **Sources considered and not used as exposure**, with the reason (registered in
 [`data_sources.md`](data_sources.md)): MOVILIA 2006/2007 count trips and travel time, not
-kilometres, and do not separate drivers from passengers, so they give no exposure; MOVILIA 2006
-table 64 supplies only one weekend age mix in the sensitivity analysis. INE's EHMA 2008 gives mean
-annual kilometres per household vehicle by the reference person's age in four bands stopping at
-65+; ESRA gives a national driving share with no age split. An earlier version of this site
+kilometres, and do not separate drivers from passengers, so they give no exposure. They supply
+only sensitivity inputs: MOVILIA 2006 table 64 one weekend age mix, tables 9, 61 and 72 the
+province's car trips per resident against Spain's and the weekend against the working day, and
+MOVILIA 2007 tables 13 and 18 the age mix and the months of car journeys over 50 km. INE's EHMA
+2008 gives mean annual kilometres per household vehicle by the reference person's age in four
+bands stopping at 65+; ESRA gives a national driving share with no age split. An earlier version of this site
 combined the last two into a "travel-weighted driver" denominator; it is withdrawn, because it was
 not kilometres, it gave 65–74 and 75+ the same assumed intensity, and it applied a 2006 travel
 profile to 2014–2024.
@@ -720,7 +748,7 @@ listed with their results on the data page.
 | CORES road fuel includes the biofuel blended into it, and a tonne means the same every year | each subtotal against the sum of its products, biofuels included, every month; the published biofuel share | holds: biofuel was 6.6 % of road fuel by mass in 2019 and 7.8 % in 2023, and as it carries less energy per tonne it cannot explain the rise in interurban kilometres per tonne (section 5) |
 | The owner's age stands for the driver's | cars and km per B-permit holder by band | does not hold at either end (0.23 cars per B-permit holder at 18–24, 0.56 at 25–34, 1.14 at 75+); the owner-age kilometres are replaced by kilometres driven by drivers of each age (section 7) |
 | One region's age profile of driving holds for Spain | the per-km ratios recomputed with each part of the province of Barcelona and with the Madrid survey of 2018; B-licence prevalence by age and sex in the province against Spain (the licence-calibrated transfer) | the ratio of older to middle-aged driving per resident is similar across the province (0.39–0.47), but Madrid's older residents drive less; young residents of the province hold B licences less often than Spain's, and carrying driving per licence holder lowers the 18–29 ratio from 2.53 to 2.24; ratios by age are published with these sensitivity ranges (section 7) |
-| Working-day driving represents the year | the EMEF 2023 module on overnight weekend stays (a proxy), MOVILIA 2006 car trips on weekend and working days, and Barcelona's crashes by type of day | cannot be tested directly: no source measures weekend kilometres by age; the two weekend age mixes move the 65-and-over ratio from 1.19 to 1.05–1.11 (section 7) |
+| Working-day driving represents the year | the EMEF 2023 module on overnight weekend stays (a proxy), MOVILIA 2006 car trips on weekend and working days, and Barcelona's crashes by type of day | cannot be tested directly: no source measures weekend kilometres by age; the two weekend age mixes move the 65-and-over ratio from 1.19 to 1.05–1.11; the survey's working days cover 51% of DGT's car kilometres, and other measured age mixes for the rest, with the regional profiles, give 0.85–1.75 at 65+ (section 7) |
 | The fall in deaths per tonne of fuel was in how deadly crashes are | exact frequency × severity split by injury crashes and by hospital admissions | does not hold: by injury crashes most of the fall is severity, by admissions all of it is frequency; the product is firm and the split is not identified (section 4) |
 | The 30-day death series is consistent over time | 24-hour deaths, counted directly, against the 30-day series, which DGT estimated from them until 2010 | the joinpoint search on 24-hour deaths finds the same turning points (section 5) |
 | The projected per-fuel excess of 2023–2024 does not depend on the trend's start | last segment refitted from 2013 instead of 2011 | it does: from 2013, 2023 lies at the edge of the range and 2024 inside it (section 5) |
