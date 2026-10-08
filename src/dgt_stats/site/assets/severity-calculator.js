@@ -139,7 +139,7 @@
     return model.training.years[0] + "–" + model.training.years[1];
   }
 
-  // An observed share with its count and 95% interval: "16 of 103, 95% interval 9.8–23.8%".
+  // An observed share with its count and 95% interval, e.g. "16 of 103, 95% interval …%".
   function observed(key) {
     var counts = model.zone_counts[key];
     return count(counts[1]) + " of " + count(counts[0]) + ", 95% interval " +
