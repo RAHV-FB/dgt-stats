@@ -28,9 +28,9 @@ No layer is merged into another and no record is linked across sources. Cross-so
 | time coverage | 2016-2024 | measured |
 | when variables are known | time, place, road and conditions at the scene; 30-day deaths after a follow-up of a month | file |
 | observed or coded afterwards | circumstance codes describe the scene; no cause or contributory-factor field in the crash file | file |
-| missing and not specified | median share unrecorded (not specified, unknown or blank) over 30 circumstance fields 52.8%, highest 93% (CONDICION_NIEBLA); 21 fields vary by more than 10 points between provinces | measured |
+| missing and not specified | median share unrecorded (not specified, unknown or blank, among the crashes each field applies to) over 30 circumstance fields 20.4%, highest 44% (CONDICION_NIVEL_CIRCULA); 20 fields vary by more than 10 points between provinces | measured |
 | identifiers | ID_ACCIDENTE unique within a year; no person or vehicle file in the repository; no key shared with the regional files | measured |
-| known recording artefacts | 7 fields whose unrecorded share differs by a factor of 1.5 or more between fatal and non-fatal crashes in at least one region (ACERA, CONDICION_FIRME, CONDICION_METEO, CONDICION_NIVEL_CIRCULA, TITULARIDAD_VIA, TRAZADO_PLANTA, ...); unrecorded shares differ between provinces (see the DGT microdata audit) | measured |
+| known recording artefacts | 21 fields whose unrecorded share differs by a factor of 1.5 or more between fatal and non-fatal crashes in at least one region (ACERA, CONDICION_FIRME, CONDICION_METEO, CONDICION_NIVEL_CIRCULA, NUDO_INFO, PRIORI_AGENTE, ...); unrecorded shares differ between provinces (see the DGT microdata audit) | measured |
 | used for | national trends, province and year comparisons, shares by zone and road; an external test domain for fields validated against the Catalan file (audit decision: DGT microdata stay the national analytical layer and an external test domain for fields validated against another source; they do not train a severity model here) | measured |
 | never used for | linking records to the Catalan or Barcelona files; denominators for individual crashes | documentation |
 

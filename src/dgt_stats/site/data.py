@@ -14,8 +14,9 @@ import pandas as pd
 
 from dgt_stats import codes, io_exposure, risk_trends, severity_model
 from dgt_stats import figures as figure_data
+from dgt_stats.derive import ROAD_GROUP_BY_TYPE
 from dgt_stats.microdata.ml import modelling, recording, rules
-from dgt_stats.microdata.validation import transport
+from dgt_stats.microdata.validation import dgt_audit, transport
 from dgt_stats.paths import RAW_DATA_DIR, TABLES_DIR
 from dgt_stats.site.components import (
     ALL_PAGES,
@@ -38,16 +39,12 @@ from dgt_stats.site.numbers import _driver_numbers
 from dgt_stats.site.regional_common import _year_label
 
 TITLES = dict(ALL_PAGES)
-# A fall of more than this in the share of crashes with an empty junction-type field, from one
-# year to the next, marks the year the junction fields began to be recorded differently.
-JUNCTION_BREAK_DROP = 0.05
-# The share of crashes with a recorded junction type counts as unchanged across that break if it
-# moves by less than this.
-JUNCTION_OBSERVED_TOLERANCE = 0.02
 # Harmonised variables, in words.
 FIELD_LABELS = {"road_class": "road type", "hour_band": "hour"}
 # A circumstance field unrecorded in more than this share of crashes counts as often unrecorded.
 MOSTLY_BLANK = 0.3
+# A field above that share by less than this is named as only just above it.
+JUST_ABOVE = 0.01
 # A field recorded in more than this share of crashes in every year counts as always recorded.
 ALWAYS_RECORDED = 0.99
 # Fields of DGT's records that describe every crash, named in the missing-values figure's text.
@@ -270,16 +267,39 @@ def _rates() -> str:
 
 
 # ----------------------------------------------------------------------------- records
+def _code_list(numbers: list[int]) -> str:
+    """Codes as runs: '7, 8 and 10–14'."""
+    runs: list[list[int]] = []
+    for number in sorted(numbers):
+        if runs and number == runs[-1][-1] + 1:
+            runs[-1].append(number)
+        else:
+            runs.append([number])
+    return _join([f"{r[0]}–{r[-1]}" if len(r) > 2 else ", ".join(map(str, r)) for r in runs])
+
+
+def _pct_range(values: pd.Series) -> str:
+    """'94%', or '92%–95%' when the values round apart."""
+    low, high = _fmt_pct(values.min(), 0), _fmt_pct(values.max(), 0)
+    return low if low == high else f"{low}–{high}"
+
+
 def _coding_breaks() -> str:
     other = read_table("q2_other_road_by_period")
     earlier, later = other.iloc[0], other.iloc[-1]
     earlier_years = [int(year) for year in re.findall(r"\d{4}", str(earlier.period))]
     earlier_count = earlier_years[-1] - earlier_years[0] + 1
-    missing = read_table("missingness_by_year")
-    junction_field = missing[missing.column == "NUDO_INFO"].set_index("year").sort_index()
-    info = junction_field.share_empty
-    drops = info.diff()
-    breaks = [int(year) for year in drops[drops < -JUNCTION_BREAK_DROP].index]
+    coding = read_table("gen_coding_by_region").set_index(["region", "year"]).sort_index()
+    cat, rest = coding.loc["Catalonia"], coding.loc["Spain outside Catalonia"]
+    switch = int(cat[cat.road_type_5_dual_carriageway.eq(0)].index.min())
+    cat_before = cat.loc[switch - 1]
+    rest_dual = rest.road_type_5_dual_carriageway
+    other_year = int(later.period)
+    cat_other = int(cat.loc[other_year, "road_type_14_other"])
+    all_other = cat_other + int(rest.loc[other_year, "road_type_14_other"])
+    # The "other" road group of derive.py, and its last code, labelled "other" itself.
+    other_codes = sorted(code for code, group in ROAD_GROUP_BY_TYPE.items() if group == "other")
+    road_types = codes.labels_for("TIPO_VIA")
     _require(
         {
             "most of the later 'other' crashes are on urban streets": float(later.street_share)
@@ -289,39 +309,14 @@ def _coding_breaks() -> str:
                 later.street_crashes
             )
             > 2 * float(earlier.street_crashes) / earlier_count,
-            "the junction-type field changes once": len(breaks) == 1,
             "the later road-type period is a single year": str(later.period).isdigit(),
-        }
-    )
-    junction = breaks[0]
-    before, after = junction_field.loc[junction - 1], junction_field.loc[junction]
-    _require(
-        {
-            "the junction-type field stays empty less often after the change": bool(
-                (info.loc[junction:] < info.loc[: junction - 1].min()).all()
-            ),
-            "the blanks become 'not specified' codes": float(after.share_not_specified)
-            - float(before.share_not_specified)
-            > JUNCTION_BREAK_DROP,
-            "the share with a recorded junction type barely changes": abs(
-                float(after.share_observed) - float(before.share_observed)
-            )
-            < JUNCTION_OBSERVED_TOLERANCE,
-        }
-    )
-    coding = read_table("gen_coding_by_region").set_index(["region", "year"]).sort_index()
-    cat, rest = coding.loc["Catalonia"], coding.loc["Spain outside Catalonia"]
-    switch = int(cat[cat.road_type_5_dual_carriageway.eq(0)].index.min())
-    cat_before = cat.loc[switch - 1]
-    rest_dual = rest.road_type_5_dual_carriageway
-    other_year = int(later.period)
-    cat_other = int(cat.loc[other_year, "road_type_14_other"])
-    all_other = cat_other + int(rest.loc[other_year, "road_type_14_other"])
-    cat_blank = cat.junction_type_blank / cat.crashes
-    rest_blank = rest.junction_type_blank / rest.crashes
-    cat_unspecified = cat.junction_type_not_specified / cat.crashes
-    _require(
-        {
+            "the group's last code is DGT's 'other' and its first two service and slip roads": [
+                road_types.get(str(code)) for code in (*other_codes[:2], other_codes[-1])
+            ]
+            == ["Vía de servicio", "Ramal de enlace", "Otro"]
+            and any("ciclista" in road_types.get(str(code), "") for code in other_codes),
+            "most of the group's crashes in the later year carry code 14": all_other
+            > 0.5 * float(later.crashes),
             "until the switch the Catalan records use the dual-carriageway code for conventional "
             "roads": bool(
                 (
@@ -334,15 +329,59 @@ def _coding_breaks() -> str:
                 rest_dual.max() / rest_dual.min()
             )
             < 1.5,
-            "the later 'other' road-type crashes are mostly Catalan": cat_other > 0.75 * all_other,
-            "the junction-field change is Catalan": float(
-                cat_blank.loc[junction - 1] - cat_blank.loc[junction]
-            )
-            > 0.5
-            and float(abs(rest_blank.loc[junction] - rest_blank.loc[junction - 1]))
-            < JUNCTION_OBSERVED_TOLERANCE,
+            "the later code-14 crashes are mostly Catalan": cat_other > 0.75 * all_other,
         }
     )
+    # The junction flag, by province and year, from the DGT microdata audit.
+    junctions = read_table("dgt_audit_junction_coding")
+    inverted = junctions[junctions.junction_flag_inverted.astype(bool)]
+    flip = int(inverted.year.min())
+    catalan_rows = junctions.catalan.astype(bool)
+    totals = [
+        "crashes",
+        "at_junction",
+        "at_junction_type_not_specified",
+        "away_from_junction",
+        "away_with_junction_type",
+    ]
+    cat_j = junctions[catalan_rows].groupby("year")[totals].sum()
+    rest_j = junctions[~catalan_rows].groupby("year")[totals].sum()
+    cat_share = cat_j.at_junction / cat_j.crashes
+    rest_share = rest_j.at_junction / rest_j.crashes
+    blank_at = cat_j.at_junction_type_not_specified / cat_j.at_junction
+    typed_away = cat_j.away_with_junction_type / cat_j.away_from_junction
+    after_years = [int(year) for year in cat_share.loc[flip:].index]
+    matched = dgt_audit.catalan_junction_years(junctions)
+    flipped = matched[matched.junction_flag_inverted.astype(bool)]
+    compared = flipped.iloc[0]
+    _require(
+        {
+            "the junction flag is inverted in the four Catalan provinces only, every year from "
+            "the break": set(inverted.province) == set(junctions[catalan_rows].province)
+            and set(inverted.year) == set(after_years)
+            and len(inverted) == junctions[catalan_rows].province.nunique() * len(after_years),
+            "the Catalan share coded at a junction jumps at the break, and elsewhere it stays "
+            "put": float(cat_share.loc[flip:].min()) > float(cat_share.loc[: flip - 1].max()) + 0.1
+            and float(rest_share.max() - rest_share.min()) < 0.03,
+            "from the break the Catalan crashes coded at a junction carry no junction type, and "
+            "most coded away from one carry one": float(blank_at.loc[flip:].min()) > 0.9
+            and float(typed_away.loc[flip:].min()) > 0.5,
+            "elsewhere a junction type away from a junction is rare": float(
+                (rest_j.away_with_junction_type / rest_j.away_from_junction).max()
+            )
+            < 0.05,
+            "in the inverted years DGT's junction crashes are the Catalan file's crashes between "
+            "junctions, and before them never": not flipped.empty
+            and bool((flipped.dgt_at_junction_matches == "between junctions").all())
+            and bool(
+                (
+                    matched[~matched.junction_flag_inverted.astype(bool)].dgt_at_junction_matches
+                    != "between junctions"
+                ).all()
+            ),
+        }
+    )
+    severity = f'<a href="severity.html">{TITLES["severity"]}</a>'
     return (
         '<h3 id="coding-breaks">Coding breaks in the Catalan provinces\' records</h3>'
         "<p>Three changes in DGT's coding affect series by road type and junction, and all three "
@@ -353,25 +392,39 @@ def _coding_breaks() -> str:
         f"{_fmt_int(cat_before.road_type_6_single_carriageway)} on single carriageways); from "
         f"{switch} they use the single-carriageway code instead. Elsewhere the dual-carriageway "
         f"code holds between {_fmt_int(rest_dual.min())} and {_fmt_int(rest_dual.max())} crashes "
-        f"a year. In {later.period} many crashes on urban streets begin to be coded as road "
-        f"type “other”: {_fmt_pct(later.street_share, 0)} of that year's “other” crashes are on "
-        f"urban streets, against {_fmt_pct(earlier.street_share, 0)} in "
-        f"{str(earlier.period).replace('-', '–')}, and {_fmt_int(cat_other)} of the "
-        f"{_fmt_int(all_other)} crashes with the code for another kind of road are Catalan. In "
-        f"{junction} the junction-type field changes how it marks a missing value: in Spain as a "
-        f"whole blank cells fall from {_fmt_pct(before.share_empty, 0)} to "
-        f"{_fmt_pct(after.share_empty, 0)} of crashes and “not specified” rises from "
-        f"{_fmt_pct(before.share_not_specified, 0)} to {_fmt_pct(after.share_not_specified, 0)}, "
-        "while the share with a recorded junction type barely changes "
-        f"({_fmt_pct(before.share_observed)} and {_fmt_pct(after.share_observed)}). In the "
-        f"Catalan records blank cells fall from {_fmt_pct(cat_blank.loc[junction - 1], 0)} to "
-        f"{_fmt_pct(cat_blank.loc[junction], 0)} and “not specified” rises from "
-        f"{_fmt_pct(cat_unspecified.loc[junction - 1], 0)} to "
-        f"{_fmt_pct(cat_unspecified.loc[junction], 0)}; elsewhere the field does not change. "
-        "Road-type series are therefore read year by year and alongside zone, the two kinds of "
-        "conventional road form one group, and no road-type trend is drawn. Comparisons of "
-        "Catalonia with the rest of Spain group every conventional road together for the same "
-        'reason (<a href="validation.html">External validation</a>).</p>'
+        f"a year. In {later.period} many crashes on urban streets begin to be coded in the "
+        f"“other” road group (codes {_code_list(other_codes)}, service roads, slip roads, cycle "
+        "paths and other minor roads): "
+        f"{_fmt_pct(later.street_share, 0)} of that year's crashes in the group are on urban "
+        f"streets, against {_fmt_pct(earlier.street_share, 0)} in "
+        f"{str(earlier.period).replace('-', '–')}. Most of them carry code {other_codes[-1]}, "
+        f"“other” itself, and {_fmt_int(cat_other)} of the {_fmt_int(all_other)} crashes with "
+        f"that code in {later.period} are Catalan. From {flip} the same records code the junction "
+        "flag the wrong way round. The share of their crashes coded at a junction goes from "
+        f"between {_fmt_pct(cat_share.loc[: flip - 1].min(), 0)} and "
+        f"{_fmt_pct(cat_share.loc[: flip - 1].max(), 0)} a year in {cat_share.index.min()}–"
+        f"{flip - 1} to "
+        + _join([f"{_fmt_pct(cat_share.loc[y], 0)} in {y}" for y in after_years])
+        + ", while elsewhere it stays between "
+        f"{_fmt_pct(rest_share.min(), 0)} and {_fmt_pct(rest_share.max(), 0)}. From {flip}, "
+        "their crashes coded at a junction carry no junction type (“not specified”) in "
+        + (
+            "every case"
+            if float(blank_at.loc[flip:].min()) == 1
+            else f"{_pct_range(blank_at.loc[flip:])} of cases"
+        )
+        + f", and {_pct_range(typed_away.loc[flip:])} "
+        "of those coded away from a junction carry one, a field the rest of Spain leaves empty "
+        "away from a junction. The Servei Català de Trànsit's file holds the same crashes with "
+        f"a death or serious injury: in {int(compared.year)} DGT codes "
+        f"{_fmt_pct(compared.dgt_share_at_junction)} of the Catalan ones at a junction, and the "
+        f"Catalan file places {_fmt_pct(compared.cat_share_between_junctions)} of them between "
+        "junctions. Road-type series are therefore read year by year and alongside zone, the "
+        "two kinds of conventional road form one group, and no road-type trend is drawn. "
+        "Comparisons of Catalonia with the rest of Spain group every conventional road together "
+        'for the same reason (<a href="validation.html">External validation</a>). Junction '
+        f"shares are not compared across {flip}, and the association of junctions with fatal "
+        f"outcomes is read from the years before it ({severity}).</p>"
     )
 
 
@@ -449,6 +502,7 @@ def _records(captions: dict[str, str]) -> str:
         ]
     )
     mostly_blank = int((questions > MOSTLY_BLANK).sum())
+    closest = float(questions[questions > MOSTLY_BLANK].min())
 
     def overall(column: str, share: str) -> float:
         rows = missing[missing.column == column]
@@ -475,8 +529,18 @@ def _records(captions: dict[str, str]) -> str:
         .max()
         < 1e-9
     )
+    applies = regional.set_index("field").applies_share
     _require(
         {
+            "the audit reads blank fog and wind fields as no fog or wind, and only those": [
+                field for field in regional.field if dgt_audit.presence_field(field)
+            ]
+            == ["CONDICION_NIEBLA", "CONDICION_VIENTO"],
+            "the junction type and right-of-way flags apply to some crashes only": set(
+                dgt_audit.JUNCTION_FIELDS
+            )
+            == {"NUDO_INFO", *codes.PRIORI_COLUMNS}
+            and bool((applies.loc[list(dgt_audit.JUNCTION_FIELDS)] < 1).all()),
             "the right-of-way flags are unrecorded together": float(
                 regional[priority].unrecorded_share.max()
                 - regional[priority].unrecorded_share.min()
@@ -514,13 +578,22 @@ def _records(captions: dict[str, str]) -> str:
         "recorded varies by year and with the severity of the crash.</p>"
         "<p>Missing values keep their own categories. “Not specified”, “not applicable”, a "
         "field's own “unknown” code and an empty cell are four different states, and none is "
-        "read as zero or as “no”, except where DGT's dictionary itself codes an absence as an "
-        "empty cell, as in the field for strong wind. A field counts as unrecorded when it is "
-        "“not specified”, “unknown” or empty. Of the "
-        f"{_fmt_int(len(questions))} fields of DGT's records that the audit examines (the "
+        "read as zero or as “no”, except in the fog and strong-wind fields, which DGT fills in "
+        "only when there was fog or strong wind. The audit of DGT's records counts a field as "
+        "unrecorded when it is “not specified”, “unknown” or empty in a crash it applies to: "
+        "the junction type and the right-of-way flags, for instance, do not apply to a crash "
+        "away from a junction. Of the "
+        f"{_fmt_int(len(questions))} fields it examines (the "
         f"{_fmt_int(int(priority.sum()))} right-of-way flags counted as one), "
         f"{_words(mostly_blank)} are unrecorded in more than {_fmt_pct(MOSTLY_BLANK, 0)} of "
-        f"crashes; how unevenly the provinces record them is set out under {sources}. The "
+        "the crashes they apply to"
+        + (
+            f", one of them only just ({_fmt_pct(closest)})"
+            if closest - MOSTLY_BLANK < JUST_ABOVE
+            else ""
+        )
+        + "; how unevenly the provinces record them is set out under "
+        f"{sources}. The "
         "figure leaves “not applicable” out of each field's share, so a field that applies only "
         "to some crashes is judged on the crashes it applies to: the pavement field is “not "
         f"applicable” in {_fmt_pct(pavement_na, 0)} of crashes, and the island field is empty, "
@@ -739,6 +812,10 @@ def _assumption_rows() -> list[tuple[str, str, str]]:
     scatter = read_table("risk_dispersion").set_index("outcome")
     dispersion = {key: float(scatter.loc[key, "dispersion"]) for key in scatter.index}
     scatter_df = int(scatter.loc["deaths_30d", "df_resid"])
+
+    def spread(outcome: str, bound: str = "") -> float:
+        return float(scatter.loc[outcome, f"dispersion_{bound}" if bound else "dispersion"])
+
     panel = read_table("risk_annual_panel").set_index("year")
     km = read_table("longrun_km_panel").set_index("year")
     km_check = read_table("longrun_km_check").set_index(["measure", "year"])
@@ -793,6 +870,12 @@ def _assumption_rows() -> list[tuple[str, str, str]]:
     model_error, naive_error = float(model.rmse.iloc[0]), float(naive.rmse.iloc[0])
     counted_from = risk_trends.DEATHS_30D_COUNTED_FROM
     ratio_30_24 = panel.deaths_30d / panel.deaths_24h
+    # The ratio while DGT estimated 30-day deaths, the years after the change below the last
+    # estimated year's ratio, and the years from the first one back at it.
+    estimated = ratio_30_24.loc[: counted_from - 1]
+    counted = ratio_30_24.loc[counted_from:]
+    recovered = int(counted[counted >= float(estimated.iloc[-1])].index.min())
+    dip, since = ratio_30_24.loc[counted_from : recovered - 1], ratio_30_24.loc[recovered:]
     reference = risk_trends.BASE_YEAR
     per_km_last = km_check.loc[("per_km", km_last)]
     scatter_first, scatter_last = risk_trends.SCATTER_YEARS
@@ -862,10 +945,15 @@ def _assumption_rows() -> list[tuple[str, str, str]]:
             and float(ranges.loc["18-29", "min"]) <= float(weekend_young.min()),
             "by injury crashes most of the fall is severity": severity < frequency < 1,
             "by admissions all of the fall is frequency": admitted < per_fuel and per_admission > 1,
-            "the 30-day count changed method with a step in its ratio to 24-hour deaths": float(
-                ratio_30_24.loc[counted_from]
-            )
-            < float(ratio_30_24.loc[counted_from - 1]),
+            "admissions and injury crashes scatter beyond Poisson chance; for deaths it is not "
+            "established": spread("hospitalised_30d", "low") > 1
+            and spread("crashes", "low") > 1
+            and spread("deaths_30d", "low") < 1 < spread("deaths_30d", "high"),
+            "the ratio of 30-day to 24-hour deaths dips to its lowest when the method changes, "
+            "stays below the last estimated year until it recovers, and stays inside its earlier "
+            "range from then on": float(ratio_30_24.loc[counted_from]) == float(ratio_30_24.min())
+            and float(dip.max()) < float(ratio_30_24.loc[counted_from - 1])
+            and bool(since.between(estimated.min(), estimated.max()).all()),
             "on 24-hour deaths the trends turn in the same years": all(
                 str(at(measure, "deaths_24h", last).breaks) == str(at(measure, "main", last).breaks)
                 for measure in ("count", "road_fuel")
@@ -902,8 +990,11 @@ def _assumption_rows() -> list[tuple[str, str, str]]:
             f"A year's count varies around its trend only by chance ({TITLES['trends']})",
             f"The scatter of each annual count around its {scatter_first}–{scatter_last} trend, "
             "against the Poisson variance.",
-            "Does not hold for any of the three counts: deaths scatter least beyond Poisson "
-            "chance and injury crashes most. Intervals for changes against "
+            "Does not hold for hospital admissions or injury crashes: the 95% interval of each "
+            "one's scatter, as a multiple of the Poisson variance, lies above 1. Not established "
+            "for deaths: their scatter is the smallest of the three and its interval includes 1, "
+            "so the data cannot tell whether deaths vary beyond chance. Intervals for changes "
+            "against "
             f"{reference} are widened to match, with Student's t for the trend's "
             f"{_words(scatter_df)} residual degrees of freedom; {TITLES['trends']} gives the "
             "factors. The crash factor also carries a step in recorded urban crashes between "
@@ -1001,9 +1092,14 @@ def _assumption_rows() -> list[tuple[str, str, str]]:
             f"DGT estimated 30-day deaths from 24-hour deaths until {counted_from - 1} and has "
             f"counted them since {counted_from}. The trends were refitted on 24-hour deaths, "
             "which the police count directly throughout.",
-            "The change shows as a step in the ratio of 30-day to 24-hour deaths, from "
-            f"{float(ratio_30_24.loc[counted_from - 1]):.3f} in {counted_from - 1} to "
-            f"{float(ratio_30_24.loc[counted_from]):.3f} in {counted_from}. Refitted on 24-hour "
+            "The change shows as a temporary dip in the ratio of 30-day to 24-hour deaths, not "
+            f"a lasting step. The ratio fell from {float(estimated.iloc[-1]):.3f} in "
+            f"{counted_from - 1} to {float(ratio_30_24.loc[counted_from]):.3f} in {counted_from}, "
+            f"the lowest in the series, and stayed between {float(dip.min()):.3f} and "
+            f"{float(dip.max()):.3f} until {recovered - 1}; from {recovered} it has been "
+            f"{float(since.min()):.3f}–{float(since.max()):.3f}, inside its "
+            f"{int(estimated.index.min())}–{counted_from - 1} range of "
+            f"{float(estimated.min()):.3f}–{float(estimated.max()):.3f}. Refitted on 24-hour "
             "deaths, the trends turn in the same years, and deaths per tonne of fuel in "
             f"{recent[0]} and {recent[1]} still lie above their range, so the long-run results "
             "do not rest on the change.",
@@ -1056,9 +1152,11 @@ def _reproduce() -> str:
         "tests rerun the checks on every change.</p>"
         f'<p>The repository also holds the <a href="{DOCS_URL}/methodology.md">implementation '
         "notes</a>, with the module behind each method, the "
-        f'<a href="{DOCS_URL}/data_sources.md">source register</a>, with each file\'s address, '
-        f'terms and checksum, and the <a href="{DOCS_URL}/data_inventory.md">data '
-        "inventory</a>.</p>"
+        f'<a href="{DOCS_URL}/data_sources.md">source register</a>, with what each source is '
+        "and its terms of use, the manifest of the "
+        f'<a href="{REPO_URL}/tree/main/data/raw">raw files</a>, with each file\'s checksum '
+        "and, where recorded, its download address, and the "
+        f'<a href="{DOCS_URL}/data_inventory.md">data inventory</a>.</p>'
         "<p>The project was developed through a reproducible, source-driven workflow. The "
         "research questions, the choice of sources, the statistical design, the interpretation "
         "and the decision to publish each result are the author's, and so is responsibility for "

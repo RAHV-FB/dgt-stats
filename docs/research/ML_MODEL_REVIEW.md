@@ -59,7 +59,8 @@ adds nothing to the accident-type table (0.737 against 0.734) and is removed.
 **DGT association model.** On 2023–2024 its predicted probabilities match observed shares decile
 by decile, and it ranks fatal crashes with ROC-AUC 0.801. It is not a predictive tool: the
 national file is filled differently by different police forces, and which circumstance fields
-were left blank ranks fatal crashes with ROC-AUC 0.72 on its own (`dgt_audit_checks`). Its
+were left unrecorded where they apply ranks fatal crashes with ROC-AUC 0.68 on its own
+(`dgt_audit_artefacts`). Its
 coefficients mix road and recording. It stays a research analysis.
 
 ## Why the monthly forecast loses to last year's count

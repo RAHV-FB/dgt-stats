@@ -75,8 +75,9 @@ def dgt_microdata() -> list[tuple[str, str, str]]:
     checks = _table("dgt_audit_checks")
     if regional is not None:
         missing = (
-            f"median share unrecorded (not specified, unknown or blank) over "
-            f"{len(regional)} circumstance fields {regional.unrecorded_share.median():.1%}, "
+            f"median share unrecorded (not specified, unknown or blank, among the crashes each "
+            f"field applies to) over {len(regional)} circumstance fields "
+            f"{regional.unrecorded_share.median():.1%}, "
             f"highest {regional.unrecorded_share.max():.0%} "
             f"({regional.loc[regional.unrecorded_share.idxmax(), 'field']}); "
             f"{int((~regional.comparable_across_provinces).sum())} fields vary by more than 10 "

@@ -619,12 +619,15 @@ def severity_card(tables: dict[str, pd.DataFrame] | None = None) -> str:
         f"{_or(junction_before.odds_ratio, junction_before.or_low, junction_before.or_high)} in "
         f"{int(junction_before.first_year)}-{int(junction_before.last_year)}, "
         f"{_or(junction_from.odds_ratio, junction_from.or_low, junction_from.or_high)} in "
-        f"{int(junction_from.first_year)}-{int(junction_from.last_year)}, after the junction "
-        "coding changed, mostly in Cataluña, where the share of crashes coded at a junction "
+        f"{int(junction_from.first_year)}-{int(junction_from.last_year)}, after DGT's records "
+        "for Cataluña began to code the junction flag the wrong way round (crashes between "
+        "junctions as at a junction and the reverse; `dgt_audit_junction_coding`), so the share "
+        "of Catalan crashes coded at a junction "
         f"went from {_pct(junction_before.share_at_level_inside)} to "
         f"{_pct(junction_from.share_at_level_inside)}; outside Cataluña "
         f"{_or(junction_from_outside.odds_ratio, junction_from_outside.or_low, junction_from_outside.or_high)} "
-        "in the later period. The full model's junction odds ratio pools the two regimes.",
+        "in the later period. The full model's junction odds ratio pools the inverted rows with "
+        "the rest.",
         "- Zone and road type split one location between them; their joint contrasts against an "
         "urban street, with the covariance of the two terms (`q3_location_contrasts`), run up to "
         f"{_or(strongest_location.odds_ratio, strongest_location.or_low, strongest_location.or_high)} "
@@ -670,8 +673,9 @@ def severity_card(tables: dict[str, pd.DataFrame] | None = None) -> str:
         "and injured, and no record of individual drivers, vehicles or people and no speed "
         "field.",
         "- Recording practice differs between forces and years: the missing states concentrate "
-        "in some provinces and years, and coding changes (urban road types in 2024, junctions "
-        "from 2023, road-type codes 5 and 6 in 2021) move crashes between levels.",
+        "in some provinces and years, and coding changes (urban road types in 2024, the junction "
+        "flag of Cataluña's records, inverted from 2023, road-type codes 5 and 6 in 2021) move "
+        "crashes between levels.",
         "- Standard errors are clustered by province; with "
         f"{len(excluded.split(','))} provinces removed the clustering changes too.",
         "- The holdout check scores later years with a model that has no year term, so a "

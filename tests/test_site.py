@@ -775,6 +775,16 @@ def test_methodology_lists_every_assumption_the_methods_document_tests(built: Pa
     ratio = panel.deaths_30d / panel.deaths_24h
     for year in (2010, 2011):
         assert f"{ratio.loc[year]:.3f} in {year}" in row("The 30-day death series")
+    # The 2011 fall in the ratio is a dip that recovers, not a lasting step.
+    assert "temporary dip" in row("The 30-day death series")
+    assert "a step in the ratio" not in row("The 30-day death series")
+    # Poisson variation is rejected for admissions and crashes only; for deaths the interval
+    # of the dispersion includes 1.
+    scatter_rows = pd.read_csv(TABLES_DIR / "risk_dispersion.csv").set_index("outcome")
+    chance = row("A year's count varies")
+    assert scatter_rows.loc["deaths_30d", "dispersion_low"] < 1
+    assert "Not established for deaths" in chance
+    assert "any of the three counts" not in chance
     projection = pd.read_csv(TABLES_DIR / "longrun_projection_sensitivity.csv")
     later = projection[
         (projection.measure == "road_fuel")
@@ -786,6 +796,24 @@ def test_methodology_lists_every_assumption_the_methods_document_tests(built: Pa
     # The dispersion factors are given on the trends page, not repeated here.
     scatter = pd.read_csv(TABLES_DIR / "risk_dispersion.csv").set_index("outcome").dispersion
     assert f"{components._fmt_dec(scatter['crashes'], 0)} times" not in main
+
+
+def test_coding_breaks_describe_the_inverted_catalan_junction_flag(built: Path) -> None:
+    from dgt_stats.microdata.validation import dgt_audit
+
+    data = (built / "data.html").read_text(encoding="utf-8")
+    block = data[data.index('id="coding-breaks"') :]
+    block = components.html.unescape(block[: block.index("</p>")])
+    assert "the junction flag the wrong way round" in block
+    assert "changes how it marks a missing value" not in block
+    matched = dgt_audit.catalan_junction_years(
+        pd.read_csv(TABLES_DIR / "dgt_audit_junction_coding.csv")
+    )
+    first = matched[matched.junction_flag_inverted].iloc[0]
+    assert components._fmt_pct(first.dgt_share_at_junction) in block
+    assert components._fmt_pct(first.cat_share_between_junctions) in block
+    # The "other" road group and code 14 are named apart.
+    assert "“other” road group" in block and "code 14" in block
 
 
 def test_forecast_page_is_withdrawn_and_says_why(built: Path) -> None:

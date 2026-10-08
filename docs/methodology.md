@@ -266,7 +266,9 @@ reads as above, and per tonne of fuel 2023 and 2024 stay above the range (2022 i
 (revised in 1996 and 2000), and has counted them since 2011 by matching crash records with the INE
 register of deaths (DGT, *Anuario estadístico de accidentes 2014*, annex II, "Metodología revisada
 para el cálculo de fallecidos a 30 días"; `risk_trends.DEATHS_30D_COUNTED_FROM`). The ratio of 30-day
-to 24-hour deaths falls from 1.155 in 2010 to 1.121 in 2011. The police count 24-hour deaths
+to 24-hour deaths falls from 1.155 in 2010 to 1.121 in 2011, the lowest in the series, stays
+between 1.121 and 1.144 until 2015, and from 2016 is 1.151–1.173, inside its 1993–2010 range of
+1.141–1.195: a temporary dip, not a lasting step. The police count 24-hour deaths
 directly throughout (`deaths_24h` in `risk_annual_panel.csv`), and the trends refitted on them
 place the turning points in the same years, so the long-run results do not rest on the change.
 
@@ -743,14 +745,14 @@ listed with their results on the data page.
 
 | Assumption | Test | Result |
 |---|---|---|
-| A year's count varies only by chance | dispersion around the 2013–2019 trend | fails for all three counts, least for deaths and most for injury crashes; intervals widened, with Student's t for the five degrees of freedom the factors rest on (section 4); against 2019, the 2024 rise in admissions is beyond an ordinary year per tonne of road fuel and at its edge as a count, and no change in injury crashes is beyond it, though the crash factor reflects a 2013–2016 step in urban crashes |
+| A year's count varies only by chance | dispersion around the 2013–2019 trend | fails for hospital admissions (7.7, 95 % interval 3.0–46.3) and injury crashes (68, 26–407); not established for deaths (1.45, 0.57–8.72, an interval that includes 1) (`risk_dispersion.csv`); intervals widened, with Student's t for the five degrees of freedom the factors rest on (section 4); against 2019, the 2024 rise in admissions is beyond an ordinary year per tonne of road fuel and at its edge as a count, and no change in injury crashes is beyond it, though the crash factor reflects a 2013–2016 step in urban crashes |
 | Road fuel tracks the kilometres driven | measured interurban vehicle-km against national road fuel (the scopes differ, so a diagnostic of the proxy, not a rate) | cannot be tested on all roads: the measured kilometres cover only State, regional and provincial interurban roads; per measured km, interurban deaths in 2023 are +5 % on trend, inside the interval; 8.7 % to 11.2 % of interurban deaths are on roads the kilometres leave out (section 5) |
 | CORES road fuel includes the biofuel blended into it, and a tonne means the same every year | each subtotal against the sum of its products, biofuels included, every month; the published biofuel share | holds: biofuel was 6.6 % of road fuel by mass in 2019 and 7.8 % in 2023, and as it carries less energy per tonne it cannot explain the rise in interurban kilometres per tonne (section 5) |
 | The owner's age stands for the driver's | cars and km per B-permit holder by band | does not hold at either end (0.23 cars per B-permit holder at 18–24, 0.56 at 25–34, 1.14 at 75+); the owner-age kilometres are replaced by kilometres driven by drivers of each age (section 7) |
 | One region's age profile of driving holds for Spain | the per-km ratios recomputed with each part of the province of Barcelona and with the Madrid survey of 2018; B-licence prevalence by age and sex in the province against Spain (the licence-calibrated transfer) | the ratio of older to middle-aged driving per resident is similar across the province (0.39–0.47), but Madrid's older residents drive less; young residents of the province hold B licences less often than Spain's, and carrying driving per licence holder lowers the 18–29 ratio from 2.53 to 2.24; ratios by age are published with these sensitivity ranges (section 7) |
 | Working-day driving represents the year | the EMEF 2023 module on overnight weekend stays (a proxy), MOVILIA 2006 car trips on weekend and working days, and Barcelona's crashes by type of day | cannot be tested directly: no source measures weekend kilometres by age; the two weekend age mixes move the 65-and-over ratio from 1.19 to 1.05–1.11; the survey's working days cover 51% of DGT's car kilometres, and other measured age mixes for the rest, with the regional profiles, give 0.85–1.75 at 65+ (section 7) |
 | The fall in deaths per tonne of fuel was in how deadly crashes are | exact frequency × severity split by injury crashes and by hospital admissions | does not hold: by injury crashes most of the fall is severity, by admissions all of it is frequency; the product is firm and the split is not identified (section 4) |
-| The 30-day death series is consistent over time | 24-hour deaths, counted directly, against the 30-day series, which DGT estimated from them until 2010 | the joinpoint search on 24-hour deaths finds the same turning points (section 5) |
+| The 30-day death series is consistent over time | 24-hour deaths, counted directly, against the 30-day series, which DGT estimated from them until 2010 | the change shows as a temporary dip in the ratio of 30-day to 24-hour deaths (1.121–1.144 in 2011–2015, against 1.141–1.195 before and 1.151–1.173 from 2016), not a lasting step; the joinpoint search on 24-hour deaths finds the same turning points (section 5) |
 | The projected per-fuel excess of 2023–2024 does not depend on the trend's start | last segment refitted from 2013 instead of 2011 | it does: from 2013, 2023 lies at the edge of the range and 2024 inside it (section 5) |
 | A forecast can show a change in the counts | out-of-sample forecast errors | the forecast loses to last year's count in the ordinary held-out years and was withdrawn, with the detectable changes computed from its errors (section 11) |
 
@@ -793,8 +795,8 @@ fatal, 9.4 % serious): it is 0.042 for the fatal outcome and 0.053 for the serio
 (`q3_holdout_summary.csv`). The fatal ROC-AUC of 0.80 is partly recording: refitted with every
 missing-state level folded into its reference it is 0.78, and the missing-state levels alone give
 0.54 (`auc_recorded_only`, `auc_missing_only`); over the audit's wider set of 30 fields, which
-fields were left blank gives 0.72 on its own (`dgt_audit_artefacts.csv`). The page states this
-beside the AUC.
+fields were left unrecorded where they apply gives 0.68 on its own (`dgt_audit_artefacts.csv`).
+The page states this beside the AUC.
 
 **Zone and road type together** (`models.location_contrasts`). The two predictors describe one
 location between them, so each odds ratio is read against the other's reference. The joint
@@ -806,14 +808,25 @@ interurban road types run from 5.72 to 7.34, and a conventional road through a t
 crossing") reaches 8.74. The page names crash type and location together as the strongest
 associations.
 
-**The junction coding change** (`models.period_refits`). From 2023 DGT's records code junctions
-differently (the junction-type field stops being empty when the crash is not at a junction), and
-the at-junction share rises from 38 % to 44 % nationally, almost all of it in Catalonia (40 % of
-Catalan crashes in 2016–2022, 63 % in 2023–2024, against 39 % and 38 % elsewhere). Refitted
-on each period, with every predictor, the fatal junction odds ratio is 0.69 (0.65–0.72) in
-2016–2022 and 0.98 (0.76–1.28) in 2023–2024; outside Catalonia it is 0.69 and 0.74 (0.66–0.83).
-The full model's 0.75 pools the two regimes, and the page reads the junction result from the
-earlier years. None of the adverse-condition variants (section 13.1) splits the years.
+**The junction coding break** (`models.period_refits`, `dgt_audit_junction_coding.csv`). From
+2023 DGT's records for the four Catalan provinces code the junction flag (`NUDO`) the wrong way
+round. The share of their crashes coded at a junction goes from 35–42 % a year in 2016–2022 to
+62 % in 2023 and 63 % in 2024, while elsewhere it stays at 37–40 %. In those two years every
+Catalan crash coded at a junction carries junction type 999 ("not specified"), and 94 % of those
+coded away from a junction carry a junction type, a field left empty away from a junction
+everywhere else (at most 12 % in any other province-year). The Servei Català de Trànsit's file
+holds the same crashes with a death or serious injury within 24 hours. DGT's count of those it
+codes at a junction equals, within 1 % of the year's crashes, the Catalan file's crashes within or
+near (50 m) a junction in 2016–2020 and 2022, within a junction in 2021, and between junctions
+("En secció") in 2023, when DGT codes 69.5 % of them at a junction and the Catalan file places
+69.6 % between junctions. The flag is inverted, not recorded in a new way, and it alone raises
+the national at-junction share from 39 % to 44 %. Refitted on each period, with every predictor,
+the fatal junction odds ratio is 0.69 (0.65–0.72) in 2016–2022 and 0.98 (0.76–1.28) in
+2023–2024; outside Catalonia it is 0.69 and 0.74 (0.66–0.83). The full model's 0.75 pools the
+inverted Catalan rows of 2023–2024 (47,705 crashes, 5.5 % of all) with the rest, which pulls it
+towards 1; the page reads the junction result from 2016–2022. Flipping or dropping those rows
+would correct the pooled estimate; the model has not been refitted that way. None of the
+adverse-condition variants (section 13.1) splits the years.
 
 **Year-by-year refits** (`models.year_stability`). Each yearly estimate has its own sampling
 error, so a yearly odds ratio outside the full model's interval is expected now and then. The
@@ -1064,7 +1077,8 @@ page (the Catalonia and Barcelona pages share `regional`), the result tables sev
   estimated from two regional travel surveys and transferred to Spain, and stop at 65 and over in
   the EMEF's public files; the speed report excludes two regions; road-type coding changed in 2021
   (interurban conventional roads), 2022 and 2024 (toll and free motorways, with 2023 back at the
-  earlier split) and 2024 (urban), and the junction field changed in 2023.
+  earlier split) and 2024 (urban), and the records for the four Catalan provinces code the
+  junction flag the wrong way round from 2023.
 
 ## 19. The crash-level microdata layer (`src/dgt_stats/microdata/`, `scripts/microdata.py`)
 
@@ -1171,7 +1185,20 @@ records. How each source came to exist is compared against the same questions in
 understood (rows reproduce the published totals), severity and inclusion definitions known,
 fields recorded alike across provinces, and recording artefacts not dominating (a model that sees
 only which fields were left unrecorded must reach less than half the lift of a model that sees
-the recorded values). Unless all seven pass, the file remains the national analytical layer and
+the recorded values). A field counts as unrecorded ("not specified", its own "unknown" code or
+blank) only in a crash it applies to. A 998 code, a blank fog or wind field (DGT's dictionary gives
+these two condition fields no "not specified" code: they record a condition only when present)
+and a blank or 999 junction type or right-of-way flag in a crash `NUDO` places away from a junction
+are not applicable, and the check-6 shares are taken over the crashes each field applies to. On
+the 2016–2024 records checks 1–5 pass. Check 6 fails clearly: 20 of the 30 fields vary by more
+than 10 points between provinces, and among crashes at a junction the right-of-way flags are
+unrecorded in 0 % to 51 % by province (39 % at most without the Catalan provinces' 2023–2024
+records, whose junction flag is inverted; section 13). Check 7 fails narrowly: for 30-day deaths
+the flags reach 54 % of the recorded model's lift (95 % interval 52–56 %, resampling the evaluated
+crashes with the models fixed), against the 50 % limit; among crashes with a death or serious
+injury, 25 %. Counting the cells that do not apply as unrecorded, as an earlier version did, gave
+67 % and 49 %. Check 6 alone keeps the file out of model training. Unless all seven pass, the
+file remains the national analytical layer and
 an external test domain for fields validated against the Catalan file on the crashes both hold;
 the decision is regenerated on every run. The national transfer test itself is checked: same
 target (24-hour death), same inclusion rule, no Catalan record in the test, coding validated,
@@ -1215,8 +1242,8 @@ Road type groups every conventional road (codes 4–6) together, as `features.py
 minor codes 7, 8 and 10–14 into one "other" group. DGT's records for the four Catalan provinces
 code almost every conventional-road crash as 5 (dual
 carriageway) up to 2020 and as 6 from 2021, while elsewhere code 5 keeps a small, steady share
-(`gen_coding_by_region.csv`, which also shows that the 2023 junction-field change and the 2024
-rise of road type "other" are Catalan). Splitting code 5 from 6 would read that recoding as a
+(`gen_coding_by_region.csv`, which also shows that the 2024 rise of road type "other" is Catalan;
+the Catalan junction flag, inverted from 2023, is in `dgt_audit_junction_coding.csv`). Splitting code 5 from 6 would read that recoding as a
 difference between the populations. Neither question answers the other.
 
 **The outward path toward Spain.** Five stages: held-out rows of the same source; later years;
