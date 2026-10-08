@@ -471,19 +471,35 @@ was revised in October 2026 after an independent audit.
   regional profiles they set both ends of the published ranges. `risk_coverage_scenarios.csv`
   holds every scenario, bounds included, flagged.
 - **75 and over.** The public EMEF files stop at 65+. `national.older_split` divides the measured
-  65+ kilometres between 65–74 and 75+ under three stated assumptions (EDM2018 kilometres per
-  resident by sex; EDM2018 kilometres per licence holder applied to Spain's licence holders; equal
-  kilometres per licence holder at 65–74 and 75+), keeps the 65+ total, and gives a 95 % interval
-  under each (`risk_older_split.csv`: 1.36–2.24 at 75+). The former fourth assumption, the
-  registered owners' split, was dropped because owner kilometres credit too much driving to older
-  owners. `national.older_sensitivity` repeats the split under every 65+ variant, the weekend
-  mixes and the credible coverage scenarios, alone and with each regional profile
-  (`risk_older_sensitivity.csv`: 0.66–1.63 at 65–74 and 0.97–3.28 at 75+). In 2 of its 405
-  combinations, Barcelona city's profile with the equal-licence split and a weekend mix for the
-  uncovered kilometres, 75+ is at or below the 45–64 rate, so the direction is not established
-  nationally, as in the Barcelona check (`barcelona.older_ratios`, `risk_barcelona_older.csv`:
-  0.80–1.82 at 75+). The results are published only as ranges labelled model-dependent, apart from
-  the counted deaths once involved, which need no kilometres.
+  65+ kilometres between 65–74 and 75+ under four splits, by sex, keeping the 65+ total: the
+  EDM2018 ratio of km per resident (`REFERENCE_SPLIT`, the conditional estimate the pages call the
+  Madrid-pattern estimate); EDM2018 km per self-reported licence holder applied to Spain's DGT
+  holders (it mixes two definitions of a licence); an upper limit for men from RACC's driving days
+  per holder (0.677, derived in `national.racc_men_limit` from quoted constants) with equal km per
+  holder for women; and equal km per holder at 65–74 and 75+. The conditional estimate is 2.06 at
+  75+ and 0.94 at 65–74 (`risk_older_split.csv`). Its 95 % sampling interval, 1.63–2.64, crosses
+  all 300 EMEF replicates with all 300 EDM2018 household replicates (90,000 cells, each with its
+  own gamma draws of the counts; Monte Carlo standard error by 5 × 5 batches); the earlier interval,
+  1.78–2.35, held the Madrid ratio fixed and is kept as `ratio_low_split_fixed`/`ratio_high_split_fixed`.
+  `national.older_sensitivity` repeats the four splits under every 65+ variant, the weekend mixes,
+  the credible coverage scenarios with each profile, and a composition bound (the EMEF 65+ sample's
+  75+ share set to the share the P1b routing identifies, `emef.older_routing`; an upper bound on
+  the bias, +11 %): 544 rows, none dropped (`risk_older_sensitivity.csv`: 0.66–1.63 at 65–74 and
+  0.97–3.28 at 75+). A row is marked `at_odds_with_mens_driving` when men aged 75+ with a B licence
+  are implied to drive at least as far per holder as men aged 65–74; this is a property of the
+  split and marks exactly the equal-split rows, which stay in the range and are hatched on the
+  charts. The unmarked span is 1.21–3.28 at 75+ (0.66–1.47 at 65–74). `national.older_extremes`
+  gives joint sampling intervals at the ends (`risk_older_extremes.csv`: 0.91–1.76 at the lowest
+  unmarked row), `national.older_decomposition` the one-at-a-time spans
+  (`risk_older_decomposition.csv`), `national.older_attribution` descriptive Shapley shares
+  (`risk_older_attribution.csv`, documents only) and `national.reference_checks` the checks the
+  estimate is read against (`risk_older_reference_checks.csv`). The pages choose one of three
+  wordings by a guard (`site.numbers._older_numbers`): a higher rate per km at 75+ is claimed only
+  if the lowest unmarked row is above 1 even at the bottom of its sampling interval; it is above 1
+  only at its point value, so the intermediate wording is printed; below 1, the direction is not
+  established. In the Barcelona check (`barcelona.older_ratios`, `risk_barcelona_older.csv`) the
+  four splits give 0.80–1.82 at 75+, each with a sampling interval. Deaths once involved are
+  counted and need no kilometres.
 - **A working-day check in Barcelona** (`exposure_risk.barcelona`). Guàrdia Urbana crashes in the
   city in 2025 with at least one casualty, on the 248 working days of 2025, are set against EMEF
   2022–2024 kilometres driven inside the city by residents of the survey area; the check is not
@@ -759,6 +775,7 @@ listed with their results on the data page.
 | CORES road fuel includes the biofuel blended into it, and a tonne means the same every year | each subtotal against the sum of its products, biofuels included, every month; the published biofuel share | holds: biofuel was 6.6 % of road fuel by mass in 2019 and 7.8 % in 2023, and as it carries less energy per tonne it cannot explain the rise in interurban kilometres per tonne (section 5) |
 | The owner's age stands for the driver's | cars and km per B-permit holder by band | does not hold at either end (0.23 cars per B-permit holder at 18–24, 0.56 at 25–34, 1.14 at 75+); the owner-age kilometres are replaced by kilometres driven by drivers of each age (section 7) |
 | One region's age profile of driving holds for Spain | the per-km ratios recomputed with each part of the province of Barcelona and with the Madrid survey of 2018; B-licence prevalence by age and sex in the province against Spain (the licence-calibrated transfer) | the ratio of older to middle-aged driving per resident is similar across the province (0.39–0.47), but Madrid's older residents drive less; young residents of the province hold B licences less often than Spain's, and carrying driving per licence holder lowers the 18–29 ratio from 2.53 to 2.24; ratios by age are published with these sensitivity ranges (section 7) |
+| People aged 75 and over drive as much less than those aged 65–74 as in Madrid in 2018 (the conditional estimate) | no source measures it for Spain; compared with DGT licence holding by age in the provinces of Madrid and Barcelona and in Spain, with Spanish surveys of men's driving per licence holder, and replaced by three other splits under every other assumption, including an upper bound for too few people aged 75 and over in the EMEF's 65+ sample (`risk_older_split.csv`, `risk_older_sensitivity.csv`, `risk_older_reference_checks.csv`) | conditional: licence holding falls alike in the three places (men 0.72, 0.72, 0.71; women 0.28, 0.28, 0.26), consistent with the assumption but not a test of the kilometres; on it, 75 and over 2.06 (95 % sampling interval 1.63–2.64); sensitivity range 0.97–3.28, below about 1.2 only with equal km per licence holder, which surveys of men's driving contradict; at the lowest other combination (1.21) sampling error alone reaches the 45–64 rate (0.91–1.76); rising licence holding since 2018 would lower the figure, too few people aged 75 and over in the survey's sample would raise it (up to 2.28) (section 7) |
 | Working-day driving represents the year | the EMEF 2023 module on overnight weekend stays (a proxy), MOVILIA 2006 car trips on weekend and working days, and Barcelona's crashes by type of day | cannot be tested directly: no source measures weekend kilometres by age; the two weekend age mixes move the 65-and-over ratio from 1.19 to 1.05–1.11; the survey's working days cover 51% of DGT's car kilometres, and other measured age mixes for the rest, with the regional profiles, give 0.85–1.75 at 65+ (section 7) |
 | The fall in deaths per tonne of fuel was in how deadly crashes are | exact frequency × severity split by injury crashes and by hospital admissions | not established: by injury crashes most of the fall is severity, by admissions all of it is frequency; the fall in deaths per tonne is firm, and how it divides between how often and how deadly cannot be told from these series (section 4) |
 | The 30-day death series is consistent over time | 24-hour deaths, counted directly, against the 30-day series, which DGT estimated from them until 2010 | the change shows as a temporary dip in the ratio of 30-day to 24-hour deaths (1.121–1.144 in 2011–2015, against 1.141–1.195 before and 1.151–1.173 from 2016), not a lasting step; the joinpoint search on 24-hour deaths finds the same turning points (section 5) |

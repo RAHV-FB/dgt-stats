@@ -142,3 +142,56 @@ def _driver_numbers() -> dict[str, object]:
         "city_older": city_older,
         "severity": read_table("risk_severity_and_licences").set_index("group"),
     }
+
+
+# The three wordings of what the per-km figures say about drivers aged 75 and over, from the
+# strongest to the weakest; :func:`_older_numbers` picks the one the tables support.
+PASS, INTERMEDIATE, FAIL = "pass", "intermediate", "fail"
+
+
+def _older_numbers() -> dict[str, object]:
+    """Ages 75 and over: the conditional (Madrid-pattern) estimate with its joint sampling
+    interval, the sensitivity range, the span of the combinations not marked as at odds with
+    men's driving, the sampling intervals at its ends, and the wording the tables allow.
+
+    PASS needs the lowest unmarked combination above the 45-64 rate even at the bottom of its
+    sampling interval, and the conditional estimate's interval above it too; INTERMEDIATE, the
+    lowest unmarked combination above it at its point value; otherwise FAIL."""
+    from dgt_stats.exposure_risk import national
+
+    split = read_table("risk_older_split")
+    older = read_table("risk_older_sensitivity")
+    extremes = read_table("risk_older_extremes").set_index(["group", "end"])
+    conditional = split[split.assumption == national.REFERENCE_SPLIT].set_index("group")
+    unmarked = older[~older.at_odds_with_mens_driving]
+    lowest = extremes.loc[("75+", "lowest unmarked")]
+    clear_min = float(unmarked.ratio_75_plus.min())
+    if abs(float(lowest.value) - clear_min) > 1e-9:
+        raise ValueError("risk_older_extremes does not match risk_older_sensitivity")
+    if (
+        clear_min > 1
+        and float(lowest.ratio_low) > 1
+        and float(conditional.loc["75+", "ratio_low"]) > 1
+    ):
+        tier = PASS
+    elif clear_min > 1:
+        tier = INTERMEDIATE
+    else:
+        tier = FAIL
+    return {
+        "split": split,
+        "older": older,
+        "unmarked": unmarked,
+        "extremes": extremes,
+        "conditional": conditional,
+        "range": {
+            "65-74": (float(older.ratio_65_74.min()), float(older.ratio_65_74.max())),
+            "75+": (float(older.ratio_75_plus.min()), float(older.ratio_75_plus.max())),
+        },
+        "clear": {
+            "65-74": (float(unmarked.ratio_65_74.min()), float(unmarked.ratio_65_74.max())),
+            "75+": (clear_min, float(unmarked.ratio_75_plus.max())),
+        },
+        "lowest_clear": lowest,
+        "tier": tier,
+    }

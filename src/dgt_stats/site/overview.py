@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import math
 
+from dgt_stats import edm2018
 from dgt_stats.exposure_risk import national as national_rates
 from dgt_stats.site.components import (
     NAV_GROUPS,
@@ -22,8 +23,12 @@ from dgt_stats.site.components import (
     summary,
 )
 from dgt_stats.site.numbers import (
+    FAIL,
+    INTERMEDIATE,
+    PASS,
     _driver_numbers,
     _long_run_numbers,
+    _older_numbers,
     _risk_numbers,
     _speed_numbers,
 )
@@ -217,9 +222,29 @@ def _drivers() -> str:
     oldest, reference = severity.loc["75+"], severity.loc["45-64"]
     ratio = float(oldest.killed_per_1000_involved) / float(reference.killed_per_1000_involved)
     covered = read_table("risk_coverage").set_index("component")
+    oldest_numbers = _older_numbers()
+    tier = oldest_numbers["tier"]
+    estimate = oldest_numbers["conditional"].loc["75+"]
+    full, clear = oldest_numbers["range"]["75+"], oldest_numbers["clear"]["75+"]
+    lowest_clear = oldest_numbers["lowest_clear"]
+    oldest_rows = oldest_numbers["older"]
     _require(
         "drivers",
         {
+            "the conditional 75+ estimate's sampling interval is above the 45-64 rate": float(
+                estimate.ratio_low
+            )
+            > 1,
+            "the lowest combination tested for 75+ is marked as at odds with men's driving": bool(
+                oldest_rows.loc[oldest_rows.ratio_75_plus.idxmin(), "at_odds_with_mens_driving"]
+            ),
+            "the lowest unmarked 75+ combination is above the 45-64 rate": clear[0] > 1,
+            "the wording printed for 75+ matches the tables": (
+                tier == INTERMEDIATE and float(lowest_clear.ratio_low) <= 1 < clear[0]
+            )
+            or (tier == PASS and float(lowest_clear.ratio_low) > 1)
+            or (tier == FAIL and clear[0] <= 1),
+            "the 75+ sensitivity range reaches the 45-64 rate": full[0] <= 1 < full[1],
             "the survey's working days cover about half of DGT's car km": 0.45
             < float(covered.loc["working days", "share_least_explained"])
             < 0.55,
@@ -247,18 +272,32 @@ def _drivers() -> str:
         "how often older drivers are in crashes or who caused them.",
         [("drivers#deaths-once-a-crash-has-happened", "Drivers: deaths once a crash has happened")],
     )
+    direction = {
+        PASS: "every combination tested that is consistent with Spanish surveys of men's "
+        "driving is above the 45–64 rate, even allowing for sampling error",
+        INTERMEDIATE: "every combination tested that is consistent with Spanish surveys of "
+        "men's driving is above the 45–64 rate, but the lowest not clearly so once sampling "
+        "error is allowed for",
+        FAIL: "some combinations consistent with Spanish surveys of men's driving put them at "
+        "or below the 45–64 rate",
+    }[tier]
     per_km = _finding(
         "Young drivers are in more crashes for the distance they drive.",
         "Per kilometre driven, car drivers aged 18–29 were involved in injury crashes about "
         f"{float(young.involved_ratio):.1f} times as often as drivers aged 45–64 in "
-        f"{national_rates.YEAR} (95% interval {float(young.involved_ratio_low):.1f}–"
-        f"{float(young.involved_ratio_high):.1f}; {float(ranges.loc['18-29', 'min']):.1f}–"
-        f"{float(ranges.loc['18-29', 'max']):.1f} under other assumptions about the kilometres). "
+        f"{national_rates.YEAR} (95% sampling interval {float(young.involved_ratio_low):.1f}–"
+        f"{float(young.involved_ratio_high):.1f}; sensitivity range "
+        f"{float(ranges.loc['18-29', 'min']):.1f}–{float(ranges.loc['18-29', 'max']):.1f}). "
         f"For drivers aged 65 and over the central estimate is {float(older.involved_ratio):.2f} "
-        f"times (95% interval {float(older.involved_ratio_low):.2f}–"
-        f"{float(older.involved_ratio_high):.2f}), but the other assumptions give "
+        f"times (95% sampling interval {float(older.involved_ratio_low):.2f}–"
+        f"{float(older.involved_ratio_high):.2f}), but the sensitivity range is "
         f"{float(ranges.loc['65+', 'min']):.2f}–{float(ranges.loc['65+', 'max']):.2f}, so "
-        "whether they are involved more or less often per kilometre is not established. The "
+        "whether they are involved more or less often per kilometre is not established. For "
+        f"drivers aged 75 and over the sensitivity range is {full[0]:.2f}–{full[1]:.2f}; "
+        f"{direction}. If people aged 75 and over drive as much less than those aged 65–74 as "
+        f"in Madrid in {edm2018.SURVEY_YEAR}, they were involved about "
+        f"{float(estimate.ratio_to_45_64):.1f} times as often (95% sampling interval "
+        f"{float(estimate.ratio_low):.1f}–{float(estimate.ratio_high):.1f}). The "
         "kilometres by driver age are estimated from a Barcelona-area survey of working days, "
         "which accounts for about half of DGT's car kilometres. Involvement counts every driver "
         "in a crash, whoever caused it.",

@@ -6,6 +6,7 @@ import pandas as pd
 import pytest
 
 from dgt_stats import site, summaries
+from dgt_stats.exposure_risk import national
 from dgt_stats.paths import FIGURES_DIR, PROJECT_ROOT, TABLES_DIR
 from dgt_stats.site import components
 from dgt_stats.site.script import JS_FLAG
@@ -367,10 +368,13 @@ def test_drivers_page_separates_the_two_questions(built: Path) -> None:
     assert f"{spread.involved_ratio.max()['65+']:.2f}" in body
     assert f"{spread.involved_ratio.min()['18-29']:.2f}" in body
     assert (
-        f"(95% interval {older.involved_ratio_low:.2f}–{older.involved_ratio_high:.2f}; "
+        f"(95% sampling interval {older.involved_ratio_low:.2f}–{older.involved_ratio_high:.2f}; "
         f"sensitivity range {spread.involved_ratio.min()['65+']:.2f}–"
         f"{spread.involved_ratio.max()['65+']:.2f})"
     ) in opening
+    # The sensitivity range is defined once, at its first use in the opening.
+    assert opening.count("sensitivity range, the span across the assumptions tested") == 1
+    assert "95% interval" not in opening
     # The opening says what involvement does not show: who caused the crash, or harm to others.
     assert "whoever caused it" in opening and "more dangerous to others" in opening
     # It says how much of DGT's kilometres the survey covers, and claims no direction for older
@@ -378,14 +382,68 @@ def test_drivers_page_separates_the_two_questions(built: Path) -> None:
     covered = pd.read_csv(TABLES_DIR / "risk_coverage.csv").set_index("component")
     share = covered.loc["working days", "share_least_explained"]
     assert f"accounts for {components._fmt_pct(share, 0)} of DGT's car kilometres" in opening
-    older_range = pd.read_csv(TABLES_DIR / "risk_older_sensitivity.csv").ratio_75_plus
-    if spread.involved_ratio.min()["65+"] < 1 or older_range.min() <= 1:
+    older_rows = pd.read_csv(TABLES_DIR / "risk_older_sensitivity.csv")
+    older_range = older_rows.ratio_75_plus
+    if spread.involved_ratio.min()["65+"] < 1:
         assert "is not established" in opening
         assert "slightly more often" not in opening
-    # Counted results, modelled estimates and assumptions are told apart for 75 and over.
-    for label in ("Counted.", "Modelled.", "Assumed."):
-        assert f"<strong>{label}</strong>" in body
-    assert f"puts it at {older_range.min():.2f}" in body
+    # 75 and over: the full range first, then the wording the tables allow, then the conditional
+    # estimate at one decimal, named by its assumption.
+    full = f"{older_range.min():.2f} to {older_range.max():.2f}"
+    assert f"the sensitivity range is {full} times the 45–64 rate" in opening
+    split = pd.read_csv(TABLES_DIR / "risk_older_split.csv")
+    madrid = split[(split.assumption == national.REFERENCE_SPLIT) & (split.group == "75+")].iloc[0]
+    conditional = (
+        f"they were involved about {madrid.ratio_to_45_64:.1f} times as often (95% sampling "
+        f"interval {madrid.ratio_low:.1f}–{madrid.ratio_high:.1f})"
+    )
+    assert conditional in opening and "as in Madrid in" in opening
+    assert opening.find(full) < opening.find(conditional)
+    extremes = pd.read_csv(TABLES_DIR / "risk_older_extremes.csv").set_index(["group", "end"])
+    lowest = extremes.loc[("75+", "lowest unmarked")]
+    unmarked = older_rows[~older_rows.at_odds_with_mens_driving].ratio_75_plus
+    if unmarked.min() > 1 and lowest.ratio_low <= 1:
+        assert "sampling error alone could bring them down to it" in opening
+    elif unmarked.min() > 1 and lowest.ratio_low > 1 and madrid.ratio_low > 1:
+        assert "even allowing for sampling error" in opening
+    else:
+        assert "Some combinations consistent with Spanish surveys" in opening
+    # Counted results, the conditional estimate and the range are told apart for 75 and over.
+    section = body[body.find('id="ages-75-and-over"') : body.find('id="men-and-women"')]
+    for label in ("Counted.", "Conditional estimate.", "Across the assumptions."):
+        assert f"<strong>{label}</strong>" in section
+    assert '<details class="technical"><summary>Why this assumption' in section
+    for label in national.public_split_labels().values():
+        assert components.esc(label) in section, label
+    licences = pd.read_csv(TABLES_DIR / "risk_severity_and_licences.csv").set_index("group")
+    for group in ("75+", "65-74", "45-64"):
+        assert f"{licences.loc[group, 'involved_per_1000_licence_holders']:.2f}" in section
+    assert "Drivers who drive few kilometres, at any age" in section
+    assert "These rates are averages over everyone of an age" in section
+    assert f"previously {madrid.ratio_low_split_fixed:.2f}–{madrid.ratio_high_split_fixed:.2f}" in (
+        section
+    )
+    assert f"({madrid.ratio_low:.2f}–{madrid.ratio_high:.2f})" in section
+    # Figure references are computed: Figures 1 and 3 are the per-km chart and its breakdown.
+    numbers = re.findall(r'<span class="figure-label">Figure (\d+)\.</span>', body)
+    names = re.findall(r'id="figure-([a-z0-9_]+)"', body)
+    order = dict(zip(names, numbers))
+    assert (
+        f"hatched in Figures {order['dr1_involved_per_km']} and "
+        f"{order['dr3_older_range_sources']}" in section
+    )
+    assert f"(Figure {order['dr2_killed_per_involved']})" in section
+    assert "[[figure:" not in body
+    assert 'srcset="figures/narrow/dr1_involved_per_km.svg"' in body
+    assert 'srcset="figures/narrow/dr3_older_range_sources.svg"' in body
+    # Barcelona's check carries sampling intervals and its count.
+    city_older = pd.read_csv(TABLES_DIR / "risk_barcelona_older.csv")
+    city_madrid = city_older[
+        (city_older.assumption == national.REFERENCE_SPLIT) & (city_older.age == "75+")
+    ]
+    assert f"With {int(city_madrid.drivers_involved.iloc[0])} drivers aged 75" in section
+    for row in city_madrid.itertuples():
+        assert f"{row.ratio_low:.2f}–{row.ratio_high:.2f}" in section
     # Table 1 names the rows of the published CSV it reproduces, and has no jargon column.
     assert f"method “{young.method}” and kilometre total “{young.km_total}”" in body
     assert "bootstrap replicates are not published" in body
@@ -399,7 +457,7 @@ def test_drivers_page_separates_the_two_questions(built: Path) -> None:
     for value in city[city.age4 == "65+"].ratio_to_45_64:
         assert f"{value:.2f}" in body
     older_split = pd.read_csv(TABLES_DIR / "risk_older_split.csv")
-    assert "model-dependent" in body and "no single figure is given" in body
+    assert "no single figure is given" not in body
     for value in older_split[older_split.group == "75+"].ratio_to_45_64:
         assert f"{value:.2f}" in body
     assert 'src="figures/dr2_killed_per_involved.svg"' in body
@@ -727,7 +785,26 @@ def test_front_page_is_an_overview_of_the_study(built: Path) -> None:
     )
     spread = pd.read_csv(TABLES_DIR / "risk_national_sensitivity.csv").groupby("group")
     span = f"{spread.involved_ratio.min()['18-29']:.1f}–{spread.involved_ratio.max()['18-29']:.1f}"
-    assert f"; {span} under other assumptions" in sections["Main findings"]
+    assert f"; sensitivity range {span})" in sections["Main findings"]
+    assert "under other assumptions" not in sections["Main findings"]
+    # Drivers aged 75 and over: the range, then the conditional estimate at one decimal.
+    older_rows = pd.read_csv(TABLES_DIR / "risk_older_sensitivity.csv")
+    split = pd.read_csv(TABLES_DIR / "risk_older_split.csv")
+    madrid = split[(split.assumption == national.REFERENCE_SPLIT) & (split.group == "75+")].iloc[0]
+    full = f"{older_rows.ratio_75_plus.min():.2f}–{older_rows.ratio_75_plus.max():.2f}"
+    finding = sections["Main findings"]
+    assert f"For drivers aged 75 and over the sensitivity range is {full}" in finding
+    assert (
+        f"about {madrid.ratio_to_45_64:.1f} times as often (95% sampling interval "
+        f"{madrid.ratio_low:.1f}–{madrid.ratio_high:.1f})"
+    ) in finding
+    lowest = (
+        pd.read_csv(TABLES_DIR / "risk_older_extremes.csv")
+        .set_index(["group", "end"])
+        .loc[("75+", "lowest unmarked")]
+    )
+    if lowest.value > 1 >= lowest.ratio_low:
+        assert "but the lowest not clearly so once sampling error is allowed for" in finding
     assert "nearly seven" not in sections["Main findings"]
     # While the 65-and-over range includes the 45-64 rate, no direction is claimed for it.
     if spread.involved_ratio.min()["65+"] < 1 < spread.involved_ratio.max()["65+"]:
@@ -815,6 +892,17 @@ def test_methodology_lists_every_assumption_the_methods_document_tests(built: Pa
     transfer = row("One region's age profile")
     assert "cannot be tested" in transfer and "sensitivity range" in transfer
     assert "was tested" not in transfer and "were tested" not in transfer
+    # The split at 75 is a conditional estimate beside its sensitivity range.
+    oldest = row("People aged 75 and over drive as much less")
+    split = pd.read_csv(TABLES_DIR / "risk_older_split.csv")
+    madrid = split[(split.assumption == national.REFERENCE_SPLIT) & (split.group == "75+")].iloc[0]
+    older_rows = pd.read_csv(TABLES_DIR / "risk_older_sensitivity.csv").ratio_75_plus
+    assert "Conditional." in oldest and "contradict" in oldest
+    assert (
+        f"{madrid.ratio_to_45_64:.2f} (95% sampling interval {madrid.ratio_low:.2f}–"
+        f"{madrid.ratio_high:.2f})"
+    ) in oldest
+    assert f"{older_rows.min():.2f}–{older_rows.max():.2f}" in oldest
     # The rows added by the national corrections carry numbers from their tables.
     split = pd.read_csv(TABLES_DIR / "risk_frequency_severity.csv").set_index("year").iloc[-1]
     fall = components._fmt_pct(1 - float(split.deaths_per_fuel_index) / 100, 0)
@@ -919,7 +1007,10 @@ def test_drivers_page_chains_crashes_and_deaths_per_crash(built: Path) -> None:
     ].set_index("group")
     older = central.loc["65+"]
     assert f"{older.killed_ratio:.2f} times as often per kilometre" in text
-    assert f"(95% interval {older.killed_ratio_low:.2f}–{older.killed_ratio_high:.2f}; " in text
+    assert (
+        f"(95% sampling interval {older.killed_ratio_low:.2f}–{older.killed_ratio_high:.2f}; "
+        in text
+    )
 
 
 def test_vehicles_page_quotes_per_km_rates_for_all_roads_only(built: Path) -> None:

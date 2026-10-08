@@ -12,7 +12,7 @@ import re
 
 import pandas as pd
 
-from dgt_stats import codes, io_exposure, risk_trends, severity_model
+from dgt_stats import codes, edm2018, io_exposure, risk_trends, severity_model
 from dgt_stats import figures as figure_data
 from dgt_stats.derive import ROAD_GROUP_BY_TYPE
 from dgt_stats.microdata.ml import modelling, recording, rules
@@ -35,7 +35,7 @@ from dgt_stats.site.components import (
     table,
 )
 from dgt_stats.site.long_run import _where
-from dgt_stats.site.numbers import _driver_numbers
+from dgt_stats.site.numbers import FAIL, INTERMEDIATE, PASS, _driver_numbers, _older_numbers
 from dgt_stats.site.regional_common import _year_label
 
 TITLES = dict(ALL_PAGES)
@@ -857,6 +857,24 @@ def _assumption_rows() -> list[tuple[str, str, str]]:
     prevalence = read_table("risk_licence_prevalence")
     young_licensed = prevalence[prevalence.group == "15-29"].set_index(["place", "sex"]).prevalence
     city_older = drivers["city"][drivers["city"].age4 == "65+"].ratio_to_45_64
+    oldest_numbers = _older_numbers()
+    oldest = oldest_numbers["conditional"].loc["75+"]
+    oldest_range = oldest_numbers["range"]["75+"]
+    oldest_clear = oldest_numbers["clear"]["75+"][0]
+    madrid_year = edm2018.SURVEY_YEAR
+    oldest_tier = {
+        PASS: "even at the lowest other combination sampling error alone does not reach the "
+        "45–64 rate",
+        INTERMEDIATE: "at the lowest other combination sampling error alone reaches the 45–64 rate",
+        FAIL: "some other combinations are at or below the 45–64 rate",
+    }[oldest_numbers["tier"]]
+    _check_older = (
+        float(oldest.ratio_low) > 1
+        and oldest_range[0] <= 1 < oldest_range[1]
+        and (oldest_clear > 1) == (oldest_numbers["tier"] != FAIL)
+    )
+    if not _check_older:
+        raise ValueError("data page: the tables no longer support the 75+ assumptions row")
     covered = float(
         read_table("risk_coverage")
         .set_index("component")
@@ -1085,6 +1103,23 @@ def _assumption_rows() -> list[tuple[str, str, str]]:
             "Inside Barcelona on working days, with no transfer, the ratio at 65 and over is "
             f"{float(city_older.min()):.2f}–{float(city_older.max()):.2f} under "
             f"{_words(len(city_older))} versions of the city's kilometres.",
+        ),
+        (
+            "People aged 75 and over drive as much less than those aged 65–74 as in Madrid in "
+            f"{madrid_year} (the conditional estimate on {drivers_page})",
+            "No source measures it for Spain. Compared with DGT licence holding by age in the "
+            "province of Madrid, the province of Barcelona and Spain; with Spanish surveys of "
+            "men's driving per licence holder; and replaced by three other splits under every "
+            "other assumption, including an upper bound for too few people aged 75 and over in "
+            "the Barcelona-area sample.",
+            "Conditional. Licence holding falls alike in the three places, which is consistent "
+            "with the assumption but does not test the kilometres. On the Madrid pattern, 75 and "
+            f"over: {float(oldest.ratio_to_45_64):.2f} (95% sampling interval "
+            f"{float(oldest.ratio_low):.2f}–{float(oldest.ratio_high):.2f}). Sensitivity range "
+            f"{oldest_range[0]:.2f}–{oldest_range[1]:.2f}; below about {oldest_clear:.1f} only "
+            "with equal kilometres per licence holder, which Spanish surveys of men's driving "
+            f"contradict; {oldest_tier}. Rising licence holding since {madrid_year} would lower "
+            "the figure; too few people aged 75 and over in the survey's sample would raise it.",
         ),
         (
             f"Working-day driving represents the year ({drivers_page})",
