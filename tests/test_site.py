@@ -395,7 +395,10 @@ def test_trend_pages_show_every_denominator_and_the_projection(built: Path) -> N
     km_check = pd.read_csv(TABLES_DIR / "longrun_km_check.csv")
     per_km = km_check[km_check.measure == "per_km"]
     km_last = per_km[per_km.year == per_km.year.max()].iloc[0]
-    assert components._change(float(km_last.ratio), 0) in long_run
+    # The per-km year is read against the trend's own range around it, not against the interval
+    # of the ratio, which contains the ratio by construction.
+    assert f"{components._fmt_pct(abs(float(km_last.ratio) - 1), 0)} above the trend" in long_run
+    assert f"range of ±{components._fmt_pct(float(km_last.range_high) - 1, 0)}" in long_run
     coverage = pd.read_csv(TABLES_DIR / "longrun_km_coverage.csv")
     assert components._fmt_pct(float(coverage.outside_share.min())) in long_run
     assert components._fmt_pct(float(coverage.outside_share.max())) in long_run
@@ -406,6 +409,18 @@ def test_trend_pages_show_every_denominator_and_the_projection(built: Path) -> N
     # road-type comparison per measured kilometre, live on this page.
     assert 'src="figures/l3_frequency_severity.svg"' in long_run
     assert 'href="tables/road_class_risk.csv"' in long_run
+    # The split is shown both ways and not attributed to severity; the per-fuel excess is shown
+    # under another start of the trend; DGT's kilometre series is not called unjoinable.
+    for page in (long_run, (built / "index.html").read_text(encoding="utf-8")):
+        assert "mostly because crashes became less deadly" not in page
+        assert "admitted to hospital" in page
+    assert 'href="tables/longrun_projection_sensitivity.csv"' in long_run
+    assert "deaths per implied kilometre" in long_run
+    assert "deaths per tonne of fuel would be" not in long_run
+    assert "dual carriageways" not in long_run
+    for page in (trends, (built / "vehicles.html").read_text(encoding="utf-8")):
+        assert "cannot be joined" not in page and "different method" not in page
+    assert "deaths per tonne of fuel would show" not in trends
     seasons = (built / "seasons.html").read_text(encoding="utf-8")
     for name in ("m1_season_profile", "m2_month_effects", "m3_lockdown"):
         assert f'src="figures/{name}.svg"' in seasons

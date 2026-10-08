@@ -132,9 +132,12 @@ def _long_run() -> str:
     deaths = latest.xs("deaths_30d", level="outcome")
     split = read_table("risk_frequency_severity").set_index("year")
     split_first, split_last = int(split.index.min()), int(split.index.max())
-    per_fuel = float(split.loc[split_last, "deaths_per_fuel_index"]) / 100
-    severity = float(split.loc[split_last, "severity_index"]) / 100
-    frequency = float(split.loc[split_last, "frequency_index"]) / 100
+    end = split.loc[split_last]
+    per_fuel = float(end.deaths_per_fuel_index) / 100
+    severity = float(end.severity_index) / 100
+    frequency = float(end.frequency_index) / 100
+    admitted = float(end.hospitalised_per_fuel_index) / 100
+    per_admission = float(end.deaths_per_hospitalised_index) / 100
     _require(
         "long run",
         {
@@ -150,14 +153,17 @@ def _long_run() -> str:
                 deaths.loc["count", "count"]
             )
             > float(headline.loc[int(steep.end)]),
-            "no denominator shows a change in deaths beyond an ordinary year since the base year": all(
+            "no denominator shows a change in deaths beyond an ordinary year in the last year": all(
                 float(row.ratio_low_yty) <= 1 <= float(row.ratio_high_yty)
                 for _, row in deaths.iterrows()
             ),
-            "deaths per crash fell much more than crashes per tonne of fuel": severity
-            < frequency
-            < 1
-            and math.log(severity) < 2 * math.log(frequency),
+            "each split multiplies to deaths per tonne of fuel": math.isclose(
+                frequency * severity, per_fuel, rel_tol=1e-6
+            )
+            and math.isclose(admitted * per_admission, per_fuel, rel_tol=1e-6),
+            "the two splits disagree: by crashes mostly severity, by admissions all frequency": (
+                severity < frequency < 1 and admitted < per_fuel < 1 < per_admission
+            ),
         },
     )
     fall = 1 - float(headline.loc[int(steep.end)]) / float(headline.loc[first])
@@ -168,19 +174,21 @@ def _long_run() -> str:
         f"between {int(steep.start)} and {int(steep.end)}. That steep decline then ended: the "
         f"trend since {int(flat.start)} shows no clear rise or fall, and the "
         f"{_fmt_int(deaths.loc['count', 'count'])} deaths of {last} were more than in "
-        f"{int(steep.end)}. Since {base}, no measure of deaths, whether counted or divided by "
-        "residents, licence holders, vehicles or fuel sold, has changed by more than ordinary "
-        "year-to-year variation.",
+        f"{int(steep.end)}. Between {base} and {last}, no measure of deaths, whether counted or "
+        "divided by residents, licence holders, vehicles or fuel sold, changed by more than "
+        "ordinary year-to-year variation.",
         [("long-run", "Long-run trends"), ("trends", f"Trends since {base}")],
     )
     severity_finding = _finding(
-        f"−{_fmt_pct(1 - severity, 0)}",
-        f"Deaths per injury crash fell {_fmt_pct(1 - severity, 0)} between {split_first} and "
-        f"{split_last}, while injury crashes per tonne of road fuel sold fell "
-        f"{_fmt_pct(1 - frequency, 0)}. Deaths relative to traffic fell "
-        f"{_fmt_pct(1 - per_fuel, 0)} over the period, mostly because crashes became less "
-        "deadly rather than less frequent. How the fall divides between the two depends on how "
-        "completely crashes with only slight injuries are recorded.",
+        f"−{_fmt_pct(1 - per_fuel, 0)}",
+        f"Deaths per tonne of road fuel sold, which stands in for traffic, fell "
+        f"{_fmt_pct(1 - per_fuel, 0)} between {split_first} and {split_last}. How the fall "
+        "divides between fewer crashes and less deadly ones cannot be told from the published "
+        f"series. Counted by injury crashes, deaths per crash fell {_fmt_pct(1 - severity, 0)} "
+        f"and crashes per tonne {_fmt_pct(1 - frequency, 0)}; counted by people admitted to "
+        f"hospital, deaths per admission rose {_fmt_pct(per_admission - 1, 0)} and admissions "
+        f"per tonne fell {_fmt_pct(1 - admitted, 0)}. Each split depends on how completely the "
+        "less serious casualties were recorded.",
         [
             (
                 f"long-run#crash-frequency-and-severity-{split_first}-{split_last}",

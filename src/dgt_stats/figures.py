@@ -193,13 +193,27 @@ def _trend_figures(figures_dir: Path, captions: dict[str, str], summary) -> None
     )
 
 
-# Panel titles short enough to sit on one line over a third of the figure.
-LONG_RUN_PANELS = {"Vehicle occupant deaths per registered vehicle": "Occupant deaths per vehicle"}
+# Panel titles short enough to sit on one line over a third of the figure. The middle panel counts
+# only the occupant deaths of the vehicles in the fleet, and its title says so.
+LONG_RUN_PANELS = {
+    "Vehicle occupant deaths per registered vehicle": "Occupant deaths (per-vehicle trend)",
+    "Deaths per tonne of road fuel": "Deaths (per-fuel trend)",
+}
+# The same measures in the ratio chart, where every panel is a ratio.
+LONG_RUN_RATIO_PANELS = {
+    "Deaths": "Deaths",
+    "Vehicle occupant deaths per registered vehicle": "Occupant deaths per vehicle",
+    "Deaths per tonne of road fuel": "Deaths per tonne of fuel",
+}
+# The zoom of the ratio charts: the decade before the pandemic and every year after it.
+RATIO_ZOOM_YEARS = 10
 
 
 def _long_run_figures(figures_dir: Path, captions: dict[str, str], summary) -> None:
-    series = summary("longrun_series")
-    series = series.assign(measure_label=series.measure_label.replace(LONG_RUN_PANELS))
+    raw = summary("longrun_series")
+    fit_end = int(raw[raw.period == "fitted"].year.max())
+    first_projected = fit_end + 1
+    series = raw.assign(measure_label=raw.measure_label.replace(LONG_RUN_PANELS))
     order = list(dict.fromkeys(series.measure_label))
     plots.trend_projection(
         series,
@@ -211,40 +225,44 @@ def _long_run_figures(figures_dir: Path, captions: dict[str, str], summary) -> N
         "high",
         figures_dir / "l1_trend_projection.svg",
         "Road deaths against the pre-pandemic trend, under three measures",
-        last_fitted=2019,
+        last_fitted=fit_end,
         order=order,
         ylabel="Deaths (30 days)",
     )
-    zoom = series[series.year >= 2010].assign(
-        ratio_low=lambda f: f.observed / f.high, ratio_high=lambda f: f.observed / f.low
+    zoom_first = fit_end - RATIO_ZOOM_YEARS + 1
+    zoom = raw[raw.year >= zoom_first].assign(
+        measure_label=lambda f: f.measure_label.replace(LONG_RUN_RATIO_PANELS)
     )
-    plots.line_series(
+    plots.ratio_panels(
         zoom,
+        "measure_label",
         "year",
         "ratio",
+        "range_low",
+        "range_high",
         figures_dir / "l2_observed_over_trend.svg",
-        "Observed deaths as a share of the pre-pandemic trend, 2010–2024",
-        series="measure_label",
+        f"Observed deaths as a share of the pre-pandemic trend, {zoom_first}–{int(zoom.year.max())}",
+        last_fitted=fit_end,
+        order=list(dict.fromkeys(zoom.measure_label)),
         ylabel="Observed ÷ trend",
-        zero_based=False,
-        reference=1.0,
-        band=("ratio_low", "ratio_high"),
     )
     sources = f"{SERIES_SOURCE}; {VEHICLE_FLEET_SOURCE}; {FUEL_SOURCE}"
     captions["l2_observed_over_trend"] = _caption(
         "Observed deaths within 30 days as a ratio to the pre-pandemic trend of each measure "
-        "(fitted to 2019, projected from 2020), with the range allowed by the trend's 95% "
-        f"prediction intervals as dotted lines, Spain, {int(zoom.year.min())}–{int(zoom.year.max())}; "
-        "1 means on trend",
+        f"(fitted to {fit_end}, projected from {first_projected}), with the trend's 95% "
+        f"prediction range shaded from {first_projected}, Spain, "
+        f"{zoom_first}–{int(zoom.year.max())}; a year outside the shading is outside the "
+        "trend's range",
         sources,
     )
-    fuel = series[series.measure == "road_fuel"]
+    fuel = raw[raw.measure == "road_fuel"]
     fuel_note = f" (road fuel from {int(fuel.year.min())})" if not fuel.empty else ""
     captions["l1_trend_projection"] = _caption(
-        f"Deaths within 30 days, Spain, {int(series.year.min())}–{int(series.year.max())}"
-        f"{fuel_note}, against segmented trends fitted up to 2019 and projected from 2020 under "
-        "three measures, with 95% prediction intervals; the trends of the two rates are "
-        "converted back into deaths",
+        f"Deaths within 30 days, Spain, {int(raw.year.min())}–{int(raw.year.max())}"
+        f"{fuel_note}, against segmented trends fitted up to {fit_end} and projected from "
+        f"{first_projected} with 95% prediction intervals; the middle panel counts the "
+        "occupant deaths of motorcycles, cars, vans, trucks and buses, and the trends of the "
+        "two rates are converted back into deaths",
         sources,
     )
 
@@ -255,26 +273,25 @@ def _long_run_figures(figures_dir: Path, captions: dict[str, str], summary) -> N
         f"{coverage.outside_share.min() * 100:.1f}% to {coverage.outside_share.max() * 100:.1f}%"
     )
     covered = f"{int(coverage.year.min())}–{int(coverage.year.max())}"
-    check = check[check.year >= 2010].assign(
-        ratio_low=lambda f: f.observed / f.high, ratio_high=lambda f: f.observed / f.low
-    )
-    plots.line_series(
+    check = check[check.year >= zoom_first]
+    plots.ratio_panels(
         check,
+        "measure_label",
         "year",
         "ratio",
+        "range_low",
+        "range_high",
         figures_dir / "l4_km_against_fuel.svg",
         "Interurban deaths against the pre-pandemic trend: per measured kilometre, and over "
         "national road fuel as a check",
-        series="measure_label",
+        last_fitted=fit_end,
+        order=list(dict.fromkeys(check.measure_label)),
         ylabel="Observed ÷ trend",
-        zero_based=False,
-        reference=1.0,
-        band=("ratio_low", "ratio_high"),
     )
     captions["l4_km_against_fuel"] = _caption(
-        f"Interurban deaths within 30 days as a ratio to a trend fitted to {fit_first}–2019 and "
-        "projected from 2020, per measured vehicle-kilometre and, as a check, over national "
-        "road fuel sold, with 95% prediction intervals as dotted lines, Spain, "
+        f"Interurban deaths within 30 days as a ratio to a trend fitted to {fit_first}–{fit_end} "
+        f"and projected from {first_projected}, per measured vehicle-kilometre and, as a check, "
+        "over national road fuel sold, with the trend's 95% prediction range shaded, Spain, "
         f"{int(check.year.min())}–{int(check.year.max())}; the kilometres leave out roads run "
         f"by municipalities and other bodies, which account for {outside} of interurban deaths "
         f"({covered})",
@@ -282,31 +299,48 @@ def _long_run_figures(figures_dir: Path, captions: dict[str, str], summary) -> N
     )
 
     split = summary("risk_frequency_severity")
-    labels = {
-        "deaths_per_fuel_index": "Deaths per tonne of fuel",
-        "frequency_index": "Injury crashes per tonne of fuel (how often)",
-        "severity_index": "Deaths per injury crash (how deadly)",
+    per_fuel = "Deaths per tonne of fuel"
+    panels = {
+        "Split by injury crashes": {
+            "deaths_per_fuel_index": per_fuel,
+            "frequency_index": "Injury crashes per tonne",
+            "severity_index": "Deaths per injury crash",
+        },
+        "Split by people admitted to hospital": {
+            "deaths_per_fuel_index": per_fuel,
+            "hospitalised_per_fuel_index": "Admissions per tonne",
+            "deaths_per_hospitalised_index": "Deaths per admission",
+        },
     }
-    long = split.melt(
-        id_vars="year", value_vars=list(labels), var_name="measure", value_name="index"
-    ).assign(measure_label=lambda f: f.measure.map(labels))
+    long = pd.concat(
+        [
+            split.melt(
+                id_vars="year", value_vars=list(labels), var_name="measure", value_name="index"
+            ).assign(measure_label=lambda f, labels=labels: f.measure.map(labels), panel=panel)
+            for panel, labels in panels.items()
+        ],
+        ignore_index=True,
+    )
     base = int(split.year.min())
-    plots.line_series(
+    plots.line_panels(
         long,
+        "panel",
         "year",
         "index",
+        "measure_label",
         figures_dir / "l3_frequency_severity.svg",
-        f"Deaths per unit of traffic, split into how often and how deadly ({base} = 100)",
-        series="measure_label",
-        ylabel=f"Index, {base} = 100",
+        f"Deaths per tonne of road fuel, split two ways into how often and how deadly ({base} = 100)",
+        order=list(panels),
+        focal=per_fuel,
         reference=100,
-        focal=labels["deaths_per_fuel_index"],
+        ylabel=f"Index, {base} = 100",
     )
     captions["l3_frequency_severity"] = _caption(
-        "Deaths within 30 days per tonne of road fuel sold (petrol plus diesel) and its two "
-        "factors, injury crashes per tonne and deaths per injury crash, indexed to "
-        f"{base} = 100, Spain, all roads, {base}–{int(split.year.max())}; how completely slight "
-        "injuries are recorded moves the split between the two factors but not their product",
+        "Deaths within 30 days per tonne of road fuel sold (petrol plus diesel), split into "
+        "injury crashes per tonne and deaths per injury crash (top) and into people admitted to "
+        "hospital per tonne and deaths per admission (bottom), indexed to "
+        f"{base} = 100, Spain, all roads, {base}–{int(split.year.max())}; each pair multiplies "
+        "to deaths per tonne, and the two pairs divide its fall differently",
         f"{SERIES_SOURCE}; {FUEL_SOURCE}",
     )
 
@@ -334,7 +368,7 @@ def _season_figures(figures_dir: Path, captions: dict[str, str], summary) -> Non
         "Deaths within 30 days, road fuel sold (petrol plus diesel), petrol sold and "
         "toll-motorway traffic per kilometre by month, each divided by its year's mean month "
         f"and averaged over {years}, Spain; petrol and toll motorways cover only part of all "
-        "traffic",
+        "traffic, and toll traffic is a daily average where the other series are monthly totals",
         f"{SERIES_SOURCE}; {TRAFFIC_SOURCE}",
     )
 
@@ -358,7 +392,8 @@ def _season_figures(figures_dir: Path, captions: dict[str, str], summary) -> Non
     )
     captions["m2_month_effects"] = _caption(
         "Deaths within 30 days in each month against the average month of the same year, raw "
-        f"and per tonne of road fuel sold, Spain, {years}, with 95% intervals",
+        f"and per tonne of road fuel sold, Spain, {years}, with 95% intervals; the raw panel "
+        "compares monthly totals, not adjusted for the number of days in a month",
         f"{SERIES_SOURCE}; {FUEL_SOURCE}",
     )
 
@@ -693,10 +728,21 @@ def _vehicle_figures(figures_dir: Path, captions: dict[str, str], summary) -> No
         "per billion km",
         highlight=["Motorcycles", "Trucks over 3,500 kg"],
     )
+    # The caption says that only the top rank per kilometre is clear of the intervals below it.
+    per_km = rates[rates.measure == "fatal_involvement"].sort_values(
+        "per_billion_km", ascending=False
+    )
+    top, rest = per_km.iloc[0], per_km.iloc[1:]
+    neighbours_overlap = (
+        rest.per_billion_km_high.to_numpy()[1:] >= rest.per_billion_km_low.to_numpy()[:-1]
+    )
+    if not (top.per_billion_km_low > rest.per_billion_km_high.max() and neighbours_overlap.any()):
+        raise ValueError("v1 caption: the per-km ranking no longer has one clear leader")
     captions["v1_per_vehicle_vs_per_km"] = _caption(
         "Vehicles of each type involved in fatal crashes (deaths within 30 days) per 100,000 "
         "circulating vehicles (left) and per billion vehicle-kilometres (right), Spain, 2022; "
-        "the lines show how each type's rank changes with the denominator",
+        f"per kilometre only the lead of {str(top.label).lower()} is clear of the 95% intervals "
+        "of the types below, some of which overlap (intervals in the rates table)",
         f"{TABLES_SOURCE}; {KM_SOURCE}",
     )
 

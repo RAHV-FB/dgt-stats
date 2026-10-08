@@ -10,10 +10,12 @@ import pandas as pd
 
 from dgt_stats import risk_trends
 from dgt_stats.site.components import (
+    ALL_PAGES,
     _change,
     _fmt_dec,
     _fmt_int,
     _fmt_pct,
+    _join,
     _signed_pct,
     _times,
     downloads,
@@ -36,13 +38,21 @@ MEASURE_SHORT = {
 COVERAGE_TOLERANCE = 0.01
 # A projected year this close to its trend is described as on it.
 ON_TREND = 0.01
-WORDS = {1: "one", 2: "two", 3: "three", 4: "four", 5: "five", 6: "six"}
+# A year inside its range by less than this is described as at the edge of it.
+EDGE = 0.01
+WORDS = {1: "one", 2: "two", 3: "three", 4: "four", 5: "five", 6: "six", 7: "seven"}
+TITLES = dict(ALL_PAGES)
 
 
 def _years(values: list[int]) -> str:
     """A single year when every value is the same, otherwise the range of years."""
     low, high = min(values), max(values)
     return str(low) if low == high else f"{low}–{high}"
+
+
+def _year_list(years: list[int]) -> str:
+    """Years in words, joined by commas and a final 'and'."""
+    return _join([str(year) for year in years])
 
 
 def _off(ratio: float) -> str:
@@ -57,10 +67,29 @@ def _against(ratio: float, what: str = "the trend") -> str:
     return f"{_off(ratio)} {'above' if float(ratio) > 1 else 'below'} {what}"
 
 
+def _where(row: pd.Series) -> str:
+    """Where a projected year lies against the trend's range, in words."""
+    if bool(row.outside_interval):
+        return "outside the range"
+    margin = min(float(row.range_high) - float(row.ratio), float(row.ratio) - float(row.range_low))
+    return "at the edge of the range" if margin < EDGE else "within the range"
+
+
+def _cell(row: pd.Series) -> str:
+    """A projected year in a table cell: its difference from trend, flagged when outside."""
+    flag = ""
+    if bool(row.outside_interval):
+        flag = " (above)" if float(row.ratio) > 1 else " (below)"
+    return f"{_change(float(row.ratio), 0)}{flag}"
+
+
 def page_long_run(captions: dict[str, str]) -> str:
     numbers = _long_run_numbers()
     series, segments, projected = numbers["series"], numbers["segments"], numbers["projected"]
     efficiency, last = numbers["efficiency"], numbers["last"]
+    sensitivity = read_table("longrun_projection_sensitivity").set_index(
+        ["measure", "variant", "year"]
+    )
     headline = read_table("q1_annual_headline").set_index("year")
     panel = read_table("risk_annual_panel").set_index("year")
     first = int(series.year.min())
@@ -81,15 +110,22 @@ def page_long_run(captions: dict[str, str]) -> str:
     fuel_start = int(fuel_flat.start)
     first_breaks = [int(frame.start.iloc[1]) for frame in by_measure.values()]
     second_breaks = [int(frame.start.iloc[2]) for frame in by_measure.values()]
+    opening = {measure: float(frame.annual_change.iloc[0]) for measure, frame in by_measure.items()}
+    rate_opening = [opening["occupants_per_vehicle"], opening["road_fuel"]]
     middle = [float(frame.annual_change.iloc[1]) for frame in by_measure.values()]
     decade = [b - a for a, b in zip(first_breaks, second_breaks)]
     gap = max(max(first_breaks) - min(first_breaks), max(second_breaks) - min(second_breaks))
     last_segments = {measure: frame.iloc[-1] for measure, frame in by_measure.items()}
     plateau_start = int(flat.start)
 
-    count_first = projected.loc[("count", pandemic)]
+    def at(measure: str, year: int, variant: str = "main") -> pd.Series:
+        return sensitivity.loc[(measure, variant, year)]
+
+    count = {year: projected.loc[("count", year)] for year in after}
     occupants = {year: projected.loc[("occupants_per_vehicle", year)] for year in after}
     fuel = {year: projected.loc[("road_fuel", year)] for year in after}
+    second = pandemic + 1
+    recent = (last - 1, last)
 
     def back_from(measures: tuple[str, ...]) -> int:
         """The first year from which every one of ``measures`` stays inside its interval."""
@@ -104,13 +140,57 @@ def page_long_run(captions: dict[str, str]) -> str:
         )
 
     count_back = back_from(("count",))
+    count_out = [year for year in after if bool(count[year].outside_interval)]
+    occupants_out = [year for year in after if bool(occupants[year].outside_interval)]
+    fuel_out = [year for year in after if bool(fuel[year].outside_interval)]
+    projection = {
+        measure: series[(series.measure == measure) & (series.period == "projected")].iloc[0]
+        for measure in MEASURE_SHORT
+    }
+    other_start = f"start_{plateau_start}"
+    fuel_later = [at("road_fuel", year, other_start) for year in recent]
+    later_slope = float(fuel_later[0].annual_change)
+    per_tonne_rate = panel.deaths_30d / panel.road_fuel_tonnes
+    early_fall = 1 - float(per_tonne_rate.loc[plateau_start] / per_tonne_rate.loc[fuel_start])
+    count_alone = at("count", pandemic)
 
-    # Deaths per tonne of road fuel split into injury crashes per tonne and deaths per crash.
+    # The trends page reads the same per-fuel rate against its 2019 level.
+    index = read_table("risk_index")
+    per_fuel_index = index[
+        (index.year == last) & (index.outcome == "deaths_30d") & (index.denominator == "road_fuel")
+    ].iloc[0]
+
+    # Deaths per tonne of road fuel split two ways: by injury crashes and by people admitted.
     split = read_table("risk_frequency_severity").set_index("year")
     split_first, split_last = int(split.index.min()), int(split.index.max())
-    frequency = float(split.loc[split_last, "frequency_index"]) / 100
-    severity = float(split.loc[split_last, "severity_index"]) / 100
-    per_fuel = float(split.loc[split_last, "deaths_per_fuel_index"]) / 100
+    end = split.loc[split_last]
+    frequency = float(end.frequency_index) / 100
+    severity = float(end.severity_index) / 100
+    per_fuel = float(end.deaths_per_fuel_index) / 100
+    admitted = float(end.hospitalised_per_fuel_index) / 100
+    per_admission = float(end.deaths_per_hospitalised_index) / 100
+    # The two recording steps of the injury-crash series inside the split's years.
+    step_year = int(
+        (panel.crashes_interurban / panel.crashes_interurban.shift()).loc[split_first:].idxmax()
+    )
+    step_all = float(panel.loc[step_year, "crashes"] / panel.loc[step_year - 1, "crashes"]) - 1
+    step_interurban = (
+        float(
+            panel.loc[step_year, "crashes_interurban"]
+            / panel.loc[step_year - 1, "crashes_interurban"]
+        )
+        - 1
+    )
+    urban_from, urban_to = plateau_start, plateau_start + 3
+    urban_step = (
+        float(panel.loc[urban_to, "crashes_urban"] / panel.loc[urban_from, "crashes_urban"]) - 1
+    )
+    interurban_then = (
+        float(
+            panel.loc[urban_to, "crashes_interurban"] / panel.loc[urban_from, "crashes_interurban"]
+        )
+        - 1
+    )
 
     km_check = read_table("longrun_km_check").set_index(["measure", "year"])
     km_panel = read_table("longrun_km_panel").set_index("year")
@@ -120,12 +200,9 @@ def page_long_run(captions: dict[str, str]) -> str:
     km_comparable = int(km_panel[km_panel.comparable.astype(bool)].index.min())
     km_row = km_check.loc[("per_km", km_last)]
     km_pandemic = km_check.loc[("per_km", pandemic)]
-    km_low, km_high = (
-        float(km_row.observed) / float(km_row.high),
-        float(km_row.observed) / float(km_row.low),
-    )
+    km_projected = [km_check.loc[("per_km", year)] for year in range(pandemic, km_last + 1)]
     fuel_km_row = km_check.loc[("per_fuel", km_last)]
-    km_base = int(km_row.last_segment_start)
+    km_base = int(km_row.projection_start)
     share = coverage.outside_share
     share_shift = (1 - float(share.loc[km_last])) / (1 - float(share.loc[fit_end])) - 1
     per_tonne = km_panel.km_per_tonne
@@ -138,7 +215,7 @@ def page_long_run(captions: dict[str, str]) -> str:
 
     drift_before, drift_after = drift(fuel_start, fit_end), drift(fit_end, km_last)
 
-    # Conventional roads against motorways and dual carriageways, per measured kilometre.
+    # Conventional roads, single and dual carriageway, against autopistas and autovías.
     roads = read_table("road_class_risk")
     road_year = int(roads.year.max())
     roads = roads[roads.year == road_year].set_index("road_class")
@@ -150,49 +227,104 @@ def page_long_run(captions: dict[str, str]) -> str:
     # The prose below states each of these; stop if the tables stop supporting them.
     checks = {
         "the projection starts the year after the fit ends": pandemic == fit_end + 1,
-        "count first pandemic year below its interval": bool(count_first.outside_interval)
-        and float(count_first.ratio) < 1,
-        "count inside again from a later year": count_back > pandemic,
-        "per fuel first pandemic year inside": not bool(fuel[pandemic].outside_interval),
+        "the count projection continues the last segment of the count": int(
+            projection["count"].projection_start
+        )
+        == plateau_start,
+        "count below its range in the first two pandemic years, inside from then on": count_out
+        == [pandemic, second]
+        and all(float(count[y].ratio) < 1 for y in count_out)
+        and count_back == second + 1,
+        "per vehicle below its range in the first pandemic year only, below trend in the second": (
+            occupants_out == [pandemic]
+            and float(occupants[pandemic].ratio) < 1
+            and float(occupants[second].ratio) < 1
+        ),
+        "the count and the per-vehicle measure about as far below trend in the second year": abs(
+            float(count[second].ratio) - float(occupants[second].ratio)
+        )
+        < 0.05,
+        "the per-vehicle range is the wider": float(occupants[second].range_high)
+        > float(count[second].range_high),
+        "with the scatter of the whole fit the second year swaps over": not bool(
+            at("count", second, "joinpoint").outside_interval
+        )
+        and bool(at("occupants_per_vehicle", second, "joinpoint").outside_interval),
+        "the whole fit scatters more than the count's last segment": float(
+            at("count", second, "joinpoint").dispersion
+        )
+        > float(count_alone.dispersion),
+        "per fuel inside in the pandemic years and outside, above, in the last two": fuel_out
+        == list(recent)
+        and all(float(fuel[y].ratio) > 1 for y in recent)
+        and last - 2 > pandemic,
         "deaths and road fuel both fell in the first pandemic year": float(
             panel.loc[pandemic, "deaths_30d"]
         )
         < float(panel.loc[fit_end, "deaths_30d"])
         and float(panel.loc[pandemic, "road_fuel_tonnes"])
         < float(panel.loc[fit_end, "road_fuel_tonnes"]),
-        "per fuel inside until two years before the last": not any(
-            bool(fuel[y].outside_interval) for y in range(pandemic, last - 1)
+        "per fuel projected from the count's last turning point: above trend, last year inside": (
+            all(float(row.ratio) > 1 for row in fuel_later)
+            and not bool(fuel_later[1].outside_interval)
+            and int(fuel_later[0].segment_start) == plateau_start > fuel_start
+        ),
+        "per fuel fell more slowly from the count's last turning point": -0.02 < later_slope < 0
+        and later_slope > float(fuel_flat.annual_change),
+        "per fuel fell faster a year between the two turning points than after": (
+            1 - (1 - early_fall) ** (1 / (plateau_start - fuel_start)) > -later_slope > 0
+        ),
+        "per fuel on deaths within 24 hours: same turning points, last two years above": (
+            str(at("road_fuel", last, "deaths_24h").breaks)
+            == str(at("road_fuel", last, "main").breaks)
+            and all(
+                bool(at("road_fuel", y, "deaths_24h").outside_interval)
+                and float(at("road_fuel", y, "deaths_24h").ratio) > 1
+                for y in recent
+            )
+        ),
+        "the count on deaths within 24 hours: same turning points": str(
+            at("count", last, "deaths_24h").breaks
         )
-        and last - 2 > pandemic,
-        "per fuel last two years above": all(
-            bool(fuel[y].outside_interval) and float(fuel[y].ratio) > 1 for y in (last - 1, last)
-        ),
-        "occupants first two pandemic years below": all(
-            bool(occupants[y].outside_interval) and float(occupants[y].ratio) < 1
-            for y in (pandemic, pandemic + 1)
-        ),
-        "fleet grew in the first pandemic year": float(panel.loc[pandemic, "vehicle_fleet"])
-        > float(panel.loc[fit_end, "vehicle_fleet"]),
+        == str(at("count", last, "main").breaks),
+        "per fuel within ordinary variation of its own base year": float(
+            per_fuel_index.ratio_low_yty
+        )
+        <= 1
+        <= float(per_fuel_index.ratio_high_yty)
+        and float(per_fuel_index.ratio_to_base) > 1,
         "plateau flat as a count and per vehicle": all(
             float(last_segments[m].low) < 0 < float(last_segments[m].high)
             for m in ("count", "occupants_per_vehicle")
         ),
+        "the count refitted alone rises without a clear trend": float(count_alone.annual_change) > 0
+        and float(count_alone.annual_change_low) < 0 < float(count_alone.annual_change_high),
         "per fuel last segment falls": float(last_segments["road_fuel"].high) < 0,
         "the first count segment is slow beside the steep one": -0.03
         < float(count_segments.annual_change.iloc[0])
+        < 0
         and float(steep.annual_change) < -0.08,
+        "the rates fell faster than the count in the first segment": max(rate_opening)
+        < opening["count"],
         "the steep segment is the steepest": float(steep.annual_change)
         == float(count_segments.annual_change.min()),
         "the three measures place their turning points close together": gap <= 3,
-        "deaths per tonne of fuel is the product of its two factors": math.isclose(
+        "each split multiplies to deaths per tonne of fuel": math.isclose(
             frequency * severity, per_fuel, rel_tol=1e-6
+        )
+        and math.isclose(admitted * per_admission, per_fuel, rel_tol=1e-6),
+        "the two splits disagree: by crashes mostly severity, by admissions all frequency": (
+            severity < frequency < 1 and admitted < per_fuel < 1 < per_admission
         ),
-        "both factors fell, deaths per crash much more than crashes per tonne": severity
-        < frequency
-        < 1
-        and math.log(severity) < 2 * math.log(frequency),
-        "per km last year inside and above trend": not bool(km_row.outside_interval)
-        and float(km_row.ratio) > 1,
+        "a one-year step in interurban crashes inside the split's years": step_year > split_first
+        and step_interurban > 0.15
+        and step_all > 0.1,
+        "urban crashes stepped up after the count's last turning point, interurban did not": (
+            urban_step > 0.2 and interurban_then < 0
+        ),
+        "per km inside and above trend in the last year, inside in every projected year": (
+            not any(bool(row.outside_interval) for row in km_projected) and float(km_row.ratio) > 1
+        ),
         "per km on trend in the first pandemic year while kilometres fell": abs(
             float(km_pandemic.ratio) - 1
         )
@@ -224,21 +356,28 @@ def page_long_run(captions: dict[str, str]) -> str:
         f"{int(steep.end) - int(steep.start)} years. Since {plateau_start} the fitted trend "
         "shows no clear rise or fall. "
         f"Between {split_first} and {split_last}, deaths per tonne of road fuel sold fell "
-        f"{_fmt_pct(1 - per_fuel, 0)}, mostly because crashes became less deadly: deaths per "
-        f"injury crash fell {_fmt_pct(1 - severity, 0)} and injury crashes per tonne "
-        f"{_fmt_pct(1 - frequency, 0)}. Against the trend fitted up to {fit_end}, the count of "
-        f"deaths in {pandemic} was {_off(count_first.ratio)} lower, outside the trend's range, "
-        "while deaths per tonne of fuel stayed within theirs, because fuel sales fell too. In "
-        f"{last - 1} and {last} deaths per tonne of fuel were {_off(fuel[last - 1].ratio)} and "
-        f"{_off(fuel[last].ratio)} above their trend, beyond its range; on interurban roads, "
-        f"where kilometres are measured directly, deaths per kilometre in {km_last} were "
-        f"{_against(km_row.ratio, 'their trend')}, within its range."
+        f"{_fmt_pct(1 - per_fuel, 0)}; how that fall divides between fewer crashes and less "
+        "deadly ones depends on which casualties are counted. Against the trend of "
+        f"{plateau_start}–{fit_end} continued, the count of deaths was "
+        f"{_off(count[pandemic].ratio)} lower in {pandemic} and {_off(count[second].ratio)} "
+        f"lower in {second}, outside the trend's range, and has been within it since "
+        f"{count_back}. Deaths per tonne of fuel stayed within their range in {pandemic}, "
+        f"because fuel sales fell too. Projected from their {fuel_start}–{fit_end} decline, "
+        f"deaths per tonne of fuel in {last - 1} and {last} were {_off(fuel[last - 1].ratio)} "
+        f"and {_off(fuel[last].ratio)} above the trend, outside its range; projected from "
+        f"{plateau_start}–{fit_end}, when the decline was slower, they were "
+        f"{_off(fuel_later[0].ratio)} and {_off(fuel_later[1].ratio)} above it, "
+        f"{_where(fuel_later[0])} in {last - 1} and {_where(fuel_later[1])} in {last}. On "
+        "interurban roads, where kilometres are measured directly, deaths per kilometre in "
+        f"{km_last} were {_against(km_row.ratio, 'their trend')}, within its range."
     )
     body += figure(
         "l1_trend_projection",
-        f"Three panels of annual road deaths since {first}: as a count, as occupant deaths per "
-        "registered vehicle and per tonne of road fuel. Each shows its segmented trend fitted "
-        f"to {fit_end} and projected forward, with a shaded range around the projection.",
+        f"Three panels of annual road deaths since {first}: all deaths against the trend of the "
+        "count, occupant deaths of motorcycles, cars, vans, trucks and buses against the trend "
+        "per registered vehicle, and all deaths against the trend per tonne of road fuel. Each "
+        f"trend is fitted to {fit_end} and projected forward, with a shaded range around the "
+        "projection.",
         captions,
     )
 
@@ -246,21 +385,28 @@ def page_long_run(captions: dict[str, str]) -> str:
         f"<h2>The trend from {first} to {fit_end}</h2>"
         "<p>The count of deaths, occupant deaths per registered vehicle and deaths per tonne of "
         f"road fuel tell the same story, with turning points within {gap} years of each other: a "
-        f"slow decline to {_years(first_breaks)}, then a fall of between "
-        f"{_fmt_pct(-max(middle))} and {_fmt_pct(-min(middle))} a year over the next "
-        f"{_years(decade)} years. Between {peak} and {plateau_start} the annual count fell "
+        f"slower decline to {_years(first_breaks)} ({_fmt_pct(-opening['count'])} a year as a "
+        f"count, {_fmt_pct(-max(rate_opening))} to {_fmt_pct(-min(rate_opening))} a year as "
+        f"rates), then a fall of between {_fmt_pct(-max(middle))} and "
+        f"{_fmt_pct(-min(middle))} a year over the next {_years(decade)} years. Between {peak} "
+        f"and {plateau_start} the annual count fell "
         f"{_fmt_pct(1 - float(headline.loc[plateau_start, 'deaths_30d']) / float(headline.loc[peak, 'deaths_30d']), 0)}, "
         f"from {_fmt_int(headline.loc[peak, 'deaths_30d'])} deaths to "
         f"{_fmt_int(headline.loc[plateau_start, 'deaths_30d'])}. Since then neither the count "
         "nor occupant deaths per registered vehicle has a clear trend (both intervals include "
-        "no change), while deaths per tonne of road fuel still fell "
-        f"{_fmt_pct(-float(fuel_flat.annual_change))} a year up to {fit_end}.</p>"
+        "no change), while deaths per tonne of road fuel fell "
+        f"{_fmt_pct(-float(fuel_flat.annual_change))} a year from {fuel_start} to {fit_end} "
+        f"({_fmt_pct(-later_slope)} a year over {plateau_start}–{fit_end}).</p>"
         "<p>Each trend changes by a constant percentage a year between up to "
         f"{WORDS[risk_trends.MAX_BREAKS]} turning points placed where the data put them; the "
-        "turning points describe the series and say nothing about causes. Each is fitted up to "
-        f"{fit_end} and projected forward with a 95% prediction interval: the range a year "
-        "would be expected to fall in if the last segment had continued with its ordinary "
-        "scatter.</p>"
+        "turning points describe the series and say nothing about causes. The intervals in the "
+        "table take the turning points as known. Fitted on its own, the count of "
+        f"{plateau_start}–{fit_end} rises {_fmt_pct(float(count_alone.annual_change))} a year "
+        f"(95% interval {_signed_pct(float(count_alone.annual_change_low), 1)} to "
+        f"{_signed_pct(float(count_alone.annual_change_high), 1)}), so a slight rise since "
+        f"{plateau_start} cannot be ruled out. Each trend is fitted up to {fit_end} and its last "
+        "segment projected forward with a 95% prediction interval: the range a year would be "
+        "expected to fall in if the last segment had continued with its ordinary scatter.</p>"
     )
     shown = segments.assign(
         Measure=segments.measure.map(MEASURE_SHORT),
@@ -299,54 +445,72 @@ def page_long_run(captions: dict[str, str]) -> str:
         f"{_fmt_dec(dispersions['count'])} for the count, "
         f"{_fmt_dec(dispersions['occupants_per_vehicle'])} per registered vehicle and "
         f"{_fmt_dec(dispersions['road_fuel'])} per tonne of fuel. Segment intervals are 95% "
-        "confidence intervals for the annual change. The 95% prediction interval of a "
-        "projected year combines the uncertainty of the fitted trend with the overdispersed "
-        "scatter of a single year around it.</p>",
+        "confidence intervals for the annual change, from Student's t with the fit's residual "
+        "degrees of freedom.</p>"
+        "<p>The projection continues the last segment: the trend of the years from the last "
+        f"turning point to {fit_end}, refitted on those years alone. Its scatter is that of "
+        "those years: "
+        f"{_fmt_dec(float(projection['count'].projection_dispersion))} for the count, "
+        f"{_fmt_dec(float(projection['occupants_per_vehicle'].projection_dispersion))} per "
+        "registered vehicle and "
+        f"{_fmt_dec(float(projection['road_fuel'].projection_dispersion))} per tonne of fuel, "
+        "where the whole fit's factors also carry the poorer fit of the early years. The 95% "
+        "prediction interval of a projected year combines the uncertainty of the refitted trend "
+        "with the scatter of a single year around it, with Student's t quantiles for the "
+        f"{WORDS[int(projection['count'].projection_df)]}, "
+        f"{WORDS[int(projection['occupants_per_vehicle'].projection_df)]} and "
+        f"{WORDS[int(projection['road_fuel'].projection_df)]} residual degrees of freedom of "
+        "the three refits.</p>",
     )
 
     body += (
         f"<h2>Crash frequency and severity, {split_first}–{split_last}</h2>"
         "<p>Deaths per tonne of road fuel are the product of two parts that can move "
-        "separately: injury crashes per tonne (crash frequency for a given amount of traffic) "
-        "and deaths per injury crash (severity once a crash has happened). Between "
-        f"{split_first} and {split_last} injury crashes per tonne fell "
-        f"{_fmt_pct(1 - frequency, 0)} and deaths per injury crash "
-        f"{_fmt_pct(1 - severity, 0)}, so most of the {_fmt_pct(1 - per_fuel, 0)} fall in "
-        "deaths per tonne came from crashes becoming less deadly.</p>"
+        "separately: casualties of a given kind per tonne (how often, for a given amount of "
+        "traffic) and deaths per such casualty (how deadly). Between "
+        f"{split_first} and {split_last} deaths per tonne fell {_fmt_pct(1 - per_fuel, 0)}. "
+        f"Counted by injury crashes, crashes per tonne fell {_fmt_pct(1 - frequency, 0)} and "
+        f"deaths per injury crash {_fmt_pct(1 - severity, 0)}. Counted by people admitted to "
+        f"hospital, admissions per tonne fell {_fmt_pct(1 - admitted, 0)} and deaths per "
+        f"admission rose {_fmt_pct(per_admission - 1, 0)}. By the first split most of the fall "
+        "is in how deadly a crash is; by the second all of it is in how often people are "
+        "seriously hurt. The fall in deaths per tonne is firm; how it divides cannot be told "
+        "from these series.</p>"
     )
     body += figure(
         "l3_frequency_severity",
-        f"Three lines indexed to {split_first} = 100: deaths per tonne of road fuel, injury "
-        f"crashes per tonne and deaths per injury crash. By {split_last} injury crashes per tonne "
-        f"stand at {frequency * 100:.0f}, deaths per injury crash at {severity * 100:.0f} and "
-        f"deaths per tonne at {per_fuel * 100:.0f}.",
+        f"Two panels of lines indexed to {split_first} = 100, each with deaths per tonne of road "
+        f"fuel, which stand at {per_fuel * 100:.0f} by {split_last}. In the first, injury "
+        f"crashes per tonne end at {frequency * 100:.0f} and deaths per injury crash at "
+        f"{severity * 100:.0f}. In the second, admissions to hospital per tonne end at "
+        f"{admitted * 100:.0f} and deaths per admission at {per_admission * 100:.0f}.",
         captions,
     )
     body += (
-        "<p>The split depends on how completely crashes with only slight injuries are recorded: "
-        "if fewer of them are recorded, crashes per tonne fall and deaths per crash rise by the "
-        "same factor, leaving their product unchanged. The fall in deaths per tonne is therefore "
-        "firmer than its division between frequency and severity.</p>"
+        "<p>Each split depends on how completely the lesser casualties are recorded: if fewer "
+        "of them are recorded, the frequency falls and the deaths per casualty rise by the same "
+        "factor, leaving their product unchanged. The injury-crash series has two steps inside "
+        f"these years: injury crashes rose {_fmt_pct(step_all, 0)} from {step_year - 1} to "
+        f"{step_year} ({_fmt_pct(step_interurban, 0)} on interurban roads), and urban injury "
+        f"crashes rose {_fmt_pct(urban_step, 0)} between {urban_from} and {urban_to} while "
+        f"interurban ones fell {_fmt_pct(-interurban_then, 0)}.</p>"
     )
 
     body += f"<h2>{pandemic}–{last} against the pre-pandemic trends</h2>"
     body += figure(
         "l2_observed_over_trend",
-        "Observed deaths as a ratio to each measure's pre-pandemic trend, for the count, "
-        "occupant deaths per registered vehicle and deaths per tonne of road fuel. The count "
-        f"and the per-vehicle measure fall below their dotted interval bounds in {pandemic}; "
-        f"deaths per tonne of fuel rise above theirs in {last - 1} and {last}.",
+        "Three panels of observed deaths as a ratio to each measure's pre-pandemic trend, with "
+        f"the trend's range shaded from {pandemic}: the count, occupant deaths per registered "
+        f"vehicle and deaths per tonne of road fuel. The count lies below its range in "
+        f"{_year_list(count_out)} and the per-vehicle measure in {_year_list(occupants_out)}; "
+        f"deaths per tonne of fuel lie above their range in {_year_list(fuel_out)}.",
         captions,
     )
     rows = []
     for year in after:
         record = {"Year": year}
         for measure, label in MEASURE_SHORT.items():
-            row = projected.loc[(measure, year)]
-            flag = ""
-            if bool(row.outside_interval):
-                flag = " (above)" if float(row.ratio) > 1 else " (below)"
-            record[label] = f"{_change(float(row.ratio), 0)}{flag}"
+            record[label] = _cell(projected.loc[(measure, year)])
         rows.append(record)
     body += table(
         pd.DataFrame(rows),
@@ -354,6 +518,62 @@ def page_long_run(captions: dict[str, str]) -> str:
         "difference from the trend. Above or below: outside the trend's 95% prediction "
         "interval.",
         {"Year": "year"},
+    )
+    body += (
+        f"<p>Occupant deaths per registered vehicle were {_off(occupants[second].ratio)} below "
+        f"their trend in {second}, against {_off(count[second].ratio)} for the count, but within "
+        "their range, which is wider because occupant deaths are fewer and scattered more around "
+        "their "
+        f"{plateau_start}–{fit_end} trend. Whether a year this far below trend lies outside "
+        "the range depends mostly on the scatter it is read against: with the continuous trend "
+        f"and the scatter of the whole {first}–{fit_end} fit, which the poorer fit of the early "
+        f"years inflates, the count in {second} lies within its range and the per-vehicle "
+        "measure outside it (table below).</p>"
+        f"<p>The excess of deaths per tonne of fuel in {last - 1} and {last} depends on where "
+        f"the last segment of its trend starts. The search puts the last turning point in "
+        f"{fuel_start}; deaths per tonne fell {_fmt_pct(early_fall, 0)} from {fuel_start} to "
+        f"{plateau_start} and then {_fmt_pct(-later_slope)} a year over "
+        f"{plateau_start}–{fit_end}. Refitted on deaths "
+        "within 24 hours, which the police count directly, the search finds the same turning "
+        f"points, and {last - 1} and {last} still lie above the range. Against {fit_end} "
+        f"itself, deaths per tonne of fuel in {last} were "
+        f"{_fmt_pct(float(per_fuel_index.ratio_to_base) - 1)} higher, within the variation of an "
+        f'ordinary year (<a href="trends.html">{TITLES["trends"]}</a>): that comparison sets '
+        f"{last} against the level of {fit_end}, this one against where the decline of "
+        f"{fuel_start}–{fit_end} would have taken it. The comparison with the trend assumes "
+        "that the kilometres a tonne of fuel represents (see "
+        '<a href="trends.html#road-fuel">road fuel as a measure of traffic</a>) kept changing '
+        f"after {fit_end} at their pace of {fuel_start}–{fit_end}; the comparison with "
+        f"{fit_end} assumes that they did not change. No series can check either on all "
+        "roads.</p>"
+    )
+    variants = [
+        ("main", "Last segment refitted, as above"),
+        (other_start, f"Last segment from {plateau_start} for every measure"),
+        ("normal_quantile", "Last segment refitted, normal quantile in place of Student's t"),
+        ("joinpoint", f"Joinpoint trend continued, scatter of the whole {first}–{fit_end} fit"),
+        ("deaths_24h", "Deaths within 24 hours, turning points searched again"),
+    ]
+    columns = [
+        ("count", second, f"Deaths, {second}"),
+        ("occupants_per_vehicle", second, f"Occupant deaths per vehicle, {second}"),
+        ("road_fuel", last - 1, f"Per tonne of fuel, {last - 1}"),
+        ("road_fuel", last, f"Per tonne of fuel, {last}"),
+    ]
+    sensitivity_rows = []
+    for variant, label in variants:
+        record = {"Projection": label}
+        for measure, year, heading in columns:
+            key = (measure, variant, year)
+            if variant == other_start and measure != "road_fuel":
+                key = (measure, "main", year)
+            record[heading] = _cell(sensitivity.loc[key]) if key in sensitivity.index else "–"
+        sensitivity_rows.append(record)
+    body += table(
+        pd.DataFrame(sensitivity_rows),
+        "Observed deaths against the pre-pandemic trend under other projections, as a "
+        "percentage difference from the trend. Above or below: outside the trend's 95% "
+        "prediction interval. Occupant deaths are not published within 24 hours.",
     )
 
     gains = sorted(
@@ -367,12 +587,12 @@ def page_long_run(captions: dict[str, str]) -> str:
         return float(at_pace.loc[year, "ratio_low"]) ** (1 / (year - fit_end)) - 1
 
     def excess(gain: float, with_years: bool) -> str:
-        """The per-fuel excess in the last two years under a hypothetical extra drift."""
+        """The excess per implied kilometre in the last two years under a hypothetical drift."""
         rows = efficiency[efficiency.hypothetical_extra_annual_gain == gain].set_index("year")
-        pair = [rows.loc[year] for year in (last - 1, last)]
+        pair = [rows.loc[year] for year in recent]
         if not all(float(row.ratio) > 1 for row in pair):
             raise ValueError("long-run page: a hypothetical drift no longer leaves an excess")
-        outside = [float(row.ratio_low) > 1 for row in pair]
+        outside = [bool(row.outside_interval) for row in pair]
         sizes = [_off(row.ratio) for row in pair]
         if outside[0] == outside[1]:
             where = "outside" if outside[0] else "inside"
@@ -384,20 +604,11 @@ def page_long_run(captions: dict[str, str]) -> str:
             f"above it in {last}, {'outside it' if outside[1] else 'inside it'}"
         )
 
-    body += (
-        f"<p>The count of deaths has been back within its range since {count_back}. Occupant "
-        f"deaths per registered vehicle stayed below their range in {pandemic} and "
-        f"{pandemic + 1}, because the fleet counts vehicles whether they are used or not, and it "
-        f"grew in {pandemic} while deaths fell. The excess of deaths per tonne of fuel in "
-        f"{last - 1} and {last} assumes that the kilometres a tonne of fuel represents "
-        f'(see <a href="trends.html#road-fuel">road fuel as a measure of traffic</a>) kept '
-        f"changing after {fit_end} at their {fuel_start}–{fit_end} pace, which no series can "
-        "check on all roads.</p>"
-    )
     body += technical(
         "If kilometres per tonne of fuel changed faster",
-        "<p>In a hypothetical case where kilometres per tonne grew an extra "
-        f"{_fmt_pct(gains[0], 0)} a year from {pandemic}, deaths per tonne of fuel would be "
+        "<p>Take a hypothetical case where kilometres per tonne grew an extra "
+        f"{_fmt_pct(gains[0], 0)} a year from {pandemic}, and divide deaths by the kilometres "
+        "that implies. Against the per-fuel trend, deaths per implied kilometre would be "
         f"{excess(gains[0], True)}; with an extra {_fmt_pct(gains[1], 0)} a year, "
         f"{excess(gains[1], False)}. The {last - 1} excess would fall within the range with an "
         f"extra {needed(last - 1) * 100:.1f} percentage points a year, and the {last} excess "
@@ -421,20 +632,20 @@ def page_long_run(captions: dict[str, str]) -> str:
         f"{cov_first} the share cannot be measured.</p>"
         "<p>The same trend model, applied to interurban deaths per measured kilometre over "
         f"{km_first}–{fit_end} (the kilometre series is comparable only from {km_comparable}), "
-        f"places the last turning point in {km_base} and finds a fall of "
-        f"{_fmt_pct(-float(km_row.last_segment_annual_change))} a year after it. Projected "
-        f"forward with each year's kilometres, {km_last} comes out at "
-        f"{_change(float(km_row.ratio), 0)} against the trend, within its range of "
-        f"{_change(km_low, 0)} to {_change(km_high, 0)}. In {pandemic}, when measured "
-        f"kilometres fell {_fmt_pct(km_fall, 0)}, deaths per kilometre were on trend "
+        f"places the last turning point in {km_base}, and the trend refitted to "
+        f"{km_base}–{fit_end} falls {_fmt_pct(-float(km_row.projection_annual_change))} a "
+        f"year. Projected forward with each year's kilometres, {km_last} comes out "
+        f"{_against(km_row.ratio)}, inside the trend's 95% prediction range of "
+        f"±{_off(km_row.range_high)}. In {pandemic}, when measured kilometres fell "
+        f"{_fmt_pct(km_fall, 0)}, deaths per kilometre were on trend "
         f"({_times(float(km_pandemic.ratio))}).</p>"
         "<p>Divided instead by national road fuel, with a trend fitted the same way, the same "
-        f"deaths were {_against(fuel_km_row.ratio, 'their trend')} in {km_last}, beyond its "
-        "range. Fuel is sold for every road, towns included, so this ratio serves only as a "
-        "check on road fuel as a measure of traffic, and it shows the two measures parting: "
-        "measured interurban kilometres per tonne of national road fuel grew "
-        f"{_fmt_pct(drift_before)} a year over {fuel_start}–{fit_end} and "
-        f"{_fmt_pct(drift_after)} a year over {fit_end}–{km_last} (from "
+        f"deaths were {_against(fuel_km_row.ratio, 'their trend')} in {km_last}, against a "
+        f"range of ±{_off(fuel_km_row.range_high)}. Fuel is sold for every road, towns "
+        "included, so this ratio serves only as a check on road fuel as a measure of traffic, "
+        "and it shows the two measures parting: measured interurban kilometres per tonne of "
+        f"national road fuel grew {_fmt_pct(drift_before)} a year over {fuel_start}–{fit_end} "
+        f"and {_fmt_pct(drift_after)} a year over {fit_end}–{km_last} (from "
         f"{_fmt_int(per_tonne.loc[fit_end])} to {_fmt_int(per_tonne.loc[km_last])}). If "
         "kilometres per tonne grew that much faster on all roads, part of the recent excess in "
         "deaths per tonne of fuel would reflect more driving per tonne. On all roads, deaths per "
@@ -442,31 +653,39 @@ def page_long_run(captions: dict[str, str]) -> str:
     )
     body += figure(
         "l4_km_against_fuel",
-        "Interurban deaths as a ratio to their pre-pandemic trend. The line per measured "
-        "kilometre stays within its dotted interval bounds; the line over national road fuel, "
-        f"shown as a check on fuel as a measure of traffic, rises above its own in {km_last}.",
+        "Two panels of interurban deaths as a ratio to their pre-pandemic trend, with the "
+        f"trend's range shaded from {pandemic}. Per measured kilometre the ratio stays within "
+        "the range every year; over national road fuel, shown as a check on fuel as a measure "
+        f"of traffic, it rises above the range in {km_last}.",
         captions,
     )
     body += (
         "<p>The measured kilometres also separate road types. Counting only deaths and injury "
-        f"crashes on the networks whose traffic is measured, conventional roads in {road_year} "
-        f"had {_fmt_dec(conventional.deaths_per_bn_km)} deaths per billion vehicle-kilometres "
-        f"and motorways and dual carriageways {_fmt_dec(motorway.deaths_per_bn_km)}: "
-        f"{_times(road_deaths)} as many on conventional roads. That ratio combines "
-        f"{_times(road_crashes)} as many injury crashes per kilometre with "
-        f"{_times(road_deadly)} as many deaths per injury crash, so more of the difference lies "
-        "in how often crashes happen than in how deadly they are.</p>"
+        f"crashes on the networks whose traffic is measured, conventional roads, single and "
+        f"dual carriageway, had {_fmt_dec(conventional.deaths_per_bn_km, 2)} deaths per "
+        f"billion vehicle-kilometres in {road_year} and motorways (autopistas and autovías) "
+        f"{_fmt_dec(motorway.deaths_per_bn_km, 2)}: {_times(road_deaths)} as many on "
+        f"conventional roads. That ratio combines {_times(road_crashes)} as many injury crashes "
+        f"per kilometre with {_times(road_deadly)} as many deaths per injury crash, so more of "
+        "the difference lies in how often crashes happen than in how deadly they are.</p>"
     )
 
     body += limitation(
-        f"The 30-day death series is used as DGT publishes it for every year since {first}; "
-        "whether its definition changed over that period has not been checked."
+        f"DGT estimated the 30-day deaths of {first} to "
+        f"{risk_trends.DEATHS_30D_COUNTED_FROM - 1} from deaths within 24 hours, with "
+        "correction factors drawn from following a sample of people admitted to hospital, and "
+        f"has counted them since {risk_trends.DEATHS_30D_COUNTED_FROM} by matching crash "
+        "records with the register of deaths (DGT's accident yearbook, annex on the revised "
+        "method). The trends refitted on deaths within "
+        "24 hours, which the police count directly throughout, place the turning points of the "
+        "count and of deaths per tonne of fuel in the same years (the table of other projections above)."
     )
     body += downloads(
         [
             ("longrun_series", "deaths against trend"),
             ("longrun_segments", "trend segments"),
             ("longrun_model_choice", "choice of turning points"),
+            ("longrun_projection_sensitivity", "the projection under other choices"),
             ("risk_frequency_severity", "crash frequency and severity"),
             ("longrun_efficiency", "hypothetical fuel drifts"),
             ("longrun_km_panel", "interurban deaths, kilometres and fuel"),

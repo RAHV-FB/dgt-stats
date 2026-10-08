@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-import re
-
 import pandas as pd
 
 from dgt_stats.site.components import (
     NAV_GROUPS,
     _fmt_int,
     _fmt_pct,
+    _join,
     downloads,
     figure,
     limitation,
@@ -39,12 +38,18 @@ def page_vehicles(captions: dict[str, str]) -> str:
     split = read_table("q6_van_light_truck_split").set_index("group")
     year = int(read_table("q6_rates_2022").year.iloc[0])
     car, truck, bike = rates.loc["car"], rates.loc["heavy_truck"], rates.loc["motorcycle"]
-    # DGT's two kilometre releases, read from the table that sets them side by side.
-    km_years = sorted(
-        int(match.group(1))
-        for column in read_table("risk_km_crosscheck").columns
-        if (match := re.fullmatch(r"billion_km_(\d{4})", column))
-    )
+    # DGT's kilometre series, as its later release sets it out.
+    km_years = sorted(int(year) for year in read_table("risk_km_crosscheck").year)
+    # The rates with their 95% intervals, all roads.
+    intervals = read_table("q6_rates_2022")
+    intervals = intervals[intervals.zone == "all"].set_index(["measure", "group"])
+
+    def bounds(measure: str, group: str) -> tuple[float, float]:
+        row = intervals.loc[(measure, group)]
+        return float(row.per_billion_km_low), float(row.per_billion_km_high)
+
+    fatal_per_km = rates.fatal_involvement_per_bn_km.sort_values(ascending=False)
+    leader, second, third = fatal_per_km.index[:3]
 
     per_vehicle = float(
         truck.fatal_involvement_per_100k_vehicles / car.fatal_involvement_per_100k_vehicles
@@ -67,7 +72,6 @@ def page_vehicles(captions: dict[str, str]) -> str:
         / split.loc["van", "fatal_involvement_per_bn_km"]
     )
     top_per_vehicle = set(rates.fatal_involvement_per_100k_vehicles.nlargest(2).index)
-    top_per_km = set(rates.fatal_involvement_per_bn_km.nlargest(2).index)
 
     # Each sentence below describes one of these directions; stop if the tables no longer show it.
     checks = {
@@ -78,23 +82,30 @@ def page_vehicles(captions: dict[str, str]) -> str:
             and 1 < bike_per_vehicle < bike_per_km
         ),
         "buses and heavy trucks lead per vehicle": top_per_vehicle == {"bus", "heavy_truck"},
-        "motorcycles and mopeds lead per kilometre": top_per_km == {"motorcycle", "moped"},
+        "motorcycles lead per kilometre, clear of every other type's interval": leader
+        == "motorcycle"
+        and bounds("fatal_involvement", "motorcycle")[0]
+        > max(bounds("fatal_involvement", g)[1] for g in fatal_per_km.index[1:]),
+        "mopeds and buses come next per kilometre, with overlapping intervals": {second, third}
+        == {"moped", "bus"}
+        and bounds("fatal_involvement", second)[0] <= bounds("fatal_involvement", third)[1],
         "the motorcycle's excess is mostly frequency": bike_crashes > bike_fatal_share > 1,
         "the heavy truck's excess is severity, by a wide margin": truck_crashes < 1
         and truck_fatal_share > 2,
         "most deaths in heavy-truck fatal crashes are outside the truck": truck_occupants < 0.5,
-        "heavy trucks kill fewer of their own occupants per kilometre than cars": float(
+        "heavy trucks' own occupants killed per km below cars', with overlapping intervals": float(
             truck.occupant_deaths_per_bn_km
         )
-        < float(car.occupant_deaths_per_bn_km),
-        "DGT has two kilometre releases, and the comparison uses the earlier": (
-            len(km_years) == 2 and km_years[0] == year
+        < float(car.occupant_deaths_per_bn_km)
+        and bounds("occupant_deaths", "heavy_truck")[1] >= bounds("occupant_deaths", "car")[0],
+        "DGT's kilometre series starts in the year compared here and runs on": (
+            len(km_years) > 1 and km_years[0] == year
         ),
     }
     failed = [claim for claim, holds in checks.items() if not holds]
     if failed:
         raise ValueError(f"vehicles page: the tables no longer support: {failed}")
-    later_km_year = km_years[1]
+    later_km_years = km_years[1:]
 
     body = summary(
         f"In {year} a heavy truck (over 3,500 kg) was involved in a fatal crash "
@@ -108,13 +119,15 @@ def page_vehicles(captions: dict[str, str]) -> str:
     body += (
         "<p>The ranking of vehicle types therefore depends on the denominator. Per vehicle on "
         "the road, buses and heavy trucks have the highest rates of involvement in fatal "
-        "crashes; per kilometre, motorcycles and mopeds do.</p>"
+        "crashes. Per kilometre, motorcycles have by far the highest; mopeds and buses come "
+        "next, but their 95% intervals overlap, so their order is not established.</p>"
     )
     body += figure(
         "v1_per_vehicle_vs_per_km",
         f"Slope chart of six vehicle types ranked by involvement in fatal crashes in {year}, "
         "per 100,000 vehicles on the left and per billion kilometres on the right. Buses and "
-        "heavy trucks fall in the ranking and motorcycles and mopeds rise to the top.",
+        "heavy trucks fall in the ranking and motorcycles rise to the top, with mopeds and "
+        "buses next.",
         captions,
     )
 
@@ -213,20 +226,20 @@ def page_vehicles(captions: dict[str, str]) -> str:
         "nobody in the truck died: everyone killed was in another vehicle or on foot.</p>"
     )
     body += (
-        "<p>The choice of measure reverses the comparison with cars. Counted by the deaths of "
-        "their own occupants, heavy trucks have a lower rate per kilometre than cars "
+        "<p>The choice of measure changes the comparison with cars. Counted by the deaths of "
+        "their own occupants, heavy trucks have about the same rate per kilometre as cars "
         f"({float(truck.occupant_deaths_per_bn_km):.1f} against "
-        f"{float(car.occupant_deaths_per_bn_km):.1f} per billion km). Counted by involvement in "
-        f"fatal crashes, their rate is {_x(per_km)} a car's. A measure built from occupant deaths "
-        "alone would miss most of the deaths in crashes involving heavy trucks.</p>"
+        f"{float(car.occupant_deaths_per_bn_km):.1f} per billion km; the 95% intervals "
+        f"overlap). Counted by involvement in fatal crashes, their rate is {_x(per_km)} a "
+        "car's. A measure built from occupant deaths alone would miss most of the deaths in "
+        "crashes involving heavy trucks.</p>"
     )
 
     body += technical(
         "How the crash counts and the kilometres are matched",
         "<p>DGT models the kilometres from odometer readings taken at roadworthiness "
-        f"inspections over several years, annualised and attached to the {year} fleet. The "
-        "crash counts include foreign-registered vehicles, and the kilometres include Spanish "
-        "vehicles' travel abroad. Quadricycles count with mopeds and motorcycles in the "
+        f"inspections over several years, annualised and attached to the {year} fleet. "
+        "Quadricycles count with mopeds and motorcycles in the "
         "kilometres but among other vehicles in the crash tables. Vans and light trucks form "
         "one group because the crash records and the vehicle register divide them "
         f"differently; taken apart, light trucks would have {_fmt_pct(van_gap, 0)} of a van's "
@@ -235,13 +248,17 @@ def page_vehicles(captions: dict[str, str]) -> str:
     )
     body += limitation(
         f"The kilometres are DGT's estimates for {year}, which DGT describes as valid for "
-        "aggregates rather than for individual vehicles. The estimates it published for "
-        f"{later_km_year} are built by a different method and cannot be joined to them (see "
-        f'<a href="trends.html">{_page_name("trends")}</a>), so the comparison covers a single '
-        "year. The kilometres cover all roads, so rates per kilometre cannot be split between "
-        "urban and interurban roads. The crash counts and the kilometres cover slightly "
-        "different sets of vehicles. The intervals in the result tables reflect the crash "
-        "counts only and treat the kilometres as exact."
+        "aggregates rather than for individual vehicles. DGT's later release gives mean "
+        f"kilometres by vehicle type for {_join([str(y) for y in later_km_years])} on the same "
+        f'basis (see <a href="trends.html#road-fuel">{_page_name("trends")}</a>); this page '
+        f"matches the crash tables and the kilometres for {year} only. The kilometres cover "
+        "all roads, so rates per kilometre cannot be split between urban and interurban roads. "
+        "The crash counts include foreign-registered vehicles driven in Spain, while the "
+        "kilometres are those of Spanish-registered vehicles, including their travel abroad. "
+        "The size of that mismatch cannot be measured from these sources, and its direction is "
+        "unknown. It bears most on the rates of heavy trucks and buses, the types used for "
+        "international haulage and coach travel. The intervals in the result tables reflect "
+        "the crash counts only and treat the kilometres as exact."
     )
     body += downloads(
         [

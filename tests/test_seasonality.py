@@ -74,3 +74,6 @@ def test_lockdown_compares_each_month_with_the_same_month_before() -> None:
     # Petrol and toll-motorway traffic are traffic beside deaths, never a denominator.
     assert {"petrol_tonnes_change", "toll_intensity_change"} <= set(lockdown.columns)
     assert not [c for c in lockdown.columns if "per_petrol" in c or "per_toll" in c]
+    # The toll network the intensity is measured on shrank between the baseline and 2020.
+    assert (lockdown.toll_network_km <= lockdown.toll_network_km_baseline).all()
+    assert lockdown.loc[4, "toll_network_km"] < lockdown.loc[4, "toll_network_km_baseline"]

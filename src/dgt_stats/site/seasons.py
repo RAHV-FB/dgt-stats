@@ -7,6 +7,8 @@ import pandas as pd
 
 from dgt_stats import seasonality
 from dgt_stats.site.components import (
+    ALL_PAGES,
+    _fmt_int,
     _fmt_pct,
     _join,
     _times,
@@ -20,6 +22,7 @@ from dgt_stats.site.components import (
 from dgt_stats.site.numbers import _season_numbers
 
 FUEL = "road_fuel_tonnes"
+TITLES = dict(ALL_PAGES)
 MONTHS = (
     "January",
     "February",
@@ -92,6 +95,17 @@ def page_seasons(captions: dict[str, str]) -> str:
         "petrol sold": float(april.petrol_tonnes_change),
         "toll-motorway traffic": float(april.toll_intensity_change),
     }
+    # The two months before the state of alarm, against the same months of the baseline.
+    before = lockdown.loc[[1, 2]]
+    petrol_before = [float(v) for v in before.petrol_tonnes_change]
+    toll_before = [float(v) for v in before.toll_intensity_change]
+    network_then = float(april.toll_network_km_baseline)
+    network_now = float(april.toll_network_km)
+
+    def summer(month: int) -> dict[str, float]:
+        return {c: float(profile.loc[month, c]) for c in profile.select_dtypes("number").columns}
+
+    july_index, august_index = summer(7), summer(8)
     # The prose below states each of these; stop if the tables stop supporting them.
     checks = {
         "July and August above the average month per tonne of fuel": 7 in above and 8 in above,
@@ -116,10 +130,23 @@ def page_seasons(captions: dict[str, str]) -> str:
             april.deaths_per_road_fuel_tonnes_change
         )
         < 0,
-        "August deaths below petrol sold and toll-motorway traffic on the index": float(
-            profile.loc[8, "deaths_all"]
+        "August deaths below petrol sold and toll-motorway traffic on the index": august_index[
+            "deaths_all"
+        ]
+        < min(august_index["petrol_tonnes"], august_index["toll_intensity"]),
+        "July deaths above petrol sold but below toll-motorway traffic on the index": july_index[
+            "petrol_tonnes"
+        ]
+        < july_index["deaths_all"]
+        < july_index["toll_intensity"],
+        "deaths above road fuel sold in July and August on the index": all(
+            index["deaths_all"] > index[FUEL] for index in (july_index, august_index)
+        ),
+        "petrol and toll traffic above their baseline before the lockdown": min(
+            petrol_before + toll_before
         )
-        < min(float(profile.loc[8, "petrol_tonnes"]), float(profile.loc[8, "toll_intensity"])),
+        > 0,
+        "the toll network was shorter in the lockdown year": network_now < network_then,
         "the pooled years leave out the lockdown year": lockdown_year in left_out,
     }
     failed = [name for name, ok in checks.items() if not ok]
@@ -134,7 +161,7 @@ def page_seasons(captions: dict[str, str]) -> str:
         f"year, July has {float(july.rate_ratio):.2f} times the deaths and August "
         f"{float(august.rate_ratio):.2f} times. More road fuel is sold in those months, and part "
         "of the excess goes with it. Per tonne of road fuel sold, the one monthly series that "
-        f"covers every road and every vehicle, July and August stand at "
+        f"covers all roads, July and August stand at "
         f"{_times(float(july_fuel.rate_ratio))} and {_times(float(august_fuel.rate_ratio))}: "
         "smaller, but with 95% intervals that lie wholly above the average month. On the same "
         f"basis {_month_run(below)} are below the average month"
@@ -155,7 +182,7 @@ def page_seasons(captions: dict[str, str]) -> str:
         "<p>No series counts the kilometres driven on all Spanish roads month by month. Road "
         "fuel sold (petrol plus diesel) is the one series used to divide deaths; as on the "
         "annual pages, a rate per tonne of fuel stands "
-        'in for a rate per kilometre (<a href="trends.html">Trends since 2019</a>). Two '
+        f'in for a rate per kilometre (<a href="trends.html">{TITLES["trends"]}</a>). Two '
         "narrower series are shown beside deaths only: petrol sold, which leaves out every "
         "diesel vehicle, and traffic on the state toll motorways, measured directly but on a "
         "small part of the network, as vehicles per kilometre of motorway. The three series "
@@ -213,15 +240,24 @@ def page_seasons(captions: dict[str, str]) -> str:
         f"{fall(traffic_falls['petrol sold'])} and toll-motorway traffic "
         f"{fall(traffic_falls['toll-motorway traffic'])}. Deaths therefore fell by more than "
         "road fuel and by less than the two narrower series, and per tonne of road fuel they "
-        f"fell {fall(float(april.deaths_per_road_fuel_tonnes_change))}.</p>"
+        f"fell {fall(float(april.deaths_per_road_fuel_tonnes_change))}. Both narrower series "
+        f"were already above their {baseline} level before the lockdown: in January and "
+        f"February {lockdown_year} petrol sold was {_fmt_pct(petrol_before[0], 0)} and "
+        f"{_fmt_pct(petrol_before[1], 0)} higher and toll-motorway traffic "
+        f"{_fmt_pct(toll_before[0], 0)} and {_fmt_pct(toll_before[1], 0)} higher. The toll "
+        f"network had also shrunk, from {_fmt_int(network_then)} km on average in the April of "
+        f"{baseline} to {_fmt_int(network_now)} km, as concessions expired. Measured from their "
+        "level early in the year, the April falls of petrol and toll traffic would be larger "
+        "still, so deaths still fell less than both.</p>"
     )
 
     body += limitation(
         "Both results depend on the measure set against deaths. Against road fuel sold, "
-        "deaths rise more than fuel sales in summer and fell more than fuel sales in the April "
-        "lockdown; against petrol sales or toll-motorway traffic, the reverse. None of these "
-        "series measures kilometres driven on all roads, so how much of the summer excess would "
-        "remain per kilometre is unknown."
+        "deaths rise more than fuel sales in July and August and fell more than fuel sales in "
+        "the April lockdown. Against toll-motorway traffic they rise less in both summer months, "
+        "and against petrol sales they rise more in July and less in August; against both, "
+        "they fell less in the April lockdown. None of these series measures kilometres driven "
+        "on all roads, so how much of the summer excess would remain per kilometre is unknown."
     )
     body += downloads(
         [

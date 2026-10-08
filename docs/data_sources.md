@@ -130,10 +130,10 @@ published in the records held for 2016–2023, and the record gives the dictiona
 | `dgt/census/censo_conductores_edad_{2023,2024,2025}.txt` | 2023–2025 | licence holders by province, sex and age band; the `NUM_PERMISOS_B` column (holders of a B, car, permit) gives the 2024 car-licence population of the owner-age check and the denominator contrast | 2019–2024, age and sex, data (owner-age check) |
 | `dgt/census/censo_tablas_2014.xlsx` … `dgt/census/censo_tablas_2025.xlsx` | 2014–2025 | published census tables: class by age 2014–2023 (the 2024 workbook has no class-by-age sheet and the 2025 ones are left unused so the 2024–2025 segment keeps a single source); province totals from the 2025 workbook only, so `censo_tablas_2024.xlsx` is archived but read by no script | 2019–2024, age and sex, data (checks) |
 | `ine/ine_poblacion_provincias_edad_sexo.csv` | 2002–2025 | residents by province, five-year age group and sex, 1 January and 1 July | 2019–2024, age and sex, Catalonia and how far the results reach (severe crashes per resident by province) |
-| `dgt/km_itv_2022/media_km_antiguedad_tipo_2022.xlsx` | 2022 | circulating fleet ("parque circulante": vehicles with an ITV, insurance, ownership-change, re-registration or fine record in the previous ten years) and mean annual km by vehicle type and age | vehicles, 2019–2024 (the check of the two kilometre estimates against fuel) |
+| `dgt/km_itv_2022/media_km_antiguedad_tipo_2022.xlsx` | 2022 | circulating fleet ("parque circulante": vehicles with an ITV, insurance, ownership-change, re-registration or fine record in the previous ten years) and mean annual km by vehicle type and age | vehicles, 2019–2024 (DGT's kilometre series beside fuel; its 2022 means equal table 6's) |
 | `dgt/km_itv_2022/km_recorridos_estimados_2022.xlsx` | 2022 | km per vehicle by stratum (type, Euro class, age, engine, fuel) | parsed; not on the site |
 | `dgt/km_itv_2024/km_edad_propietario_2024.xlsx` | 2024 | vehicles, total and mean annual km by vehicle category **and by the age band of the registered owner**; the denominator of the former driver-age figure, now the comparison Method D and one assumption of the 75-and-over split, never a driver-age denominator | drivers (former figure, Method D) |
-| `dgt/km_itv_2024/km_medios_tipo_2024.xlsx` | 2024 | vehicles and mean annual km by category (the release's table 6), used to reconcile the owner-age table against the published fleet, and compared with fuel on the 2019–2024 page | age and sex (check), 2019–2024 |
+| `dgt/km_itv_2024/km_medios_tipo_2024.xlsx` | 2022–2024 | the release's table 6, mean annual km by category for 2022, 2023 and 2024 as one series (its 2022 values equal the 2022 release's), and the 2024 detail sheet of vehicles and total km, used to reconcile the owner-age table against the published fleet; set beside fuel and deaths on the 2019–2024 page | age and sex (check), 2019–2024 |
 | `dgt/km_itv_2024/km_servicio_2024.xlsx` | 2024 | vehicles and total and mean annual km by category and class of service (private; public: taxi, car hire with and without driver, driving school...): the national car-km total of the driver-age rates, less taxis and ride-hailing cars | drivers (driver-age exposure, Method B) |
 | `dgt/km_itv_2024/km_comunidades_2024.xlsx` | 2024 | the release's table 9: mean annual km by category and the owner's autonomous community, with vehicles and total km in the 2024 detail sheet; read for the scale comparison of Catalonia and Madrid | drivers (driver-age exposure, text) |
 | `ine/ine_poblacion_edad_simple_sexo.csv` | 2002–2025 | residents of Spain by single year of age and sex, 1 January and 1 July (INE table 56934, extract written by `scripts/fetch_ine.py --table single_age`), so that age groups can start at 16, 30, 45 and 65 without splitting a five-year group | drivers (driver-age exposure, Method A) |
@@ -238,9 +238,10 @@ same time; nothing from them enters a table.
 - Road geometry, traffic volumes and section-level speeds; crash coordinates in the national
   records (the Barcelona crash table has them, the Catalan file gives road and kilometre point).
 - A dated register of campaigns and enforcement periods.
-- Vehicle-kilometres **by vehicle type** for any year other than 2022; DGT's 2024 release gives
-  them by owner age and by category but the vehicles page needs the type × involvement pairing
-  that only the 2022 release supports at that level of detail. The Ministry's table 1.2.14 splits
+- Vehicle-kilometres **by vehicle type** before 2022. DGT's 2024 release gives mean kilometres by
+  category for 2022–2024 as one series, but the fleet for 2024 only, so total kilometres for 2023
+  are not in the repository; the vehicles page pairs the crash tables with the kilometres for 2022
+  only. The Ministry's table 1.2.14 splits
   interurban traffic only into heavy vehicles, as one group, and the rest.
 - Distance driven by the **driver's** age **for Spain as a whole**. Two regional travel surveys
   measure it from their microdata: the EMEF for the Barcelona area (working days, age groups

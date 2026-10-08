@@ -1571,6 +1571,135 @@ def trend_projection(
     return save(fig, path)
 
 
+def ratio_panels(
+    frame: pd.DataFrame,
+    facet: str,
+    x: str,
+    ratio: str,
+    range_low: str,
+    range_high: str,
+    path: Path,
+    title: str,
+    last_fitted: int,
+    order: list[str] | None = None,
+    ylabel: str = "",
+) -> Path:
+    """Observed over trend, one panel per facet, with the trend's range shaded around 1.
+
+    ``range_low`` and ``range_high`` are the trend's prediction interval divided by the expected
+    value, so the shading is the same for every reading of the line: a year whose ratio lies
+    outside the shaded band lies outside the trend's range. The band is shaded over the years
+    after ``last_fitted`` only, where it is a prediction for years the trend was not fitted to; a
+    thin vertical rule marks where fitting stopped, and a dotted line marks 1 (on trend). All
+    panels share one scale.
+    """
+    apply_style()
+    facets = order or list(dict.fromkeys(frame[facet]))
+    fig, axes = plt.subplots(
+        1,
+        len(facets),
+        figsize=(FIGURE_WIDTH, 3.4),
+        sharey=True,
+        sharex=True,
+        constrained_layout=True,
+    )
+    axes = np.atleast_1d(axes)
+    for axis, name in zip(axes, facets):
+        panel = frame[frame[facet] == name].sort_values(x)
+        after = panel[panel[x] > last_fitted]
+        axis.fill_between(
+            after[x],
+            after[range_low],
+            after[range_high],
+            color=ACCENT,
+            alpha=0.15,
+            linewidth=0,
+            label="Trend's 95% range",
+        )
+        axis.plot(
+            panel[x],
+            panel[ratio],
+            color=TEXT_PRIMARY,
+            linewidth=1.4,
+            marker="o",
+            markersize=3.2,
+            label="Observed ÷ trend",
+        )
+        _reference_line(axis, 1.0)
+        axis.axvline(last_fitted + 0.5, color=AXIS, linewidth=0.9, linestyle=":")
+        _panel_title(axis, str(name), len(facets))
+        _integer_x(axis, nbins=4)
+        axis.tick_params(labelsize=NOTE_SIZE)
+    axes[0].set_ylabel(ylabel)
+    axes[0].legend(loc="lower left", fontsize=NOTE_SIZE)
+    _title(path, title)
+    return save(fig, path)
+
+
+def line_panels(
+    frame: pd.DataFrame,
+    facet: str,
+    x: str,
+    y: str,
+    series: str,
+    path: Path,
+    title: str,
+    order: list[str] | None = None,
+    focal: str | None = None,
+    reference: float | None = None,
+    ylabel: str = "",
+) -> Path:
+    """Panels stacked one above the other, each with a few lines labelled at their ends.
+
+    The panels share the x and y scales, so a series that appears in more than one panel (the
+    ``focal`` one, drawn in the accent) is drawn identically in each; the others are greys. Used
+    where two decompositions of the same quantity are read side by side.
+    """
+    apply_style()
+    facets = order or list(dict.fromkeys(frame[facet]))
+    fig, axes = plt.subplots(
+        len(facets), 1, figsize=(FIGURE_WIDTH, 2.9 * len(facets) + 0.3), sharex=True, sharey=True
+    )
+    axes = np.atleast_1d(axes)
+    # One scale for every panel, set before the lines so the end labels are placed on it.
+    top = max(float(frame[y].max()), reference or 0.0) * 1.05
+    axes[0].set_ylim(0, top)
+    for axis, name in zip(axes, facets):
+        panel = frame[frame[facet] == name]
+        names = list(dict.fromkeys(panel[series]))
+        if len(names) > len(CONTEXT_STYLES) + 1:
+            raise ValueError("too many lines for one panel")
+        looks = _line_look(names, focal, None)
+        entries = []
+        for line_name in names:
+            group = panel[panel[series] == line_name].sort_values(x)
+            look = looks[line_name]
+            axis.plot(group[x], group[y], **look)
+            last = group.iloc[-1]
+            axis.plot(
+                [last[x]],
+                [last[y]],
+                marker="o",
+                markersize=5,
+                color=look["color"],
+                markeredgecolor=SURFACE,
+                markeredgewidth=1.2,
+                linestyle="none",
+            )
+            entries.append((last[x], last[y], str(line_name), look["color"]))
+        if reference is not None:
+            _reference_line(axis, reference)
+        axis.set_ylim(0, top)
+        _thousands(axis)
+        _integer_x(axis)
+        axis.set_title(str(name), fontsize=FONT_SIZE, loc="left")
+        axis.set_ylabel(ylabel)
+        _end_labels(axis, entries)
+    _title(path, title)
+    fig.tight_layout()
+    return save(fig, path)
+
+
 MONTH_TICKS = ("J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D")
 
 

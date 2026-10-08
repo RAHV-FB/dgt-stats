@@ -389,3 +389,53 @@ def test_build_all_removes_a_figure_that_is_no_longer_registered(tmp_path: Path)
     frames = {name: pd.read_csv(TABLES_DIR / f"{name}.csv") for name in summaries.SUMMARIES}
     figures.build_all(tmp_path, frames=frames)
     assert not stale.exists()
+
+
+def test_ratio_panels_and_line_panels(tmp_path: Path) -> None:
+    years = list(range(2015, 2025))
+    frame = pd.DataFrame(
+        {
+            "measure": ["Count"] * 10 + ["Per tonne"] * 10,
+            "year": years * 2,
+            "ratio": [1.0] * 5
+            + [0.75, 0.85, 0.95, 1.0, 1.0]
+            + [1.0] * 5
+            + [1.0, 1.0, 1.1, 1.2, 1.1],
+        }
+    )
+    frame["range_low"] = 0.9
+    frame["range_high"] = 1.1
+    out = plots.ratio_panels(
+        frame,
+        "measure",
+        "year",
+        "ratio",
+        "range_low",
+        "range_high",
+        tmp_path / "ratio.svg",
+        "Ratio",
+        last_fitted=2019,
+    )
+    _svg_ok(out)
+    text = out.read_text(encoding="utf-8")
+    assert "Count" in text and "Per tonne" in text
+    lines = pd.DataFrame(
+        {
+            "panel": ["A"] * 20 + ["B"] * 20,
+            "series": (["Total"] * 10 + ["Part"] * 10) * 2,
+            "year": years * 4,
+            "index": list(range(100, 90, -1)) * 4,
+        }
+    )
+    _svg_ok(
+        plots.line_panels(
+            lines,
+            "panel",
+            "year",
+            "index",
+            "series",
+            tmp_path / "lines.svg",
+            "Lines",
+            focal="Total",
+        )
+    )

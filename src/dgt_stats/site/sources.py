@@ -160,8 +160,9 @@ def _source_table(numbers: dict[str, str], inventory: pd.DataFrame) -> str:
             "DGT",
             f"Spain, {_span(km_years)}",
             "Circulating fleet and mean annual kilometres from the odometer readings of "
-            "roadworthiness inspections, in two releases built by different methods; the "
-            f"{km_owner} release also by the owner's age band.",
+            "roadworthiness inspections, in two releases, the later of which gives the mean "
+            "kilometres of each year from the first release's year on as one series; the "
+            f"{km_owner} release also gives them by the owner's age band.",
             f"Rates per kilometre by vehicle type ({km_type}) and by the owner's age band "
             f"({km_owner}).",
         ),
