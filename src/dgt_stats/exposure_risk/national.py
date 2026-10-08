@@ -449,14 +449,18 @@ def rates(km_variant: str = "less taxi and ride-hailing") -> pd.DataFrame:
                 ref_point = float(counts.loc[REFERENCE, measure]) / (
                     float(share[REFERENCE]) * total_km / BILLION
                 )
+                ratio = _interval(rate_rep / ref_rep)
                 row |= {
                     measure: n,
                     f"{measure}_per_bn_km": point,
                     f"{measure}_per_bn_km_low": float(np.percentile(rate_rep, 2.5)),
                     f"{measure}_per_bn_km_high": float(np.percentile(rate_rep, 97.5)),
                     f"{measure}_ratio": point / ref_point,
-                    f"{measure}_ratio_low": float(np.percentile(rate_rep / ref_rep, 2.5)),
-                    f"{measure}_ratio_high": float(np.percentile(rate_rep / ref_rep, 97.5)),
+                    f"{measure}_ratio_low": ratio["low"],
+                    f"{measure}_ratio_high": ratio["high"],
+                    # How far another set of replicates and count draws would move each end.
+                    f"{measure}_ratio_mc_se_low": ratio["mc_se_low"],
+                    f"{measure}_ratio_mc_se_high": ratio["mc_se_high"],
                 }
             row["involved_per_bn_km_allocated"] = row["involved_per_bn_km"] / (1 - unknown_share)
             rows.append(row)

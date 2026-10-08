@@ -123,7 +123,8 @@ def _source_table(numbers: dict[str, str], inventory: pd.DataFrame) -> str:
     )
     residents = _span(_inventory_years(inventory, "raw/ine/ine_poblacion_provincias"))
     single_ages = _span(_inventory_years(inventory, "raw/ine/ine_poblacion_edad_simple"))
-    emef_years = _span(_inventory_years(inventory, "raw/emef/"))
+    # The microdata only: the archived methodology report covers earlier years the study lacks.
+    emef_years = _span(_inventory_years(inventory, "raw/emef/", "_persons"))
     edm_year = _span(_inventory_years(inventory, "raw/crtm/"))
     toll_from = min(_inventory_years(inventory, "raw/transportes/peaje"))
     # The weekend age mix and the employment benchmark of the rates per km by driver age.

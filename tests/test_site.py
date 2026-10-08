@@ -180,6 +180,18 @@ def test_reuse_names_each_provider_its_terms_and_its_dates(built: Path) -> None:
         assert "Idescat" in footer and "CORES" in footer, page.name
 
 
+def test_sources_date_the_mobility_survey_by_its_microdata(built: Path) -> None:
+    # Documents archived beside the microdata (the 2003-2018 methodology report) must not
+    # stretch the years the study holds.
+    years = sorted(
+        int(path.name.split("_")[1])
+        for path in (PROJECT_ROOT / "data/raw/emef").glob("*/emef_*_persons.csv")
+    )
+    assert years == list(range(years[0], years[-1] + 1))
+    text = (built / "sources.html").read_text(encoding="utf-8")
+    assert f"Barcelona area, working days, {years[0]}–{years[-1]}" in text
+
+
 def test_referenced_assets_exist(built: Path) -> None:
     for page in built.glob("*.html"):
         text = page.read_text(encoding="utf-8")
@@ -490,7 +502,13 @@ def test_drivers_page_separates_the_two_questions(built: Path) -> None:
         assert site_numbers.joint_interval(row) in section
     # The check is inconclusive because the figures disagree and some intervals reach 1, not
     # because every interval is wide.
-    assert "include the 45–64 rate under" in section
+    # Each interval is placed against the 45-64 rate, and a lower end within three Monte Carlo
+    # errors of it is said to end at about it rather than counted on either side.
+    bcn = pd.read_csv(TABLES_DIR / "risk_barcelona_older.csv")
+    madrid = bcn[(bcn.assumption == national.REFERENCE_SPLIT) & (bcn.age == "75+")]
+    close = (madrid.ratio_low - 1).abs() < site_numbers.MC_MARGIN * madrid.mc_se_low
+    assert ("could put its lower end on either side" in section) == (int(close.sum()) == 1)
+    assert "include the 45–64 rate under" not in section
     assert "each figure has a wide 95% sampling interval" not in section
     # Table 1 names the rows of the published CSV it reproduces, and has no jargon column.
     assert f"method “{young.method}” and kilometre total “{young.km_total}”" in body

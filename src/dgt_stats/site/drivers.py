@@ -28,6 +28,7 @@ from dgt_stats.exposure_risk import national
 from dgt_stats.site.components import (
     _fmt_dec,
     _fmt_pct,
+    _join,
     downloads,
     evidence_note,
     figure,
@@ -42,6 +43,7 @@ from dgt_stats.site.components import (
 from dgt_stats.site.numbers import (
     FAIL,
     INTERMEDIATE,
+    MC_MARGIN,
     PASS,
     _driver_numbers,
     _older_numbers,
@@ -105,14 +107,23 @@ def _rates_table(central: pd.DataFrame, ranges: pd.DataFrame, level: pd.Series, 
         )
     # A reader reproducing the table needs the rows of the published CSV it comes from.
     method, km_total = str(central.method.iloc[0]), str(central.km_total.iloc[0])
+    # The ratios' interval ends are printed to two decimals; the note says how far another set
+    # of resamples would move them, so the second decimal is not read as exact.
+    shown = central.loc[[group for group in GROUPS if group != REFERENCE]]
+    mc_error = float(shown[["involved_ratio_mc_se_low", "involved_ratio_mc_se_high"]].max().max())
+    _check(
+        0 < mc_error < 0.05, "the ratios' interval ends move by less than 0.05 between resamples"
+    )
     return table(
         pd.DataFrame(rows),
         f"Car drivers involved in injury crashes per kilometre driven, by age, Spain, {year}. "
         "Kilometres by age from the EMEF's working-day profile applied to Spain's population "
         "and scaled to DGT's car kilometres less taxis and ride-hailing cars. The 95% sampling "
         "intervals combine a bootstrap of the survey with Poisson error in the crash counts; the "
-        "bootstrap replicates are not published. The sensitivity range spans every alternative in the "
-        "table of sources below. Data: the rows of the CSV of involvement and deaths per km by "
+        "bootstrap replicates are not published. The ends of the ratios' intervals carry a Monte "
+        f"Carlo standard error of up to {mc_error:.2f}, so another set of resamples could change "
+        "their second decimal. The sensitivity range spans every alternative in the table of "
+        "sources below. Data: the rows of the CSV of involvement and deaths per km by "
         f"age with method “{method}” and kilometre total “{km_total}”; its other kilometre "
         f"totals change the rates (from {float(level.min()):,.0f} to {float(level.max()):,.0f} "
         "per billion km at 65 and over) but not the ratios.",
@@ -1136,9 +1147,9 @@ def page_drivers(captions: dict[str, str]) -> str:
     precision_note = (
         ""
         if digits_75 == 2
-        else " Its ends are given to "
-        + ("one decimal" if digits_75 == 1 else "whole numbers")
-        + " because another set of resamples could change the next digit."
+        else " Its ends, which combine the resamples of two surveys, carry Monte Carlo standard "
+        f"errors of {float(cond_75.mc_se_low):.2f} and {float(cond_75.mc_se_high):.2f}, so they "
+        "are given to " + ("one decimal." if digits_75 == 1 else "whole numbers.")
     )
     body += (
         "<p><strong>Conditional estimate.</strong> The EMEF's public files group everyone aged "
@@ -1288,14 +1299,38 @@ def page_drivers(captions: dict[str, str]) -> str:
         "the lowest unmarked combination uses the RACC limit",
     )
     madrid_intervals = [joint_interval(row) for _, row in city_madrid.iterrows()]
-    reaching = int(((city_madrid.ratio_low <= 1) & (city_madrid.ratio_high >= 1)).sum())
-    ways = len(city_madrid)
-    words = ("none", "one", "two", "three", "four")
+    # Where each interval lies against the 45-64 rate; a lower end within Monte Carlo error of it
+    # is said to end at about it, since another set of replicates could put it on either side.
+    sides = []
+    for _, row in city_madrid.iterrows():
+        _check(
+            float(row.ratio_high) - 1 > MC_MARGIN * float(row.mc_se_high),
+            "in Barcelona every interval of the Madrid split reaches above the 45-64 rate",
+        )
+        if abs(float(row.ratio_low) - 1) < MC_MARGIN * float(row.mc_se_low):
+            sides.append("about")
+        else:
+            sides.append("above" if float(row.ratio_low) > 1 else "includes")
     _check(
-        0 < reaching < ways == 3,
-        "in Barcelona the Madrid split's intervals reach the 45-64 rate under some of the three "
-        "ways of counting crossing trips but not all",
+        len(sides) == 3 and "includes" in sides,
+        "in Barcelona at least one interval of the Madrid split includes the 45-64 rate",
     )
+    words = ("none", "one", "two", "three")
+    clauses = []
+    for side, singular, plural in (
+        ("includes", "includes the 45–64 rate", "include the 45–64 rate"),
+        ("above", "lies above it", "lie above it"),
+        (
+            "about",
+            "ends so close to it that another set of resamples could put its lower end on "
+            "either side",
+            "end so close to it that another set of resamples could put their lower ends on "
+            "either side",
+        ),
+    ):
+        count = sides.count(side)
+        if count:
+            clauses.append(f"{words[count]} {singular if count == 1 else plural}")
     body += (
         "<p>In Barcelona's working-day check, with no transfer to Spain (the 65-and-over "
         "kilometres are still divided by each split), the four splits give "
@@ -1303,10 +1338,8 @@ def page_drivers(captions: dict[str, str]) -> str:
         "the city boundary, below the 45–64 rate in some combinations and above it in others. "
         f"With {int(city_split_75.drivers_involved.iloc[0])} drivers aged 75 and over, the "
         f"Madrid split's 95% sampling intervals ({', '.join(madrid_intervals[:-1])} and "
-        f"{madrid_intervals[-1]}) include the 45–64 rate under {words[reaching]} of the "
-        f"{words[ways]} ways of counting. The figures disagree with each other and their "
-        "intervals are wide, so the check neither confirms nor rules out a rate above the "
-        "45–64 rate.</p>"
+        f"{madrid_intervals[-1]}) are wide: {_join(clauses)}. The figures disagree with each "
+        "other, so the check neither confirms nor rules out a rate above the 45–64 rate.</p>"
     )
     body += (
         "<p>Drivers who drive few kilometres, at any age, tend to have more crashes per "
