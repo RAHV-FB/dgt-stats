@@ -1116,11 +1116,20 @@ over a table rested partly on a recording artefact (the road owner recorded as "
 which separates fatal from serious crashes by how they were documented), so it was rebuilt as a
 penalised logistic regression on circumstances a reader can describe (province, zone and road,
 crash type, road users and how many, lighting, weather, surface, junction, posted limit, time of
-day), without the 1,840 artefact crashes. On the 11,611 crashes of 2016–2023 on the roads a reader
-can choose it scores ROC-AUC 0.743 against 0.709 for the road × crash-type table and 0.748 for
-boosted trees on the same inputs (the original model: 0.7475), calibration slope 1.10, mean
-predicted 12.2 % against 12.3 % observed. In nine of ten groups of predicted risk the mean
-prediction lies within the 95 % interval of the observed share. It is the model behind the
+day), without the 1,840 artefact crashes, so its estimates and tests describe crashes on roads
+with a named owning network or of another type. Its evaluation is nested: for each year
+2016–2023 the penalty (on a grid extended until the best value lies inside it), whether effects
+differ between urban streets and interurban roads, and whether roads through towns get the
+estimate or the province's average are chosen by fitting on the earlier years except the last two
+and scoring those two, and the model is then refitted on all earlier years; the published model is
+chosen by the same rule on 2022–2023. On the 11,611 crashes of 2016–2023 on the roads a reader can
+choose it scores ROC-AUC 0.741 against 0.709 for the road × crash-type table fitted on the same
+years (gain 0.032, paired interval 0.022–0.042) and 0.748 for boosted trees on the same inputs
+(the original model: 0.7475), calibration slope 1.05, intercept 0.07, mean predicted 12.3 %
+against 12.3 % observed. The earlier, non-nested design, whose choices used test years, scored
+0.743. In nine of ten groups of predicted risk the mean prediction lies within the 95 % interval
+of the observed share; by province and zone it misses on interurban roads in Girona and Tarragona
+(too low) and on urban streets in the province of Barcelona (too high). It is the model behind the
 calculator on the models page, whose browser engine reproduces the Python predictions and their delta-method intervals to 10⁻¹⁰
 ([`research/SEVERITY_CALCULATOR.md`](research/SEVERITY_CALCULATOR.md)). The retrospective
 variant and the Barcelona crash model were removed; the Barcelona person model and the DGT
@@ -1156,7 +1165,8 @@ Barcelona city alone, so it tests a model of the city and no stage of the outwar
 The published calculator's model is tested inside the Catalan file the same way
 (`transport.calculator_tests`, `gen_calculator_transfer.csv`): each year 2016–2023 from the years
 before it, the last year, each demarcation left out (without province intercepts) and Barcelona
-city from the rest of Catalonia, each beside the same specification cross-validated inside the
+city from the rest of Catalonia, every choice of penalty, specification and through-town rule made
+on the test's training crashes alone, each beside the same choices cross-validated inside the
 test population and beside the road × crash-type table fitted on the same training crashes. No
 other source records its inputs (the road's owning network, the posted limit), so it has no
 cross-source test. Every transfer
