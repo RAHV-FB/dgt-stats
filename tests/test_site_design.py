@@ -146,6 +146,19 @@ def test_every_figure_has_a_title_alt_text_caption_and_source(
             assert len(alt) > 30, (slug, name)
             assert re.search(r'width="\d+" height="\d+"', html), (slug, name)
             assert '<p class="figure-source">Source: ' in html, (slug, name)
+            # A phone loads the chart drawn for its column; the chart still links to its full
+            # size and is loaded lazily.
+            source = (
+                f'<source media="{re.escape(components.NARROW_MEDIA)}" '
+                f'srcset="figures/narrow/{name}.svg" width="\\d+" height="\\d+">'
+            )
+            assert re.search(
+                f'<a href="figures/{name}.svg"><picture>{source}<img src="figures/{name}.svg" '
+                r'alt="[^"]+" width="\d+" height="\d+" style="[^"]+" loading="lazy" '
+                r'decoding="async"></picture></a>',
+                html,
+            ), (slug, name)
+            assert (built / "figures" / "narrow" / f"{name}.svg").exists(), (slug, name)
             caption = re.search(r"<figcaption><p>(.*?)</p>", html, re.S).group(1)
             assert len(_plain(caption)) > 40, (slug, name)
 
@@ -204,8 +217,25 @@ def test_technical_details_and_limitations_use_one_form(pages: dict[str, str]) -
 def test_only_figure_sizes_are_set_inline(pages: dict[str, str]) -> None:
     for slug, text in pages.items():
         for style in re.findall(r'style="([^"]*)"', text):
-            assert re.fullmatch(r"--w: \d+px; --w-small: \d+px", style), (slug, style)
+            assert re.fullmatch(r"--w: \d+px; --w-small: \d+px; --w-narrow: \d+px", style), (
+                slug,
+                style,
+            )
         assert "<style" not in text, slug
+
+
+def test_phones_get_the_narrow_charts_without_a_forced_width() -> None:
+    # The page's <source media> and the stylesheet's phone rules use the same width.
+    width = re.fullmatch(r"\(max-width: (\d+rem)\)", components.NARROW_MEDIA).group(1)
+    phone = re.findall(rf"@media \(max-width: {width}\) \{{(.*?)\n\}}", STYLE, re.S)
+    rules = "".join(phone)
+    assert ".figure-media img { width: var(--w-narrow, var(--w)); min-width: 0; }" in rules
+    assert ".figure-tools { display: none; }" in rules
+    # Wider screens keep the full chart at its own scale, legible down to --w-small.
+    assert (
+        ".figure-media img { display: block; width: var(--w); max-width: 100%; "
+        "min-width: var(--w-small); height: auto; }" in STYLE
+    )
 
 
 def test_the_stylesheet_is_one_token_system() -> None:

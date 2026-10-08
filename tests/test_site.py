@@ -158,11 +158,24 @@ def test_full_result_tables_are_published_as_csv(built: Path) -> None:
 
 
 def test_figures_are_copied_and_captioned(built: Path) -> None:
-    svgs = sorted(p.name for p in (built / "figures").glob("*.svg"))
-    assert svgs == sorted(p.name for p in FIGURES_DIR.glob("*.svg"))
+    # Exactly the figures the pages show are published, each with its drawing for a phone.
+    shown = {
+        name
+        for page in built.glob("*.html")
+        for name in re.findall(r'<img src="figures/([^"/]+)\.svg"', page.read_text("utf-8"))
+    }
+    published = {p.stem for p in (built / "figures").glob("*.svg")}
+    assert published == shown and len(shown) > 25
+    assert {p.stem for p in (built / "figures" / "narrow").glob("*.svg")} == shown
+    for path in (built / "figures").rglob("*.svg"):
+        source = FIGURES_DIR / path.relative_to(built / "figures")
+        assert path.read_bytes() == source.read_bytes(), path.name
+    # A figure that is drawn but shown on no page, such as the models' test ROC-AUC chart, is
+    # not published.
     captions = site.read_captions()
-    for name in captions:
-        assert (built / "figures" / f"{name}.svg").exists(), name
+    for name in set(captions) - shown:
+        assert not (built / "figures" / f"{name}.svg").exists(), name
+    assert "ml1_test_auc" in captions and "ml1_test_auc" not in published
     text = (built / "long-run.html").read_text(encoding="utf-8")
     # The caption is set in two parts: what is shown, then its source on a line of its own.
     shown, source = components._split_source(captions["l1_trend_projection"])

@@ -161,7 +161,8 @@ def test_no_raw_field_names_outside_the_methodology(built: dict[str, str]) -> No
 
 def test_no_figure_shows_a_raw_field_name() -> None:
     allowed = {"d1_missingness"}  # the methodology figure documents the source fields
-    for path in sorted(FIGURES_DIR.glob("*.svg")):
+    # Every figure, and its drawing for a phone's column in narrow/.
+    for path in sorted(FIGURES_DIR.rglob("*.svg")):
         if path.stem in allowed:
             continue
         labels = re.findall(r"<text[^>]*>([^<]+)</text>", path.read_text(encoding="utf-8"))

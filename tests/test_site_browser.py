@@ -15,6 +15,8 @@ What they check:
 * every control is reachable and operable from the keyboard, and results are announced;
 * an impossible combination is refused with the rule's own words;
 * at a phone's width no page scrolls sideways;
+* at a phone's width every figure loads the chart drawn for a phone, fits its column without
+  scrolling and shows its smallest text at 11 px or more, while a desktop loads the full chart;
 * without scripting the calculator stays hidden and its fallback is shown.
 """
 
@@ -32,6 +34,7 @@ import pytest
 
 from dgt_stats import severity_model as sm
 from dgt_stats.paths import PROJECT_ROOT, REPORTS_DIR
+from dgt_stats.site.components import FIGURE_SCALE
 
 sync_api = pytest.importorskip("playwright.sync_api")
 
@@ -282,6 +285,86 @@ def test_every_page_loads_cleanly_on_a_phone(browser, server, slug: str, scheme:
     assert errors == [], (slug, scheme, errors)
     assert overflow <= 1, (slug, scheme, overflow)
     assert contrast >= 4.5, (slug, scheme, contrast)
+
+
+FIGURE_PAGES = sorted(
+    path.stem
+    for path in SITE.glob("*.html")
+    if '<img src="figures/' in path.read_text(encoding="utf-8")
+)
+# Every figure on the page, brought into view so that its lazy image loads, then measured.
+FIGURES = """async () => {
+  const out = [];
+  for (const figure of document.querySelectorAll('main figure')) {
+    const img = figure.querySelector('img');
+    const media = figure.querySelector('.figure-media');
+    figure.scrollIntoView();
+    if (!img.complete || !img.naturalWidth) {
+      await Promise.race([
+        new Promise((done) => {
+          img.addEventListener('load', done, { once: true });
+          img.addEventListener('error', done, { once: true });
+        }),
+        new Promise((done) => setTimeout(done, 5000)),
+      ]);
+    }
+    const box = img.getBoundingClientRect();
+    out.push({
+      name: img.getAttribute('src').replace('figures/', '').replace('.svg', ''),
+      source: img.currentSrc,
+      loaded: img.complete && img.naturalWidth > 0,
+      width: box.width,
+      right: box.right,
+      column: figure.getBoundingClientRect().width,
+      columnRight: figure.getBoundingClientRect().right,
+      scrolls: media.scrollWidth - media.clientWidth,
+    });
+  }
+  return out;
+}"""
+
+
+def _svg_text(path: Path) -> tuple[float, float]:
+    """A chart's viewBox width and its smallest text, in the same units."""
+    text = path.read_text(encoding="utf-8")
+    width = float(re.search(r'viewBox="[\d.\-]+ [\d.\-]+ ([\d.]+) ', text).group(1))
+    return width, min(float(size) for size in re.findall(r"font-size: ([\d.]+)px", text))
+
+
+@pytest.mark.parametrize("scheme", ["light", "dark"])
+@pytest.mark.parametrize("slug", FIGURE_PAGES)
+def test_every_figure_fits_a_phone_column(browser, server, slug: str, scheme: str) -> None:
+    """At 390 px every figure loads the chart drawn for a phone's column, is no wider than its
+    column, does not scroll sideways, and shows its smallest text at 11 px or more."""
+    page = browser.new_page(viewport=PHONE, color_scheme=scheme)
+    page.goto(f"{server}/{slug}.html", wait_until="networkidle")
+    figures = page.evaluate(FIGURES)
+    page.close()
+    assert figures, slug
+    for figure in figures:
+        name = figure["name"]
+        assert figure["loaded"], (slug, scheme, name)
+        assert figure["source"].endswith(f"/figures/narrow/{name}.svg"), (slug, scheme, figure)
+        assert figure["width"] <= figure["column"] + 0.5, (slug, scheme, figure)
+        assert figure["right"] <= figure["columnRight"] + 0.5, (slug, scheme, figure)
+        assert figure["scrolls"] <= 1, (slug, scheme, figure)
+        width, smallest = _svg_text(SITE / "figures" / "narrow" / f"{name}.svg")
+        assert smallest * figure["width"] / width >= 11, (slug, scheme, name)
+
+
+def test_a_desktop_loads_the_full_figures(browser, server) -> None:
+    page = browser.new_page(viewport={"width": 1280, "height": 900})
+    page.goto(f"{server}/seasons.html", wait_until="networkidle")
+    figures = page.evaluate(FIGURES)
+    page.close()
+    assert figures
+    for figure in figures:
+        name = figure["name"]
+        assert figure["source"].endswith(f"/figures/{name}.svg"), figure
+        assert figure["scrolls"] <= 1 and figure["width"] <= figure["column"] + 0.5, figure
+        # Shown at the site's fixed scale of the chart's own size, as before phones had their own.
+        width, _ = _svg_text(SITE / "figures" / f"{name}.svg")
+        assert abs(figure["width"] - round(width * FIGURE_SCALE)) <= 1, figure
 
 
 def test_the_theme_switch_overrides_the_system_and_is_remembered(browser, server) -> None:
