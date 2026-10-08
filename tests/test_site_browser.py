@@ -225,8 +225,9 @@ def test_keyboard_alone_operates_the_calculator(calculator) -> None:
     calculator.keyboard.press("Tab")
     assert calculator.evaluate("document.activeElement.hasAttribute('data-keep')")
     calculator.keyboard.press("Enter")
-    calculator.wait_for_function(
-        "document.querySelector('[data-status]').textContent === 'Crash kept for comparison.'"
+    # Locators poll without evaluating strings, which the pages' security policy forbids.
+    calculator.locator("[data-status]", has_text="Crash kept for comparison.").wait_for(
+        state="attached"
     )
     assert calculator.get_attribute("[data-status]", "aria-live") == "polite"
     for control in calculator.query_selector_all("#calculator select"):
@@ -308,9 +309,7 @@ def test_a_model_that_fails_to_load_leaves_the_fallback(browser, server, broken:
             ),
         )
     page.goto(f"{server}/{PAGE}", wait_until="networkidle")
-    page.wait_for_function(
-        "document.getElementById('calculator-fallback').textContent.includes('could not load')"
-    )
+    page.locator("#calculator-fallback", has_text="could not load").wait_for(state="attached")
     assert not page.is_visible("#calculator")
     page.close()
 

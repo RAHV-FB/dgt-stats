@@ -9,7 +9,7 @@ import re
 import pandas as pd
 
 from dgt_stats.paths import FIGURES_DIR, TABLES_DIR
-from dgt_stats.site.script import JS_FLAG
+from dgt_stats.site.script import CONTENT_SECURITY_POLICY, JS_FLAG
 
 REPO_URL = "https://github.com/RAHV-FB/dgt-stats"
 
@@ -715,6 +715,8 @@ def render_page(
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
+<meta http-equiv="Content-Security-Policy" content="{CONTENT_SECURITY_POLICY}">
+<meta name="referrer" content="strict-origin-when-cross-origin">
 <title>{page_title}</title>
 <meta name="description" content="{esc(lead)}">
 <link rel="preload" href="fonts/NunitoSans.woff2" as="font" type="font/woff2" crossorigin>
