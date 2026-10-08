@@ -69,6 +69,25 @@ class Role:
     cardinality: str
     description: str
     file_stem: str
+    # The portal page the file is published on, and its reuse licence as the portal states it.
+    portal: str = ""
+    licence: str = ""
+
+
+BCN_PORTAL = "https://opendata-ajuntament.barcelona.cat/data/ca/dataset/"
+BCN_LICENCE = (
+    "Open Data BCN, Ajuntament de Barcelona; licence Creative Commons Attribution 4.0 "
+    "(https://creativecommons.org/licenses/by/4.0/)"
+)
+CAT_PORTAL = "https://analisi.transparenciacatalunya.cat/d/rmgc-ncpb"
+CAT_LICENCE = (
+    "Dades obertes de Catalunya, dataset rmgc-ncpb, attribution Departament d'Interior i "
+    "Seguretat Pública; licence Llicència oberta d'ús d'informació - Catalunya "
+    "(https://administraciodigital.gencat.cat/ca/dades/dades-obertes/informacio-practica/"
+    "llicencies/): cite 'Generalitat de Catalunya. Departament d'Interior i Seguretat Pública. "
+    "Servei Català de Trànsit', state the date of last update, do not alter the content or its "
+    "meaning, no sublicensing"
+)
 
 
 ROLES: tuple[Role, ...] = (
@@ -92,6 +111,8 @@ ROLES: tuple[Role, ...] = (
             "victim counts by severity and vehicles involved"
         ),
         file_stem="accidents_gu_bcn",
+        portal=BCN_PORTAL + "accidents-gu-bcn",
+        licence=BCN_LICENCE,
     ),
     Role(
         name="bcn_people",
@@ -107,6 +128,8 @@ ROLES: tuple[Role, ...] = (
             "victimisation"
         ),
         file_stem="accidents_persones_gu_bcn",
+        portal=BCN_PORTAL + "accidents-persones-gu-bcn",
+        licence=BCN_LICENCE,
     ),
     Role(
         name="bcn_vehicles",
@@ -121,6 +144,8 @@ ROLES: tuple[Role, ...] = (
             "licence class and age of licence); see docs/BARCELONA_VEHICLE_AUDIT.md"
         ),
         file_stem="accidents_vehicles_gu_bcn",
+        portal=BCN_PORTAL + "accidents-vehicles-gu-bcn",
+        licence=BCN_LICENCE,
     ),
     Role(
         name="bcn_mediate_causes",
@@ -133,6 +158,8 @@ ROLES: tuple[Role, ...] = (
             "drugs, road surface, signals, weather, objects or animals)"
         ),
         file_stem="accidents_causes_mediates_gu_bcn",
+        portal=BCN_PORTAL + "accidents-causes-gu-bcn",
+        licence=BCN_LICENCE,
     ),
     Role(
         name="bcn_driver_causes",
@@ -145,6 +172,8 @@ ROLES: tuple[Role, ...] = (
             "key to the person or vehicle concerned"
         ),
         file_stem="accidents_causa_conductor_gu_bcn",
+        portal=BCN_PORTAL + "accidents_causa_conductor_gu_bcn",
+        licence=BCN_LICENCE,
     ),
     Role(
         name="bcn_accident_types",
@@ -154,6 +183,8 @@ ROLES: tuple[Role, ...] = (
         cardinality="one row per crash",
         description="Barcelona, Guàrdia Urbana: the type of each crash (collision, run-over, fall...)",
         file_stem="accidents_tipus_gu_bcn",
+        portal=BCN_PORTAL + "accidents-tipus-gu-bcn",
+        licence=BCN_LICENCE,
     ),
     Role(
         name="cat_severe_crashes",
@@ -166,6 +197,8 @@ ROLES: tuple[Role, ...] = (
             "serious injury, with place, road, conditions, victims and units involved"
         ),
         file_stem="accidents_morts_ferits_greus_catalunya",
+        portal=CAT_PORTAL,
+        licence=CAT_LICENCE,
     ),
 )
 
@@ -393,8 +426,8 @@ def organise(
                 "path": relative,
                 "bytes": str(path.stat().st_size),
                 "sha256": digest,
-                "source_url": "not recorded at download",
-                "description": role.description,
+                "source_url": role.portal or "not recorded at download",
+                "description": "; ".join(t for t in (role.description, role.licence) if t),
                 "added": today.isoformat(),
                 "downloaded_as": original,
             }
