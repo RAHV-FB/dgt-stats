@@ -326,6 +326,12 @@ to about 10.2 px); at 768 px nine of them also scroll sideways. That follows fro
 scales and the breakpoint shared by every chart on the site, not from these figures, and is left
 to a site-wide change.
 
+Fixed after publication, in the follow-up to the merge `5ea4b24`: the phone drawings are drawn
+narrower, so that their text is at least 11 px in the column of a 320 px phone, and each figure
+shows its phone drawing wherever its column is too narrow for the wide drawing's text to reach
+11 px. Measured at 17 widths from 320 to 1440 px in both themes, the smallest chart text is
+11.2 px and no chart scrolls ([`ACCEPTANCE_REPORT.md`](ACCEPTANCE_REPORT.md), section 8).
+
 **The third review's method fixes (October 2026).** Three changes to the exposure method
 (`eb7b70f`, tables regenerated in `316a52f`, merged in `0370825`) moved the sensitivity ranges:
 
