@@ -1,15 +1,20 @@
 """The crash-severity calculator: its inputs, its rules and Python/JavaScript parity.
 
 The page computes every prediction in the browser from ``reports/models/severity_model.json``
-(``src/dgt_stats/site/assets/severity-engine.js``). These tests run that script under Node on a
-fixed set of scenarios and require the same design vector, probability and interval as
-:func:`dgt_stats.severity_model.predict_exported`, and the same rule checks as
-:func:`dgt_stats.severity_model.check_scenario`.
+(``src/dgt_stats/site/assets/severity-engine.js``). These tests run that script under Node on
+several hundred scenarios (random valid ones and edge cases) and require the same design vector,
+probability and interval as :func:`dgt_stats.severity_model.predict_exported`, the same as an
+independent computation written here from the exported column names, coefficients and covariance
+alone, and the same rule checks as :func:`dgt_stats.severity_model.check_scenario`. They also
+require the exported model to be the one the published choices give, and the page and the
+calculator to say that the estimate is a share among crashes already recorded with a death or
+serious injury, not the chance of a crash or of a death on a journey.
 """
 
 from __future__ import annotations
 
 import json
+import re
 import shutil
 import subprocess
 
@@ -32,21 +37,93 @@ def _model() -> dict:
     return json.loads(MODEL.read_text())
 
 
+def _random_scenario(rng: np.random.Generator) -> dict:
+    scenario = {
+        "road": str(rng.choice(list(sm.ROADS))),
+        "province": str(rng.choice(list(sm.PROVINCES))),
+    }
+    for name, levels in sm.CATEGORICAL.items():
+        scenario[name] = str(rng.choice(list(levels)))
+    for user in sm.USERS:
+        scenario[user] = int(rng.random() < 0.3)
+    return scenario
+
+
+def _edge_cases() -> list[dict]:
+    """Every road in every province, every input at every level, and the boundaries of the
+    rules: no user, every user, units at the number of kinds of user and one below it."""
+    base = sm.REFERENCE_SCENARIO
+    out = [base | {"road": road, "province": p} for road in sm.ROADS for p in sm.PROVINCES]
+    for name, levels in sm.CATEGORICAL.items():
+        for level in levels:
+            for road in ("urban_street", "through_town", "motorway"):
+                out.append(base | {"road": road, name: level})
+    everyone = {user: 1 for user in sm.USERS}
+    out += [
+        base | {"light_vehicle": 0},  # no road user: refused
+        base | everyone | {"units": "4+", "crash_type": "pedestrian_struck"},
+        base | everyone | {"units": "3"},  # fewer units than kinds of user: refused
+        base | {"crash_type": "pedestrian_struck"},  # no pedestrian ticked: refused
+        base | {"light_vehicle": 0, "pedestrian": 1, "crash_type": "pedestrian_struck"},
+        base | {"units": "1", "crash_type": "head_on"},  # a collision with one unit: a warning
+        base | {"units": "1", "crash_type": "run_off_road", "road": "rural_track"},
+        base | {"road": "conventional_local", "speed_limit": "100_120"},
+    ]
+    return out
+
+
 def _scenarios(n_random: int = 300) -> list[dict]:
-    """The reference crashes, every one-input change of them, and random valid scenarios."""
+    """The reference crashes, every one-input change of them, edge cases and ``n_random``
+    random valid scenarios."""
     out = [sm.REFERENCE_SCENARIO, sm.URBAN_REFERENCE]
     for base in (sm.REFERENCE_SCENARIO, sm.URBAN_REFERENCE):
         out += [scenario for _, _, scenario in sm._variants(base)]
+    out += _edge_cases()
     rng = np.random.default_rng(7)
-    roads = list(sm.ROADS)
-    while len(out) < n_random + 2:
-        scenario = {"road": str(rng.choice(roads)), "province": str(rng.choice(list(sm.PROVINCES)))}
-        for name, levels in sm.CATEGORICAL.items():
-            scenario[name] = str(rng.choice(list(levels)))
-        for user in sm.USERS:
-            scenario[user] = int(rng.random() < 0.3)
-        out.append(scenario)
+    valid = 0
+    while valid < n_random:
+        scenario = _random_scenario(rng)
+        if not set(sm.check_scenario(scenario)) & sm.ERRORS:
+            out.append(scenario)
+            valid += 1
     return out
+
+
+def _independent(model: dict, scenario: dict) -> dict[str, float]:
+    """The estimate and its 95% interval computed from the exported file alone, without the
+    package's design code: a column is 1 when its name matches the scenario."""
+    zone = {lv["value"]: lv["zone"] for lv in model["inputs"]["road"]["levels"]}[scenario["road"]]
+    ones = []
+    for j, column in enumerate(model["columns"]):
+        if column.startswith("zone="):
+            hit = column == f"zone={zone}"
+        elif column.startswith("zone_province="):
+            hit = column == f"zone_province={zone}|{scenario['province']}"
+        elif column.startswith("road="):
+            hit = column == f"road={scenario['road']}"
+        else:
+            scope, term = column.split(":", 1)
+            applies = scope in ("all", zone)
+            if "=" in term:
+                name, level = term.split("=", 1)
+                hit = applies and str(scenario[name]) == level
+            else:
+                hit = applies and bool(scenario.get(term))
+        if hit:
+            ones.append(j)
+    k = len(model["columns"])
+    covariance = np.zeros((k, k))
+    covariance[np.tril_indices(k)] = model["covariance_lower"]
+    covariance = covariance + np.tril(covariance, -1).T
+    logit = sum(model["coefficients"][j] for j in ones)
+    se = float(np.sqrt(covariance[np.ix_(ones, ones)].sum()))
+    expit = lambda z: 1 / (1 + np.exp(-z))  # noqa: E731
+    return {
+        "design": ones,
+        "probability": expit(logit),
+        "low": expit(logit - 1.959964 * se),
+        "high": expit(logit + 1.959964 * se),
+    }
 
 
 def _run_engine(scenarios: list[dict]) -> list[dict]:
@@ -138,10 +215,20 @@ def test_exported_coefficients_reproduce_the_fitted_model() -> None:
     if not sm.FEATURES_PATH.exists():
         pytest.skip("run scripts/microdata.py features")
     model = _model()
-    fitted, x = sm.final_fit(model["penalty"]["C"])
-    assert fitted.columns == model["columns"]
+    exported_choice = model["choice"]
+    choice = sm.Choice(
+        specification=exported_choice["specification"],
+        c=exported_choice["C"],
+        through_town=exported_choice["through_town"],
+        provinces=True,
+        train_years=tuple(exported_choice["train_years"]),
+        validation_years=tuple(exported_choice["validation_years"]),
+        c_bracketed=exported_choice["c_bracketed"],
+    )
+    fitted, x = sm.final_fit(choice)
+    assert fitted.columns == model["columns"] == sm.specification_columns(choice.specification)
     assert model["model_id"] == sm.model_id(model["columns"], model["coefficients"])
-    assert not any(column.startswith(("urban:", "interurban:")) for column in model["columns"])
+    assert model["penalty"]["C"] == choice.c and model["through_town"] == choice.through_town
     exported = np.array(model["coefficients"])
     assert np.abs(fitted.coef - exported).max() < 1e-7
     assert np.abs(sm.expit(x @ fitted.coef) - sm.expit(x @ exported)).max() < 1e-7
@@ -150,25 +237,33 @@ def test_exported_coefficients_reproduce_the_fitted_model() -> None:
 @needs_model
 @needs_node
 def test_javascript_matches_python() -> None:
+    """At least 200 random valid scenarios and every edge case: the engine's design vector,
+    estimate and interval equal the package's and an independent computation from the exported
+    file, and its rules equal the package's."""
     model = _model()
     scenarios = _scenarios()
     results = _run_engine(scenarios)
     assert len(results) == len(scenarios)
     columns = model["columns"]
-    compared = 0
+    compared, through_town = 0, 0
     for scenario, js in zip(scenarios, results):
         x = sm.design_matrix(sm.scenario_frame(scenario), columns)[0]
-        assert js["design"] == [int(i) for i in np.flatnonzero(x)]
-        python_rules = set(sm.check_scenario(scenario))
+        independent = _independent(model, scenario)
+        assert js["design"] == [int(i) for i in np.flatnonzero(x)] == independent["design"]
+        python_rules = set(sm.check_scenario(scenario, model["through_town"]))
         js_rules = set(js["check"]["errors"]) | set(js["check"]["warnings"])
         assert python_rules == js_rules - {"few_similar", "rare_level"}
         if js["check"]["errors"]:
             continue
+        through_town += "through_town" in js_rules
         expected = sm.predict_exported(model, scenario)
         for key in ("probability", "low", "high"):
             assert abs(js[key] - expected[key]) < 1e-12, (scenario, key)
+            assert abs(js[key] - independent[key]) < 1e-10, (scenario, key)
+        assert js["low"] < js["probability"] < js["high"]
         compared += 1
-    assert compared >= 100
+    assert compared >= 200
+    assert (through_town > 0) == (model["through_town"] == "average")
 
 
 @needs_model
@@ -247,10 +342,51 @@ def test_rare_levels_are_flagged_for_the_chosen_road() -> None:
 
 
 @needs_model
-def test_roads_through_towns_show_the_average_not_an_estimate() -> None:
+def test_roads_through_towns_follow_the_published_choice() -> None:
+    """The through-town rule is the published model's nested choice. Where it gives the average,
+    the page shows the observed share with its count and 95% interval."""
     model = _model()
-    rule = next(r for r in model["rules"] if r["id"] == "through_town")
-    assert rule["kind"] == "average"
-    # The page shows the observed share for roads through towns in the chosen province.
-    for province in sm.PROVINCES:
-        assert 0 < model["zone_average"][f"through_town|{province}"] < 1
+    rules = {r["id"]: r for r in model["rules"]}
+    assert model["through_town"] == model["choice"]["through_town"]
+    assert ("through_town" in rules) == (model["through_town"] == "average")
+    if "through_town" in rules:
+        assert rules["through_town"]["kind"] == "average"
+    for key, share in model["zone_average"].items():
+        crashes, fatal, low, high = model["zone_counts"][key]
+        assert abs(share - fatal / crashes) < 1e-12, key
+        assert low < share < high, key
+
+
+@needs_model
+def test_the_averages_name_the_crashes_left_out() -> None:
+    """The calculator's averages are over the fitted crashes, which leave out the conventional
+    roads whose owning network is not named; the export says how many."""
+    model = _model()
+    training = model["training"]
+    assert training["excluded_owner_not_recorded"] > 0
+    assert 0 < training["excluded_fatal"] < training["excluded_owner_not_recorded"]
+    assert abs(model["zone_average"]["all"] - training["fatal"] / training["crashes"]) < 1e-12
+    assert "of the crashes the model was fitted on" in _calculator_text()
+    assert "of all such crashes in Catalonia" not in _calculator_text()
+
+
+def _calculator_text() -> str:
+    """The calculator script with its string concatenations joined, as one line."""
+    script = (ENGINE.parent / "severity-calculator.js").read_text(encoding="utf-8")
+    return " ".join(re.sub(r'"\s*\+\s*"', "", script).split())
+
+
+def test_the_estimate_is_framed_as_a_conditional_share() -> None:
+    """The calculator says its estimate is a share among crashes already recorded with a death
+    or serious injury, not the chance of a crash or of a death on a journey."""
+    flat = _calculator_text()
+    assert "of crashes like this one with a death or serious injury" in flat
+    assert "a share of crashes already recorded" in flat
+    assert "not the chance of a crash or of a death on a journey" in flat
+    for wrong in ("chance of dying", "probability of a crash", "risk of a crash"):
+        assert wrong not in flat.lower()
+    model = _model() if MODEL.exists() else None
+    if model is not None:
+        assert model["question"].startswith(
+            "Of crashes in Catalonia with a death or a serious injury"
+        )

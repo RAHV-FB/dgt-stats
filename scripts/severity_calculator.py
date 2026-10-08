@@ -7,8 +7,8 @@ Usage:
     python scripts/severity_calculator.py all
 
 Both read the feature tables written by ``scripts/microdata.py features`` and, for the forecast
-diagnosis, the national layer built by ``scripts/ingest.py``. ``calculator`` takes about two
-minutes, ``review`` about ten.
+diagnosis, the national layer built by ``scripts/ingest.py``. ``calculator`` takes about
+twenty minutes (the nested choices refit the model a few hundred times), ``review`` about ten.
 """
 
 from __future__ import annotations
@@ -66,28 +66,148 @@ def run_review() -> None:
     write(model_review.forecast_diagnosis(), "review_forecast")
 
 
-def run_calculator() -> None:
-    grid = severity_model.choose_penalty()
-    write(grid, "sev_penalty")
-    c = float(grid[grid.chosen].iloc[0].c)
-
-    rolling = severity_model.rolling_predictions(c)
-    estimators = ["calculator", "boosted_trees", "road_x_crash_table"]
-    rows = []
+def _subsets(rolling: pd.DataFrame) -> dict[str, pd.Series]:
+    """The pooled years, each year, each zone, Barcelona city, each province, and each zone of
+    each province."""
     urban = rolling.zone == "urban"
-    subsets = {"2016-2023": rolling.year > 0}
+    first, last = severity_model.ROLLING_TEST_YEARS[0], severity_model.ROLLING_TEST_YEARS[-1]
+    subsets = {f"{first}-{last}": rolling.year > 0}
     subsets |= {str(year): rolling.year == year for year in severity_model.ROLLING_TEST_YEARS}
     subsets |= {f"zone: {zone}": rolling.zone == zone for zone in severity_model.ZONES}
     subsets["Barcelona city, urban streets"] = urban & rolling.barcelona_city
     subsets["urban streets outside Barcelona city"] = urban & ~rolling.barcelona_city
-    for subset, mask in subsets.items():
+    subsets |= {
+        f"province: {province}": rolling.province == province
+        for province in severity_model.PROVINCES
+    }
+    subsets |= {
+        f"province and zone: {province}|{zone}": (rolling.province == province)
+        & (rolling.zone == zone)
+        for province in severity_model.PROVINCES
+        for zone in severity_model.ZONES
+    }
+    return subsets
+
+
+def _scores(rolling: pd.DataFrame, estimators: list[str]) -> pd.DataFrame:
+    rows = []
+    for subset, mask in _subsets(rolling).items():
         part = rolling[mask]
+        y = part.fatal.to_numpy()
+        low, high = model_review.wilson(y.sum(), len(y))
         for name in estimators:
             rows.append(
                 {"subset": subset, "estimator": name}
-                | model_review.scores(part.fatal.to_numpy(), part[name].to_numpy())
+                | model_review.scores(y, part[name].to_numpy())
+                | {"observed_low": low, "observed_high": high}
             )
-    write(pd.DataFrame(rows), "sev_rolling_scores")
+    return pd.DataFrame(rows)
+
+
+def _steps(rolling: pd.DataFrame) -> pd.DataFrame:
+    """From the previous design to the nested one, one choice at a time: pooled, by year and by
+    zone, each step's ROC-AUC gain over the table with a paired bootstrap interval (pooled)."""
+    y = rolling.fatal.to_numpy()
+    steps = list(severity_model.STEPS)
+    bootstrap = model_review.bootstrap_intervals(
+        y,
+        {name: rolling[name].to_numpy() for name in [*steps, "road_x_crash_table"]},
+        reference="road_x_crash_table",
+    ).set_index(["estimator", "metric"])
+    scores = _scores(rolling, [*steps, "road_x_crash_table"])
+    table = scores[scores.estimator == "road_x_crash_table"].set_index("subset").roc_auc
+    out = scores[scores.estimator.isin(steps)].copy()
+    out = out[~out.subset.str.startswith(("province", "Barcelona city", "urban streets"))]
+    out.insert(1, "step", out.estimator.map({s: i for i, s in enumerate(steps)}))
+    out.insert(2, "description", out.estimator.map(severity_model.STEPS))
+    out["table_roc_auc"] = out.subset.map(table)
+    out["roc_auc_gain"] = out.roc_auc - out.table_roc_auc
+    pooled = out.subset == _pooled_label()
+    for bound, column in (("low", "roc_auc_gain_low"), ("high", "roc_auc_gain_high")):
+        out[column] = np.nan
+        out.loc[pooled, column] = out[pooled].estimator.map(
+            lambda name: float(bootstrap.loc[(name, "roc_auc_minus_road_x_crash_table"), bound])
+        )
+    return out.sort_values(["step", "subset"], kind="stable").reset_index(drop=True)
+
+
+def _pooled_label() -> str:
+    years = severity_model.ROLLING_TEST_YEARS
+    return f"{years[0]}-{years[-1]}"
+
+
+def _population(rec: severity_model.Records) -> pd.DataFrame:
+    """The crashes the model describes against all the file's crashes: the excluded roads are
+    those whose owner network is not named, and they change the fatal share."""
+    everything = severity_model.load_all()
+    roads = severity_model.road_of(everything)
+    fatal = everything.fatal.to_numpy().astype(int)
+    zone = roads.map({key: zone for key, (_, zone) in severity_model.ROADS.items()})
+    zone = zone.fillna("interurban").to_numpy()
+    groups = {
+        "fitted (named owner network or not a conventional road)": ~roads.isin(
+            severity_model.EXCLUDED_ROADS
+        ).to_numpy(),
+        "excluded: owner recorded as other": (roads == "conventional_owner_other").to_numpy(),
+        "excluded: owner blank": (roads == "conventional_owner_blank").to_numpy(),
+        "excluded: both": roads.isin(severity_model.EXCLUDED_ROADS).to_numpy(),
+        "all crashes in the file": np.ones(len(roads), dtype=bool),
+    }
+    rows = []
+    for label, mask in groups.items():
+        for scope, scoped in (
+            ("all zones", mask),
+            ("interurban roads", mask & (zone == "interurban")),
+        ):
+            n, k = int(scoped.sum()), int(fatal[scoped].sum())
+            low, high = model_review.wilson(k, n)
+            rows.append(
+                {
+                    "population": label,
+                    "zone": scope,
+                    "crashes": n,
+                    "fatal": k,
+                    "fatal_share": k / n if n else np.nan,
+                    "fatal_share_low": low,
+                    "fatal_share_high": high,
+                }
+            )
+    out = pd.DataFrame(rows)
+    fitted = out[out.population.str.startswith("fitted")]
+    assert int(fitted[fitted.zone == "all zones"].crashes.iloc[0]) == len(rec.y)
+    return out
+
+
+def run_calculator() -> None:
+    rec = severity_model.records()
+    nested = severity_model.nested_rolling(rec)
+    final, final_grid = severity_model.final_choice(rec)
+    choices = pd.concat(
+        [
+            nested.choices,
+            pd.DataFrame([severity_model.choice_row(final, final_grid, "published model")]),
+        ],
+        ignore_index=True,
+    )
+    write(choices, "sev_choices")
+    grid_columns = [
+        "fit",
+        "specification",
+        "c",
+        "validation_log_loss",
+        "validation_roc_auc",
+        "best_for_specification",
+        "chosen",
+    ]
+    write(
+        pd.concat([nested.grid[grid_columns], final_grid[grid_columns]], ignore_index=True),
+        "sev_penalty",
+    )
+
+    rolling = nested.predictions
+    estimators = ["calculator", "boosted_trees", "road_x_crash_table"]
+    write(_scores(rolling, estimators), "sev_rolling_scores")
+    write(_steps(rolling), "sev_nested_steps")
     y = rolling.fatal.to_numpy()
     comparison = model_review.bootstrap_intervals(
         y, {name: rolling[name].to_numpy() for name in estimators}, reference="calculator"
@@ -99,12 +219,11 @@ def run_calculator() -> None:
         table.insert(0, "estimator", name)
         calibration.append(table)
     write(pd.concat(calibration, ignore_index=True), "sev_calibration")
-    write(severity_model.geography(c), "sev_geography")
-    write(severity_model.specification_check(c), "sev_specification")
+    write(severity_model.geography(rec), "sev_geography")
+    write(_population(rec), "sev_population")
 
-    fitted, x = severity_model.final_fit(c)
-    frame, _, y_all = severity_model.load()
-    draws = severity_model.bootstrap_draws(x, y_all, c)
+    fitted, x = severity_model.final_fit(final, rec)
+    draws = severity_model.bootstrap_draws(x, rec.y, final.c, fitted.columns)
     covariance = np.cov(draws, rowvar=False)
     contrasts = pd.concat(
         [
@@ -117,8 +236,8 @@ def run_calculator() -> None:
         ignore_index=True,
     )
     write(contrasts, "sev_contrasts")
-    write(severity_model.marginal_and_adjusted(fitted, draws), "sev_marginal_adjusted")
-    write(severity_model.stability(c), "sev_stability")
+    write(severity_model.marginal_and_adjusted(fitted, draws, rec), "sev_marginal_adjusted")
+    write(severity_model.stability(final, rec), "sev_stability")
     coefficients = pd.DataFrame(
         {
             "column": fitted.columns,
@@ -129,26 +248,27 @@ def run_calculator() -> None:
     )
     write(coefficients, "sev_coefficients")
 
-    pooled = (
-        pd.read_csv(TABLES_DIR / "sev_rolling_scores.csv")
-        .query("subset == '2016-2023' and estimator == 'calculator'")
-        .iloc[0]
-    )
+    scores = pd.read_csv(TABLES_DIR / "sev_rolling_scores.csv")
+    pooled = scores[(scores.subset == _pooled_label()) & (scores.estimator == "calculator")].iloc[0]
     evaluation = {
-        "design": "each year 2016-2023 predicted by a model fitted on the years before it",
+        "design": "nested rolling origin: each year "
+        f"{_pooled_label()} predicted by a model whose penalty, specification and "
+        "through-town rule were chosen, and whose coefficients were fitted, on the years before it",
         "crashes": int(pooled.n),
         "fatal": int(pooled.positives),
         "roc_auc": round(float(pooled.roc_auc), 4),
         "brier_skill": round(float(pooled.brier_skill), 4),
         "calibration_slope": round(float(pooled.calibration_slope), 4),
+        "calibration_intercept": round(float(pooled.calibration_intercept), 4),
         "mean_predicted": round(float(pooled.mean_predicted), 4),
         "observed": round(float(pooled.prevalence), 4),
     }
-    scenarios = severity_model.scenarios_from_records(frame)
-    excluded = len(severity_model.load_all()) - len(frame)
-    years = (int(frame.year.min()), int(frame.year.max()))
+    everything = severity_model.load_all()
+    left_out = severity_model.road_of(everything).isin(severity_model.EXCLUDED_ROADS).to_numpy()
+    excluded = {"crashes": int(left_out.sum()), "fatal": int(everything.fatal[left_out].sum())}
+    years = (int(rec.years.min()), int(rec.years.max()))
     exported = severity_model.export(
-        fitted, covariance, scenarios, y_all, evaluation, excluded, years
+        fitted, covariance, rec.scenarios, rec.y, evaluation, excluded, years, final
     )
     MODELS_DIR.mkdir(parents=True, exist_ok=True)
     MODEL_PATH.write_text(json.dumps(exported, ensure_ascii=False, separators=(",", ":")) + "\n")

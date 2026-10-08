@@ -17,8 +17,10 @@ the build; the rest run in the order below:
   generated documents; `documents` re-renders the documents from saved tables, and `organise`
   files loose downloads under `data/raw/<source>/`;
 - `severity_calculator.py {review,calculator,all}`: the independent re-evaluation of every model
-  (`reports/tables/review_*.csv`) and the crash-severity calculator model, its validation tables
-  (`sev_*.csv`) and its export for the browser (`reports/models/severity_model.json`);
+  (`reports/tables/review_*.csv`) and the crash-severity calculator model: its nested
+  rolling-origin evaluation, in which every year's penalty, specification and through-town rule
+  are chosen on earlier years only, its validation tables (`sev_*.csv`) and its export for the
+  browser (`reports/models/severity_model.json`; about twenty minutes for `calculator`);
 - `emef.py {build,validate,exposure,all}`: the EMEF 2014–2024 microdata read, harmonised and
   checked, the published figures and the distance report reproduced, and working-day car-driving
   exposure by age (`emef_*.csv`);

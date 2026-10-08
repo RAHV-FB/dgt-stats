@@ -153,22 +153,27 @@ are kept as a record. The published model is the calculator's
 
 ### The published calculator's model
 
-The calculator's specification and penalty, on every road a reader can choose (the
-road-owner artefact roads left out), each test beside the same specification fitted and
-cross-validated inside the test population and beside the table of fatal shares by road
-and crash type fitted on the same training crashes (`table_roc_auc`). A province left
-out is scored without province intercepts. No other source records its inputs.
+The calculator's model on every road a reader can choose (the road-owner artefact
+roads left out). In every test but the random cross-validation, its penalty, its
+specification and its rule for roads through towns are chosen on the test's training
+crashes alone (fit on all but their last two years, score those two), so the rolling
+and temporal tests are the nested evaluation of `sev_rolling_scores`. Each test sits
+beside the same choices fitted and cross-validated inside the test population and
+beside the table of fatal shares by road and crash type fitted on the same training
+crashes (`table_roc_auc`). A province left out is scored without province intercepts.
+The random cross-validation uses the published model's choices and is not nested. No
+other source records its inputs.
 
 | experiment | train_n | test_n | test_positives | roc_auc | roc_auc_low | roc_auc_high | in_domain_cv_roc_auc | transfer_gap | table_roc_auc | mean_predicted | test_prevalence | calibration_slope |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| random 5-fold cross-validation 2010-2023 |  | 22,638 | 2,822 | 0.732 | 0.723 | 0.742 |  |  |  | 12.5% | 12.5% | 1.001 |
-| rolling origin: each year 2016-2023 from the years before it |  | 11,611 | 1,429 | 0.743 | 0.730 | 0.755 |  |  | 0.709 | 12.2% | 12.3% | 1.103 |
-| temporal holdout: train 2010-2022, test 2023 | 21,111 | 1,527 | 182 | 0.755 | 0.718 | 0.789 | 0.732 | 0.023 | 0.708 | 11.4% | 11.9% | 1.251 |
-| leave out Barcelona demarcation | 8,645 | 13,993 | 1,334 | 0.665 | 0.651 | 0.680 | 0.695 | -0.030 | 0.650 | 11.7% | 9.5% | 0.713 |
-| leave out Girona demarcation | 19,453 | 3,185 | 547 | 0.728 | 0.704 | 0.749 | 0.717 | 0.011 | 0.700 | 14.1% | 17.2% | 0.950 |
-| leave out Lleida demarcation | 20,290 | 2,348 | 413 | 0.703 | 0.672 | 0.728 | 0.701 | 0.002 | 0.681 | 16.3% | 17.6% | 0.974 |
-| leave out Tarragona demarcation | 19,526 | 3,112 | 528 | 0.774 | 0.755 | 0.794 | 0.771 | 0.004 | 0.746 | 13.9% | 17.0% | 1.255 |
-| rest of Catalonia -> Barcelona municipality | 19,540 | 3,098 | 317 | 0.646 | 0.618 | 0.675 | 0.677 | -0.031 | 0.617 | 5.9% | 10.2% | 0.938 |
+| random 5-fold cross-validation 2010-2023 |  | 22,638 | 2,822 | 0.740 | 0.730 | 0.750 |  |  |  | 12.5% | 12.5% | 0.985 |
+| rolling origin: each year 2016-2023 from the years before it, every choice nested |  | 11,611 | 1,429 | 0.741 | 0.728 | 0.754 |  |  | 0.709 | 12.3% | 12.3% | 1.045 |
+| temporal holdout: train 2010-2022, test 2023 | 21,111 | 1,527 | 182 | 0.757 | 0.716 | 0.791 | 0.725 | 0.032 | 0.708 | 11.5% | 11.9% | 1.152 |
+| leave out Barcelona demarcation | 8,645 | 13,993 | 1,334 | 0.678 | 0.663 | 0.693 | 0.705 | -0.027 | 0.650 | 11.2% | 9.5% | 0.619 |
+| leave out Girona demarcation | 19,453 | 3,185 | 547 | 0.728 | 0.705 | 0.748 | 0.714 | 0.014 | 0.700 | 14.3% | 17.2% | 0.936 |
+| leave out Lleida demarcation | 20,290 | 2,348 | 413 | 0.714 | 0.685 | 0.740 | 0.699 | 0.016 | 0.681 | 16.4% | 17.6% | 0.968 |
+| leave out Tarragona demarcation | 19,526 | 3,112 | 528 | 0.771 | 0.751 | 0.792 | 0.773 | -0.002 | 0.746 | 14.3% | 17.0% | 1.172 |
+| rest of Catalonia -> Barcelona municipality | 19,540 | 3,098 | 317 | 0.662 | 0.630 | 0.693 | 0.678 | -0.016 | 0.617 | 5.9% | 10.2% | 0.832 |
 
 ### Why the Catalan model ranks Barcelona's crashes less well
 
@@ -389,9 +394,9 @@ Evidence for every stage:
 | catalonia_crash_severity | 3 | passed | rest of Catalonia -> Barcelona municipality: ROC-AUC 0.642 (0.609-0.677), in-domain 0.656, gap -0.015; leave out Barcelona demarcation: ROC-AUC 0.689 (0.676-0.703), in-domain 0.724, gap -0.034; leave out Girona demarcation: ROC-AUC 0.737 (0.714-0.756), in-domain 0.688, gap +0.049; leave out Lleida demarcation: ROC-AUC 0.731 (0.705-0.754), in-domain 0.690, gap +0.040; leave out Tarragona demarcation: ROC-AUC 0.788 (0.767-0.808), in-domain 0.753, gap +0.034; rest of Catalonia to 2019 -> Barcelona municipality after 2019: ROC-AUC 0.669 (0.598-0.736), in-domain 0.486, gap +0.183 |
 | catalonia_crash_severity | 4 | not run | no other source records the full Catalan feature set |
 | catalonia_crash_severity | 5 | failed | Catalonia vs Spain outside Catalonia (crashes with a death or serious injury (24 h)): differs on alignment_recorded (JSD 0.070), crash_type (JSD 0.033), weather (JSD 0.032), surface (JSD 0.028); fatal share of severe crashes 12.2% against 15.4% |
-| calculator | 1 | passed | random 5-fold cross-validation 2010-2023: ROC-AUC 0.732 (0.723-0.742) |
-| calculator | 2 | passed | rolling origin: each year 2016-2023 from the years before it: ROC-AUC 0.743 (0.730-0.755); temporal holdout: train 2010-2022, test 2023: ROC-AUC 0.755 (0.718-0.789), in-domain 0.732, gap +0.023 |
-| calculator | 3 | passed | leave out Barcelona demarcation: ROC-AUC 0.665 (0.651-0.680), in-domain 0.695, gap -0.030; leave out Girona demarcation: ROC-AUC 0.728 (0.704-0.749), in-domain 0.717, gap +0.011; leave out Lleida demarcation: ROC-AUC 0.703 (0.672-0.728), in-domain 0.701, gap +0.002; leave out Tarragona demarcation: ROC-AUC 0.774 (0.755-0.794), in-domain 0.771, gap +0.004; rest of Catalonia -> Barcelona municipality: ROC-AUC 0.646 (0.618-0.675), in-domain 0.677, gap -0.031 |
+| calculator | 1 | passed | random 5-fold cross-validation 2010-2023: ROC-AUC 0.740 (0.730-0.750) |
+| calculator | 2 | passed | rolling origin: each year 2016-2023 from the years before it, every choice nested: ROC-AUC 0.741 (0.728-0.754); temporal holdout: train 2010-2022, test 2023: ROC-AUC 0.757 (0.716-0.791), in-domain 0.725, gap +0.032 |
+| calculator | 3 | passed | leave out Barcelona demarcation: ROC-AUC 0.678 (0.663-0.693), in-domain 0.705, gap -0.027; leave out Girona demarcation: ROC-AUC 0.728 (0.705-0.748), in-domain 0.714, gap +0.014; leave out Lleida demarcation: ROC-AUC 0.714 (0.685-0.740), in-domain 0.699, gap +0.016; leave out Tarragona demarcation: ROC-AUC 0.771 (0.751-0.792), in-domain 0.773, gap -0.002; rest of Catalonia -> Barcelona municipality: ROC-AUC 0.662 (0.630-0.693), in-domain 0.678, gap -0.016 |
 | calculator | 4 | not run | no other source records the calculator's inputs: DGT's records lack the road's owning network and the posted limit, and their road-type and junction codings disagree with the Catalan file's on the same crashes |
 | calculator | 5 | failed | Catalonia vs Spain outside Catalonia (crashes with a death or serious injury (24 h)): differs on alignment_recorded (JSD 0.070), crash_type (JSD 0.033), weather (JSD 0.032), surface (JSD 0.028); fatal share of severe crashes 12.2% against 15.4% |
 | catalonia_common_dgt | 1 | passed | 5-fold CV, random rows (stratified): ROC-AUC 0.692 (folds 0.683-0.696) |

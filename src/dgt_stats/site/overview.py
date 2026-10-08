@@ -310,8 +310,7 @@ def _models() -> str:
         {
             "a heavy vehicle about doubles the fatal share, clearly": 1.7 < float(heavy.ratio) < 2.3
             and float(heavy.ratio_low) > 1.5,
-            "an urban street about halves it, clearly": 0.4 < float(urban.ratio) < 0.65
-            and float(urban.ratio_high) < 0.7,
+            "an urban street clearly lowers it": float(urban.ratio_high) < 0.7,
             "the model ranks better than the road and crash-type table": float(calc.roc_auc)
             > float(table_score.roc_auc),
             "its estimates match the observed share overall": abs(
@@ -327,10 +326,12 @@ def _models() -> str:
         "Among crashes in Catalonia in which someone was killed or seriously injured, the same "
         "crash on a regional road was fatal "
         f"{float(heavy.ratio):.1f} times as often with a lorry or bus involved (95% interval "
-        f"{float(heavy.ratio_low):.1f}–{float(heavy.ratio_high):.1f}), and about half as often "
-        f"({float(urban.ratio):.2f} times) on an urban street, other recorded circumstances "
-        "held equal. A calculator gives the model's estimate for a crash a reader "
-        "describes; it has been tested only within Catalonia, on years it had not seen.",
+        f"{float(heavy.ratio_low):.1f}–{float(heavy.ratio_high):.1f}), and "
+        f"{float(urban.ratio):.2f} times as often (95% interval "
+        f"{float(urban.ratio_low):.2f}–{float(urban.ratio_high):.2f}) on an urban street, other "
+        "recorded circumstances held equal. A calculator gives the model's estimate for a crash "
+        "a reader describes; it has been tested only within Catalonia, on years whose data "
+        "played no part in fitting or choosing it.",
         [
             ("severity-models", "Severity model and calculator"),
             ("validation", "External validation"),

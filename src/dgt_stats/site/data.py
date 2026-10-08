@@ -530,6 +530,10 @@ def _models() -> str:
     outward = read_table("ml_outward_path").set_index(["model", "stage"])
     bcn_year = _year_label(read_table("bcn_person_severity_share"))
     scores = read_table("sev_rolling_scores")
+    choices = read_table("sev_choices")
+    cells = scores[
+        scores.subset.str.startswith("province and zone: ") & (scores.estimator == "calculator")
+    ]
     pooled = scores[scores.subset.str.fullmatch(r"\d{4}-\d{4}")]
     rolling = _span(pd.Series([int(y) for y in re.findall(r"\d{4}", pooled.subset.iloc[0])]))
     pooled = pooled.set_index("estimator")
@@ -594,6 +598,17 @@ def _models() -> str:
                 ("calculator", 4), "status"
             ]
             == "not run",
+            "every choice of the calculator's model is nested in its test": bool(
+                (choices.fit != "published model").sum() == len(severity_model.ROLLING_TEST_YEARS)
+            )
+            and bool((choices.c_bracketed | choices.c_at_weak_limit).all())
+            and bool(choices[choices.fit == "published model"].c_bracketed.all()),
+            "some province's estimates by kind of road miss the observed interval": bool(
+                (
+                    (cells.mean_predicted < cells.observed_low)
+                    | (cells.mean_predicted > cells.observed_high)
+                ).any()
+            ),
         }
     )
     provinces = int(cat_checks["demarcations"])
@@ -603,22 +618,28 @@ def _models() -> str:
     calculator = f'<a href="severity-models.html">{TITLES["severity-models"]}</a>'
     review = f'<a href="{DOCS_URL}/research/ML_MODEL_REVIEW.md">model review</a>'
     report = f'<a href="{DOCS_URL}/research/SEVERITY_CALCULATOR.md">calculator report</a>'
-    choice = _join([str(year) for year in severity_model.VALIDATION_YEARS])
+    published = choices[choices.fit == "published model"].iloc[0]
     return (
         '<h2 id="models">How the models were built and judged</h2>'
         "<p>The published model is the calculator's: a penalised logistic regression of whether "
         "a crash with a death or serious injury in Catalonia was fatal, with a death within 24 "
         f"hours, given circumstances a reader can describe ({calculator}). It is tested by "
-        f"rolling origin: each year of {rolling} is predicted by the model fitted only on the "
-        "years before it, beside a table of fatal shares by road and crash type fitted on the "
-        "same years. The strength of its penalty was chosen from "
-        f"{_words(len(severity_model.C_GRID))} values by fitting on "
-        f"{int(catalan_years.min())}–{severity_model.TRAIN_LAST_YEAR} and scoring {choice}, "
-        "years that are also tested. Its intervals come from "
-        f"{_fmt_int(severity_model.N_BOOTSTRAP)} refits on resampled crashes. Crashes on "
-        "conventional roads whose owner is recorded as “other” or left blank are left out, "
-        f"because that field records how a crash was documented ({review}). Its method is set "
-        f"out in the {report}.</p>"
+        f"nested rolling origin. For each year of {rolling}, three settings are chosen by "
+        "fitting on the earlier years except the last two and scoring those two: the strength "
+        f"of the penalty, from {_words(len(severity_model.C_EXPONENTS))} values and more if the "
+        "best lies at either end, whether each circumstance may count differently on urban "
+        "streets and interurban roads, and whether roads through towns get the model's "
+        "estimate or the average of such roads in the province. The model is then fitted on "
+        "all the earlier years and predicts the year, beside a table of fatal shares by road "
+        "and crash type fitted on the same years, so no choice sees the year it predicts. The "
+        "published model was chosen by the same rule, scoring "
+        f"{published.validation_years.replace('-', '–')} after fitting on "
+        f"{published.train_years.replace('-', '–')}, and then fitted on every year. Its "
+        f"intervals come from {_fmt_int(severity_model.N_BOOTSTRAP)} refits on resampled "
+        "crashes. Crashes on conventional roads whose owner is recorded as “other” or left "
+        f"blank are left out, because that field records how a crash was documented ({review}), "
+        "so the model and its tests describe crashes on roads with a named owning network or "
+        f"of another type. Its method is set out in the {report}.</p>"
         "<p>ROC-AUC measures how well a model ranks: it is the probability that the model "
         "places a randomly chosen case with the outcome above a randomly chosen case without "
         "it. A value of 0.5 is no better than chance and 1 is a perfect ranking. The site gives "
@@ -641,9 +662,12 @@ def _models() -> str:
         "outcomes, and above 1 when they are not spread widely enough. Probabilities are shown "
         f"as estimates only if the slope lies between {low} and {high} and the mean predicted "
         f"probability is within {_fmt_pct(tolerance, 0)} of the observed share, a rule fixed in "
-        "advance. The Catalan severity model passes it (slope "
-        f"{_fmt_dec(calc.calibration_slope, 2)}, mean prediction "
-        f"{_fmt_pct(calc.mean_predicted)} against {_fmt_pct(calc.prevalence)} observed). Intervals "
+        "advance. Over all the test years the Catalan severity model passes it (slope "
+        f"{_fmt_dec(calc.calibration_slope, 2)} and intercept "
+        f"{_fmt_dec(calc.calibration_intercept, 2)} of the recalibration fit, 1 and 0 for "
+        "estimates that match the outcomes, mean prediction "
+        f"{_fmt_pct(calc.mean_predicted)} against {_fmt_pct(calc.prevalence)} observed), but "
+        f"not in every province and kind of road ({calculator}). Intervals "
         f"for the scores come from {_fmt_int(modelling.N_BOOT)} bootstrap resamples of the test "
         f"records, {_fmt_int(transport.N_BOOT_TRANSPORT)} in the external tests.</p>"
         "<p>The project's earlier models used a single split by time. The original Catalan "

@@ -218,7 +218,7 @@ def test_the_models_page_leads_with_predicted_against_observed(built: dict[str, 
     # method; scores tables stay in the research documents. The headings say what each finds.
     headings = re.findall(r"<h2[^>]*>(.*?)</h2>", main, re.S)
     assert headings[:4] == [
-        "The estimates matched what happened in later years",
+        "The estimates matched later years overall, but not in every province",
         "Try the model",
         "Crashes involving a heavy vehicle: about twice the fatal share",
         "How the model was built",
