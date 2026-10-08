@@ -3,7 +3,7 @@
   "l2_observed_over_trend": "Observed deaths as a share of the pre-pandemic trend, 2010–2024",
   "l1_trend_projection": "Road deaths against the pre-pandemic trend, under three measures",
   "l4_km_against_fuel": "Interurban deaths against the pre-pandemic trend: per measured kilometre, and over national road fuel as a check",
-  "l3_frequency_severity": "Deaths per unit of traffic, split into how often and how deadly (1996 = 100)",
+  "l3_frequency_severity": "Deaths per tonne of road fuel, split two ways into how often and how deadly (1996 = 100)",
   "m1_season_profile": "Deaths and three measures of road use by month (average month = 100)",
   "m2_month_effects": "Deaths by month against the average month, raw and per tonne of road fuel",
   "m3_lockdown": "2020 against the same month of 2017–2019: deaths and traffic",

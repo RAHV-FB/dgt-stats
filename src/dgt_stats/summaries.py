@@ -237,13 +237,6 @@ SUMMARIES = {
     "longrun_km_check": risk_trends.km_trend_check,
     "longrun_km_coverage": risk_trends.interurban_network_coverage,
     "longrun_fuel_bio": risk_trends.fuel_bio_share,
-    # The monthly deaths forecast, and the change a year of counts can detect
-    "forecast_selection": forecast.model_selection,
-    "forecast_validation": forecast.validation,
-    "forecast_backtest": forecast.backtest,
-    "forecast_horizons": forecast.horizon_errors,
-    "forecast_detectability": forecast.detectability,
-    "forecast_coefficients": forecast.coefficients,
     # Casualties by road class, and deaths per measured vehicle-km on interurban roads
     "road_class_baseline": road_class.baseline,
     "road_class_risk": road_class.class_risk,
@@ -303,4 +296,18 @@ SUMMARIES = {
             "q8_speed_sensitivity",
         )
     },
+}
+
+
+# The withdrawn monthly deaths forecast: its tables are the record behind its model card and the
+# model review, and no page or figure reads them. They take longer to fit than every other table
+# together, so `analyse.py tables` leaves them as committed and `analyse.py withdrawn` rebuilds
+# them.
+WITHDRAWN_SUMMARIES = {
+    "forecast_selection": forecast.model_selection,
+    "forecast_validation": forecast.validation,
+    "forecast_backtest": forecast.backtest,
+    "forecast_horizons": forecast.horizon_errors,
+    "forecast_detectability": forecast.detectability,
+    "forecast_coefficients": forecast.coefficients,
 }
