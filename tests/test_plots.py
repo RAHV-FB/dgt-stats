@@ -1,5 +1,6 @@
 import contextlib
 import json
+import re
 from pathlib import Path
 
 import matplotlib.dates
@@ -36,7 +37,7 @@ EXPECTED_MODEL_FIGURES = {
 }
 # The driver-age figures, drawn from the committed risk tables (scripts/exposure_risk.py).
 EXPECTED_DRIVER_FIGURES = (
-    {"dr1_involved_per_km", "dr2_killed_per_involved"}
+    {"dr1_involved_per_km", "dr2_killed_per_involved", "dr3_older_range_sources"}
     if (TABLES_DIR / "risk_national_rates.csv").exists()
     else set()
 )
@@ -739,6 +740,16 @@ def test_build_all_writes_every_registered_figure(tmp_path: Path) -> None:
         severity = pd.read_csv(TABLES_DIR / "risk_severity_and_licences.csv")
         n_involved = int(severity[severity.group != "65+"].involved.sum())
         assert captions["dr2_killed_per_involved"].endswith(f"n = {n_involved:,} drivers involved.")
+        # The per-km chart and its breakdown for 75 and over fit a phone in height too.
+        for name in ("dr1_involved_per_km", "dr3_older_range_sources"):
+            height = float(
+                re.search(r'height="([\d.]+)pt"', (narrow / f"{name}.svg").read_text()).group(1)
+            )
+            assert height < 720, name
+        older = pd.read_csv(TABLES_DIR / "risk_older_sensitivity.csv").ratio_75_plus
+        full = f"({older.min():.2f}–{older.max():.2f})"
+        assert full in captions["dr3_older_range_sources"]
+        assert "no probability attached" in captions["dr1_involved_per_km"]
 
 
 @pytest.mark.skipif(not _TABLES_PRESENT, reason="run `python scripts/analyse.py tables` first")
@@ -1021,3 +1032,134 @@ def test_the_forest_plot_names_road_types_in_english(
     # The page and its tables call DGT's autovía a dual carriageway; so does the chart.
     assert "dual carriageway" in labels
     assert not any("autov" in label.lower() for label in labels)
+
+
+def _layered_frame() -> pd.DataFrame:
+    """Rows as Figure 1 of the drivers page draws them: estimates, a reference row, and two
+    conditional rows with hatched parts, a rule above the first and counts under every label."""
+    return pd.DataFrame(
+        {
+            "label": ["young", "middle", "old", "of which older*", "of which oldest*"],
+            "reference_row": [False, True, False, False, False],
+            "conditional": [False, False, False, True, True],
+            "group_start": [False, False, False, True, False],
+            "value": [2.0, None, 1.2, 0.94, 2.06],
+            "low": [1.5, None, 1.0, 0.8, 1.6],
+            "high": [2.5, None, 1.4, 1.1, 2.6],
+            "range_low": [1.4, None, 0.9, 0.66, 0.97],
+            "range_high": [3.0, None, 1.7, 1.63, 3.28],
+            "clear_low": [None, None, None, 0.66, 1.21],
+            "clear_high": [None, None, None, 1.47, 3.28],
+            "count": [100, 200, 300, 150, 150],
+        }
+    )
+
+
+def _legend_labels(axis) -> list[str]:
+    legend = axis.get_legend() or axis.figure.legends[0]
+    return [text.get_text().replace("\n", " ") for text in legend.get_texts()]
+
+
+@pytest.mark.parametrize("narrow", [False, True])
+def test_estimate_and_range_draws_the_layers_of_the_per_km_chart(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, narrow: bool
+) -> None:
+    drawn = _capture_axes(monkeypatch)
+    with plots.narrow() if narrow else contextlib.nullcontext():
+        _svg_ok(
+            plots.estimate_and_range(
+                _layered_frame(),
+                tmp_path / "layers.svg",
+                "Layers",
+                estimate_label="estimate",
+                conditional_label="conditional",
+                range_label="range",
+                hatch_label="hatched",
+            )
+        )
+    axis = drawn[0][0]
+    # Hollow accent diamonds for the conditional rows, filled dots for the others.
+    diamonds = [line for line in axis.get_lines() if line.get_marker() == "D"]
+    assert len(diamonds) == 2
+    assert all(d.get_markerfacecolor() == plots.SURFACE for d in diamonds)
+    # The parts of the ranges reached only by marked combinations are hatched, at both ends
+    # where they lie: 0.97 to 1.21 on the last row and 1.47 to 1.63 on the one above.
+    hatched = sorted(
+        (round(p.get_x(), 2), round(p.get_x() + p.get_width(), 2))
+        for p in axis.patches
+        if p.get_hatch()
+    )
+    assert hatched == [(0.97, 1.21), (1.47, 1.63)]
+    # One rule opens the group of rows that are parts of the row above.
+    rules = [line for line in axis.get_lines() if line.get_linewidth() == 0.6]
+    assert len(rules) == 1
+    # A count under every label, and a legend entry for each element drawn.
+    counts = [text.get_text() for text in axis.texts if text.get_text().endswith("involved")]
+    assert counts == [f"{n:,} involved" for n in (100, 200, 300, 150, 150)]
+    assert _legend_labels(axis) == ["estimate", "conditional", "range", "hatched"]
+    if narrow:
+        assert figures.svg_width(tmp_path / "layers.svg") <= plots.NARROW_MAX_POINTS
+
+
+def test_estimate_and_range_lists_only_what_it_draws(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    drawn = _capture_axes(monkeypatch)
+    frame = _layered_frame().drop(columns=["clear_low", "clear_high"])
+    plots.estimate_and_range(
+        frame,
+        tmp_path / "plain.svg",
+        "Plain",
+        estimate_label="estimate",
+        conditional_label="conditional",
+        range_label="range",
+        hatch_label="hatched",
+    )
+    axis = drawn[0][0]
+    assert not [p for p in axis.patches if p.get_hatch()]
+    assert _legend_labels(axis) == ["estimate", "conditional", "range"]
+    # Bars only, with a labelled line at the estimate: no dots, whiskers or diamonds.
+    bars = pd.DataFrame(
+        {
+            "label": ["all", "a choice"],
+            "range_low": [0.97, 1.36],
+            "range_high": [3.28, 2.24],
+            "clear_low": [1.21, 1.69],
+            "clear_high": [3.28, 2.24],
+            "band_style": ["range", "factor"],
+        }
+    )
+    plots.estimate_and_range(
+        bars,
+        tmp_path / "bars.svg",
+        "Bars",
+        range_label="all combinations",
+        factor_label="one choice",
+        hatch_label="hatched",
+        lines=[(2.06, "estimate 2.06", "estimate")],
+        gap_after=["all"],
+        show_whiskers=False,
+    )
+    axis = drawn[1][0]
+    assert not [line for line in axis.get_lines() if line.get_marker() in ("o", "D")]
+    assert _legend_labels(axis) == ["all combinations", "one choice", "hatched"]
+    assert "estimate 2.06" in [text.get_text() for text in axis.texts]
+    ticks = axis.get_yticks()
+    assert ticks[0] - ticks[1] > 1.4  # the gap under the first bar
+
+
+def test_estimate_and_range_draws_a_frame_without_the_new_columns_as_before(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    drawn = _capture_axes(monkeypatch)
+    frame = _layered_frame()[["label", "reference_row", "value", "low", "high"]]
+    frame = frame.assign(range_low=[1.4, None, 0.9, 0.66, 0.97], range_high=[3, None, 2, 2, 3])
+    frame.loc[3:, ["value", "low", "high"]] = None
+    plots.estimate_and_range(
+        frame, tmp_path / "legacy.svg", "Legacy", estimate_label="e", range_label="r"
+    )
+    axis = drawn[0][0]
+    assert _legend_labels(axis) == ["e", "r"]
+    assert not axis.patches and not [t for t in axis.texts if t.get_text()]
+    assert not [line for line in axis.get_lines() if line.get_marker() == "D"]
+    assert [label.get_text() for label in axis.get_yticklabels()][1] == "middle (reference)"

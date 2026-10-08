@@ -112,7 +112,8 @@ The generated documents behind the regional, model and validation pages:
 - No crash file records vehicle speeds: the Catalan speed field is the road's posted limit.
 - No national source measures kilometres by the driver's age. They are estimated from one
   region's working-day survey applied to Spain, so per-kilometre comparisons by age carry
-  sensitivity ranges beside their confidence intervals, and above 75 they are model-dependent.
+  sensitivity ranges beside their confidence intervals, and at 75 and over a conditional
+  estimate (Madrid's 2018 age pattern) is shown beside the sensitivity range.
 - There are no person records nationally or in Catalonia, and in Barcelona no key links a recorded
   cause to the driver or vehicle concerned.
 - No record is linked between sources: they share no identifier, and matching on date or place is

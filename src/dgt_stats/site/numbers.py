@@ -142,3 +142,90 @@ def _driver_numbers() -> dict[str, object]:
         "city_older": city_older,
         "severity": read_table("risk_severity_and_licences").set_index("group"),
     }
+
+
+# The three wordings of what the per-km figures say about drivers aged 75 and over, from the
+# strongest to the weakest; :func:`_older_numbers` picks the one the tables support.
+PASS, INTERMEDIATE, FAIL = "pass", "intermediate", "fail"
+# How many Monte Carlo standard errors an end of a joint sampling interval must stand from the
+# 45-64 rate for a wording to rest on which side of it the end lies.
+MC_MARGIN = 3
+
+
+def mc_digits(*standard_errors: float) -> int:
+    """The decimals that Monte Carlo standard errors support: the unit of the last digit printed
+    is at least twice the largest error (two decimals need errors up to 0.005, one up to 0.05).
+    Another set of the surveys' replicates would then rarely change the printed figure by more
+    than one unit of its last digit."""
+    worst = max(float(se) for se in standard_errors)
+    for digits in (2, 1):
+        if 2 * worst <= 10.0**-digits:
+            return digits
+    return 0
+
+
+def joint_interval(row: pd.Series, digits: int | None = None, sep: str = "–") -> str:
+    """A joint sampling interval (``ratio_low``, ``ratio_high``) printed at the precision its Monte
+    Carlo errors (``mc_se_low``, ``mc_se_high``) support, or at ``digits`` if that is coarser."""
+    supported = mc_digits(row["mc_se_low"], row["mc_se_high"])
+    shown = supported if digits is None else min(digits, supported)
+    return f"{float(row['ratio_low']):.{shown}f}{sep}{float(row['ratio_high']):.{shown}f}"
+
+
+def _older_numbers() -> dict[str, object]:
+    """Ages 75 and over: the conditional (Madrid-pattern) estimate with its joint sampling
+    interval, the sensitivity range, the span of the combinations not marked as at odds with
+    men's driving, the sampling intervals at its ends, and the wording the tables allow.
+
+    PASS needs the lowest unmarked combination above the 45-64 rate even at the bottom of its
+    sampling interval, and the conditional estimate's interval above it too; INTERMEDIATE, the
+    lowest unmarked combination above it at its point value; otherwise FAIL."""
+    from dgt_stats.exposure_risk import national
+
+    split = read_table("risk_older_split")
+    older = read_table("risk_older_sensitivity")
+    extremes = read_table("risk_older_extremes").set_index(["group", "end"])
+    conditional = split[split.assumption == national.REFERENCE_SPLIT].set_index("group")
+    unmarked = older[~older.at_odds_with_mens_driving]
+    lowest = extremes.loc[("75+", "lowest unmarked")]
+    clear_min = float(unmarked.ratio_75_plus.min())
+    if abs(float(lowest.value) - clear_min) > 1e-9:
+        raise ValueError("risk_older_extremes does not match risk_older_sensitivity")
+    # A wording that rests on which side of the 45-64 rate an interval's lower end lies needs
+    # that end clear of it by more than its Monte Carlo error; otherwise more replicates decide.
+    for name, row in (
+        ("the lowest unmarked combination", lowest),
+        ("the conditional estimate", conditional.loc["75+"]),
+    ):
+        if abs(float(row.ratio_low) - 1) < MC_MARGIN * float(row.mc_se_low):
+            raise ValueError(
+                f"75+: the sampling interval of {name} ends within Monte Carlo error of the "
+                "45-64 rate; rerun with more replicates before choosing a wording"
+            )
+    if (
+        clear_min > 1
+        and float(lowest.ratio_low) > 1
+        and float(conditional.loc["75+", "ratio_low"]) > 1
+    ):
+        tier = PASS
+    elif clear_min > 1:
+        tier = INTERMEDIATE
+    else:
+        tier = FAIL
+    return {
+        "split": split,
+        "older": older,
+        "unmarked": unmarked,
+        "extremes": extremes,
+        "conditional": conditional,
+        "range": {
+            "65-74": (float(older.ratio_65_74.min()), float(older.ratio_65_74.max())),
+            "75+": (float(older.ratio_75_plus.min()), float(older.ratio_75_plus.max())),
+        },
+        "clear": {
+            "65-74": (float(unmarked.ratio_65_74.min()), float(unmarked.ratio_65_74.max())),
+            "75+": (clear_min, float(unmarked.ratio_75_plus.max())),
+        },
+        "lowest_clear": lowest,
+        "tier": tier,
+    }

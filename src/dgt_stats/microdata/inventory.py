@@ -167,6 +167,18 @@ RULES: tuple[Rule, ...] = (
         "{year}, ATM Barcelona area",
     ),
     Rule(
+        r"emef/(\d{4})/emef_\d{4}_questionnaire",
+        "EMEF questionnaire (ATM)",
+        "document",
+        "{year}, ATM Barcelona area",
+    ),
+    Rule(
+        r"emef/docs/emef_methodology_(\d{4})",
+        "EMEF organisation, design and methodology report 2003-2018 (IERMB, Institut Metròpoli)",
+        "document",
+        "2003-2018, ATM Barcelona area",
+    ),
+    Rule(
         r"idescat/idescat_census_(\d{4})",
         "Idescat, Population and Housing Census release",
         "document (published shares of the population in employment)",

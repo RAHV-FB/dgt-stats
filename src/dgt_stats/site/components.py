@@ -591,16 +591,31 @@ THEME_TOGGLE = (
 )
 
 
+# A reference in a page's prose to one of its figures, replaced by the figure's number when the
+# page is numbered (``_number``), so that no figure number is typed.
+FIGURE_REF = re.compile(r"\[\[figure:([a-z0-9_]+)\]\]")
+
+
+def figure_ref(name: str) -> str:
+    """The number of figure ``name`` of the same page, as it will be numbered."""
+    return f"[[figure:{name}]]"
+
+
 def _number(body: str) -> str:
     """Number a page's figures and tables in reading order, as a printed paper does.
 
     The number goes before each title; a table's hidden caption, which is what a screen reader
-    announces for it, carries the same number.
+    announces for it, carries the same number. References to figures in the prose
+    (:func:`figure_ref`) get the same numbers.
     """
     counts = {"figure": 0, "table": 0}
+    numbers: dict[str, int] = {}
 
     def figure_title(match: re.Match[str]) -> str:
         counts["figure"] += 1
+        found = re.search(r'id="figure-([^"]+)"', match.group(0))
+        if found:
+            numbers[found.group(1)] = counts["figure"]
         return f'{match.group(0)}<span class="figure-label">Figure {counts["figure"]}.</span> '
 
     def table_block(match: re.Match[str]) -> str:
@@ -619,9 +634,16 @@ def _number(body: str) -> str:
         r'<p class="figure-title" id="[^"]+">|<div class="table-block">.*?</table></div></div>',
         re.S,
     )
-    return pattern.sub(
+    body = pattern.sub(
         lambda m: figure_title(m) if m.group(0).startswith("<p") else table_block(m), body
     )
+
+    def reference(match: re.Match[str]) -> str:
+        if match.group(1) not in numbers:
+            raise ValueError(f"the prose refers to figure {match.group(1)}, not on the page")
+        return str(numbers[match.group(1)])
+
+    return FIGURE_REF.sub(reference, body)
 
 
 def _toc_lists(entries: list[tuple[str, str]]) -> tuple[str, str]:

@@ -276,3 +276,84 @@ def test_pages_carry_no_template_furniture(built: dict[str, str]) -> None:
         prose = main.replace('<p class="eyebrow">Spain · supporting analysis</p>', "")
         assert "upporting analysis" not in prose, slug
         assert main.count('<p class="summary">') == 1, slug
+
+
+# The pages that quote the figures for drivers aged 75 and over.
+OLDER_PAGES = ("drivers", "index", "data")
+
+
+def _blocks(text: str, tag: str) -> list[str]:
+    """The plain text of every ``tag`` element in a page's <main>."""
+    found = re.findall(rf"<{tag}\b[^>]*>(.*?)</{tag}>", _main(text), re.S)
+    return [" ".join(components.html.unescape(re.sub(r"<[^>]+>", " ", f)).split()) for f in found]
+
+
+def test_the_conditional_75_plus_estimate_is_never_read_alone(built: dict[str, str]) -> None:
+    import pandas as pd
+
+    from dgt_stats.exposure_risk import national
+
+    split = pd.read_csv(TABLES_DIR / "risk_older_split.csv")
+    madrid = split[(split.assumption == national.REFERENCE_SPLIT) & (split.group == "75+")].iloc[0]
+    older = pd.read_csv(TABLES_DIR / "risk_older_sensitivity.csv").ratio_75_plus
+    low, high = float(older.min()), float(older.max())
+    ranges = (f"{low:.2f}–{high:.2f}", f"{low:.2f} to {high:.2f}")
+    values = [f"{madrid.ratio_to_45_64:.2f}", f"{madrid.ratio_to_45_64:.1f}"]
+    value = re.compile(r"(?<![\d.])(" + "|".join(re.escape(v) for v in values) + r")(?![\d])")
+    intervals = [
+        f"{madrid.ratio_low:.2f}–{madrid.ratio_high:.2f}",
+        f"{madrid.ratio_low:.1f}–{madrid.ratio_high:.1f}",
+    ]
+    for slug in OLDER_PAGES:
+        prose = _blocks(built[slug], "p") + _blocks(built[slug], "li")
+        prose += _blocks(built[slug], "figcaption")
+        for block in prose:
+            for sentence in re.split(r"(?<=[.;:])\s+(?=[A-Z])", block):
+                if value.search(sentence):
+                    # (a) in a sentence naming Madrid, in a block with the full range.
+                    assert "Madrid" in sentence, (slug, sentence)
+                    assert any(r in block for r in ranges), (slug, block[:120])
+            for match in value.finditer(block):
+                # (e) the word "reference" never stands near the conditional value.
+                near = block[max(0, match.start() - 40) : match.end() + 40]
+                assert "reference" not in near, (slug, near)
+            for interval in intervals:
+                # (b) every printed interval of the conditional value is called a sampling one.
+                for match in re.finditer(re.escape(interval), block):
+                    before = block[max(0, match.start() - 60) : match.start()]
+                    assert "sampling" in before, (slug, before)
+        for row in re.findall(r"<tr>(.*?)</tr>", _main(built[slug]), re.S):
+            plain = " ".join(re.sub(r"<[^>]+>", " ", row).split())
+            if value.search(plain) and "75" in plain:
+                table = _main(built[slug])
+                caption = table[: table.find(row)].rsplit("<caption", 1)[-1]
+                assert "Madrid" in plain, (slug, plain)
+                assert any(r in plain or r in caption for r in ranges), (slug, plain)
+
+
+def test_older_driver_wording_carries_no_probability_or_ranking(built: dict[str, str]) -> None:
+    banned = (
+        r"\b\d+ of (the )?\d+ combinations",
+        r"most combinations",
+        r"best estimate",
+        r"most likely",
+        r"can only be estimated by borrowing",
+        r"the rate for 75 and over",
+    )
+    for slug in OLDER_PAGES:
+        visible = " ".join(_visible(built[slug]).split())
+        for pattern in banned:
+            assert not re.search(pattern, visible, re.I), (slug, pattern)
+        # (c) no loaded comparison near the oldest drivers.
+        for match in re.finditer(r"75", visible):
+            near = visible[max(0, match.start() - 80) : match.end() + 80].lower()
+            for word in ("twice", "double", "riskier", "more dangerous drivers"):
+                assert word not in near, (slug, word, near)
+        # (d) a range or a count of combinations is never a probability; (g) nor a percentage.
+        for match in re.finditer(r"combination|range|scenario", visible):
+            near = visible[max(0, match.start() - 80) : match.end() + 80]
+            near = near.replace("probably too narrow", "").replace("no probability", "")
+            assert "probab" not in near.lower(), (slug, near)
+        for match in re.finditer(r"combinations", visible):
+            near = visible[max(0, match.start() - 60) : match.end() + 60]
+            assert "%" not in near, (slug, near)

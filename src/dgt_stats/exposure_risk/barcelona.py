@@ -337,38 +337,74 @@ def km_composition() -> pd.DataFrame:
 
 def older_ratios() -> pd.DataFrame:
     """Ratios to 45-64 at 65-74 and 75 and over in the working-day design (central numerator),
-    with the city's 65-and-over kilometres split by the national assumptions (Madrid survey ratios
-    or licence holding, by sex) and the province's population at 65-74 and 75 and over."""
+    with the city's 65-and-over kilometres split by each national split (the Madrid survey's
+    ratios, the RACC limit or licence holding, by sex) and the province's population at 65-74
+    and 75 and over.
+
+    Each has a 95% sampling interval: the city frame's EMEF bootstrap replicates, crossed with the
+    Madrid survey's household replicates for the two Madrid splits, with gamma draws of the
+    counts in every cell, and the Monte Carlo standard error of each end
+    (:func:`national._interval`). The RACC constant and licence holding are held fixed."""
     from dgt_stats.exposure_risk import national
 
     frame = city_person_day()
+    factors = exposure.replicate_factors(frame)
     weight = frame.weight.to_numpy() / frame.year.nunique()
     cars = numerator()
     counts = cars.age_older.value_counts()
     reference_n = float((cars.age4 == REFERENCE).sum())
     population = national.barcelona_older_population().set_index(["sex", "group"]).population
+    n_rep = factors.shape[1]
     rows = []
     for denominator, km in _denominator_columns(frame).items():
-        reference_km = float((weight * km)[(frame.age4 == REFERENCE).to_numpy()].sum())
-        for assumption, ratios in national._older_ratios().items():
-            split = {"65-74": 0.0, "75+": 0.0}
+        reference_mask = (frame.age4 == REFERENCE).to_numpy()
+        reference_km = float((weight * km)[reference_mask].sum())
+        reference_rep = (weight * km)[reference_mask] @ factors[reference_mask]
+        km_65, km_65_rep = {}, {}
+        for sex in national.SEXES:
+            mask = ((frame.age4 == "65+") & (frame.sex == sex)).to_numpy()
+            km_65[sex] = float((weight * km)[mask].sum())
+            km_65_rep[sex] = (weight * km)[mask] @ factors[mask]
+        for split in national.SPLITS:
+            ratios = national._older_ratios()[split]
+            replicates = national._split_replicates(split)
+            point = {"65-74": 0.0, "75+": 0.0}
+            draws = {"65-74": 0.0, "75+": 0.0}
             for sex in national.SEXES:
-                mask = ((frame.age4 == "65+") & (frame.sex == sex)).to_numpy()
-                km_65 = float((weight * km)[mask].sum())
                 young = population[(sex, "65-74")]
                 old = population[(sex, "75+")] * ratios[sex]
-                split["65-74"] += km_65 * young / (young + old)
-                split["75+"] += km_65 * old / (young + old)
+                point["65-74"] += km_65[sex] * young / (young + old)
+                point["75+"] += km_65[sex] * old / (young + old)
+                r = replicates[sex]
+                r = r[None, :] if np.ndim(r) else r
+                old_rep = population[(sex, "75+")] * r
+                share = old_rep / (young + old_rep)
+                draws["75+"] = draws["75+"] + km_65_rep[sex][:, None] * share
+                draws["65-74"] = draws["65-74"] + km_65_rep[sex][:, None] * (1 - share)
+            shape = (n_rep, n_rep)
+            rng = np.random.default_rng(SEED)
+            reference = rng.gamma(reference_n + 0.5, 1.0, shape) / reference_rep[:, None]
             for group in OLDER_GROUPS:
                 label = group[2]
-                rate = float(counts.get(label, 0)) / split[label]
+                n = float(counts.get(label, 0))
+                rate = n / point[label]
+                ratio = rng.gamma(n + 0.5, 1.0, shape) / np.broadcast_to(draws[label], shape)
+                ratio = ratio / reference
+                interval = national._interval(ratio)
                 rows.append(
                     {
                         "denominator": denominator,
-                        "assumption": assumption,
+                        "assumption": split,
                         "age": label,
-                        "drivers_involved": int(counts.get(label, 0)),
+                        "drivers_involved": int(n),
                         "ratio_to_45_64": rate / (reference_n / reference_km),
+                        "ratio_low": interval["low"],
+                        "ratio_high": interval["high"],
+                        "mc_se_low": interval["mc_se_low"],
+                        "mc_se_high": interval["mc_se_high"],
+                        "sampling_sources": national._sampling_sources(
+                            split, "EMEF (Barcelona city frame)"
+                        ),
                     }
                 )
     return pd.DataFrame(rows)

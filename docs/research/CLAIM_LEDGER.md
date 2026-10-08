@@ -68,3 +68,11 @@ supports the sentence.
 The ledger describes the site as audited. Claims added later by the editorial pass are numbers
 formatted from the same tables and are covered by the same build checks. They are not rows of
 this ledger.
+
+**Later revisions (October 2026).** The 75+ investigation revised rows ledger-B|4, 9 and 10 and
+added rows 94–98 for the conditional estimate, the counts per licence holder, the men's marking
+rule, the tiered sentence and the Barcelona check. The final audit then revised rows 26 and 27,
+which still gave the first-published 75+ range as a finding, and rows 94, 97 and 98 (the Monte
+Carlo error of the joint interval, the wording of the tiered sentence, the reason the Barcelona
+check is inconclusive), and checked row 25 against the archived methodology report. The table
+above counts the audit's own results and does not include these.

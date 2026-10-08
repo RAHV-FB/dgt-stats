@@ -1062,6 +1062,53 @@ def dot_range(
     return save(fig, path)
 
 
+RANGE_BAND = {"color": NEUTRAL_LIGHT, "linewidth": 8.0, "alpha": 0.6}
+# A one-at-a-time bar: one choice changed, the others held (``band_style`` "factor").
+FACTOR_BAND = {"color": CONTEXT_STYLES[2][0], "linewidth": 5.0, "alpha": 1.0}
+# The part of a range reached only by combinations a chart marks: a hatched segment of the
+# band's height, its hatch drawn in the neutral grey (4.1:1 on the white chart box in both
+# themes). No fade, which would read as "less probable".
+HATCH = "////"
+HATCH_LINEWIDTH = 0.6
+# Legend entries of a wide range chart wrap at about this many characters, two to a row.
+LEGEND_CHARS = 46
+
+
+def _hatched_segment(axis: plt.Axes, low: float, high: float, y: float, height: float) -> None:
+    """A hatched bar from ``low`` to ``high`` at row ``y``, ``height`` data units tall."""
+    patch = matplotlib.patches.Rectangle(
+        (low, y - height / 2),
+        high - low,
+        height,
+        facecolor=SURFACE,
+        edgecolor=NEUTRAL,
+        hatchcolor=NEUTRAL,
+        hatch=HATCH,
+        linewidth=HATCH_LINEWIDTH,
+        zorder=1.5,
+    )
+    patch.set_hatch_linewidth(HATCH_LINEWIDTH)
+    axis.add_patch(patch)
+
+
+def _hatch_handle(label: str) -> matplotlib.patches.Patch:
+    handle = matplotlib.patches.Patch(
+        facecolor=SURFACE,
+        edgecolor=NEUTRAL,
+        hatchcolor=NEUTRAL,
+        hatch=HATCH,
+        linewidth=HATCH_LINEWIDTH,
+        label=label,
+    )
+    handle.set_hatch_linewidth(HATCH_LINEWIDTH)
+    return handle
+
+
+def _flag(row: pd.Series, column: str) -> bool:
+    value = row.get(column, False)
+    return bool(value) if pd.notna(value) else False
+
+
 def estimate_and_range(
     frame: pd.DataFrame,
     path: Path,
@@ -1072,56 +1119,133 @@ def estimate_and_range(
     estimate_label: str = "",
     range_label: str = "",
     ticks: tuple[float, ...] = (0.5, 0.75, 1, 1.5, 2, 3, 4),
+    conditional_label: str = "",
+    hatch_label: str = "",
+    factor_label: str = "",
+    lines: list[tuple[float, str, str]] | None = None,
+    gap_after: list[str] | None = None,
+    show_whiskers: bool = True,
+    count_format: str = "{:,} involved",
+    label_width: int = NARROW_LABEL_CHARS,
 ) -> Path:
     """One row per ``label`` (first row at the top), on a log scale: an estimate with its 95%
-    interval where ``value`` is given, and a sensitivity range (``range_low`` to ``range_high``)
-    drawn as a broad light band behind it. A row with a range but no estimate, such as a
-    model-dependent figure, shows the band alone. ``reference_row`` marks the row every other is
-    compared with; it carries a hollow grey marker at ``reference``, as in the other charts.
+    sampling interval where ``value`` is given, and a sensitivity range (``range_low`` to
+    ``range_high``) drawn as a broad light band behind it. A row with a range but no estimate
+    shows the band alone. ``reference_row`` marks the row every other is compared with; it
+    carries a hollow grey marker at ``reference``, as in the other charts.
 
     The band and the whisker answer different questions, so they never share a look: the whisker
     is sampling error, the band is how far the estimate moves under other analytic choices.
+
+    Optional columns, each drawn only where present:
+
+    * ``clear_low``, ``clear_high``: the part of the band reached by unmarked combinations; the
+      rest of ``range_low`` to ``range_high`` is drawn as a hatched segment of the same height.
+    * ``conditional``: the estimate rests on a further assumption, drawn as a hollow accent
+      diamond instead of a filled dot.
+    * ``count``: a number shown on a second line under the row's label.
+    * ``group_start``: a thin rule above the row, opening a group of rows that are parts of the
+      row above.
+    * ``band_style``: ``"range"`` (the default band) or ``"factor"`` (a narrower, darker bar:
+      one choice changed with the others held).
+
+    ``lines`` adds labelled vertical lines, each ``(value, label, style)`` with style
+    ``"reference"`` (dotted, as the reference line) or ``"estimate"`` (thin dashed accent).
+    ``gap_after`` leaves extra room under the rows with those labels. The legend lists only the
+    elements drawn. A frame without the optional columns is drawn as before.
     """
     apply_style()
     ordered = frame.reset_index(drop=True)
-    labels = [
-        _fit(
-            f"{row['label']} (reference)" if bool(row.get("reference_row", False)) else row["label"]
-        )
-        for _, row in ordered.iterrows()
-    ]
+    has_counts = "count" in ordered and ordered["count"].notna().any()
+    labels = []
+    for _, row in ordered.iterrows():
+        text = f"{row['label']} (reference)" if _flag(row, "reference_row") else row["label"]
+        label = _fit(text, label_width)
+        if has_counts and pd.notna(row.get("count")):
+            # A blank line under the label, where the count is written in a smaller size.
+            label = f"{label}\n "
+        labels.append(label)
     positions = _row_positions(labels)
+    gaps = set(gap_after or ())
+    if gaps:
+        extra = np.zeros(len(labels))
+        for index, (_, row) in enumerate(ordered.iterrows()):
+            if row["label"] in gaps:
+                extra[index + 1 :] += 0.6
+        positions = positions - extra
+        positions = positions - positions[-1]
     top = positions[0]
-    height = max(2.6, 0.36 * (top + 1) + 1.6)
+    per_row = 0.46 if has_counts and not NARROW else 0.36
+    height = max(2.6, per_row * (top + 1) + 1.6)
     fig, axis = _subplots(figsize=(FIGURE_WIDTH, height))
+    hatched: list[tuple[float, float, float, float]] = []
+    present = {"estimate": False, "conditional": False, "range": False, "factor": False}
     for position, (_, row) in zip(positions, ordered.iterrows()):
-        if bool(row.get("reference_row", False)):
+        if _flag(row, "group_start"):
+            axis.axhline(position + 0.5, color=NEUTRAL, linewidth=0.6, zorder=0.5)
+        if _flag(row, "reference_row"):
             _dots(axis, [reference], [position], [reference], [reference], "reference")
             continue
+        style = str(row.get("band_style", "range")) if pd.notna(row.get("band_style")) else "range"
+        look = FACTOR_BAND if style == "factor" else RANGE_BAND
         if pd.notna(row.get("range_low")) and pd.notna(row.get("range_high")):
+            low, high = float(row.range_low), float(row.range_high)
+            clear_low = float(row.clear_low) if pd.notna(row.get("clear_low")) else low
+            clear_high = float(row.clear_high) if pd.notna(row.get("clear_high")) else high
             axis.hlines(
                 position,
-                float(row.range_low),
-                float(row.range_high),
-                color=NEUTRAL_LIGHT,
-                linewidth=8,
-                alpha=0.6,
+                clear_low,
+                clear_high,
+                color=look["color"],
+                linewidth=look["linewidth"],
+                alpha=look["alpha"],
                 capstyle="butt",
                 zorder=1,
             )
+            present[style] = True
+            for start, end in ((low, clear_low), (clear_high, high)):
+                if end > start * (1 + 1e-9):
+                    hatched.append((start, end, position, look["linewidth"]))
         if pd.notna(row.get("value")):
-            _dots(axis, [row.value], [position], [row.low], [row.high], "focal")
+            conditional = _flag(row, "conditional")
+            lows = [row.low] if show_whiskers else [row.value]
+            highs = [row.high] if show_whiskers else [row.value]
+            if conditional:
+                axis.hlines(
+                    position, lows[0], highs[0], color=ACCENT, linewidth=1.6, alpha=0.8, zorder=2
+                )
+                axis.plot(
+                    [row.value],
+                    [position],
+                    marker="D",
+                    markersize=6.0,
+                    markerfacecolor=SURFACE,
+                    markeredgecolor=ACCENT,
+                    markeredgewidth=1.4,
+                    linestyle="none",
+                    zorder=3,
+                )
+                present["conditional"] = True
+            else:
+                _dots(axis, [row.value], [position], lows, highs, "focal")
+                present["estimate"] = True
     _reference_line(axis, reference, vertical=True)
-    if reference_label:
-        axis.annotate(
-            reference_label,
-            (reference, top + 0.45),
-            xytext=(4, 0),
-            textcoords="offset points",
-            fontsize=NOTE_SIZE,
-            color=TEXT_SECONDARY,
-            va="center",
-        )
+    marks = [(reference, reference_label, "reference")] + list(lines or [])
+    for value, text, style in marks:
+        if style == "estimate":
+            axis.axvline(value, color=ACCENT, linewidth=0.9, linestyle=(0, (4, 2)), zorder=1.6)
+        elif value != reference:
+            _reference_line(axis, value, vertical=True)
+        if text:
+            axis.annotate(
+                _axis_text(text),
+                (value, top + 0.45),
+                xytext=(4, 0),
+                textcoords="offset points",
+                fontsize=NOTE_SIZE,
+                color=LABEL_SHADES[ACCENT] if style == "estimate" else TEXT_SECONDARY,
+                va="center",
+            )
     axis.set_xscale("log")
     axis.xaxis.set_major_locator(matplotlib.ticker.FixedLocator(list(ticks)))
     axis.xaxis.set_minor_locator(matplotlib.ticker.NullLocator())
@@ -1133,24 +1257,95 @@ def estimate_and_range(
     axis.grid(True, axis="x")
     axis.grid(False, axis="y")
     axis.set_ylim(-0.7, top + 0.7)
-    handles = [
-        matplotlib.lines.Line2D(
-            [],
-            [],
-            color=ACCENT,
-            marker="o",
-            markersize=6.5,
-            markeredgecolor=SURFACE,
-            linewidth=1.6,
-            label=_axis_text(estimate_label),
-        ),
-        matplotlib.lines.Line2D(
-            [], [], color=NEUTRAL_LIGHT, linewidth=8, alpha=0.6, label=_axis_text(range_label)
-        ),
-    ]
-    _legend_below(axis, -0.16, 1, handles=handles)
+    handles = []
+    legacy = not any(
+        column in ordered for column in ("clear_low", "conditional", "count", "band_style")
+    )
+
+    def entry(text: str) -> str:
+        # Two columns of entries under a wide chart, each wrapped to half its width.
+        return _axis_text(text) if legacy or NARROW else _wrap(text, LEGEND_CHARS)
+
+    if legacy or present["estimate"]:
+        handles.append(
+            matplotlib.lines.Line2D(
+                [],
+                [],
+                color=ACCENT,
+                marker="o",
+                markersize=6.5,
+                markeredgecolor=SURFACE,
+                linewidth=1.6,
+                label=entry(estimate_label),
+            )
+        )
+    if present["conditional"]:
+        handles.append(
+            matplotlib.lines.Line2D(
+                [],
+                [],
+                color=ACCENT,
+                marker="D",
+                markersize=6.0,
+                markerfacecolor=SURFACE,
+                markeredgecolor=ACCENT,
+                markeredgewidth=1.4,
+                linewidth=1.6,
+                label=entry(conditional_label),
+            )
+        )
+    if legacy or present["range"]:
+        handles.append(
+            matplotlib.lines.Line2D(
+                [], [], color=NEUTRAL_LIGHT, linewidth=8, alpha=0.6, label=entry(range_label)
+            )
+        )
+    if present["factor"]:
+        handles.append(
+            matplotlib.lines.Line2D(
+                [],
+                [],
+                color=FACTOR_BAND["color"],
+                linewidth=FACTOR_BAND["linewidth"],
+                label=entry(factor_label),
+            )
+        )
+    if hatched:
+        handles.append(_hatch_handle(entry(hatch_label)))
+    columns = 2 if not legacy and not NARROW and len(handles) > 2 else 1
+    _legend_below(axis, -0.16, columns, handles=handles)
     _title(path, title)
     axis.set_xlabel(_axis_text(xlabel))
+    if hatched or has_counts:
+        # The hatched segments and the counts are placed once the layout is final, so that a
+        # segment is exactly as tall as its band and a count sits under its label.
+        fig.draw_without_rendering()
+        y0, y1 = axis.transData.transform([(1, 0), (1, 1)])[:, 1]
+        points_per_unit = (y1 - y0) * 72 / fig.dpi
+        for low, high, position, width in hatched:
+            _hatched_segment(axis, low, high, position, width / points_per_unit)
+        if has_counts:
+            renderer = fig.canvas.get_renderer()
+            for tick, position, (_, row) in zip(
+                axis.yaxis.get_major_ticks(), positions, ordered.iterrows()
+            ):
+                if pd.isna(row.get("count")):
+                    continue
+                box = tick.label1.get_window_extent(renderer)
+                lines_of_label = tick.label1.get_text().count("\n") + 1
+                line_points = box.height / lines_of_label * 72 / fig.dpi
+                axis.annotate(
+                    count_format.format(int(row["count"])),
+                    (0, position),
+                    xycoords=axis.get_yaxis_transform(),
+                    xytext=(-tick.get_pad(), -(lines_of_label - 1) / 2 * line_points),
+                    textcoords="offset points",
+                    fontsize=NOTE_SIZE,
+                    color=TEXT_SECONDARY,
+                    ha="right",
+                    va="center",
+                    annotation_clip=False,
+                )
     return save(fig, path)
 
 
