@@ -158,13 +158,13 @@ L 552.903344 5.76
     <g id="ytick_4">
      <g id="line2d_16"/>
      <g id="text_11">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="125.699062" y="138.397464" transform="rotate(-0 125.699062 138.397464)">Age mix of the unexplained km</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="125.699062" y="138.397464" transform="rotate(-0 125.699062 138.397464)">Trip-to-km conversion</text>
      </g>
     </g>
     <g id="ytick_5">
      <g id="line2d_17"/>
      <g id="text_12">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="125.699062" y="168.445944" transform="rotate(-0 125.699062 168.445944)">Trip-to-km conversion</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="125.699062" y="168.445944" transform="rotate(-0 125.699062 168.445944)">Age mix of the unexplained km</text>
      </g>
     </g>
     <g id="ytick_6">
@@ -182,27 +182,27 @@ L 552.903344 5.76
    </g>
    <g id="LineCollection_1">
     <path d="M 269.09287 26.793936 
-L 505.732808 26.793936 
-" clip-path="url(#pe031437307)" style="fill: none; stroke: #bdbdb8; stroke-opacity: 0.6; stroke-width: 8"/>
+L 499.65846 26.793936 
+" clip-path="url(#pe031437307)" style="fill: none; stroke: #d7d7d4; stroke-width: 8"/>
    </g>
    <g id="LineCollection_2">
     <path d="M 350.361631 74.871504 
-L 472.261048 74.871504 
+L 485.434003 74.871504 
 " clip-path="url(#pe031437307)" style="fill: none; stroke: #8f8f8a; stroke-width: 5"/>
    </g>
    <g id="LineCollection_3">
     <path d="M 348.13475 104.919984 
-L 414.710642 104.919984 
+L 398.574605 104.919984 
 " clip-path="url(#pe031437307)" style="fill: none; stroke: #8f8f8a; stroke-width: 5"/>
    </g>
    <g id="LineCollection_4">
-    <path d="M 353.61529 134.968464 
-L 418.001317 134.968464 
+    <path d="M 381.904636 134.968464 
+L 434.020139 134.968464 
 " clip-path="url(#pe031437307)" style="fill: none; stroke: #8f8f8a; stroke-width: 5"/>
    </g>
    <g id="LineCollection_5">
-    <path d="M 381.904636 165.016944 
-L 434.020139 165.016944 
+    <path d="M 365.943318 165.016944 
+L 418.001317 165.016944 
 " clip-path="url(#pe031437307)" style="fill: none; stroke: #8f8f8a; stroke-width: 5"/>
    </g>
    <g id="LineCollection_6">
@@ -242,6 +242,15 @@ L 394.329324 5.76
 " clip-path="url(#pe031437307)" style="fill: none; stroke-dasharray: 3.6,1.8; stroke-dashoffset: 0; stroke: #1a8eab; stroke-width: 0.9"/>
    </g>
    <g id="patch_5">
+    <path d="M 216.689699 30.793936 
+L 499.65846 30.793936 
+L 499.65846 22.793936 
+L 216.689699 22.793936 
+L 216.689699 30.793936 
+z
+" clip-path="url(#pe031437307)" style="fill: none; stroke: #7d7d78; stroke-width: 0.75; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_6">
     <path d="M 129.199062 246.14784 
 L 575.599062 246.14784 
 " style="fill: none; stroke: #b5b5b0; stroke-width: 0.8; stroke-linejoin: miter; stroke-linecap: square"/>
@@ -253,16 +262,18 @@ L 575.599062 246.14784
     <text style="font-size: 8.5px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: start; fill: #0b7285" x="398.329324" y="15.49912" transform="rotate(-0 398.329324 15.49912)">Madrid pattern 2.06</text>
    </g>
    <g id="legend_1">
-    <g id="line2d_22">
-     <path d="M 137.299062 303.986613 
-L 148.099063 303.986613 
-L 158.899062 303.986613 
-" style="fill: none; stroke: #bdbdb8; stroke-opacity: 0.6; stroke-width: 8; stroke-linecap: round"/>
+    <g id="patch_7">
+     <path d="M 137.299062 307.136613 
+L 158.899062 307.136613 
+L 158.899062 300.836613 
+L 137.299062 300.836613 
+z
+" style="fill: #d7d7d4; stroke: #7d7d78; stroke-width: 0.75; stroke-linejoin: miter"/>
     </g>
     <g id="text_17">
      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: start; fill: #1b1b1b" x="166.099063" y="307.136613" transform="rotate(-0 166.099063 307.136613)">Sensitivity range: all combinations tested</text>
     </g>
-    <g id="line2d_23">
+    <g id="line2d_22">
      <path d="M 137.299062 325.055332 
 L 148.099063 325.055332 
 L 158.899062 325.055332 
@@ -272,7 +283,7 @@ L 158.899062 325.055332
      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #1b1b1b" transform="translate(166.099063 321.761613)">One choice changed, the others as in the</text>
      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #1b1b1b" transform="translate(166.099063 333.011613)">Madrid-pattern estimate</text>
     </g>
-    <g id="patch_6">
+    <g id="patch_8">
      <path d="M 339.215469 307.136613 
 L 360.815469 307.136613 
 L 360.815469 300.836613 
