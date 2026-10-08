@@ -171,7 +171,8 @@ census share as a sensitivity analysis.
 
 The public files publish age only in the groups above; none has exact age, and none separates
 65–74 from 75 and over. This is a disclosure-control choice, not a gap in collection. The
-methodology report for 2003–2018 (*Organització, disseny operatiu i metodologia*, Table 5) shows
+methodology report for 2003–2018 (*Organització, disseny operatiu i metodologia*, Table 5 on page
+19 and its note 5; archived as `data/raw/emef/docs/emef_methodology_2003_2018.pdf`) shows
 that 65–74 and 75 and over were separate **sampling strata** from 2008 to 2016, and were merged
 from 2017 "because of the difficulty of obtaining responses from this last age group and because
 results are not given disaggregated". The questionnaire also filters on exact age (for example,
@@ -184,7 +185,10 @@ is a conditional estimate drawn from other evidence
 
 **The P1b routing.** Question P1b (`V01B`, paid work last week) is filtered "P1a=3 i edat<75": it
 is not asked of respondents who answer P1a as retired, pensioner or aged 75 and over (code 3) and
-are aged 75 or over. A respondent aged 65 or over, not in work, with `V01B` blank is therefore a
+are aged 75 or over. The filter is read in the archived 2014, 2015, 2016, 2022 and 2023
+questionnaires (`data/raw/emef/<year>/emef_<year>_questionnaire.pdf`) and, for 2024, on page 90
+of the archived executive summary; the 2017–2021 questionnaires were read on omc.cat but are not
+archived, and no code uses those years for this. A respondent aged 65 or over, not in work, with `V01B` blank is therefore a
 retiree aged 75 or over (`emef.older_routing.routing_flag`). The identification holds against
 INE's population in 2014 (weighted share of the 65+ sample: men 0.46 against 0.45, women 0.55
 against 0.54) and roughly in 2016, but not in 2015, nor from 2017, when the share falls to

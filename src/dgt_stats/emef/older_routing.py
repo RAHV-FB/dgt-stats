@@ -5,8 +5,12 @@ The public files give one age group for everyone aged 65 and over. One question 
 the age within it: P1b ("did you work for pay last week, even for one hour?", variable ``V01B``)
 is asked of everyone who is not in work, except those who answer P1a as retired, pensioner or
 aged 75 and over (code 3) and are aged 75 or over; the questionnaires' filter reads "P1a=3 i
-edat<75" (2014-2016, 2020-2023 questionnaires; 2024 executive summary, page 90). A respondent
-aged 65 or over, not in work, with ``V01B`` blank, is therefore a retiree aged 75 or over.
+edat<75". The filter is read from archived sources for every year this module uses: the 2022 and
+2023 questionnaires (``data/raw/emef/2022/emef_2022_questionnaire.pdf``,
+``data/raw/emef/2023/emef_2023_questionnaire.pdf``) and the 2024 executive summary
+(``data/raw/emef/2024/emef_2024_executive_summary.pdf``, page 90); the 2014-2016 questionnaires,
+read for the validation in the documents, are archived beside their years. A respondent aged 65
+or over, not in work, with ``V01B`` blank, is therefore a retiree aged 75 or over.
 
 The flag finds only retirees: people aged 75 and over who report another situation are asked P1b
 and are not found. The weighted share of flagged respondents in the 65-and-over group is
