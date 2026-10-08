@@ -361,7 +361,11 @@ main { padding: var(--space-7) 0 var(--space-7); min-width: 0; }
 .compare-note { margin: var(--space-4) 0 0; font-size: var(--text-base); }
 
 /* ------------------------------------------------------------------ calculator */
-.calculator { margin: var(--space-6) 0; max-width: var(--measure); }
+/* The form, then a panel with the result and the comparison. Where the calculator has room, the
+   panel sits beside the form and stays in view while the form scrolls, so that changing an input
+   never moves the estimate off the screen; on a phone it follows the form. */
+.calculator { margin: var(--space-6) 0; max-width: var(--wide); container-type: inline-size; }
+.calc-layout > form, .calc-panel { max-width: var(--measure); }
 .calculator form { margin: 0; }
 .calculator fieldset {
   margin: 0 0 var(--space-5); padding: 0; border: 0; border-top: 1px solid var(--rule);
@@ -386,14 +390,25 @@ main { padding: var(--space-7) 0 var(--space-7); min-width: 0; }
 .calculator select:focus-visible, .calculator input:focus-visible, .calc-actions button:focus-visible {
   outline: 3px solid var(--mark); outline-offset: 2px;
 }
-.calc-result, .calc-baseline { border-top: 2px solid var(--mark); padding: var(--space-4) 0; }
-.calc-baseline { border-top: 1px solid var(--rule); }
+.calc-result, .calc-baseline { border-top: 1px solid var(--rule); padding: var(--space-4) 0; }
 .calc-value { margin: 0; font-size: 2.25rem; font-weight: 500; line-height: 1.05; font-variant-numeric: tabular-nums lining-nums; }
 .calc-label, .calc-compare { margin: var(--space-2) 0 0; font-size: var(--text-base); }
 .calc-note, .calc-kept { margin: var(--space-2) 0 0; font-size: var(--text-sm); color: var(--text-muted); }
 .calc-warnings { margin: var(--space-3) 0 0; padding-left: 1.2em; font-size: var(--text-sm); }
 .calc-result[data-state="error"] { border-top-color: var(--rule-strong); }
 .calc-error-title { margin: 0; font-weight: 600; }
+@container (min-width: 50rem) {
+  .calc-layout {
+    display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+    column-gap: var(--space-6); align-items: start;
+  }
+  .calc-panel {
+    position: sticky; top: var(--space-4);
+    max-height: calc(100vh - 2 * var(--space-4)); overflow-y: auto;
+  }
+  .calc-baseline { padding-bottom: 0; }
+  .calc-label, .calc-compare { font-size: var(--text-sm); }
+}
 
 /* ------------------------------------------------------------------ facts (model summaries) */
 .facts {

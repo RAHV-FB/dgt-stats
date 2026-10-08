@@ -210,19 +210,27 @@ def test_the_front_page_is_a_research_overview(built: dict[str, str]) -> None:
 def test_the_models_page_leads_with_predicted_against_observed(built: dict[str, str]) -> None:
     visible = _visible(built["severity-models"])
     main = _main(built["severity-models"])
-    # Predicted against observed, then the plain conclusion, then the calculator, then what the
-    # model shows and a short method; scores tables stay in the research documents.
+    # Predicted against observed, then the calculator, then what the model shows and a short
+    # method; scores tables stay in the research documents. The headings say what each finds.
     headings = re.findall(r"<h2[^>]*>(.*?)</h2>", main, re.S)
     assert headings[:4] == [
-        "Predicted and observed",
+        "The estimates matched what happened in later years",
         "Try the model",
-        "What the model shows",
-        "How it was built and tested",
+        "Crashes involving a heavy vehicle: about twice the fatal share",
+        "How the model was built",
     ]
     assert main.find("sev1_predicted_observed") < main.find('id="calculator"')
-    # Ranking skill is said in plain words, never as a bare score.
-    assert "ROC-AUC" not in visible
-    assert "times in 100" in visible
+    # One name for the published model, and one scale for ranking skill, shared with the
+    # External validation page: ROC-AUC to two decimals, explained once in plain words.
+    assert "the Catalan severity model" in visible
+    assert "times in 100" not in visible
+    gloss = "given one fatal and one non-fatal crash, the share of pairs in which the fatal one"
+    assert visible.count(gloss) == 1
+    assert not re.search(r"ROC-AUC[^.]*\b0\.\d{3}\b", visible)
+    # The calculator's result and comparison share a panel that sits beside the form when there
+    # is room; the interval's scope is said beside the interval, not only in the limitations.
+    assert '<div class="calc-layout"><form>' in main and '<div class="calc-panel">' in main
+    assert "uncertainty of its coefficients" not in visible
     # What the calculator answers, and what its inputs are not, are said in plain words.
     assert "a posted limit is not a speed" in visible.lower()
     assert "cannot say whether a crash will happen" in visible
