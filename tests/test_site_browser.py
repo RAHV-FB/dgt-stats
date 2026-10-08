@@ -126,6 +126,11 @@ def _percent(value: float) -> str:
     return f"{100 * value:.1f}%"
 
 
+def _range(low: float, high: float) -> str:
+    """An interval with the unit once, as the site writes it: '9.2–12.8%'."""
+    return f"{100 * low:.1f}–{_percent(high)}"
+
+
 def _shown(page) -> str:
     return re.sub(r"\s+", " ", page.text_content("[data-output]"))
 
@@ -136,8 +141,11 @@ def test_reference_crashes_match_python(calculator) -> None:
     regional = sm.predict_exported(model, sm.REFERENCE_SCENARIO)
     text = _shown(calculator)
     assert text.startswith(_percent(regional["probability"]))
-    assert f"{_percent(regional['low'])}–{_percent(regional['high'])}" in text
-    assert "95% confidence interval" in text and "within 24 hours" in text
+    assert f"95% confidence interval: {_range(regional['low'], regional['high'])}" in text
+    assert "within 24 hours" in text
+    # Beside the interval, what it leaves out.
+    assert "only the uncertainty in the model's coefficients" in text
+    assert "not the differences between places and years" in text
     calculator.select_option("#calc-road", "urban_street")
     urban = sm.predict_exported(model, sm.URBAN_REFERENCE)
     assert _shown(calculator).startswith(_percent(urban["probability"]))
@@ -180,6 +188,10 @@ def test_comparison_matches_python(calculator) -> None:
     assert f"{expected['ratio']:.2f} times the share" in text
     assert f"{expected['ratio_low']:.2f}–{expected['ratio_high']:.2f}" in text
     assert "percentage points" in text and "not the effect of changing" in text
+    # The kept crash is named by what differs from the crash on the form.
+    kept = sm.predict_exported(model, sm.REFERENCE_SCENARIO)
+    assert f"({_percent(kept['probability'])}, {_range(kept['low'], kept['high'])})" in text
+    assert "differs from this one in road users involved (A car or van)" in text
     calculator.click("[data-clear]")
     assert "Keep this crash" in calculator.text_content("[data-baseline]")
 
@@ -193,7 +205,9 @@ def test_a_refused_crash_shows_no_comparison(calculator) -> None:
     assert "No estimate" in _shown(calculator)
     baseline = calculator.text_content("[data-baseline]")
     assert "times the share" not in baseline and "No comparison" in baseline
-    assert "Kept crash:" in baseline
+    # The kept crash is still named, by the inputs to change back.
+    assert "The kept crash differs from this one in" in baseline
+    assert "type of crash (Side or angle collision)" in baseline
 
 
 def test_roads_through_towns_show_their_average(calculator) -> None:
@@ -235,6 +249,49 @@ def test_keyboard_alone_operates_the_calculator(calculator) -> None:
             "(el) => document.querySelector(`label[for='${el.id}']`)?.textContent", control
         )
         assert label, control.get_attribute("id")
+
+
+LAPTOP = {"width": 1280, "height": 760}
+
+
+def _box(page, selector: str) -> dict:
+    return page.evaluate(
+        "(s) => { const b = document.querySelector(s).getBoundingClientRect();"
+        " return {top: b.top, bottom: b.bottom, left: b.left, right: b.right}; }",
+        selector,
+    )
+
+
+def test_on_a_laptop_the_estimate_stays_beside_the_form(browser, server) -> None:
+    """Changing an input anywhere in the form leaves the estimate on the screen."""
+    page = browser.new_page(viewport=LAPTOP)
+    page.goto(f"{server}/{PAGE}", wait_until="networkidle")
+    page.wait_for_selector("#calculator:not([hidden])")
+    form, panel = _box(page, ".calc-layout > form"), _box(page, ".calc-panel")
+    assert panel["left"] >= form["right"]
+    assert abs(panel["top"] - form["top"]) < 2
+    # The last input of the form: once it is on screen and changed, the new estimate is too.
+    last = 'input[name="users"][value="heavy_vehicle"]'
+    page.locator(last).scroll_into_view_if_needed()
+    page.check(last)
+    value = _box(page, ".calc-value")
+    assert 0 <= value["top"] and value["bottom"] <= LAPTOP["height"], value
+    expected = sm.predict_exported(_model(), sm.REFERENCE_SCENARIO | {"heavy_vehicle": 1})
+    assert page.text_content(".calc-value") == _percent(expected["probability"])
+    page.close()
+
+
+def test_on_a_phone_the_estimate_follows_the_form_and_is_announced(browser, server) -> None:
+    page = browser.new_page(viewport=PHONE)
+    page.goto(f"{server}/{PAGE}", wait_until="networkidle")
+    page.wait_for_selector("#calculator:not([hidden])")
+    form, panel = _box(page, ".calc-layout > form"), _box(page, ".calc-panel")
+    assert panel["top"] >= form["bottom"] - 1
+    page.select_option("#calc-lighting", "night_unlit")
+    expected = sm.predict_exported(_model(), sm.REFERENCE_SCENARIO | {"lighting": "night_unlit"})
+    announced = f"Estimate {_percent(expected['probability'])}, interval"
+    page.locator("[data-status]", has_text=announced).wait_for(state="attached")
+    page.close()
 
 
 def test_an_impossible_crash_is_refused(calculator) -> None:

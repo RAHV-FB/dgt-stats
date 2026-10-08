@@ -41,6 +41,11 @@
     return (100 * value).toFixed(1) + "%";
   }
 
+  // An interval with the unit once, as on the rest of the site: "low–high%".
+  function range(low, high) {
+    return (100 * low).toFixed(1) + "–" + percent(high);
+  }
+
   function points(value) {
     var shown = (100 * value).toFixed(1);
     if (Number(shown) === 0) shown = (0).toFixed(1);
@@ -85,18 +90,27 @@
     return level ? level.label : value;
   }
 
-  function describe(scenario) {
+  function shown(name, scenario) {
+    var input = model.inputs[name];
+    if (input.type === "flags") {
+      var ticked = input.levels.filter(function (level) { return scenario[level.value]; });
+      return ticked.map(function (l) { return l.label; }).join(", ") || "none";
+    }
+    return levelLabel(name, scenario[name]);
+  }
+
+  // The kept crash, named by the inputs in which it differs from the crash on the form, so that
+  // the comparison stays short beside the form and says what to change back.
+  function describeKept(scenario) {
     var parts = [];
     Object.keys(model.inputs).forEach(function (name) {
-      var input = model.inputs[name];
-      if (input.type === "flags") {
-        var ticked = input.levels.filter(function (level) { return scenario[level.value]; });
-        parts.push(input.label + ": " + ticked.map(function (l) { return l.label; }).join(", "));
-      } else {
-        parts.push(input.label + ": " + levelLabel(name, scenario[name]));
+      var kept = shown(name, baseline);
+      if (kept !== shown(name, scenario)) {
+        parts.push(model.inputs[name].label.toLowerCase() + " (" + kept + ")");
       }
     });
-    return parts.join("; ");
+    if (!parts.length) return "The kept crash has the same inputs as this one.";
+    return "The kept crash differs from this one in " + parts.join("; ") + ".";
   }
 
   function ruleText(id, rare) {
@@ -119,7 +133,7 @@
 
   // The comparison area when the current crash has no estimate: no numbers, but the kept crash
   // is still named so that the reader can return to a valid crash or clear it.
-  function noComparison(message) {
+  function noComparison(message, scenario) {
     baselineBox.textContent = "";
     if (!baseline) {
       clear.hidden = true;
@@ -127,7 +141,7 @@
     }
     clear.hidden = false;
     baselineBox.appendChild(text("p", message, "calc-note"));
-    baselineBox.appendChild(text("p", "Kept crash: " + describe(baseline) + ".", "calc-kept"));
+    baselineBox.appendChild(text("p", describeKept(scenario), "calc-kept"));
   }
 
   function render() {
@@ -141,7 +155,7 @@
       output.appendChild(list);
       output.setAttribute("data-state", "error");
       keep.disabled = true;
-      noComparison("No comparison until the crash above has an estimate.");
+      noComparison("No comparison until this crash has an estimate.", scenario);
       announce("No estimate: " + checked.errors.map(function (id) { return ruleText(id); }).join(" "));
       return;
     }
@@ -163,7 +177,7 @@
           "calc-label"
         )
       );
-      noComparison("No comparison: roads through towns have no estimate of their own.");
+      noComparison("No comparison: roads through towns have no estimate of their own.", scenario);
       announce("Roads through towns: " + percent(local) + " were fatal on average.");
       return;
     }
@@ -175,11 +189,18 @@
     output.appendChild(
       text(
         "p",
-        "of crashes like this one, among crashes in Catalonia in which someone was killed or " +
-          "seriously injured, are estimated to have been fatal (someone died within 24 hours). " +
-          "95% confidence interval for this share: " + percent(result.low) + "–" +
-          percent(result.high) + ".",
+        "of crashes like this one with a death or serious injury in Catalonia are estimated to " +
+          "have been fatal (someone died within 24 hours). 95% confidence interval: " +
+          range(result.low, result.high) + ".",
         "calc-label"
+      )
+    );
+    output.appendChild(
+      text(
+        "p",
+        "The interval covers only the uncertainty in the model's coefficients, not the " +
+          "differences between places and years described on this page.",
+        "calc-note"
       )
     );
     output.appendChild(
@@ -197,8 +218,8 @@
           "–" + model.training.years[1] + " share this zone, crash type, road users and number " +
           "involved" +
           (similar.crashes
-            ? ", and " + similar.fatal.toLocaleString("en") + " of them were fatal. They differ " +
-              "in other ways, so their own share can differ from the estimate."
+            ? "; " + similar.fatal.toLocaleString("en") + " of them were fatal. Their other " +
+              "inputs differ, so their share need not match the estimate."
             : "."),
         "calc-note"
       )
@@ -236,34 +257,27 @@
     clear.hidden = false;
     var kept = engine.predict(baseline);
     var comparison = engine.compare(scenario, baseline);
-    baselineBox.appendChild(
-      text(
-        "p",
-        "Kept crash: " + percent(kept.probability) + " (" + percent(kept.low) + "–" +
-          percent(kept.high) + ").",
-        "calc-note"
-      )
-    );
     var ratio = comparison.ratio.toFixed(2);
     baselineBox.appendChild(
       text(
         "p",
-        "This crash against the kept one: " + ratio + " times the share (95% confidence " +
+        "This crash against the kept one (" + percent(kept.probability) + ", " +
+          range(kept.low, kept.high) + "): " + ratio + " times the share (95% confidence " +
           "interval " + comparison.ratio_low.toFixed(2) + "–" + comparison.ratio_high.toFixed(2) +
           "), a difference of " + points(comparison.difference) + " percentage points (" +
           points(comparison.difference_low) + " to " + points(comparison.difference_high) + ").",
         "calc-compare"
       )
     );
+    baselineBox.appendChild(text("p", describeKept(scenario), "calc-kept"));
     baselineBox.appendChild(
       text(
         "p",
-        "Both are estimates for kinds of recorded crash. The difference is an association in " +
-          "police records, not the effect of changing that circumstance on a real road.",
+        "The difference is an association in police records, not the effect of changing that " +
+          "circumstance on a real road.",
         "calc-note"
       )
     );
-    baselineBox.appendChild(text("p", "Kept crash: " + describe(baseline) + ".", "calc-kept"));
     return ratio + " times the kept crash.";
   }
 
