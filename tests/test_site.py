@@ -250,7 +250,7 @@ def test_severity_page_leads_with_the_adverse_finding(built: Path) -> None:
     assert 'href="tables/q3_model_coefficients.csv"' in text
     assert text.count("<table>") <= 4
     # The summary names location beside crash type, from the joint zone and road-type contrast,
-    # and gives the junction association by coding period, not pooled across the change.
+    # and gives the junction association with the inverted Catalan flag read the other way round.
     opening = re.search(r'<p class="summary">(.*?)</p>', text, re.S).group(1)
     locations = pd.read_csv(TABLES_DIR / "q3_location_contrasts.csv")
     conventional = locations[
@@ -260,15 +260,31 @@ def test_severity_page_leads_with_the_adverse_finding(built: Path) -> None:
     ].iloc[0]
     assert f"{conventional.odds_ratio:.2f} times the odds" in opening
     assert "side or front-side collision" in opening
+    junction = coefficients[
+        (coefficients.outcome == "fatal") & (coefficients.level == "at a junction")
+    ].iloc[0]
+    assert f"({junction.odds_ratio:.2f}, {junction.or_low:.2f}–{junction.or_high:.2f})" in opening
+    assert "read the other way round" in opening
+    assert "in every model variant, and so does that of the junction" not in text
+    # The junction section states the coding problem, how it was corrected, the period refits
+    # and the alternatives, every number from the tables.
+    sensitivity = pd.read_csv(TABLES_DIR / "q3_junction_sensitivity.csv")
+    full = sensitivity[(sensitivity.outcome == "fatal") & (sensitivity.fit == "full")]
+    full = full.set_index("treatment")
+    for treatment in ("junction type", "unrecorded", "as published"):
+        assert f"{full.loc[treatment, 'odds_ratio']:.2f}" in text, treatment
+    recoded = int(pd.read_csv(TABLES_DIR / "q3_junction_coding.csv").recoded.sum())
+    assert f"{recoded:,} crashes" in text
     periods = pd.read_csv(TABLES_DIR / "q3_period_refits.csv")
-    junction = periods[
+    later = periods[
         (periods.outcome == "fatal")
         & (periods.level == "at a junction")
         & (periods.scope == "all provinces")
-    ].set_index("period")
-    for period in ("before", "from"):
-        assert f"({junction.loc[period, 'odds_ratio']:.2f}" in opening
-    assert "in every model variant, and so does that of the junction" not in text
+        & (periods.period == "from")
+    ].iloc[0]
+    assert f"{later.odds_ratio:.2f} ({later.or_low:.2f}–{later.or_high:.2f})" in text
+    assert 'href="tables/q3_junction_sensitivity.csv"' in text
+    assert "until the coding changed" not in text and "only the junction term" not in text
     # The ranking is quoted with what the missing-value levels contribute to it, as ROC-AUC to
     # two decimals, the scale of the severity model and validation pages.
     recorded_only = holdout.loc["fatal", "auc_recorded_only"]
@@ -814,6 +830,13 @@ def test_coding_breaks_describe_the_inverted_catalan_junction_flag(built: Path) 
     assert components._fmt_pct(first.cat_share_between_junctions) in block
     # The "other" road group and code 14 are named apart.
     assert "“other” road group" in block and "code 14" in block
+    # How the association analysis treats the inverted years, from the table it reads.
+    assert "reads the flag the other way round in those province-years" in block
+    assert "read from the years before it" not in block
+    read = pd.read_csv(TABLES_DIR / "q3_junction_coding.csv")
+    read = read[(read.region == "Catalonia") & (read.recoded > 0)]
+    for row in read.itertuples():
+        assert f"{components._fmt_pct(row.share_at_junction, 0)} in {row.year}" in block
 
 
 def test_forecast_page_is_withdrawn_and_says_why(built: Path) -> None:

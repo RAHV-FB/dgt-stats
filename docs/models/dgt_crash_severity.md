@@ -15,7 +15,7 @@ Describe which circumstances the police record for an injury crash go with a fat
 
 ## Features
 
-Every predictor is a circumstance the police record on the crash form. Levels with fewer than 500 crashes are merged into the reference: on all years for the full models, on the training years alone for the holdout check. Road-type codes 5 and 6 (conventional roads with one or two carriageways) are one level, because DGT recoded most code-5 crashes as code 6 from 2021.
+Every predictor is a circumstance the police record on the crash form. Levels with fewer than 500 crashes are merged into the reference: on all years for the full models, on the training years alone for the holdout check. Road-type codes 5 and 6 (conventional roads with one or two carriageways) are one level, because DGT recoded most code-5 crashes as code 6 from 2021. The junction flag (`NUDO`) of DGT's records for Cataluña is the wrong way round in 2023-2024; the model reads it the other way round there (47,705 crashes, `q3_junction_coding`).
 
 | predictor | source column | reference level | other levels |
 |---|---|---|---|
@@ -38,10 +38,10 @@ A check that the associations carry across years, not a measure of a predictive 
 
 | target | train years | test years | test crashes | test events | training base rate | AUC | AUC, recorded values only | AUC, missing states only | Brier | Brier, training base rate | Brier skill |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| fatal | 2016-2022 | 2023-2024 | 203,302 | 3,336 | 1.64% | 0.801 | 0.783 | 0.538 | 0.01547 | 0.01614 | 4.2% |
-| serious | 2016-2022 | 2023-2024 | 203,302 | 19,820 | 9.40% | 0.693 | 0.671 | 0.537 | 0.08338 | 0.08800 | 5.3% |
+| fatal | 2016-2022 | 2023-2024 | 203,302 | 3,336 | 1.64% | 0.803 | 0.782 | 0.538 | 0.01544 | 0.01614 | 4.3% |
+| serious | 2016-2022 | 2023-2024 | 203,302 | 19,820 | 9.40% | 0.694 | 0.671 | 0.537 | 0.08327 | 0.08800 | 5.4% |
 
-In the top decile of fitted probability the observed share is fatal 7.2% against 7.6% predicted; serious 24.6% against 25.2% predicted (`q3_calibration`).
+In the top decile of fitted probability the observed share is fatal 7.2% against 7.7% predicted; serious 24.8% against 25.3% predicted (`q3_calibration`).
 
 ## Nuisance levels
 
@@ -49,10 +49,10 @@ The missing states (a field's own unknown code, not specified) are levels of the
 
 | level | crashes | fatal odds ratio |
 |---|---|---|
-| Lighting: not specified | 897 | 0.43 (0.13 to 1.44) |
-| Weather: unknown | 22,584 | 0.84 (0.69 to 1.02) |
-| Weather: not specified | 32,211 | 0.74 (0.58 to 0.96) |
-| Road surface: unknown | 18,551 | 1.18 (0.85 to 1.64) |
+| Lighting: not specified | 897 | 0.42 (0.13 to 1.43) |
+| Weather: unknown | 22,584 | 0.84 (0.69 to 1.01) |
+| Weather: not specified | 32,211 | 0.74 (0.57 to 0.95) |
+| Road surface: unknown | 18,551 | 1.17 (0.84 to 1.63) |
 | Road surface: not specified | 547 | not estimated |
 | Alignment: unknown | 78,990 | 0.12 (0.07 to 0.19) |
 
@@ -75,20 +75,20 @@ The fatal model refitted without provinces 8, 17, 25, 43: 32 of the 32 odds rati
 
 | term | full model | without Cataluña |
 |---|---|---|
-| Zone: urban crossing | 4.18 (2.36 to 7.41) | 2.57 (1.90 to 3.47) |
-| Zone: interurban road | 3.20 (1.76 to 5.81) | 2.00 (1.57 to 2.56) |
-| Road type: other road | 1.79 (1.26 to 2.53) | 2.40 (1.94 to 2.97) |
-| Zone: urban motorway or dual carriageway | 1.38 (0.50 to 3.85) | 0.95 (0.37 to 2.41) |
-| Road type: autovía | 2.13 (1.51 to 3.02) | 2.73 (2.13 to 3.50) |
-| Road type: conventional | 2.09 (1.44 to 3.03) | 2.68 (2.09 to 3.43) |
+| Zone: urban crossing | 4.28 (2.41 to 7.62) | 2.57 (1.90 to 3.47) |
+| Zone: interurban road | 3.24 (1.80 to 5.85) | 2.00 (1.57 to 2.56) |
+| Road type: other road | 1.74 (1.23 to 2.47) | 2.40 (1.94 to 2.97) |
+| Zone: urban motorway or dual carriageway | 1.39 (0.50 to 3.86) | 0.95 (0.37 to 2.41) |
+| Road type: autovía | 2.08 (1.47 to 2.94) | 2.73 (2.13 to 3.50) |
+| Road type: conventional | 2.04 (1.41 to 2.96) | 2.68 (2.09 to 3.43) |
 
 ## Other checks
 
-- Adverse conditions under 8 model variants (`q3_adverse_conditions`): wet surface without the weather predictor 0.56 (0.49 to 0.64), at a junction 0.75 (0.69 to 0.81) (fatal).
-- The junction odds ratio by coding period (`q3_period_refits`): 0.69 (0.65 to 0.72) in 2016-2022, 0.98 (0.76 to 1.28) in 2023-2024, after DGT's records for Cataluña began to code the junction flag the wrong way round (crashes between junctions as at a junction and the reverse; `dgt_audit_junction_coding`), so the share of Catalan crashes coded at a junction went from 39.6% to 62.8%; outside Cataluña 0.74 (0.66 to 0.83) in the later period. The full model's junction odds ratio pools the inverted rows with the rest.
-- Zone and road type split one location between them; their joint contrasts against an urban street, with the covariance of the two terms (`q3_location_contrasts`), run up to 8.74 (6.52 to 11.71) (urban crossing, conventional).
-- Hail or snow with the 3 provinces that record most of it removed: 0.66 (0.46 to 0.93) (`q3_adverse_exclusions`).
-- Year-by-year refits (`q3_year_stability`): 39 of 108 estimates of the 10 largest non-nuisance terms and of junction 'at a junction' and road surface 'wet' fall outside the full model's interval. Of the 12 terms, those whose yearly estimates vary by more than their yearly errors allow (Cochran's Q, p < 0.05): junction 'at a junction'.
+- Adverse conditions under 8 model variants (`q3_adverse_conditions`): wet surface without the weather predictor 0.56 (0.49 to 0.64), at a junction 0.69 (0.65 to 0.73) (fatal).
+- The junction flag (`q3_junction_coding`, `q3_period_refits`, `q3_junction_sensitivity`): DGT's records for Cataluña code it the wrong way round in 2023-2024 (crashes between junctions as at a junction and the reverse; `dgt_audit_junction_coding`). Read the other way round there, the share of Catalan crashes at a junction is 37.9% in 2023 and 36.6% in 2024, against 35.1% to 42.0% in 2016-2022. Fitted on each period, the fatal junction odds ratio is 0.69 (0.65 to 0.72) in 2016-2022 and 0.72 (0.65 to 0.79) in 2023-2024; outside Cataluña 0.74 (0.66 to 0.83) in the later period. The full model's fatal junction odds ratio with those crashes' junction read from the junction type alone is 0.69 (0.65 to 0.73), with it unrecorded 0.70 (0.66 to 0.74), with the flag as published 0.75 (0.69 to 0.81), and with the 722 Catalan crashes flagged away from a junction that carry a junction type or right-of-way flag also placed at one (712 of them in 2021) 0.69 (0.66 to 0.73).
+- Zone and road type split one location between them; their joint contrasts against an urban street, with the covariance of the two terms (`q3_location_contrasts`), run up to 8.75 (6.52 to 11.75) (urban crossing, conventional).
+- Hail or snow with the 3 provinces that record most of it removed: 0.65 (0.45 to 0.93) (`q3_adverse_exclusions`).
+- Year-by-year refits (`q3_year_stability`): 36 of 108 estimates of the 10 largest non-nuisance terms and of junction 'at a junction' and road surface 'wet' fall outside the full model's interval. Of the 12 terms, those whose yearly estimates vary by more than their yearly errors allow (Cochran's Q, p < 0.05): none.
 
 ## Valid interpretation
 
@@ -106,6 +106,6 @@ The fatal model refitted without provinces 8, 17, 25, 43: 32 of the 32 odds rati
 ## Limitations
 
 - DGT's national microdata have one row per crash, with counts of the people killed and injured, and no record of individual drivers, vehicles or people and no speed field.
-- Recording practice differs between forces and years: the missing states concentrate in some provinces and years, and coding changes (urban road types in 2024, the junction flag of Cataluña's records, inverted from 2023, road-type codes 5 and 6 in 2021) move crashes between levels.
+- Recording practice differs between forces and years: the missing states concentrate in some provinces and years, and coding changes (urban road types in 2024, road-type codes 5 and 6 in 2021) move crashes between levels. The junction flag of Cataluña's records, inverted from 2023, is read the other way round; its correction rests on the rest of each record and on counts matched with the Catalan file, not on a crash-level link between the two files.
 - Standard errors are clustered by province; with 4 provinces removed the clustering changes too.
 - The holdout check scores later years with a model that has no year term, so a change in recording between the training and test years counts as model error.

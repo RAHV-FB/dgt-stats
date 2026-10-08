@@ -51,6 +51,8 @@ Junction,NUDO,1,at a junction,False
 Junction,NUDO,999,not at a junction (the not specified level was merged; no crash takes this code),True
 Junction,NUDO,998,not applicable (no crash takes this value),False
 Junction,NUDO,any other value or empty,"not at a junction (merged: the not specified level's 356 crashes, fewer than 500)",True
+Junction,NUDO,2 where the flag is inverted,"at a junction (flag read the other way round: Barcelona, Girona, Lleida and Tarragona in 2023–2024)",False
+Junction,NUDO,1 where the flag is inverted,"not at a junction (flag read the other way round: Barcelona, Girona, Lleida and Tarragona in 2023–2024)",True
 Lighting,CONDICION_ILUMINACION,1,daylight,True
 Lighting,CONDICION_ILUMINACION,2,dusk or dawn,False
 Lighting,CONDICION_ILUMINACION,3,dusk or dawn,False

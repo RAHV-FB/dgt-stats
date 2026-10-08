@@ -354,6 +354,9 @@ def _coding_breaks() -> str:
     matched = dgt_audit.catalan_junction_years(junctions)
     flipped = matched[matched.junction_flag_inverted.astype(bool)]
     compared = flipped.iloc[0]
+    # How the association analysis reads those province-years (``features.junction_codes``).
+    read = read_table("q3_junction_coding").set_index(["region", "year"])
+    read_cat = read.loc["Catalonia"]
     _require(
         {
             "the junction flag is inverted in the four Catalan provinces only, every year from "
@@ -370,6 +373,16 @@ def _coding_breaks() -> str:
                 (rest_j.away_with_junction_type / rest_j.away_from_junction).max()
             )
             < 0.05,
+            "the association analysis reads the flag the other way round in exactly the inverted "
+            "province-years": int(read.recoded.sum()) == int(inverted.crashes.sum())
+            and int(read.crashes_in_inverted_province_years.sum()) == int(inverted.crashes.sum())
+            and [int(y) for y in read_cat.index[read_cat.recoded > 0]] == after_years,
+            "read that way, the Catalan share at a junction lies among the earlier years'": float(
+                read_cat.loc[after_years].share_at_junction.max()
+            )
+            <= float(cat_share.loc[: flip - 1].max())
+            and float(read_cat.loc[after_years].share_at_junction.min())
+            >= float(cat_share.loc[: flip - 1].min()),
             "in the inverted years DGT's junction crashes are the Catalan file's crashes between "
             "junctions, and before them never": not flipped.empty
             and bool((flipped.dgt_at_junction_matches == "between junctions").all())
@@ -423,8 +436,13 @@ def _coding_breaks() -> str:
         "two kinds of conventional road form one group, and no road-type trend is drawn. "
         "Comparisons of Catalonia with the rest of Spain group every conventional road together "
         'for the same reason (<a href="validation.html">External validation</a>). Junction '
-        f"shares are not compared across {flip}, and the association of junctions with fatal "
-        f"outcomes is read from the years before it ({severity}).</p>"
+        f"shares as published are not compared across {flip}. The association of junctions "
+        "with fatal outcomes reads the flag the other way round in those province-years, which "
+        "puts the Catalan share at a junction at "
+        + _join(
+            [f"{_fmt_pct(read_cat.loc[y, 'share_at_junction'], 0)} in {y}" for y in after_years]
+        )
+        + f" ({severity}).</p>"
     )
 
 

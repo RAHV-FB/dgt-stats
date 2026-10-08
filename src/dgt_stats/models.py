@@ -23,14 +23,16 @@ log = logging.getLogger(__name__)
 HOLDOUT_YEARS = (2023, 2024)
 STABILITY_TERMS = 10
 # Terms the yearly refits always follow besides the largest ones: the two adverse conditions the
-# severity page leads with, the junction among them because its coding changed in 2023.
+# severity page leads with, the junction among them because DGT's records for the Catalan
+# provinces code its flag the wrong way round from 2023 (``features.junction_codes`` reads it
+# the other way round there).
 STABILITY_EXTRA_TERMS: tuple[tuple[str, str], ...] = (
     ("junction", "at a junction"),
     ("surface", "wet"),
 )
-# The first year DGT's records code junctions the new way (the junction-type field stops being
-# empty, and Catalonia's share of crashes at a junction jumps from 38 % to 62 %; data.html's coding
-# breaks). ``period_refits`` fits the years before it and from it apart.
+# The first year DGT's records for the Catalan provinces code the junction flag the wrong way
+# round (data.html's coding breaks). ``period_refits`` fits the years before it and from it apart,
+# and ``junction_sensitivity`` refits the years from it, to check the corrected flag.
 JUNCTION_RECODING_YEAR = 2023
 PERIOD_TERMS: tuple[tuple[str, str], ...] = (
     ("junction", "at a junction"),
@@ -663,14 +665,15 @@ def period_refits(
 ) -> pd.DataFrame:
     """The full model refitted on the years before ``break_year`` and on the years from it.
 
-    DGT's records code junctions differently from 2023, and almost all of the change is in
-    Catalonia, so the pooled junction odds ratio mixes two recording regimes. Each period is
+    From 2023 DGT's records for the Catalan provinces code the junction flag the wrong way round;
+    the model frame reads it the other way round there (``features.junction_codes``), and the
+    two periods fitted apart check that the corrected flag means the same in both. Each period is
     fitted with every predictor, year included, on all provinces and again without
     ``provinces`` (``provinces`` alone are too few clusters for the province-clustered errors).
     One row per period, scope and term in ``terms``. ``share_at_level`` is the share of the
     scope's crashes at the term's level and ``share_at_level_inside`` the same share among the
-    period's crashes in ``provinces``, so the jump in crashes coded at a junction can be read
-    beside the odds ratio.
+    period's crashes in ``provinces``, so the share of crashes at a junction can be read beside
+    the odds ratio.
     """
     records = []
     periods = (
@@ -709,6 +712,73 @@ def period_refits(
                         "odds_ratio": float(row.odds_ratio),
                         "or_low": float(row.or_low),
                         "or_high": float(row.or_high),
+                    }
+                )
+    return pd.DataFrame.from_records(records)
+
+
+def junction_sensitivity(
+    crashes: pd.DataFrame,
+    treatments: dict[str, str] | None = None,
+    outcomes: tuple[str, ...] = features.OUTCOMES,
+    break_year: int = JUNCTION_RECODING_YEAR,
+) -> pd.DataFrame:
+    """The junction odds ratio with the inverted province-years read each way.
+
+    For every treatment in ``features.JUNCTION_TREATMENTS`` the model frame is rebuilt from
+    ``crashes`` and the junction term refitted three ways: the full model (``fit`` "full"), the
+    full model on the years from ``break_year`` ("from break"), and every year apart without the
+    year predictor ("year", as in :func:`year_stability`), whose rows carry Cochran's Q for the
+    junction term across years. ``recoded`` counts the fit's crashes whose junction level differs
+    from the flag as published, ``unrecorded`` those whose junction is a missing level, and
+    ``share_at_junction_catalonia`` is the share of the fit's Catalan crashes at a junction.
+    """
+    key = ("junction", features.AT_JUNCTION)
+    published = features.model_frame(crashes, junction="as published").junction.astype(str)
+    records = []
+    for treatment, label in (treatments or features.JUNCTION_TREATMENTS).items():
+        frame = features.model_frame(crashes, junction=treatment)
+        levels = frame.junction.astype(str)
+        recoded = levels.ne(published)
+        unrecorded = levels.map(features.is_nuisance).astype(bool)
+        at = levels.eq(features.AT_JUNCTION)
+        catalan = frame.province.isin(features.CATALAN_PROVINCES)
+
+        def record(outcome: str, fit_name: str, rows: pd.Index, row: object) -> dict:
+            years = frame.loc[rows, "crash_year"]
+            return {
+                "outcome": outcome,
+                "treatment": treatment,
+                "treatment_label": label,
+                "used": treatment == features.JUNCTION_TREATMENT,
+                "fit": fit_name,
+                "first_year": int(years.min()),
+                "last_year": int(years.max()),
+                "n": len(rows),
+                "n_at_junction": int(at[rows].sum()),
+                "recoded": int(recoded[rows].sum()),
+                "unrecorded": int(unrecorded[rows].sum()),
+                "share_at_junction_catalonia": float(at[rows][catalan[rows]].mean()),
+                "odds_ratio": float(row.odds_ratio),
+                "or_low": float(row.or_low),
+                "or_high": float(row.or_high),
+            }
+
+        for outcome in outcomes:
+            full = fit_severity(frame, outcome)
+            table = odds_ratios(full).set_index(["predictor", "level"])
+            records.append(record(outcome, "full", frame.index, table.loc[key]))
+            later = _drop_unused(frame[frame.crash_year >= break_year])
+            table = odds_ratios(fit_severity(later, outcome)).set_index(["predictor", "level"])
+            records.append(record(outcome, "from break", later.index, table.loc[key]))
+            yearly = year_stability(frame, full, terms=0, extra=(key,))
+            for row in yearly.itertuples():
+                rows = frame.index[frame.crash_year == row.year]
+                records.append(
+                    {
+                        **record(outcome, "year", rows, row),
+                        "heterogeneity_q": float(row.heterogeneity_q),
+                        "heterogeneity_p": float(row.heterogeneity_p),
                     }
                 )
     return pd.DataFrame.from_records(records)

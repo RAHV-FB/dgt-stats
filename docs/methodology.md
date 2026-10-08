@@ -791,7 +791,7 @@ checks that the associations carry across years; it does not measure a predictiv
 levels are merged on the training years alone, so the held-out years decide nothing about the
 model scored on them (lighting and surface "not specified" are the levels merged). The Brier skill
 is measured against giving every held-out crash the training years' share of the outcome (1.6 %
-fatal, 9.4 % serious): it is 0.042 for the fatal outcome and 0.053 for the serious one
+fatal, 9.4 % serious): it is 0.043 for the fatal outcome and 0.054 for the serious one
 (`q3_holdout_summary.csv`). The fatal ROC-AUC of 0.80 is partly recording: refitted with every
 missing-state level folded into its reference it is 0.78, and the missing-state levels alone give
 0.54 (`auc_recorded_only`, `auc_missing_only`); over the audit's wider set of 30 fields, which
@@ -802,41 +802,78 @@ The page states this beside the AUC.
 location between them, so each odds ratio is read against the other's reference. The joint
 contrast of every zone and road-type combination with at least 500 crashes against a street-zone
 urban street adds the two log odds ratios and takes its variance from their covariance
-(`q3_location_contrasts.csv`): a conventional interurban road has 6.69 (4.96–9.02) times the odds
-of a death, of the same size as a head-on collision (5.66) or a pedestrian struck (6.44); the four
-interurban road types run from 5.72 to 7.34, and a conventional road through a town (zone "urban
-crossing") reaches 8.74. The page names crash type and location together as the strongest
+(`q3_location_contrasts.csv`): a conventional interurban road has 6.63 (4.95–8.89) times the odds
+of a death, of the same size as a head-on collision (5.48) or a pedestrian struck (6.27); the four
+interurban road types run from 5.66 to 7.23, and a conventional road through a town (zone "urban
+crossing") reaches 8.75. The page names crash type and location together as the strongest
 associations.
 
-**The junction coding break** (`models.period_refits`, `dgt_audit_junction_coding.csv`). From
-2023 DGT's records for the four Catalan provinces code the junction flag (`NUDO`) the wrong way
-round. The share of their crashes coded at a junction goes from 35–42 % a year in 2016–2022 to
-62 % in 2023 and 63 % in 2024, while elsewhere it stays at 37–40 %. In those two years every
-Catalan crash coded at a junction carries junction type 999 ("not specified"), and 94 % of those
-coded away from a junction carry a junction type, a field left empty away from a junction
-everywhere else (at most 12 % in any other province-year). The Servei Català de Trànsit's file
-holds the same crashes with a death or serious injury within 24 hours. DGT's count of those it
-codes at a junction equals, within 1 % of the year's crashes, the Catalan file's crashes within or
-near (50 m) a junction in 2016–2020 and 2022, within a junction in 2021, and between junctions
-("En secció") in 2023, when DGT codes 69.5 % of them at a junction and the Catalan file places
-69.6 % between junctions. The flag is inverted, not recorded in a new way, and it alone raises
-the national at-junction share from 39 % to 44 %. Refitted on each period, with every predictor,
-the fatal junction odds ratio is 0.69 (0.65–0.72) in 2016–2022 and 0.98 (0.76–1.28) in
-2023–2024; outside Catalonia it is 0.69 and 0.74 (0.66–0.83). The full model's 0.75 pools the
-inverted Catalan rows of 2023–2024 (47,705 crashes, 5.5 % of all) with the rest, which pulls it
-towards 1; the page reads the junction result from 2016–2022. Flipping or dropping those rows
-would correct the pooled estimate; the model has not been refitted that way. None of the
-adverse-condition variants (section 13.1) splits the years.
+**The junction coding break** (`features.junction_codes`, `q3_junction_coding.csv`,
+`q3_junction_sensitivity.csv`, `models.period_refits`, `dgt_audit_junction_coding.csv`). In 2023
+and 2024 DGT's records for the four Catalan provinces code the junction flag (`NUDO`) the wrong
+way round. The share of their crashes coded at a junction goes from 35–42 % a year in 2016–2022
+to 62 % in 2023 and 63 % in 2024, while elsewhere it stays at 37–40 %. The rest of each record
+shows the inversion crash by crash. The junction type (`NUDO_INFO`) and the right-of-way flags
+(`PRIORI_*`) describe a junction: in the Catalan records of 2016–2022, 99.7–100 % of the crashes
+coded at a junction carry one or the other and at most seven a year of those coded away from one
+do (2021 aside, below). In 2023–2024, 3 of the 29,949 Catalan crashes coded at a junction carry
+either, while of the 17,756 coded away from a junction 94.0 % carry a junction type and 99.8 % a
+junction type or a right-of-way flag; the 1,058 with no junction type carry right-of-way flags in
+96–97 % of cases, as the Catalan junction crashes without a type did in 2016–2022 (93–100 %). The
+Servei Català de Trànsit's file holds the same crashes with a death or serious injury within 24
+hours. As published, DGT's count of the 2023 Catalan ones at a junction (69.5 %) matches the
+Catalan file's crashes between junctions ("En secció", 69.6 %); read the other way round it is
+528, against 527 the Catalan file places within or near (50 m) a junction, the place DGT's count
+matches in 2016–2020 and 2022. No crash is linked between the two files: the match is of counts
+by province and year (section 21).
+
+Three corrections were weighed: re-deriving the flag from the junction type (a recorded type
+implies a junction), reading the flag the other way round, and treating those crashes' junction
+as unrecorded. Reading it the other way round is the one each crash's own record supports. The
+junction type alone would place the 1,058 junction crashes that have no type, and do have
+right-of-way flags, away from a junction; treating the junction as unrecorded discards a value the
+rest of the record establishes. The correction is made where the model frame is built
+(`features.junction_codes`), not in the raw or processed data, which keep the flag as published so
+that the audit still finds the inversion. A province-year is read the other way round when more
+than half of the crashes it codes away from a junction carry a junction type, the audit's rule
+(`junction_flag_inverted`), which picks out the four Catalan provinces in 2023 and 2024 and no
+other province-year (at most 12.4 % elsewhere); a test holds the two to the same province-years.
+The 47,705 crashes concerned (5.5 % of all) put the Catalan share at a junction at 37.9 % in 2023
+and 36.6 % in 2024, against 37.9 % and 37.6 % elsewhere.
+
+With the flag corrected, the fatal junction odds ratio is 0.69 (0.65–0.73) in the full model
+(0.75, 0.69–0.81, with the flag as published, which pooled the inverted records with the rest and
+was pulled towards 1). Refitted on each period with every predictor, it is 0.69 (0.65–0.72) in
+2016–2022 and 0.72 (0.65–0.79) in 2023–2024 (0.98, 0.76–1.28, as published); outside Catalonia
+the later figure is 0.74 (0.66–0.83) either way. The alternatives, fitted as a sensitivity, give
+0.69 (0.65–0.73) from the junction type alone and 0.70 (0.66–0.74) with the junction unrecorded.
+For the serious outcome the full-model junction odds ratio moves from 0.91 (0.86–0.95) to 0.86
+(0.82–0.91). The correction also moves the terms the misplaced crashes were confounded with:
+head-on collision from 5.66 to 5.48 and pedestrian struck from 6.44 to 6.27 (fatal), since the
+crashes coded at a junction in Catalonia in 2023–2024 were mostly crashes between junctions.
+
+**2021.** In 2021 DGT's count of Catalan severe crashes at a junction (379) equals the Catalan
+file's crashes within a junction (380) rather than within or near one (458). That year 712
+Catalan crashes coded away from a junction carry a junction type or a right-of-way flag (5.0 % of
+those coded away, against 0–7 crashes in each other year before 2023): crashes near a junction
+coded away from it. This narrows the definition for one year; it does not invert the flag, and
+the model leaves it as published. Placing those crashes at a junction (`flip and near junctions`
+in `q3_junction_sensitivity.csv`) brings the 2021 severe count to 456 against the Catalan file's
+458, and moves the full-model fatal junction odds ratio from 0.690 to 0.692 and the 2021 yearly
+estimate from 0.66 to 0.67, inside its interval (0.56–0.78).
 
 **Year-by-year refits** (`models.year_stability`). Each yearly estimate has its own sampling
 error, so a yearly odds ratio outside the full model's interval is expected now and then. The
 table also says whether the full model's value lies inside the year's own interval, and gives
-Cochran's Q for each term across years with its chi-squared p-value. For the fatal outcome 39 of
-the 108 yearly estimates fall outside the full interval, 20 of them road-type terms, whose odds
-ratios swing from year to year against the zone odds ratio (the two split one location contrast);
-by Q, only the junction term varies by more than its yearly errors allow (p = 0.005), at 0.63 to
-0.79 in every year to 2022 and 1.00 in 2023 and 2024. No other departure is tied to a coding
-change.
+Cochran's Q for each term across years with its chi-squared p-value. For the fatal outcome 36 of
+the 108 yearly estimates fall outside the full interval, 21 of them road-type terms, whose odds
+ratios swing from year to year against the zone odds ratio (the two split one location contrast).
+By Q no term varies by more than its yearly errors allow (the smallest p is 0.07, road type
+"other road"); the junction odds ratio lies at 0.63 to 0.79 in every year, 0.69 in 2023 and 0.76
+in 2024. With the flag as published the junction term varied (p = 0.005), at 1.00 in 2023 and
+2024: that result was the inversion, not a change in the association. For the serious outcome
+the junction term varied as published (p = 0.001) and does not now (p = 0.06); road type "other
+road" varies (p = 0.01), the level the 2024 Catalan coding of urban streets fills.
 
 **Nuisance levels and the recording regime** (`features.is_nuisance`, `models.recording_regime`,
 `models.regime_sensitivity`). The missing states record how a police force fills in the form,
@@ -1078,7 +1115,8 @@ page (the Catalonia and Barcelona pages share `regional`), the result tables sev
   the EMEF's public files; the speed report excludes two regions; road-type coding changed in 2021
   (interurban conventional roads), 2022 and 2024 (toll and free motorways, with 2023 back at the
   earlier split) and 2024 (urban), and the records for the four Catalan provinces code the
-  junction flag the wrong way round from 2023.
+  junction flag the wrong way round from 2023, which the association analysis reads the other way
+  round (section 13).
 
 ## 19. The crash-level microdata layer (`src/dgt_stats/microdata/`, `scripts/microdata.py`)
 

@@ -172,7 +172,7 @@ def licence_share_by_age(years: tuple[int, ...] = (2014, 2019, 2024)) -> pd.Data
     return out.astype({"sex": "string"})
 
 
-# Written by scripts/model.py (the fits take a minute and a half); analyse.py and the site only
+# Written by scripts/model.py (the fits take about fifteen minutes); analyse.py and the site only
 # read them.
 MODEL_TABLES = (
     "q3_model_coefficients",
@@ -189,6 +189,8 @@ MODEL_TABLES = (
     "q3_recording_regime",
     "q3_regime_sensitivity",
     "q3_groupings",
+    "q3_junction_coding",
+    "q3_junction_sensitivity",
 )
 
 
