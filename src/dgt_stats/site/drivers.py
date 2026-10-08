@@ -106,8 +106,7 @@ def _rates_table(
 
 SOURCE_LABELS = {
     "regional profile": (
-        "Another region's age profile (four parts of the province; Madrid "
-        f"{edm2018.SURVEY_YEAR})"
+        f"Another region's age profile (four parts of the province; Madrid {edm2018.SURVEY_YEAR})"
     ),
     "licence-calibrated transfer": "Driving per licence holder, not per resident, carried to Spain",
     "distance": "Other treatments of trip distances",
