@@ -124,7 +124,13 @@
     var words = found.text.replace("{threshold}", String(found.threshold || ""));
     if (id === "rare_level") {
       // One phrase per rare item: an input's value, or a kind of road user involved.
+      // Inputs whose label does not read after "have this".
+      var own = {
+        junction: "have this position relative to a junction",
+        units: "involve this number of vehicles and pedestrians",
+      };
       var phrases = rare.map(function (name) {
+        if (own[name]) return own[name];
         if (model.inputs[name]) return "have this " + model.inputs[name].label.toLowerCase();
         return "involve " + levelLabel("users", name).toLowerCase();
       });
@@ -254,12 +260,18 @@
     output.appendChild(
       text(
         "p",
-        count(similar.crashes) + " recorded crashes in " + years() +
-          " share this zone, crash type, road users and number involved" +
-          (similar.crashes
-            ? "; " + similar.fatal.toLocaleString("en") + " of them were fatal. Their other " +
-              "inputs differ, so their share need not match the estimate."
-            : "."),
+        (similar.crashes === 1
+          ? "1 recorded crash in " + years() +
+            " shares this zone, crash type, road users and number involved; it was " +
+            (similar.fatal ? "" : "not ") + "fatal. Its other inputs differ, so it says " +
+            "little about the estimate."
+          : count(similar.crashes) + " recorded crashes in " + years() +
+            " share this zone, crash type, road users and number involved" +
+            (similar.crashes
+              ? "; " + similar.fatal.toLocaleString("en") + " of them " +
+                (similar.fatal === 1 ? "was" : "were") + " fatal. Their other inputs differ, " +
+                "so their share need not match the estimate."
+              : ".")),
         "calc-note"
       )
     );
@@ -273,9 +285,11 @@
       output.appendChild(list2);
     }
     var comparison = renderComparison(scenario, result);
+    // With a crash kept, the line also gives the comparison, which otherwise changes out of view.
     pin(
       "Estimate " + percent(result.probability) + " fatal (" + range(result.low, result.high) +
-        ")" + (warnings.length ? ", with a warning" : "") + ": details below."
+        ")" + (warnings.length ? ", with a warning" : "") +
+        (comparison ? "; " + comparison.replace(/\.$/, "") : "") + ": details below."
     );
     announce(
       "Estimate " + percent(result.probability) + ", interval " + percent(result.low) + " to " +

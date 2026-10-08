@@ -286,6 +286,11 @@ main { padding: var(--space-7) 0 var(--space-7); min-width: 0; }
   background: var(--surface); border-top: 1px solid var(--rule-strong);
 }
 .calc-sticky:empty { display: none; }
+/* While the line is pinned, the page keeps a focused control above it, so it never covers the
+   control in use. The line shows below a 50rem calculator, in viewports up to about 64rem. */
+@media (max-width: 64rem) {
+  html:has(.calc-sticky:not(:empty)) { scroll-padding-bottom: 7rem; }
+}
 @container (min-width: 50rem) {
   .calc-sticky { display: none; }
   .calc-layout {
@@ -517,12 +522,13 @@ nav.pager a[rel="next"] .pager-title::after { transform: rotate(-45deg); margin-
   color-scheme: dark;
 }
 :root[data-theme="dark"] .figure-media { padding: var(--space-3); }
-/* On phones the dark frame stays thin, so the chart drawn for the column keeps its text size. */
-@media (prefers-color-scheme: dark) and (max-width: 40rem) {
-  :root:not([data-theme="light"]) .figure-media { padding: var(--space-1); }
+/* Below a laptop's width the dark frame goes: the chart's white ground marks it off, a chart that
+   fits its column in light fits it in dark, and the chart drawn for a phone keeps its text size. */
+@media (prefers-color-scheme: dark) and (max-width: 64rem) {
+  :root:not([data-theme="light"]) .figure-media { padding: 0; }
 }
-@media (max-width: 40rem) {
-  :root[data-theme="dark"] .figure-media { padding: var(--space-1); }
+@media (max-width: 64rem) {
+  :root[data-theme="dark"] .figure-media { padding: 0; }
 }
 
 /* ------------------------------------------------------------------ forced colours */

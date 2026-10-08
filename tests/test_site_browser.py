@@ -327,6 +327,45 @@ def test_on_a_phone_the_estimate_follows_the_form_and_is_announced(browser, serv
     page.close()
 
 
+@pytest.mark.parametrize(
+    "size",
+    [
+        {"width": 320, "height": 640},
+        {"width": 360, "height": 560},
+        PHONE,
+        {"width": 768, "height": 1024},
+    ],
+)
+def test_the_pinned_estimate_never_covers_the_focused_control(browser, server, size) -> None:
+    """On a narrow screen the estimate is pinned to the foot of the screen; a control reached
+    with the keyboard is scrolled clear of it (WCAG 2.2, focus not obscured)."""
+    page = browser.new_page(viewport=size, reduced_motion="reduce")
+    page.goto(f"{server}/{PAGE}", wait_until="networkidle")
+    page.wait_for_selector("[data-sticky]:not(:empty)")
+    page.focus("#calc-road")
+    reached = 0
+    for _ in range(40):
+        page.keyboard.press("Tab")
+        state = page.evaluate(
+            """() => {
+              const focused = document.activeElement;
+              if (!focused || !focused.closest('.calc-layout form')) return null;
+              const line = document.querySelector('[data-sticky]');
+              const box = focused.getBoundingClientRect();
+              return {name: focused.name || focused.textContent, top: box.top,
+                      bottom: box.bottom, line: line.getBoundingClientRect().top,
+                      shown: getComputedStyle(line).display !== 'none'};
+            }"""
+        )
+        if state is None:
+            break
+        reached += 1
+        assert state["shown"], size
+        assert 0 <= state["top"] and state["bottom"] <= state["line"] + 0.5, (size, state)
+    assert reached >= 15, reached
+    page.close()
+
+
 def test_an_impossible_crash_is_refused(calculator) -> None:
     calculator.select_option("#calc-crash_type", "pedestrian_struck")
     text = _shown(calculator)
@@ -437,6 +476,24 @@ def test_every_figure_fits_a_phone_column(browser, server, slug: str, scheme: st
         assert figure["scrolls"] <= 1, (slug, scheme, figure)
         width, smallest = _svg_text(SITE / "figures" / "narrow" / f"{name}.svg")
         assert smallest * figure["width"] / width >= 11, (slug, scheme, name)
+
+
+@pytest.mark.parametrize("size", [{"width": 360, "height": 740}, {"width": 768, "height": 1024}])
+@pytest.mark.parametrize("slug", FIGURE_PAGES)
+def test_the_dark_frame_shrinks_no_figure(browser, server, slug: str, size: dict) -> None:
+    """The dark frame costs no figure its fit: on a phone and a tablet, where it goes, every
+    figure is as wide in dark as in light and scrolls sideways in dark only if it does in light."""
+    shown = {}
+    for scheme in ("light", "dark"):
+        page = browser.new_page(viewport=size, color_scheme=scheme)
+        page.goto(f"{server}/{slug}.html", wait_until="networkidle")
+        shown[scheme] = {figure["name"]: figure for figure in page.evaluate(FIGURES)}
+        page.close()
+    assert shown["light"].keys() == shown["dark"].keys(), slug
+    for name, light in shown["light"].items():
+        dark = shown["dark"][name]
+        assert abs(dark["width"] - light["width"]) <= 0.5, (slug, size, name)
+        assert dark["scrolls"] <= max(light["scrolls"], 1), (slug, size, name)
 
 
 def test_a_desktop_loads_the_full_figures(browser, server) -> None:

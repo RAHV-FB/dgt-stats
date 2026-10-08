@@ -113,7 +113,9 @@ jobs:
       # The committed pages must be the ones the committed tables build; otherwise a page in the
       # repository would say something its source no longer does.
       - name: Check the committed pages match the build
-        run: git diff --exit-code -- site
+        run: |
+          git diff --exit-code -- site
+          test -z "$(git status --porcelain -- site)" || { git status --porcelain -- site; exit 1; }
 
       - name: Test the built site in a browser
         env:
