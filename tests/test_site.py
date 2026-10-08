@@ -113,7 +113,7 @@ def test_withdrawn_pages_say_why_and_nothing_links_to_them(built: Path) -> None:
         text = (built / f"{slug}.html").read_text(encoding="utf-8")
         body = text[text.find("<main>") : text.find("</main>")]
         # A short notice, not a redirect: it says why the analysis went and links to the data.
-        assert "http-equiv" not in text and 'rel="canonical"' not in text, slug
+        assert 'http-equiv="refresh"' not in text and 'rel="canonical"' not in text, slug
         if slug in external:
             assert "withdrawn because its results came from coefficients published in " in text
             assert "rather than from data in this repository" in text
