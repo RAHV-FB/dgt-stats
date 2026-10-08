@@ -91,6 +91,11 @@ def page_severity(captions: dict[str, str]) -> str:
     variants = read_table("q3_adverse_conditions")
     regime = read_table("q3_recording_regime").set_index(["predictor", "level"])
     sensitivity = read_table("q3_regime_sensitivity")
+    other_road = sensitivity[
+        (sensitivity.outcome == "fatal")
+        & (sensitivity.predictor == "road")
+        & (sensitivity.level == "other road")
+    ].iloc[0]
     sensitivity = sensitivity[sensitivity.outcome == "fatal"].set_index(["predictor", "level"])
     stability = read_table("q3_year_stability")
     stability = stability[stability.outcome == "fatal"]
@@ -227,6 +232,10 @@ def page_severity(captions: dict[str, str]) -> str:
         return float(a.or_low) <= float(b.or_high) and float(b.or_low) <= float(a.or_high)
 
     checks = {
+        "the other road type's odds ratio rises without Catalonia's crashes": float(
+            other_road.odds_ratio_without
+        )
+        > float(other_road.odds_ratio),
         "the audit keeps DGT's file out of model training": not str(
             audit.decision.iloc[0]
         ).startswith("DGT microdata may train"),
@@ -447,7 +456,12 @@ def page_severity(captions: dict[str, str]) -> str:
         f"{float(interurban_locations.odds_ratio.min()):.2f} to "
         f"{float(interurban_locations.odds_ratio.max()):.2f} times the odds of a death, and a "
         "crash on a conventional road where it runs through a town (the zone DGT calls an urban "
-        f"crossing) {float(strongest_location.odds_ratio):.2f} times.</p>"
+        f"crossing) {float(strongest_location.odds_ratio):.2f} times. The road type “other” "
+        f"mixes two kinds of crash: in {last_year} DGT's records for the four Catalan provinces "
+        "code "
+        'urban streets as another kind of road (<a href="data.html#coding-breaks">coding '
+        f"breaks</a>), so its odds ratio, {float(other_road.odds_ratio):.2f}, rises to "
+        f"{float(other_road.odds_ratio_without):.2f} without Catalonia's crashes.</p>"
     )
     location_rows = pd.DataFrame(
         {
@@ -492,7 +506,8 @@ def page_severity(captions: dict[str, str]) -> str:
     body += table(
         profiles,
         f"Fitted probability of each outcome for illustrative crash profiles in {last_year}. "
-        "Circumstances not named are at their reference level.",
+        "Circumstances not named are at their reference level, including two vehicles; most "
+        "crashes in which a pedestrian was struck involve one vehicle.",
         {"Death": "pct", "Death or hospitalisation": "pct"},
     )
 

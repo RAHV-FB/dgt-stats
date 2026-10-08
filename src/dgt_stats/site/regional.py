@@ -332,7 +332,8 @@ def page_catalonia(captions: dict[str, str]) -> str:
             ),
             "Fatal share of crashes with a death or serious injury, Catalonia, "
             f"{period} (groups with at least {MIN_N} crashes; a crash involving several kinds of "
-            "vehicle counts in each).",
+            "vehicle counts in each). Zone and road type are separate fields of the file, so "
+            "their urban-street groups differ slightly.",
             {"Crashes": "int", "Fatal": "int", "Fatal share": "pct"},
         ),
     )
