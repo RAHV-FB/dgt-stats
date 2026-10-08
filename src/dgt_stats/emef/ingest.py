@@ -142,7 +142,7 @@ def trips_year(year: int) -> pd.DataFrame:
         name: _code(raw[column])
         for name, column in zip(("mode1", "mode2", "mode3"), ("V03G", "V03H", "V03I"))
     }
-    # "No further mode" is blank in most years and 0 in a few; both mean no stage.
+    # "No further mode" is blank in every year; a 0 would mean the same, though none occurs.
     modes = {name: codes.where(codes != 0) for name, codes in modes.items()}
     stages = pd.concat(modes, axis=1)
     known = stages.notna() & (stages != v.MISSING_MODE)

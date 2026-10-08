@@ -32,7 +32,7 @@ straight line and 12.9 km by road, a ratio of 1.45 (walking 1.32, cycling 1.41, 
 1.50, all trips 1.44). The report is not archived in this repository and could not be found online
 again, so these constants rest on the transcription; the EMEF 2024 summary report, which is online,
 gives a mean straight-line trip of 4.7 km and daily straight-line km per mobile person by age, and
-the model reproduces them within 3% (:func:`validate_against_report`). These ratios are applied to the expected straight-line distances. They are
+the model reproduces them within 3.1% (:func:`validate_against_report`). These ratios are applied to the expected straight-line distances. They are
 ratios of means for 2021 trips; the ratio for any one trip is unknown, so the sensitivity analysis
 varies the driving ratio. Because a common factor multiplies every age group's kilometres alike,
 it changes absolute rates per kilometre but hardly the ratio of one age group's rate to another's

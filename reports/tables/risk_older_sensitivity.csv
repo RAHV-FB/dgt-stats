@@ -14,6 +14,9 @@ regional profile,"EMEF, rest of the metropolitan region (RMB)","Madrid km per li
 regional profile,"EMEF, rest of the province",Madrid survey: km per resident,0.9460750048,2.063475315
 regional profile,"EMEF, rest of the province",equal km per licence holder,1.102883801,1.389380862
 regional profile,"EMEF, rest of the province","Madrid km per licence holder, Spain's licence holders",0.9221833345,2.263593452
+regional profile,Madrid survey 2018,Madrid survey: km per resident,1.30043269,2.850911561
+regional profile,Madrid survey 2018,equal km per licence holder,1.537398719,1.864968233
+regional profile,Madrid survey 2018,"Madrid km per licence holder, Spain's licence holders",1.271293902,3.094159489
 distance,unbanded trips bounded at 100 km/h,Madrid survey: km per resident,0.9246218646,2.024255563
 distance,unbanded trips bounded at 100 km/h,equal km per licence holder,1.088995536,1.334378774
 distance,unbanded trips bounded at 100 km/h,"Madrid km per licence holder, Spain's licence holders",0.9031993314,2.203248974
@@ -74,3 +77,15 @@ professionals' work driving,50% of work trips by car,"Madrid km per licence hold
 older sample,65+ employed share set to the census,Madrid survey: km per resident,0.9664508722,2.114631435
 older sample,65+ employed share set to the census,equal km per licence holder,1.136488741,1.398401609
 older sample,65+ employed share set to the census,"Madrid km per licence holder, Spain's licence holders",0.9437542737,2.304340682
+non-working days,"car trips on an average weekend day (MOVILIA 2006, Spain), 22% of km",Madrid survey: km per resident,0.8578915632,1.877390261
+non-working days,"car trips on an average weekend day (MOVILIA 2006, Spain), 22% of km",equal km per licence holder,1.009258613,1.240433839
+non-working days,"car trips on an average weekend day (MOVILIA 2006, Spain), 22% of km","Madrid km per licence holder, Spain's licence holders",0.8378183472,2.045154945
+non-working days,"car trips on an average weekend day (MOVILIA 2006, Spain), 32% of km",Madrid survey: km per resident,0.8250160326,1.805446202
+non-working days,"car trips on an average weekend day (MOVILIA 2006, Spain), 32% of km",equal km per licence holder,0.9705824983,1.192898786
+non-working days,"car trips on an average weekend day (MOVILIA 2006, Spain), 32% of km","Madrid km per licence holder, Spain's licence holders",0.8057120485,1.966781923
+non-working days,"overnight weekend stays away, driving (EMEF 2023, proxy), 22% of km",Madrid survey: km per resident,0.8785569245,1.922613865
+non-working days,"overnight weekend stays away, driving (EMEF 2023, proxy), 22% of km",equal km per licence holder,1.033570187,1.270314088
+non-working days,"overnight weekend stays away, driving (EMEF 2023, proxy), 22% of km","Madrid km per licence holder, Spain's licence holders",0.8580001739,2.094419756
+non-working days,"overnight weekend stays away, driving (EMEF 2023, proxy), 32% of km",Madrid survey: km per resident,0.8531212461,1.866951008
+non-working days,"overnight weekend stays away, driving (EMEF 2023, proxy), 32% of km",equal km per licence holder,1.003646617,1.233536391
+non-working days,"overnight weekend stays away, driving (EMEF 2023, proxy), 32% of km","Madrid km per licence holder, Spain's licence holders",0.8331596475,2.033782834

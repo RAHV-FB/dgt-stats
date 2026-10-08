@@ -49,7 +49,7 @@ records exist only in the Barcelona files (sections 20 and 21).
 | yearbook series | year, month or province totals | 1993–2024 | 2019–2024 risk, the long run, seasonality, the monthly deaths of the forecasting model, the 2006 case study, reference totals |
 | yearly statistical tables | aggregate cells | 2014–2024 | vehicles involved by type, driver deaths and involvements by age and vehicle, drivers by recorded infraction |
 | ITV kilometre estimates 2022 | fleet and mean km by vehicle type and age | 2022 | vehicle rates per km |
-| ITV kilometre estimates 2024 | vehicles and km by category and owner age band | 2024 | the driving-exposure denominator |
+| ITV kilometre estimates 2024 | vehicles and km by category, service class and owner age band | 2024 | the national car-km total for the driver-age rates (by service class, less taxis and ride-hailing; section 7) and the former owner-age figure, kept as a comparison |
 | driver census | licence holders by province, sex, age; B-permit holders by age | 2014–2025 | driver casualties per licence holder, sex rates; B-permit holders (2024 text file) for the owner-age check and the contrast denominators |
 | INE population | residents by province, age, sex | 2002–2025 | rates per resident (a population rate, not a risk), contrast denominators |
 | CORES road fuel | month | 1996– | the all-road traffic denominator or offset of the risk, long-run and seasonality analyses; the traffic input of the forecasting model; a covariate in the 2006 case study; the biofuel share of road fuel |
@@ -300,52 +300,113 @@ fuel (`deaths_per_road_fuel_tonnes_change`).
 
 Two questions are asked of car drivers by age, and kept apart. How often a driver already
 involved in an injury crash dies needs no measure of driving. How often drivers of each age are
-involved in crashes is set against **kilometres driven by drivers of that age**, measured in two
+involved in crashes is set against **kilometres driven by drivers of that age**, estimated from two
 travel surveys. The full analysis, with every table and sensitivity analysis, is
 [`research/DRIVER_AGE_EXPOSURE.md`](research/DRIVER_AGE_EXPOSURE.md); how the surveys were read,
-harmonised and checked is [`research/EMEF_INVENTORY.md`](research/EMEF_INVENTORY.md).
+harmonised and checked is [`research/EMEF_INVENTORY.md`](research/EMEF_INVENTORY.md). The method
+was revised in October 2026 after an independent audit.
 
 - **Numerator** (`exposure_risk.national.drivers_involved`): drivers of private cars, with or
   without a trailer, involved in injury crashes in Spain in 2024 (table 4.2) and killed within 30
   days (table 4.1.1). Drivers of public-service cars (taxis and ride-hailing, 1,852 involved) are
   excluded to match the denominator. The groups are 18–29, 30–44, 45–64 (the reference) and 65+,
-  with 65–74 and 75+ for the model-dependent split. The EMEF group 16–29 is matched to drivers
-  aged 18–29; the 41 drivers aged 15–17 are left out. Drivers of unrecorded age (2.2 %) are left
-  out of the rates, which lowers every absolute rate by that share and leaves the ratios between
-  ages unchanged.
-- **Kilometres by age** (`emef.exposure`): car-driver kilometres per resident on a working day,
-  by sex and age group, from the EMEF microdata of 2022–2024 (province of Barcelona), weighted by
-  `PESAIX`. The public files give each trip's straight-line distance in seven bands from 2021. An
-  interval-censored log-normal model of distance given duration and trip type places each trip in
-  its band (`emef.distance`), and the EMEF 2021 distance report's ratio of road to straight-line
-  distance for driving trips (12.9 / 8.9 km = 1.45) converts it to road kilometres. Trips without
-  a band take the model's mean given duration, bounded by 100 km/h door to door, which is within
-  10 % of the band-based distance in every year and age group where both exist.
+  with 65–74 and 75+ for the model-dependent split. The result tables label the youngest group
+  18-29: its drivers are aged 18–29, and its kilometres are those of residents aged 16–29, of whom
+  those aged 16 and 17 drive no car; the 41 drivers aged 15–17 are left out. Drivers of unrecorded
+  age (2,234, 2.3 %) are left out of every rate. That lowers every absolute rate by that share, and
+  leaves the ratios between ages unchanged only if their ages follow the recorded mix;
+  `risk_unknown_age_bounds.csv` gives the ratios if all were of one group (2.80 instead of 2.53 at
+  18–29 if all were aged 18–29).
+- **Kilometres by age** (`emef.exposure`, `emef.distance`): car-driver kilometres per resident on a
+  working day, by sex and age group, from the EMEF microdata of 2022–2024 (province of Barcelona),
+  weighted by `PESAIX`. The public files give each trip's straight-line distance in seven bands
+  from 2021. An interval-censored log-normal model of distance given duration and trip type places
+  each trip in its band; in the open band (100 km or more) its mean is a parametric extrapolation.
+  Before 2019 a trip of the group 30–64 takes the model's 30–44 and 45–64 effects in the two
+  groups' 2019 proportions. The EMEF 2021 distance report's ratio of road to straight-line distance
+  for driving trips (12.9 / 8.9 km = 1.45) converts the distance to road kilometres; that report is
+  not archived and could not be found again. The model reproduces the mean trip distance and the
+  daily distance by age of the archived EMEF 2024 executive summary to within 0.8–3.0 %
+  (`emef_distance_validation.csv`).
+- **Trips without a usable band.** No trip before 2021 has a band, nor do 1.2 % of car-driver
+  trips in 2021–2024; 25 banded trips whose band cannot be reached in their duration (the band's
+  lower edge × 1.45 / duration above 150 km/h) are treated as unbanded. These take the model's mean
+  given duration, bounded by 80 km/h door to door. A few long trips weigh heavily: six unbanded
+  trips of 6.5 to 12 hours by respondents aged 65 and over carry about a tenth of that group's
+  working-day kilometres in 2022–2024. `exposure.imputation_check` compares the duration-only
+  distance with the band on banded trips under 100 km, by duration class, so that it never uses
+  the model's own extrapolation of the open band. It is within 14 % of the band-based total up to
+  two hours and well above it beyond (1.82 times at 120–180 minutes). For long trips the check is
+  biased the other way, because it keeps only trips known to be under 100 km. The data cannot
+  settle the distance of long unbanded trips, so their treatment is carried as a sensitivity range.
 - **Spain** (`exposure_risk.national`). Method A applies the EMEF kilometres per resident by sex
-  and age to INE's single-age population of Spain on 1 July 2024. Method B scales the shares to
-  DGT's 2024 car kilometres less taxis and ride-hailing cars (289.8 billion km, from
-  `km_servicio_2024.xlsx`); it sets the level of the rates, not their ratios. Method C repeats A
-  with the profile of each part of the province and of the Madrid household travel survey 2018
-  (`edm2018.py`). Method D, the kilometres of cars by their registered owner's age, is a
-  comparison only.
+  and age to INE's single-age population of Spain on 1 July 2024. Method A2, the licence-calibrated
+  transfer, carries over kilometres per B-licence holder instead, scaling each group by Spain's
+  B-licence prevalence over the province's (`risk_licence_prevalence.csv`): young residents of the
+  province of Barcelona hold B licences less often than Spain's (men aged 18–29 0.40 per resident
+  against 0.46, women 0.34 against 0.40). Method B scales the shares to DGT's 2024 car kilometres
+  less taxis and ride-hailing cars (289.8 billion km, from `km_servicio_2024.xlsx`); it sets the
+  level of the rates, not their ratios. Method C repeats A with the profile of each part of the
+  province and of the Madrid household travel survey 2018 (`edm2018.py`), in which car-driver trips
+  recorded at over 1,000 km (eight trips of 4,199–4,517 km) count for no distance. Method D, the
+  kilometres of cars by their registered owner's age, is a comparison only.
 - **Uncertainty.** 95 % intervals pair 300 bootstrap replicates of the EMEF (respondents
   resampled within year and comarca), or of EDM2018 households, with gamma draws for each count.
-  Sensitivity ranges (the regional profile, non-working days, the treatment of distances) are
-  reported separately and never merged into an interval.
+  The EMEF is a stratified multi-stage sample with weights calibrated to the census, but the public
+  files carry neither sampling units nor calibration margins, so the bootstrap ignores clustering
+  and calibration and the intervals are probably too narrow. Sensitivity ranges are reported
+  separately and never merged into an interval. `national.sensitivity`
+  (`risk_national_sensitivity.csv`) recomputes the ratios under every alternative: the regional
+  profiles (C), the licence-calibrated transfer (A2), every distance treatment
+  (`exposure.TRIP_VARIANTS`, band midpoints with and without unbanded trips, recalibrated road
+  bounds), the survey years, professionals' unrecorded work driving (25 % or 50 % of their work
+  trips, `V02C_3` or `V02D1`, taken as car trips of the group's mean car-trip length), the older
+  sample's employed share set to the census share (`emef_employment_benchmark.csv`: 4.3–4.4 % in
+  2019–2021, as in the census for Catalonia, and 6.0–8.3 % in 2022–2024), and the two weekend
+  mixes. The sensitivity range on the site is the span of all of them: 1.64–3.63 at 18–29,
+  1.12–1.64 at 30–44 and 0.99–1.65 at 65+, against central ratios of 2.53, 1.40 and 1.19.
 - **75 and over.** The public EMEF files stop at 65+. `national.older_split` divides the measured
-  65+ kilometres between 65–74 and 75+ under four stated assumptions (EDM2018 kilometres per
-  resident or per licence holder, the owners' split, equal kilometres per licence holder), keeps
-  the 65+ total, and publishes the result only as a range labelled model-dependent.
-- **A check matched in place** (`exposure_risk.barcelona`). Barcelona's 2025 person table gives
-  the exact age of every driver in a crash with victims, and the date. On the 248 working days of
-  2025 those drivers are set against EMEF kilometres driven inside the city, under three
-  denominators that bracket the unmeasured part of trips crossing the city boundary.
+  65+ kilometres between 65–74 and 75+ under three stated assumptions (EDM2018 kilometres per
+  resident by sex; EDM2018 kilometres per licence holder applied to Spain's licence holders; equal
+  kilometres per licence holder at 65–74 and 75+), keeps the 65+ total, and gives a 95 % interval
+  under each (`risk_older_split.csv`). The former fourth assumption, the registered owners' split,
+  was dropped because owner kilometres credit too much driving to older owners.
+  `national.older_sensitivity` repeats the split under every 65+ variant
+  (`risk_older_sensitivity.csv`: 0.76–1.54 at 65–74 and 1.13–3.09 at 75+), and
+  `barcelona.older_ratios` applies it to the Barcelona check (`risk_barcelona_older.csv`: 0.80–1.82
+  at 75+), where the direction is not established. The results are published only as ranges
+  labelled model-dependent.
+- **A working-day check in Barcelona** (`exposure_risk.barcelona`). Guàrdia Urbana crashes in the
+  city in 2025 with at least one casualty, on the 248 working days of 2025, are set against EMEF
+  2022–2024 kilometres driven inside the city by residents of the survey area; the check is not
+  matched in time. Car drivers are counted whether injured or not, which only the 2024 and 2025
+  person files allow; the code checks that the file lists uninjured drivers and a driver for the
+  vehicles of at least 95 % of crashes. The records give the exact age of 94 % of the working-day
+  car drivers, and those without an age are almost all unidentified drivers
+  (`risk_barcelona_unknown_age_bounds.csv`). Taxis, and ordinary cars whose driver's trip motive is
+  recorded as taxi (ride-hailing), are left out as in the national design; variants also leave out
+  on-duty drivers and crashes whose only casualties refused care (the `numerator` column of
+  `risk_barcelona_rates.csv`). Three denominators span the treatments of trips crossing the city
+  boundary. They do not bound the kilometres of all drivers: through traffic, non-residents and
+  people driving for work are in the numerator only, which biases the 65+ ratio down. The result
+  (65+ at 0.80–1.11 times the 45–64 rate across the three denominators) is separate evidence from a
+  different population, and is not part of the national sensitivity range.
 - **Weekends and holidays** (`national.weekend_sensitivity`). The EMEF covers working days only.
-  The central estimate spreads DGT's annual kilometres with the working-day age mix; the
-  sensitivity analysis gives 22 % or 32 % of annual kilometres the age mix of the EMEF 2023
-  weekend question.
-- **Quasi-induced exposure** is not applied: no public source has driver-level crash records with
-  age and an indicator of fault.
+  The central estimate spreads DGT's annual kilometres with the working-day age mix. The
+  sensitivity analysis gives 22 % or 32 % of annual kilometres one of two age mixes: a proxy from
+  the EMEF 2023 module on overnight weekend stays (`V11`, Saturday nights away from the
+  municipality in the last four weekends, asked in both waves, with the means of transport of the
+  most recent weekend only; it does not measure weekend driving), and MOVILIA 2006 table 64 (car or
+  motorcycle trips on an average weekend day against a working day, by age, Spain). Both lower the
+  65+ ratio, to 1.05–1.11.
+- **Quasi-induced exposure** is not applied. It needs one record per driver in each crash, with
+  age and an indicator of fault. DGT's national microdata are crash-level. The Guàrdia Urbana's
+  driver-cause table has no person, vehicle or order key and records each cause once per crash,
+  and its person and vehicle tables have no fault field. Even with such records, police-presumed
+  fault is not causal truth, the method gives relative exposure shares rather than kilometres, and
+  it assumes that not-at-fault drivers represent the drivers on the road. It would need the
+  presumed infraction and age of each driver in two-vehicle crashes, from DGT or from the
+  Ajuntament de Barcelona (Guàrdia Urbana).
 
 Three quantities, reported separately because they answer different questions:
 
@@ -356,45 +417,55 @@ Three quantities, reported separately because they answer different questions:
 3. `killed_per_bn_km`: drivers of this age killed per billion km; the product of the two.
 
 **The former owner-age figure** (`driver_risk.py`; `q7_*` tables, kept as the record). Before the
-rebuild, the per-km rates divided the same drivers by DGT's 2024 kilometres of cars registered to
-owners of each age band (18–24, 25–34, 35–54 as the reference, 55–64, 65–74, 75+), from the
-release *Kilómetros anualizados recorridos por el parque móvil*. The owner's age does not stand for
-the driver's at either end of the range (`owner_age_check`, using holders of a B permit): there
-are 0.23 cars per B-permit holder aged 18–24, 0.56 at 25–34 and 0.80 at 35–54, but 1.14 at 75 and
-over, more cars than B-permit holders of that age. Cars registered to companies (2.2 million, 40
-billion km) carry no age. Young drivers' kilometres were therefore understated and their rate
-overstated, and older drivers' kilometres overstated: that figure put drivers aged 18–24 at 6.75
-times the 35–54 rate and those aged 65–74 at 0.71 times. Measured by the driver's age, drivers
-aged 18–29 are at about 2.6 times the 45–64 rate and drivers aged 65 and over at about 1.2 times
-(`risk_owner_age_comparison.csv`). The owner-age tables are still built from the raw release, and
-the drivers page explains the difference.
+rebuild, the per-km rates divided car drivers involved in 2024, taxi and ride-hailing drivers
+included, by DGT's 2024 kilometres of cars registered to owners of each age band (18–24, 25–34,
+35–54 as the reference, 55–64, 65–74, 75+), from the release *Kilómetros anualizados recorridos
+por el parque móvil*. The owner's age does not stand for the driver's at either end of the range
+(`owner_age_check`, using holders of a B permit): there are 0.23 cars per B-permit holder aged
+18–24, 0.56 at 25–34 and 0.80 at 35–54, but 1.14 at 75 and over, more cars than B-permit holders of
+that age. Cars registered to companies (2.2 million, 40 billion km) carry no age. Young drivers'
+kilometres were therefore understated and their rate overstated, and older drivers' kilometres
+overstated. That figure put drivers aged 18–24 at 6.75 times the 35–54 rate and those aged 65–74 at
+0.71 times, on other bands and another reference than the current figures. On the same groups and
+the 45–64 reference, the owner kilometres give 4.62 at 18–29 and 1.00 at 65+, against 2.53 and 1.19
+by the driver's age (`risk_owner_age_comparison.csv`). The owner-age tables are still built from
+the raw release, and the drivers page explains the difference.
 
-**Sources considered and not used**, with the reason (registered in
+**Sources considered and not used as exposure**, with the reason (registered in
 [`data_sources.md`](data_sources.md)): MOVILIA 2006/2007 count trips and travel time, not
-kilometres, and do not separate drivers from passengers; INE's EHMA 2008 gives mean annual
-kilometres per household vehicle by the reference person's age in four bands stopping at 65+;
-ESRA gives a national driving share with no age split. An earlier version of this site combined
-the last two into a "travel-weighted driver" denominator; it is withdrawn, because it was not
-kilometres, it gave 65–74 and 75+ the same assumed intensity, and it applied a 2006 travel profile
-to 2014–2024.
+kilometres, and do not separate drivers from passengers, so they give no exposure; MOVILIA 2006
+table 64 supplies only one weekend age mix in the sensitivity analysis. INE's EHMA 2008 gives mean
+annual kilometres per household vehicle by the reference person's age in four bands stopping at
+65+; ESRA gives a national driving share with no age split. An earlier version of this site
+combined the last two into a "travel-weighted driver" denominator; it is withdrawn, because it was
+not kilometres, it gave 65–74 and 75+ the same assumed intensity, and it applied a 2006 travel
+profile to 2014–2024.
 
 ### 7.1 Sex (`driver_risk.py`)
 
 Drivers involved (table 4.2) and killed within 30 days (table 4.1.1), by sex and age band, are
 divided by licence-holder-years from the driver census, pooling 2022–2024 so that the rates for
-women over 65 (a few deaths a year) are readable (`sex_age_rates`). Two scopes: car drivers, and
-drivers of all motor vehicles, which leaves out cyclists and personal-mobility-vehicle riders, who
-need no licence, and rows of unknown vehicle. Three rates: involvement per 1,000 licence holders,
-deaths per million licence holders and deaths per 1,000 involved; the second is the product of the
-other two, and a test holds that identity. `sex_ratios` gives men against women on each, with
-log-normal intervals. `sex_trend` gives the three rates for drivers aged 18 and over, by sex and
-year, 2014–2024.
+women over 65 (a few deaths a year) are readable (`sex_age_rates`). Two scopes: drivers of private
+cars, with taxis and ride-hailing cars excluded as in the driver-age rates, and drivers of all
+motor vehicles, which leaves out cyclists and personal-mobility-vehicle riders, who need no
+licence, and rows of unknown vehicle. Three rates: involvement per 1,000 licence holders, deaths
+per million licence holders and deaths per 1,000 involved; the second is the product of the other
+two, and a test holds that identity. `sex_ratios` gives men against women on each, with log-normal
+intervals. `sex_trend` gives the three rates for drivers aged 18 and over, by sex and year,
+2014–2024.
 
-The comparison of men and women is per licence holder (any class) and per driver involved, the
-measures that national data support for every year from 2014; no per-km rate by sex is
-published. The MOVILIA 2006 bracket that used to sit beside it was
-withdrawn: it divided a 2022–2024 crash ratio by a 2006 car-or-motorcycle trip ratio that counts
-passengers. B-permit holders by sex exist only from 2021, so the rates keep holders of any class.
+Per licence holder (any class) and per driver involved are the measures that national data support
+for every year from 2014. `national.sex_per_km` adds a comparison per kilometre for 2024, splitting
+national car kilometres by sex with the same EMEF transfer as for age (`risk_sex_per_km.csv`). On
+that estimate men drove about two thirds (66 %) of car-driver kilometres, and per kilometre male
+private-car drivers aged 18 and over were involved 0.91 times as often as female drivers
+(0.85–0.98) and killed 2.6 times as often (2.10–3.38); under the other regional profiles the two
+ratios run from 0.61 to 1.23 and from 1.75 to 3.55. The MOVILIA 2006 bracket that used to sit beside the comparison was withdrawn: it divided a
+2022–2024 crash ratio by a 2006 car-or-motorcycle trip ratio that counts passengers. Only the
+census text files (2023–2025) give B-permit holders by sex and age, so the 2022–2024 rates keep
+holders of any class; `driver_risk.sex_b_licence` (`drivers_sex_b_licence.csv`) shows that counting
+only B-permit holders raises the men's excess in deaths per licence holder in 2023–2024 from 3.49
+(2.96–4.11) to 3.57 (3.03–4.20).
 
 ## 8. Vehicles per kilometre (`vehicles.py`)
 
@@ -555,8 +626,8 @@ listed with their results on the data page.
 | Road fuel tracks the kilometres driven | measured interurban vehicle-km against national road fuel (the scopes differ, so a diagnostic of the proxy, not a rate) | cannot be tested on all roads: the measured kilometres cover only State, regional and provincial interurban roads; per measured km, interurban deaths in 2023 are +5 % on trend, inside the interval; 8.7 % to 11.2 % of interurban deaths are on roads the kilometres leave out (section 5) |
 | CORES road fuel includes the biofuel blended into it, and a tonne means the same every year | each subtotal against the sum of its products, biofuels included, every month; the published biofuel share | holds: biofuel was 6.6 % of road fuel by mass in 2019 and 7.8 % in 2023, and as it carries less energy per tonne it cannot explain the rise in interurban kilometres per tonne (section 5) |
 | The owner's age stands for the driver's | cars and km per B-permit holder by band | does not hold at either end (0.23 cars per B-permit holder at 18–24, 0.56 at 25–34, 1.14 at 75+); the owner-age kilometres are replaced by kilometres driven by drivers of each age (section 7) |
-| One region's age profile of driving holds for Spain | the per-km ratios recomputed with each part of the province of Barcelona and with the Madrid survey of 2018; Barcelona's crashes on working days against driving inside the city | the ratio of older to middle-aged driving per resident is nearly the same across the province (0.40–0.47), but Madrid's older residents drive less; ratios by age are published with these sensitivity ranges (section 7) |
-| Working-day driving represents the year | the EMEF 2023 weekend question and Barcelona's crashes by type of day | non-working days move the 65-and-over ratio from 1.16 to 1.06–1.09; a modest, downward source of uncertainty (section 7) |
+| One region's age profile of driving holds for Spain | the per-km ratios recomputed with each part of the province of Barcelona and with the Madrid survey of 2018; B-licence prevalence by age and sex in the province against Spain (the licence-calibrated transfer) | the ratio of older to middle-aged driving per resident is similar across the province (0.39–0.47), but Madrid's older residents drive less; young residents of the province hold B licences less often than Spain's, and carrying driving per licence holder lowers the 18–29 ratio from 2.53 to 2.24; ratios by age are published with these sensitivity ranges (section 7) |
+| Working-day driving represents the year | the EMEF 2023 module on overnight weekend stays (a proxy), MOVILIA 2006 car trips on weekend and working days, and Barcelona's crashes by type of day | cannot be tested directly: no source measures weekend kilometres by age; the two weekend age mixes move the 65-and-over ratio from 1.19 to 1.05–1.11 (section 7) |
 | The fall in deaths was in how deadly crashes are | exact frequency × severity split | holds; the split, not the product, depends on recording (section 4) |
 | A forecast can show a change in the counts | out-of-sample forecast errors | the forecast loses to last year's count in the ordinary held-out years and was withdrawn, with the detectable changes computed from its errors (section 11) |
 
@@ -788,7 +859,7 @@ page (the Catalonia and Barcelona pages share `regional`), the result tables sev
   years.
 - Vehicle-kilometres by vehicle type exist in detail for 2022 only (2024 by category, and each
   year on interurban roads only as heavy against other vehicles); kilometres by driver age are
-  measured in two regional travel surveys and transferred to Spain, and stop at 65 and over in
+  estimated from two regional travel surveys and transferred to Spain, and stop at 65 and over in
   the EMEF's public files; the speed report excludes two regions; road-type coding changed in 2021
   (interurban conventional roads), 2022 and 2024 (toll and free motorways, with 2023 back at the
   earlier split) and 2024 (urban), and the junction field changed in 2023.

@@ -18,6 +18,17 @@ separate sampling strata (methodology report 2003–2018, Table 5). The strata w
 2017, and the questionnaire filters on exact age (retired respondents under 75 are asked about
 paid work), so the confidential files hold exact age for every year.
 
+A second question concerns the weights of the 65 and over group. The weighted share of residents
+aged 65 and over who are employed was 4.3–4.4% in 2019–2021, the same as the census share for
+Catalonia on 1 January 2024 (4.3%), but 6.0–8.3% in 2022–2024 (`emef_employment_benchmark.csv`).
+Employed older residents drive more on working days, so an excess of them raises the 65 and over
+kilometres; reweighting the group to the census share raises the national 65 and over ratio of
+involvement per kilometre from 1.19 to 1.23
+([`DRIVER_AGE_EXPOSURE.md`](DRIVER_AGE_EXPOSURE.md)). The 2024 technical sheet says that the
+weights are calibrated to the census of 1 January 2025, by place of birth since 2023, but not which
+margins are used, nor whether 65–74 and 75 and over are calibrated separately. If they are not,
+the weighted 65 and over group could hold too many of the younger and more active old.
+
 ## Two routes
 
 1. **A tabulation produced by the data holders (preferred).** The Institut Metròpoli's data
@@ -64,6 +75,17 @@ For every cell:
 Each answer should state the population base (residents aged 16 and over), that the reference day
 is a working day, how multimodal trips were treated, and any cell the data holders suppressed.
 
+**Weights and calibration.** For each survey year, ideally 2019–2024 and at minimum 2022–2024:
+
+| Item | Definition |
+|---|---|
+| `calibration_margins` | the variables and population totals to which `PESAIX` is calibrated (for example age group by sex by area, place of birth), and the census or register date of those totals |
+| `weights_65_74`, `weights_75_plus` | the sum of `PESAIX` over respondents aged 65–74 and over those aged 75 and over, by sex, with the census or register population of the same groups |
+| `employed_65_plus` | the sum of `PESAIX` over employed respondents aged 65–74 and aged 75 and over, if the margins do not include employment |
+| `design_variables` | the strata and primary sampling units, or replicate weights, from which design-based standard errors can be computed |
+
+These items identify no one; they describe the weights, not the respondents.
+
 ## How a reply would be used
 
 The reply would be filed as `data/raw/emef/requested/emef_age_tables_<years>.csv` (one row per
@@ -71,7 +93,11 @@ year, area, age group and sex, with the fields above), registered in `data/raw/m
 its date and terms of use, and read by a new function in `src/dgt_stats/emef/`. It would replace
 the model-dependent split of the 65 and over group described in
 [`DRIVER_AGE_EXPOSURE.md`](DRIVER_AGE_EXPOSURE.md), and the published 65 and over totals of the
-public files would serve as a check: the age groups of a reply must add up to them.
+public files would serve as a check: the age groups of a reply must add up to them. The
+calibration margins and the weighted totals at 65–74 and 75 and over would show whether the 65 and
+over group's weights reproduce the population of each part of it; if they do not, the group would
+be reweighted to the census before any kilometre estimate. The design variables would replace the
+bootstrap within year and comarca, which ignores clustering and calibration.
 
 ## Draft message
 
@@ -99,6 +125,12 @@ English one.
 > indicant si la distància és per carretera o en línia recta), l'error estàndard d'aquests
 > quilòmetres i la població que condueix habitualment.
 >
+> També us agrairia, per a cada any (com a mínim 2022–2024), els marges de calibratge de les
+> ponderacions (les variables i els totals de població utilitzats) i la suma de les ponderacions
+> (PESAIX) de les persones de 65 a 74 anys i de 75 anys i més, per sexe, juntament amb la població
+> de referència corresponent. Si és possible, també els estrats i les unitats primàries de mostreig,
+> o pesos rèplica, per calcular els errors estàndard segons el disseny.
+>
 > Acceptem qualsevol supressió de cel·les que apliqueu i citarem la font tal com indiqueu. Si
 > aquesta petició requereix seguir el procediment d'accés a dades confidencials, us agrairia que
 > m'indiquéssiu els passos i el cost aproximat.
@@ -124,6 +156,12 @@ English one.
 > as a car driver and their kilometres (weighted, stating whether distance is by road or straight
 > line), the standard error of those kilometres, and the population who drive habitually?
 >
+> I would also be grateful, for each year (at least 2022–2024), for the calibration margins of the
+> weights (the variables and population totals used) and the sum of the weights (PESAIX) of people
+> aged 65–74 and of those aged 75 and over, by sex, with the corresponding reference population.
+> If possible, the strata and primary sampling units, or replicate weights, would allow
+> design-based standard errors.
+>
 > Any cell suppression you apply is acceptable, and the source will be cited as you indicate. If
 > the request must go through the confidential-data procedure, I would be grateful to know the
 > steps and the approximate cost.
@@ -139,5 +177,5 @@ English one.
 | EMEF publications and annual reports (2014–2016 STI reports, 2024 results and publication, the 2013–2023 trend report) | No; every table stops at 65 and over | none |
 | EMEF confidential files | Yes (exact age) | the request above |
 | Madrid household travel survey, EDM 2018 (Consorcio Regional de Transportes de Madrid; public microdata with exact age, licence, weekday and trip distance) | Yes | the age profile of driving within the 65 and over group, as a labelled model-dependent split ([`DRIVER_AGE_EXPOSURE.md`](DRIVER_AGE_EXPOSURE.md)) |
-| MOVILIA 2006–2007 (Ministry of Transport; national, `data/raw/transportes/`) | Published tables only; no driver status by age and sex | too old and too coarse for the split |
-| DGT kilometres by owner age, 2024 | Yes, but by registered owner, not by driver | sensitivity only |
+| MOVILIA 2006–2007 (Ministry of Transport; national, `data/raw/transportes/`) | Published tables only; no driver status by age and sex | too old and too coarse for the split; MOVILIA 2006 table 64 (car or motorcycle trips on weekend and working days, by age) gives one weekend age mix in a sensitivity analysis |
+| DGT kilometres by owner age, 2024 | Yes, but by registered owner, not by driver | the former owner-age figure, kept as a comparison; no longer used to split the 65 and over kilometres, because owner kilometres credit too much driving to older owners |

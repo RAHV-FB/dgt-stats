@@ -583,9 +583,26 @@ def older_split(km_variant: str = "less taxi and ride-hailing") -> pd.DataFrame:
 
 def older_sensitivity() -> pd.DataFrame:
     """The 65-74 and 75+ ratios under every split assumption and every 65+ variant of
-    :func:`sensitivity` that comes from an EMEF profile."""
+    :func:`sensitivity`: the profiles (EMEF areas, Madrid, licence-calibrated), the distance
+    treatments, survey years, professionals' work driving, the older sample's employment and the
+    weekend mixes."""
+    variants = [
+        (source, variant, profile, km) for source, variant, profile, km in _variant_profiles()
+    ]
+    # Weekend mixes change the age shares of the annual km, not the split within 65+.
+    weekend = weekend_sensitivity()
+    weekend = weekend[weekend.non_working_share_of_km.notna()]
+    for (mix, share), part in weekend.groupby(["non_working_age_mix", "non_working_share_of_km"]):
+        variants.append(
+            (
+                "non-working days",
+                f"{mix}, {share:.0%} of km",
+                emef_profile(),
+                part.set_index("group").share_of_km,
+            )
+        )
     rows = []
-    for source, variant, profile, km in _variant_profiles():
+    for source, variant, profile, km in variants:
         if profile is None:
             continue
         for assumption, ratios in _older_ratios().items():
@@ -735,6 +752,8 @@ def _variant_profiles():
             profile = licence_calibrated(emef_profile())
         elif method.startswith("C: EMEF, "):
             profile = emef_profile(method.removeprefix("C: EMEF, "))
+        elif method.startswith("C: Madrid"):
+            profile = edm_profile()
         yield source, method.split(": ", 1)[1], profile, km
     for name in exposure.trip_variant_names():
         profile = emef_profile(column=name)
@@ -807,8 +826,24 @@ def unknown_age_bounds() -> pd.DataFrame:
 
 def sex_per_km() -> pd.DataFrame:
     """Men against women aged 18 and over: private-car drivers involved and killed per km, with
-    the km split by sex from the Method A profile (the same transfer as for age)."""
-    profile = emef_profile()
+    the km split by sex from the Method A profile (the same transfer as for age), and the ratio
+    under each other profile as a sensitivity range."""
+    out = _sex_per_km(emef_profile()).assign(profile=CENTRAL_METHOD)
+    others = {
+        LICENCE_METHOD: licence_calibrated(emef_profile()),
+        **{f"C: EMEF, {area}": emef_profile(area) for area in exposure.AREAS},
+        "C: Madrid survey 2018": edm_profile(),
+    }
+    spread = pd.concat(
+        [_sex_per_km(profile).assign(profile=name) for name, profile in others.items()]
+    )
+    ranges = spread.groupby("measure").ratio_men_to_women.agg(["min", "max"])
+    out["range_low"] = out.measure.map(ranges["min"])
+    out["range_high"] = out.measure.map(ranges["max"])
+    return out
+
+
+def _sex_per_km(profile: dict) -> pd.DataFrame:
     population = population_by_group().set_index(["sex", "group"]).population
     involved = io_tables.read_table("tables_drivers_involved")
     victims = io_tables.read_table("tables_driver_victims")

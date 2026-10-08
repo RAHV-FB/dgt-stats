@@ -65,6 +65,7 @@ ON_DUTY_MOTIVES = (
     "Bus de línia regular",
 )
 REFUSED_CARE = "minor_refused_care"
+MIN_UNINJURED_SHARE = 0.25
 NUMERATORS = (
     "taxis and ride-hailing cars left out",
     "on-duty drivers also left out",
@@ -103,10 +104,16 @@ def involved_drivers() -> pd.DataFrame:
     crashes = barcelona.read_crashes()
     injury = crashes.loc[crashes.n_victims > 0, barcelona.KEY]
     every_driver = people[people.person_role == "driver"]
-    if not (every_driver.victimisation == "uninjured").any():
-        raise ValueError("Barcelona person file: no uninjured drivers, so not every driver")
-    per_crash = every_driver.groupby(barcelona.KEY).size()
-    vehicles = crashes.set_index(barcelona.KEY).Numero_vehicles_implicats.astype(float)
+    # Every driver is listed, injured or not, only if many drivers in crashes with a casualty are
+    # uninjured (a file of casualties alone would have almost none) and nearly every vehicle of
+    # those crashes has a driver row.
+    in_injury = every_driver[every_driver[barcelona.KEY].isin(injury)]
+    uninjured = float((in_injury.victimisation == "uninjured").mean())
+    if uninjured < MIN_UNINJURED_SHARE:
+        raise ValueError(f"Barcelona person file: {uninjured:.0%} uninjured drivers, not every one")
+    per_crash = in_injury.groupby(barcelona.KEY).size()
+    vehicles = crashes[crashes.n_victims > 0].set_index(barcelona.KEY)
+    vehicles = vehicles.Numero_vehicles_implicats.astype(float)
     complete = float((per_crash.reindex(vehicles.index).fillna(0) == vehicles).mean())
     if complete < 0.95:
         raise ValueError(f"Barcelona person file: a driver row for every vehicle in {complete:.1%}")

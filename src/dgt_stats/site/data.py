@@ -524,7 +524,7 @@ def _assumptions() -> str:
     central = drivers["central"].involved_ratio
     licence = drivers["licence"].involved_ratio
     prevalence = read_table("risk_licence_prevalence")
-    young_licensed = prevalence[prevalence.group == "18-29"].set_index(["place", "sex"]).prevalence
+    young_licensed = prevalence[prevalence.group == "15-29"].set_index(["place", "sex"]).prevalence
     city_older = drivers["city"][drivers["city"].age4 == "65+"].ratio_to_45_64
     reference = risk_trends.BASE_YEAR
     per_km_last = km_check.loc[("per_km", km_last)]

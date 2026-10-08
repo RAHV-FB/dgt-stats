@@ -31,16 +31,20 @@ log = logging.getLogger("exposure_risk")
 
 
 # The youngest group pairs drivers aged 18-29 with the kilometres of residents aged 16-29, of whom
-# those aged 16 and 17 drive no car; the published tables name it by its drivers.
+# those aged 16 and 17 drive no car; tables of drivers and rates name it by its drivers. Tables of
+# residents keep 16-29, and licence prevalence divides by residents aged 15-29.
 DRIVER_LABELS = {"16-29": "18-29"}
+RESIDENT_TABLES = {"edm_profile", "risk_barcelona_km"}
+GROUP_LABELS = {"risk_licence_prevalence": {"16-29": "15-29"}}
 
 
 def write(frame: pd.DataFrame, name: str) -> None:
     TABLES_DIR.mkdir(parents=True, exist_ok=True)
     frame = frame.copy()
+    labels = GROUP_LABELS.get(name, {} if name in RESIDENT_TABLES else DRIVER_LABELS)
     for column in frame.columns:
         if frame[column].dtype == object or pd.api.types.is_string_dtype(frame[column]):
-            frame[column] = frame[column].replace(DRIVER_LABELS)
+            frame[column] = frame[column].replace(labels)
     frame.to_csv(TABLES_DIR / f"{name}.csv", index=False, float_format="%.10g")
     log.info("%s: %d rows", name, len(frame))
 

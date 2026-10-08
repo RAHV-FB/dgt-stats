@@ -402,8 +402,10 @@ def page_drivers(captions: dict[str, str]) -> str:
         "men are higher than women per licence holder and once involved, in every band",
     )
     _check(
-        float(per_km_involved.ratio_high) < 1 and float(per_km_killed.ratio_low) > 2,
-        "per km, men are involved slightly less often than women and killed far more often",
+        float(per_km_involved.range_low) < 1 < float(per_km_involved.range_high)
+        and float(per_km_involved.ratio_high) < float(men_involved.low)
+        and float(per_km_killed.range_low) > 1.5,
+        "per km, men are involved about as often as women and killed far more often",
     )
     _check(
         float(b_licence.loc["B-licence holders", "ratio"])
@@ -643,15 +645,18 @@ def page_drivers(captions: dict[str, str]) -> str:
         "<p>The survey's kilometres can be split by sex and carried to Spain in the same way as "
         f"by age. On that estimate men drove {_fmt_pct(float(per_km_involved.men_share_of_km))} "
         f"of car kilometres in {year}, and per kilometre male private-car drivers aged 18 and "
-        f"over were involved in injury crashes slightly less often than female drivers "
-        f"({float(per_km_involved.ratio_men_to_women):.2f} times; {ci_km(per_km_involved)}) but "
-        f"killed {float(per_km_killed.ratio_men_to_women):.1f} times as often "
-        f"({ci_km(per_km_killed)}). Per licence holder, pooling {sex_years}, men were involved "
+        f"over were involved in injury crashes about as often as female drivers "
+        f"({float(per_km_involved.ratio_men_to_women):.2f} times; {ci_km(per_km_involved)}; "
+        f"{_fmt_span(float(per_km_involved.range_low), float(per_km_involved.range_high))} under "
+        "the other regional profiles) but killed "
+        f"{float(per_km_killed.ratio_men_to_women):.1f} times as often ({ci_km(per_km_killed)}; "
+        f"{_fmt_span(float(per_km_killed.range_low), float(per_km_killed.range_high))}). Per "
+        f"licence holder, pooling {sex_years}, men were involved "
         f"{float(men_involved.ratio):.2f} times as often as women ({ci(men_involved)}) and, once "
         f"involved, died {float(men_fatality.ratio):.2f} times as often ({ci(men_fatality)}); "
         f"combined, they died at the wheel {float(men_killed.ratio):.2f} times as often "
-        f"({ci(men_killed)}). So men's higher involvement per licence holder comes from driving "
-        "further, while their higher death rate holds per kilometre and once a crash has "
+        f"({ci(men_killed)}). So men's higher involvement per licence holder comes mostly from "
+        "driving further, while their higher death rate holds per kilometre and once a crash has "
         "happened. The gap once involved holds in every age band.</p>"
     )
     body += figure(
