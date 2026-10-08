@@ -39,19 +39,21 @@ def test_every_page_is_written_with_one_heading(built: Path) -> None:
         _runs_no_script(slug, text)
         assert 'lang="en"' in text
         assert f'href="{slug}.html" aria-current="page"' in text
-    # The navigation follows the argument: Spain (seven pages and three supporting analyses),
-    # the regional records, the models and their external validation, and the methods; a
-    # pointer for each page that was renamed; and a notice for each withdrawn analysis.
+    # The navigation follows the questions a reader brings: deaths over time; drivers, vehicles
+    # and recorded factors; how deadly a crash is once it has happened; and the data and methods.
+    # A pointer for each page that was renamed, and a notice for each withdrawn analysis.
     assert [group for group, _ in site.NAV_GROUPS] == [
         "Overview",
-        "Spain",
-        "Supporting analyses",
-        "Regional data",
-        "Models",
-        "Methods",
+        "Over time",
+        "Drivers, vehicles and factors",
+        "Crash severity",
+        "Data and methods",
     ]
     assert len(site.PAGES) == 14 and len(site.SUPPORTING_PAGES) == 2
-    assert [slug for slug, _ in dict(site.NAV_GROUPS)["Models"]] == [
+    assert [slug for slug, _ in dict(site.NAV_GROUPS)["Crash severity"]] == [
+        "severity",
+        "catalonia",
+        "barcelona",
         "severity-models",
         "validation",
     ]
@@ -528,40 +530,30 @@ def test_every_page_has_a_description_and_every_image_an_alt(built: Path) -> Non
 def test_front_page_is_an_overview_of_the_study(built: Path) -> None:
     index = (built / "index.html").read_text(encoding="utf-8")
     body = index[index.find("<main>") : index.find("</main>")]
-    # What the project is, its main findings, where to read on and its data: no numbered
-    # questions, no boxed finding blocks, and the page opens on a summary paragraph.
+    # The answer first, then the main findings and the pages: no numbered questions, no number
+    # tiles or boxed blocks, and the page opens on a summary paragraph.
     headings = re.findall(r"<h2[^>]*>([^<]+)</h2>", body)
-    assert headings == ["Main findings", "Explore the study"]
+    assert headings == ["Main findings", "The pages"]
     assert '<div class="finding">' not in body and "Finding 1" not in body
+    assert "finding-value" not in body and "explore" not in body and "provenance" not in body
     assert body.find('<p class="summary">') < body.find("<h2")
     opening = re.search(r'<p class="summary">(.*?)</p>', body, re.S).group(1)
-    assert "ordinary statistical analysis" in opening and "predictive models" in opening
+    assert "association" in opening and "fell by about three quarters" in opening
     sections = dict(zip(headings, re.split(r"<h2[^>]*>[^<]+</h2>", body)[1:]))
-    # A short list of findings, each a single number with the sentences saying what it measures.
-    findings = re.search(r'<ol class="findings">(.*?)</ol>', body, re.S).group(1)
+    # A short list of findings, each led by its answer in one sentence.
+    findings = re.search(r'<ul class="findings">(.*?)</ul>', body, re.S).group(1)
     items = re.findall(r"<li>(.*?)</li>", findings, re.S)
     assert 4 <= len(items) <= 7
     for item in items:
-        assert item.count('<p class="finding-value">') == 1
+        assert item.count("<strong>") == 1 and item.startswith("<p><strong>")
     for slug in ("trends", "long-run", "drivers", "speed", "factors", "severity-models"):
         assert f'href="{slug}.html' in sections["Main findings"], slug
     assert 'href="validation.html' in sections["Main findings"]
-    # The study index lists every page once, in the groups a reader would look for.
-    explore = re.search(r'<div class="explore">(.*?)</div>', body, re.S).group(1)
-    groups = re.findall(r"<h3[^>]*>([^<]+)</h3>", explore)
-    assert groups == [
-        "National trends and exposure",
-        "Drivers and vehicles",
-        "Recorded crash factors",
-        "Catalonia and Barcelona",
-        "Predictive severity models",
-        "Sources and methodology",
-    ]
-    linked = re.findall(r'href="([a-z-]+)\.html"', explore)
+    # The list of pages follows the navigation's groups and lists every page once.
+    groups = re.findall(r"<h3[^>]*>([^<]+)</h3>", sections["The pages"])
+    assert groups == [group for group, _ in site.NAV_GROUPS][1:]
+    linked = re.findall(r'href="([a-z-]+)\.html"', sections["The pages"])
     assert sorted(linked) == sorted(slug for slug, _ in site.ALL_PAGES if slug != "index")
-    # The data line closes the page quietly and links the sources.
-    provenance = re.search(r'<div class="provenance">(.*?)</div>', body, re.S).group(1)
-    assert 'href="sources.html"' in provenance
     # The headline numbers are computed from the tables.
     risk = pd.read_csv(TABLES_DIR / "risk_index.csv")
     latest = risk[(risk.year == risk.year.max()) & (risk.outcome == "deaths_30d")]
@@ -585,7 +577,7 @@ def test_front_page_is_an_overview_of_the_study(built: Path) -> None:
         in (sections["Main findings"])
     )
     spread = pd.read_csv(TABLES_DIR / "risk_national_sensitivity.csv").groupby("group")
-    assert f"{spread.involved_ratio.min()['18-29']:.1f}–" in sections["Main findings"]
+    assert f"from {spread.involved_ratio.min()['18-29']:.1f} to" in sections["Main findings"]
     assert "nearly seven" not in sections["Main findings"]
     # A reader can follow the front page without the modelling vocabulary of the deeper pages.
     visible = re.sub(r"<[^>]+>", " ", body)
@@ -612,16 +604,16 @@ def test_any_closing_synthesis_follows_the_evidence(built: Path) -> None:
             assert body.rfind('<div class="conclusion">') > body.rfind("<table>"), slug
 
 
-def test_supporting_pages_say_they_are_supporting(built: Path) -> None:
-    # The section line above the title says so; the prose does not restate the site's structure.
-    for slug in ("severity", "policy"):
+def test_supporting_pages_name_their_group(built: Path) -> None:
+    # The section line above the title names the page's group; the prose does not restate the
+    # site's structure.
+    for slug, group in (("severity", "Crash severity"), ("policy", "Over time")):
         text = (built / f"{slug}.html").read_text(encoding="utf-8")
         body = text[text.find("<main>") : text.find("</main>")]
         assert body.startswith(
-            '<main>\n<header class="page-header" id="content">\n'
-            '<p class="eyebrow">Spain · supporting analysis</p>'
+            f'<main>\n<header class="page-header" id="content">\n<p class="eyebrow">{group}</p>'
         ), slug
-        assert "Supporting analysis." not in body, slug
+        assert "Supporting analysis." not in body and "supporting analysis" not in body, slug
 
 
 def test_no_page_uses_an_em_dash(built: Path) -> None:
@@ -673,13 +665,12 @@ def test_navigation_groups_its_pages_under_labels(built: Path) -> None:
     links = re.findall(r'href="([a-z-]+)\.html"', nav)
     assert links == [slug for _, pages in site.NAV_GROUPS for slug, _ in pages]
     # A page names its section and links to its neighbours in reading order.
-    assert '<p class="eyebrow">Spain</p>' in text
+    assert '<p class="eyebrow">Drivers, vehicles and factors</p>' in text
     assert 'href="vehicles.html" rel="prev"' in text and 'href="factors.html" rel="next"' in text
-    # The last national page leads on to the supporting analyses, and the last of those to the
-    # regional crash records.
+    # Each group leads on to the next in reading order.
     for slug, before, after in (
+        ("policy", "seasons", "drivers"),
         ("factors", "speed", "severity"),
-        ("policy", "severity", "catalonia"),
         ("validation", "severity-models", "sources"),
     ):
         page = (built / f"{slug}.html").read_text(encoding="utf-8")

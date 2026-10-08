@@ -21,23 +21,29 @@ PROFILE_URL = "https://github.com/RAHV-FB"
 DOCS_URL = f"{REPO_URL}/blob/main/docs"
 
 
-# The navigation follows the argument rather than the repository: the national picture from DGT
-# and INE (with three supporting analyses), the regional crash records, the two severity models and
-# their external validation, and the sources and methods.
+# The navigation follows the questions a reader brings: how deaths have changed over time, which
+# drivers, vehicles and recorded circumstances go with crashes and deaths, how deadly a crash is
+# once it has happened (in Spain's records, in Catalonia's and Barcelona's, and in the model built
+# on Catalonia's), and where the data and methods come from. The home page lists the same groups.
 OVERVIEW = "Overview"
-SPAIN = "Spain"
-SUPPORTING = "Supporting analyses"
-REGIONAL = "Regional data"
-MODELS = "Models"
-METHODS = "Methods"
+OVER_TIME = "Over time"
+WHO = "Drivers, vehicles and factors"
+SEVERITY = "Crash severity"
+METHODS = "Data and methods"
 NAV_GROUPS: tuple[tuple[str, tuple[tuple[str, str], ...]], ...] = (
     (OVERVIEW, (("index", "Overview"),)),
     (
-        SPAIN,
+        OVER_TIME,
         (
-            ("trends", f"Trends since {BASE_YEAR}"),
             ("long-run", "Long-run trends"),
+            ("trends", f"Since {BASE_YEAR}"),
             ("seasons", "Seasons"),
+            ("policy", "The 2006 points licence"),
+        ),
+    ),
+    (
+        WHO,
+        (
             ("drivers", "Drivers"),
             ("vehicles", "Vehicles"),
             ("speed", "Speed"),
@@ -45,38 +51,57 @@ NAV_GROUPS: tuple[tuple[str, tuple[tuple[str, str], ...]], ...] = (
         ),
     ),
     (
-        SUPPORTING,
+        SEVERITY,
         (
-            ("severity", "Crash circumstances"),
-            ("policy", "The 2006 points licence"),
-        ),
-    ),
-    (REGIONAL, (("catalonia", "Catalonia"), ("barcelona", "Barcelona"))),
-    (
-        MODELS,
-        (
+            ("severity", "Crash circumstances in Spain"),
+            ("catalonia", "Catalonia"),
+            ("barcelona", "Barcelona"),
             ("severity-models", "Severity model and calculator"),
             ("validation", "External validation"),
         ),
     ),
     (METHODS, (("sources", "Data sources and scope"), ("data", "Methodology"))),
 )
-# The line above a page's title: the part of the argument the page belongs to.
-EYEBROWS = {
-    SPAIN: "Spain",
-    SUPPORTING: "Spain · supporting analysis",
-    REGIONAL: "Regional data",
-    MODELS: "Models",
-    METHODS: "Methods",
+# The line above a page's title: the group it belongs to.
+EYEBROWS = {group: group for group, _ in NAV_GROUPS}
+# What each page answers, one line each, for the home page's list of pages.
+PAGE_QUESTIONS = {
+    "long-run": "How road deaths have changed since 1993, against vehicles, fuel sold and "
+    "kilometres driven.",
+    "trends": f"Deaths, hospital admissions and injury crashes in 2024 against {BASE_YEAR}.",
+    "seasons": "Which months are deadliest, and how the 2020 lockdowns changed them.",
+    "policy": "Whether the points-based licence of July 2006 changed monthly deaths.",
+    "drivers": "How often drivers of each age and sex are in crashes per kilometre, and how "
+    "often a crash kills them.",
+    "vehicles": "Crashes and deaths by type of vehicle, per vehicle and per kilometre.",
+    "speed": "Crashes in which the police recorded inappropriate speed, and their deaths.",
+    "factors": "The other circumstances the police record, and how their shares have moved.",
+    "severity": "Which recorded circumstances go with a death in Spain's injury crashes.",
+    "catalonia": "Crashes with a death or serious injury in Catalonia, 2010–2023.",
+    "barcelona": "Every crash the Guàrdia Urbana attended in Barcelona in 2025.",
+    "severity-models": "A model of which severe crashes in Catalonia were fatal, and a "
+    "calculator to try it.",
+    "validation": "How the Catalan models held up on other years, places and records.",
+    "sources": "Where every figure comes from, what it covers and what it cannot show.",
+    "data": "How the results are produced, the checks they pass and the assumptions tested.",
 }
 
 
-# The main pages, and the supporting analyses outside the central argument.
+# The two analyses that support the national argument rather than answer one of its questions.
+SUPPORTING_SLUGS = ("severity", "policy")
 PAGES: tuple[tuple[str, str], ...] = tuple(
-    page for group, pages in NAV_GROUPS if group != SUPPORTING for page in pages
+    page for _, pages in NAV_GROUPS for page in pages if page[0] not in SUPPORTING_SLUGS
 )
-SUPPORTING_PAGES: tuple[tuple[str, str], ...] = dict(NAV_GROUPS)[SUPPORTING]
-SPAIN_PAGES: tuple[tuple[str, str], ...] = dict(NAV_GROUPS)[SPAIN]
+SUPPORTING_PAGES: tuple[tuple[str, str], ...] = tuple(
+    page for _, pages in NAV_GROUPS for page in pages if page[0] in SUPPORTING_SLUGS
+)
+SPAIN_PAGES: tuple[tuple[str, str], ...] = tuple(
+    page
+    for group, pages in NAV_GROUPS
+    if group in (OVER_TIME, WHO)
+    for page in pages
+    if page[0] not in SUPPORTING_SLUGS
+)
 
 
 ALL_PAGES = PAGES + SUPPORTING_PAGES

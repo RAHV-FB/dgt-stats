@@ -210,5 +210,5 @@ def test_the_models_group_holds_only_models_that_beat_their_comparator() -> None
 
     decisions = _table("ml_model_decisions")
     forecast = decisions[decisions.model.eq("dgt_monthly_deaths_forecast")].decision.iloc[0]
-    in_models = "forecast" in [slug for slug, _ in dict(site.NAV_GROUPS)["Models"]]
+    in_models = "forecast" in [slug for slug, _ in dict(site.NAV_GROUPS)["Crash severity"]]
     assert in_models == (forecast in rules.FEATURED)
