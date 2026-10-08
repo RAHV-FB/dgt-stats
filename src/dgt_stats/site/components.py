@@ -232,10 +232,6 @@ def _join(items: list[str]) -> str:
     return ", ".join(items[:-1]) + " and " + items[-1]
 
 
-def _times(value: float) -> str:
-    return f"{value:.2f}×"
-
-
 def esc(text: object) -> str:
     return html.escape(str(text))
 
@@ -771,7 +767,8 @@ the Consorcio Regional de Transportes de Madrid (<a href="https://www.crtm.es">P
 All results are computed from the published files by the code in the repository.</p>
 <p><a href="sources.html">Data sources</a> · <a href="data.html">Methodology</a> ·
 <a href="data.html#reuse">Reuse and licences</a> ·
-<a href="{REPO_URL}">Repository</a></p>
+<a href="{REPO_URL}">Repository</a> ·
+<a href="{REPO_URL}/commits/main/site">Change history</a></p>
 </div>
 </footer>
 </body>
@@ -780,7 +777,7 @@ All results are computed from the published files by the code in the repository.
 
 
 def _ratio_ci(ratio: float, low: float, high: float) -> str:
-    return f"{ratio:.2f}× ({low:.2f}–{high:.2f})"
+    return f"{ratio:.2f} ({low:.2f}–{high:.2f})"
 
 
 def _change(ratio: float, decimals: int = 1) -> str:
