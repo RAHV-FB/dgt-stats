@@ -301,7 +301,7 @@ can be repeated. The files below are read by no analysis; each is kept for the r
 | File | Why it is kept |
 |---|---|
 | `compiled/driving_activity_by_age.csv`, `compiled/evidence/*.csv` | the record of what was searched and of the published values the withdrawn analyses used ([compiled registers](#compiled-registers-compiled)) |
-| `comunidad_madrid/movilia_madrid/*.xls` | the Madrid statistical office's MOVILIA extract, checked for the same purpose and not used: it gives no driver status by age |
+| `comunidad_madrid/movilia_madrid/*.xls` | the Madrid statistical office's MOVILIA extract, checked as a source of driving by age and not used: it gives no driver status by age |
 | `ine/ine_ecepov_2021_55378.xlsx` | checked and not used: commuters by main vehicle, sex and age, with no distance and no trip other than the commute |
 | `ine/ine_ehma_2008_10016.csv`, `ine/ine_ehma_2008_10019.csv` | checked and not used: kilometres per household vehicle by the age of the household's reference person, in bands that stop at 65 and over |
 | `dgt/census/censo_tablas_2024.xlsx` | keeps the yearly series of census workbooks complete; it has no class-by-age sheet, and province totals are read from the 2025 workbook so that 2024–2025 keep one source |
