@@ -33,6 +33,8 @@ def _policy_numbers() -> dict[str, object]:
     return {
         "sensitivity": sensitivity,
         "calendar": calendar,
+        "calibration": read_table("q8_points_calibration").iloc[0],
+        "definitions": read_table("q8_points_death_definitions"),
         "forecast": forecast,
         "transitions": transitions,
         "trend": trend,

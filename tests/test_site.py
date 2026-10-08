@@ -1,6 +1,7 @@
 import re
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -295,11 +296,23 @@ def test_policy_page_reports_the_falsification_not_the_headline(built: Path) -> 
     forecast = pd.read_csv(TABLES_DIR / "q8_points_forecast.csv")
     true_forecast = forecast[forecast.is_true].iloc[0]
     ordinal = components._ordinal(int(true_forecast["rank"]))
-    assert f"{ordinal} of {int(true_forecast.n_fits)}" in text
+    assert f"{ordinal} largest of {int(true_forecast.n_fits)}" in text
+    # The forecast shortfall is printed as the proportional change the rank orders.
+    assert f"{abs(np.expm1(true_forecast.log_ratio)) * 100:.1f}% below their forecast" in text
     assert 'src="figures/p2_july_placebos.svg"' in text
     # The fall is not attributed to the licence, and the 2019 study is a collapsed note.
     opening = re.search(r'<p class="summary">(.*?)</p>', text, re.S).group(1)
     assert "cannot show that the licence caused" in opening
+    # The step is never quoted without what the slope change does to it: the summary gives the
+    # average over the post-period with its interval, and says the intervals are too narrow.
+    main_row = sensitivity.loc["main"]
+    assert f"{abs(main_row.mean_change) * 100:.1f}% below the projection" in opening
+    assert components._signed_pct(float(main_row.mean_high), 1) in opening
+    calibration = pd.read_csv(TABLES_DIR / "q8_points_calibration.csv").iloc[0]
+    assert f"at {int(calibration.n_excluding_zero)} of the {int(calibration.n_placebos)}" in opening
+    assert "too narrow" in opening
+    assert components._signed_pct(float(calibration.calibrated_low)) in text
+    assert "strong evidence" not in text and "QAIC" in text
     assert "2019" in text and 'src="figures/q8_speed_series.svg"' not in text
     # The exposure series are named and their effect reported; the toll series is its
     # intensity, which does not step with the network's length, and no offset is used.

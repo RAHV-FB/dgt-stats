@@ -1,0 +1,2 @@
+year,level_change,nominal_low,nominal_high,n_placebos,n_excluding_zero,expected_excluding_zero,placebo_sd,median_nominal_se,se_ratio,t_quantile,calibrated_low,calibrated_high
+2006,-0.09822832927,-0.145653554,-0.04817050515,14,6,0.7,0.06256265101,0.02539067496,2.464001099,2.160368656,-0.2122325272,0.03227433753

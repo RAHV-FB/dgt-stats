@@ -753,7 +753,8 @@ def _policy_figures(figures_dir: Path, captions: dict[str, str], summary) -> Non
         "Estimated change in the level of monthly deaths at 1 July 2006 and at every other "
         f"July of {july.min()}–{july.max()} whose window avoids July 2006 and the pandemic, "
         "each from the same segmented regression on 60 months before and 17 after, Spain, "
-        "with 95% intervals; the filled marker is July 2006",
+        "with model-based 95% intervals, which these placebos show to be too narrow; the "
+        "filled marker is July 2006",
         SERIES_SOURCE,
         f"{int(placebo.n_fits.iloc[0])} fits",
     )

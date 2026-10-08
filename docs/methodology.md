@@ -639,19 +639,42 @@ twelve lags.
 **The pre-trend is chosen on the pre-intervention months alone** (`choose_trend_knot`). Every
 candidate month that leaves 18 months on each side is tried as the single knot of a continuous
 piecewise-linear trend fitted to the months before July 2006, with the same month terms and nothing
-else; the straight line is in the comparison as the no-knot case and the lowest AIC wins. The
-pre-2006 series prefers a knot in 2003 over a straight line by about 16 points of AIC, and that
-choice, made without the post-period, moves the estimated level change from about −12 % to about
-−7 %. The straight-line fit is kept as the first sensitivity row.
+else; the straight line is in the comparison as the no-knot case and the lowest QAIC wins. QAIC is
+the Poisson AIC with the log-likelihood divided by the Pearson dispersion of the best one-knot fit
+(1.61, floored at 1), and a knot costs two parameters, its slope change and its searched position,
+as in the long-run joinpoint search (section 5). The pre-2006 series prefers a knot in August 2003
+over a straight line by about 7 QAIC points (the plain Poisson AIC, which ignores the
+overdispersion and the search, said 16): a preference, not decisive evidence. That choice, made
+without the post-period, moves the estimated step from about −12 % to about −7 %. The straight-line
+fit is kept as the first sensitivity row.
+
+**The step and the slope change are read together** (`post_period_change`). The step is the change
+in July 2006 alone. Under the preferred pre-trend the slope then changes by +7.5 % a year (95 %
+interval +1.4 % to +14.0 %), which brings fitted deaths back to the projection after about twelve
+months; by November 2007 they are 2.3 % above it. Averaged over the 17 post-period months the
+change in log deaths, `post + 8 × post_t`, is −2.5 % (−7.8 % to +3.2 %). Only the straight-line
+pre-trend gives an average fall whose interval excludes zero (−9.5 %). Every specification in
+`q8_points_sensitivity.csv` carries the average and the last-month change beside the step, and the
+page quotes the step only with them.
 
 Four falsification tests, each aimed at a specific alternative explanation:
 
-- **Calendar-matched placebos** (`calendar_placebo_fits`). Spanish road deaths peak every July and
-  August, so moving the break to arbitrary months does not answer whether the summer of 2006 was
-  unusual. The same model is refitted with the break at 1 July of every year whose window is clean:
-  60 months before, 17 after, never containing the true intervention or the pandemic. The true
-  break is refitted on the same shape. July 2006 ranks first of fifteen, but the runner-up is
-  close, so the one-sided empirical p-value is about 0.07.
+- **Calendar-matched placebos** (`calendar_placebo_fits`). Spanish road deaths usually peak in July
+  or August (the deadliest month in 27 of the 32 years 1993–2024, `peak_month` in
+  `q8_points_transitions.csv`), so moving the break to arbitrary months does not answer whether the
+  summer of 2006 was unusual. The same model is refitted with the break at 1 July of every year
+  whose window is clean: 60 months before, 17 after, never containing the true intervention or the
+  pandemic. The true break is refitted on the same shape. July 2006 ranks first of fifteen, but the
+  runner-up is close, so the one-sided empirical p-value is about 0.07.
+- **What the placebos say about the intervals** (`placebo_calibration`). At 6 of the 14 placebo
+  Julys the model's Newey–West 95 % interval excludes zero, where a correct interval would do so
+  about 0.7 times; the placebo steps have a standard deviation 2.5 times the model's median standard
+  error. The model's intervals are therefore too narrow, most likely because a straight or
+  once-bent trend does not capture how the series wanders. An interval set by the placebo spread
+  (the July 2006 step plus or minus the t quantile on 13 degrees of freedom times the placebo
+  standard deviation) runs from −21 % to +3 % (`q8_points_calibration.csv`). It is computed only
+  for the calendar-matched fit, which has the placebos' window shape; the page labels every other
+  interval model-based.
 - **Seasonality-free transitions** (`seasonal_transitions`). For each year, the log change from
   June to July, July to August and August to September, and the log ratio of the twelve months from
   July to the twelve months before. The last statistic has the same twelve calendar months on each
@@ -659,10 +682,13 @@ Four falsification tests, each aimed at a specific alternative explanation:
   fall of the 27 years that can be measured; 2019–2021 are excluded from the ranking.
 - **Out-of-sample forecasts** (`forecast_validation`). The 60 months before each July are fitted
   with a trend and month terms and *no* intervention term, and the next 17 months are forecast. The
-  statistic is the log ratio of observed to predicted over that window, with a z score scaling it
-  by the Poisson standard error inflated by the fit's own dispersion. Run at every admissible July,
-  it puts 2006 fourth of fifteen: three other Julys undershot their own forecast by more. This is
-  the test that most weakens the original headline, and the page says so.
+  statistic is the log ratio of observed to predicted over that window, and the Julys are ranked by
+  it. Run at every admissible July, it puts 2006 third of fifteen (7.1 % below its forecast): the
+  months after July 2004 and July 2001 fell further below their own forecasts. A z score that
+  scales the difference by the Poisson standard error inflated by the fit's own dispersion is kept
+  with its own rank (`rank_z`); it weighs the larger counts of the early years more and puts 2006
+  fourth, just behind 2000 (z −3.92 against −3.88), although 2000 fell less in proportion (6.0 %).
+  This is the test that most weakens the original headline, and the page says so.
 - **Exposure** (`exposure_covariate`). Two monthly Spanish series reach back past 2006: CORES's
   national road-fuel consumption (petrol plus road diesel, tonnes, from 1996), which covers every
   road, and the average daily intensity on the state toll-motorway network (vehicles a day on the
@@ -677,7 +703,13 @@ Four falsification tests, each aimed at a specific alternative explanation:
 Other sensitivity fits: quadratic trend; a knot fixed at January 2004; 24-hour deaths; interurban
 and urban deaths separately; a level change without the slope term; a negative binomial whose
 dispersion is set by moments from the Poisson fit; and the window extended to December 2009 with a
-second break at the Penal Code reform.
+second break at the Penal Code reform. The 24-hour fit is not an independent check: up to 2010 the
+monthly ratio of 30-day to 24-hour deaths has a within-year standard deviation of at most 0.024,
+against at least 0.027 in every year from 2011 (`death_definition_ratio`,
+`q8_points_death_definitions.csv`), which suggests the earlier 30-day counts were derived from the
+24-hour ones. The Penal Code reform and the 2008 recession bear on the extended window, not on the
+17-month window, which ends before both; inside that window the step competes with the 2003
+steepening and with July-to-July movements of similar size.
 
 **The 2019 speed-limit study is not published.** Its design, conventional roads (raw codes 5 and 6)
 against motorways and dual carriageways (codes 1 to 3), month by month from the microdata, fails

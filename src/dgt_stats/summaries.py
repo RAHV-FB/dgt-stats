@@ -291,6 +291,8 @@ SUMMARIES = {
             "q8_points_trend_choice",
             "q8_points_placebo",
             "q8_points_calendar_placebo",
+            "q8_points_calibration",
+            "q8_points_death_definitions",
             "q8_points_transitions",
             "q8_points_forecast",
             "q8_speed_placebo",
