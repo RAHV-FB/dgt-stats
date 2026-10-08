@@ -733,6 +733,11 @@ def _assumption_rows() -> list[tuple[str, str, str]]:
     prevalence = read_table("risk_licence_prevalence")
     young_licensed = prevalence[prevalence.group == "15-29"].set_index(["place", "sex"]).prevalence
     city_older = drivers["city"][drivers["city"].age4 == "65+"].ratio_to_45_64
+    covered = float(
+        read_table("risk_coverage")
+        .set_index("component")
+        .loc["working days", "share_least_explained"]
+    )
     weekend = read_table("risk_weekend_sensitivity")
     # The central estimate gives weekends the working-day age mix; the alternatives have shares.
     mixes = weekend[weekend.non_working_share_of_km.notna()]
@@ -821,7 +826,8 @@ def _assumption_rows() -> list[tuple[str, str, str]]:
             "every assumption keeps the young above the middle-aged per km": float(
                 ranges.loc["18-29", "min"]
             )
-            > 1.5,
+            > 1.2,
+            "the survey's working days cover about half of DGT's car km": 0.45 < covered < 0.55,
             "the 65-and-over range spans the middle-aged rate": float(ranges.loc["65+", "min"])
             < 1.05
             and float(ranges.loc["65+", "max"]) > 1,
@@ -921,18 +927,24 @@ def _assumption_rows() -> list[tuple[str, str, str]]:
             f"One region's age profile of driving holds for Spain ({drivers_page})",
             "No source measures driving by age for Spain as a whole, so the transfer cannot be "
             "tested. Car-licence holding by age in the province of Barcelona is compared with "
-            "Spain's, and the ratios are recomputed under other regional profiles, distance "
-            "treatments, survey years and weekend mixes.",
-            "Not exact. Young residents of the province hold car licences less often than "
-            "Spain's: carried per licence holder instead of per resident, the survey puts "
+            "Spain's, the survey's working days are set against DGT's car kilometres, and the "
+            "ratios are recomputed under other regional profiles, distance treatments, survey "
+            "years, weekend mixes and age mixes for the kilometres the survey does not cover.",
+            "Not exact, and incomplete. The survey's working days account for "
+            f"{_fmt_pct(covered, 0)} of DGT's car kilometres, and the central estimate gives the "
+            "rest the same age mix. Young residents of the province hold car licences less often "
+            "than Spain's: carried per licence holder instead of per resident, the survey puts "
             "involvement per km at 18–29 at "
             f"{float(licence['18-29']):.2f} times the 45–64 rate instead of "
-            f"{float(central['18-29']):.2f}. Across every alternative the sensitivity range is "
-            f"{float(ranges.loc['18-29', 'min']):.2f}–{float(ranges.loc['18-29', 'max']):.2f} at "
-            f"18–29 and {float(ranges.loc['65+', 'min']):.2f}–"
-            f"{float(ranges.loc['65+', 'max']):.2f} at 65 and over; the ratios are published "
-            "with these ranges, and only the direction at 18–29 is firm. Inside Barcelona on "
-            "working days, with no transfer, the ratio at 65 and over is "
+            f"{float(central['18-29']):.2f}. Across every alternative, including other regional "
+            "profiles combined with other age mixes for the uncovered kilometres, the "
+            f"sensitivity range is {float(ranges.loc['18-29', 'min']):.2f}–"
+            f"{float(ranges.loc['18-29', 'max']):.2f} at 18–29 and "
+            f"{float(ranges.loc['65+', 'min']):.2f}–{float(ranges.loc['65+', 'max']):.2f} at 65 "
+            "and over; the ratios are published with these ranges, and only the direction at "
+            "18–29 is firm. They are ratios of involvement in injury crashes, not of "
+            "responsibility for them, and say nothing of how often a crash kills the driver. "
+            "Inside Barcelona on working days, with no transfer, the ratio at 65 and over is "
             f"{float(city_older.min()):.2f}–{float(city_older.max()):.2f} under "
             f"{_words(len(city_older))} versions of the city's kilometres.",
         ),
