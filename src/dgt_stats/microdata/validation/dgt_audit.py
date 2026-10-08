@@ -159,6 +159,42 @@ def statuses(frame: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(out, index=frame.index)
 
 
+def recording_by_year(
+    frame: pd.DataFrame | None = None, status: pd.DataFrame | None = None
+) -> pd.DataFrame:
+    """Per year and candidate field: the crashes, those the field applies to (every status of
+    :func:`statuses` but "not applicable") and those with a value recorded ("observed").
+
+    The missing-values chart on the data page draws these fields from this table, so it judges
+    each field on the crashes it applies to by the same rule as checks 6 and 7.
+    """
+    frame = read() if frame is None else frame
+    status = statuses(frame) if status is None else status
+    year = pd.to_numeric(frame.ANYO, errors="coerce").astype(int)
+    parts = []
+    for column in CANDIDATES:
+        counts = (
+            pd.DataFrame(
+                {
+                    "year": year,
+                    "rows": True,
+                    "applies": status[column].ne("not_applicable"),
+                    "recorded": status[column].eq("observed"),
+                }
+            )
+            .groupby("year")
+            .sum()
+            .astype(int)
+            .reset_index()
+        )
+        counts.insert(1, "column", column)
+        parts.append(counts)
+    out = pd.concat(parts, ignore_index=True)
+    out["share_applies"] = out.applies / out.rows
+    out["share_recorded_where_applies"] = out.recorded / out.applies
+    return out
+
+
 # The Catalan file's junction field (D_INTER_SECCIO): within a junction, within 50 m of one, or
 # between junctions ("En secció").
 CAT_WITHIN_JUNCTION = "Dintre intersecció"

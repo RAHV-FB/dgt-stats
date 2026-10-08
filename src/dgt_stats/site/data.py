@@ -446,22 +446,26 @@ def _coding_breaks() -> str:
     )
 
 
-def _missingness_alt(missing: pd.DataFrame) -> str:
+def _missingness_alt(missing: pd.DataFrame, applicability: pd.DataFrame) -> str:
     """The missing-values figure's alt text: what it shows, from the shares it draws."""
     years = missing.year
-    shown = figure_data.recorded_where_applicable(missing)
+    shown = figure_data.recorded_where_applicable(missing, applicability)
     names = figure_data.MISSINGNESS_FIELDS
     core = shown.loc[[names[field] for field in CORE_FIELDS]]
-    priority = shown.loc[shown.index.str.startswith("Right of way")]
+    priority = shown.loc[shown.index.str.startswith("Right of way")].iloc[0]
+    junction_type = shown.loc[names["NUDO_INFO"]]
+    # The years whose Catalan junction flag is inverted, checked to be the years both junction
+    # fields are recorded less often where they apply.
+    apart = figure_data.junction_years_apart(shown, read_table("dgt_audit_junction_coding"))
+    others = [year for year in shown.columns if year not in apart]
     _require(
         {
             "the fields that describe every crash are recorded in nearly every crash": bool(
                 (core > ALWAYS_RECORDED).all().all()
             ),
-            "the right-of-way flags and the junction type are recorded in under half": bool(
-                len(priority) == 1
-                and (priority < 0.5).all().all()
-                and (shown.loc[names["NUDO_INFO"]] < 0.5).all()
+            "outside the inverted years the junction type is recorded in nine crashes at a "
+            "junction in ten and the right-of-way flags in most": bool(
+                (junction_type[others] > 0.9).all() and (priority[others] > 0.5).all()
             ),
             "the pavement and island fields are recorded in most crashes they apply to": bool(
                 (shown.loc[[names["ACERA"], names["ISLA"]]] > 0.5).all().all()
@@ -471,10 +475,13 @@ def _missingness_alt(missing: pd.DataFrame) -> str:
     return (
         "Share of DGT crash records with a value recorded, among the crashes each field applies "
         f"to, by field and year, {_span(years)}, from the most completely recorded field down. "
-        f"The {_join(list(CORE_FIELDS.values()))} are recorded in nearly every crash; the "
-        "right-of-way flags and the junction type in under half. Fields that apply only to "
-        "some crashes, such as the pavement and island fields, are recorded in most of the "
-        "crashes they apply to."
+        f"The {_join(list(CORE_FIELDS.values()))} are recorded in nearly every crash. Among "
+        "crashes at a junction, the junction type is recorded in "
+        f"{_pct_range(junction_type[others])} and the right-of-way flags in "
+        f"{_pct_range(priority[others])} a year, except in {_join([str(y) for y in apart])}, "
+        "when the records for the Catalan provinces flag crashes away from a junction as at one. "
+        "Fields that apply only to some crashes, such as the pavement and island fields, are "
+        "recorded in most of the crashes they apply to."
     )
 
 
@@ -483,6 +490,7 @@ def _records(captions: dict[str, str]) -> str:
     artefacts = read_table("ml_recording_artefacts")
     semantics = read_table("mq_bcn_count_semantics").set_index("check").value
     missing = read_table("missingness_by_year")
+    applicability = read_table("missingness_where_applicable")
     limit = recording.RATIO_LIMIT
     catalan = artefacts[artefacts.verdict == "outcome-dependent recording"]
     catalogue = read_table("ml_feature_catalogue")
@@ -526,22 +534,28 @@ def _records(captions: dict[str, str]) -> str:
         rows = missing[missing.column == column]
         return float((rows[share] * rows.rows).sum() / rows.rows.sum())
 
-    pavement_na, island_empty = (
-        overall("ACERA", "share_not_applicable"),
-        overall("ISLA", "share_empty"),
-    )
-    # What the figure draws for the pavement and island fields: the share recorded among the
-    # crashes left once "not applicable" (998, and the island's empty cell) is set aside.
-    shown = figure_data.recorded_where_applicable(missing)
+    audited = applicability.groupby("column")[["rows", "applies", "recorded"]].sum()
+    pavement_na = float(1 - audited.loc["ACERA"].applies / audited.loc["ACERA"].rows)
+    junction_type_na = float(1 - audited.loc["NUDO_INFO"].applies / audited.loc["NUDO_INFO"].rows)
+    island_empty = overall("ISLA", "share_empty")
+    # What the figure draws: for the fields the audit examines, the share recorded among the
+    # crashes the audit's rule says they apply to; for the island field, the share recorded among
+    # the crashes left once "not applicable" and the empty cell are set aside.
+    shown = figure_data.recorded_where_applicable(missing, applicability)
     by_year = missing.set_index(["column", "year"])
-    pavement_applies = 1 - by_year.loc["ACERA"].share_not_applicable
+    audited_by_year = applicability.set_index(["column", "year"])
     island_applies = 1 - by_year.loc["ISLA"].share_not_applicable - by_year.loc["ISLA"].share_empty
     names = figure_data.MISSINGNESS_FIELDS
+
+    def audit_share(column: str) -> pd.Series:
+        rows = audited_by_year.loc[column]
+        return rows.recorded / rows.applies
+
     leaves_out_not_applicable = bool(
-        (shown.loc[names["ACERA"]] - by_year.loc["ACERA"].share_observed / pavement_applies)
-        .abs()
-        .max()
-        < 1e-9
+        all(
+            (shown.loc[names[column]] - audit_share(column)).abs().max() < 1e-9
+            for column in ("ACERA", "NUDO_INFO", "CONDICION_NIEBLA")
+        )
         and (shown.loc[names["ISLA"]] - by_year.loc["ISLA"].share_observed / island_applies)
         .abs()
         .max()
@@ -567,10 +581,22 @@ def _records(captions: dict[str, str]) -> str:
             "unrecorded shares split into fields nearly always recorded and fields often not": 0
             < mostly_blank
             < len(questions) / 2,
-            "the figure leaves “not applicable” and the island's empty cells out of its shares, "
-            "and its caption says so": leaves_out_not_applicable
-            and "998 (not applicable)" in captions.get("d1_missingness", "")
-            and "among the crashes the field applies to" in captions.get("d1_missingness", ""),
+            "the figure reads the audited fields by the audit's rule and leaves “not "
+            "applicable” and the island's empty cells out of its shares, and its caption says "
+            "so": leaves_out_not_applicable
+            and all(
+                phrase in captions.get("d1_missingness", "")
+                for phrase in (
+                    "998 (not applicable)",
+                    "among the crashes the field applies to",
+                    "in a crash recorded away from a junction",
+                    "fog or strong wind field is the recorded 'no'",
+                )
+            ),
+            "the junction type does not apply to most crashes": junction_type_na > 0.5,
+            "the audit's fog and wind fields are recorded in every crash": bool(
+                (shown.loc[[names["CONDICION_NIEBLA"], names["CONDICION_VIENTO"]]] == 1).all().all()
+            ),
             "the pavement field is mostly not applicable": pavement_na > 0.5,
             "DGT's dictionary defines an empty island field as not applicable": codes.load_dictionary()
             .get("ISLA", {})
@@ -612,13 +638,16 @@ def _records(captions: dict[str, str]) -> str:
         )
         + "; how unevenly the provinces record them is set out under "
         f"{sources}. The "
-        "figure leaves “not applicable” out of each field's share, so a field that applies only "
-        "to some crashes is judged on the crashes it applies to: the pavement field is “not "
-        f"applicable” in {_fmt_pct(pavement_na, 0)} of crashes, and the island field is empty, "
-        f"which DGT's dictionary defines as not applicable, in {_fmt_pct(island_empty, 0)}. In "
-        "Barcelona's crash table a blank count means zero: no cell holds an explicit zero, and "
+        "figure reads the fields the audit examines by the same rule and leaves “not applicable” "
+        "out of each field's share, so a field that applies only to some crashes is judged on "
+        "the crashes it applies to: the pavement field is “not applicable” in "
+        f"{_fmt_pct(pavement_na, 0)} of crashes, the junction type in "
+        f"{_fmt_pct(junction_type_na, 0)} (those away from a junction), and the island field is "
+        "empty, which DGT's dictionary defines as not applicable, in "
+        f"{_fmt_pct(island_empty, 0)}. In the figure an empty fog or strong-wind field counts as "
+        "recorded. In Barcelona's crash table a blank count means zero: no cell holds an explicit zero, and "
         "with blanks read as zero the victims add up in every crash.</p>"
-        + figure("d1_missingness", _missingness_alt(missing), captions)
+        + figure("d1_missingness", _missingness_alt(missing, applicability), captions)
         + "<p>Recording can also depend on the outcome. Fatal crashes may be investigated more "
         "fully, so fields left unspecified in non-fatal crashes are more often filled in for "
         f"fatal ones. In the Catalan file, {_words(levels)} placeholder levels in "

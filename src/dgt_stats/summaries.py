@@ -219,6 +219,15 @@ def _policy_table(name: str):
     return lambda: source()[name].copy()
 
 
+def _recording_by_year() -> pd.DataFrame:
+    """The DGT microdata audit's fields per year: crashes, crashes each applies to and those with
+    a value recorded (``dgt_audit.recording_by_year``), for the data page's missing-values chart.
+    Imported here so that reading the other summaries does not load the audit's model stack."""
+    from dgt_stats.microdata.validation import dgt_audit
+
+    return dgt_audit.recording_by_year()
+
+
 # --------------------------------------------------------------------------- registry
 
 SUMMARIES = {
@@ -264,6 +273,8 @@ SUMMARIES = {
     "q2_night_share": night_share_by_year_zone,
     "q2_other_road_by_period": other_road_by_period,
     "q9_infraction_shares": speed.infraction_shares,
+    # The data page's missing-values chart: the audited fields by the audit's applicability rule
+    "missingness_where_applicable": _recording_by_year,
     # Age and driving exposure
     "q7_km_by_owner_age": driver_risk.car_kilometres,
     "q7_km_rates": driver_risk.km_rates,

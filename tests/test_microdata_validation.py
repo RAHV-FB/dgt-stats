@@ -128,6 +128,30 @@ def test_junction_fields_do_not_apply_away_from_a_junction() -> None:
     assert (dgt_audit.statuses(frame).CONDICION_METEO == "not_specified").all()
 
 
+def test_recording_by_year_counts_what_applies_and_what_is_recorded() -> None:
+    """The table the data page's missing-values chart draws: per year and field, the crashes
+    the audit's rule says a field applies to and those with a value recorded."""
+    from dgt_stats.microdata.validation import dgt_audit
+
+    rows = [
+        # ANYO, NUDO, NUDO_INFO, CONDICION_NIEBLA
+        (2022, 1, 4, np.nan),  # at a junction, type recorded; no fog
+        (2022, 1, 999, 1),  # at a junction, type not specified; light fog
+        (2022, 2, np.nan, np.nan),  # away from a junction: the type does not apply
+        (2023, 2, 4, np.nan),  # away, but a type recorded: recorded
+    ]
+    frame = pd.DataFrame({c: ["1"] * len(rows) for c in dgt_audit.CANDIDATES})
+    frame["ANYO"], frame["NUDO"], frame["NUDO_INFO"], frame["CONDICION_NIEBLA"] = zip(*rows)
+    out = dgt_audit.recording_by_year(frame).set_index(["column", "year"])
+    assert set(out.index.get_level_values("column")) == set(dgt_audit.CANDIDATES)
+    info = out.loc["NUDO_INFO"]
+    assert list(info.applies) == [2, 1] and list(info.recorded) == [1, 1]
+    assert info.loc[2022, "share_recorded_where_applies"] == pytest.approx(0.5)
+    fog = out.loc["CONDICION_NIEBLA"]
+    assert list(fog.applies) == [3, 1] and list(fog.recorded) == [3, 1]
+    assert list(out.loc["DIA_SEMANA"].rows) == [3, 1]
+
+
 def test_unrecorded_shares_are_taken_over_the_crashes_a_field_applies_to(monkeypatch) -> None:
     from dgt_stats.microdata.validation import dgt_audit
 

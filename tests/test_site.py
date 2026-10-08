@@ -1,3 +1,4 @@
+import json
 import re
 from pathlib import Path
 
@@ -837,6 +838,26 @@ def test_coding_breaks_describe_the_inverted_catalan_junction_flag(built: Path) 
     read = read[(read.region == "Catalonia") & (read.recoded > 0)]
     for row in read.itertuples():
         assert f"{components._fmt_pct(row.share_at_junction, 0)} in {row.year}" in block
+
+
+def test_the_missing_values_figure_reads_the_audit_rule(built: Path) -> None:
+    """The records section's figure and its text judge the junction fields where they apply and
+    read a blank fog or wind field as the recorded "no", as the DGT microdata audit does."""
+    data = (built / "data.html").read_text(encoding="utf-8")
+    block = data[data.index('id="records"') : data.index('id="coding-breaks"')]
+    block = components.html.unescape(block)
+    assert "figure reads the fields the audit examines by the same rule" in block
+    assert "In the figure an empty fog or strong-wind field counts as recorded" in block
+    applicability = pd.read_csv(TABLES_DIR / "missingness_where_applicable.csv")
+    junction_type = applicability[applicability.column == "NUDO_INFO"]
+    away = 1 - junction_type.applies.sum() / junction_type.rows.sum()
+    assert f"the junction type in {components._fmt_pct(away, 0)}" in block
+    captions = json.loads((FIGURES_DIR / "captions.json").read_text(encoding="utf-8"))
+    caption = captions["d1_missingness"]
+    assert "in a crash recorded away from a junction" in caption
+    assert "fog or strong wind field is the recorded 'no'" in caption
+    assert "optional fields (fog" not in caption
+    assert "right-of-way flags and the junction type in under half" not in block
 
 
 def test_forecast_page_is_withdrawn_and_says_why(built: Path) -> None:
