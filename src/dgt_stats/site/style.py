@@ -375,8 +375,10 @@ figure { margin: var(--space-6) 0 var(--space-7); max-width: var(--wide); }
 .figure-media { overflow-x: auto; background: var(--figure-bg); width: fit-content; max-width: 100%; }
 .figure-media a { display: block; width: max-content; max-width: 100%; }
 .figure-media a:focus-visible { outline: 2px solid var(--figure-focus); outline-offset: -2px; }
+.figure-media picture { display: block; }
 /* A chart shrinks to fit its column, but never below the size that keeps its text legible: below
-   that it scrolls sideways inside its box. */
+   that it scrolls sideways inside its box. A phone is served the chart drawn for its column
+   (components.NARROW_MEDIA, the same width as below), which fills the column and never scrolls. */
 .figure-media img { display: block; width: var(--w); max-width: 100%; min-width: var(--w-small); height: auto; }
 figcaption {
   margin-top: var(--space-3); max-width: var(--measure);
@@ -389,8 +391,8 @@ figcaption p { margin: 0; }
   .figure-tools { display: block; }
 }
 @media (max-width: 40rem) {
-  .figure-media a { max-width: none; }
-  .figure-media img { width: var(--w-small); max-width: none; }
+  .figure-tools { display: none; }
+  .figure-media img { width: var(--w-narrow, var(--w)); min-width: 0; }
 }
 
 /* ------------------------------------------------------------------ tables */

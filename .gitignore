@@ -31,6 +31,8 @@ data/features/**
 reports/figures/**
 !reports/figures/.gitkeep
 !reports/figures/*.svg
+!reports/figures/narrow/
+!reports/figures/narrow/*.svg
 !reports/figures/captions.json
 !reports/figures/titles.json
 reports/tables/**

@@ -126,7 +126,8 @@ python scripts/microdata.py all       # Catalonia and Barcelona: inventory, stag
 python scripts/severity_calculator.py all  # model review and the calculator's model (~12 min)
 python scripts/emef.py all            # EMEF microdata checks and driving exposure by age (~3 min)
 python scripts/exposure_risk.py all   # involvement per km by driver age (~1 min)
-python scripts/analyse.py figures     # reports/figures/*.svg and captions.json, regional ones included
+python scripts/analyse.py figures     # reports/figures/*.svg (and narrow/*.svg for phones) and
+                                      # captions.json, regional ones included
 python scripts/analyse.py cards       # docs/models/dgt_*.md, which quote the DGT microdata audit
 python scripts/build_site.py          # site/
 pytest                                # the test suite, the reconciliation checks among them
@@ -155,7 +156,7 @@ data/features/         model matrices with provenance (not committed)
 docs/                  data contract, source comparison, audits, methodology, model cards,
                        model decisions, generalisability
 reports/tables/        result tables (CSV), committed; the site links them for download
-reports/figures/       figures (SVG) and their captions
+reports/figures/       figures (SVG) and their captions; narrow/ holds the same figures for phones
 scripts/               ingest · build_tables · model · microdata · analyse · build_site
                        (build_fonts: the font subsets, run by hand)
 src/dgt_stats/         national layer: readers (io_*), codes, validation, analyses, forecast

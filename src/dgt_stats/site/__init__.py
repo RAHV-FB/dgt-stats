@@ -6,7 +6,8 @@ national picture from DGT and INE with three supporting analyses, the Catalan an
 records, the two severity models and their external validation, and the sources and methods.
 Every sentence that carries a number computes it from a committed result table at build time, so
 the prose cannot drift from the tables; full tables are copied into ``site/tables`` and linked as
-CSV rather than printed.
+CSV rather than printed. Only the figures a page shows are copied into ``site/figures``, with
+their drawings for a phone's column in ``site/figures/narrow``.
 
 One module per page: ``overview``, ``trends``, ``long_run``, ``seasons``, ``drivers``,
 ``vehicles``, ``speed``, ``factors``, the supporting ``severity`` and ``policy``,
@@ -25,6 +26,7 @@ the repository's own results on the subject; it is not a redirect, and no live p
 
 from __future__ import annotations
 
+import re
 import shutil
 from pathlib import Path
 
@@ -184,7 +186,6 @@ def build(site_dir: Path = SITE_DIR) -> list[Path]:
     site_dir.mkdir(parents=True, exist_ok=True)
     written: list[Path] = []
     for source, name, pattern in (
-        (FIGURES_DIR, "figures", "*.svg"),
         (TABLES_DIR, "tables", "*.csv"),
         # The web fonts and their licences.
         (FONTS_DIR, "fonts", "*.*"),
@@ -227,7 +228,37 @@ def build(site_dir: Path = SITE_DIR) -> list[Path]:
         target = site_dir / f"{slug}.html"
         target.write_text(page_withdrawn(slug), encoding="utf-8")
         written.append(target)
+    written.extend(publish_figures(site_dir, [path for path in written if path.suffix == ".html"]))
     # A page no builder wrote any more is dead: remove it rather than leave it published.
     for stale in set(site_dir.glob("*.html")) - set(written):
         stale.unlink()
+    return written
+
+
+# A figure as a page refers to it: the chart, its full-size link and the drawing a phone loads.
+FIGURE_REFERENCE = re.compile(r'(?:src|srcset|href)="figures/((?:narrow/)?[^"/]+\.svg)"')
+
+
+def publish_figures(site_dir: Path, pages: list[Path]) -> list[Path]:
+    """Copy into ``site_dir/figures`` the figures that ``pages`` show, with the narrow drawings
+    they serve to phones, and nothing else: a figure drawn but shown on no page is not published.
+    A page that shows a figure the reports do not hold fails the build."""
+    target_dir = site_dir / "figures"
+    if target_dir.exists():
+        shutil.rmtree(target_dir)
+    target_dir.mkdir()
+    shown = {
+        reference
+        for page in pages
+        for reference in FIGURE_REFERENCE.findall(page.read_text(encoding="utf-8"))
+    }
+    written = []
+    for reference in sorted(shown):
+        source = FIGURES_DIR / reference
+        if not source.exists():
+            raise FileNotFoundError(f"a page shows figures/{reference}, which was not drawn")
+        target = target_dir / reference
+        target.parent.mkdir(exist_ok=True)
+        shutil.copyfile(source, target)
+        written.append(target)
     return written

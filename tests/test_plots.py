@@ -422,6 +422,19 @@ def test_build_all_writes_every_registered_figure(tmp_path: Path) -> None:
     assert {p.stem for p in tmp_path.glob("*.svg")} == expected
     for name in expected:
         _svg_ok(tmp_path / f"{name}.svg")
+    # Every figure is also drawn for a phone's column, no wider than the column allows, with
+    # every piece of text at the size of the tick labels or larger.
+    narrow = tmp_path / "narrow"
+    assert {p.stem for p in narrow.glob("*.svg")} == expected
+    for name in expected:
+        _svg_ok(narrow / f"{name}.svg")
+        width, smallest = _svg_width_and_smallest_text(narrow / f"{name}.svg")
+        assert width <= plots.NARROW_MAX_POINTS, name
+        assert smallest >= plots.TICK_SIZE, name
+        # Shown 334 px wide (a 390 px phone, inside the dark theme's chart box), the smallest
+        # text is 11 px or more.
+        assert smallest * 334 / width >= 11, name
+        assert width < figures.svg_width(tmp_path / f"{name}.svg"), name
     saved = json.loads((tmp_path / "captions.json").read_text(encoding="utf-8"))
     assert saved == captions
     # n is counted from the frame each figure draws and says what it counts.
@@ -441,9 +454,134 @@ def test_build_all_writes_every_registered_figure(tmp_path: Path) -> None:
 def test_build_all_removes_a_figure_that_is_no_longer_registered(tmp_path: Path) -> None:
     stale = tmp_path / "q9_report_day_hour.svg"
     stale.write_text("<svg></svg>", encoding="utf-8")
+    (tmp_path / "narrow").mkdir()
+    stale_narrow = tmp_path / "narrow" / "ml9_withdrawn.svg"
+    stale_narrow.write_text("<svg></svg>", encoding="utf-8")
     frames = {name: pd.read_csv(TABLES_DIR / f"{name}.csv") for name in summaries.SUMMARIES}
     figures.build_all(tmp_path, frames=frames)
-    assert not stale.exists()
+    assert not stale.exists() and not stale_narrow.exists()
+
+
+def _svg_width_and_smallest_text(path: Path) -> tuple[float, float]:
+    """A chart's width in points and the size of its smallest text, in the same units."""
+    import re
+
+    text = path.read_text(encoding="utf-8")
+    sizes = [float(size) for size in re.findall(r"font-size: ([\d.]+)px", text)]
+    return figures.svg_width(path), min(sizes)
+
+
+def _capture_axes(monkeypatch: pytest.MonkeyPatch) -> list[list]:
+    """The axes of every chart drawn from now on, captured as it is saved."""
+    drawn: list[list] = []
+    save = plots.save
+
+    def keep(fig, path):
+        drawn.append(list(fig.axes))
+        return save(fig, path)
+
+    monkeypatch.setattr(plots, "save", keep)
+    return drawn
+
+
+def test_narrow_sets_and_restores_the_drawing_width() -> None:
+    wide = (plots.FIGURE_WIDTH, plots.NOTE_SIZE, plots.NARROW)
+    with plots.narrow():
+        assert plots.FIGURE_WIDTH == plots.NARROW_WIDTH and plots.NARROW
+        # Notes are set at the tick size, the smallest text a phone shows.
+        assert plots.NOTE_SIZE == plots.TICK_SIZE
+    assert (plots.FIGURE_WIDTH, plots.NOTE_SIZE, plots.NARROW) == wide
+    with pytest.raises(RuntimeError), plots.narrow():
+        raise RuntimeError("a chart failed")
+    assert (plots.FIGURE_WIDTH, plots.NOTE_SIZE, plots.NARROW) == wide
+
+
+def test_narrow_labels_wrap_and_wide_ones_do_not() -> None:
+    label = "generic limit for the road (value not recorded)  (n=17,969)"
+    assert plots._fit(label) == label
+    assert plots._fit_name("CONDICION_NIVEL_CIRCULA") == "CONDICION_NIVEL_CIRCULA"
+    with plots.narrow():
+        lines = plots._fit(label).split("\n")
+        assert lines[-1] == "(n=17,969)" and lines[-2] == "(value not recorded)"
+        assert all(len(line) <= plots.NARROW_LABEL_CHARS for line in lines)
+        # Never broken at a hyphen; a short label is left alone.
+        assert plots._fit("75 and over (model-dependent)") == "75 and over\n(model-dependent)"
+        assert plots._fit("Per resident") == "Per resident"
+        assert plots._fit_name("CONDICION_NIVEL_CIRCULA") == "CONDICION_\nNIVEL_CIRCULA"
+        assert plots._fit_name("DIA_SEMANA") == "DIA_SEMANA"
+
+
+def test_narrow_charts_fit_a_phone_column(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    drawn = _capture_axes(monkeypatch)
+    rows = pd.DataFrame(
+        {
+            "name": [
+                "personal mobility vehicle rider  (n=528)",
+                "van or light truck passenger  (n=40)",
+                "car driver  (n=4,671)",
+            ],
+            "v": [0.02, 0.01, 0.001],
+            "lo": [0.01, 0.0, 0.0005],
+            "hi": [0.03, 0.09, 0.002],
+        }
+    )
+    panels = pd.concat([rows.assign(panel=p) for p in ("First", "Second", "Third")])
+    wide_out = plots.dot_interval_panels(
+        panels, "panel", "name", "v", "lo", "hi", tmp_path / "wide.svg", "Wide", xlabel="Share"
+    )
+    with plots.narrow():
+        dots = plots.dot_interval(
+            rows,
+            "name",
+            "v",
+            "lo",
+            "hi",
+            tmp_path / "dots.svg",
+            "Dots",
+            xlabel="Share of people in recorded crashes with a long axis label",
+            reference=0.016,
+            reference_label="all",
+            percent=True,
+        )
+        stacked = plots.dot_interval_panels(
+            panels, "panel", "name", "v", "lo", "hi", tmp_path / "panels.svg", "P", xlabel="Share"
+        )
+    for out in (dots, stacked):
+        _svg_ok(out)
+        width, smallest = _svg_width_and_smallest_text(out)
+        assert width <= plots.NARROW_MAX_POINTS and smallest >= plots.TICK_SIZE, out.name
+    assert figures.svg_width(wide_out) > 2 * plots.NARROW_MAX_POINTS
+    # The long labels wrap, their counts on a line of their own.
+    labels = [tick.get_text() for tick in drawn[1][0].get_yticklabels()]
+    assert "personal mobility\nvehicle rider\n(n=528)" in labels
+    # Side by side when wide, stacked when narrow, each stacked panel with its own numbers.
+    wide_axes, narrow_axes = drawn[0], drawn[2]
+    assert len({round(axis.get_position().y0, 3) for axis in wide_axes}) == 1
+    assert len({round(axis.get_position().x0, 3) for axis in narrow_axes}) == 1
+    assert len({round(axis.get_position().y0, 3) for axis in narrow_axes}) == 3
+    assert all(axis.xaxis.get_tick_params()["labelbottom"] for axis in narrow_axes)
+
+
+def test_narrow_bars_thin_crowded_year_labels(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    drawn = _capture_axes(monkeypatch)
+    years = pd.DataFrame(
+        {
+            "year": [y for y in range(2010, 2025) for _ in range(2)],
+            "group": ["a", "b"] * 15,
+            "v": [1, 2] * 15,
+        }
+    )
+    plots.bar_shares(years, "year", "group", "v", tmp_path / "wide.svg", "Bars")
+    with plots.narrow():
+        out = plots.bar_shares(years, "year", "group", "v", tmp_path / "narrow.svg", "Bars")
+    assert figures.svg_width(out) <= plots.NARROW_MAX_POINTS
+    wide = [label.get_text() for label in drawn[0][0].get_xticklabels()]
+    narrow = [label.get_text() for label in drawn[1][0].get_xticklabels()]
+    assert all(wide) and len(narrow) == len(wide)
+    # Every second year is named, so the names do not run into each other; every bar stays.
+    assert narrow[::2] == wide[::2] and not any(narrow[1::2])
 
 
 def test_ratio_panels_and_line_panels(tmp_path: Path) -> None:
@@ -494,3 +632,104 @@ def test_ratio_panels_and_line_panels(tmp_path: Path) -> None:
             focal="Total",
         )
     )
+
+
+# Colour-vision deficiency simulation (Machado, Oliveira and Fernandes 2009, full severity) in
+# linear sRGB; distances in OKLab, times 100.
+_CVD = {
+    "normal": ((1, 0, 0), (0, 1, 0), (0, 0, 1)),
+    "protan": (
+        (0.152286, 1.052583, -0.204868),
+        (0.114503, 0.786281, 0.099216),
+        (-0.003882, -0.048116, 1.051998),
+    ),
+    "deutan": (
+        (0.367322, 0.860646, -0.227968),
+        (0.280085, 0.672501, 0.047413),
+        (-0.011820, 0.042940, 0.968881),
+    ),
+    "tritan": (
+        (1.255528, -0.076749, -0.178779),
+        (-0.078411, 0.930809, 0.147602),
+        (0.004733, 0.691367, 0.303900),
+    ),
+}
+_LMS = (
+    (0.4122214708, 0.5363325363, 0.0514459929),
+    (0.2119034982, 0.6806995451, 0.1073969566),
+    (0.0883024619, 0.2817188376, 0.6299787005),
+)
+_LAB = (
+    (0.2104542553, 0.7936177850, -0.0040720468),
+    (1.9779984951, -2.4285922050, 0.4505937099),
+    (0.0259040371, 0.7827717662, -0.8086757660),
+)
+
+
+def _oklab(colour: str, vision: str):
+    import numpy as np
+    from matplotlib.colors import to_rgb
+
+    srgb = np.array(to_rgb(colour))
+    linear = np.where(srgb <= 0.04045, srgb / 12.92, ((srgb + 0.055) / 1.055) ** 2.4)
+    linear = np.clip(np.array(_CVD[vision]) @ linear, 0, 1)
+    return np.array(_LAB) @ np.cbrt(np.array(_LMS) @ linear)
+
+
+def test_the_season_series_differ_in_colour_and_marker() -> None:
+    import itertools
+
+    import numpy as np
+
+    looks = [{"color": plots.ACCENT, "marker": "o"}, *figures.SEASON_STYLES.values()]
+    assert len({look["marker"] for look in looks}) == len(looks)
+    assert len({look["linestyle"] for look in figures.SEASON_STYLES.values()}) == 3
+    # Every pair, deaths included, at least 15 apart with full colour vision and at least 10
+    # under each colour-vision deficiency; the three greys these replace were 11 apart.
+    for vision, floor in (("normal", 15), ("protan", 10), ("deutan", 10), ("tritan", 10)):
+        for a, b in itertools.combinations([look["color"] for look in looks], 2):
+            distance = 100 * np.linalg.norm(_oklab(a, vision) - _oklab(b, vision))
+            assert distance >= floor, (vision, a, b, distance)
+
+
+@pytest.mark.skipif(not _TABLES_PRESENT, reason="run `python scripts/analyse.py tables` first")
+def test_season_long_run_and_sex_ratio_charts(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    drawn = _capture_axes(monkeypatch)
+    frames = {name: pd.read_csv(TABLES_DIR / f"{name}.csv") for name in summaries.SUMMARIES}
+
+    def summary(name: str) -> pd.DataFrame:
+        return frames[name].copy()
+
+    captions: dict[str, str] = {}
+    figures._season_figures(tmp_path, captions, summary)
+    figures._sex_figures(tmp_path, captions, summary)
+    figures._long_run_figures(tmp_path, captions, summary)
+    season_profile, _, lockdown, sex_ratios, trend = drawn[:5]
+    # The road-use series in both season charts take their own colour and marker.
+    for axes in (season_profile, lockdown):
+        lines = {line.get_label(): line for line in axes[0].get_lines()}
+        for name, look in figures.SEASON_STYLES.items():
+            assert lines[name].get_color() == look["color"], name
+            assert lines[name].get_marker() == look["marker"], name
+    # Ratios of men's to women's rates on a log axis, the same in every panel, and labelled so.
+    assert all(axis.get_xscale() == "log" for axis in sex_ratios)
+    assert "log scale" in sex_ratios[0].figure.get_supxlabel()
+    # Each long-run panel names what it counts and the measure its trend was fitted to.
+    titles = [axis.get_title(loc="left").replace("\n", " ") for axis in trend]
+    assert titles == list(figures.LONG_RUN_PANELS.values())
+    assert all("deaths a year" in title for title in titles)
+    assert "per registered vehicle" in titles[1] and "per tonne of road fuel" in titles[2]
+
+
+@pytest.mark.skipif(not summaries.model_tables_present(), reason="run `python scripts/model.py`")
+def test_the_forest_plot_names_road_types_in_english(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    drawn = _capture_axes(monkeypatch)
+    figures._severity_figures(tmp_path, {})
+    labels = [label.get_text().strip() for label in drawn[0][0].get_yticklabels()]
+    # The page and its tables call DGT's autovía a dual carriageway; so does the chart.
+    assert "dual carriageway" in labels
+    assert not any("autov" in label.lower() for label in labels)

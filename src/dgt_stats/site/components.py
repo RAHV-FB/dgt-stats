@@ -5,10 +5,11 @@ from __future__ import annotations
 import html
 import json
 import re
+from pathlib import Path
 
 import pandas as pd
 
-from dgt_stats.paths import FIGURES_DIR, TABLES_DIR
+from dgt_stats.paths import FIGURES_DIR, NARROW_FIGURES_DIR, TABLES_DIR
 from dgt_stats.risk_trends import BASE_YEAR
 from dgt_stats.site.script import CONTENT_SECURITY_POLICY, JS_FLAG
 
@@ -267,9 +268,9 @@ _SVG_SIZE = re.compile(r'<svg[^>]*?\swidth="([\d.]+)pt"[^>]*?\sheight="([\d.]+)p
 _SVG_VIEWBOX = re.compile(r'<svg[^>]*?\sviewBox="[\d.\-]+ [\d.\-]+ ([\d.]+) ([\d.]+)"')
 
 
-def _svg_size(name: str) -> tuple[float, float] | None:
-    """A chart's own width and height, in points, from its SVG."""
-    path = FIGURES_DIR / f"{name}.svg"
+def _svg_size(name: str, directory: Path = FIGURES_DIR) -> tuple[float, float] | None:
+    """A chart's own width and height, in points, from its SVG in ``directory``."""
+    path = directory / f"{name}.svg"
     if not path.exists():
         return None
     head = path.read_text(encoding="utf-8")[:2000]
@@ -304,9 +305,12 @@ def mark_spanish(text: str) -> str:
 # Charts are shown at one fixed multiple of their own size, so that their text is the same size on
 # every chart, and never wider than the column. They shrink with the column down to a smaller
 # multiple that keeps their text near 11px, and below that scroll sideways inside the figure
-# rather than shrinking further; a phone shows them at that multiple.
+# rather than shrinking further. A phone (``NARROW_MEDIA``, the stylesheet's phone width) is
+# served instead the chart drawn for its column (``figures/narrow/``), at most at the same
+# multiple and otherwise the column's width, so that nothing scrolls sideways.
 FIGURE_SCALE = 1.45
 SMALL_SCALE = 1.2
+NARROW_MEDIA = "(max-width: 40rem)"
 
 
 def _split_source(caption: str) -> tuple[str, str]:
@@ -320,16 +324,23 @@ def _split_source(caption: str) -> tuple[str, str]:
 
 def figure(name: str, alt: str, captions: dict[str, str], title: str | None = None) -> str:
     """A figure in three parts: a title stating what is shown, the chart, and a caption giving
-    the denominator, period, interval and source. The chart links to its SVG at full size."""
+    the denominator, period, interval and source. The chart links to its SVG at full size; a
+    phone loads the same chart drawn for its column, when there is one."""
     heading = title or read_titles().get(name, "")
     shown, source = _split_source(captions.get(name, ""))
     size = _svg_size(name)
-    dims = ""
+    narrow = _svg_size(name, NARROW_FIGURES_DIR)
+    dims = source_tag = ""
     if size:
         width, height = size
-        dims = (
-            f' width="{width:.0f}" height="{height:.0f}"'
-            f' style="--w: {width * FIGURE_SCALE:.0f}px; --w-small: {width * SMALL_SCALE:.0f}px"'
+        sizes = f"--w: {width * FIGURE_SCALE:.0f}px; --w-small: {width * SMALL_SCALE:.0f}px"
+        if narrow:
+            sizes += f"; --w-narrow: {narrow[0] * FIGURE_SCALE:.0f}px"
+        dims = f' width="{width:.0f}" height="{height:.0f}" style="{sizes}"'
+    if narrow:
+        source_tag = (
+            f'<source media="{NARROW_MEDIA}" srcset="figures/narrow/{name}.svg"'
+            f' width="{narrow[0]:.0f}" height="{narrow[1]:.0f}">'
         )
     title_html = (
         f'<p class="figure-title" id="figure-{name}">{mark_spanish(esc(heading))}</p>'
@@ -343,8 +354,9 @@ def figure(name: str, alt: str, captions: dict[str, str], title: str | None = No
         '<p class="figure-tools">Scroll sideways to see the whole chart, or '
         f'<a href="figures/{name}.svg">open it at full size</a>.</p>'
         f'<div class="figure-media" role="region" tabindex="0" aria-label="Chart: {esc(heading or alt)}">'
-        f'<a href="figures/{name}.svg"><img src="figures/{name}.svg" alt="{esc(alt)}"{dims}'
-        ' loading="lazy" decoding="async"></a></div>'
+        f'<a href="figures/{name}.svg"><picture>{source_tag}'
+        f'<img src="figures/{name}.svg" alt="{esc(alt)}"{dims}'
+        ' loading="lazy" decoding="async"></picture></a></div>'
         f"<figcaption><p>{mark_spanish(esc(shown))}</p>{source_html}</figcaption></figure>"
     )
 
