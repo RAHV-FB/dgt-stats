@@ -403,8 +403,9 @@ def page_trends(captions: dict[str, str]) -> str:
         f"deaths per kilometre by DGT's estimate rose {_size(per_km)} and deaths per tonne of "
         f"fuel {_size(per_tonne)}. The series starts in {km_first}, so it cannot be set against "
         f"{base} or the long run, and fuel remains the denominator on this page. The "
-        f'<a href="vehicles.html">vehicle types</a> use the estimates of {km_first} and '
-        f'<a href="drivers.html">drivers by age</a> those of {km_last}.</p>'
+        f'rates per kilometre on the <a href="vehicles.html">vehicles page</a> use its '
+        f'{km_first} estimates, and those on the <a href="drivers.html">drivers page</a> its '
+        f"{km_last} estimates.</p>"
     )
     body += limitation(
         "The denominators are national totals that weight every resident, licence, vehicle and "

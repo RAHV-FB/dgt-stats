@@ -69,7 +69,7 @@ PAGE_QUESTIONS = {
     "long-run": "How road deaths have changed since 1993, against vehicles, fuel sold and "
     "kilometres driven.",
     "trends": f"Deaths, hospital admissions and injury crashes in 2024 against {BASE_YEAR}.",
-    "seasons": "Which months are deadliest, and how the 2020 lockdowns changed them.",
+    "seasons": "Which months are deadliest, and how the 2020 lockdown changed them.",
     "policy": "Whether the points-based licence of July 2006 changed monthly deaths.",
     "drivers": "How often drivers of each age and sex are in crashes per kilometre, and how "
     "often a crash kills them.",
