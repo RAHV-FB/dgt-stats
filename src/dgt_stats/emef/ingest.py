@@ -107,8 +107,16 @@ def persons_year(year: int) -> pd.DataFrame:
                 employment.where(employment != 9), v.EMPLOYMENT_LABELS, "employment", year
             ),
             "weight": _decimal(raw["PESAIX"]),
+            "mobility_professional": (
+                _code(raw[v.PROFESSIONAL_COLUMN[year]]) == v.PROFESSIONAL_CODE
+            ).to_numpy(),
         }
     )
+    if year in v.WORK_TRIPS_COLUMN:
+        work = _code(raw[v.WORK_TRIPS_COLUMN[year]])
+        out["work_trips"] = work.where(out.mobility_professional, 0).astype("Float64")
+    else:
+        out["work_trips"] = pd.array([pd.NA] * len(raw), dtype="Float64")
     if year in v.CAR_DRIVER_FREQUENCY:
         column, scale = v.CAR_DRIVER_FREQUENCY[year]
         frequency = _code(raw[column])
@@ -277,16 +285,30 @@ def validate() -> pd.DataFrame:
             f"{gaps} respondents with a gap in ORDRE",
         )
         raw = read_raw(year, "persons")
-        if "V02C_2" in raw:
-            reported = pd.Series(_code(raw["V02C_2"]).to_numpy(), index=raw["ID"].astype("int64"))
+        reported_column = v.REPORTED_TRIPS_COLUMN[year]
+        if reported_column in raw:
+            reported = pd.Series(
+                _code(raw[reported_column]).to_numpy(), index=raw["ID"].astype("int64")
+            )
             rows_per_person = t.groupby("person_id").size().reindex(reported.index, fill_value=0)
             differ = int((rows_per_person != reported).sum())
             check(
                 year,
                 "trips match reported count",
                 differ == 0,
-                f"{differ} respondents whose trip rows differ from V02C_2",
+                f"{differ} respondents whose trip rows differ from {reported_column}",
             )
+        first_trip = t.sort_values("trip_order").groupby("person_id").tipol.first()
+        professional = p.set_index("person_id").mobility_professional
+        trip_says = first_trip.eq(v.PROFESSIONAL_CODE).reindex(professional.index)
+        disagree = int((trip_says.notna() & (trip_says != professional)).sum())
+        check(
+            year,
+            "professional status agrees",
+            disagree <= 5 or year == 2016,
+            f"{disagree} respondents whose first trip's TIPOL disagrees with the respondent file"
+            + (" (known in 2016; the respondent file is used)" if year == 2016 else ""),
+        )
         check(year, "positive weights", (p.weight > 0).all(), "PESAIX > 0")
         unknown_mode = t.mode1.isna().sum()
         check(year, "first mode recorded", unknown_mode == 0, f"{unknown_mode} trips without V03G")
@@ -310,20 +332,27 @@ def build() -> tuple[pd.DataFrame, pd.DataFrame]:
 
 METHOD_NOTES: dict[int, str] = {
     2014: "survey area STI; age in three groups; MITJA_PRIVAT does not separate driver from passenger",
-    2015: "dictionary names the trip-file age variable V23_R1; the file has V15_R1",
-    2016: "only year asking whether the respondent holds a car licence (V21A)",
-    2017: "area extended to the Berguedà; comarca codes renumbered after the Moianès was created",
+    2015: "dictionary names the trip-file age variable V23_R1; the file has V15_R1; area extended "
+    "to the whole of Osona",
+    2016: "only year asking whether the respondent holds a car licence (V21A), in an opinion module "
+    "put to about 77% of respondents; the trip file's TIPOL disagrees with the respondent file for "
+    "504 people",
+    2017: "area extended to the Berguedà and the Moianès; comarca codes renumbered; the reported "
+    "trip count is V02C",
     2018: "respondent file published as 'Opinió'",
-    2019: "area becomes the province of Barcelona (SIMMB); age in four groups from this year",
+    2019: "area becomes the province of Barcelona (SIMMB): the Baix Penedès and the Selva leave it; "
+    "age in four groups from this year; respondent file published as 'Opinió'",
     2020: "COVID-19: fieldwork under pandemic restrictions; usual car use asked only for before "
-    "the pandemic",
+    "the pandemic; respondent file published as 'Opinió'",
     2021: "straight-line distance band (DISTANCIA_ORTO_REC_R1) published from this year; "
-    "first year with trip coordinates",
-    2022: "the dictionary was revised later (trip value-label sheet)",
-    2023: "respondent file published as 'Opinió'; weekend overnight trips and road accidents in the "
-    "last 12 months asked in the first wave",
+    "first year with trip coordinates; mode code 24 is another private vehicle",
+    2022: "the first-release dictionary matches the file; the later 'revised' one carries the 2021 "
+    "labels for mode codes 23-25 and V03G_R1 (car driver 13 instead of 14)",
+    2023: "respondent file published as 'Opinió'; Saturday nights away from the municipality in the "
+    "last four weekends (V11) asked in both waves; accidents or falls in public space in the last "
+    "12 months asked in the first wave only",
     2024: "Barcelona city sample enlarged by 1,300 respondents (3,500 in all); respondent-file "
-    "columns renamed (S02, COMARCA, V01A) without changing their codes",
+    "columns renamed (S02, COMARCA, V01A, TIPOL) without changing their codes",
 }
 
 

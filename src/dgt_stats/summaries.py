@@ -254,6 +254,7 @@ SUMMARIES = {
     "drivers_sex_rates": driver_risk.sex_age_rates,
     "drivers_sex_ratios": driver_risk.sex_ratios,
     "drivers_sex_trend": driver_risk.sex_trend,
+    "drivers_sex_b_licence": driver_risk.sex_b_licence,
     # Speed as a severity factor, and the other concurrent factors
     "speed_severity": factors.speed_severity,
     "speed_severity_pooled": factors.speed_severity_pooled,

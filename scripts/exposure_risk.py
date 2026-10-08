@@ -30,14 +30,25 @@ from dgt_stats.paths import TABLES_DIR  # noqa: E402
 log = logging.getLogger("exposure_risk")
 
 
+# The youngest group pairs drivers aged 18-29 with the kilometres of residents aged 16-29, of whom
+# those aged 16 and 17 drive no car; the published tables name it by its drivers.
+DRIVER_LABELS = {"16-29": "18-29"}
+
+
 def write(frame: pd.DataFrame, name: str) -> None:
     TABLES_DIR.mkdir(parents=True, exist_ok=True)
+    frame = frame.copy()
+    for column in frame.columns:
+        if frame[column].dtype == object or pd.api.types.is_string_dtype(frame[column]):
+            frame[column] = frame[column].replace(DRIVER_LABELS)
     frame.to_csv(TABLES_DIR / f"{name}.csv", index=False, float_format="%.10g")
     log.info("%s: %d rows", name, len(frame))
 
 
 def run_barcelona() -> None:
     write(barcelona.rates(), "risk_barcelona_rates")
+    write(barcelona.unknown_age_bounds(), "risk_barcelona_unknown_age_bounds")
+    write(barcelona.older_ratios(), "risk_barcelona_older")
     write(barcelona.km_composition(), "risk_barcelona_km")
     write(barcelona.counts_by_day_type(), "risk_barcelona_day_type")
 
@@ -68,6 +79,20 @@ def run_national() -> None:
     write(national.severity_and_licences(), "risk_severity_and_licences")
     write(national.older_split(), "risk_older_split")
     write(national.weekend_sensitivity(), "risk_weekend_sensitivity")
+    write(national.sensitivity(), "risk_national_sensitivity")
+    write(national.older_sensitivity(), "risk_older_sensitivity")
+    write(national.unknown_age_bounds(), "risk_unknown_age_bounds")
+    write(national.sex_per_km(), "risk_sex_per_km")
+    write(
+        pd.concat(
+            [
+                national.licence_prevalence(),
+                national.licence_prevalence(national.BARCELONA_PROVINCE),
+            ],
+            ignore_index=True,
+        ),
+        "risk_licence_prevalence",
+    )
     write(national.owner_age_comparison(), "risk_owner_age_comparison")
 
 

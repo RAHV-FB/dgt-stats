@@ -14,21 +14,29 @@ context,
 and fitted by maximum likelihood with each trip contributing the probability of its observed band
 (interval censoring), so the model never contradicts a band. A trip's expected distance is then
 the mean of the fitted distribution truncated to its band, which uses the band and the duration
-together; the open band over 100 km gets the same treatment, so its mean is set by the durations
-of those trips and not by an arbitrary cap. ``x`` holds the log duration and its square, whether
+together. No trip records a distance beyond 100 km, so the mean of the open band over 100 km is a
+parametric extrapolation: it follows from the log-quadratic duration term, not from observed
+distances, and :mod:`exposure` treats a banded trip whose band its duration could not reach as
+unbanded. ``x`` holds the log duration and its square, whether
 the trip stays in one municipality, whether it leaves the survey area, whether it starts or ends in
 Barcelona city, the respondent's age group and the year (trips before 2021, which have no band,
-are given the 2021 level). One model is fitted per mode group (walking, cycling, public transport,
+are given the 2021 level, and before 2019, when the files give only the age group 30-64, such a
+trip takes the 30-44 and 45-64 effects in proportion to the two groups' shares of the 2019
+respondents aged 30-64). One model is fitted per mode group (walking, cycling, public transport,
 driving), because speed differs by mode.
 
 **From straight line to road.** The EMEF 2021 distance report (Institut Metròpoli for the ATM,
 October 2022, Table 1) computed, for every trip with coordinates, both the straight-line distance
 and the road distance from Google's Distance Matrix API: driving trips averaged 8.9 km in a
 straight line and 12.9 km by road, a ratio of 1.45 (walking 1.32, cycling 1.41, public transport
-1.50, all trips 1.44). These ratios are applied to the expected straight-line distances. They are
+1.50, all trips 1.44). The report is not archived in this repository and could not be found online
+again, so these constants rest on the transcription; the EMEF 2024 summary report, which is online,
+gives a mean straight-line trip of 4.7 km and daily straight-line km per mobile person by age, and
+the model reproduces them within 3% (:func:`validate_against_report`). These ratios are applied to the expected straight-line distances. They are
 ratios of means for 2021 trips; the ratio for any one trip is unknown, so the sensitivity analysis
 varies the driving ratio. Because a common factor multiplies every age group's kilometres alike,
-it changes absolute rates per kilometre but not the ratio of one age group's rate to another's.
+it changes absolute rates per kilometre but hardly the ratio of one age group's rate to another's
+(not exactly, because trips without a band are bounded by a door-to-door speed whatever the ratio).
 
 :func:`validate_against_report` reproduces the report's mean straight-line distances by mode and
 its daily road distance per mobile person by age, the only published benchmarks for the method.
@@ -37,6 +45,7 @@ its daily road distance per mobile person by age, the only published benchmarks 
 from __future__ import annotations
 
 from dataclasses import dataclass
+from functools import cache
 
 import numpy as np
 import pandas as pd
@@ -62,18 +71,28 @@ REPORT_STRAIGHT_LINE_KM: dict[str, float] = {
 # Its daily road distance per mobile person (km, Google distance), by the survey's three age
 # groups and overall (section 4.1, text and table).
 REPORT_DAILY_ROAD_KM: dict[str, float] = {"16-29": 29.7, "30-64": 29.2, "65+": 14.7, "all": 26.5}
+# The EMEF 2024 executive summary (data/raw/emef/2024/emef_2024_executive_summary.pdf, sections
+# 2.4 and 3.2): mean straight-line distance of a trip, all modes, and daily straight-line km per
+# person by the survey's three age groups.
+REPORT_2024_STRAIGHT_LINE_KM = 4.7
+REPORT_2024_DAILY_STRAIGHT_KM: dict[str, float] = {"16-29": 22.5, "30-64": 22.0, "65+": 12.3}
 
 # The report's mode groups (Table 1 note): "Driving" is car, motorcycle, moped, lorry, van, other
 # private vehicles, works bus, school bus, coach and taxi; "Transit" is bus, metro, tram, FGC,
 # Rodalies, regional rail and other public transport; "Cycling" is bicycle and other non-motorised
-# means. Built from the first-stage codes of each year's dictionary.
+# means. From the 2022 dictionaries (23 other bus, 24 other public transport, 25 other private
+# vehicle); in 2020 and 2021, 23 is other public transport and 24 another private vehicle, with no
+# code 25 (:data:`MODE_GROUP_CODES_TO_2021`).
 MODE_GROUP_CODES: dict[str, tuple[int, ...]] = {
     "walking": (1,),
     "cycling": (17, 18, 19),
     "transit": (5, 6, 7, 8, 9, 10, 23, 24),
     "driving": (2, 3, 4, 11, 12, 13, 14, 15, 16, 20, 21, 22, 25),
 }
-TRANSIT_PRIORITY = MODE_GROUP_CODES["transit"]
+MODE_GROUP_CODES_TO_2021: dict[str, tuple[int, ...]] = MODE_GROUP_CODES | {
+    "transit": (5, 6, 7, 8, 9, 10, 23),
+    "driving": (2, 3, 4, 11, 12, 13, 14, 15, 16, 20, 21, 22, 24),
+}
 
 
 def mode_group(trips: pd.DataFrame) -> pd.Series:
@@ -83,7 +102,18 @@ def mode_group(trips: pd.DataFrame) -> pd.Series:
     over non-motorised means; the same order is applied across the three recorded stages.
     """
     stages = trips[["mode1", "mode2", "mode3"]]
-    has = {name: stages.isin(codes).any(axis=1) for name, codes in MODE_GROUP_CODES.items()}
+    early = (trips.year <= 2021).to_numpy()
+    has = {
+        name: pd.Series(
+            np.where(
+                early,
+                stages.isin(MODE_GROUP_CODES_TO_2021[name]).any(axis=1),
+                stages.isin(codes).any(axis=1),
+            ),
+            index=trips.index,
+        )
+        for name, codes in MODE_GROUP_CODES.items()
+    }
     out = pd.Series("walking", index=trips.index, dtype="object")
     out[has["cycling"]] = "cycling"
     out[has["driving"]] = "driving"
@@ -178,11 +208,27 @@ def design(trips: pd.DataFrame, columns: tuple[str, ...] | None = None) -> np.nd
     )
     for group in ("30-44", "45-64", "65+"):
         frame[f"age_{group}"] = (trips.age_group == group).astype(float).to_numpy()
+    middle = (trips.age_group == "30-64").to_numpy()
+    if middle.any():
+        share = share_30_44()
+        frame.loc[middle, "age_30-44"] = share
+        frame.loc[middle, "age_45-64"] = 1 - share
     for year in range(v.DISTANCE_FROM + 1, max(v.YEARS) + 1):
         frame[f"year_{year}"] = (trips.year == year).astype(float).to_numpy()
     if columns is not None:
         frame = frame.reindex(columns=list(columns), fill_value=0.0)
     return frame.to_numpy(dtype=float)
+
+
+@cache
+def share_30_44() -> float:
+    """Weighted share of 30-44 among the respondents aged 30-64 in 2019, the first year that
+    separates them."""
+    from dgt_stats.emef import ingest
+
+    people = ingest.persons()
+    people = people[(people.year == v.AGE4_FROM) & people.age4.isin(["30-44", "45-64"])]
+    return float(people.weight[people.age4 == "30-44"].sum() / people.weight.sum())
 
 
 def design_columns(trips: pd.DataFrame) -> tuple[str, ...]:
@@ -303,5 +349,35 @@ def validate_against_report() -> pd.DataFrame:
             }
         )
     out = pd.DataFrame(rows)
+    # The 2024 summary report's benchmarks, from the same per-mode models.
+    year = measured[(measured.year == 2024) & measured.distance_band.notna()].copy()
+    year["km_straight"] = np.nan
+    for group in ROAD_RATIO:
+        model = fit(measured[measured.group == group])
+        part = year[year.group == group]
+        year.loc[part.index, "km_straight"] = model.expected_km(part)
+    year = year[year.km_straight.notna()]
+    rows = [
+        {
+            "measure": "2024 report: mean straight-line km per trip, all modes",
+            "report": REPORT_2024_STRAIGHT_LINE_KM,
+            "model": float(np.average(year.km_straight, weights=year.weight)),
+            "trips": len(year),
+        }
+    ]
+    daily = year.groupby("person_id").agg(
+        km=("km_straight", "sum"), weight=("weight", "first"), age=("age3", "first")
+    )
+    for age, value in REPORT_2024_DAILY_STRAIGHT_KM.items():
+        part = daily[daily.age == age]
+        rows.append(
+            {
+                "measure": f"2024 report: daily straight-line km per mobile person: {age}",
+                "report": value,
+                "model": float(np.average(part.km, weights=part.weight)),
+                "trips": int(len(part)),
+            }
+        )
+    out = pd.concat([out, pd.DataFrame(rows)], ignore_index=True)
     out["relative_difference"] = out.model / out.report - 1
     return out.rename(columns={"trips": "n"})

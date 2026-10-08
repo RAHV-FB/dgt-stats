@@ -398,7 +398,7 @@ def _sex_figures(figures_dir: Path, captions: dict[str, str], summary) -> None:
         "low",
         "high",
         figures_dir / "a3_sex_ratios.svg",
-        "Men against women, car drivers: crashing, and dying (2022–2024)",
+        "Men against women, private-car drivers: crashing, and dying (2022–2024)",
         order=list(dict.fromkeys(cars.band_label)),
         panel_order=list(short.values()),
         xlabel="Ratio, men to women (dotted line: the same rate)",
@@ -407,9 +407,10 @@ def _sex_figures(figures_dir: Path, captions: dict[str, str], summary) -> None:
     rates_table = summary("drivers_sex_rates")
     adults = rates_table[(rates_table.scope == "car") & (rates_table.band == "18+")]
     captions["a3_sex_ratios"] = _caption(
-        "Men's rates divided by women's among car drivers, by age: involvement in injury "
-        "crashes and death within 30 days per licence holder, and death per driver involved, "
-        "Spain, 2022–2024 pooled, with 95% intervals; no source records kilometres by sex",
+        "Men's rates divided by women's among private-car drivers (taxis and ride-hailing cars "
+        "excluded), by age: involvement in injury crashes and death within 30 days per licence "
+        "holder, and death per driver involved, Spain, 2022–2024 pooled, with 95% intervals. "
+        "The estimates per kilometre are given in the text",
         f"{TABLES_SOURCE}; {CENSUS_SOURCE}",
         f"{int(adults.drivers_involved.sum()):,} drivers involved",
     )
@@ -574,7 +575,7 @@ def _severity_figures(figures_dir: Path, captions: dict[str, str]) -> None:
 EMEF_SOURCE = "ATM, Idescat and Institut Metròpoli, Enquesta de mobilitat en dia feiner 2022–2024"
 EDM_SOURCE = "CRTM, Encuesta Domiciliaria de Movilidad 2018 (Powered by CRTM)"
 GROUP_LABELS = {
-    "16-29": "18–29",
+    "18-29": "18–29",
     "30-44": "30–44",
     "45-64": "45–64",
     "65+": "65 and over",
@@ -593,16 +594,12 @@ def _driver_exposure_figures(figures_dir: Path, captions: dict[str, str]) -> Non
     rates = pd.read_csv(path)
     rates = rates[rates.km_total == "less taxi and ride-hailing"]
     central = rates[rates.method.str.startswith("A:")].set_index("group")
-    weekend = pd.read_csv(TABLES_DIR / "risk_weekend_sensitivity.csv")
-    older = pd.read_csv(TABLES_DIR / "risk_older_split.csv")
+    sensitivity = pd.read_csv(TABLES_DIR / "risk_national_sensitivity.csv")
+    spread = sensitivity.groupby("group").involved_ratio.agg(["min", "max"])
+    older = pd.read_csv(TABLES_DIR / "risk_older_sensitivity.csv")
+    older_spread = {"65-74": older.ratio_65_74, "75+": older.ratio_75_plus}
     rows = []
-    for group in ("16-29", "30-44", "45-64", "65+"):
-        spread = pd.concat(
-            [
-                rates[rates.group == group].involved_ratio,
-                weekend[weekend.group == group].ratio_to_45_64,
-            ]
-        )
+    for group in ("18-29", "30-44", "45-64", "65+"):
         rows.append(
             {
                 "label": GROUP_LABELS[group],
@@ -610,12 +607,11 @@ def _driver_exposure_figures(figures_dir: Path, captions: dict[str, str]) -> Non
                 "value": float(central.loc[group, "involved_ratio"]),
                 "low": float(central.loc[group, "involved_ratio_low"]),
                 "high": float(central.loc[group, "involved_ratio_high"]),
-                "range_low": float(spread.min()),
-                "range_high": float(spread.max()),
+                "range_low": float(spread.loc[group, "min"]),
+                "range_high": float(spread.loc[group, "max"]),
             }
         )
     for group in ("65-74", "75+"):
-        part = older[older.group == group].ratio_to_45_64
         rows.append(
             {
                 "label": f"{GROUP_LABELS[group]} (model-dependent)",
@@ -623,8 +619,8 @@ def _driver_exposure_figures(figures_dir: Path, captions: dict[str, str]) -> Non
                 "value": np.nan,
                 "low": np.nan,
                 "high": np.nan,
-                "range_low": float(part.min()),
-                "range_high": float(part.max()),
+                "range_low": float(older_spread[group].min()),
+                "range_high": float(older_spread[group].max()),
             }
         )
     plots.estimate_and_range(
@@ -635,15 +631,18 @@ def _driver_exposure_figures(figures_dir: Path, captions: dict[str, str]) -> Non
         xlabel="Rate ratio per km against drivers aged 45–64 (log scale)",
         reference_label="45–64 rate",
         estimate_label="Estimate with 95% interval (EMEF age profile, Spain's population, DGT km)",
-        range_label="Sensitivity range: other regional profiles, weekend mixes, or the "
-        "assumption splitting 65+",
+        range_label="Sensitivity range: other profiles, distance treatments, survey years, "
+        "weekend mixes and, for 65–74 and 75 and over, the split of the 65+ kilometres",
     )
     captions["dr1_involved_per_km"] = _caption(
         "Car drivers involved in injury crashes in Spain in 2024 per kilometre driven by drivers "
         "of the same age, as ratios to drivers aged 45–64; kilometres by age from the EMEF's "
         "working-day profile applied to Spain's population and scaled to DGT's car kilometres. "
-        "The grey bands are sensitivity ranges, not intervals; the rows for 65–74 and 75 and "
-        "over rest on the Madrid survey's age profile and carry no point estimate",
+        "The grey bands are sensitivity ranges, not intervals: other regional profiles, the "
+        "licence-calibrated transfer, other treatments of trip distances, other survey years, "
+        "professionals' work driving, the older sample's employment and the age mix of "
+        "non-working days. The rows for 65–74 and 75 and over rest on assumptions splitting the "
+        "65+ kilometres (Madrid survey ratios or licence holding) and carry no point estimate",
         f"{TABLES_SOURCE}; {EMEF_SOURCE}; {EDM_SOURCE}; {KM_2024_SOURCE}; {POPULATION_SOURCE}",
         f"{int(central.involved.sum()):,} drivers involved",
     )

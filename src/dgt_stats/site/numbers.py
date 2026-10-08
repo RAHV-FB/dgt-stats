@@ -103,3 +103,40 @@ def _window(windows: pd.DataFrame, zone: str, factor: str, year: int) -> pd.Seri
         & (windows.last_year >= year)
     ]
     return match.iloc[0]
+
+
+CENTRAL_KM = "less taxi and ride-hailing"
+
+
+def _driver_numbers() -> dict[str, object]:
+    """Involvement per km by driver age (central Method A, the licence-calibrated A2, every
+    sensitivity), the Barcelona working-day check and the split at 75, read from ``risk_*``."""
+    rates = read_table("risk_national_rates")
+    rates = rates[rates.km_total == CENTRAL_KM]
+    central = rates[rates.method.str.startswith("A:")].set_index("group")
+    licence = rates[rates.method.str.startswith("A2:")].set_index("group")
+    sensitivity = read_table("risk_national_sensitivity")
+    ranges = sensitivity.groupby("group").involved_ratio.agg(["min", "max"])
+    by_source = sensitivity.groupby(["source", "group"]).involved_ratio.agg(["min", "max"])
+    older = read_table("risk_older_split")
+    older_range = read_table("risk_older_sensitivity")
+    city = read_table("risk_barcelona_rates")
+    city = city[city.numerator == city.numerator.iloc[0]]
+    city_older = read_table("risk_barcelona_older")
+    return {
+        "rates": rates,
+        "central": central,
+        "licence": licence,
+        "sensitivity": sensitivity,
+        "ranges": ranges,
+        "by_source": by_source,
+        "older": older,
+        "older_range": {
+            "65-74": (float(older_range.ratio_65_74.min()), float(older_range.ratio_65_74.max())),
+            "75+": (float(older_range.ratio_75_plus.min()), float(older_range.ratio_75_plus.max())),
+        },
+        "city": city,
+        "city_all": read_table("risk_barcelona_rates"),
+        "city_older": city_older,
+        "severity": read_table("risk_severity_and_licences").set_index("group"),
+    }

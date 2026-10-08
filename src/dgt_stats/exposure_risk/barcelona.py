@@ -1,34 +1,43 @@
-"""A working-day design matched in place and time: Barcelona city.
+"""A working-day check in Barcelona city: crashes of 2025, driving of 2022-2024.
 
-**Numerator.** Car drivers (``Turisme`` and ``Tot terreny``; taxis apart) involved in a crash
-recorded by the Guàrdia Urbana in Barcelona in 2025 with at least one person injured or killed, on
-a working day (:mod:`calendar`), by exact age. The person table lists every driver of a crash,
-uninjured drivers included (a driver row exists for every vehicle in 98.4% of crashes). The
-police do not record where drivers live, so the numerator also counts drivers from outside the
-province, and professional drivers of ordinary cars (ride-hailing, company cars).
+**Numerator.** Car drivers (``Turisme`` and ``Tot terreny``) involved in a crash recorded by the
+Guàrdia Urbana in Barcelona in 2025 with at least one casualty (any injury, including people who
+refused medical care), on a working day (:mod:`calendar`), by exact age. Taxis are left out, and
+so are drivers of ordinary cars whose trip motive is recorded as ``Taxi`` (ride-hailing cars), as
+in the national design. The person table lists every driver of a crash, uninjured drivers
+included, in the 2024 and 2025 files only (earlier years list casualties only), and
+:func:`involved_drivers` checks both that and that a driver row exists for nearly every vehicle.
+The police record the age of 94% of the drivers on working days; the rest are almost all drivers
+with no age, sex or injury recorded, probably drivers who were never identified.
+
+The numerator also holds drivers the denominator does not count: drivers living outside the
+province, traffic passing through the city without stopping, and drivers at work in ordinary
+cars (emergency services, deliveries, staff on errands). These lean to working ages, so the
+older drivers' ratio is biased downwards by an unknown amount. :func:`rates` also gives the
+ratios with on-duty drivers left out and with crashes whose only casualties refused care left
+out.
 
 **Denominator.** Car-driver kilometres driven inside Barcelona on a working day by residents of
-the province, from the EMEF 2022-2024 (:mod:`dgt_stats.emef.exposure`), times the 248 working days
-of 2025. A trip with both ends in Barcelona is inside the city in full. A trip with one end in
+the survey area, from the EMEF 2022-2024 (:mod:`dgt_stats.emef.exposure`), times the 248 working
+days of 2025. A trip with both ends in Barcelona is inside the city in full. A trip with one end in
 the city is inside it only in part, and the public files give neither coordinates nor the
-municipality at the other end, so that part cannot be measured; trips passing through without
-stopping cannot be identified at all. Three denominators bracket the unknown:
+municipality at the other end, so that part cannot be measured. Three denominators span the
+treatments of those crossing trips; they do not bound the kilometres of all drivers in the city,
+because every one of them omits the traffic named above:
 
-* ``internal trips only``: crossing trips count for nothing (the smallest possible total, so the
-  largest rates);
+* ``internal trips only``: crossing trips count for nothing (the largest rates);
 * ``crossing trips at an internal trip's length``: each crossing trip counts for the mean road
-  length of a trip inside the city (4.7 km), or its own length if shorter;
-* ``crossing trips in full``: every crossing trip counts in full (far more than the city holds,
-  so the smallest rates).
+  length of a trip inside the city, or its own length if shorter;
+* ``crossing trips in full``: every crossing trip counts in full (the smallest rates).
 
-Rates per kilometre are therefore given as a range, and the comparison that matters is the ratio
-of each age group's rate to that of drivers aged 45-64, which is checked under all three.
+Only the ratio of each age group's rate to that of drivers aged 45-64 is read.
 
 **Uncertainty.** Each interval combines the sampling error of the denominator (the EMEF
 bootstrap replicates) with Poisson error in the count (a gamma draw per replicate), paired
-replicate by replicate. Drivers whose age the police did not record (about 6% on working days)
-are left out of the rates; ``rate_allocated_per_bn_km`` spreads them across ages in proportion to
-those recorded. The ratios do not depend on that allocation.
+replicate by replicate. Drivers whose age was not recorded are left out of the rates; the ratios
+then assume their ages follow the recorded mix. :func:`unknown_age_bounds` gives the ratios if
+they were all of one age group. ``rate_allocated_per_bn_km`` spreads them across ages in
+proportion to those recorded.
 """
 
 from __future__ import annotations
@@ -44,6 +53,23 @@ from dgt_stats.microdata import barcelona
 
 CAR_TYPES = ("Turisme", "Tot terreny")
 TAXI = "Taxi"
+MOTIVE = "Descripcio_Motiu_desplacament_conductor"
+# Trip motives of drivers at work in an ordinary car, whose working kilometres the EMEF does not
+# record: left out in a sensitivity variant. "Taxi" on an ordinary car (ride-hailing) is always
+# left out.
+ON_DUTY_MOTIVES = (
+    "Bombers, policia, ambulància",
+    "En missió",
+    "En pràctiques d'autoescola",
+    "Transport professional de mercaderies",
+    "Bus de línia regular",
+)
+REFUSED_CARE = "minor_refused_care"
+NUMERATORS = (
+    "taxis and ride-hailing cars left out",
+    "on-duty drivers also left out",
+    "crashes whose only casualties refused care also left out",
+)
 YEAR = 2025
 AGE_GROUPS: tuple[tuple[int, int, str], ...] = (
     (16, 29, "16-29"),
@@ -76,16 +102,50 @@ def involved_drivers() -> pd.DataFrame:
     people = barcelona.read_people()
     crashes = barcelona.read_crashes()
     injury = crashes.loc[crashes.n_victims > 0, barcelona.KEY]
-    drivers = people[
-        (people.person_role == "driver")
-        & people.Desc_Tipus_vehicle_implicat.isin((*CAR_TYPES, TAXI))
-        & people[barcelona.KEY].isin(injury)
+    every_driver = people[people.person_role == "driver"]
+    if not (every_driver.victimisation == "uninjured").any():
+        raise ValueError("Barcelona person file: no uninjured drivers, so not every driver")
+    per_crash = every_driver.groupby(barcelona.KEY).size()
+    vehicles = crashes.set_index(barcelona.KEY).Numero_vehicles_implicats.astype(float)
+    complete = float((per_crash.reindex(vehicles.index).fillna(0) == vehicles).mean())
+    if complete < 0.95:
+        raise ValueError(f"Barcelona person file: a driver row for every vehicle in {complete:.1%}")
+    drivers = every_driver[
+        every_driver.Desc_Tipus_vehicle_implicat.isin((*CAR_TYPES, TAXI))
+        & every_driver[barcelona.KEY].isin(injury)
     ].copy()
-    drivers["vehicle"] = np.where(drivers.Desc_Tipus_vehicle_implicat == TAXI, "taxi", "car")
+    ride_hailing = drivers[MOTIVE].eq(TAXI)
+    drivers["vehicle"] = np.where(
+        (drivers.Desc_Tipus_vehicle_implicat == TAXI) | ride_hailing, "taxi", "car"
+    )
+    drivers["on_duty"] = drivers[MOTIVE].isin(ON_DUTY_MOTIVES)
+    casualties = people[
+        people[barcelona.KEY].isin(injury)
+        & ~people.victimisation.isin(["uninjured", "not_recorded", "natural_death"])
+    ]
+    refused_only = casualties.groupby(barcelona.KEY).victimisation.agg(
+        lambda v: bool((v == REFUSED_CARE).all())
+    )
+    drivers["refused_care_only"] = (
+        drivers[barcelona.KEY].map(refused_only).fillna(False).astype(bool)
+    )
     drivers["day_type"] = calendar.day_type(drivers.date)
     drivers["age4"] = _group(drivers.age, AGE_GROUPS)
     drivers["age_older"] = _group(drivers.age, OLDER_GROUPS)
-    return drivers.reset_index(drop=True)
+    out = drivers.reset_index(drop=True)
+    out.attrs["drivers_per_vehicle_complete"] = complete
+    return out
+
+
+def numerator(name: str = NUMERATORS[0]) -> pd.DataFrame:
+    """The working-day car drivers counted under one of :data:`NUMERATORS`."""
+    drivers = involved_drivers()
+    cars = drivers[(drivers.vehicle == "car") & (drivers.day_type == calendar.WORKING_DAY)]
+    if name in NUMERATORS[1:]:
+        cars = cars[~cars.on_duty]
+    if name == NUMERATORS[2]:
+        cars = cars[~cars.refused_care_only]
+    return cars
 
 
 def counts_by_day_type() -> pd.DataFrame:
@@ -161,54 +221,82 @@ def _denominator_columns(frame: pd.DataFrame) -> dict[str, np.ndarray]:
 
 def rates() -> pd.DataFrame:
     """Car drivers involved per billion working-day km inside Barcelona, by age group, under each
-    denominator, with each group's ratio to drivers aged 45-64."""
+    denominator and numerator, with each group's ratio to drivers aged 45-64."""
     frame = city_person_day()
     n_years = frame.year.nunique()
     factors = exposure.replicate_factors(frame)
     weight = frame.weight.to_numpy() / n_years
     working_days = calendar.days_in_year(YEAR)[calendar.WORKING_DAY]
-    drivers = involved_drivers()
-    cars = drivers[(drivers.vehicle == "car") & (drivers.day_type == calendar.WORKING_DAY)]
-    known = cars.age4.value_counts()
-    unknown_share = float(cars.age.isna().mean())
-    rng = np.random.default_rng(SEED)
-    n_rep = factors.shape[1]
     labels = [label for _, _, label in AGE_GROUPS]
-    count_draws = {label: rng.gamma(known.get(label, 0) + 0.5, 1.0, n_rep) for label in labels}
+    n_rep = factors.shape[1]
     rows = []
-    for denominator, km in _denominator_columns(frame).items():
-        point, replicate = {}, {}
-        for label in labels:
-            mask = (frame.age4 == label).to_numpy()
-            w = weight[mask] * km[mask]
-            yearly_km = working_days * float(w.sum())
-            yearly_rep = working_days * (w @ factors[mask])
-            n = float(known.get(label, 0))
-            point[label] = n / yearly_km * BILLION
-            replicate[label] = count_draws[label] / yearly_rep * BILLION
-            rows.append(
-                {
-                    "denominator": denominator,
-                    "age4": label,
-                    "drivers_involved": int(n),
-                    "drivers_allocated": n / (1 - unknown_share),
-                    "billion_km": yearly_km / BILLION,
-                    "rate_per_bn_km": point[label],
-                    "rate_low": float(np.percentile(replicate[label], 2.5)),
-                    "rate_high": float(np.percentile(replicate[label], 97.5)),
-                    "rate_allocated_per_bn_km": point[label] / (1 - unknown_share),
-                }
-            )
-        for row in rows[-len(labels) :]:
-            label = row["age4"]
-            ratio = replicate[label] / replicate[REFERENCE]
-            row["ratio_to_45_64"] = point[label] / point[REFERENCE]
-            row["ratio_low"] = float(np.percentile(ratio, 2.5))
-            row["ratio_high"] = float(np.percentile(ratio, 97.5))
+    for name in NUMERATORS:
+        cars = numerator(name)
+        known = cars.age4.value_counts()
+        unknown_share = float(cars.age.isna().mean())
+        rng = np.random.default_rng(SEED)
+        count_draws = {label: rng.gamma(known.get(label, 0) + 0.5, 1.0, n_rep) for label in labels}
+        for denominator, km in _denominator_columns(frame).items():
+            point, replicate = {}, {}
+            block = []
+            for label in labels:
+                mask = (frame.age4 == label).to_numpy()
+                w = weight[mask] * km[mask]
+                yearly_km = working_days * float(w.sum())
+                yearly_rep = working_days * (w @ factors[mask])
+                n = float(known.get(label, 0))
+                point[label] = n / yearly_km * BILLION
+                replicate[label] = count_draws[label] / yearly_rep * BILLION
+                block.append(
+                    {
+                        "numerator": name,
+                        "denominator": denominator,
+                        "age4": label,
+                        "drivers_involved": int(n),
+                        "drivers_age_not_recorded": int(cars.age.isna().sum()),
+                        "drivers_allocated": n / (1 - unknown_share),
+                        "billion_km": yearly_km / BILLION,
+                        "rate_per_bn_km": point[label],
+                        "rate_low": float(np.percentile(replicate[label], 2.5)),
+                        "rate_high": float(np.percentile(replicate[label], 97.5)),
+                        "rate_allocated_per_bn_km": point[label] / (1 - unknown_share),
+                    }
+                )
+            for row in block:
+                label = row["age4"]
+                ratio = replicate[label] / replicate[REFERENCE]
+                row["ratio_to_45_64"] = point[label] / point[REFERENCE]
+                row["ratio_low"] = float(np.percentile(ratio, 2.5))
+                row["ratio_high"] = float(np.percentile(ratio, 97.5))
+            rows += block
     out = pd.DataFrame(rows)
-    out.attrs["unknown_age_share"] = unknown_share
     out.attrs["internal_trip_mean_km"] = frame.attrs["internal_trip_mean_km"]
     return out
+
+
+def unknown_age_bounds() -> pd.DataFrame:
+    """Ratios to 45-64 (central numerator, internal trips only) if every driver of unrecorded age
+    were in one age group."""
+    central = rates()
+    central = central[
+        (central.numerator == NUMERATORS[0]) & (central.denominator == DENOMINATORS[0])
+    ].set_index("age4")
+    unknown = float(central.drivers_age_not_recorded.iloc[0])
+    rows = []
+    for assigned in (None, *central.index):
+        n = central.drivers_involved.astype(float).copy()
+        if assigned is not None:
+            n[assigned] += unknown
+        rate = n / central.billion_km
+        for label in central.index:
+            rows.append(
+                {
+                    "unknown_age_assigned_to": assigned or "left out",
+                    "age4": label,
+                    "ratio_to_45_64": float(rate[label] / rate[REFERENCE]),
+                }
+            )
+    return pd.DataFrame(rows)
 
 
 def km_composition() -> pd.DataFrame:
@@ -234,3 +322,42 @@ def km_composition() -> pd.DataFrame:
     for column in ("internal_km_per_day", "crossing_capped_km_per_day", "crossing_km_per_day"):
         out[column.replace("_per_day", "_share")] = out[column] / out[column].sum()
     return out
+
+
+def older_ratios() -> pd.DataFrame:
+    """Ratios to 45-64 at 65-74 and 75 and over in the working-day design (central numerator),
+    with the city's 65-and-over kilometres split by the national assumptions (Madrid survey ratios
+    or licence holding, by sex) and the province's population at 65-74 and 75 and over."""
+    from dgt_stats.exposure_risk import national
+
+    frame = city_person_day()
+    weight = frame.weight.to_numpy() / frame.year.nunique()
+    cars = numerator()
+    counts = cars.age_older.value_counts()
+    reference_n = float((cars.age4 == REFERENCE).sum())
+    population = national.barcelona_older_population().set_index(["sex", "group"]).population
+    rows = []
+    for denominator, km in _denominator_columns(frame).items():
+        reference_km = float((weight * km)[(frame.age4 == REFERENCE).to_numpy()].sum())
+        for assumption, ratios in national._older_ratios().items():
+            split = {"65-74": 0.0, "75+": 0.0}
+            for sex in national.SEXES:
+                mask = ((frame.age4 == "65+") & (frame.sex == sex)).to_numpy()
+                km_65 = float((weight * km)[mask].sum())
+                young = population[(sex, "65-74")]
+                old = population[(sex, "75+")] * ratios[sex]
+                split["65-74"] += km_65 * young / (young + old)
+                split["75+"] += km_65 * old / (young + old)
+            for group in OLDER_GROUPS:
+                label = group[2]
+                rate = float(counts.get(label, 0)) / split[label]
+                rows.append(
+                    {
+                        "denominator": denominator,
+                        "assumption": assumption,
+                        "age": label,
+                        "drivers_involved": int(counts.get(label, 0)),
+                        "ratio_to_45_64": rate / (reference_n / reference_km),
+                    }
+                )
+    return pd.DataFrame(rows)

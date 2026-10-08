@@ -1,0 +1,76 @@
+source,variant,assumption,ratio_65_74,ratio_75_plus
+licence-calibrated transfer,"EMEF, province of Barcelona, per licence holder",Madrid survey: km per resident,0.9718630198,2.127868291
+licence-calibrated transfer,"EMEF, province of Barcelona, per licence holder",equal km per licence holder,1.14491393,1.401982388
+licence-calibrated transfer,"EMEF, province of Barcelona, per licence holder","Madrid km per licence holder, Spain's licence holders",0.9493938998,2.315595433
+regional profile,"EMEF, Barcelona city",Madrid survey: km per resident,0.7809229717,1.708686296
+regional profile,"EMEF, Barcelona city",equal km per licence holder,0.9183145329,1.129962059
+regional profile,"EMEF, Barcelona city","Madrid km per licence holder, Spain's licence holders",0.7625826362,1.861983948
+regional profile,"EMEF, rest of the metropolitan area (AMB)",Madrid survey: km per resident,0.952925019,2.090886055
+regional profile,"EMEF, rest of the metropolitan area (AMB)",equal km per licence holder,1.129259467,1.361215288
+regional profile,"EMEF, rest of the metropolitan area (AMB)","Madrid km per licence holder, Spain's licence holders",0.9320317193,2.265203248
+regional profile,"EMEF, rest of the metropolitan region (RMB)",Madrid survey: km per resident,0.9552956716,2.088252283
+regional profile,"EMEF, rest of the metropolitan region (RMB)",equal km per licence holder,1.120467068,1.388320511
+regional profile,"EMEF, rest of the metropolitan region (RMB)","Madrid km per licence holder, Spain's licence holders",0.9323596354,2.280081858
+regional profile,"EMEF, rest of the province",Madrid survey: km per resident,0.9460750048,2.063475315
+regional profile,"EMEF, rest of the province",equal km per licence holder,1.102883801,1.389380862
+regional profile,"EMEF, rest of the province","Madrid km per licence holder, Spain's licence holders",0.9221833345,2.263593452
+distance,unbanded trips bounded at 100 km/h,Madrid survey: km per resident,0.9246218646,2.024255563
+distance,unbanded trips bounded at 100 km/h,equal km per licence holder,1.088995536,1.334378774
+distance,unbanded trips bounded at 100 km/h,"Madrid km per licence holder, Spain's licence holders",0.9031993314,2.203248974
+distance,unbanded trips bounded at 60 km/h,Madrid survey: km per resident,0.9587976423,2.097180882
+distance,unbanded trips bounded at 60 km/h,equal km per licence holder,1.126449288,1.389487837
+distance,unbanded trips bounded at 60 km/h,"Madrid km per licence holder, Spain's licence holders",0.9361014892,2.286928297
+distance,unbanded trips' durations capped at 4 hours,Madrid survey: km per resident,0.9795992486,2.142596979
+distance,unbanded trips' durations capped at 4 hours,equal km per licence holder,1.150765391,1.419889298
+distance,unbanded trips' durations capped at 4 hours,"Madrid km per licence holder, Spain's licence holders",0.9563894989,2.336643192
+distance,"unbanded trips at the model's mean, unbounded",Madrid survey: km per resident,0.8905516374,1.950701386
+distance,"unbanded trips at the model's mean, unbounded",equal km per licence holder,1.050400552,1.282073557
+distance,"unbanded trips at the model's mean, unbounded","Madrid km per licence holder, Spain's licence holders",0.8701814802,2.12084269
+distance,unbanded trips left out,Madrid survey: km per resident,1.052708785,2.29781192
+distance,unbanded trips left out,equal km per licence holder,1.229760965,1.540431277
+distance,unbanded trips left out,"Madrid km per licence holder, Spain's licence holders",1.026572491,2.516619988
+distance,multimodal trips: car leg counted as nothing,Madrid survey: km per resident,0.9192881093,2.013290396
+distance,multimodal trips: car leg counted as nothing,equal km per licence holder,1.083766969,1.324522012
+distance,multimodal trips: car leg counted as nothing,"Madrid km per licence holder, Spain's licence holders",0.89817006,2.189698882
+distance,multimodal trips: car leg counted in full,Madrid survey: km per resident,0.9578143449,2.094549993
+distance,multimodal trips: car leg counted in full,equal km per licence holder,1.124586707,1.389538516
+distance,multimodal trips: car leg counted in full,"Madrid km per licence holder, Spain's licence holders",0.9350193393,2.285152574
+distance,geometric midpoints within bands,Madrid survey: km per resident,0.9613553688,2.105522615
+distance,geometric midpoints within bands,equal km per licence holder,1.133512905,1.384822377
+distance,geometric midpoints within bands,"Madrid km per licence holder, Spain's licence holders",0.9392970252,2.289779921
+distance,"geometric midpoints, unbanded trips left out",Madrid survey: km per resident,1.077951718,2.355418467
+distance,"geometric midpoints, unbanded trips left out",equal km per licence holder,1.262924286,1.569538981
+distance,"geometric midpoints, unbanded trips left out","Madrid km per licence holder, Spain's licence holders",1.051827251,2.573973567
+distance,arithmetic midpoints within bands,Madrid survey: km per resident,1.005084244,2.200586972
+distance,arithmetic midpoints within bands,equal km per licence holder,1.184023478,1.449961984
+distance,arithmetic midpoints within bands,"Madrid km per licence holder, Spain's licence holders",0.9818424087,2.394771128
+distance,"arithmetic midpoints, unbanded trips left out",Madrid survey: km per resident,1.111146214,2.427949126
+distance,"arithmetic midpoints, unbanded trips left out",equal km per licence holder,1.301811594,1.617878289
+distance,"arithmetic midpoints, unbanded trips left out","Madrid km per licence holder, Spain's licence holders",1.084216707,2.653239258
+distance,"road distance bounded at 80 km/h, ratio recalibrated",Madrid survey: km per resident,0.961530506,2.10499065
+distance,"road distance bounded at 80 km/h, ratio recalibrated",equal km per licence holder,1.132364671,1.387851327
+distance,"road distance bounded at 80 km/h, ratio recalibrated","Madrid km per licence holder, Spain's licence holders",0.9392354943,2.291277907
+distance,"road distance bounded at 100 km/h, ratio recalibrated",Madrid survey: km per resident,0.9556051402,2.091735104
+distance,"road distance bounded at 100 km/h, ratio recalibrated",equal km per licence holder,1.124967215,1.380161872
+distance,"road distance bounded at 100 km/h, ratio recalibrated","Madrid km per licence holder, Spain's licence holders",0.933375415,2.277493364
+survey years,2024,Madrid survey: km per resident,0.9550952369,2.093736876
+survey years,2024,equal km per licence holder,1.128987099,1.370010208
+survey years,2024,"Madrid km per licence holder, Spain's licence holders",0.9336694019,2.272603268
+survey years,2023-2024,Madrid survey: km per resident,0.949598817,2.079125979
+survey years,2023-2024,equal km per licence holder,1.118692099,1.369850801
+survey years,2023-2024,"Madrid km per licence holder, Spain's licence holders",0.9276455983,2.262542555
+survey years,2021-2022-2023-2024,Madrid survey: km per resident,0.955099402,2.092926508
+survey years,2021-2022-2023-2024,equal km per licence holder,1.127775254,1.372475859
+survey years,2021-2022-2023-2024,"Madrid km per licence holder, Spain's licence holders",0.9334653971,2.273576861
+survey years,2019-2021-2022-2023-2024,Madrid survey: km per resident,0.9304896047,2.03959974
+survey years,2019-2021-2022-2023-2024,equal km per licence holder,1.099608538,1.335306434
+survey years,2019-2021-2022-2023-2024,"Madrid km per licence holder, Spain's licence holders",0.9095656735,2.214287171
+professionals' work driving,25% of work trips by car,Madrid survey: km per resident,0.994137334,2.175817841
+professionals' work driving,25% of work trips by car,equal km per licence holder,1.169943109,1.436607828
+professionals' work driving,25% of work trips by car,"Madrid km per licence holder, Spain's licence holders",0.9709449532,2.369635572
+professionals' work driving,50% of work trips by car,Madrid survey: km per resident,1.04787077,2.293700052
+professionals' work driving,50% of work trips by car,equal km per licence holder,1.23359049,1.513408218
+professionals' work driving,50% of work trips by car,"Madrid km per licence holder, Spain's licence holders",1.023495647,2.497385693
+older sample,65+ employed share set to the census,Madrid survey: km per resident,0.9664508722,2.114631435
+older sample,65+ employed share set to the census,equal km per licence holder,1.136488741,1.398401609
+older sample,65+ employed share set to the census,"Madrid km per licence holder, Spain's licence holders",0.9437542737,2.304340682

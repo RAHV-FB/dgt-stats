@@ -42,6 +42,10 @@ CAR_VEHICLE_TYPES = (
     "Turismo con remolque",
     "Turismo de SP hasta 9 plazas",
 )
+# Private cars only: taxi and ride-hailing drivers ("de SP", public service) drive for a living and
+# are left out of the comparison of men and women, as of the driver-age rates per kilometre. The
+# former owner-age figure kept them (CAR_VEHICLE_TYPES).
+PRIVATE_CAR_TYPES = tuple(t for t in CAR_VEHICLE_TYPES if " SP " not in f" {t} ".upper())
 # Bands compared on the page: everything the kilometre table can carry, 15-17 excepted.
 COMPARED_BANDS = ("18-24", "25-34", "35-54", "55-64", "65-74", "75+")
 # INE publishes residents in five-year groups (15-19, 20-24, ...), so no resident count can be cut
@@ -479,7 +483,10 @@ ADULT_BAND = "18+"
 # Three years pooled, so that the rates for women over 65, a few deaths a year, are readable.
 SEX_POOL_YEARS = (2022, 2023, 2024)
 SEX_LABELS = {"male": "Men", "female": "Women"}
-VEHICLE_SCOPES = {"motor": "Drivers of motor vehicles", "car": "Car drivers"}
+VEHICLE_SCOPES = {
+    "motor": "Drivers of motor vehicles",
+    "car": "Drivers of private cars (taxis and ride-hailing cars excluded)",
+}
 # Rows of DGT's driver tables that are not a licensed motor vehicle: cyclists and personal
 # mobility vehicles need no licence, and the rest are not vehicles or not known.
 NOT_MOTOR = frozenset(
@@ -510,7 +517,7 @@ SEX_MEASURE_LABELS = {
 
 def _in_scope(vehicle_type: pd.Series, scope: str) -> pd.Series:
     if scope == "car":
-        return vehicle_type.isin(CAR_VEHICLE_TYPES)
+        return vehicle_type.isin(PRIVATE_CAR_TYPES)
     return ~vehicle_type.str.casefold().isin(NOT_MOTOR)
 
 
@@ -607,3 +614,52 @@ def sex_trend(first: int = 2014, last: int = KM_YEAR) -> pd.DataFrame:
         table = table[table.band == ADULT_BAND].assign(year=year)
         frames.append(table)
     return pd.concat(frames, ignore_index=True)
+
+
+def sex_b_licence(years: tuple[int, ...] = (2023, 2024)) -> pd.DataFrame:
+    """Private-car drivers aged 18 and over killed per million licence holders, men against
+    women, with licence holders of any class (the page's measure) and with B (car) licence
+    holders only, which the census gives by sex and age only for the text-file years."""
+    victims = io_tables.read_table("tables_driver_victims")
+    victims = victims[
+        victims.year.isin(years)
+        & (victims.severity == "deaths_30d")
+        & _in_scope(victims.vehicle_type, "car")
+    ]
+    victims = victims.assign(exposure_band=victims.band.map(_exposure_band_key))
+    deaths = victims[victims.exposure_band.isin(SEX_BANDS)].groupby("sex").value.sum()
+    every = io_exposure.read_exposure("conductores_por_edad")
+    every = every[every.year.isin(years)].assign(
+        exposure_band=lambda f: f.band.map(_exposure_band_key)
+    )
+    every = every[every.exposure_band.isin(SEX_BANDS)].groupby("sex").n_drivers.sum()
+    b_holders = pd.concat([io_exposure.b_permit_holders_by_age(year) for year in years])
+    b_holders = b_holders.assign(exposure_band=b_holders.band.map(_exposure_band_key))
+    b_holders = (
+        b_holders[b_holders.exposure_band.isin(SEX_BANDS)].groupby("sex").n_b_permit_holders.sum()
+    )
+    rows = []
+    for label, holders in (
+        ("licence holders of any class", every),
+        ("B-licence holders", b_holders),
+    ):
+        ratio, low, high = rates.rate_ratio(
+            float(deaths["male"]),
+            float(holders["male"]),
+            float(deaths["female"]),
+            float(holders["female"]),
+        )
+        rows.append(
+            {
+                "years": f"{min(years)}-{max(years)}",
+                "denominator": label,
+                "deaths_men": float(deaths["male"]),
+                "deaths_women": float(deaths["female"]),
+                "holder_years_men": float(holders["male"]),
+                "holder_years_women": float(holders["female"]),
+                "ratio": ratio,
+                "low": low,
+                "high": high,
+            }
+        )
+    return pd.DataFrame(rows)

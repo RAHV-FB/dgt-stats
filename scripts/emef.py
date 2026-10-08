@@ -4,10 +4,10 @@ Usage:
     python scripts/emef.py build      # data/processed/emef_{persons,trips}.parquet, after every
                                      # check passes; reports/tables/emef_checks.csv, emef_inventory
     python scripts/emef.py validate   # emef_reproduction (published 2024 figures) and
-                                     # emef_distance_validation (EMEF 2021 distance report) and
-                                     # emef_imputation_check (duration-only distances)
-    python scripts/emef.py exposure   # emef_exposure_*, emef_km_by_band, emef_sensitivity and the
-                                     # frequency and weekend tables
+                                     # emef_distance_validation (EMEF 2021 distance report and 2024
+                                     # summary) and emef_imputation_check (duration-only distances)
+    python scripts/emef.py exposure   # emef_exposure_*, emef_km_by_band, emef_sensitivity, the
+                                     # frequency and weekend tables and the 65+ employment benchmark
     python scripts/emef.py all
 
 ``build`` takes about a minute; ``exposure`` about five.
@@ -60,6 +60,7 @@ def run_exposure() -> None:
     write(exposure.sensitivity(), "emef_sensitivity")
     write(exposure.usual_frequency(), "emef_driving_frequency")
     write(exposure.weekend_away_2023(), "emef_weekend_2023")
+    write(exposure.employment_benchmark(), "emef_employment_benchmark")
 
 
 def main() -> None:

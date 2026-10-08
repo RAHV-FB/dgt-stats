@@ -12,22 +12,37 @@ trips of 2021–2024), times 1.45, the road-to-straight-line ratio the EMEF 2021
 measured for driving trips. A trip that combines car driving with walking only is counted in full;
 a trip that combines it with public transport or another vehicle counts for half its distance in
 the central estimate (the car leg is not recorded), and for nothing or all of it in the
-sensitivity bounds. Before 2021 the files have no distance band, so the distance is the same
-model's mean given the trip's duration, flows and the respondent's age without the band, and
-no more than the distance the duration allows at 100 km/h door to door: *modelled*, not
-measured, and labelled so. On 2021-2024 trips, where both can be computed
-(:func:`imputation_check`), the duration-only total is within 10% of the band-based one in every
-year and age group, 3% above it pooled, about 10% above it for trips of an hour or more and 8%
-below it for trips to or from outside the survey area. The same bounded model fills the 1.2% of
-trips from 2021 that lack a band.
+sensitivity variants. Before 2021 the files have no distance band, so the distance is the same
+model's mean given the trip's duration, flows and the respondent's age without the band:
+*modelled*, not measured, and labelled so.
+
+**Trips without a band.** From 2021, 1.2% of car-driver trips have no band; most go to or from
+places outside the survey area and many are long (144 of the 558 in 2021–2024 last three hours or
+more, against 17 of the 46,730 banded trips). The model has almost no banded trips that long to
+learn from, so its mean for them is an extrapolation. The central treatment takes the model's
+mean but no more than the distance the duration allows at ``UNBANDED_MAX_SPEED`` (80 km/h) door
+to door, a long-distance average that allows for stops and slower roads at either end. The
+alternatives in :data:`TRIP_VARIANTS` (60 and 100 km/h, durations capped at four hours, no bound,
+the trips left out) are carried into every national ratio as a sensitivity range, because a
+handful of long trips weighs heavily: in 2022–2024 six unbanded trips of 6.5 to 12 hours by
+respondents aged 65 and over carry about a tenth of that group's car-driver kilometres. A banded
+trip whose band cannot be reached in its duration (the band's lower edge, by road, at more than
+``BAND_SPEED_LIMIT`` door to door) is a recording error and is treated as unbanded.
+
+:func:`imputation_check` applies the duration-only treatments to trips that do have a band and
+counts how often each falls outside the band's edges, by duration class, using the closed bands
+only (under 100 km), so that the check does not compare the model with its own extrapolation of
+the open band.
 
 **Weights and intervals.** Totals are weighted by ``PESAIX`` (the respondent weight, constant over
 a respondent's trips) and every rate is a ratio of weighted totals over all respondents of the
 group, those who made no trip included. Intervals come from a rescaling bootstrap of respondents
 within strata of year and comarca of residence (Rao and Wu): in each stratum of ``n`` respondents,
 ``n - 1`` are drawn with replacement and their weights rescaled by ``n / (n - 1)``. The public
-files carry no sampling units or design strata beyond residence, age and sex, so clustering in the
-fieldwork, if any, is not reflected and the intervals may be too narrow.
+files carry no sampling units, although the survey's technical sheet describes stratified
+multi-stage sampling from the population register with weights calibrated to the census, so
+clustering above the respondent and the calibration of the weights are not reflected and the
+intervals are probably too narrow.
 """
 
 from __future__ import annotations
@@ -41,8 +56,8 @@ from dgt_stats.emef import distance, ingest
 from dgt_stats.emef import variables as v
 
 ROAD_RATIO = distance.ROAD_RATIO["driving"]
-ROAD_RATIO_RANGE = (1.30, 1.60)
-UNBANDED_MAX_SPEED = 100.0  # km/h door to door, for trips whose distance band is unknown
+UNBANDED_MAX_SPEED = 80.0  # km/h door to door, for trips whose distance band is unknown
+BAND_SPEED_LIMIT = 150.0  # km/h door to door: a band its trip could not have reached
 MULTIMODAL_SHARE = 0.5
 N_REPLICATES = 300
 SEED = 20261008
@@ -62,36 +77,45 @@ def car_driver_trips(
     multimodal_share: float = MULTIMODAL_SHARE,
     unbanded: str = "bounded",
     road_ratio: float = ROAD_RATIO,
+    max_speed: float = UNBANDED_MAX_SPEED,
+    max_minutes: float | None = None,
 ) -> pd.DataFrame:
     """Every car-driver trip with its expected straight-line and road kilometres.
 
-    ``unbanded`` sets the treatment of trips without a distance band (every trip before 2021 and
-    1.2% of car-driver trips from 2021, mostly to, from or outside the survey area):
+    ``unbanded`` sets the treatment of trips without a usable distance band (every trip before
+    2021, 1.2% of car-driver trips from 2021, and banded trips whose band their duration could
+    not reach):
 
     * ``bounded`` (central): the duration model's mean, but no more than the distance the
-      duration allows at ``UNBANDED_MAX_SPEED`` door to door;
+      duration allows at ``max_speed`` km/h door to door; ``max_minutes`` also caps the duration
+      first (a variant: longer reports are taken to include stops);
     * ``truncated``: the mean of the duration model's distribution truncated at that distance,
       which also removes the possible long distances of every shorter trip;
     * ``uncapped``: the duration model's mean;
     * ``excluded``: nothing, as the EMEF 2021 distance report did.
 
-    :func:`imputation_check` compares them on banded trips, where the band-based distance is
-    known: ``bounded`` is the closest. Banded trips are never bounded: their band-based means
-    reproduce the report's mean distance of driving trips, and a bound lowers it.
+    Banded trips are never bounded: their band-based means reproduce the report's mean distance of
+    driving trips, and a bound lowers it.
     """
     trips = ingest.trips()
     car = trips[trips.car_driver].copy()
     model = driving_model()
-    measured = car.distance_band.notna().to_numpy()
+    banded = car.distance_band.notna().to_numpy()
+    inconsistent = banded & band_unreachable(car, road_ratio)
+    measured = banded & ~inconsistent
     km = np.zeros(len(car))
     km[measured] = model.expected_km(car[measured], use_band=True)
-    km[~measured] = unbanded_km(car[~measured], unbanded, road_ratio)
+    km[~measured] = unbanded_km(car[~measured], unbanded, road_ratio, max_speed, max_minutes)
     stages = car[["mode1", "mode2", "mode3"]]
     other = stages.where(~stages.isin([v.MODE_CAR_DRIVER, WALK]))
     with_other_vehicle = other.notna().any(axis=1).to_numpy()
     share = np.where(with_other_vehicle, multimodal_share, 1.0)
     car["km_straight"] = km
-    car["km_source"] = np.where(measured, "band and duration", "duration only (modelled)")
+    car["km_source"] = np.select(
+        [measured, inconsistent],
+        ["band and duration", "duration only (band out of reach in the duration)"],
+        "duration only (no band)",
+    )
     car["car_share"] = share
     car["km_road"] = km * share * road_ratio
     car["minutes"] = car.duration_min.astype(float) * share
@@ -99,14 +123,38 @@ def car_driver_trips(
     return car
 
 
-def unbanded_km(trips: pd.DataFrame, treatment: str, road_ratio: float = ROAD_RATIO) -> np.ndarray:
+def band_unreachable(trips: pd.DataFrame, road_ratio: float = ROAD_RATIO) -> np.ndarray:
+    """Banded trips whose band's lower edge, by road, needs more than ``BAND_SPEED_LIMIT`` door
+    to door in the trip's duration: the band or the duration is wrong."""
+    low = np.array(
+        [
+            v.DISTANCE_BANDS[int(b)][0] if pd.notna(b) else np.nan
+            for b in trips.distance_band.astype("Int64")
+        ],
+        dtype=float,
+    )
+    duration = trips.duration_min.astype(float).to_numpy()
+    with np.errstate(divide="ignore", invalid="ignore"):
+        speed = low * road_ratio / (duration / 60)
+    return np.nan_to_num(speed, nan=0.0, posinf=np.inf) > BAND_SPEED_LIMIT
+
+
+def unbanded_km(
+    trips: pd.DataFrame,
+    treatment: str,
+    road_ratio: float = ROAD_RATIO,
+    max_speed: float = UNBANDED_MAX_SPEED,
+    max_minutes: float | None = None,
+) -> np.ndarray:
     """Expected straight-line km of trips from duration alone (see :func:`car_driver_trips`)."""
     model = driving_model()
     if treatment == "excluded":
         return np.zeros(len(trips))
+    if max_minutes is not None:
+        trips = trips.assign(duration_min=trips.duration_min.astype(float).clip(upper=max_minutes))
     if treatment == "truncated":
         return model.expected_km(
-            trips, use_band=False, max_speed_kmh=UNBANDED_MAX_SPEED, road_ratio=road_ratio
+            trips, use_band=False, max_speed_kmh=max_speed, road_ratio=road_ratio
         )
     mean = model.expected_km(trips, use_band=False)
     if treatment == "uncapped":
@@ -114,42 +162,60 @@ def unbanded_km(trips: pd.DataFrame, treatment: str, road_ratio: float = ROAD_RA
     if treatment != "bounded":
         raise ValueError(f"unbanded: {treatment!r}")
     duration = trips.duration_min.astype(float).to_numpy()
-    reachable = np.where(
-        np.isnan(duration), np.inf, duration / 60 * UNBANDED_MAX_SPEED / road_ratio
-    )
+    reachable = np.where(np.isnan(duration), np.inf, duration / 60 * max_speed / road_ratio)
     return np.minimum(mean, reachable)
 
 
 UNBANDED_TREATMENTS = ("bounded", "truncated", "uncapped")
+DURATION_CLASSES: tuple[tuple[float, float], ...] = (
+    (0, 30),
+    (30, 60),
+    (60, 120),
+    (120, 180),
+    (180, np.inf),
+)
 
 
 def imputation_check() -> pd.DataFrame:
-    """The duration-only treatments applied to 2021-2024 trips that have a band, against the
-    band-based distance: weighted kilometres relative to the band-based total, by year and the
-    three age groups, pooled, and for long trips."""
+    """The duration-only treatments applied to 2021-2024 trips that have a closed band (under
+    100 km), against what the band says.
+
+    For each duration class: the banded trips behind it, the share of trips whose duration-only
+    distance falls outside their band's edges, and the weighted duration-only kilometres relative
+    to the band-based kilometres. The open band over 100 km is left out: its distances are the
+    model's own extrapolation, so comparing with them would be circular."""
     car = car_driver_trips()
-    car = car[car.distance_band.notna()].copy()
+    banded = car.km_source == "band and duration"
+    closed = car.distance_band.astype("Int64").isin([c for c in v.DISTANCE_BANDS if c != 7])
+    car = car[banded & closed.fillna(False).to_numpy()].copy()
+    low = car.distance_band.astype(int).map(lambda b: v.DISTANCE_BANDS[b][0]).to_numpy()
+    high = car.distance_band.astype(int).map(lambda b: v.DISTANCE_BANDS[b][1]).to_numpy()
     for treatment in UNBANDED_TREATMENTS:
         car[treatment] = unbanded_km(car, treatment)
-    subsets: dict[str, pd.Series] = {}
-    for (year, age), index in car.groupby(["year", "age3"]).groups.items():
-        subsets[f"{year} {age}"] = car.index.isin(index)
-    for age, index in car.groupby("age3").groups.items():
-        subsets[f"2021-2024 {age}"] = car.index.isin(index)
-    subsets["2021-2024 all"] = np.ones(len(car), bool)
-    duration = car.duration_min.astype(float)
-    subsets["trips of 60 minutes or more"] = (duration >= 60).to_numpy()
-    subsets["trips of 120 minutes or more"] = (duration >= 120).to_numpy()
-    outside = (car.origin_zone == 6) | (car.destination_zone == 6)
-    subsets["trips to or from outside the survey area"] = outside.fillna(False).to_numpy()
+    duration = car.duration_min.astype(float).to_numpy()
     rows = []
-    for name, mask in subsets.items():
+    for lower, upper in (*DURATION_CLASSES, (0, np.inf)):
+        mask = (duration >= lower) & (duration < upper)
         part = car[mask]
-        banded = float((part.weight * part.km_straight).sum())
-        row = {"subset": name, "sample_trips": int(mask.sum())}
-        row["band_based_mean_km"] = banded / float(part.weight.sum())
+        if part.empty:
+            continue
+        label = (
+            "all"
+            if (lower, upper) == (0, np.inf)
+            else (
+                f"{lower:.0f} minutes or more"
+                if np.isinf(upper)
+                else f"{lower:.0f}-{upper:.0f} minutes"
+            )
+        )
+        banded_km = float((part.weight * part.km_straight).sum())
+        row = {"duration": label, "sample_trips": int(mask.sum())}
+        row["band_based_mean_km"] = banded_km / float(part.weight.sum())
         for treatment in UNBANDED_TREATMENTS:
-            row[f"{treatment}_relative"] = float((part.weight * part[treatment]).sum()) / banded
+            values = part[treatment].to_numpy()
+            outside = (values < low[mask]) | (values >= high[mask])
+            row[f"{treatment}_outside_band"] = float(outside.mean())
+            row[f"{treatment}_relative"] = float((part.weight * values).sum()) / banded_km
         rows.append(row)
     return pd.DataFrame(rows)
 
@@ -447,14 +513,134 @@ def km_by_band(years: tuple[int, ...] = CONTEMPORARY_YEARS) -> pd.DataFrame:
     return out.sort_values(["age4", "band"]).reset_index(drop=True)
 
 
+# Alternatives to the central distance treatment, carried into every national ratio. Each is a
+# defensible choice where the data do not decide; band edges, which are bounds rather than
+# choices, appear only in :func:`sensitivity`.
+TRIP_VARIANTS: dict[str, dict[str, object]] = {
+    "unbanded trips bounded at 100 km/h": {"max_speed": 100.0},
+    "unbanded trips bounded at 60 km/h": {"max_speed": 60.0},
+    "unbanded trips' durations capped at 4 hours": {"max_minutes": 240.0},
+    "unbanded trips at the model's mean, unbounded": {"unbanded": "uncapped"},
+    "unbanded trips left out": {"unbanded": "excluded"},
+    "multimodal trips: car leg counted as nothing": {"multimodal_share": 0.0},
+    "multimodal trips: car leg counted in full": {"multimodal_share": 1.0},
+}
+MIDPOINTS: dict[str, dict[int, float]] = {
+    "geometric": {1: 0.25, 2: 1.0, 3: 3.16, 4: 7.07, 5: 22.4, 6: 70.7, 7: 141.0},
+    "arithmetic": {1: 0.25, 2: 1.25, 3: 3.5, 4: 7.5, 5: 30.0, 6: 75.0, 7: 150.0},
+}
+# Mobility professionals' trips in the course of work are counted but not described. If a share of
+# them were car-driver trips of the group's mean car-driver length, these are the extra
+# kilometres; professionals commute as car drivers in about half of cases (vans most of the rest).
+PROFESSIONAL_CAR_SHARES: tuple[float, ...] = (0.25, 0.5)
+# Employed residents aged 65 and over: the census of 1 January 2024 counts 67,143 in Catalonia
+# (Idescat; data/raw/idescat/idescat_census_2024_activity_release.html).
+CENSUS_EMPLOYED_65_PLUS_CATALONIA = 67_143
+CATALAN_PROVINCES = ("08", "17", "25", "43")
+
+
+@cache
+def trip_km_variants() -> pd.DataFrame:
+    """Road km of every car-driver trip under the central treatment and each alternative."""
+    base = car_driver_trips()
+    keep = ["year", "person_id", "age4", "weight", "km_source", "car_share", "duration_min"]
+    out = base[keep].copy()
+    out["central"] = base.km_road.to_numpy()
+    for name, kwargs in TRIP_VARIANTS.items():
+        out[name] = car_driver_trips(**kwargs).km_road.to_numpy()
+    measured = (base.km_source == "band and duration").to_numpy()
+    band = base.distance_band.astype("Int64")
+    share = base.car_share.to_numpy()
+    for label, points in MIDPOINTS.items():
+        fixed = band.map(points).astype(float).to_numpy() * ROAD_RATIO * share
+        out[f"{label} midpoints within bands"] = np.where(measured, fixed, base.km_road)
+        out[f"{label} midpoints, unbanded trips left out"] = np.where(measured, fixed, 0.0)
+    current = base.km_straight.to_numpy()
+    duration = base.duration_min.astype(float).to_numpy()
+    for speed in BOUNDED_SPEEDS:
+        km = bounded_road_km(current, duration, bounded_road_ratio(speed), speed) * share
+        out[f"road distance bounded at {speed:.0f} km/h, ratio recalibrated"] = np.where(
+            measured, km, base.km_road
+        )
+    return out
+
+
+def trip_variant_names() -> list[str]:
+    meta = {"year", "person_id", "age4", "weight", "km_source", "car_share", "duration_min"}
+    return [c for c in trip_km_variants().columns if c not in meta and c != "central"]
+
+
+def professional_km(fraction: float, years: tuple[int, ...] = CONTEMPORARY_YEARS) -> pd.Series:
+    """Extra working-day car km per respondent if ``fraction`` of each mobility professional's
+    work trips were car-driver trips of the mean length of their age group's car-driver trips."""
+    people = person_day()
+    trips = trip_km_variants()
+    trips = trips[trips.year.isin(years)]
+    mean_trip = trips.groupby("age4").apply(
+        lambda g: float(np.average(g.central, weights=g.weight)), include_groups=False
+    )
+    work = people.work_trips.astype(float).fillna(0.0).to_numpy()
+    return pd.Series(fraction * work * people.age4.map(mean_trip).to_numpy(), index=people.index)
+
+
+def employment_benchmark() -> pd.DataFrame:
+    """The EMEF's weighted share of residents aged 65 and over who are employed, by year, beside
+    the census share for Catalonia (1 January 2024)."""
+    from dgt_stats import io_population
+
+    people = person_day()
+    old = people[people.age4 == "65+"]
+    rows = []
+    for year, group in old.groupby("year"):
+        employed = group.employment == "employed"
+        rows.append(
+            {
+                "year": int(year),
+                "source": "EMEF, survey area",
+                "employed_65_plus": float(group.weight[employed].sum()),
+                "residents_65_plus": float(group.weight.sum()),
+            }
+        )
+    residents = 0.0
+    for province in CATALAN_PROVINCES:
+        table = io_population.population(2024, "1 January", "total", province)
+        residents += float(table[table.age_low >= 65].population.sum())
+    rows.append(
+        {
+            "year": 2024,
+            "source": "census, Catalonia, 1 January 2024",
+            "employed_65_plus": float(CENSUS_EMPLOYED_65_PLUS_CATALONIA),
+            "residents_65_plus": residents,
+        }
+    )
+    out = pd.DataFrame(rows)
+    out["employed_share"] = out.employed_65_plus / out.residents_65_plus
+    return out
+
+
+def employment_reweighted(frame: pd.DataFrame) -> pd.Series:
+    """Weights with the employed share of residents aged 65 and over set, year by year, to the
+    census share for Catalonia; other ages and each year's 65+ total unchanged."""
+    benchmark = employment_benchmark()
+    target = float(benchmark[benchmark.source.str.startswith("census")].employed_share.iloc[0])
+    weight = frame.weight.astype(float).copy()
+    for year in frame.year.unique():
+        old = (frame.year == year) & (frame.age4 == "65+")
+        employed = old & (frame.employment == "employed")
+        current = float(weight[employed].sum() / weight[old].sum())
+        weight[employed] *= target / current
+        weight[old & ~employed] *= (1 - target) / (1 - current)
+    return weight
+
+
 def sensitivity() -> pd.DataFrame:
     """Kilometres per resident and each age group's share of car-driver kilometres under
-    alternative choices: years pooled, area, multimodal trips, unbanded trips, the distance within
-    bands, the edges of the bands that carry most kilometres, and a speed-bounded road distance.
-    A uniform road ratio and annualisation multiply every group alike and change no share.
-    Rates here are means of yearly rates, so the central row differs slightly from
-    :func:`contemporary`, which divides pooled totals."""
-    people = ingest.persons()
+    alternative choices: years pooled, area, every distance variant of :data:`TRIP_VARIANTS` and
+    the band midpoints, the edges of the bands that carry most kilometres, professionals' work
+    driving and the older sample's employment. Rates here are means of yearly rates, so the
+    central row differs slightly from :func:`contemporary`, which divides pooled totals."""
+    base = person_day()
+    trips = trip_km_variants()
     rows = []
 
     def record(label: str, choice: str, frame: pd.DataFrame, column: str = "car_km") -> None:
@@ -471,62 +657,46 @@ def sensitivity() -> pd.DataFrame:
                 }
             )
 
-    base = person_day()
     contemporary_mask = base.year.isin(CONTEMPORARY_YEARS)
-    record("central", "2022-2024, unbanded bounded, multimodal half", base[contemporary_mask])
+    record(
+        "central",
+        "2022-2024, unbanded bounded at 80 km/h, multimodal half",
+        base[contemporary_mask],
+    )
     for years in ((2021, 2022, 2023, 2024), (2023, 2024), (2024,), (2019, 2021, 2022, 2023, 2024)):
         record("years", "-".join(map(str, years)), base[base.year.isin(years)])
-    record(
-        "area",
-        "RMB only",
-        base[contemporary_mask & base.rmb],
+    record("area", "RMB only", base[contemporary_mask & base.rmb])
+    totals = trips.groupby(["year", "person_id"])[trip_variant_names()].sum()
+    with_variants = base.merge(totals, on=["year", "person_id"], how="left").fillna(
+        {name: 0.0 for name in trip_variant_names()}
     )
-    record("multimodal", "car leg counted as nothing", base[contemporary_mask], "car_km_lower")
-    record(
-        "multimodal", "car leg counted as the whole trip", base[contemporary_mask], "car_km_upper"
-    )
-    for treatment in ("excluded", "truncated", "uncapped"):
-        car = car_driver_trips(unbanded=treatment)
-        km = car.groupby(["year", "person_id"]).km_road.sum().rename("alt_km")
-        frame = people.merge(km, on=["year", "person_id"], how="left").fillna({"alt_km": 0.0})
-        record("unbanded trips", treatment, frame[frame.year.isin(CONTEMPORARY_YEARS)], "alt_km")
-    # Banded trips under alternative distances (2021-2024 only); unbanded trips keep theirs.
+    for name in trip_variant_names():
+        record("distance", name, with_variants[contemporary_mask.to_numpy()], name)
+    # The two bands that carry most kilometres, pushed to their edges (bounds, not choices).
     car = car_driver_trips()
     band = car.distance_band.astype("Int64")
-    banded = band.notna().to_numpy()
-    current = car.km_straight.to_numpy()
-
-    def record_banded(label: str, choice: str, km_road: np.ndarray) -> None:
-        km = np.where(banded, km_road * car.car_share.to_numpy(), car.km_road.to_numpy())
-        total = car.assign(alt=km).groupby(["year", "person_id"]).alt.sum().rename("alt_km")
-        frame = people.merge(total, on=["year", "person_id"], how="left").fillna({"alt_km": 0.0})
-        record(label, choice, frame[frame.year.isin(CONTEMPORARY_YEARS)], "alt_km")
-
-    # Fixed points within each band instead of the duration model.
-    for label, points in (
-        ("geometric midpoint", {1: 0.25, 2: 1.0, 3: 3.16, 4: 7.07, 5: 22.4, 6: 70.7, 7: 141.0}),
-        ("arithmetic midpoint", {1: 0.25, 2: 1.25, 3: 3.5, 4: 7.5, 5: 30.0, 6: 75.0, 7: 150.0}),
-    ):
-        fixed = band.map(points).astype(float).to_numpy()
-        record_banded("distance within band", label, fixed * ROAD_RATIO)
-    # The two bands that carry most kilometres, pushed to their edges: the 10-50 km band holds
-    # about half of all car-driver kilometres, the open band over 100 km a sixth of those of
-    # drivers aged 65 and over.
+    measured = (car.km_source == "band and duration").to_numpy()
     for code, edge, choice in (
         (5, 10.0, "10-50 km band at 10 km"),
         (5, 50.0, "10-50 km band at 50 km"),
         (7, 100.0, "over-100 km band at 100 km"),
     ):
-        km = np.where(band.eq(code).fillna(False).to_numpy(), edge, current)
-        record_banded("band edges", choice, km * ROAD_RATIO)
-    # Road distance bounded by a door-to-door speed, the ratio recalibrated to the report.
-    duration = car.duration_min.astype(float).to_numpy()
-    for speed in BOUNDED_SPEEDS:
-        ratio = bounded_road_ratio(speed)
-        km = bounded_road_km(current, duration, ratio, speed)
-        record_banded(
-            "road distance", f"bounded at {speed:.0f} km/h door to door (ratio {ratio:.3f})", km
+        at_edge = band.eq(code).fillna(False).to_numpy() & measured
+        km = np.where(at_edge, edge * ROAD_RATIO * car.car_share.to_numpy(), car.km_road)
+        total = car.assign(alt=km).groupby(["year", "person_id"]).alt.sum().rename("alt_km")
+        frame = base.merge(total, on=["year", "person_id"], how="left").fillna({"alt_km": 0.0})
+        record("band edges", choice, frame[contemporary_mask.to_numpy()], "alt_km")
+    for fraction in PROFESSIONAL_CAR_SHARES:
+        frame = base.assign(alt_km=base.car_km + professional_km(fraction))
+        record(
+            "professionals' work driving",
+            f"{fraction:.0%} of work trips by car",
+            frame[contemporary_mask],
+            "alt_km",
         )
+    frame = base[contemporary_mask].copy()
+    frame["weight"] = employment_reweighted(frame)
+    record("older sample", "65+ employed share set to the census", frame)
     return pd.DataFrame(rows)
 
 
@@ -545,6 +715,9 @@ FREQUENCY_LABELS = {
 def usual_frequency(years: tuple[int, ...] = CONTEMPORARY_YEARS) -> pd.DataFrame:
     """How often respondents say they drive a car, by age, and the share who drove on the
     reference working day within each frequency (2022-2024, eight-point scale)."""
+    scales = {v.CAR_DRIVER_FREQUENCY.get(year, (None, None))[1] for year in years}
+    if scales != {"eight_point"}:
+        raise ValueError(f"usual_frequency: the labels are for the eight-point years, not {years}")
     frame = person_day()
     frame = frame[frame.year.isin(years) & frame.car_driver_frequency.notna()]
     frame = frame.assign(frequency=frame.car_driver_frequency.astype(int).map(FREQUENCY_LABELS))

@@ -21,7 +21,12 @@ from dgt_stats.site.components import (
     render_page,
     summary,
 )
-from dgt_stats.site.numbers import _long_run_numbers, _risk_numbers, _speed_numbers
+from dgt_stats.site.numbers import (
+    _driver_numbers,
+    _long_run_numbers,
+    _risk_numbers,
+    _speed_numbers,
+)
 from dgt_stats.site.regional_common import _year_label
 
 NUMBER_WORDS = {0: "none", 1: "one", 2: "two", 3: "all three"}
@@ -187,12 +192,10 @@ def _long_run() -> str:
 
 
 def _drivers() -> str:
-    rates = read_table("risk_national_rates")
-    rates = rates[rates.km_total == "less taxi and ride-hailing"]
-    central = rates[rates.method.str.startswith("A:")].set_index("group")
-    spread = rates.groupby("group").involved_ratio
-    severity = read_table("risk_severity_and_licences").set_index("group")
-    young, older = central.loc["16-29"], central.loc["65+"]
+    numbers = _driver_numbers()
+    central, ranges = numbers["central"], numbers["ranges"]
+    severity = numbers["severity"]
+    young, older = central.loc["18-29"], central.loc["65+"]
     oldest, reference = severity.loc["75+"], severity.loc["45-64"]
     ratio = float(oldest.killed_per_1000_involved) / float(reference.killed_per_1000_involved)
     _require(
@@ -202,14 +205,15 @@ def _drivers() -> str:
                 oldest.killed_per_1000_involved_low
             )
             > float(reference.killed_per_1000_involved_high),
-            "the youngest drivers are involved more per km on every method": float(
-                spread.get_group("16-29").min()
+            "the youngest drivers are involved more per km on every assumption": float(
+                ranges.loc["18-29", "min"]
             )
             > 1.5
             and float(young.involved_ratio_low) > 2,
-            "drivers aged 65 and over are involved about as often per km as 45-64": 0.95
-            < float(older.involved_ratio_low)
-            and float(older.involved_ratio) < 1.3,
+            "drivers aged 65 and over slightly more often per km than 45-64 centrally": 1
+            < float(older.involved_ratio)
+            < 1.35
+            and float(older.involved_ratio_low) > 0.95,
         },
     )
     deaths = _finding(
@@ -223,15 +227,15 @@ def _drivers() -> str:
     )
     per_km = _finding(
         f"{float(young.involved_ratio):.1f}×",
-        "Per kilometre driven, car drivers aged 18–29 were involved in injury crashes "
+        "Per kilometre driven, car drivers aged 18–29 were involved in injury crashes about "
         f"{float(young.involved_ratio):.1f} times as often as drivers aged 45–64 in "
-        f"{national_rates.YEAR} (95% "
-        f"interval {float(young.involved_ratio_low):.1f}–{float(young.involved_ratio_high):.1f}), "
-        "and drivers aged 65 and over about as often as the middle-aged or modestly more "
-        f"({float(older.involved_ratio):.2f}). The kilometres by driver age come from the "
-        "Barcelona-area working-day mobility survey applied to Spain's population, so the "
-        "ratios carry sensitivity ranges; the former figure, on kilometres by the age of a "
-        "car's registered owner, put the young drivers' excess at nearly seven times.",
+        f"{national_rates.YEAR} (95% interval {float(young.involved_ratio_low):.1f}–"
+        f"{float(young.involved_ratio_high):.1f}; {float(ranges.loc['18-29', 'min']):.1f}–"
+        f"{float(ranges.loc['18-29', 'max']):.1f} under other assumptions about the kilometres), "
+        f"and drivers aged 65 and over {float(older.involved_ratio):.2f} times as often "
+        f"({float(ranges.loc['65+', 'min']):.2f}–{float(ranges.loc['65+', 'max']):.2f}). The "
+        "kilometres by driver age are estimated from the Barcelona-area working-day travel "
+        "survey applied to Spain's population.",
         [("drivers#involvement-in-crashes-per-kilometre-driven", "Drivers: crashes per kilometre")],
     )
     return deaths + per_km

@@ -1,10 +1,14 @@
 measure,report,model,n,relative_difference
 mean straight-line km per trip: walking,1,0.7412299871,15880,-0.2587700129
 mean straight-line km per trip: cycling,3.2,2.691483452,775,-0.1589114213
-mean straight-line km per trip: driving,8.9,8.944194001,14842,0.004965618141
-mean straight-line km per trip: transit,6.9,7.046291998,4016,0.02120173891
-mean straight-line km per trip: all,4.7,4.706918995,35513,0.001472126574
-daily road km per mobile person: 16-29,29.7,27.61706458,1550,-0.07013250559
-daily road km per mobile person: 30-64,29.2,30.20209563,5653,0.0343183435
-daily road km per mobile person: 65+,14.7,15.17480462,1905,0.03229963402
-daily road km per mobile person: all,26.5,26.58491094,9108,0.003204186542
+mean straight-line km per trip: driving,8.9,8.946023197,14855,0.005171145698
+mean straight-line km per trip: transit,6.9,7.037036072,4003,0.01986030035
+mean straight-line km per trip: all,4.7,4.706793677,35513,0.001445463109
+daily road km per mobile person: 16-29,29.7,27.61730809,1550,-0.07012430688
+daily road km per mobile person: 30-64,29.2,30.20141777,5653,0.03429512914
+daily road km per mobile person: 65+,14.7,15.17092203,1905,0.03203551257
+daily road km per mobile person: all,26.5,26.58372485,9108,0.003159428464
+"2024 report: mean straight-line km per trip, all modes",4.7,4.738815018,44912,0.008258514409
+2024 report: daily straight-line km per mobile person: 16-29,22.5,21.99241368,1888,-0.02255939201
+2024 report: daily straight-line km per mobile person: 30-64,22,22.31574663,6395,0.01435211933
+2024 report: daily straight-line km per mobile person: 65+,12.3,11.92761167,2250,-0.03027547435

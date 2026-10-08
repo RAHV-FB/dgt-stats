@@ -99,16 +99,63 @@ def test_barcelona_numerator_and_denominators() -> None:
     assert days.query(
         "age in ['16-29', '30-44', '45-64', '65+', 'not recorded']"
     ).drivers.sum() == (len(cars) - int(((cars.age < 16) & cars.age.notna()).sum()))
+    # Ride-hailing cars (trip motive "Taxi" on an ordinary car) count as taxis, as nationally.
+    assert not cars[barcelona.MOTIVE].eq(barcelona.TAXI).any()
     rates = barcelona.rates()
-    km = rates.pivot(index="age4", columns="denominator", values="billion_km")
+    central = rates[rates.numerator == barcelona.NUMERATORS[0]]
+    km = central.pivot(index="age4", columns="denominator", values="billion_km")
     assert (km[barcelona.DENOMINATORS[0]] < km[barcelona.DENOMINATORS[1]]).all()
     assert (km[barcelona.DENOMINATORS[1]] < km[barcelona.DENOMINATORS[2]]).all()
     reference = rates[rates.age4 == barcelona.REFERENCE]
     assert np.allclose(reference.ratio_to_45_64, 1.0)
+    # Each further exclusion removes drivers and never adds any.
+    counts = rates.groupby("numerator", sort=False).drivers_involved.sum()
+    assert counts.is_monotonic_decreasing
+
+
+def test_sensitivity_holds_the_central_estimate_and_every_source() -> None:
+    table = national.sensitivity()
+    central = table[table.source == "central"].set_index("group").involved_ratio
+    rates = national.rates().query("method.str.startswith('A:')").set_index("group")
+    assert np.allclose(central, rates.involved_ratio.reindex(central.index))
+    assert {
+        "regional profile",
+        "licence-calibrated transfer",
+        "distance",
+        "survey years",
+        "professionals' work driving",
+        "older sample",
+        "non-working days",
+    } <= set(table.source)
+    assert np.allclose(table[table.group == national.REFERENCE].involved_ratio, 1.0)
+    # Professionals' work driving adds kilometres mostly at working ages, so it raises 65+.
+    professional = table[(table.source == "professionals' work driving") & (table.group == "65+")]
+    assert (professional.involved_ratio > central["65+"]).all()
+
+
+def test_licence_calibration_scales_by_prevalence_only() -> None:
+    profile = national.emef_profile()
+    calibrated = national.licence_calibrated(profile)
+    spain = national.licence_prevalence().set_index(["sex", "group"]).prevalence
+    province = national.licence_prevalence("08").set_index(["sex", "group"]).prevalence
+    for key, (point, _) in profile.items():
+        assert calibrated[key][0] == pytest.approx(point * spain[key] / province[key])
+
+
+def test_older_ranges_cover_the_central_split() -> None:
+    split = national.older_split().set_index(["assumption", "group"]).ratio_to_45_64
+    ranges = national.older_sensitivity()
+    assert ranges.ratio_75_plus.min() <= split.xs("75+", level="group").min() + 1e-9
+    assert ranges.ratio_75_plus.max() >= split.xs("75+", level="group").max() - 1e-9
+    assert "registered owners' split of the 65+ km" not in set(ranges.assumption)
 
 
 def test_madrid_survey_reading() -> None:
     people = edm2018.person_day()
+    # No car-driver day is longer than the distance limit allows trip by trip.
+    trips = pd.read_csv(edm2018.EDM_DIR / "edm2018_viajes_conductor.csv")
+    longest = trips.groupby(["ID_HOGAR", "ID_IND"]).size().max()
+    assert people.car_km.max() <= longest * edm2018.DISTANCE_LIMIT_KM
     assert len(people) == 74_945
     assert (people.weight > 0).all()
     assert people.EDAD_FIN.min() >= 16

@@ -10,6 +10,7 @@ year,check,passed,detail
 2014,zone_code agrees,True,trip file against respondent file
 2014,trip order starts at 1,True,0 respondents with a gap in ORDRE
 2014,trips match reported count,True,0 respondents whose trip rows differ from V02C_2
+2014,professional status agrees,True,0 respondents whose first trip's TIPOL disagrees with the respondent file
 2014,positive weights,True,PESAIX > 0
 2014,first mode recorded,True,0 trips without V03G
 2015,sample size,True,"9,490 respondents, published 9,490"
@@ -23,6 +24,7 @@ year,check,passed,detail
 2015,zone_code agrees,True,trip file against respondent file
 2015,trip order starts at 1,True,0 respondents with a gap in ORDRE
 2015,trips match reported count,True,0 respondents whose trip rows differ from V02C_2
+2015,professional status agrees,True,5 respondents whose first trip's TIPOL disagrees with the respondent file
 2015,positive weights,True,PESAIX > 0
 2015,first mode recorded,True,0 trips without V03G
 2016,sample size,True,"9,601 respondents, published 9,601"
@@ -36,6 +38,7 @@ year,check,passed,detail
 2016,zone_code agrees,True,trip file against respondent file
 2016,trip order starts at 1,True,0 respondents with a gap in ORDRE
 2016,trips match reported count,True,0 respondents whose trip rows differ from V02C_2
+2016,professional status agrees,True,504 respondents whose first trip's TIPOL disagrees with the respondent file (known in 2016; the respondent file is used)
 2016,positive weights,True,PESAIX > 0
 2016,first mode recorded,True,0 trips without V03G
 2017,sample size,True,"10,010 respondents, published 10,010"
@@ -48,6 +51,8 @@ year,check,passed,detail
 2017,age_group agrees,True,trip file against respondent file
 2017,zone_code agrees,True,trip file against respondent file
 2017,trip order starts at 1,True,0 respondents with a gap in ORDRE
+2017,trips match reported count,True,0 respondents whose trip rows differ from V02C
+2017,professional status agrees,True,2 respondents whose first trip's TIPOL disagrees with the respondent file
 2017,positive weights,True,PESAIX > 0
 2017,first mode recorded,True,0 trips without V03G
 2018,sample size,True,"10,117 respondents, published 10,117"
@@ -61,6 +66,7 @@ year,check,passed,detail
 2018,zone_code agrees,True,trip file against respondent file
 2018,trip order starts at 1,True,0 respondents with a gap in ORDRE
 2018,trips match reported count,True,0 respondents whose trip rows differ from V02C_2
+2018,professional status agrees,True,0 respondents whose first trip's TIPOL disagrees with the respondent file
 2018,positive weights,True,PESAIX > 0
 2018,first mode recorded,True,0 trips without V03G
 2019,sample size,True,"10,106 respondents, published 10,106"
@@ -74,6 +80,7 @@ year,check,passed,detail
 2019,zone_code agrees,True,trip file against respondent file
 2019,trip order starts at 1,True,0 respondents with a gap in ORDRE
 2019,trips match reported count,True,0 respondents whose trip rows differ from V02C_2
+2019,professional status agrees,True,1 respondents whose first trip's TIPOL disagrees with the respondent file
 2019,positive weights,True,PESAIX > 0
 2019,first mode recorded,True,0 trips without V03G
 2020,sample size,True,"10,145 respondents, published 10,145"
@@ -87,6 +94,7 @@ year,check,passed,detail
 2020,zone_code agrees,True,trip file against respondent file
 2020,trip order starts at 1,True,3 respondents with a gap in ORDRE
 2020,trips match reported count,True,0 respondents whose trip rows differ from V02C_2
+2020,professional status agrees,True,2 respondents whose first trip's TIPOL disagrees with the respondent file
 2020,positive weights,True,PESAIX > 0
 2020,first mode recorded,True,0 trips without V03G
 2021,sample size,True,"10,164 respondents, published 10,164"
@@ -100,6 +108,7 @@ year,check,passed,detail
 2021,zone_code agrees,True,trip file against respondent file
 2021,trip order starts at 1,True,0 respondents with a gap in ORDRE
 2021,trips match reported count,True,0 respondents whose trip rows differ from V02C_2
+2021,professional status agrees,True,2 respondents whose first trip's TIPOL disagrees with the respondent file
 2021,positive weights,True,PESAIX > 0
 2021,first mode recorded,True,0 trips without V03G
 2022,sample size,True,"10,151 respondents, published 10,151"
@@ -113,6 +122,7 @@ year,check,passed,detail
 2022,zone_code agrees,True,trip file against respondent file
 2022,trip order starts at 1,True,0 respondents with a gap in ORDRE
 2022,trips match reported count,True,0 respondents whose trip rows differ from V02C_2
+2022,professional status agrees,True,1 respondents whose first trip's TIPOL disagrees with the respondent file
 2022,positive weights,True,PESAIX > 0
 2022,first mode recorded,True,0 trips without V03G
 2023,sample size,True,"10,154 respondents, published 10,154"
@@ -126,6 +136,7 @@ year,check,passed,detail
 2023,zone_code agrees,True,trip file against respondent file
 2023,trip order starts at 1,True,0 respondents with a gap in ORDRE
 2023,trips match reported count,True,0 respondents whose trip rows differ from V02C_2
+2023,professional status agrees,True,1 respondents whose first trip's TIPOL disagrees with the respondent file
 2023,positive weights,True,PESAIX > 0
 2023,first mode recorded,True,0 trips without V03G
 2024,sample size,True,"11,420 respondents, published 11,420"
@@ -139,5 +150,6 @@ year,check,passed,detail
 2024,zone_code agrees,True,trip file against respondent file
 2024,trip order starts at 1,True,0 respondents with a gap in ORDRE
 2024,trips match reported count,True,0 respondents whose trip rows differ from V02C_2
+2024,professional status agrees,True,5 respondents whose first trip's TIPOL disagrees with the respondent file
 2024,positive weights,True,PESAIX > 0
 2024,first mode recorded,True,0 trips without V03G

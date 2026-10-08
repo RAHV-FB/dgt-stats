@@ -143,8 +143,9 @@ def read_census_age_all(years: tuple[int, ...] = CENSUS_AGE_YEARS) -> pd.DataFra
     return pd.concat([read_census_age_year(year) for year in years], ignore_index=True)
 
 
-def b_permit_holders_by_age(year: int) -> pd.DataFrame:
-    """Holders of a B (car) permit by sex (male, female, total) and fine age band, national.
+def b_permit_holders_by_age(year: int, province_code: str | None = None) -> pd.DataFrame:
+    """Holders of a B (car) permit by sex (male, female, total) and fine age band, national or for
+    one province (``province_code``, two digits).
 
     Read from ``NUM_PERMISOS_B`` of the census text file, which only the text-file years
     (``CENSUS_AGE_YEARS``) carry. It is the population licensed to drive a car; the census total
@@ -157,6 +158,10 @@ def b_permit_holders_by_age(year: int) -> pd.DataFrame:
         census_age_raw_path(year), sep="|", dtype=str, encoding=CENSUS_AGE_ENCODINGS[year]
     )
     raw.columns = [column.strip() for column in raw.columns]
+    if province_code is not None:
+        raw = raw[raw["COD_PROVINCIA"].str.strip().str.zfill(2) == province_code]
+        if raw.empty:
+            raise ValueError(f"B-permit holders by age {year}: no rows for {province_code}")
     parsed = [agebands.parse_age_label(label.strip()) for label in raw["EDAD"]]
     frame = pd.DataFrame(
         {

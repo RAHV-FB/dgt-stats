@@ -1,0 +1,19 @@
+denominator,assumption,age,drivers_involved,ratio_to_45_64
+internal trips only,Madrid survey: km per resident,65-74,224,0.6800178001
+internal trips only,Madrid survey: km per resident,75+,120,1.203838675
+internal trips only,equal km per licence holder,65-74,224,0.8028110063
+internal trips only,equal km per licence holder,75+,120,0.7996551896
+internal trips only,"Madrid km per licence holder, Spain's licence holders",65-74,224,0.6635960258
+internal trips only,"Madrid km per licence holder, Spain's licence holders",75+,120,1.311052601
+crossing trips at an internal trip's length,Madrid survey: km per resident,65-74,224,0.9430014405
+crossing trips at an internal trip's length,Madrid survey: km per resident,75+,120,1.66877026
+crossing trips at an internal trip's length,equal km per licence holder,65-74,224,1.111796274
+crossing trips at an internal trip's length,equal km per licence holder,75+,120,1.111390167
+crossing trips at an internal trip's length,"Madrid km per licence holder, Spain's licence holders",65-74,224,0.9199765544
+crossing trips at an internal trip's length,"Madrid km per licence holder, Spain's licence holders",75+,120,1.819169207
+crossing trips in full,Madrid survey: km per resident,65-74,224,0.7966415803
+crossing trips in full,Madrid survey: km per resident,75+,120,1.408624499
+crossing trips in full,equal km per licence holder,65-74,224,0.9365506996
+crossing trips in full,equal km per licence holder,75+,120,0.9434379766
+crossing trips in full,"Madrid km per licence holder, Spain's licence holders",65-74,224,0.7767325112
+crossing trips in full,"Madrid km per licence holder, Spain's licence holders",75+,120,1.538810292

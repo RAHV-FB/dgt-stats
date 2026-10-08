@@ -11,7 +11,10 @@ A *car-driver trip* is a trip whose main mode (``MODO_PRIORITARIO``) is car driv
 12 company, 13 rental). A trip combining car driving with public transport is classed by its
 public-transport stage, so a few car legs are missed. ``DISTANCIA_VIAJE`` is "the distance in km
 from the trip's origin to its destination"; the codebook does not say whether it is a straight
-line or a network distance, so only ratios between ages are used. Every rate divides weighted
+line or a network distance, so only ratios between ages are used. Eight car-driver trips record
+4,199 to 4,517 km, more than a day's drive (the next longest is 528 km); a distance above
+``DISTANCE_LIMIT_KM`` is treated as an error and counts as nothing, the trip itself still counting.
+Every rate divides weighted
 totals by the weighted residents of the group (person weight ``ELE_G_POND``), those who made no
 trip included. Intervals come from a bootstrap of households (the sampling unit).
 
@@ -50,6 +53,7 @@ GROUPS: tuple[tuple[int, int, str], ...] = (
     (75, 200, "75+"),
 )
 SEXES = {1: "male", 2: "female"}
+DISTANCE_LIMIT_KM = 1_000.0
 N_REPLICATES = 300
 SEED = 20261008
 
@@ -71,6 +75,9 @@ def person_day() -> pd.DataFrame:
         raise ValueError("EDM2018: duplicated respondent or trip keys")
     if not trips.set_index(keys).index.isin(people.set_index(keys).index).all():
         raise ValueError("EDM2018: car-driver trips without a respondent")
+    trips = trips.assign(
+        DISTANCIA_VIAJE=trips.DISTANCIA_VIAJE.where(trips.DISTANCIA_VIAJE <= DISTANCE_LIMIT_KM, 0.0)
+    )
     driving = trips.groupby(keys).agg(
         car_trips=("ID_VIAJE", "size"), car_km=("DISTANCIA_VIAJE", "sum")
     )

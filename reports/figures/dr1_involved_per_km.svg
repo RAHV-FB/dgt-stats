@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" standalone="no"?>
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
   "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
-<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="580.772656pt" height="287.527104pt" viewBox="0 0 580.772656 287.527104" xmlns="http://www.w3.org/2000/svg" version="1.1">
+<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="722.698437pt" height="287.527104pt" viewBox="0 0 722.698437 287.527104" xmlns="http://www.w3.org/2000/svg" version="1.1">
  <metadata>
   <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
    <cc:Work>
@@ -21,8 +21,8 @@
  <g id="figure_1">
   <g id="patch_1">
    <path d="M 0 287.527104 
-L 580.772656 287.527104 
-L 580.772656 0 
+L 722.698437 287.527104 
+L 722.698437 0 
 L 0 0 
 z
 " style="fill: #ffffff"/>
@@ -190,28 +190,28 @@ L 556.352845 5.76
     </g>
    </g>
    <g id="LineCollection_1">
-    <path d="M 382.151898 28.5597 
-L 538.237994 28.5597 
+    <path d="M 381.746701 28.5597 
+L 537.571652 28.5597 
 " clip-path="url(#pd4b0457b0f)" style="fill: none; stroke: #bdbdb8; stroke-opacity: 0.6; stroke-width: 8"/>
    </g>
    <g id="LineCollection_2">
-    <path d="M 305.200885 61.1307 
-L 380.367889 61.1307 
+    <path d="M 306.514478 61.1307 
+L 382.380617 61.1307 
 " clip-path="url(#pd4b0457b0f)" style="fill: none; stroke: #bdbdb8; stroke-opacity: 0.6; stroke-width: 8"/>
    </g>
    <g id="LineCollection_3">
-    <path d="M 284.138484 126.2727 
-L 389.221755 126.2727 
+    <path d="M 283.109108 126.2727 
+L 383.03781 126.2727 
 " clip-path="url(#pd4b0457b0f)" style="fill: none; stroke: #bdbdb8; stroke-opacity: 0.6; stroke-width: 8"/>
    </g>
    <g id="LineCollection_4">
-    <path d="M 263.432843 158.8437 
-L 300.121124 158.8437 
+    <path d="M 231.879334 158.8437 
+L 336.582631 158.8437 
 " clip-path="url(#pd4b0457b0f)" style="fill: none; stroke: #bdbdb8; stroke-opacity: 0.6; stroke-width: 8"/>
    </g>
    <g id="LineCollection_5">
-    <path d="M 339.688884 191.4147 
-L 437.969812 191.4147 
+    <path d="M 308.865537 191.4147 
+L 475.982656 191.4147 
 " clip-path="url(#pd4b0457b0f)" style="fill: none; stroke: #bdbdb8; stroke-opacity: 0.6; stroke-width: 8"/>
    </g>
    <g id="line2d_21">
@@ -220,18 +220,18 @@ L 284.944362 5.76
 " clip-path="url(#pd4b0457b0f)" style="fill: none; stroke-dasharray: 1.1,1.815; stroke-dashoffset: 0; stroke: #4f4f4f; stroke-width: 1.1"/>
    </g>
    <g id="LineCollection_6">
-    <path d="M 446.311518 28.5597 
-L 490.727564 28.5597 
+    <path d="M 444.14056 28.5597 
+L 488.032266 28.5597 
 " clip-path="url(#pd4b0457b0f)" style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
    </g>
    <g id="LineCollection_7">
-    <path d="M 336.934662 61.1307 
-L 370.584595 61.1307 
+    <path d="M 336.232162 61.1307 
+L 368.317277 61.1307 
 " clip-path="url(#pd4b0457b0f)" style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
    </g>
    <g id="LineCollection_8">
-    <path d="M 284.822948 126.2727 
-L 344.391309 126.2727 
+    <path d="M 290.66795 126.2727 
+L 345.037565 126.2727 
 " clip-path="url(#pd4b0457b0f)" style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
    </g>
    <g id="patch_3">
@@ -254,17 +254,17 @@ z
 " style="stroke: #ffffff"/>
     </defs>
     <g clip-path="url(#pd4b0457b0f)">
-     <use xlink:href="#m6d4e557dfc" x="469.447399" y="28.5597" style="fill: #1a8eab; stroke: #ffffff"/>
+     <use xlink:href="#m6d4e557dfc" x="466.987832" y="28.5597" style="fill: #1a8eab; stroke: #ffffff"/>
     </g>
    </g>
    <g id="line2d_23">
     <g clip-path="url(#pd4b0457b0f)">
-     <use xlink:href="#m6d4e557dfc" x="353.021992" y="61.1307" style="fill: #1a8eab; stroke: #ffffff"/>
+     <use xlink:href="#m6d4e557dfc" x="351.314303" y="61.1307" style="fill: #1a8eab; stroke: #ffffff"/>
     </g>
    </g>
    <g id="line2d_24">
     <g clip-path="url(#pd4b0457b0f)">
-     <use xlink:href="#m6d4e557dfc" x="314.614227" y="126.2727" style="fill: #1a8eab; stroke: #ffffff"/>
+     <use xlink:href="#m6d4e557dfc" x="319.234433" y="126.2727" style="fill: #1a8eab; stroke: #ffffff"/>
     </g>
    </g>
    <g id="text_15">
@@ -290,7 +290,7 @@ L 158.312656 272.875104
 " style="fill: none; stroke: #bdbdb8; stroke-opacity: 0.6; stroke-width: 8; stroke-linecap: round"/>
     </g>
     <g id="text_17">
-     <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: start; fill: #1b1b1b" x="165.512656" y="276.025104" transform="rotate(-0 165.512656 276.025104)">Sensitivity range: other regional profiles, weekend mixes, or the assumption splitting 65+</text>
+     <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: start; fill: #1b1b1b" x="165.512656" y="276.025104" transform="rotate(-0 165.512656 276.025104)">Sensitivity range: other profiles, distance treatments, survey years, weekend mixes and, for 65–74 and 75 and over, the split of the 65+ kilometres</text>
     </g>
    </g>
   </g>

@@ -1,0 +1,125 @@
+source,variant,group,share_of_km,involved_ratio,killed_ratio
+central,Method A,18-29,0.1139076658,2.534097832,2.260969755
+central,Method A,30-44,0.2786972876,1.403547475,1.186617461
+central,Method A,45-64,0.4770376287,1,1
+central,Method A,65+,0.1303574179,1.191420247,2.918586949
+licence-calibrated transfer,"EMEF, province of Barcelona, per licence holder",18-29,0.1241105495,2.23621373,1.995191955
+licence-calibrated transfer,"EMEF, province of Barcelona, per licence holder",30-44,0.2961182461,1.270107144,1.07380145
+licence-calibrated transfer,"EMEF, province of Barcelona, per licence holder",45-64,0.4586678669,1,1
+licence-calibrated transfer,"EMEF, province of Barcelona, per licence holder",65+,0.1211033375,1.233077268,3.020632922
+regional profile,"EMEF, Barcelona city",18-29,0.0835175728,3.634109834,3.242421156
+regional profile,"EMEF, Barcelona city",30-44,0.2500452125,1.644905258,1.390671378
+regional profile,"EMEF, Barcelona city",45-64,0.5015938707,1,1
+regional profile,"EMEF, Barcelona city",65+,0.1648433439,0.9906697297,2.426814343
+regional profile,"EMEF, rest of the metropolitan area (AMB)",18-29,0.1045760954,2.885221055,2.574248499
+regional profile,"EMEF, rest of the metropolitan area (AMB)",30-44,0.2625741229,1.557195396,1.31651781
+regional profile,"EMEF, rest of the metropolitan area (AMB)",45-64,0.4986408141,1,1
+regional profile,"EMEF, rest of the metropolitan area (AMB)",65+,0.1342089676,1.209635087,2.963207303
+regional profile,"EMEF, rest of the metropolitan region (RMB)",18-29,0.1167845755,2.36226628,2.107658412
+regional profile,"EMEF, rest of the metropolitan region (RMB)",30-44,0.3047829897,1.226611782,1.037028661
+regional profile,"EMEF, rest of the metropolitan region (RMB)",45-64,0.4559221007,1,1
+regional profile,"EMEF, rest of the metropolitan region (RMB)",65+,0.122510334,1.211618816,2.968066786
+regional profile,"EMEF, rest of the province",18-29,0.1566307337,1.639587828,1.462871102
+regional profile,"EMEF, rest of the province",30-44,0.3037437451,1.145744665,0.9686602339
+regional profile,"EMEF, rest of the province",45-64,0.4244123134,1,1
+regional profile,"EMEF, rest of the province",65+,0.1152132078,1.199316462,2.937930074
+regional profile,Madrid survey 2018,18-29,0.09942557019,2.837289113,2.531482719
+regional profile,Madrid survey 2018,30-44,0.3424022778,1.116473851,0.9439134696
+regional profile,Madrid survey 2018,45-64,0.4662061407,1,1
+regional profile,Madrid survey 2018,65+,0.09196601134,1.650436146,4.043024624
+distance,unbanded trips bounded at 100 km/h,18-29,0.112645009,2.56749508,2.290767408
+distance,unbanded trips bounded at 100 km/h,30-44,0.2767386288,1.416234953,1.197343984
+distance,unbanded trips bounded at 100 km/h,45-64,0.477966966,1,1
+distance,unbanded trips bounded at 100 km/h,65+,0.1326493961,1.173115283,2.873745821
+distance,unbanded trips bounded at 60 km/h,18-29,0.1153424765,2.498285998,2.229017763
+distance,unbanded trips bounded at 60 km/h,30-44,0.2809577199,1.389869342,1.175053398
+distance,unbanded trips bounded at 60 km/h,45-64,0.4762201128,1,1
+distance,unbanded trips bounded at 60 km/h,65+,0.1274796907,1.216227504,2.979356552
+distance,unbanded trips' durations capped at 4 hours,18-29,0.1160448519,2.489915573,2.221549513
+distance,unbanded trips' durations capped at 4 hours,30-44,0.2813273879,1.39181658,1.176699674
+distance,unbanded trips' durations capped at 4 hours,45-64,0.4775147686,1,1
+distance,unbanded trips' durations capped at 4 hours,65+,0.1251129916,1.242603256,3.043968452
+distance,"unbanded trips at the model's mean, unbounded",18-29,0.1090474332,2.664852322,2.37763137
+distance,"unbanded trips at the model's mean, unbounded",30-44,0.272340611,1.44597141,1.222484422
+distance,"unbanded trips at the model's mean, unbounded",45-64,0.4802472668,1,1
+distance,"unbanded trips at the model's mean, unbounded",65+,0.1383646891,1.130024133,2.768186704
+distance,unbanded trips left out,18-29,0.1203710491,2.389714346,2.132148092
+distance,unbanded trips left out,30-44,0.2882872137,1.352154055,1.143167324
+distance,unbanded trips left out,45-64,0.4753837629,1,1
+distance,unbanded trips left out,65+,0.1159579742,1.334725053,3.269636495
+distance,multimodal trips: car leg counted as nothing,18-29,0.1137193516,2.511783189,2.241060211
+distance,multimodal trips: car leg counted as nothing,30-44,0.2824670817,1.370352197,1.158552791
+distance,multimodal trips: car leg counted as nothing,45-64,0.4720552498,1,1
+distance,multimodal trips: car leg counted as nothing,65+,0.1317583169,1.166441281,2.857396716
+distance,multimodal trips: car leg counted in full,18-29,0.1140811886,2.554594509,2.279257276
+distance,multimodal trips: car leg counted in full,30-44,0.2752235995,1.434940392,1.21315834
+distance,multimodal trips: car leg counted in full,45-64,0.4816286567,1,1
+distance,multimodal trips: car leg counted in full,65+,0.1290665552,1.214917222,2.976146795
+distance,geometric midpoints within bands,18-29,0.1154262315,2.50463174,2.234679553
+distance,geometric midpoints within bands,30-44,0.2792789692,1.4027933,1.18597985
+distance,geometric midpoints within bands,45-64,0.4777764114,1,1
+distance,geometric midpoints within bands,65+,0.1275183879,1.219831877,2.98818608
+distance,"geometric midpoints, unbanded trips left out",18-29,0.1217774391,2.366521902,2.111455357
+distance,"geometric midpoints, unbanded trips left out",30-44,0.288525667,1.353556631,1.14435312
+distance,"geometric midpoints, unbanded trips left out",45-64,0.4762704895,1,1
+distance,"geometric midpoints, unbanded trips left out",65+,0.1134264044,1.367060061,3.348846607
+distance,arithmetic midpoints within bands,18-29,0.1170893161,2.473171824,2.206610424
+distance,arithmetic midpoints within bands,30-44,0.2821555248,1.390805887,1.175845192
+distance,arithmetic midpoints within bands,45-64,0.4785726408,1,1
+distance,arithmetic midpoints within bands,65+,0.1221825183,1.27522519,3.12388144
+distance,"arithmetic midpoints, unbanded trips left out",18-29,0.1223795226,2.360564473,2.106140028
+distance,"arithmetic midpoints, unbanded trips left out",30-44,0.2898965444,1.350408312,1.1416914
+distance,"arithmetic midpoints, unbanded trips left out",45-64,0.4774203526,1,1
+distance,"arithmetic midpoints, unbanded trips left out",65+,0.1103035804,1.409157082,3.451970436
+distance,"road distance bounded at 80 km/h, ratio recalibrated",18-29,0.1138587913,2.543134915,2.26903281
+distance,"road distance bounded at 80 km/h, ratio recalibrated",30-44,0.279898067,1.401908244,1.185231587
+distance,"road distance bounded at 80 km/h, ratio recalibrated",45-64,0.4785334239,1,1
+distance,"road distance bounded at 80 km/h, ratio recalibrated",65+,0.1277097178,1.219934237,2.988436827
+distance,"road distance bounded at 100 km/h, ratio recalibrated",18-29,0.1140489999,2.537261992,2.263792878
+distance,"road distance bounded at 100 km/h, ratio recalibrated",30-44,0.2793021305,1.403996632,1.186997197
+distance,"road distance bounded at 100 km/h, ratio recalibrated",45-64,0.4782259108,1,1
+distance,"road distance bounded at 100 km/h, ratio recalibrated",65+,0.1284229588,1.212379318,2.969929766
+survey years,2024,18-29,0.1055836822,2.84737675,2.540483099
+survey years,2024,30-44,0.2641262558,1.542459191,1.304059209
+survey years,2024,45-64,0.496841708,1,1
+survey years,2024,65+,0.133448354,1.212140362,2.969344401
+survey years,2023-2024,18-29,0.1112702166,2.642039811,2.357277618
+survey years,2023-2024,30-44,0.2716027018,1.46678927,1.240084707
+survey years,2023-2024,45-64,0.4858414882,1,1
+survey years,2023-2024,65+,0.1312855934,1.204829562,2.951435352
+survey years,2021-2022-2023-2024,18-29,0.1154397226,2.469467277,2.203305157
+survey years,2021-2022-2023-2024,30-44,0.2868854043,1.346584515,1.138458603
+survey years,2021-2022-2023-2024,45-64,0.4711235977,1,1
+survey years,2021-2022-2023-2024,65+,0.1265512753,1.212038513,2.969094904
+survey years,2019-2021-2022-2023-2024,18-29,0.1135392466,2.463681415,2.198142903
+survey years,2019-2021-2022-2023-2024,30-44,0.2967268762,1.277489061,1.08004243
+survey years,2019-2021-2022-2023-2024,45-64,0.4622818716,1,1
+survey years,2019-2021-2022-2023-2024,65+,0.1274520056,1.180886825,2.892783536
+professionals' work driving,25% of work trips by car,18-29,0.1170853653,2.480796325,2.213413148
+professionals' work driving,25% of work trips by car,30-44,0.2789679274,1.410986858,1.192907025
+professionals' work driving,25% of work trips by car,45-64,0.4800318271,1,1
+professionals' work driving,25% of work trips by car,65+,0.1239148802,1.261231067,3.089600449
+professionals' work driving,50% of work trips by car,18-29,0.1199006559,2.435934052,2.173386183
+professionals' work driving,50% of work trips by car,30-44,0.2792077013,1.417565749,1.198469094
+professionals' work driving,50% of work trips by car,45-64,0.4826845445,1,1
+professionals' work driving,50% of work trips by car,65+,0.1182070983,1.329437498,3.256683727
+older sample,65+ employed share set to the census,18-29,0.1143283651,2.534097832,2.260969755
+older sample,65+ employed share set to the census,30-44,0.2797266103,1.403547475,1.186617461
+older sample,65+ employed share set to the census,45-64,0.4787994888,1,1
+older sample,65+ employed share set to the census,65+,0.1271455358,1.226028737,3.003366344
+non-working days,"car trips on an average weekend day (MOVILIA 2006, Spain), 22% of km",18-29,0.1158308803,2.469435951,2.203277208
+non-working days,"car trips on an average weekend day (MOVILIA 2006, Spain), 22% of km",30-44,0.2700458314,1.435384212,1.213533564
+non-working days,"car trips on an average weekend day (MOVILIA 2006, Spain), 22% of km",45-64,0.4727139634,1,1
+non-working days,"car trips on an average weekend day (MOVILIA 2006, Spain), 22% of km",65+,0.141409325,1.08834972,2.666098127
+non-working days,"car trips on an average weekend day (MOVILIA 2006, Spain), 32% of km",18-29,0.1167050687,2.440748703,2.177681906
+non-working days,"car trips on an average weekend day (MOVILIA 2006, Spain), 32% of km",30-44,0.2661133513,1.450539771,1.226346704
+non-working days,"car trips on an average weekend day (MOVILIA 2006, Spain), 32% of km",45-64,0.4707486609,1,1
+non-working days,"car trips on an average weekend day (MOVILIA 2006, Spain), 32% of km",65+,0.1464329191,1.04664273,2.563929748
+non-working days,"overnight weekend stays away, driving (EMEF 2023, proxy), 22% of km",18-29,0.1177231473,2.424039216,2.162773388
+non-working days,"overnight weekend stays away, driving (EMEF 2023, proxy), 22% of km",30-44,0.272913509,1.416967835,1.197963592
+non-working days,"overnight weekend stays away, driving (EMEF 2023, proxy), 22% of km",45-64,0.4716043624,1,1
+non-working days,"overnight weekend stays away, driving (EMEF 2023, proxy), 22% of km",65+,0.1377589813,1.114566484,2.730320557
+non-working days,"overnight weekend stays away, driving (EMEF 2023, proxy), 32% of km",18-29,0.1194574571,2.376336726,2.120212329
+non-working days,"overnight weekend stays away, driving (EMEF 2023, proxy), 32% of km",30-44,0.2702845187,1.42325787,1.203281449
+non-working days,"overnight weekend stays away, driving (EMEF 2023, proxy), 32% of km",45-64,0.4691346959,1,1
+non-working days,"overnight weekend stays away, driving (EMEF 2023, proxy), 32% of km",65+,0.1411233283,1.082297938,2.651273254

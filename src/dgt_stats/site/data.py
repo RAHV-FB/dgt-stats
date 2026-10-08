@@ -24,6 +24,7 @@ from dgt_stats.site.components import (
     summary,
     table,
 )
+from dgt_stats.site.numbers import _driver_numbers
 from dgt_stats.site.regional_common import _year_label
 
 TITLES = dict(ALL_PAGES)
@@ -518,12 +519,13 @@ def _assumptions() -> str:
     segments = read_table("longrun_segments")
     base_year = int(segments[segments.measure == "road_fuel"].start.max())
     bio = read_table("longrun_fuel_bio").set_index("year").bio_share
-    rates = read_table("risk_national_rates")
-    rates = rates[rates.km_total == "less taxi and ride-hailing"]
-    spread = rates.groupby("group").involved_ratio
-    central = rates[rates.method.str.startswith("A:")].set_index("group").involved_ratio
-    city = read_table("risk_barcelona_rates")
-    city_older = city[city.age4 == "65+"].ratio_to_45_64
+    drivers = _driver_numbers()
+    ranges = drivers["ranges"]
+    central = drivers["central"].involved_ratio
+    licence = drivers["licence"].involved_ratio
+    prevalence = read_table("risk_licence_prevalence")
+    young_licensed = prevalence[prevalence.group == "18-29"].set_index(["place", "sex"]).prevalence
+    city_older = drivers["city"][drivers["city"].age4 == "65+"].ratio_to_45_64
     reference = risk_trends.BASE_YEAR
     per_km_last = km_check.loc[("per_km", km_last)]
 
@@ -541,10 +543,14 @@ def _assumptions() -> str:
             and recent > 0,
             "the biofuel share rose, which lowers km per tonne": float(bio.loc[km_last])
             > float(bio.loc[reference]),
-            "the regional profiles keep the young above the middle-aged per km": float(
-                spread.get_group("16-29").min()
+            "every assumption keeps the young above the middle-aged per km": float(
+                ranges.loc["18-29", "min"]
             )
             > 1.5,
+            "young residents of the province hold car licences less often than Spain's": all(
+                young_licensed[("08", sex)] < young_licensed[("Spain", sex)]
+                for sex in ("male", "female")
+            ),
         }
     )
     fuel_pages = _join([TITLES[slug] for slug in ("trends", "long-run", "seasons")])
@@ -569,17 +575,18 @@ def _assumptions() -> str:
         ),
         (
             f"One region's age profile of driving holds for Spain ({TITLES['drivers']})",
-            "The working-day kilometres per resident by age of each part of the province of "
-            "Barcelona, and of the Madrid household survey of 2018, applied to Spain in turn: "
-            "involvement per km at 18–29 runs from "
-            f"{float(spread.get_group('16-29').min()):.2f}× to "
-            f"{float(spread.get_group('16-29').max()):.2f}× the 45–64 rate "
-            f"({float(central['16-29']):.2f}× centrally), and at 65 and over from "
-            f"{float(spread.get_group('65+').min()):.2f}× to "
-            f"{float(spread.get_group('65+').max()):.2f}× "
-            f"({float(central['65+']):.2f}×).",
-            "Ratios per km by age are given with these sensitivity ranges. A comparison matched "
-            "in place and time, Barcelona's crashes on working days against the same survey's "
+            "Young residents of the province of Barcelona hold car licences less often than "
+            "Spain's, so the survey's driving per licence holder, carried to Spain instead of "
+            f"its driving per resident, puts involvement per km at 18–29 at {float(licence['18-29']):.2f}× "
+            f"the 45–64 rate against {float(central['18-29']):.2f}× centrally, and at 65 and over "
+            f"at {float(licence['65+']):.2f}× against {float(central['65+']):.2f}×. With other "
+            "regional profiles, distance treatments, survey years and weekend mixes the ratio at "
+            f"18–29 runs from {float(ranges.loc['18-29', 'min']):.2f}× to "
+            f"{float(ranges.loc['18-29', 'max']):.2f}×, and at 65 and over from "
+            f"{float(ranges.loc['65+', 'min']):.2f}× to {float(ranges.loc['65+', 'max']):.2f}×.",
+            "The assumption does not hold exactly, so the ratios per km by age are given with "
+            "these sensitivity ranges, and the direction at 18–29 is the firm result. A separate "
+            "check inside Barcelona on working days, the city's crashes against the same survey's "
             f"driving inside the city, gives {float(city_older.min()):.2f}×–"
             f"{float(city_older.max()):.2f}× at 65 and over. Deaths per driver involved need no "
             "kilometres.",

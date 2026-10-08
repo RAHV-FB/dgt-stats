@@ -128,8 +128,9 @@ EMPLOYMENT_LABELS: dict[int, str] = {
     6: "other",
 }
 
-# Means of transport of each stage (V03G, V03H, V03I). The codes used here have the same meaning
-# in every year's dictionary; others (20-25) change meaning between years and are not used.
+# Means of transport of each stage (V03G, V03H, V03I). The codes named here have the same meaning
+# in every year's dictionary. Codes 20-25 change meaning between years; the distance model's mode
+# groups (distance.mode_group) read them year by year.
 MODE_CAR_DRIVER = 12
 MODE_CAR_PASSENGER = 13
 MODE_MOTORCYCLE_DRIVER = 14
@@ -177,5 +178,14 @@ LICENCE_COLUMN: dict[int, str] = {2016: "V21A"}
 PURPOSE3_LABELS: dict[int, str] = {1: "return home", 2: "work or study", 3: "personal"}
 
 # Population type: 1 general population, 2 mobility professional (eight or more work trips a day,
-# whose trips in the course of work are not recorded).
+# whose trips in the course of work are not recorded), 3 did not travel. Read from the respondent
+# file (V02A_2R to 2023, TIPOL in 2024): the 2016 trip file's TIPOL disagrees with it for 504
+# respondents, so the trip-file code is not used to identify professionals.
 TIPOL_LABELS: dict[int, str] = {1: "general", 2: "mobility professional"}
+PROFESSIONAL_COLUMN: dict[int, str] = {y: "V02A_2R" for y in YEARS} | {2024: "TIPOL"}
+PROFESSIONAL_CODE = 2
+# Mobility professionals' trips in the course of work on the reference day: counted but not
+# described (V02C_3 in 2020-2023, V02D1 in 2024; "Número de desplaçaments professionals").
+WORK_TRIPS_COLUMN: dict[int, str] = {y: "V02C_3" for y in range(2020, 2024)} | {2024: "V02D1"}
+# The respondent's reported number of trips that are recorded in the trip file.
+REPORTED_TRIPS_COLUMN: dict[int, str] = {y: "V02C_2" for y in YEARS} | {2017: "V02C"}

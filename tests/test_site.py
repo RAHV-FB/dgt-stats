@@ -234,7 +234,7 @@ def test_drivers_page_separates_the_two_questions(built: Path) -> None:
     rates = rates[rates.km_total == "less taxi and ride-hailing"]
     central = rates[rates.method.str.startswith("A:")].set_index("group")
     severity = pd.read_csv(TABLES_DIR / "risk_severity_and_licences.csv").set_index("group")
-    young, older = central.loc["16-29"], central.loc["65+"]
+    young, older = central.loc["18-29"], central.loc["65+"]
     # The page leads with involvement per km by driver age, quoted with its interval, and the
     # key result comes before the per-km table; the numbers come from the tables.
     opening = re.search(r'<p class="summary">(.*?)</p>', body, re.S).group(1)
@@ -245,12 +245,16 @@ def test_drivers_page_separates_the_two_questions(built: Path) -> None:
     assert f'<p class="key-value">{young.involved_ratio:.2f}×</p>' in key
     assert 'src="figures/dr1_involved_per_km.svg"' in body
     assert body.find("dr1_involved_per_km") < body.find("<table")
-    # Intervals and sensitivity ranges are told apart, and the transfer is flagged as an estimate.
-    spread = rates.groupby("group").involved_ratio
+    # Intervals and sensitivity ranges are told apart, and the transfer is flagged as an estimate;
+    # the range spans every alternative of the sensitivity table.
+    spread = pd.read_csv(TABLES_DIR / "risk_national_sensitivity.csv").groupby("group")
     assert "sensitivity range" in body and "not measurements" in body
-    assert f"{spread.get_group('65+').max():.2f}" in body
-    # Barcelona's matched design, the model-dependent oldest group, and deaths once involved.
+    assert f"{spread.involved_ratio.max()['65+']:.2f}" in body
+    assert f"{spread.involved_ratio.min()['18-29']:.2f}" in body
+    # Barcelona's working-day check, the model-dependent oldest group, and deaths once involved.
     city = pd.read_csv(TABLES_DIR / "risk_barcelona_rates.csv")
+    city = city[city.numerator == city.numerator.iloc[0]]
+    assert "matched in place and time" not in body
     for value in city[city.age4 == "65+"].ratio_to_45_64:
         assert f"{value:.2f}" in body
     older_split = pd.read_csv(TABLES_DIR / "risk_older_split.csv")
@@ -261,10 +265,13 @@ def test_drivers_page_separates_the_two_questions(built: Path) -> None:
     assert "Powered by CRTM" in body and 'href="https://www.crtm.es"' in body
     # The former owner-age figures are explained, not hidden, and are no longer the result.
     owner = pd.read_csv(TABLES_DIR / "risk_owner_age_comparison.csv")
-    old = owner[owner.denominator.str.startswith("km of cars")].set_index("group")
-    assert f"{old.loc['18-24', 'ratio_to_reference']:.2f} times" in body
+    old = owner[owner.denominator.str.endswith("(former figure)")].set_index("group")
+    same = owner[owner.denominator.str.endswith("same age groups")].set_index("group")
+    # Compared like with like: the owner kilometres on today's age groups and reference.
+    assert f"{same.loc['18-29', 'ratio_to_reference']:.2f} times the 45–64 rate" in body
+    assert f"{old.loc['18-24', 'ratio_to_reference']:.2f}, compared drivers aged 18–24" in body
     assert "A car's owner is often not its driver" in body
-    for phrase in ("like with like", "frailty", "travel-weighted", "MOVILIA", "extra travel"):
+    for phrase in ("frailty", "travel-weighted", "extra travel", "nearly seven"):
         assert phrase not in text, phrase
     assert "doi.org" not in text  # no external study interprets these results
     # Sex: the ratio per driver involved is quoted with its interval and the ages are stated.
@@ -273,8 +280,11 @@ def test_drivers_page_separates_the_two_questions(built: Path) -> None:
     killed_men = sex.loc[("car", "18+", "deaths_per_million_licences")]
     assert f"{fatality_men.ratio:.2f}" in text
     assert f"({fatality_men.low:.2f}–{fatality_men.high:.2f})" in text
-    assert f"men aged 18 and over died at the wheel {killed_men.ratio:.2f}" in text
-    assert "kilometres driven by sex" in text
+    assert f"died at the wheel {killed_men.ratio:.2f}" in text
+    # Per kilometre, from the survey's kilometres by sex carried to Spain as for age.
+    per_km = pd.read_csv(TABLES_DIR / "risk_sex_per_km.csv").set_index("measure")
+    assert f"{per_km.loc['involved per km', 'ratio_men_to_women']:.2f} times" in text
+    assert "no source records kilometres" not in text
     assert "drivers_sex_travel" not in text
     assert 'src="figures/a3_sex_ratios.svg"' in text
 
@@ -495,15 +505,17 @@ def test_front_page_is_an_overview_of_the_study(built: Path) -> None:
     young = rates[
         rates.method.str.startswith("A:")
         & (rates.km_total == "less taxi and ride-hailing")
-        & (rates.group == "16-29")
+        & (rates.group == "18-29")
     ].iloc[0]
-    # Involvement per km by the driver's age, from the table, with the former owner-age figure
-    # named as superseded.
+    # Involvement per km by the driver's age, from the table, with its interval and the span of
+    # the other assumptions.
     assert (
         f"{young.involved_ratio:.1f} times as often as drivers aged 45–64"
         in (sections["Main findings"])
     )
-    assert "registered owner" in sections["Main findings"]
+    spread = pd.read_csv(TABLES_DIR / "risk_national_sensitivity.csv").groupby("group")
+    assert f"{spread.involved_ratio.min()['18-29']:.1f}–" in sections["Main findings"]
+    assert "nearly seven" not in sections["Main findings"]
     # A reader can follow the front page without the modelling vocabulary of the deeper pages.
     visible = re.sub(r"<[^>]+>", " ", body)
     for jargon in ("ROC-AUC", "calibration slope", "Jensen", "transportab", "odds ratio"):

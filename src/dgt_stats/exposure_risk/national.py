@@ -8,6 +8,11 @@ No national source measures kilometres by the driver's age, so four methods are 
   (INE, single years of age). This gives each age group's share of driving, assuming that, within
   an age group and sex, residents of Spain drive in the same proportion to one another as
   residents of the province of Barcelona.
+* **A2, licence-calibrated transfer.** Method A, but carrying over the km per B-licence holder
+  instead of per resident: each group's EMEF km per resident is scaled by the ratio of Spain's
+  B-licence prevalence to the province's (DGT driver census 2024, INE population), by sex. Young
+  residents of the province hold car licences less often than Spain's, so A2 gives Spain's young
+  drivers more of the kilometres than A does.
 * **B, kilometre scale.** Those shares are applied to DGT's 2024 total of car kilometres
   (inspection odometer readings, annualised), less taxi and ride-hailing cars, whose drivers drive
   for a living and are outside both the EMEF and the crash numerator used here. The level of the
@@ -15,17 +20,24 @@ No national source measures kilometres by the driver's age, so four methods are 
 * **C, regional calibration.** Method A repeated with the age profile of each part of the province
   (Barcelona city, the rest of the metropolitan area, the rest of the metropolitan region and the
   rest of the province) and with the Madrid household survey of 2018 (:mod:`dgt_stats.edm2018`).
-  The spread is the uncertainty of transferring one region's profile to Spain.
 * **D, registered owners.** DGT's 2024 kilometres by the registered owner's age band, the
   denominator of the former driver-age figure. Cars are driven by people other than their owners
-  and company cars carry no age, so D is a sensitivity comparison only.
+  and company cars carry no age, so D is a comparison only.
+
+**Sensitivity.** :func:`sensitivity` recomputes the ratios under every alternative: the regional
+profiles (C), the licence-calibrated transfer (A2), the distance treatments of
+:data:`dgt_stats.emef.exposure.TRIP_VARIANTS` and the band midpoints, the survey years,
+professionals' unrecorded work driving, the older sample's employment set to the census, and the
+age mix of non-working days. The spread is reported as a sensitivity range beside the sampling
+interval, never as a confidence interval.
 
 **Numerator.** Car drivers involved in injury crashes in Spain in 2024 (DGT, tables 4.2 I and U),
 private cars with and without trailer; drivers of public-service cars (taxi and ride-hailing) are
 left out to match the denominator. The EMEF group 16-29 is matched to drivers aged 18-29: residents
 aged 16 and 17 count in its population but cannot hold a car licence, and the 41 drivers aged
-15-17 in the tables are left out. Drivers of unrecorded age (2.2%) are allocated across ages in
-proportion for the absolute rates; the ratios between ages do not depend on that allocation.
+15-17 in the tables are left out. Drivers of unrecorded age (2.3% of those involved) are left out
+of every rate; the ratios between ages are unchanged by that only if their ages follow the recorded
+mix (:func:`unknown_age_bounds` gives the ratios if they were all of one age group).
 
 **Uncertainty.** Each interval pairs the EMEF bootstrap replicates (sampling error of the
 exposure shares) with gamma draws for the counts (Poisson error), replicate by replicate. The
@@ -35,9 +47,10 @@ spread between methods and variants is reported separately, as a sensitivity ran
 km between 65-74 and 75 and over using the ratio of their km per resident in the Madrid survey,
 by sex, and the population of each age in the province of Barcelona and in Spain. It is a
 *model-dependent* estimate, reported beside the measured 65-and-over figure and never in its
-place, with three alternatives: equal km per licence holder at 65-74 and 75 and over (an upper
-bound for 75 and over), the Madrid km per licence holder applied to Spain's licence holders, and
-the registered owners' km.
+place, with two alternatives: equal km per licence holder at 65-74 and 75 and over (an upper
+bound for 75 and over's km), and the Madrid km per licence holder applied to Spain's licence
+holders. :func:`older_sensitivity` repeats the split under every 65-and-over variant of
+:func:`sensitivity`.
 """
 
 from __future__ import annotations
@@ -149,18 +162,47 @@ def barcelona_older_population(
 
 
 @cache
-def _emef_frame(area: str | None = None) -> tuple[pd.DataFrame, np.ndarray]:
+def _person_frame() -> pd.DataFrame:
+    """Every EMEF respondent with the reference day's car-driver km under the central treatment
+    and under each distance variant, and the work driving of mobility professionals."""
     frame = exposure.person_day()
-    frame = frame[frame.year.isin(exposure.CONTEMPORARY_YEARS)]
+    names = exposure.trip_variant_names()
+    totals = exposure.trip_km_variants().groupby(["year", "person_id"])[names].sum()
+    frame = frame.merge(totals, on=["year", "person_id"], how="left", validate="one_to_one")
+    frame[names] = frame[names].fillna(0.0)
+    for fraction in exposure.PROFESSIONAL_CAR_SHARES:
+        frame[_professional_column(fraction)] = frame.car_km + exposure.professional_km(fraction)
+    return frame
+
+
+def _professional_column(fraction: float) -> str:
+    return f"professionals: {fraction:.0%} of work trips by car"
+
+
+@cache
+def _emef_frame(
+    area: str | None = None,
+    years: tuple[int, ...] = exposure.CONTEMPORARY_YEARS,
+    employment_reweighted: bool = False,
+) -> tuple[pd.DataFrame, np.ndarray]:
+    frame = _person_frame()
+    frame = frame[frame.year.isin(years)]
     if area is not None:
         frame = frame[frame.zone_code.isin(exposure.AREAS[area])]
     frame = frame.reset_index(drop=True)
+    if employment_reweighted:
+        frame = frame.assign(weight=exposure.employment_reweighted(frame))
     return frame, exposure.replicate_factors(frame)
 
 
-def emef_profile(area: str | None = None, column: str = "car_km") -> dict:
+def emef_profile(
+    area: str | None = None,
+    column: str = "car_km",
+    years: tuple[int, ...] = exposure.CONTEMPORARY_YEARS,
+    employment_reweighted: bool = False,
+) -> dict:
     """Working-day car-driver km per resident by (sex, group), point and bootstrap replicates."""
-    frame, factors = _emef_frame(area)
+    frame, factors = _emef_frame(area, years, employment_reweighted)
     out = {}
     for sex in SEXES:
         for group in GROUPS:
@@ -170,6 +212,51 @@ def emef_profile(area: str | None = None, column: str = "car_km") -> dict:
             f = factors[mask]
             out[(sex, group)] = (float((w * km).sum() / w.sum()), ((w * km) @ f) / (w @ f))
     return out
+
+
+# Licence prevalence by group is read on five-year population groups, so 16-29 is measured as
+# licence holders over residents aged 15-29 in both places; only the ratio of the two is used.
+PREVALENCE_AGES: dict[str, tuple[int, int]] = {
+    "16-29": (15, 29),
+    "30-44": (30, 44),
+    "45-64": (45, 64),
+    "65+": (65, 200),
+}
+
+
+def licence_prevalence(province_code: str | None = None, year: int = YEAR) -> pd.DataFrame:
+    """B-licence holders per resident (1 July) by sex and group, Spain or one province."""
+    holders = io_exposure.b_permit_holders_by_age(year, province_code)
+    rows = []
+    for sex in SEXES:
+        lic = holders[holders.sex == sex].set_index("band").n_b_permit_holders
+        people = io_population.population(
+            year, REFERENCE_DATE, sex, province_code or io_population.NATIONAL_CODE
+        )
+        for group, (low, high) in PREVALENCE_AGES.items():
+            residents = float(people[people.age_low.between(low, high)].population.sum())
+            licensed = float(lic.reindex(list(NUMERATOR_BANDS[group])).fillna(0).sum())
+            rows.append(
+                {
+                    "place": province_code or "Spain",
+                    "sex": sex,
+                    "group": group,
+                    "b_licence_holders": licensed,
+                    "residents": residents,
+                    "prevalence": licensed / residents,
+                }
+            )
+    return pd.DataFrame(rows)
+
+
+def licence_calibrated(profile: dict) -> dict:
+    """Method A2: a province profile scaled by Spain's licence prevalence over the province's."""
+    spain = licence_prevalence().set_index(["sex", "group"]).prevalence
+    province = licence_prevalence(BARCELONA_PROVINCE).set_index(["sex", "group"]).prevalence
+    return {
+        key: (point * spain[key] / province[key], replicates * spain[key] / province[key])
+        for key, (point, replicates) in profile.items()
+    }
 
 
 def edm_profile() -> dict:
@@ -278,9 +365,16 @@ def licence_holders(year: int = YEAR) -> pd.Series:
 # ----------------------------------------------------------------------------- results
 
 
+CENTRAL_METHOD = "A: EMEF, province of Barcelona"
+LICENCE_METHOD = "A2: EMEF, province of Barcelona, per licence holder"
+
+
 def exposure_profiles() -> dict[str, tuple[pd.Series, np.ndarray]]:
-    """National working-day km per day by group under Method A and each Method C profile."""
-    out = {"A: EMEF, province of Barcelona": national_km(emef_profile())}
+    """National working-day km per day by group under Methods A, A2 and each Method C profile."""
+    out = {
+        CENTRAL_METHOD: national_km(emef_profile()),
+        LICENCE_METHOD: national_km(licence_calibrated(emef_profile())),
+    }
     for area in exposure.AREAS:
         out[f"C: EMEF, {area}"] = national_km(emef_profile(area))
     out["C: Madrid survey 2018"] = national_km(edm_profile())
@@ -418,61 +512,95 @@ def _older_ratios() -> dict[str, dict[str, float]]:
     return out
 
 
-def older_split(km_variant: str = "less taxi and ride-hailing") -> pd.DataFrame:
-    """Model-dependent kilometres and rates for 65-74 and 75 and over (Method A/B, central)."""
-    profile = emef_profile()
+def _split_older(profile: dict, ratios: dict[str, float]) -> dict[str, float]:
+    """Spain's working-day km at 65-74 and 75 and over from a 65+ profile and a 75+/65-74 ratio
+    of km per resident by sex."""
     bcn = barcelona_older_population().set_index(["sex", "group"]).population
     spain = population_by_group().set_index(["sex", "group"]).population
-    km, _ = national_km(profile)
+    national = {"65-74": 0.0, "75+": 0.0}
+    for sex in SEXES:
+        k65 = profile[(sex, "65+")][0]
+        r = ratios[sex]
+        young, old = bcn[(sex, "65-74")], bcn[(sex, "75+")]
+        k_young = k65 * (young + old) / (young + r * old)
+        national["65-74"] += k_young * spain[(sex, "65-74")]
+        national["75+"] += r * k_young * spain[(sex, "75+")]
+    return national
+
+
+def _older_ratios_to_reference(km: pd.Series, older_share: float) -> dict[str, float]:
+    """65-74 and 75+ involvement per km over 45-64's, from national km by group and the 75+
+    share of the 65+ km (the km total cancels)."""
+    counts = drivers_involved().set_index("group").involved
+    reference = float(counts[REFERENCE]) / float(km[REFERENCE])
+    km_65 = float(km["65+"])
+    return {
+        "65-74": float(counts["65-74"]) / ((1 - older_share) * km_65) / reference,
+        "75+": float(counts["75+"]) / (older_share * km_65) / reference,
+    }
+
+
+def older_split(km_variant: str = "less taxi and ride-hailing") -> pd.DataFrame:
+    """Model-dependent kilometres and rates for 65-74 and 75 and over (Method A/B, central), with
+    95% intervals from the profile's replicates and the counts' Poisson error."""
+    profile = emef_profile()
+    km, replicates = national_km(profile)
     total_km = dgt_car_km()[km_variant]
     counts = drivers_involved().set_index("group")
-    reference_rate = float(counts.loc[REFERENCE, "involved"]) / (
-        float(km[REFERENCE] / km.sum()) * total_km / BILLION
-    )
-    # The split divides the measured 65+ kilometres of Method B; it never changes their total.
-    km_65 = float(km["65+"] / km.sum()) * total_km
+    rng = np.random.default_rng(SEED)
+    n_rep = replicates.shape[1]
+    draws = {g: rng.gamma(counts.loc[g, "involved"] + 0.5, 1.0, n_rep) for g in (*OLDER, REFERENCE)}
     rows = []
     for assumption, ratios in _older_ratios().items():
-        national = {"65-74": 0.0, "75+": 0.0}
-        for sex in SEXES:
-            k65 = profile[(sex, "65+")][0]
-            r = ratios[sex]
-            young, old = bcn[(sex, "65-74")], bcn[(sex, "75+")]
-            k_young = k65 * (young + old) / (young + r * old)
-            national["65-74"] += k_young * spain[(sex, "65-74")]
-            national["75+"] += r * k_young * spain[(sex, "75+")]
+        national = _split_older(profile, ratios)
+        share = national["75+"] / sum(national.values())
+        point = _older_ratios_to_reference(km, share)
+        reference = GROUPS.index(REFERENCE)
+        older_index = GROUPS.index("65+")
         for group in OLDER:
-            billion_km = national[group] / sum(national.values()) * km_65 / BILLION
-            rate = float(counts.loc[group, "involved"]) / billion_km
+            part = share if group == "75+" else 1 - share
+            billion_km = part * float(km["65+"] / km.sum()) * total_km / BILLION
+            km_rep = part * replicates[older_index]
+            rate_rep = draws[group] / km_rep
+            ref_rep = draws[REFERENCE] / replicates[reference]
             rows.append(
                 {
                     "assumption": assumption,
                     "group": group,
                     "ratio_75_to_65_74_male": ratios["male"],
                     "ratio_75_to_65_74_female": ratios["female"],
-                    "share_of_65_plus_km": national[group] / sum(national.values()),
+                    "share_of_65_plus_km": part,
                     "billion_km": billion_km,
                     "involved": float(counts.loc[group, "involved"]),
-                    "involved_per_bn_km": rate,
-                    "ratio_to_45_64": rate / reference_rate,
+                    "involved_per_bn_km": float(counts.loc[group, "involved"]) / billion_km,
+                    "ratio_to_45_64": point[group],
+                    "ratio_low": float(np.percentile(rate_rep / ref_rep, 2.5)),
+                    "ratio_high": float(np.percentile(rate_rep / ref_rep, 97.5)),
                 }
             )
-    owner = owner_km_shares()
-    owner_older = owner[["65-74", "75+"]]
-    for group in OLDER:
-        billion_km = float(owner_older[group] / owner_older.sum()) * km_65 / BILLION
-        rate = float(counts.loc[group, "involved"]) / billion_km
-        rows.append(
-            {
-                "assumption": "registered owners' split of the 65+ km",
-                "group": group,
-                "share_of_65_plus_km": float(owner_older[group] / owner_older.sum()),
-                "billion_km": billion_km,
-                "involved": float(counts.loc[group, "involved"]),
-                "involved_per_bn_km": rate,
-                "ratio_to_45_64": rate / reference_rate,
-            }
-        )
+    return pd.DataFrame(rows)
+
+
+def older_sensitivity() -> pd.DataFrame:
+    """The 65-74 and 75+ ratios under every split assumption and every 65+ variant of
+    :func:`sensitivity` that comes from an EMEF profile."""
+    rows = []
+    for source, variant, profile, km in _variant_profiles():
+        if profile is None:
+            continue
+        for assumption, ratios in _older_ratios().items():
+            national = _split_older(profile, ratios)
+            share = national["75+"] / sum(national.values())
+            ratio = _older_ratios_to_reference(km, share)
+            rows.append(
+                {
+                    "source": source,
+                    "variant": variant,
+                    "assumption": assumption,
+                    "ratio_65_74": ratio["65-74"],
+                    "ratio_75_plus": ratio["75+"],
+                }
+            )
     return pd.DataFrame(rows)
 
 
@@ -485,11 +613,20 @@ def older_split(km_variant: str = "less taxi and ride-hailing") -> pd.DataFrame:
 NON_WORKING_SHARES = (0.22, 0.32)
 
 
+EMEF_WEEKEND_PROXY = "overnight weekend stays away, driving (EMEF 2023, proxy)"
+MOVILIA_WEEKEND = "car trips on an average weekend day (MOVILIA 2006, Spain)"
+MOVILIA_PATH = RAW_DATA_DIR / "transportes" / "movilia_2006.xls"
+
+
 def weekend_weights() -> pd.Series:
     """How much more (or less) each group drives on weekends than on working days, relative to
-    everyone aged 16 and over, as far as the EMEF 2023 shows it: the share of residents who drove
-    away for at least one of the last four weekends, over the share who drove on the reference
-    working day, each relative to all residents."""
+    everyone aged 16 and over, as far as the EMEF 2023 shows it.
+
+    The 2023 module (V11) asks how many of the last four weekends the respondent spent Saturday
+    night away from their municipality, and the means of transport of the most recent such trip.
+    The weight is the share who drove away for such a weekend over the share who drove on the
+    reference working day, each relative to all residents: a ratio of prevalences, not of
+    kilometres, and silent on day trips and local weekend driving. It is a proxy."""
     weekend = exposure.weekend_away_2023().set_index("age4").share_away_driving
     frame = exposure.person_day()
     frame = frame[frame.year == 2023]
@@ -502,19 +639,65 @@ def weekend_weights() -> pd.Series:
     )
 
 
+def movilia_weekend_weights() -> pd.Series:
+    """MOVILIA 2006 table 64: trips whose main mode is a car or motorcycle (drivers and
+    passengers) on an average weekend day over an average working day, by age, relative to all
+    residents aged 15 and over. The survey's bands are 15-29, 30-39, 40-49, 50-64 and 65+; half of
+    40-49 is given to 30-44 and half to 45-64."""
+
+    def car_trips(sheet: str) -> pd.Series:
+        table = pd.read_excel(MOVILIA_PATH, sheet, header=None)
+        labels = table[0].astype(str).str.strip()
+        rows = {}
+        for label, key in (
+            ("De 15 a 29", "15-29"),
+            ("De 30 a 39", "30-39"),
+            ("De 40 a 49", "40-49"),
+            ("De 50 a 64", "50-64"),
+            ("65 y más años", "65+"),
+        ):
+            # The first block of each sheet is both sexes.
+            rows[key] = float(table.loc[labels[labels == label].index[0], 3])
+        return pd.Series(rows)
+
+    working, weekend = car_trips("T64-1"), car_trips("T64-5")
+    if not str(pd.read_excel(MOVILIA_PATH, "T64-5", header=None).iloc[6, 0]).startswith(
+        "V. En día"
+    ):
+        raise ValueError("MOVILIA 2006 table 64: sheet T64-5 is not the average weekend day")
+
+    def group(series: pd.Series) -> pd.Series:
+        return pd.Series(
+            {
+                "16-29": series["15-29"],
+                "30-44": series["30-39"] + series["40-49"] / 2,
+                "45-64": series["40-49"] / 2 + series["50-64"],
+                "65+": series["65+"],
+            }
+        )
+
+    ratio = group(weekend) / group(working)
+    overall = weekend.sum() / working.sum()
+    return ratio / overall
+
+
 def weekend_sensitivity(km_variant: str = "less taxi and ride-hailing") -> pd.DataFrame:
-    """Method A/B rates if non-working days hold a different share of km and a different age mix."""
+    """Method A/B rates if non-working days hold a different share of km and a different age mix.
+    With the working days' age mix the share of km on non-working days changes nothing."""
     km, _ = national_km(emef_profile())
     workday = km / km.sum()
-    weights = weekend_weights()
     total_km = dgt_car_km()[km_variant]
     counts = drivers_involved().set_index("group").involved
+    mixes = {
+        "same age mix as working days": (pd.Series(1.0, index=GROUPS), (None,)),
+        EMEF_WEEKEND_PROXY: (weekend_weights(), NON_WORKING_SHARES),
+        MOVILIA_WEEKEND: (movilia_weekend_weights(), NON_WORKING_SHARES),
+    }
     rows = []
-    for mix in ("same age mix as working days", "EMEF 2023 weekend trips"):
-        alpha = pd.Series(1.0, index=GROUPS) if mix.startswith("same") else weights
+    for mix, (alpha, shares) in mixes.items():
         weekend = alpha * workday / float((alpha * workday).sum())
-        for share in NON_WORKING_SHARES:
-            annual = (1 - share) * workday + share * weekend
+        for share in shares:
+            annual = workday if share is None else (1 - share) * workday + share * weekend
             rate = counts[list(GROUPS)] / (annual * total_km / BILLION)
             for group in GROUPS:
                 rows.append(
@@ -531,12 +714,173 @@ def weekend_sensitivity(km_variant: str = "less taxi and ride-hailing") -> pd.Da
     return pd.DataFrame(rows)
 
 
+# ----------------------------------------------------------------------------- sensitivity
+
+SURVEY_YEARS_VARIANTS: tuple[tuple[int, ...], ...] = (
+    (2024,),
+    (2023, 2024),
+    (2021, 2022, 2023, 2024),
+    (2019, 2021, 2022, 2023, 2024),
+)
+
+
+def _variant_profiles():
+    """(source, variant, EMEF profile or None, national km by group) for every alternative."""
+    for method, (km, _) in exposure_profiles().items():
+        if method == CENTRAL_METHOD:
+            continue
+        source = "licence-calibrated transfer" if method == LICENCE_METHOD else "regional profile"
+        profile = None
+        if method == LICENCE_METHOD:
+            profile = licence_calibrated(emef_profile())
+        elif method.startswith("C: EMEF, "):
+            profile = emef_profile(method.removeprefix("C: EMEF, "))
+        yield source, method.split(": ", 1)[1], profile, km
+    for name in exposure.trip_variant_names():
+        profile = emef_profile(column=name)
+        yield "distance", name, profile, national_km(profile)[0]
+    for years in SURVEY_YEARS_VARIANTS:
+        profile = emef_profile(years=years)
+        yield "survey years", "-".join(map(str, years)), profile, national_km(profile)[0]
+    for fraction in exposure.PROFESSIONAL_CAR_SHARES:
+        profile = emef_profile(column=_professional_column(fraction))
+        yield (
+            "professionals' work driving",
+            f"{fraction:.0%} of work trips by car",
+            profile,
+            (national_km(profile)[0]),
+        )
+    profile = emef_profile(employment_reweighted=True)
+    yield "older sample", "65+ employed share set to the census", profile, national_km(profile)[0]
+
+
+def sensitivity() -> pd.DataFrame:
+    """Every group's ratio to 45-64 (involved and killed per km) under each alternative choice,
+    beside the central Method A; the weekend mixes come from :func:`weekend_sensitivity`."""
+    counts = drivers_involved().set_index("group")
+    central_km, _ = national_km(emef_profile())
+    rows = []
+
+    def record(source: str, variant: str, km: pd.Series) -> None:
+        share = km / km.sum()
+        for group in GROUPS:
+            row = {"source": source, "variant": variant, "group": group}
+            row["share_of_km"] = float(share[group])
+            for measure in ("involved", "killed"):
+                rate = float(counts.loc[group, measure]) / float(km[group])
+                ref = float(counts.loc[REFERENCE, measure]) / float(km[REFERENCE])
+                row[f"{measure}_ratio"] = rate / ref
+            rows.append(row)
+
+    record("central", "Method A", central_km)
+    for source, variant, _, km in _variant_profiles():
+        record(source, variant, km)
+    weekend = weekend_sensitivity()
+    weekend = weekend[weekend.non_working_share_of_km.notna()]
+    for (mix, share), part in weekend.groupby(["non_working_age_mix", "non_working_share_of_km"]):
+        km = part.set_index("group").share_of_km
+        record("non-working days", f"{mix}, {share:.0%} of km", km)
+    return pd.DataFrame(rows)
+
+
+def unknown_age_bounds() -> pd.DataFrame:
+    """Involvement ratios to 45-64 if every driver of unrecorded age were in one group."""
+    counts = drivers_involved().set_index("group").involved
+    km, _ = national_km(emef_profile())
+    unknown = float(counts["unknown"])
+    rows = []
+    for assigned in (None, *GROUPS):
+        involved = counts[list(GROUPS)].copy()
+        if assigned is not None:
+            involved[assigned] += unknown
+        rate = involved / km[list(GROUPS)]
+        for group in GROUPS:
+            rows.append(
+                {
+                    "unknown_age_assigned_to": assigned or "left out",
+                    "group": group,
+                    "involved_ratio": float(rate[group] / rate[REFERENCE]),
+                }
+            )
+    return pd.DataFrame(rows)
+
+
+def sex_per_km() -> pd.DataFrame:
+    """Men against women aged 18 and over: private-car drivers involved and killed per km, with
+    the km split by sex from the Method A profile (the same transfer as for age)."""
+    profile = emef_profile()
+    population = population_by_group().set_index(["sex", "group"]).population
+    involved = io_tables.read_table("tables_drivers_involved")
+    victims = io_tables.read_table("tables_driver_victims")
+    bands = [b for group in GROUPS for b in NUMERATOR_BANDS[group]]
+    rows = []
+    km_rep = {}
+    for sex in SEXES:
+        km = sum(profile[(sex, g)][0] * population[(sex, g)] for g in GROUPS)
+        km_rep[sex] = sum(profile[(sex, g)][1] * population[(sex, g)] for g in GROUPS)
+        n_inv = involved[
+            (involved.year == YEAR)
+            & involved.vehicle_type.isin(PRIVATE_CARS)
+            & (involved.sex == sex)
+            & involved.band.isin(bands)
+        ].value.sum()
+        n_killed = victims[
+            (victims.year == YEAR)
+            & victims.vehicle_type.isin(PRIVATE_CARS)
+            & (victims.sex == sex)
+            & (victims.severity == "deaths_30d")
+            & victims.band.isin(bands)
+        ].value.sum()
+        rows.append(
+            {"sex": sex, "share_of_km": km, "involved": float(n_inv), "killed": float(n_killed)}
+        )
+    out = pd.DataFrame(rows).set_index("sex")
+    out["share_of_km"] = out.share_of_km / out.share_of_km.sum()
+    rng = np.random.default_rng(SEED)
+    n_rep = len(km_rep["male"])
+    result = []
+    for measure in ("involved", "killed"):
+        point = (out.loc["male", measure] / out.loc["male", "share_of_km"]) / (
+            out.loc["female", measure] / out.loc["female", "share_of_km"]
+        )
+        male = rng.gamma(out.loc["male", measure] + 0.5, 1.0, n_rep) / km_rep["male"]
+        female = rng.gamma(out.loc["female", measure] + 0.5, 1.0, n_rep) / km_rep["female"]
+        result.append(
+            {
+                "measure": f"{measure} per km",
+                "men_share_of_km": float(out.loc["male", "share_of_km"]),
+                "men": float(out.loc["male", measure]),
+                "women": float(out.loc["female", measure]),
+                "ratio_men_to_women": float(point),
+                "ratio_low": float(np.percentile(male / female, 2.5)),
+                "ratio_high": float(np.percentile(male / female, 97.5)),
+            }
+        )
+    return pd.DataFrame(result)
+
+
 # ----------------------------------------------------------------------------- old figure
+
+
+def owner_km_by_group() -> pd.Series:
+    """Private owners' car km in 2024 summed onto the driver groups (18-29 from the owner bands
+    18-20 to 25-29, as the numerator; company cars excluded)."""
+    km = io_exposure.read_exposure("km_edad_propietario_2024")
+    cars = km[(km.vehicle_group == "car") & (km.year == YEAR) & ~km.is_company]
+    by_band = cars.groupby("band").total_km.sum()
+    return pd.Series(
+        {
+            group: float(by_band.reindex(list(bands)).sum())
+            for group, bands in NUMERATOR_BANDS.items()
+        }
+    )
 
 
 def owner_age_comparison() -> pd.DataFrame:
     """The former figure (involvement per km of cars registered to owners of each age, all car
-    types including public service) beside the driver-age estimate of Method A/B."""
+    types including public service, against 35-54), the same owner km on the driver groups and
+    reference used now (private cars, against 45-64), and the driver-age estimate of Method
+    A/B."""
     from dgt_stats import driver_risk
 
     old = driver_risk.km_rates(YEAR)
@@ -556,8 +900,23 @@ def owner_age_comparison() -> pd.DataFrame:
             old.band, old.drivers_involved, old.billion_km, old.involved_per_bn_km, old.ratio
         )
     ]
+    owner = owner_km_by_group()
+    counts = drivers_involved().set_index("group").involved
+    reference_rate = float(counts[REFERENCE]) / float(owner[REFERENCE])
+    rows += [
+        {
+            "denominator": "km of cars registered to owners of this age, same age groups",
+            "group": group,
+            "involved": float(counts[group]),
+            "billion_km": float(owner[group]) / BILLION,
+            "involved_per_bn_km": float(counts[group]) / (float(owner[group]) / BILLION),
+            "ratio_to_reference": float(counts[group]) / float(owner[group]) / reference_rate,
+            "reference": REFERENCE,
+        }
+        for group in (*GROUPS, *OLDER)
+    ]
     new = rates()
-    new = new[new.method.str.startswith("A:")]
+    new = new[new.method == CENTRAL_METHOD]
     rows += [
         {
             "denominator": "km driven by drivers of this age (EMEF profile, DGT total)",

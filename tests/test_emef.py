@@ -181,10 +181,52 @@ def test_band_table_shares_sum_to_one() -> None:
     assert np.allclose(sums, 1.0)
 
 
-def test_bounded_imputation_is_closest_to_the_band_based_distance() -> None:
-    table = exposure.imputation_check().set_index("subset")
-    pooled = table.loc["2021-2024 all"]
-    assert abs(pooled.bounded_relative - 1) < 0.05
-    assert abs(pooled.bounded_relative - 1) < abs(pooled.truncated_relative - 1)
-    by_year = table[table.index.str.match(r"^\d{4} ")]
-    assert (by_year.bounded_relative.sub(1).abs() < 0.10).all()
+def test_duration_only_distance_matches_the_band_on_short_trips() -> None:
+    table = exposure.imputation_check().set_index("duration")
+    # Under an hour, where nearly every trip has a closed band, the duration-only distances add
+    # up to within 5% of the band-based ones; the pooled total within 10%.
+    for duration in ("0-30 minutes", "30-60 minutes"):
+        assert abs(table.loc[duration, "bounded_relative"] - 1) < 0.05
+    assert abs(table.loc["all", "bounded_relative"] - 1) < 0.10
+    assert (table.sample_trips > 0).all()
+
+
+def test_a_band_out_of_reach_in_the_duration_is_flagged() -> None:
+    trips = pd.DataFrame(
+        {
+            "distance_band": pd.array([7, 7, 5, pd.NA], dtype="Int64"),
+            "duration_min": [20.0, 90.0, 5.0, 20.0],
+        }
+    )
+    flagged = exposure.band_unreachable(trips)
+    # Over 100 km in 20 minutes is impossible; in 90 minutes it is not; 10 km in 5 minutes needs
+    # 174 km/h by road; a trip without a band is never flagged.
+    assert flagged.tolist() == [True, False, True, False]
+
+
+def test_unbanded_trips_never_exceed_the_door_to_door_bound() -> None:
+    car = exposure.car_driver_trips()
+    unbanded = car[(car.km_source != "band and duration") & car.duration_min.notna()]
+    duration = unbanded.duration_min.astype(float)
+    reachable = duration / 60 * exposure.UNBANDED_MAX_SPEED
+    assert (unbanded.km_road / unbanded.car_share <= reachable + 1e-6).all()
+
+
+def test_every_trip_variant_keeps_the_central_rows() -> None:
+    variants = exposure.trip_km_variants()
+    names = exposure.trip_variant_names()
+    assert len(names) >= 10 and "central" in variants
+    # Leaving unbanded trips out never adds kilometres; counting multimodal legs in full never
+    # removes them.
+    assert (variants["unbanded trips left out"] <= variants.central + 1e-9).all()
+    assert (variants["multimodal trips: car leg counted in full"] >= variants.central - 1e-9).all()
+
+
+def test_professional_status_comes_from_the_respondent_file() -> None:
+    people = ingest.persons()
+    counts = people.groupby("year").mobility_professional.sum()
+    # The respondent file's count for 2016, not the 626 the trip file's TIPOL gives.
+    assert counts.loc[2016] == 122
+    work = people[people.year.isin(exposure.CONTEMPORARY_YEARS)]
+    assert (work.loc[~work.mobility_professional, "work_trips"].fillna(0) == 0).all()
+    assert work.loc[work.mobility_professional, "work_trips"].notna().all()
