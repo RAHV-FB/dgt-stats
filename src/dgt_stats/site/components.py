@@ -762,8 +762,9 @@ def render_page(slug: str, title: str, lead: str, body: str, head: str = "") -> 
 <div class="site-footer-inner">
 <p>{SITE_TITLE}, an independent analysis by <a href="{PROFILE_URL}">Russell Howard (RAHV-FB)</a>.
 Data from the Dirección General de Tráfico, INE, the Ministerio de Transportes, CORES, the Servei
-Català de Trànsit, the Ajuntament de Barcelona, the Autoritat del Transport Metropolità (EMEF) and
-the Consorcio Regional de Transportes de Madrid (<a href="https://www.crtm.es">Powered by CRTM</a>).
+Català de Trànsit, the Ajuntament de Barcelona, the Autoritat del Transport Metropolità, Idescat and
+Institut Metròpoli (EMEF), Idescat (population census) and the Consorcio Regional de Transportes de
+Madrid (<a href="https://www.crtm.es">Powered by CRTM</a>).
 All results are computed from the published files by the code in the repository.</p>
 <p><a href="sources.html">Data sources</a> · <a href="data.html">Methodology</a> ·
 <a href="data.html#reuse">Reuse and licences</a> ·

@@ -124,8 +124,9 @@ illustrates. Of the tables, `gen_population_context`, `ml_recording_check`, `ml_
 `mq_bcn_coordinates`, `mq_bcn_null_rates` and `mq_cat_placeholders` feed generated documents
 (`docs/GENERALISABILITY.md`, `docs/ML_LEAKAGE_AUDIT.md`, `docs/DATA_QUALITY_MICRODATA.md`) and the
 model cards. They are kept as the record behind those documents. `ml_missingness` and
-`ml_transport_reweighting` support nothing published; they are kept as downloads of the models
-page, so that every committed table is reachable, rather than deleted.
+`ml_transport_reweighting` support nothing published and no page links them. They are kept in
+`reports/tables/` as the record of the fits that wrote them, and are not published on the site,
+which copies only the tables a page links.
 
 ## Writing rules for the rewritten text
 

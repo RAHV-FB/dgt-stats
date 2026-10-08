@@ -15,6 +15,7 @@ import pandas as pd
 from dgt_stats.microdata import barcelona
 from dgt_stats.microdata.common import read_provenance
 from dgt_stats.microdata.ml import features, modelling, recording, rules
+from dgt_stats.microdata.validation.decisions import STATUS
 from dgt_stats.paths import DOCS_DIR, FEATURES_DATA_DIR, TABLES_DIR
 
 MODEL_DOCS = DOCS_DIR / "models"
@@ -306,7 +307,13 @@ def model_card(task: modelling.TaskResult, tables: dict[str, pd.DataFrame]) -> s
         )
         + ".",
         f"- **Layer:** {decision.layer}.",
-        f"- **Decision:** {decision.decision} ({decision.usefulness}).",
+        (
+            f"- **Status:** {STATUS[name]}, after the model review "
+            "([`ML_MODEL_REVIEW.md`](../research/ML_MODEL_REVIEW.md)). The decision rules "
+            f"gave: {decision.decision} ({decision.usefulness})."
+            if name in STATUS
+            else f"- **Decision:** {decision.decision} ({decision.usefulness})."
+        ),
         f"- **What it does:** {decision.question_answered}.",
         f"- **Not answered:** {decision.question_not_answered}.",
         "",

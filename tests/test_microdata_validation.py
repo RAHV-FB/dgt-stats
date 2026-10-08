@@ -338,6 +338,36 @@ def test_model_decisions_follow_the_declared_rules() -> None:
                 assert row.decision in rules_module.FEATURED, row.model
 
 
+def test_the_committed_decision_document_is_the_one_the_tables_give() -> None:
+    from dgt_stats.microdata.validation import decisions as d
+
+    frame = _table("ml_model_decisions")
+    path = _table("ml_outward_path")
+    assert d.DOC.read_text(encoding="utf-8") == d.document(frame, path)
+
+
+def test_every_model_has_one_status_and_a_card() -> None:
+    from dgt_stats.microdata.ml import reporting
+    from dgt_stats.microdata.validation import decisions as d
+    from dgt_stats.paths import DOCS_DIR
+
+    # Each model the review changed has a short status as the site gives it, and every
+    # document leads with that status rather than with the rules' decision.
+    assert set(d.STATUS) == set(d.AFTER_REVIEW)
+    assert d.STATUS["dgt_monthly_deaths_forecast"] == "withdrawn"
+    assert d.STATUS["barcelona_person_severity"] == "research only"
+    document = d.DOC.read_text(encoding="utf-8")
+    assert f"| {d.CALCULATOR['model']} |" in document
+    for model, card in reporting.CARD_NAMES.items():
+        text = (DOCS_DIR / "models" / f"{card}.md").read_text(encoding="utf-8")
+        if model in d.STATUS:
+            assert f"- **Status:** {d.STATUS[model]}, after the model review" in text, card
+            assert "- **Decision:**" not in text, card
+    forecast = (DOCS_DIR / "models" / "dgt_monthly_deaths_forecast.md").read_text("utf-8")
+    assert forecast.count("**Status:** withdrawn") == 1 and "**Decision:**" not in forecast
+    assert (DOCS_DIR / "models" / f"{d.CALCULATOR['model']}.md").exists()
+
+
 def test_the_decision_rules_apply_in_the_declared_order() -> None:
     from dgt_stats.microdata.validation import decisions as d
 

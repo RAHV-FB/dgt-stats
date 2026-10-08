@@ -79,7 +79,7 @@ corrected (point 15). No calculation in a committed table was found to be wrong.
 | Barcelona person severity (boosted trees) | **Research only**: 58 serious or fatal cases in the test months |
 | Catalan model on DGT- or Barcelona-common variables | **Research only**: transfer tests |
 | DGT crash severity (association model) | **Research only**: blank fields alone rank fatal crashes (ROC-AUC 0.72) |
-| Monthly road deaths forecast | **Removed** as a forecast: 6.6% error against 5.9% for last year's count in the ordinary held-out years; the page is a withdrawal notice |
+| Monthly road deaths forecast | **Withdrawn** as a forecast: 6.6% error against 5.9% for last year's count in the ordinary held-out years; the page is a withdrawal notice |
 
 Source: [`ML_MODEL_REVIEW.md`](ML_MODEL_REVIEW.md).
 

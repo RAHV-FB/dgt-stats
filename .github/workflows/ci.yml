@@ -62,9 +62,9 @@ jobs:
       # The regional crash-record layers (Catalonia, Barcelona): staging, canonical tables, the
       # data-quality report, the feature tables, the descriptive tables and the source comparison,
       # rebuilt from the raw files on every run (a few minutes). The source models and their
-      # validation take about an hour and write committed tables, so CI does not refit them; the
-      # tests check the feature tables, the leakage catalogue, the split isolation, the decision
-      # rules and the committed validation tables directly.
+      # validation take about half an hour and write committed tables, so CI does not refit them;
+      # the tests check the feature tables, the leakage catalogue, the split isolation, the
+      # decision rules and the committed validation tables directly.
       - name: Build the regional layers
         env:
           OMP_NUM_THREADS: "1"

@@ -47,7 +47,7 @@ from functools import cache
 import numpy as np
 import pandas as pd
 
-from dgt_stats.emef import exposure
+from dgt_stats.emef import exposure, publication
 from dgt_stats.exposure_risk import calendar
 from dgt_stats.microdata import barcelona
 
@@ -328,7 +328,11 @@ def km_composition() -> pd.DataFrame:
     out = pd.DataFrame(rows)
     for column in ("internal_km_per_day", "crossing_capped_km_per_day", "crossing_km_per_day"):
         out[column.replace("_per_day", "_share")] = out[column] / out[column].sum()
-    return out
+    # The EMEF's publication rule: an estimate needs 20 respondents behind it.
+    internal = ["internal_km_per_day", "internal_km_share"]
+    crossing = [c for c in out.columns if c.startswith("crossing_")]
+    out = publication.suppress_small_cells(out, "respondents_with_internal_trip", internal)
+    return publication.suppress_small_cells(out, "respondents_with_crossing_trip", crossing)
 
 
 def older_ratios() -> pd.DataFrame:

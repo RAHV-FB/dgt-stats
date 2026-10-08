@@ -13,6 +13,11 @@ generated in [`DATA_QUALITY_MICRODATA.md`](DATA_QUALITY_MICRODATA.md),
 1. **The data define the analysis.** Every result comes from rows and columns of files under
    `data/raw`. External publications may define a variable or a method; they never supply an
    observation, a coefficient, a relative risk, a missing variable, a join or a confirmation.
+   One exception remains: the EMEF's road-to-straight-line distance ratio for driving trips
+   (1.45) and the 2021 distance benchmarks, typed into `src/dgt_stats/emef/distance.py` from
+   the EMEF 2021 distance report, the survey producer's measurement on the same survey's 2021
+   trips. The report is not archived and could not be found again, so these values rest on the
+   transcription ([`research/DRIVER_AGE_EXPOSURE.md`](research/DRIVER_AGE_EXPOSURE.md)).
 2. **Raw files are immutable.** `data/raw/<source>/` holds files byte for byte, each listed in
    `data/raw/manifest.csv` with its SHA-256 (checked by `tests/test_paths.py`). Cleaning writes
    new files in `data/staging`, `data/processed` and `data/features`; nothing is edited by hand.

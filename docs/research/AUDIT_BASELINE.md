@@ -9,7 +9,7 @@ that every later change can be measured against it. The full source-to-claim map
 | Item | Value |
 |---|---|
 | `main` head when the rebuild began | `d111da8` ("EMEF 14-16"); the last commit that changed code or results is `09feaae` ("Site Design Pass") |
-| EMEF files | 34 files committed loose at the repository root by `669505d`, `8ca9221` and `d111da8`; filed under `data/raw/emef/<year>/` by `e7a27d1` |
+| EMEF files | 33 files committed loose at the repository root (13 by `669505d`, 11 by `8ca9221` and 9 by `d111da8`); filed under `data/raw/emef/<year>/` by `e7a27d1`, which also added the revised 2022 dictionary |
 | Test suite | 299 passed, 1 deselected (`-m slow`), with the national and regional data layers built (Python 3.13, the locked dependency set). Without the layers, `tests/test_microdata_models.py::test_cross_source_models_use_only_validated_or_exact_fields` fails on a missing file instead of skipping |
 | Reproducibility | Rebuilding the national layers (`ingest.py all`, `build_tables.py`, `model.py`) and the regional layers (`microdata.py build quality features analyse sources`) left every committed table unchanged; rebuilding the site from the committed tables reproduced all 24 HTML files byte for byte |
 | Reconciliation | all 482 checks of `validate.run_all` pass |

@@ -2,10 +2,11 @@
 
 The source register, as of the published site (October 2026). Paths are relative to `data/raw/`,
 where the files are grouped by the body that publishes them (`dgt/`, `ine/`, `transportes/`,
-`cores/`, `comunidad_madrid/`, `catalonia/`, `barcelona/2025/`, `emef/`) and the values typed by hand from
+`cores/`, `comunidad_madrid/`, `catalonia/`, `barcelona/2025/`, `emef/`, `crtm/`, `idescat/`) and the values typed by hand from
 publications sit apart in `compiled/`. Every file is listed with size, SHA-256, source URL,
-description, the date added and, for the regional files, the name it was downloaded under in
-`data/raw/manifest.csv`; the generated [`RAW_FILE_INVENTORY.md`](RAW_FILE_INVENTORY.md) lists every
+description and the date added in `data/raw/manifest.csv`, and, where it was filed under a new
+name (the regional crash files, the EMEF files and a few others), the name it was downloaded
+under; the generated [`RAW_FILE_INVENTORY.md`](RAW_FILE_INVENTORY.md) lists every
 file with its format, rows and unit of observation, the audit of what each supports is in
 [`data_inventory.md`](data_inventory.md), and what each dataset may be joined to is in
 [`DATA_CONTRACT.md`](DATA_CONTRACT.md). The page column names where the file's numbers appear on
@@ -26,9 +27,10 @@ sources and there is no merged database. The DGT crash microdata do not train a 
 association analysis. MOVILIA 2006 (tables 9, 61, 64 and 72) and MOVILIA 2007 (tables 13 and 18)
 are read for sensitivity tests of the national driver-age rates (weekend and long-distance age
 mixes, and the coverage of DGT's kilometres). The Madrid MOVILIA extracts, the ECEPOV and EHMA
-survey files and the `compiled/` registers are read by no code: no analysis or page uses them, and
-the only code that opens them is the generated inventory, which opens every file under `data/raw/`
-to count its rows.
+survey files, the `compiled/` registers and a few DGT files are read by no code: no analysis or
+page uses them, and the only code that opens them is the generated inventory, which opens every
+file under `data/raw/` to count its rows. Why each is kept is set out under [Files kept but not
+read](#files-kept-but-not-read).
 
 ## Providers
 
@@ -71,6 +73,12 @@ to count its rows.
   survey of residents aged 16 and over in the ATM planning area (SIMMB), 2014–2024, one trip file,
   one respondent file and one dictionary per year (`emef/<year>/`). Each file was compared byte for
   byte with the copy served by omc.cat on 7 October 2026 and matched.
+- **Àrea Metropolitana de Barcelona** (RECAM, its knowledge repository, <https://recam.amb.cat>):
+  the EMEF 2024 executive summary by Institut Metròpoli (`emef/2024/`), the source of the
+  survey's technical sheet and of the published distance benchmarks the model is checked against.
+- **Idescat** (Institut d'Estadística de Catalunya, <https://www.idescat.cat>): the release on the
+  2024 census and economic activity (`idescat/`), the source of the count of employed people aged
+  65 and over in Catalonia.
 - **ESRA** (E-Survey of Road users' Attitudes, coordinated by Vias institute): the national shares
   of adults who drive, 2018 and 2023, consulted online (section on thematic reports below) and
   typed into `compiled/driving_activity_by_age.csv`, which no code reads; none of its publications
@@ -101,11 +109,13 @@ are hand-typed from the publications they cite.
 |---|---|---|---|
 | DGT, catalogued on datos.gob.es | crash microdata and dictionary (`dgt/microdata/`) | free, non-exclusive licence for commercial and non-commercial reuse: name the origin of the data, do not distort its meaning, keep the date of last update, do not suggest that the publisher endorses the reuse, keep the metadata | <https://datos.gob.es/avisolegal>, the licence named in `dgt/microdata/metadata_2024.rdf.xml` |
 | DGT, from dgt.es | series, statistical tables, driver census, kilometre estimates, thematic reports and errata (`dgt/tables/`, `dgt/census/`, `dgt/km_itv_2022/`, `dgt/km_itv_2024/`, `dgt/reports/`) | public-sector information within the scope of Ley 37/2007. DGT's legal notice claims the intellectual property of the portal, its graphic design and its code, states that unauthorised reproduction, distribution, commercialisation or transformation of those works other than for personal and private use is an infringement, and warns that unauthorised placement of the information the portal contains may lead to legal action; it grants no reuse licence for the statistics and names no licence at all. Redistribution of these files here therefore rests on the Ley 37/2007 regime for public-sector information, applying the datos.gob.es conditions above to every DGT file by this project's own choice; no permission has been requested from DGT | <https://www.dgt.es/contenido/aviso-legal/> |
-| INE | population (`ine/ine_poblacion_provincias_edad_sexo.csv`, `ine/ine_poblacion_edad_simple_sexo.csv`), ECEPOV 2021 and EHMA 2008 (`ine/`) | Creative Commons Attribution 4.0 unless a product says otherwise; processed data are cited as "Elaboración propia con datos extraídos del sitio web del INE: www.ine.es"; keep the date of last update; do not suggest that INE endorses the reuse | <https://www.ine.es/aviso_legal/> |
+| INE | population (`ine/ine_poblacion_provincias_edad_sexo.csv`, `ine/ine_poblacion_edad_simple_sexo.csv`), ECEPOV 2021 and EHMA 2008 (`ine/`) | [Creative Commons Attribution 4.0](https://creativecommons.org/licenses/by/4.0/) unless a product says otherwise; processed data are cited as "Elaboración propia con datos extraídos del sitio web del INE: www.ine.es"; keep the date of last update; do not suggest that INE endorses the reuse | <https://www.ine.es/aviso_legal/> |
 | Ministerio de Transportes y Movilidad Sostenible | MOVILIA 2006 and 2007 workbooks (`transportes/movilia_2006.xls`, `transportes/movilia_2007.xls`); the toll-motorway traffic series (`transportes/peaje_trafico_total.xls`); the roads chapter of the Anuario Estadístico 2023 (`transportes/anuario_carreteras_2023.pdf`) | reusable for commercial and non-commercial purposes: cite "Origen de los datos: Ministerio de Transportes y Movilidad Sostenible", keep the date of last update, do not distort the content, do not suggest endorsement, keep the metadata | <https://www.transportes.gob.es/ministerio/aviso-legal> |
 | Comunidad de Madrid, Instituto de Estadística | five MOVILIA 2006 tables for Madrid (`comunidad_madrid/movilia_madrid/`) | copying and distribution allowed provided the pages are not used directly for commercial purposes, the source is cited, the content is neither altered nor its meaning distorted, and no sponsorship is implied. These five files carry a condition the code licence does not; a commercial reuse of them goes back to the provider | <https://www.madrid.org/iestadis/fijas/otros/avisolegal.htm> |
-| ATM (Autoritat del Transport Metropolità), on omc.cat | the EMEF microdata and dictionaries in `emef/` | the OMC legal notice's open-data clause permits reproduction, distribution, public communication and transformation worldwide and without time limit under article 8 of Ley 37/2007, on four conditions: cite the rights holder (Consorci de l'Autoritat del Transport Metropolità de l'àrea de Barcelona), do not distort the meaning, cite the source, state the date of last update (the manifest descriptions give each file's date on omc.cat). The dictionaries add that results computed from the public-use files are the user's responsibility, not official statistics, and should be cited as "ATM, Idescat i Institut Metròpoli, <year>. Enquesta de mobilitat en dia feiner <year>. Autoritat del Transport Metropolità"; they also ask that no estimate resting on fewer than 20 sample observations be published | <https://www.omc.cat/ca/avis-legal>, read on 7 October 2026; the `Sumari` sheet of each dictionary |
+| ATM (Autoritat del Transport Metropolità), on omc.cat | the EMEF microdata and dictionaries in `emef/` | the OMC legal notice's open-data clause permits reproduction, distribution, public communication and transformation worldwide and without time limit under article 8 of Ley 37/2007, on four conditions: cite the rights holder (Consorci de l'Autoritat del Transport Metropolità de l'àrea de Barcelona), do not distort the meaning, cite the source, state the date of last update (the manifest descriptions give each file's date on omc.cat). The dictionaries add that results computed from the public-use files are the user's responsibility, not official statistics, and should be cited as "ATM, Idescat i Institut Metròpoli, <year>. Enquesta de mobilitat en dia feiner <year>. Autoritat del Transport Metropolità"; they also allow an estimate to be published only if it rests on at least 20 sample observations, and a table only if at least 60% of its cells can be (note 3 of the `Sumari` sheet), and the published tables apply that rule (`src/dgt_stats/emef/publication.py`) | <https://www.omc.cat/ca/avis-legal>, read on 7 October 2026; the `Sumari` sheet of each dictionary |
 | Consorcio Regional de Transportes de Madrid (CRTM), on its ArcGIS open-data site | the EDM2018 extracts in `crtm/edm2018/` | the CRTM open-data licence permits reuse, commercial or not, on three conditions: cite the CRTM as the source, show "Powered by CRTM" with a link to www.crtm.es on any digital platform that uses the data, and distribute derived data under the same licence. The extracts keep columns and rows of the published workbooks unchanged; they and the tables derived from them (`reports/tables/edm_*.csv`, and the Madrid profiles in `risk_*.csv`) are distributed under that licence, as the site's methodology page states | <https://www.crtm.es/licencia-de-uso>, the licence linked from each ArcGIS item, read on 8 October 2026 |
+| Idescat (Institut d'Estadística de Catalunya) | `idescat/idescat_census_2024_activity_release.html`, the release of 8 July 2026 on the 2024 census and economic activity, kept unchanged; one count from it (67,143 employed people aged 65 and over in Catalonia) is typed into `emef/exposure.py` | Idescat's legal notice, section "Intellectual property rights", allows the information on its website to be reused provided that the source is quoted, the content is not altered or denatured and the date of the latest update is mentioned; information processed afterwards is cited as "Source: created upon the basis of Idescat's own data" (unprocessed, "Source: Idescat"); no involvement, sponsorship or support by Idescat may be suggested; Idescat may limit reuse to protect other legal interests, such as privacy or third parties' intellectual property. It names no Creative Commons or other standard licence, and cites Ley 37/2007 as amended by Ley 18/2015 | <https://www.idescat.cat/institut/web/?lang=en> (legal notice), read on 8 October 2026 |
+| Àrea Metropolitana de Barcelona (AMB), on its repository RECAM (recam.amb.cat) | `emef/2024/emef_2024_executive_summary.pdf`, *Enquesta de mobilitat en dia feiner: EMEF, 2024* (Institut Metròpoli, edited by the AMB, issued 1 April 2025; <https://hdl.handle.net/20.500.14439/4922>), kept unchanged; four figures from it (the mean straight-line trip and the daily straight-line kilometres per person in three age groups) are typed into `emef/distance.py`, where they are used only to check the distance model | Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0), rights holder the Àrea Metropolitana de Barcelona, as the repository's record of the item states: the PDF may be copied and redistributed unchanged, for non-commercial purposes, with attribution and a link to the licence. The MIT licence of the code does not reach it, and a commercial reuse of the PDF goes back to the AMB | <https://creativecommons.org/licenses/by-nc-nd/4.0/>, the licence named in the item's record (`dc.rights`, `dc.rights.uri`, `dc.rights.holder`), read through the repository's API on 8 October 2026 |
 | Fundación MAPFRE | none archived; three driving-frequency rows typed into `compiled/driving_activity_by_age.csv` | a private foundation, not a public body, so the Ley 37/2007 regime applied to the DGT files does not reach it: the report offers no reuse licence and none was requested. The three shares (0.559 / 0.303 / 0.138 of Madrid drivers aged 65+, n 300, year inferred) are short quotations with attribution to "Mayores de 65 años y seguridad vial" and its URL; the PDF is not archived here and no code reads them | <https://app.mapfre.com/ccm/content/documentos/fundacion/seg-vial/investigacion/mayores-y-seguridad-vial.pdf>; the foundation's site publishes no reuse notice, only a privacy policy (<https://www.fundacionmapfre.org/politica-privacidad/>), as read on 22 September 2026 |
 | CORES | `cores/cores_consumos_pp.xlsx` | public-sector information within the scope of Ley 37/2007: CORES is a corporation of public law under the Ministerio para la Transición Ecológica and publishes these statistics as part of its statutory duty. Its site names no reuse licence, so the file is redistributed here on the same footing as the DGT statistics, applying the datos.gob.es conditions by this project's own choice: the source is named, the meaning is not distorted, the date of last update is kept (the `Actualizado el` cell of each sheet) and no endorsement is implied | <https://www.cores.es/es/estadisticas> |
 | Servei Català de Trànsit, on the Generalitat's open-data portal | `catalonia/accidents_morts_ferits_greus_catalunya_2010_2023.csv` | the portal gives the licence as "See Terms of Use", linking the Llicència oberta d'ús d'informació - Catalunya: sharing, modification and reuse are free on condition that the content and its meaning are not altered, the source is cited as "Generalitat de Catalunya. Departament d'Interior i Seguretat Pública. Servei Català de Trànsit", and the date of last update is stated (5 December 2024 on the portal); sublicensing is not allowed, so the file is redistributed here under that licence and not under the code's | <https://administraciodigital.gencat.cat/ca/dades/dades-obertes/informacio-practica/llicencies/>, read on 8 October 2026; dataset metadata at <https://analisi.transparenciacatalunya.cat/d/rmgc-ncpb> |
@@ -113,6 +123,40 @@ are hand-typed from the publications they cite.
 | ESRA (Vias institute and partner institutes) | none archived; two national shares typed into `compiled/driving_activity_by_age.csv` | no reuse licence is offered: the Vias disclaimer linked from the ESRA site footer claims intellectual rights over its contents for Vias institute "or entitled third parties", and no reproduction permission is stated in the reports or was requested, so nothing of theirs is redistributed here. The two shares are short quotations with attribution: the 2023 share (75.9 %, weighted n 935) from the ESRA3 main report, Table 6, and the Spain country fact sheet; the 2018 share (80.2 %, weighted n 906) from the ESRA-123 online dashboard, which publishes no downloadable table | <https://www.esranet.eu/en/publications/>, <https://www.vias.be/en/disclaimer> |
 | Register of the withdrawn speed-law simulator (`compiled/evidence/simulator_parameters.csv`) | compiled by this project; read by no code | the values are quoted with attribution from their publications (TØI report 1034/2009; Trafikksikkerhetshåndboken, TØI for Statens vegvesen; European Commission, Baseline KPI Speeding; BOE; DGT); no publication is redistributed, and each row names its source, location and URL | the URLs in the file |
 | Register of the withdrawn factor models (`compiled/evidence/factor_parameters.csv`) | compiled by this project; read by no code | the values are quoted with attribution from their publications (DGT's yearly Principales cifras and its 2024 errata; the INTCF toxicology reports of the Ministerio de Justicia; DGT's EDAP 2024 roadside survey; the EU DRUID final report; Dingus et al. 2016, PNAS; the EU Baseline KPI reports; ESRA3; Trafikksikkerhetshåndboken; Novoa et al. 2010; Bergen et al. 2014; Zhu et al. 2021; Ferdinand et al. 2014); no publication is redistributed, and each row names its source, location and URL | the URLs in the file |
+
+### Dates of last update
+
+The DGT (through datos.gob.es), INE, Ministerio de Transportes, OMC, Idescat and Generalitat terms
+ask that the date of the data's last update be kept. The dates below are those the providers
+publish, as the manifest's descriptions or the files themselves record them. Where a provider
+publishes none, the date given is the download date (the manifest's `added` column), and the entry
+says so. The methodology page's Reuse section gives the same dates, read from the manifest when the
+page is built.
+
+- **DGT.** The 2024 crash microdata were last updated on 5 November 2025 (below). No date of last
+  update is published for the 2016–2023 microdata files or for DGT's tables, series, census,
+  kilometre releases and reports. They are dated by download only: from 18 September 2026 or
+  earlier (the manifest records the first files as added "before 2026-09-18") to 8 October 2026,
+  each file's date being in the manifest.
+- **INE.** The population tables as downloaded carry no date of last update. The two extracts were
+  written from tables downloaded on 19 September 2026 (table 56947) and 8 October 2026 (table
+  56934); the ECEPOV and EHMA files, read by no code, on 19 September 2026.
+- **Ministerio de Transportes y Movilidad Sostenible.** No date of last update is published with
+  the files. The roads chapter of the Anuario Estadístico 2023 was created on 13 January 2025 and
+  last modified on 29 January 2025, by the PDF's own metadata (`tests/test_paths.py` checks the
+  manifest against them). The toll-motorway series was downloaded on 22 September 2026 and the
+  MOVILIA workbooks on 19 September 2026, and are dated by download only.
+- **CORES.** Every sheet of `cores/cores_consumos_pp.xlsx` states "Actualizado el 14-09-2026"
+  (14 September 2026).
+- **OMC (EMEF).** Each file's date on omc.cat is in its manifest description: from 9 October 2023
+  (the 2021 and 2022 microdata) to 23 September 2026 (the 2021 and 2022 dictionaries).
+- **Idescat.** The census release is dated 8 July 2026.
+- **AMB (EMEF 2024 executive summary).** Issued on 1 April 2025, as the repository's record
+  states; its licence does not ask for a date of update.
+- **Servei Català de Trànsit.** Rows last updated on the portal on 5 December 2024.
+- **Ajuntament de Barcelona.** The 2025 resources were last modified on 17 February 2026.
+- **CRTM.** The EDM2018 licence does not ask for a date of update; the extracts were written on 8
+  October 2026 from the workbooks whose checksums the manifest gives.
 
 ## DGT crash microdata (`dgt/microdata/`)
 
@@ -211,7 +255,9 @@ finer than 65 and over), is set out in
 Three files hold values typed by hand from publications, each row with its source. They are not
 source data: external studies may define a variable or a method in this project but never supply
 an observation, a coefficient or an effect size, so **no code reads them** (`tests/test_withdrawn.py`
-checks that for the two evidence registers). They are kept, unmodified and hashed, as the record
+checks that for the two evidence registers). The one exception to that rule, the EMEF 2021
+distance report's road-to-straight-line ratio and benchmarks typed into `emef/distance.py`, is
+set out in [`DATA_CONTRACT.md`](DATA_CONTRACT.md), rule 1. They are kept, unmodified and hashed, as the record
 of what was searched and of what the withdrawn analyses used: the speed-law simulator, the
 distraction and alcohol-and-drug models and the enforcement comparison were withdrawn because
 their results came from external-study coefficients, and their pages are now withdrawal notices.
@@ -245,6 +291,23 @@ fact sheet (<https://www.esranet.eu/storage/minisites/esra2023countryfactsheetsp
 which appears in no downloadable table. The ESRA3 methodology report and thematic report no. 5
 (young and ageing drivers, both at <https://www.esranet.eu/en/publications/>) were consulted at the
 same time; nothing from them enters a table.
+
+## Files kept but not read
+
+Raw files are never edited or deleted (`DATA_CONTRACT.md`, rule 2). The manifest is the record of
+what was examined, so a file that was checked and not used stays with its checksum, and the check
+can be repeated. The files below are read by no analysis; each is kept for the reason given.
+
+| File | Why it is kept |
+|---|---|
+| `compiled/driving_activity_by_age.csv`, `compiled/evidence/*.csv` | the record of what was searched and of the published values the withdrawn analyses used ([compiled registers](#compiled-registers-compiled)) |
+| `comunidad_madrid/movilia_madrid/*.xls` | the Madrid statistical office's MOVILIA extract, checked for the same purpose and not used: it gives no driver status by age |
+| `ine/ine_ecepov_2021_55378.xlsx` | checked and not used: commuters by main vehicle, sex and age, with no distance and no trip other than the commute |
+| `ine/ine_ehma_2008_10016.csv`, `ine/ine_ehma_2008_10019.csv` | checked and not used: kilometres per household vehicle by the age of the household's reference person, in bands that stop at 65 and over |
+| `dgt/census/censo_tablas_2024.xlsx` | keeps the yearly series of census workbooks complete; it has no class-by-age sheet, and province totals are read from the 2025 workbook so that 2024–2025 keep one source |
+| `dgt/reports/dgt_personas_mayores_2023.pdf` | DGT's report on road users aged 65 and over, whose per-inhabitant framing the drivers page's denominators test; no figure from it is reproduced |
+| `dgt/reports/dgt_semana_santa_2026.pdf` | DGT's provisional 24-hour figures for Easter 2026, kept with the other DGT reports; provisional counts are never mixed with definitive ones, so nothing is read from it |
+| `dgt/reports/Anuario-estadistico-de-accidentes-201{5,6,7,8,9}-fe-de-erratas.pdf` | DGT's errata to the 2015–2019 yearbooks, consulted by hand when the series and the tables disagreed while those years were reconciled |
 
 ## Not available
 

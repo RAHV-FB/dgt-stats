@@ -195,21 +195,24 @@ def forecast_card(tables: dict[str, pd.DataFrame] | None = None) -> str:
         "(`docs/research/ML_MODEL_REVIEW.md`); `forecast.html` is now a withdrawal notice.",
         "",
         (
-            "**Decision:** REPLACE with the naive forecast (last year's count) for ordinary "
-            "years: it does not beat that comparator on the held-back years "
-            "([`MODEL_DECISIONS.md`](../MODEL_DECISIONS.md)). The model review removed it as a "
-            "published forecast, and with it the detectable change computed from its errors."
+            "**Status:** withdrawn, after the model review "
+            "([`ML_MODEL_REVIEW.md`](../research/ML_MODEL_REVIEW.md)), and with it the "
+            "detectable change computed from its errors. It did not beat last year's count on the "
+            "held-back years, so the decision rules gave REPLACE with the naive forecast for "
+            "ordinary years ([`MODEL_DECISIONS.md`](../MODEL_DECISIONS.md)). What follows is the "
+            "record of what it did."
             if holdout_naive_better
-            else "**Decision:** KEEP: it beats the naive forecasts on the held-back years "
-            "([`MODEL_DECISIONS.md`](../MODEL_DECISIONS.md))."
+            else "**Status:** withdrawn, after the model review "
+            "([`ML_MODEL_REVIEW.md`](../research/ML_MODEL_REVIEW.md)). What follows is the "
+            "record of what it did."
         ),
         "",
         "## Task",
         "",
-        "Forecast the number of people killed within 30 days on Spain's roads in each month of a "
-        "year, from the years before it, as the counterfactual a before-and-after comparison of "
-        "the death counts needs; and measure how large a change in a year's deaths such a "
-        "comparison can detect.",
+        "The model forecast the number of people killed within 30 days on Spain's roads in each "
+        "month of a year, from the years before it, as the counterfactual a before-and-after "
+        "comparison of the death counts needs, and its errors measured how large a change in a "
+        "year's deaths such a comparison could detect. Both were withdrawn.",
         "",
         "- **Unit (one row):** one calendar month of Spain. All roads, interurban roads and "
         "urban streets are three separate models.",
@@ -260,13 +263,14 @@ def forecast_card(tables: dict[str, pd.DataFrame] | None = None) -> str:
         f"{_pct(trees.loc[hindsight, 'selection'])} on the selection years and "
         f"{_pct(trees.loc[hindsight, 'pandemic'])} in the lockdowns.",
         "",
-        "## Horizon error and the detectable change",
+        "## Horizon error and the detectable change (withdrawn)",
         "",
         "For sums of 1 to 5 years, the error of the chosen model's forecast splits into Poisson "
-        "chance and a drift of the trend, `tau`. The detectable change is the fall (or rise) "
+        "chance and a drift of the trend, `tau`. The detectable change was the fall (or rise) "
         f"that a two-sided {forecast.ALPHA:.0%} comparison of the observed count with the "
-        f"forecast detects with {forecast.POWER:.0%} probability, at each zone's mean deaths a "
-        f"year in {last - 2}-{last} times the years summed.",
+        f"forecast would detect with {forecast.POWER:.0%} probability, at each zone's mean "
+        f"deaths a year in {last - 2}-{last} times the years summed. It rested on the "
+        "withdrawn forecast's errors and was withdrawn with it.",
         "",
         _markdown(pd.DataFrame(detect_rows)),
         "",
@@ -281,11 +285,12 @@ def forecast_card(tables: dict[str, pd.DataFrame] | None = None) -> str:
         "",
         "- The forecast is the number of deaths associated with the month's observed traffic and "
         "calendar on the trend of the four years before.",
-        f"- One year of deaths on all roads differs from the forecast by more than chance about "
-        f"four times in five when the change is a fall of {_pct(one.mde, 0)} or a rise of "
-        f"{_pct(rise_one, 0)}; smaller changes are detected less often, not never.",
-        f"- Summing more years does not help: over five years the fall detected four times in "
-        f"five is {_pct(five.mde, 0)}, because the trend drifts from any extrapolation.",
+        f"- By the forecast's errors, one year of deaths on all roads would have differed from "
+        f"the forecast by more than chance about four times in five for a fall of "
+        f"{_pct(one.mde, 0)} or a rise of {_pct(rise_one, 0)}; smaller changes would have been "
+        "detected less often, not never.",
+        f"- Summing more years did not help: over five years the fall detected four times in "
+        f"five was {_pct(five.mde, 0)}, because the trend drifts from any extrapolation.",
         "",
         "## Invalid interpretation",
         "",
@@ -307,13 +312,13 @@ def forecast_card(tables: dict[str, pd.DataFrame] | None = None) -> str:
             "- In the flat held-back years last year's count does slightly better on all roads "
             f"({_pct(rmse('deaths_all', 'holdout', 'last_year'))} against "
             f"{_pct(rmse('deaths_all', 'holdout', chosen))}). By the project's decision rule "
-            "(a model must beat its plain comparator on records it never saw) the forecast is "
-            "replaced by last year's count for ordinary years and is not presented as a "
-            "predictive model ([`MODEL_DECISIONS.md`](../MODEL_DECISIONS.md)). Separately, it is "
-            "far better when traffic moves sharply "
+            "(a model must beat its plain comparator on records it never saw) the forecast was "
+            "to be replaced by last year's count for ordinary years "
+            "([`MODEL_DECISIONS.md`](../MODEL_DECISIONS.md)), and the model review withdrew it. "
+            "Separately, it was far better when traffic moved sharply "
             f"({_pct(rmse('deaths_all', 'pandemic', chosen))} against "
-            f"{_pct(rmse('deaths_all', 'pandemic', 'last_year'))} in the lockdown years), and its "
-            "error sets the detectable change."
+            f"{_pct(rmse('deaths_all', 'pandemic', 'last_year'))} in the lockdown years). Its "
+            "errors set the detectable change, which was withdrawn with it."
         )
     if urban_trend_better:
         lines.append(
@@ -333,8 +338,8 @@ def forecast_card(tables: dict[str, pd.DataFrame] | None = None) -> str:
         "traffic there was.",
         f"- The final fit's window includes {max(years['pandemic'])}, whose low-traffic months "
         "weigh on the fuel coefficient; with four years of data the coefficients are imprecise.",
-        "- The detectable change assumes the forecast's errors are as large after a change as "
-        "before it.",
+        "- The detectable change assumed the forecast's errors would be as large after a change "
+        "as before it.",
         "",
     ]
     return "\n".join(lines)
