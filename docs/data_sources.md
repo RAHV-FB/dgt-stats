@@ -173,6 +173,10 @@ file whose `ID` values all appear in the respondent file.
 | `emef/<year>/emef_<year>_dictionary.xlsx` | one per year | variable list, record layout and value labels of both files |
 | `emef/2022/emef_2022_dictionary_revised.xlsx` | 2022 | the dictionary the OMC page links today: identical to the first release except for the trip-file value-label sheet |
 
+How the eleven years were read, harmonised and checked, and what they cannot show (no age group
+finer than 65 and over), is set out in
+[`research/EMEF_INVENTORY.md`](research/EMEF_INVENTORY.md).
+
 ## Compiled registers (`compiled/`)
 
 Three files hold values typed by hand from publications, each row with its source. They are not
