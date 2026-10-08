@@ -104,8 +104,12 @@ def page_severity(captions: dict[str, str]) -> str:
     locations = locations[locations.outcome == "fatal"]
     artefacts = read_table("dgt_audit_artefacts")
     audit = read_table("dgt_audit_checks")
-    selected = read_table("ml_selected")
-    catalonia_model = selected[selected.primary].set_index("model").loc["catalonia_crash_severity"]
+    # The published Catalan model (the calculator's), scored on the years it had not seen.
+    rolling = read_table("sev_rolling_scores")
+    pooled_span = str(rolling.subset[rolling.subset.str.fullmatch(r"\d{4}-\d{4}")].iloc[0])
+    catalonia_model = (
+        rolling[rolling.subset == pooled_span].set_index("estimator").loc["calculator"]
+    )
 
     def orr(variant: str, level: str, frame=adverse) -> str:
         row = frame.loc[(variant, level)]
@@ -338,7 +342,7 @@ def page_severity(captions: dict[str, str]) -> str:
         "the fatal regression keeps its ordering of later years' crashes": numbers["auc_fatal"]
         >= 0.75
         and numbers["auc_serious"] > 0.5,
-        "the Catalonia crash-severity model's crashes are already selected for severity": float(
+        "the Catalan severity model's crashes are already selected for severity": float(
             catalonia_model.prevalence
         )
         > 5 * float(numbers["fatal_share"]),
@@ -652,8 +656,9 @@ def page_severity(captions: dict[str, str]) -> str:
         "the DGT microdata audit examines, which fields were left blank ranks fatal crashes "
         f"with a ROC-AUC of {float(artefact.roc_auc_unrecorded_flags_only):.2f} on its own, one "
         "reason the file is not used to train a predictive model. This is not the task of "
-        'the <a href="severity-models.html">Catalonia crash-severity model</a>, whose ROC-AUC of '
-        f"{float(catalonia_model.roc_auc):.2f} picks out deaths among crashes already selected "
+        'the <a href="severity-models.html">Catalan severity model</a>, whose ROC-AUC of '
+        f"{float(catalonia_model.roc_auc):.2f} on years it had not seen picks out deaths among "
+        "crashes already selected "
         "for a death or serious injury; here the deaths are picked out among all injury "
         f"crashes, of which {_fmt_pct(numbers['fatal_share'])} were fatal. As probabilities, the "
         "fitted values improve little on giving every crash the training years' share of each "
