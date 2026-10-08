@@ -26,7 +26,10 @@ geographic validation); the **rich microdata of Barcelona** (crash and person an
 person-severity model); and **validation** (harmonisation and transfer tests only, never creating
 observations). No record is linked across sources and no merged database is built. Every result
 comes from rows of the files in `data/raw/`; studies published elsewhere may define a variable or
-a method but never supply an observation, a coefficient or an effect size. The speed-law
+a method but never supply an observation, a coefficient or an effect size. One exception remains:
+the road-to-straight-line distance ratio of driving trips (1.45) and the 2021 distance benchmarks
+are typed from the EMEF 2021 distance report, which measured them on the same survey's trips but
+is not archived (section 7). The speed-law
 simulator, the distraction and alcohol-and-drug models and the enforcement comparison drew their
 results from coefficients in external studies and were withdrawn; their old pages are short
 notices (section 16). Every method below names the module that implements it. What each dataset
@@ -56,8 +59,8 @@ records exist only in the Barcelona files (sections 20 and 21).
 | toll-motorway traffic | month | 1990– | a traffic index shown beside deaths (seasons) and an intensity covariate in the 2006 case study; never a denominator |
 | Ministerio de Transportes, yearbook table 1.2.14 | year, road type | 2004–2023 | measured interurban vehicle-km: the long run per measured km and road-class deaths per measured km (section 5) |
 | DGT speed-factor report | year, factor, road type | 2014–2023 | speed as a severity factor; the other recorded factors |
-| Servei Català de Trànsit export | crash with a death or serious injury | 2010–2023 | the crash microdata layer of Catalonia (sections 20 to 22) |
-| Guàrdia Urbana, six tables | crash; person record | 2025 | the rich microdata layer of Barcelona (sections 20 to 22) |
+| Servei Català de Trànsit export | crash with a death or serious injury | 2010–2023 | the crash microdata layer of Catalonia (sections 19 to 21) |
+| Guàrdia Urbana, six tables | crash; person record | 2025 | the rich microdata layer of Barcelona (sections 19 to 21) |
 
 Raw files are never edited (`data/raw/<source>/`, listed in `data/raw/manifest.csv` with SHA-256,
 the source URL where one was recorded and the name each file was downloaded as). `ingest.py`
@@ -727,7 +730,7 @@ listed with their results on the data page.
 | The owner's age stands for the driver's | cars and km per B-permit holder by band | does not hold at either end (0.23 cars per B-permit holder at 18–24, 0.56 at 25–34, 1.14 at 75+); the owner-age kilometres are replaced by kilometres driven by drivers of each age (section 7) |
 | One region's age profile of driving holds for Spain | the per-km ratios recomputed with each part of the province of Barcelona and with the Madrid survey of 2018; B-licence prevalence by age and sex in the province against Spain (the licence-calibrated transfer) | the ratio of older to middle-aged driving per resident is similar across the province (0.39–0.47), but Madrid's older residents drive less; young residents of the province hold B licences less often than Spain's, and carrying driving per licence holder lowers the 18–29 ratio from 2.53 to 2.24; ratios by age are published with these sensitivity ranges (section 7) |
 | Working-day driving represents the year | the EMEF 2023 module on overnight weekend stays (a proxy), MOVILIA 2006 car trips on weekend and working days, and Barcelona's crashes by type of day | cannot be tested directly: no source measures weekend kilometres by age; the two weekend age mixes move the 65-and-over ratio from 1.19 to 1.05–1.11 (section 7) |
-| The fall in deaths per tonne of fuel was in how deadly crashes are | exact frequency × severity split by injury crashes and by hospital admissions | does not hold: by injury crashes most of the fall is severity, by admissions all of it is frequency; the product is firm and the split is not identified (section 4) |
+| The fall in deaths per tonne of fuel was in how deadly crashes are | exact frequency × severity split by injury crashes and by hospital admissions | not established: by injury crashes most of the fall is severity, by admissions all of it is frequency; the fall in deaths per tonne is firm, and how it divides between how often and how deadly cannot be told from these series (section 4) |
 | The 30-day death series is consistent over time | 24-hour deaths, counted directly, against the 30-day series, which DGT estimated from them until 2010 | the joinpoint search on 24-hour deaths finds the same turning points (section 5) |
 | The projected per-fuel excess of 2023–2024 does not depend on the trend's start | last segment refitted from 2013 instead of 2011 | it does: from 2013, 2023 lies at the edge of the range and 2024 inside it (section 5) |
 | A forecast can show a change in the counts | out-of-sample forecast errors | the forecast loses to last year's count in the ordinary held-out years and was withdrawn, with the detectable changes computed from its errors (section 11) |

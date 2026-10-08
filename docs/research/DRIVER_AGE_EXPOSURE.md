@@ -529,12 +529,13 @@ kilometres at 75 and over.
 
 | Assumption | 75+ share of 65+ km | 65–74: ratio to 45–64 (95% CI) | 75+: ratio to 45–64 (95% CI) |
 |---|---:|---:|---:|
-| Madrid km per resident, by sex (central) | 23% | 0.94 (0.81–1.08) | 2.06 (1.78–2.35) |
+| Madrid km per resident, by sex | 23% | 0.94 (0.81–1.08) | 2.06 (1.78–2.35) |
 | Madrid km per licence holder, applied to Spain's licence holders | 21% | 0.92 (0.79–1.05) | 2.24 (1.94–2.56) |
 | Equal km per licence holder at 65–74 and 75+ (an upper bound for 75+ km) | 34% | 1.10 (0.95–1.27) | 1.36 (1.17–1.55) |
 
-The intervals hold the assumption fixed and combine the sampling error of the 65+ kilometres with
-Poisson error in the counts. Repeating the split under every 65+ variant (the licence-calibrated transfer, the four parts of
+No assumption is preferred, so there is no central figure at 75 and over: the drivers page gives
+the range across the three rows, not a single ratio. The intervals hold the assumption fixed and
+combine the sampling error of the 65+ kilometres with Poisson error in the counts. Repeating the split under every 65+ variant (the licence-calibrated transfer, the four parts of
 the province, the Madrid profile, the distance treatments, the survey years, professionals' work
 driving, the older sample's employment and the weekend mixes; `risk_older_sensitivity.csv`) gives
 0.76–1.54 for 65–74 and 1.13–3.09 for 75 and over. The Madrid profile, which gives the highest 65+

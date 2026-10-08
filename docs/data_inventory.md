@@ -318,7 +318,8 @@ No duplicate identifiers were found in any year.
   distraction and alcohol-and-drug models and the enforcement comparison, all three **withdrawn**
   because their results came from external-study coefficients: external studies may define
   variables or methods but never supply observations, coefficients or effect sizes
-  ([`DATA_CONTRACT.md`](DATA_CONTRACT.md)). The files stay in `data/raw/`, which is never edited,
+  ([`DATA_CONTRACT.md`](DATA_CONTRACT.md), which states the one exception: the EMEF 2021
+  distance report's values in `emef/distance.py`). The files stay in `data/raw/`, which is never edited,
   as a record; no code reads them, and `tests/test_withdrawn.py` checks that none does.
 - How they were compiled, kept as a record only: the Baseline speed figures were read in the
   report's tables 9–11 and 12a and, for autovías, the Annex 1 text introducing tables 12a–12c

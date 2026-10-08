@@ -2,10 +2,11 @@
 
 The source register, as of the published site (October 2026). Paths are relative to `data/raw/`,
 where the files are grouped by the body that publishes them (`dgt/`, `ine/`, `transportes/`,
-`cores/`, `comunidad_madrid/`, `catalonia/`, `barcelona/2025/`, `emef/`) and the values typed by hand from
+`cores/`, `comunidad_madrid/`, `catalonia/`, `barcelona/2025/`, `emef/`, `crtm/`, `idescat/`) and the values typed by hand from
 publications sit apart in `compiled/`. Every file is listed with size, SHA-256, source URL,
-description, the date added and, for the regional files, the name it was downloaded under in
-`data/raw/manifest.csv`; the generated [`RAW_FILE_INVENTORY.md`](RAW_FILE_INVENTORY.md) lists every
+description and the date added in `data/raw/manifest.csv`, and, where it was filed under a new
+name (the regional crash files, the EMEF files and a few others), the name it was downloaded
+under; the generated [`RAW_FILE_INVENTORY.md`](RAW_FILE_INVENTORY.md) lists every
 file with its format, rows and unit of observation, the audit of what each supports is in
 [`data_inventory.md`](data_inventory.md), and what each dataset may be joined to is in
 [`DATA_CONTRACT.md`](DATA_CONTRACT.md). The page column names where the file's numbers appear on
@@ -25,9 +26,10 @@ sources and there is no merged database. The DGT crash microdata do not train a 
 ([`DGT_MICRODATA_AUDIT.md`](DGT_MICRODATA_AUDIT.md)); the DGT severity regression is a supporting
 association analysis. MOVILIA 2006 table 64 is read for one sensitivity test of the national
 driver-age rates (the age mix of weekend car trips). The other MOVILIA files, the ECEPOV and EHMA
-survey files and the `compiled/` registers are read by no code: no analysis or page uses them, and
-the only code that opens them is the generated inventory, which opens every file under `data/raw/`
-to count its rows.
+survey files, the `compiled/` registers and a few DGT files are read by no code: no analysis or
+page uses them, and the only code that opens them is the generated inventory, which opens every
+file under `data/raw/` to count its rows. Why each is kept is set out under [Files kept but not
+read](#files-kept-but-not-read).
 
 ## Providers
 
@@ -251,7 +253,9 @@ finer than 65 and over), is set out in
 Three files hold values typed by hand from publications, each row with its source. They are not
 source data: external studies may define a variable or a method in this project but never supply
 an observation, a coefficient or an effect size, so **no code reads them** (`tests/test_withdrawn.py`
-checks that for the two evidence registers). They are kept, unmodified and hashed, as the record
+checks that for the two evidence registers). The one exception to that rule, the EMEF 2021
+distance report's road-to-straight-line ratio and benchmarks typed into `emef/distance.py`, is
+set out in [`DATA_CONTRACT.md`](DATA_CONTRACT.md), rule 1. They are kept, unmodified and hashed, as the record
 of what was searched and of what the withdrawn analyses used: the speed-law simulator, the
 distraction and alcohol-and-drug models and the enforcement comparison were withdrawn because
 their results came from external-study coefficients, and their pages are now withdrawal notices.
@@ -285,6 +289,24 @@ fact sheet (<https://www.esranet.eu/storage/minisites/esra2023countryfactsheetsp
 which appears in no downloadable table. The ESRA3 methodology report and thematic report no. 5
 (young and ageing drivers, both at <https://www.esranet.eu/en/publications/>) were consulted at the
 same time; nothing from them enters a table.
+
+## Files kept but not read
+
+Raw files are never edited or deleted (`DATA_CONTRACT.md`, rule 2). The manifest is the record of
+what was examined, so a file that was checked and not used stays with its checksum, and the check
+can be repeated. The files below are read by no analysis; each is kept for the reason given.
+
+| File | Why it is kept |
+|---|---|
+| `compiled/driving_activity_by_age.csv`, `compiled/evidence/*.csv` | the record of what was searched and of the published values the withdrawn analyses used ([compiled registers](#compiled-registers-compiled)) |
+| `transportes/movilia_2007.xls` | checked as a source of driving by age and not used: its long-distance tables count trips over 50 km, not kilometres, and do not separate drivers from passengers ([not available](#not-available)) |
+| `comunidad_madrid/movilia_madrid/*.xls` | the Madrid statistical office's MOVILIA extract, checked for the same purpose and not used: it gives no driver status by age |
+| `ine/ine_ecepov_2021_55378.xlsx` | checked and not used: commuters by main vehicle, sex and age, with no distance and no trip other than the commute |
+| `ine/ine_ehma_2008_10016.csv`, `ine/ine_ehma_2008_10019.csv` | checked and not used: kilometres per household vehicle by the age of the household's reference person, in bands that stop at 65 and over |
+| `dgt/census/censo_tablas_2024.xlsx` | keeps the yearly series of census workbooks complete; it has no class-by-age sheet, and province totals are read from the 2025 workbook so that 2024–2025 keep one source |
+| `dgt/reports/dgt_personas_mayores_2023.pdf` | DGT's report on road users aged 65 and over, whose per-inhabitant framing the drivers page's denominators test; no figure from it is reproduced |
+| `dgt/reports/dgt_semana_santa_2026.pdf` | DGT's provisional 24-hour figures for Easter 2026, kept with the other DGT reports; provisional counts are never mixed with definitive ones, so nothing is read from it |
+| `dgt/reports/Anuario-estadistico-de-accidentes-201{5,6,7,8,9}-fe-de-erratas.pdf` | DGT's errata to the 2015–2019 yearbooks, consulted by hand when the series and the tables disagreed while those years were reconciled |
 
 ## Not available
 
