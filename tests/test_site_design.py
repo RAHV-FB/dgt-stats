@@ -193,9 +193,11 @@ def test_technical_details_and_limitations_use_one_form(pages: dict[str, str]) -
     for slug in LIVE:
         main = _main(pages[slug])
         # Every disclosure is either the contents list or a technical block with a specific label.
-        details = re.findall(r'<details class="([^"]+)">', main)
+        # A disclosure may carry an id, which a link in the text opens.
+        details = re.findall(r'<details class="([^"]+)"[^>]*>', main)
         assert set(details) <= {"toc-inline", "technical"}, slug
-        labels = re.findall(r'<details class="technical"><summary>([^<]+)</summary>', main)
+        assert len(details) == main.count("<details"), slug
+        labels = re.findall(r'<details class="technical"[^>]*><summary>([^<]+)</summary>', main)
         assert len(labels) == len(set(labels)), slug
         for label in labels:
             assert len(label) > 10 and label.lower() not in {"details", "more", "technical"}

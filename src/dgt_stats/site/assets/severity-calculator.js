@@ -128,9 +128,13 @@
         if (model.inputs[name]) return "have this " + model.inputs[name].label.toLowerCase();
         return "involve " + levelLabel("users", name).toLowerCase();
       });
-      var joined = phrases.length < 2
-        ? phrases.join("")
-        : phrases.slice(0, -1).join(", ") + " or " + phrases[phrases.length - 1];
+      // Each item is counted on its own, so the threshold is repeated for every item after the
+      // first: "have this type of crash, and fewer than 20 involve a bicycle".
+      var more = phrases.slice(1).map(function (phrase) {
+        return "fewer than " + String(found.threshold || "") + " " + phrase;
+      });
+      var joined = [phrases[0]].concat(more.slice(0, -1)).join(", ") +
+        (more.length ? ", and " + more[more.length - 1] : "");
       words = words.replace("{input}", joined);
     }
     return words;

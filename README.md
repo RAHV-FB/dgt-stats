@@ -36,7 +36,7 @@ linked across sources and there is no merged crash database.
 | **National** | DGT crash microdata, yearbook series and tables, driver census, kilometre estimates; INE residents; traffic and fuel series | trends, denominators and rates, province and year comparisons, the supporting association analysis, and an external test of the Catalan model |
 | **Catalonia** | Servei Català de Trànsit, crashes with a death or serious injury | the crash-severity model and its temporal and geographic validation |
 | **Barcelona** | Guàrdia Urbana crash, person, vehicle and cause tables | person and crash analysis, the working-day check of involvement per kilometre by age, checks of the Catalan model |
-| **Travel surveys** | EMEF working-day mobility survey of the Barcelona area, 2014–2024 (ATM, Idescat, Institut Metròpoli); Madrid household travel survey 2018 (CRTM, Powered by CRTM) | car-driving kilometres by driver age, the denominator of involvement per kilometre ([`docs/research/DRIVER_AGE_EXPOSURE.md`](docs/research/DRIVER_AGE_EXPOSURE.md)) |
+| **Travel surveys** | EMEF working-day mobility survey of the Barcelona area, 2014–2024 (ATM, Idescat, Institut Metròpoli); Madrid household travel survey 2018 (CRTM, Powered by CRTM); MOVILIA 2006 and 2007 (Ministry of Transport) and the Fundació RACC 2013 survey of older drivers, for the sensitivity ranges only | car-driving kilometres by driver age, the denominator of involvement per kilometre ([`docs/research/DRIVER_AGE_EXPOSURE.md`](docs/research/DRIVER_AGE_EXPOSURE.md)) |
 
 Whether the DGT crash microdata may train a model is tested by seven checks declared in advance
 ([`docs/DGT_MICRODATA_AUDIT.md`](docs/DGT_MICRODATA_AUDIT.md)); the audit's decision, regenerated
@@ -154,7 +154,7 @@ python scripts/microdata.py all       # Catalonia and Barcelona: inventory, stag
                                       # OMP_NUM_THREADS=1 if other heavy jobs share the machine)
 python scripts/severity_calculator.py all  # model review and the calculator's model (~12 min)
 python scripts/emef.py all            # EMEF microdata checks and driving exposure by age (~3 min)
-python scripts/exposure_risk.py all   # involvement per km by driver age (~1 min)
+python scripts/exposure_risk.py all   # involvement per km by driver age (~10 min)
 python scripts/analyse.py figures     # reports/figures/*.svg (and narrow/*.svg for phones) and
                                       # captions.json, regional ones included
 python scripts/analyse.py cards       # docs/models/dgt_*.md, which quote the DGT microdata audit

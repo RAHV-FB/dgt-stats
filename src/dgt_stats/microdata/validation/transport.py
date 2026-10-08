@@ -819,14 +819,17 @@ def calculator_tests() -> pd.DataFrame:
     fitted on, with the same rule as every other test here.
 
     The crashes are the calculator's own (every road a reader can choose; the road-owner artefact
-    roads are left out). Every choice the model depends on (the penalty, the specification and
-    the rule for roads through towns) is made by :func:`severity_model.select` on each test's
-    training crashes alone, as in the nested rolling-origin evaluation: the rolling and temporal
-    tests are that evaluation's years. Each held-out test sits beside the same choices fitted
+    roads are left out). The penalty, the specification and the rule for roads through towns
+    are chosen by :func:`severity_model.select` on each test's training crashes alone. Whether
+    the model has province intercepts, the fourth choice of the nested rolling-origin
+    evaluation, is chosen there too, and the rolling and temporal tests are that evaluation's
+    years; in the geographic tests it is fixed, as below. Each held-out test sits beside the same choices fitted
     and cross-validated inside the test population (5 folds), and beside the table of fatal
     shares by road and crash type fitted on the same training crashes. A province left out has
     no intercept of its own to learn, so those tests use the specification without province
-    intercepts; the other tests use the published one. The random cross-validation, the one
+    intercepts. The test of Barcelona city from the rest of Catalonia keeps the published
+    design with province intercepts, a choice made on the last two years of all the crashes,
+    the city's included. The random cross-validation, the one
     internal check, uses the published model's choices, made on the last two years of all the
     crashes, so it is not nested. No test uses another source: no other file records the
     calculator's inputs (DGT's records lack the road's owning network and the posted limit, and

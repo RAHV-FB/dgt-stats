@@ -181,6 +181,23 @@ def _fixed(value: float, digits: int) -> str:
     return f"{round(float(value), digits):,.0f}"
 
 
+# The most decimals an interval end gets so that it does not print as 1 (:func:`_clear_of_one`).
+FINEST = 2
+
+
+def _clear_of_one(value: float, se: float, digits: int) -> int:
+    """``digits``, or more, up to :data:`FINEST`, when ``value`` stands :data:`MC_MARGIN` Monte
+    Carlo errors clear of 1 but would print as 1: an interval that lies wholly on one side of 1
+    is then not printed as reaching it."""
+    while (
+        digits < FINEST
+        and round(float(value), digits) == 1
+        and abs(float(value) - 1) >= MC_MARGIN * float(se)
+    ):
+        digits += 1
+    return digits
+
+
 def mc_interval(
     low: float,
     high: float,
@@ -191,9 +208,11 @@ def mc_interval(
     coarsest: int = 0,
 ) -> str:
     """A sampling interval printed at the precision its Monte Carlo errors support
-    (:func:`mc_digits`), or at ``digits`` if that is coarser."""
+    (:func:`mc_digits`), or at ``digits`` if that is coarser. Where an end stands clear of 1 but
+    would print as 1, both ends get the decimals that end needs (:func:`_clear_of_one`)."""
     supported = mc_digits(se_low, se_high, coarsest=coarsest)
     shown = supported if digits is None else min(digits, supported)
+    shown = max(_clear_of_one(low, se_low, shown), _clear_of_one(high, se_high, shown))
     return f"{_fixed(low, shown)}{sep}{_fixed(high, shown)}"
 
 
@@ -221,9 +240,10 @@ def rate_interval(row: pd.Series, column: str, sep: str = "–", coarsest: int =
 
 def side_of_one_shown(value: float, se: float, *standard_errors: float) -> bool:
     """Whether a sentence may rest on which side of 1 an interval end lies: the end stands
-    :data:`MC_MARGIN` Monte Carlo standard errors clear of 1, and printed at the precision the
-    interval's errors (``standard_errors``, both ends') support it does not read as 1."""
-    digits = mc_digits(*standard_errors)
+    :data:`MC_MARGIN` Monte Carlo standard errors clear of 1, and printed as :func:`mc_interval`
+    prints it, at the precision the interval's errors (``standard_errors``, both ends') support
+    or finer, it does not read as 1."""
+    digits = _clear_of_one(value, se, mc_digits(*standard_errors))
     return abs(float(value) - 1) >= MC_MARGIN * float(se) and round(float(value), digits) != 1
 
 

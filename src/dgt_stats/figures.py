@@ -1307,8 +1307,8 @@ def _severity_calculator_figures(figures_dir: Path, captions: dict[str, str]) ->
     captions["sev1_predicted_observed"] = _caption(
         "Crashes in Catalonia in which someone was killed or seriously injured, 2016–2023, on "
         "the roads the calculator offers. Each year was predicted by a model fitted only on the "
-        "years before it, with its penalty, form and roads-through-towns rule also chosen on "
-        "those years alone. The crashes are split into ten equal groups by the model's prediction "
+        "years before it, with its penalty, form, roads-through-towns rule and whether each "
+        "province has a starting level of its own also chosen on those years alone. The crashes are split into ten equal groups by the model's prediction "
         f"(about {int(model.n.median()):,} crashes each), and separately by the table's. Each dot "
         "is the share of a group's crashes that were fatal (someone died within 24 hours), with "
         "its 95% interval, against the group's average prediction",

@@ -641,6 +641,11 @@ def transport_figures(figures_dir: Path, captions: dict[str, str]) -> None:
     calculator = calculator[~calculator.experiment.str.startswith("random")]
     best = pd.concat([best, calculator], ignore_index=True)
     best["test"] = best.experiment.map(experiment_label)
+    # The calculator's later year is the last year of its rolling test, drawn alone beside a
+    # model fitted in that year.
+    best.loc[
+        best.model.eq("calculator") & best.experiment.str.startswith("temporal holdout"), "test"
+    ] = "The last of those years alone"
     # Only the later-year tests of the original model and its versions lack an interval: they
     # come from each model's own test on that year, which recorded none. The captions say so.
     no_interval = best[best.roc_auc_low.isna() | best.roc_auc_high.isna()]
@@ -680,11 +685,12 @@ def transport_figures(figures_dir: Path, captions: dict[str, str]) -> None:
             "calculator",
             "tr0_calculator_transfer",
             f"The {CALCULATOR_MODEL} on held-out years and places",
-            f"ROC-AUC of the {CALCULATOR_MODEL}, the published model behind the calculator, on "
-            "crashes held out of its fitting (each year from the years before it, the last year, "
-            "each province of Catalonia in turn, Barcelona city from the rest of Catalonia), with "
-            "95% intervals, beside the same model fitted and cross-validated in the test "
-            "population (hollow). The n beside each tested model is its number of test records",
+            f"ROC-AUC of the {CALCULATOR_MODEL}, the model behind the calculator, refitted "
+            "without the crashes it is tested on (each year from the years before it, the last "
+            "of those years alone, each province of Catalonia in turn, Barcelona city from the "
+            "rest of Catalonia), with 95% intervals, beside the same model fitted and "
+            "cross-validated in the test population (hollow). The n beside each tested model is "
+            "its number of test records",
             CAT_SOURCE,
         ),
         (

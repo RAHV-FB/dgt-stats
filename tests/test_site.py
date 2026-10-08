@@ -394,11 +394,18 @@ def test_intervals_are_printed_at_the_precision_their_monte_carlo_error_supports
     assert site_numbers.mc_interval(2.2426, 2.8230, 0.0174, 0.0159) == "2.2–2.8"
     assert site_numbers.mc_interval(585.06, 704.95, 3.81, 3.43, coarsest=-2) == "590–700"
     assert site_numbers.mc_interval(1.6311, 2.6429, 0.019, 0.033, sep=" to ") == "1.6 to 2.6"
+    # An interval wholly on one side of 1 is not printed as reaching it: an end three errors
+    # clear of 1 gets the decimal it needs (men against women per km), an end closer to 1 does
+    # not (65 and over).
+    assert site_numbers.mc_interval(0.8559, 0.9802, 0.0061, 0.0036) == "0.86–0.98"
+    assert site_numbers.mc_interval(1.0242, 1.362, 0.0103, 0.0148) == "1.0–1.4"
+    assert site_numbers.mc_interval(0.9988, 1.82, 0.012, 0.03) == "1.0–1.8"
     # A sentence may rest on an end's side of 1 only if the end stands three errors clear of it
-    # and does not print as 1.
+    # and, as printed, does not read as 1.
     assert site_numbers.side_of_one_shown(0.63, 0.01, 0.01, 0.01)
     assert not site_numbers.side_of_one_shown(1.024, 0.0103, 0.0103, 0.0148)
-    assert not site_numbers.side_of_one_shown(0.98, 0.001, 0.02, 0.02)
+    assert site_numbers.side_of_one_shown(0.98, 0.001, 0.02, 0.02)
+    assert not site_numbers.side_of_one_shown(0.996, 0.001, 0.02, 0.02)
     assert site_numbers.side_of_one_shown(0.98, 0.001, 0.001, 0.002)
     row = pd.Series(
         {"ratio_low": 1.0242, "ratio_high": 1.362, "mc_se_low": 0.0103, "mc_se_high": 0.0148}

@@ -574,15 +574,14 @@ def page_drivers(captions: dict[str, str]) -> str:
     )
     credible = scenarios[scenarios.credible]
     alone = credible[credible.profile == national.CENTRAL_METHOD]
-    bounds = scenarios[~scenarios.credible & (scenarios.profile == national.CENTRAL_METHOD)]
     others = variants[
         ~variants.source.isin([national.COVERAGE_SOURCE, national.COVERAGE_PROFILE_SOURCE])
     ]
     other_ranges = others.groupby("group").involved_ratio.agg(["min", "max"])
-    licence_bound = bounds[bounds.remainder_mix == coverage_design.LICENCE_MIX]
-    under_65_bound = bounds[bounds.remainder_mix == coverage_design.UNDER_65_MIX]
-    # The bounds with every profile, as the 75+ section and the owner-age bound quote them.
+    # The bounds with every profile, the basis on which the page quotes all three.
     every_bound = {mix: scenarios[scenarios.remainder_mix == mix] for mix in coverage_design.BOUNDS}
+    licence_bound = every_bound[coverage_design.LICENCE_MIX]
+    under_65_bound = every_bound[coverage_design.UNDER_65_MIX]
     owner_bound = every_bound[coverage_design.OWNER_MIX]
     measured_mixes = [
         mix
@@ -1116,15 +1115,15 @@ def page_drivers(captions: dict[str, str]) -> str:
         "Combined with another region's profile, the two largest uncertainties together, they "
         f"give {_span(credible.ratio_18_29)} and {_span(credible.ratio_65_plus)}, and the "
         "sensitivity range includes these combinations. Three allocations of the unexplained "
-        "part are reported but left out of "
-        "the range. Two are constructed, and no source supports them: the same kilometres per "
-        f"licence holder at every age ({_span(licence_bound.ratio_65_plus)} at 65 and over) "
-        "and no driving at 65 and over (up to "
-        f"{float(under_65_bound.ratio_65_plus.max()):.2f}). The third is DGT's kilometres by "
-        "the age of a car's private owner, which is not the age of its driver (see the former "
-        "figure, at the end of this section); with each region's profile it would give "
-        f"{_span(owner_bound.ratio_18_29)} at 18–29 and {_span(owner_bound.ratio_65_plus)} at "
-        "65 and over.</p>"
+        "part are reported but left out of the range. Two are constructed, and no source "
+        "supports them: the same kilometres per licence holder at every age, and no driving at "
+        "65 and over. The third is DGT's kilometres by the age of a car's private owner, which "
+        "is not the age of its driver (see the former figure, at the end of this section). "
+        "With each region's profile they would give "
+        f"{_span(licence_bound.ratio_18_29)}, {_span(under_65_bound.ratio_18_29)} and "
+        f"{_span(owner_bound.ratio_18_29)} at 18–29, and "
+        f"{_span(licence_bound.ratio_65_plus)}, {_span(under_65_bound.ratio_65_plus)} and "
+        f"{_span(owner_bound.ratio_65_plus)} at 65 and over.</p>"
     )
     body += technical(SOURCES_TITLE, _sources_table(by_source), SOURCES_ANCHOR)
     body += (
@@ -1275,7 +1274,12 @@ def page_drivers(captions: dict[str, str]) -> str:
         "the assumption fixed. It may be too narrow or too wide: the Barcelona-area survey's "
         "resampling treats respondents as independent although the survey samples them in "
         "clusters, which makes an interval too narrow, and the Madrid survey's ignores the "
-        "stratification of its sample, which makes one too wide. Under the other assumptions "
+        "stratification of its sample, which makes one too wide. Madrid's kilometres at 65 and "
+        "over are standardised to Spain's mix of ages. The Barcelona-area survey's are a mean "
+        "over the province of Barcelona's residents of those ages, a slightly larger share of "
+        "them aged 75 and over than in Spain, and are carried to Spain as they stand, which "
+        "makes the 65-and-over and 75-and-over figures slightly higher than standardising "
+        "would. Under the other assumptions "
         f"tested the figure for 75 and over runs from {full_75} (the sensitivity range, "
         "below).</p>"
     )
@@ -1316,8 +1320,8 @@ def page_drivers(captions: dict[str, str]) -> str:
         "<li>Some points higher: the Barcelona-area survey's weighting does not separate 75 and "
         "over within 65 and over, so its 65-and-over sample may hold too few people aged 75 and "
         f"over; at the most this would raise the figure to about {float(composition_75):.2f}, a "
-        "case included in the sensitivity range. And the Madrid pattern has women aged 75 and "
-        "over with a car licence driving "
+        "case included in the sensitivity range. And applied to Spain's licence holders, the "
+        "Madrid pattern implies that women aged 75 and over with a car licence drive "
         f"{float(cond_75.women_km_per_holder_75_vs_65_74):.2f} times as far as women aged 65–74 "
         "with one, while Spanish surveys of women's driving, though too uncertain to rule that "
         "out, point to less; less driving by these women would raise the figure.</li>"

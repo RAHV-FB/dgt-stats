@@ -469,6 +469,15 @@ def _audit() -> str:
         "between junctions",
     )
     worst_without = float(priority.province_max_without_inverted_junction_years.max())
+    # The junction type is uneven only through the Catalan provinces' inverted years.
+    junction_type = shares.loc["NUDO_INFO"]
+    junction_without = float(junction_type.province_spread_without_inverted_junction_years)
+    _check(
+        not bool(junction_type.comparable_across_provinces)
+        and junction_without <= dgt_audit.MAX_REGIONAL_SPREAD,
+        "sources",
+        "the junction type varies across provinces only through the inverted junction flag",
+    )
     _check(
         worst_without < float(priority.province_max.max())
         and worst_without > dgt_audit.MAX_REGIONAL_SPREAD,
@@ -545,7 +554,10 @@ def _audit() -> str:
         f"share that varies by more than {dgt_audit.MAX_REGIONAL_SPREAD * 100:.0f} percentage "
         "points across the provinces with at least "
         f"{_fmt_int(dgt_audit.MIN_PROVINCE_CRASHES)} crashes, counting only the crashes each "
-        "field applies to. Among crashes recorded at a junction, the share with the right-of-way "
+        "field applies to. The junction type is among them only because of the Catalan "
+        f"provinces' records from {inverted_from}, described next: without them its unrecorded "
+        f"share varies by {junction_without * 100:.0f} points. Among crashes recorded at a "
+        "junction, the share with the right-of-way "
         f"fields unrecorded runs from {_fmt_pct(priority.province_min.min(), 0)} in one province "
         f"to {_fmt_pct(priority.province_max.max(), 0)} in another, and reaches "
         f"{_fmt_pct(worst_without, 0)} without the Catalan provinces' records from "

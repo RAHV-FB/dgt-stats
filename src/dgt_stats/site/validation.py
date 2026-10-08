@@ -32,6 +32,7 @@ from dgt_stats.site.components import (
     table,
     technical,
 )
+from dgt_stats.site.models import _miss_text
 from dgt_stats.site.regional_common import _check
 
 PAGE = "validation"
@@ -135,7 +136,16 @@ def _test_label(row) -> str:
     """A plain-English name for one external test, built from the table's own labels."""
     experiment = row.experiment
     rules = (
-        (r"temporal holdout.*test (\d{4})", lambda m: f"Later year ({m.group(1)})"),
+        (
+            r"temporal holdout.*test (\d{4})",
+            lambda m: (
+                # The calculator's later year is the last year of its rolling test, shown alone
+                # beside a model fitted in that year.
+                f"{m.group(1)} alone (the last year of the test above)"
+                if row.model == "calculator"
+                else f"Later year ({m.group(1)})"
+            ),
+        ),
         (
             r"rolling origin.*every choice nested",
             lambda m: (
@@ -308,11 +318,6 @@ def _calculator_section(
         zone=cells.subset.str.extract(r"\|(\w+)$")[0],
     )
     cell_misses = cells[cells.apply(_outside, axis=1)]
-    zone_words = {
-        "urban": "urban streets",
-        "through_town": "roads through towns",
-        "interurban": "interurban roads",
-    }
 
     def calibrated(row) -> bool:
         return (
@@ -381,15 +386,9 @@ def _calculator_section(
         [f"{_direction(row)} for {name} ({share(row)})" for name, row in missed.iterrows()]
     )
     inside = _join([f"for {name} ({share(row)})" for name, row in matched.iterrows()])
-    cell_text = _join(
-        [
-            f"on {zone_words[row.zone]} in the province of {row.province} "
-            f"{_fmt_pct(row.mean_predicted)} "
-            f"estimated against {_fmt_pct(row.prevalence)} observed "
-            f"({_fmt_pct(row.observed_low)} to {_fmt_pct(row.observed_high)})"
-            for row in cell_misses.itertuples()
-        ]
-    )
+    # The models page's wording, which adds a decimal where one decimal would print a miss at
+    # an end of the interval it falls outside.
+    cell_text = _join([_miss_text(row) for row in cell_misses.itertuples()])
     return (
         "<h2>The Catalan severity model: ranking holds, estimates of the fatal share miss in "
         "several provinces</h2>"
@@ -415,16 +414,16 @@ def _calculator_section(
         f"{_fmt_pct(rolling.test_prevalence)} were fatal. On {later_label} alone it scores "
         f"{_auc(later.roc_auc)}, against {_auc(later.in_domain_cv_roc_auc)} for the same model "
         f"fitted and cross-validated on that year's {_fmt_int(later.test_n)} crashes. By "
-        "province and kind of road the estimates were less close, even with each province's "
-        f"own terms fitted on earlier years: {cell_text}.</p>"
+        "province and kind of road the estimates were less close: the mean estimate fell "
+        f"outside the 95% interval of the observed share {cell_text}.</p>"
         "<p>With each province left out of the fitting in turn, and the settings chosen on the "
         f"other three, it scores between {_auc(provinces.loc[lowest_name].roc_auc)} "
         f"({lowest_name}) and {_auc(provinces.loc[highest_name].roc_auc)} ({highest_name}) on "
         f"the province it did not see: in every province within {tolerance:g} of the same "
         "model fitted there, and above the table. Its estimates of the fatal share carry over "
         f"less well. They were {by_province}; only {inside} did the estimate lie inside the "
-        "observed interval. Fitted on the rest of Catalonia, it "
-        f"ranks Barcelona city's crashes at {_auc(city.roc_auc)}, against "
+        "observed interval. Fitted on the rest of Catalonia, with the published model's "
+        f"province terms, it ranks Barcelona city's crashes at {_auc(city.roc_auc)}, against "
         f"{_auc(city.in_domain_cv_roc_auc)} for the same model fitted in the city, but it "
         f"estimates a fatal share of {_fmt_pct(city.mean_predicted)} where "
         f"{_fmt_pct(city.test_prevalence)} were fatal. Once the city's earlier crashes are in the "

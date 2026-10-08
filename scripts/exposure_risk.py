@@ -17,9 +17,16 @@ from __future__ import annotations
 
 import argparse
 import logging
+import os
 import sys
 import time
 from pathlib import Path
+
+# The rates refit the EMEF distance model (``emef.exposure.driving_model``), whose optimiser stops
+# where the order of floating-point sums leads it, and the BLAS thread count changes that order.
+# One thread, as in ``scripts/emef.py``, makes the committed tables reproducible on any machine.
+for variable in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS"):
+    os.environ[variable] = "1"
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 

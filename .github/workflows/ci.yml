@@ -75,6 +75,14 @@ jobs:
           python scripts/microdata.py analyse
           python scripts/microdata.py sources
 
+      # The record counts and the documents built from them must match the committed copies, so
+      # that a downloadable table cannot go stale. The fitted tables are not compared: a refit
+      # on another platform may move them in the last decimals. Every difference is listed.
+      - name: Check the regenerated counts match the committed copies
+        run: |
+          git status --short -- reports docs
+          git diff --exit-code -- reports/tables/source_comparison.csv docs/SOURCE_COMPARISON.md docs/DATA_QUALITY_MICRODATA.md
+
       - name: Test
         run: pytest
 

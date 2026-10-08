@@ -601,9 +601,15 @@ def page_severity_models(captions: dict[str, str]) -> str:
         f"(ROC-AUC {_auc(zone['interurban'].roc_auc)}) and urban ones less well "
         f"({_auc(zone['urban'].roc_auc)}). "
         + _through_town_text(yearly, published, zone["through_town"])
-        + " On urban streets outside Barcelona "
-        f"city its estimates ran somewhat high ({_fmt_pct(outside.mean_predicted)} against "
-        f"{_fmt_pct(outside.prevalence)} fatal); in Barcelona city they were "
+        + (
+            " "
+            + _miss_text(outside, "On urban streets outside Barcelona city its estimates ran high")
+            + ", outside the interval of the observed share"
+            if _outside(outside)
+            else " On urban streets outside Barcelona city its estimates ran somewhat high "
+            f"({_fmt_pct(outside.mean_predicted)} against {_fmt_pct(outside.prevalence)} fatal)"
+        )
+        + "; in Barcelona city they were "
         + (
             "close"
             if not _outside(city)
