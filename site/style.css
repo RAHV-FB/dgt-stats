@@ -279,7 +279,15 @@ main { padding: var(--space-7) 0 var(--space-7); min-width: 0; }
 .calc-warnings { margin: var(--space-3) 0 0; padding-left: 1.2em; font-size: var(--text-sm); }
 .calc-result[data-state="error"] { border-top-color: var(--rule-strong); }
 .calc-error-title { margin: 0; font-weight: 600; }
+/* The estimate pinned to the foot of the screen while the form scrolls, where the panel follows it. */
+.calc-sticky {
+  position: sticky; bottom: 0; z-index: 1; margin: 0; padding: var(--space-2) var(--space-3);
+  font-size: var(--text-sm); font-variant-numeric: tabular-nums lining-nums;
+  background: var(--surface); border-top: 1px solid var(--rule-strong);
+}
+.calc-sticky:empty { display: none; }
 @container (min-width: 50rem) {
+  .calc-sticky { display: none; }
   .calc-layout {
     display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
     column-gap: var(--space-6); align-items: start;

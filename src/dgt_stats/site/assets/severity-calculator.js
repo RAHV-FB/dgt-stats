@@ -33,6 +33,11 @@
   var keep = root.querySelector("[data-keep]");
   var clear = root.querySelector("[data-clear]");
   var status = root.querySelector("[data-status]");
+  var sticky = root.querySelector("[data-sticky]");
+
+  function pin(message) {
+    if (sticky) sticky.textContent = message;
+  }
   var engine = null;
   var model = null;
   var baseline = null;
@@ -182,6 +187,7 @@
       keep.disabled = true;
       noComparison("No comparison until this crash has an estimate.", scenario);
       announce("No estimate: " + checked.errors.map(function (id) { return ruleText(id); }).join(" "));
+      pin("No estimate for this combination: see below.");
       return;
     }
     var zone = engine.zoneOf(scenario.road);
@@ -204,6 +210,7 @@
       );
       noComparison("No comparison: roads through towns have no estimate of their own.", scenario);
       announce("Roads through towns: " + percent(local) + " were fatal on average.");
+      pin("Roads through towns: " + percent(local) + " fatal on average (see below).");
       return;
     }
     keep.disabled = false;
@@ -262,6 +269,10 @@
       output.appendChild(list2);
     }
     var comparison = renderComparison(scenario, result);
+    pin(
+      "Estimate " + percent(result.probability) + " fatal (" + range(result.low, result.high) +
+        ")" + (warnings.length ? ", with a warning" : "") + ": details below."
+    );
     announce(
       "Estimate " + percent(result.probability) + ", interval " + percent(result.low) + " to " +
         percent(result.high) + "." + (comparison ? " " + comparison : "") +

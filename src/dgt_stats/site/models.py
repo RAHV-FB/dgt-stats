@@ -190,6 +190,9 @@ def _form(model: dict) -> str:
         '<button type="button" data-clear hidden>Clear the comparison</button>'
         '<button type="reset">Reset the inputs</button></div>'
         "</form>"
+        # On a narrow screen the full result follows the form; this line keeps the estimate in
+        # view while the form scrolls (the status line below announces it to screen readers).
+        '<p class="calc-sticky" aria-hidden="true" data-sticky></p>'
         '<div class="calc-panel">'
         '<div class="calc-result" data-output></div>'
         '<div class="calc-baseline" data-baseline></div>'
