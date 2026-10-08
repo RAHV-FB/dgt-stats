@@ -532,7 +532,7 @@ national car kilometres by sex with the same EMEF transfer as for age (`risk_sex
 that estimate men drove about two thirds (66 %) of car-driver kilometres, and per kilometre male
 private-car drivers aged 18 and over were involved 0.91 times as often as female drivers
 (0.85–0.98) and killed 2.6 times as often (2.10–3.38); under the other regional profiles the two
-ratios run from 0.61 to 1.23 and from 1.75 to 3.55. The MOVILIA 2006 bracket that used to sit beside the comparison was withdrawn: it divided a
+ratios run from 0.60 to 1.23 and from 1.75 to 3.55. The MOVILIA 2006 bracket that used to sit beside the comparison was withdrawn: it divided a
 2022–2024 crash ratio by a 2006 car-or-motorcycle trip ratio that counts passengers. Only the
 census text files (2023–2025) give B-permit holders by sex and age, so the 2022–2024 rates keep
 holders of any class; `driver_risk.sex_b_licence` (`drivers_sex_b_licence.csv`) shows that counting

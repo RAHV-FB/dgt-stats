@@ -202,11 +202,11 @@ def page_vehicles(captions: dict[str, str]) -> str:
     body += '<h2 id="who-dies">Most deaths in heavy-truck crashes were outside the truck</h2>'
     body += (
         "<p>Involvement counts the crash, whoever died in it. The table below counts only the "
-        "deaths of each vehicle's own occupants. Own occupants killed per fatal crash average "
+        "deaths of each vehicle's own occupants. Own occupants killed per vehicle in a fatal crash "
+        "average "
         f"{truck_occupants:.2f} for a heavy truck, {car_occupants:.2f} for a car and "
-        f"{bike_occupants:.2f} for a motorcycle. Every fatal crash has at least one death, so a "
-        f"figure of {truck_occupants:.2f} means that in at least "
-        f"{_fmt_pct(1 - truck_occupants, 0)} of the fatal crashes involving a heavy truck, "
+        f"{bike_occupants:.2f} for a motorcycle. A figure of {truck_occupants:.2f} means that "
+        f"for at least {_fmt_pct(1 - truck_occupants, 0)} of the heavy trucks in fatal crashes, "
         "nobody in the truck died: everyone killed was in another vehicle or on foot.</p>"
     )
     body += table(
@@ -214,7 +214,7 @@ def page_vehicles(captions: dict[str, str]) -> str:
             {
                 "Vehicle type": [_label(label) for label in order.label],
                 "Killed per billion km": order.occupant_deaths_per_bn_km,
-                "Killed per fatal crash": order.occupant_deaths_per_fatal_involvement,
+                "Killed per vehicle in a fatal crash": order.occupant_deaths_per_fatal_involvement,
             }
         ),
         f"Deaths of each vehicle's own occupants, by vehicle type, Spain, {year}.",

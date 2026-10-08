@@ -338,7 +338,7 @@ def test_drivers_page_separates_the_two_questions(built: Path) -> None:
     for value in city[city.age4 == "65+"].ratio_to_45_64:
         assert f"{value:.2f}" in body
     older_split = pd.read_csv(TABLES_DIR / "risk_older_split.csv")
-    assert "model-dependent" in body and "none is given" in body
+    assert "model-dependent" in body and "no single figure is given" in body
     for value in older_split[older_split.group == "75+"].ratio_to_45_64:
         assert f"{value:.2f}" in body
     assert 'src="figures/dr2_killed_per_involved.svg"' in body
@@ -827,7 +827,7 @@ def test_drivers_page_chains_crashes_and_deaths_per_crash(built: Path) -> None:
     ].set_index("group")
     older = central.loc["65+"]
     assert f"{older.killed_ratio:.2f} times as often per kilometre" in text
-    assert f"(95% interval {older.killed_ratio_low:.2f}–{older.killed_ratio_high:.2f})" in text
+    assert f"(95% interval {older.killed_ratio_low:.2f}–{older.killed_ratio_high:.2f}; " in text
 
 
 def test_vehicles_page_quotes_per_km_rates_for_all_roads_only(built: Path) -> None:
@@ -843,7 +843,7 @@ def test_vehicles_page_quotes_per_km_rates_for_all_roads_only(built: Path) -> No
     assert "3,500\u00a0kg" in text and "3,500 kg" not in text
     # The occupant shares are computed, not typed.
     assert f"{bike.occupant_deaths_per_fatal_involvement:.2f} for a motorcycle" in text
-    assert f"a figure of {truck.occupant_deaths_per_fatal_involvement:.2f}" in text
+    assert f"A figure of {truck.occupant_deaths_per_fatal_involvement:.2f}" in text
     # Zone counts are not divided by all-road kilometres, and the download says so.
     rates = pd.read_csv(TABLES_DIR / "q6_rates_2022.csv")
     assert rates[rates.zone != "all"].per_billion_km.isna().all()

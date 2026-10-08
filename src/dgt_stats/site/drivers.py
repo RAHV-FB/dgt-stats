@@ -12,6 +12,7 @@ tables, and every qualitative sentence is checked against them before the page i
 
 from __future__ import annotations
 
+import numpy as np
 import pandas as pd
 
 from dgt_stats import edm2018
@@ -308,6 +309,37 @@ def page_drivers(captions: dict[str, str]) -> str:
         )
     )
 
+    killed_range = variants.groupby("group").killed_ratio.agg(["min", "max"]).loc["65+"]
+    km_total = read_table("risk_national_km_total").set_index("variant").km
+    weekdays = int(np.busday_count(f"{year}-01-01", f"{year + 1}-01-01"))
+    survey_cover = (
+        float(a_share.workday_km_per_day_millions.sum())
+        * 1e6
+        * weekdays
+        / float(km_total[CENTRAL_KM])
+    )
+    _check(
+        survey_cover < 0.6,
+        "the survey's working-day driving, counted over every weekday, covers at most about half "
+        "of DGT's car kilometres",
+    )
+    bands = read_table("emef_km_by_band")
+    long_trips = (
+        bands[bands.band.isin(["100 km or more", "no band"])]
+        .groupby("age4")[["share_of_trips", "share_of_km"]]
+        .sum()
+    )
+    _check(
+        long_trips.share_of_km.idxmax() == "65+"
+        and float(long_trips.loc["65+", "share_of_km"])
+        > 2 * float(long_trips.loc[REFERENCE, "share_of_km"]),
+        "the 65+ kilometres depend most on long and unbanded trips",
+    )
+    unknown_old = unknown_bounds[unknown_bounds.group == "65+"].involved_ratio
+    _check(
+        float(unknown_old.min()) < float(older_all.involved_ratio) < float(unknown_old.max()),
+        "the 65+ ratio under the unknown-age bounds brackets the central figure",
+    )
     # Involvement per km: young drivers well above the middle-aged on every assumption, and the
     # highest of the four groups; drivers aged 65 and over slightly above them centrally, with a
     # range that reaches 1.
@@ -380,6 +412,11 @@ def page_drivers(captions: dict[str, str]) -> str:
         "both corrections for the survey's older respondents raise the 65-and-over ratio",
     )
     _check(
+        float(weekend["max"]) < float(older_all.involved_ratio)
+        and float(regional_old["min"]) < float(older_all.involved_ratio),
+        "the weekend age mix and Barcelona city's profile lower the 65-and-over ratio",
+    )
+    _check(
         float(owner_same.loc["18-29", "ratio_to_reference"]) > float(young.involved_ratio) + 1
         and float(owner_same.loc["65+", "ratio_to_reference"]) < float(older_all.involved_ratio),
         "on the same age groups the owner kilometres put the young higher and 65+ lower",
@@ -396,8 +433,17 @@ def page_drivers(captions: dict[str, str]) -> str:
     )
     killed_ratio_old = float(older_all.killed_ratio)
     _check(
-        killed_ratio_old > 2 * float(older_all.involved_ratio),
-        "older drivers' higher deaths per km come mainly from severity once involved",
+        killed_ratio_old > 2 * float(older_all.involved_ratio)
+        and float(killed_range["min"]) > float(ranges.loc["65+", "max"]),
+        "older drivers' higher deaths per km come mainly from severity once involved, under "
+        "every alternative",
+    )
+    # The clearest difference at older ages is the outcome once involved: the deaths-once-involved
+    # ratio exceeds every involvement-per-km ratio at 65-74 and at 75 and over.
+    _check(
+        killed["75+"] / killed[REFERENCE] > older_range["75+"][1]
+        and killed["65-74"] / killed[REFERENCE] > older_range["65-74"][1],
+        "deaths once involved separate the older groups from 45-64 more than involvement per km",
     )
     # Barcelona's working-day check.
     _check(
@@ -442,8 +488,11 @@ def page_drivers(captions: dict[str, str]) -> str:
     _check(
         float(per_km_involved.range_low) < 1 < float(per_km_involved.range_high)
         and float(per_km_involved.ratio_high) < float(men_involved.low)
+        and float(per_km_involved.ratio_men_to_women) < 1
         and float(per_km_killed.range_low) > 1.5,
-        "per km, men are involved about as often as women and killed far more often",
+        "per km, neither sex is shown to be involved more often (the profiles span 1), while men "
+        "are killed far more often; under the central profile men's higher involvement per "
+        "licence holder comes from driving further",
     )
     _check(
         float(b_licence.loc["B-licence holders", "ratio"])
@@ -465,12 +514,12 @@ def page_drivers(captions: dict[str, str]) -> str:
         f"{spread('18-29')}), and drivers aged 65 and over slightly more often, "
         f"{float(older_all.involved_ratio):.2f} times (95% interval "
         f"{_ci(older_all, 'involved_ratio')}; sensitivity range {spread('65+')}). The kilometres "
-        "by age are estimated from a Barcelona-area survey, and the sensitivity range spans "
-        "other defensible assumptions about them. In Barcelona city on working days, drivers "
+        "by age are estimated from a Barcelona-area survey of working days, and the sensitivity "
+        "range spans the other assumptions tested. In Barcelona city on working days, drivers "
         "aged 65 and over were involved at about the 45–64 rate. At 75 and over the national "
         "ratio depends on how the 65-and-over kilometres are split, from "
-        f"{older_75.replace('–', ' to ')} times the 45–64 rate. What sets older drivers apart "
-        "is the outcome once a "
+        f"{older_75.replace('–', ' to ')} times the 45–64 rate. The clearest difference at older "
+        "ages is the outcome once a "
         f"crash happens: {killed['75+']:.1f} of every 1,000 car drivers aged 75 and over "
         "involved in an injury crash died within 30 days, against "
         f"{killed[REFERENCE]:.1f} at 45–64. Involvement counts every driver in a crash, "
@@ -496,8 +545,13 @@ def page_drivers(captions: dict[str, str]) -> str:
         "ride-hailing cars (whose drivers are outside both counts), they put "
         f"{_fmt_pct(float(a_share.loc['18-29', 'share_of_km']))} of car kilometres with drivers "
         f"aged 18–29, {_fmt_pct(float(a_share.loc['45-64', 'share_of_km']))} with 45–64 and "
-        f"{_fmt_pct(float(a_share.loc['65+', 'share_of_km']))} with 65 and over. The drivers "
-        f"involved are DGT's count of private-car drivers in injury crashes in {year}.</p>"
+        f"{_fmt_pct(float(a_share.loc['65+', 'share_of_km']))} with 65 and over. The survey's "
+        f"working-day driving, counted over all {weekdays} weekdays of {year}, comes to at most "
+        f"{_fmt_pct(survey_cover, 0)} of those kilometres. The age mix of the rest, driven on "
+        "weekends and holidays, in the months the survey's fieldwork does not cover, and by "
+        "people driving for a living, is assumed to be the working-day mix; the weekend and "
+        "professional-driving tests below check that only in part. The drivers involved are "
+        f"DGT's count of private-car drivers in injury crashes in {year}.</p>"
     )
     rows_alt = {group: f"{float(central.loc[group, 'involved_ratio']):.2f}" for group in GROUPS}
     body += figure(
@@ -514,8 +568,9 @@ def page_drivers(captions: dict[str, str]) -> str:
     body += _rates_table(central, ranges, level, year)
     body += (
         "<p>The 95% interval reflects only sampling error in the survey and chance variation in "
-        "the crash counts; the sensitivity range adds the other choices, set out in the table "
-        "below. For drivers aged 18–29 the largest is which region's age profile stands in for "
+        "the crash counts, and is probably too narrow, because its resampling of survey "
+        "respondents does not reproduce every stage of the survey's sampling and weighting; the "
+        "sensitivity range adds the other choices, set out in the table below. For drivers aged 18–29 the largest is which region's age profile stands in for "
         "Spain's "
         f"({_fmt_span(float(regional_young['min']), float(regional_young['max']))}). Carrying "
         "the survey's driving per licence holder rather than per resident to Spain gives "
@@ -523,7 +578,12 @@ def page_drivers(captions: dict[str, str]) -> str:
         "province of Barcelona hold car licences less often than in Spain as a whole. For 65 "
         "and over the treatments of trip distances give "
         f"{_fmt_span(float(distance_old['min']), float(distance_old['max']))}, leaving out the "
-        "long trips that have no distance band raising it most; a different age mix on weekends "
+        "long trips that have no distance band raising it most. This group is the most "
+        "sensitive to them: trips of 100 km or more and trips with no distance band are "
+        f"{_fmt_pct(float(long_trips.loc['65+', 'share_of_trips']))} of its trips but carry "
+        f"{_fmt_pct(float(long_trips.loc['65+', 'share_of_km']), 0)} of its kilometres, against "
+        f"{_fmt_pct(float(long_trips.loc[REFERENCE, 'share_of_km']), 0)} at 45–64. A different "
+        "age mix on weekends "
         f"lowers it to {_fmt_span(float(weekend['min']), float(weekend['max']))}; and the "
         "regional profiles give "
         f"{_fmt_span(float(regional_old['min']), float(regional_old['max']))}, from Barcelona "
@@ -531,8 +591,8 @@ def page_drivers(captions: dict[str, str]) -> str:
     )
     body += technical("Sources of the sensitivity range", _sources_table(by_source))
     body += (
-        "<p>Two of those choices concern the survey's older respondents. The share of them in "
-        f"work was about {_fmt_pct(float(employed_survey.loc[early_years, 'employed_share'].mean()))} "
+        "<p>Two further choices raise the 65-and-over ratio. The share of the survey's older "
+        f"respondents in work was about {_fmt_pct(float(employed_survey.loc[early_years, 'employed_share'].mean()))} "
         f"in {min(early_years)}–{max(early_years)}, the same as the census for Catalonia, but "
         f"{_fmt_pct(float(employed_survey.loc[late_years, 'employed_share'].min()))} to "
         f"{_fmt_pct(float(employed_survey.loc[late_years, 'employed_share'].max()))} in "
@@ -540,9 +600,9 @@ def page_drivers(captions: dict[str, str]) -> str:
         f"{float(older_all.involved_ratio):.2f} to {employed_reweighted:.2f}. And the survey "
         "does not record the work trips of people who drive for a living, most of them under "
         "65: counting a quarter or a half of those trips as car trips raises the ratio to "
-        f"{_fmt_span(float(professional['min']), float(professional['max']))}. Both point the "
-        "same way, so the central figure for 65 and over is more likely too low than too "
-        "high.</p>"
+        f"{_fmt_span(float(professional['min']), float(professional['max']))}. The weekend age "
+        "mix and Barcelona city's profile point the other way, so the evidence does not say in "
+        "which direction the central figure errs.</p>"
     )
     # The former figure, compared like with like: change history, kept short.
     body += (
@@ -585,7 +645,9 @@ def page_drivers(captions: dict[str, str]) -> str:
     body += (
         "<p>Combined with involvement per kilometre, this means that drivers aged 65 and over "
         f"were killed {killed_ratio_old:.2f} times as often per kilometre driven as drivers aged "
-        f"45–64 (95% interval {_ci(older_all, 'killed_ratio')}), although they were involved in "
+        f"45–64 (95% interval {_ci(older_all, 'killed_ratio')}; sensitivity range "
+        f"{_fmt_span(float(killed_range['min']), float(killed_range['max']))}), although they "
+        "were involved in "
         f"crashes only {float(older_all.involved_ratio):.2f} times as often: their excess deaths "
         "come mainly from the outcome once involved, not from being involved in more "
         "crashes.</p>"
@@ -626,9 +688,9 @@ def page_drivers(captions: dict[str, str]) -> str:
     # ------------------------------------------------------------------- 75 and over
     body += '<h2 id="ages-75-and-over">75 and over: a range, not a single figure</h2>'
     body += evidence_note(
-        "No source available to this study measures driving at 75 and over separately from "
-        "65–74, so the figures in this section rest on an assumed split of the 65-and-over "
-        "kilometres and are labelled model-dependent."
+        "No source for Spain or the province of Barcelona measures driving at 75 and over "
+        "separately from 65–74, so the figures in this section rest on an assumed split of the "
+        "65-and-over kilometres and are labelled model-dependent."
     )
     body += (
         "<p>The EMEF's public files group everyone aged 65 and over, although the survey "
@@ -649,8 +711,9 @@ def page_drivers(captions: dict[str, str]) -> str:
         f"{_span(old_75).replace('–', ' to ')}). Repeating the split under every alternative for "
         "the 65-and-over kilometres widens the sensitivity range for 75 and over to "
         f"{older_75}. In Barcelona's working-day check the same splits give {_span(city_75)}, so "
-        "there the direction is not established. The national evidence supports a higher rate "
-        "at 75 and over but not a single figure, so none is given. The Madrid survey data are "
+        "there the direction is not established. Nationally every split tested puts 75 and over "
+        "above the 45–64 rate, but its size is not established, so no single figure is given. "
+        "The Madrid survey data are "
         "reused under the open-data licence of the Consorcio Regional de Transportes de Madrid. "
         f'<a href="{CRTM_URL}">Powered by CRTM</a>.</p>'
     )
@@ -658,27 +721,28 @@ def page_drivers(captions: dict[str, str]) -> str:
     # ------------------------------------------------------------------- men and women
     body += (
         '<h2 id="men-and-women">'
-        "Men and women: similar crashes per kilometre, more deaths among men</h2>"
+        "Men and women: no clear difference in crashes per kilometre, more deaths among men</h2>"
     )
     body += (
         "<p>The survey's kilometres can be split by sex and carried to Spain in the same way as "
         f"by age. On that estimate men drove {_fmt_pct(float(per_km_involved.men_share_of_km))} "
         f"of car kilometres in {year}. Per kilometre, male private-car drivers aged 18 and over "
-        "were involved in injury crashes about as often as female drivers, "
-        f"{float(per_km_involved.ratio_men_to_women):.2f} times (95% interval "
-        f"{ci_km(per_km_involved)}; sensitivity range across the regional profiles "
-        f"{_fmt_span(float(per_km_involved.range_low), float(per_km_involved.range_high))}), but "
-        f"were killed {float(per_km_killed.ratio_men_to_women):.2f} times as often (95% interval "
+        f"were involved in injury crashes {float(per_km_involved.ratio_men_to_women):.2f} times "
+        f"as often as female drivers (95% interval {ci_km(per_km_involved)}), but across the "
+        "regional profiles that ratio runs from "
+        f"{_fmt_span(float(per_km_involved.range_low), float(per_km_involved.range_high)).replace('–', ' to ')}, "
+        "so neither sex is shown to be involved more often per kilometre. Men were killed "
+        f"{float(per_km_killed.ratio_men_to_women):.2f} times as often (95% interval "
         f"{ci_km(per_km_killed)}; sensitivity range "
         f"{_fmt_span(float(per_km_killed.range_low), float(per_km_killed.range_high))}). Per "
         f"licence holder, pooling {sex_years}, men were involved "
         f"{float(men_involved.ratio):.2f} times as often as women (95% interval "
         f"{ci(men_involved)}) and, once involved, died {float(men_fatality.ratio):.2f} times as "
         f"often ({ci(men_fatality)}); combined, they died at the wheel "
-        f"{float(men_killed.ratio):.2f} times as often ({ci(men_killed)}). Men's higher "
-        "involvement per licence holder therefore comes mostly from driving further, while their "
-        "higher death rate holds per kilometre and, in every age band, once a crash has "
-        "happened.</p>"
+        f"{float(men_killed.ratio):.2f} times as often ({ci(men_killed)}). Under the central "
+        "profile, men's higher involvement per licence holder comes from their driving further; "
+        "their higher death rate holds per kilometre under every profile and, in every age band, "
+        "once a crash has happened.</p>"
     )
     body += figure(
         "a3_sex_ratios",
@@ -709,8 +773,9 @@ def page_drivers(captions: dict[str, str]) -> str:
         "include foreign and unlicensed drivers. Drivers whose age the tables do not record "
         f"({_fmt_pct(unknown_share)} of those involved) are left out of every rate, which lowers "
         "each absolute rate by that share; the ratios assume their ages follow the recorded mix "
-        "(if all were aged 18–29, the young drivers' ratio would be "
-        f"{unknown_young:.2f})."
+        f"(if all were aged 18–29, the young drivers' ratio would be {unknown_young:.2f}; "
+        "assigned to any one age group, they would put the ratio for 65 and over between "
+        f"{_fmt_span(float(unknown_old.min()), float(unknown_old.max())).replace('–', ' and ')})."
     )
     body += downloads(
         [

@@ -637,7 +637,7 @@ car-driver kilometres (`national.sex_per_km`; `risk_sex_per_km.csv`). On that es
 drivers aged 18 and over were involved in injury crashes 0.91 times as often as female drivers
 (95% CI 0.85–0.98; 62,064 men and 34,257 women involved) and were killed 2.65 times as often
 (2.10–3.38; 414 men and 79 women killed). Under the licence-calibrated transfer and the other
-regional profiles (EMEF areas and Madrid) the involvement ratio runs from 0.61 to 1.23 and the
+regional profiles (EMEF areas and Madrid) the involvement ratio runs from 0.60 to 1.23 and the
 death ratio from 1.75 to 3.55, so per kilometre men are involved about as often as women and
 killed far more often.
 
@@ -734,7 +734,7 @@ the intervals in the split table hold that assumption fixed.
    resident describe the burden on a population, not the risk of a kilometre driven.
 7. **Men and women.** On the same transfer, men drove about two thirds of car-driver kilometres in
    2024. Per kilometre, male private-car drivers were involved 0.91 times as often as female
-   drivers (0.85–0.98; 0.61–1.23 under the other profiles), about as often, and killed 2.65 times
+   drivers (0.85–0.98; 0.60–1.23 under the other profiles), so neither sex is shown to be involved more often per km, and killed 2.65 times
    as often (2.10–3.38; 1.75–3.55).
 8. **The former owner-age figure.** Compared like for like (drivers aged 18–29, 30–44 and 65 and
    over against 45–64), owner kilometres gave 4.62, 1.51 and 1.00, against 2.53, 1.40 and 1.19 by
