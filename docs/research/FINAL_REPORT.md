@@ -190,12 +190,14 @@ weekend kilometres by age, so this remains a sensitivity range.
 
 ### 11. Whether 75+ exposure was identified
 
-No. The public EMEF files merge 65–74 and 75+; the two were sampling strata until 2016 and the
-confidential records hold exact age. A request for tables has been prepared but **not sent**
-([`EMEF_DATA_REQUEST.md`](EMEF_DATA_REQUEST.md)). Until then the split rests on the Madrid survey
-(exact ages) and three other stated assumptions, and is labelled model-dependent: drivers aged
-65–74 are involved at 0.90–1.08 times the 45–64 rate per km, and drivers aged 75 and over at
-1.32–2.19 times. No single 75+ rate is published.
+Not directly. The public EMEF files merge 65–74 and 75+; the two were sampling strata until 2016
+and the confidential records hold exact age. A request for tables has been prepared but **not
+sent** ([`EMEF_DATA_REQUEST.md`](EMEF_DATA_REQUEST.md)). The figure first published here (65–74 at
+0.90–1.08 and 75+ at 1.32–2.19, with no single 75+ rate) has since been replaced: the drivers page
+now gives a conditional estimate for 75 and over (2.06 times the 45–64 rate if people aged 75 and
+over drive as much less than those aged 65–74 as in Madrid in 2018; 95% sampling interval
+1.63–2.64) beside the sensitivity range (0.97–3.28). See
+[75+ exposure: constraining the estimate](#75-exposure-constraining-the-estimate).
 
 ### 12. Revised crash-involvement rates
 
@@ -380,5 +382,85 @@ corrections; the rebuilt site.
 
 - The EMEF request for car-driving tables by finer age group, including 75 and over, is prepared
   but has not been sent ([`EMEF_DATA_REQUEST.md`](EMEF_DATA_REQUEST.md)). Until a reply arrives,
-  every statement about drivers aged 75 and over is model-dependent and given as a range.
+  the figure per kilometre at 75 and over is a conditional estimate beside the sensitivity range.
 - The rebuilt site goes live when the pull request is merged into `main`.
+
+## 75+ exposure: constraining the estimate
+
+October 2026, after the coverage and stress tests. The question was whether the 75+ figure per
+kilometre could be better constrained than the sensitivity range of 0.97–3.28 times the 45–64
+rate without adding false precision. The full account, with every number and its table, is in
+[`DRIVER_AGE_EXPOSURE.md`](DRIVER_AGE_EXPOSURE.md#ages-75-and-over).
+
+**What was examined.** The CRTM Encuesta Sintética de Movilidad 2024 (ages 14–80 only, one 65–80
+band, driver and passenger merged, no km tables and no microdata: not usable for the split); the
+EMEF's historical 65–74 and 75+ strata (2008–2016, never tabulated) and the P1b questionnaire
+routing, which identifies retirees aged 75 and over and matches INE's population share in 2014
+and roughly in 2016; Fundació RACC's *Mayores al volante* (2013), driving days per licence holder
+by age; EMQ 2006 through Fundació RACC/CED (2011); INE's EET 2009–10 and 2002–03 time-use
+surveys; Madrid's EDM2004; and national travel surveys of the Netherlands, England and Germany.
+None of them measures km at 75 and over for Spain, so none replaces the split; they are used as
+validation, context or, for RACC and the routing, to build one split and one bound.
+
+**What changed.**
+
+* The Madrid split (EDM2018 km per resident, by sex) is published as a conditional estimate,
+  2.06 times the 45–64 rate, always with its condition ("if people aged 75 and over drive as much
+  less than those aged 65–74 as in Madrid in 2018"). It is the one split that uses km measured by
+  exact age without a bridge between two definitions of a licence holder.
+* Its 95% sampling interval crosses all 300 EMEF replicates with all 300 EDM2018 replicates and
+  is 1.63–2.64. The earlier 1.78–2.35 held the Madrid ratio fixed and was too narrow.
+* A fourth split, an upper limit for men from RACC's driving days with women equal, gives 1.69.
+* The marking rule now uses men's implied km per licence holder (marks exactly the equal split,
+  for any threshold in (0.68, 1]); the 65–74 ≥ 45–64 rule became a diagnostic.
+* A bound for too few people aged 75 and over in the EMEF's 65+ sample, from the routing, is a
+  new variant inside the range (up to 2.28).
+* The range has a one-at-a-time decomposition, descriptive Shapley shares (documents only),
+  sampling intervals at its ends, and Barcelona intervals.
+* Figure 1 of the drivers page shows four layers, kept apart: observed counts, the conditional
+  estimate (hollow diamond), its sampling interval, and the sensitivity range with the part
+  reached only by the equal split hatched. A new Figure 3 shows what moves the 75+ figure.
+
+**What did not change.** The envelope, 0.97–3.28 at 75 and over and 0.66–1.63 at 65–74. No
+scenario was dropped: the equal split, at odds with surveys of men's driving, stays in the range,
+hatched. The 65+ range (0.85–1.75) is unchanged. Counts or shares of combinations are never used
+as a probability or as weight of evidence; "403 of 405" and "most combinations" were removed.
+
+**The guard.** The pages choose between three wordings from the tables. The lowest combination
+not at odds with men's driving is 1.21, above the 45–64 rate, but its 95% sampling interval is
+0.91–1.76, which reaches it. The intermediate wording is printed: among those combinations every
+one puts drivers aged 75 and over above the 45–64 rate, but at the lowest sampling error alone
+could bring them down to it, so a higher rate per kilometre is not established under every
+assumption, and how much higher is not established.
+
+**The critiques, accepted and rejected.**
+
+* Accepted: drop the 65–74 ≥ 45–64 rule as a marking rule (algebraically ratio_65_74 ≤ 0.715,
+  so it set the 65–74 edge by construction; its evidence is working-day only; it does not change
+  the lowest unmarked 75+ value at threshold 1).
+* Accepted: replace a single permuted pairing of EMEF and EDM replicates with the full cross.
+* Accepted: hatching instead of a faded band (a faded band read as "less probable" and failed
+  contrast), and a hollow diamond instead of a filled one, which could not be told from the dots
+  on a phone.
+* Rejected: marking that the equal split's whole span lies in the hatched part; its rows span
+  0.98–1.98, and only the part below 1.21 is reached by marked rows alone.
+* Rejected: dating the RACC survey 2012; the fieldwork dates are not stated and the 2012–2013
+  fieldwork belongs to another survey (RACE–Liberty), so "published in 2013" is used.
+* Rejected: showing no interval for the RACC and equal splits; all four rows show one, and the
+  table caption says which sources each includes and that the RACC constant is fixed.
+* Rejected: a by-sex or pooled marking rule (a by-sex rule would mark the Madrid split on women's
+  evidence that does not exclude 1; a pooled rule depends on the sex mix).
+* Rejected: a pooled uncertainty interval merging sampling and structural spread, percentiles of
+  the scenarios, model averaging over splits, or narrowing the range to the unmarked span; each
+  would turn assumption counts into probabilities or rest on a rule adopted after seeing results.
+* Not added, documented: women at 0.5 in the RACC split (about 1.83), and the exploratory crossed
+  envelopes (0.92–3.53; 0.78–3.59; an unmarked minimum of about 1.15), which stay off the site
+  until the pipeline reproduces them.
+
+**What would materially improve it.** The EMEF's own aggregates for 65–74 and 75+ (or finer) with
+design-based errors, and the true age × routing table, from Institut Metròpoli or the ATM, would
+replace the Madrid transfer and settle the composition bound
+([`EMEF_DATA_REQUEST.md`](EMEF_DATA_REQUEST.md), prepared, not sent). After that: a national
+all-days measure of driving by age that separates driver from passenger; the age mix of weekend
+and long-distance driving; a second exact-age regional survey (the Basque Encuesta de Movilidad);
+RACC km by sex and age; DGT's 2018 licence holders by age for Madrid.

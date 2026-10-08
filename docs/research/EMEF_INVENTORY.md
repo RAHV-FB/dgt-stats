@@ -178,9 +178,23 @@ results are not given disaggregated". The questionnaire also filters on exact ag
 retired respondents under 75 are asked whether they did any paid work), so the confidential
 records hold it. The way to a 75 and over estimate from this survey is therefore a request to the
 data holders; [`EMEF_DATA_REQUEST.md`](EMEF_DATA_REQUEST.md) sets one out. Until a reply arrives,
-every EMEF estimate in this repository stops at 65 and over, and any split of that group is
-labelled as model-dependent and drawn from other evidence
+every EMEF estimate of driving in this repository stops at 65 and over, and the split of that group
+is a conditional estimate drawn from other evidence
 ([`DRIVER_AGE_EXPOSURE.md`](DRIVER_AGE_EXPOSURE.md)).
+
+**The P1b routing.** Question P1b (`V01B`, paid work last week) is filtered "P1a=3 i edat<75": it
+is not asked of respondents who answer P1a as retired, pensioner or aged 75 and over (code 3) and
+are aged 75 or over. A respondent aged 65 or over, not in work, with `V01B` blank is therefore a
+retiree aged 75 or over (`emef.older_routing.routing_flag`). The identification holds against
+INE's population in 2014 (weighted share of the 65+ sample: men 0.46 against 0.45, women 0.55
+against 0.54) and roughly in 2016, but not in 2015, nor from 2017, when the share falls to
+0.15–0.38. From 2020 "home duties" is no longer limited to people under 65, so the coding of the
+situation variable may also have changed. The flag finds retirees only, so its weighted share is a
+lower limit on the share aged 75 and over in the 65+ sample. It is used, as an aggregate under the
+20-observation rule, for two things: the bound on too few people aged 75 and over in the 2022–2024
+sample (`emef_routing_older.csv`: men 0.38 against INE's 0.47, women 0.35 against 0.53), and an
+exploratory validation of the Madrid split in 2014 and 2016. It is never used as an estimate of
+anyone's driving.
 
 Sample sizes bound what any finer table could show. In 2022–2024 between 501 and 523 respondents
 aged 65 or over drove on their reference day each year (466 women over the three years), against
