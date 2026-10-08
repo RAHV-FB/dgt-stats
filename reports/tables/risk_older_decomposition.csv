@@ -1,9 +1,9 @@
 kind,factor,label,short_label,n_variants,low,high,clear_low,clear_high,one_at_a_time,log_width,hatched_low,hatched_high,estimate
-all,all,All combinations tested (the sensitivity range),All combinations tested,544,0.9746980421,3.281178697,1.214628691,3.281178697,False,1.213830273,0.9746980421,1.214628691,2.055185688
-factor,regional profile,"Region whose age profile stands in for Spain (four parts of the province of Barcelona, and Madrid)",Region used for the age profile,6,1.708686296,2.850911561,1.708686296,2.850911561,True,0.5119139616,,,2.055185688
-factor,split,Split of the 65-and-over km between 65–74 and 75 and over,Split of the 65+ km,4,1.357907264,2.238838275,1.692781589,2.238838275,True,0.5000123656,1.357907264,1.692781589,2.055185688
-factor,remainder,Age mix of the km that no measured part of DGT's total explains (the unexplained km),Age mix of the unexplained km,5,1.732193451,2.269991813,1.732193451,2.269991813,True,0.270387729,,,2.055185688
+all,all,All combinations tested (the sensitivity range),All combinations tested,460,0.9746980421,3.198537348,1.214628691,3.198537348,False,1.188321183,0.9746980421,1.214628691,2.055185688
+factor,regional profile,"Region whose age profile stands in for Spain (four parts of the province of Barcelona, and Madrid)",Region used for the age profile,6,1.708686296,3.013066494,1.708686296,3.013066494,True,0.5672335016,,,2.055185688
+factor,split,Split of the 65-and-over km between 65–74 and 75 and over,Split of the 65+ km,4,1.357907264,2.092154018,1.692781589,2.092154018,True,0.4322494274,1.357907264,1.692781589,2.055185688
 factor,distance,Conversion of trips to kilometres,Trip-to-km conversion,14,1.950701386,2.427949126,1.950701386,2.427949126,True,0.218857927,,,2.055185688
+factor,remainder,Age mix of the km that no measured part of DGT's total explains (the unexplained km),Age mix of the unexplained km,4,1.824233288,2.269991813,1.824233288,2.269991813,True,0.2186164422,,,2.055185688
 factor,non-working days,Weekends and holidays at a share of the km with a weekend age mix,Weekend and holiday age mix,5,1.80377712,2.055185688,1.80377712,2.055185688,True,0.1304833369,,,2.055185688
 factor,professionals' work driving,Professional drivers' work driving added,Professionals' km added,3,2.055185688,2.293700052,2.055185688,2.293700052,True,0.1098000538,,,2.055185688
 factor,composition,Share aged 75 and over in the survey's 65+ sample at the routing-identified share (bound),75+ share of the sample at its bound,2,2.055185688,2.281455611,2.055185688,2.281455611,True,0.1044474619,,,2.055185688
