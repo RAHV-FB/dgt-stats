@@ -66,8 +66,8 @@ Three candidates were fitted on identical inputs and scored by rolling origin: e
 | Model | ROC-AUC | Brier skill | Log loss | Calibration slope | Mean predicted (observed 12.6%) |
 |---|---|---|---|---|---|
 | Penalised logistic regression (chosen) | 0.772 (0.759–0.784) | 0.137 | 0.321 | 1.04 | 12.5% |
-| Gradient-boosted trees | 0.778 (0.766–0.790) | 0.144 | 0.318 | 1.12 | 12.6% |
-| Fatal share of the road × crash type | 0.745 (0.733–0.757) | 0.102 | 0.333 | 1.19 | 12.6% |
+| Gradient-boosted trees | 0.778 (0.766–0.790) | 0.144 | 0.318 | 1.12 | 12.4% |
+| Fatal share of the road × crash type | 0.745 (0.733–0.757) | 0.102 | 0.333 | 1.19 | 12.0% |
 
 The trees rank slightly better (+0.006, paired interval +0.002 to +0.010) and have a slightly lower
 log loss (−0.003). The logistic regression was chosen for four reasons:

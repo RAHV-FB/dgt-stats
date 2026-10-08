@@ -104,7 +104,7 @@ grouped into eight bands of predicted probability:
 | 45% and over | 382 | 221 | 55.4% | 57.9% (52.8–62.7) |
 
 In every band the mean prediction lies inside the 95% interval of the observed share; the largest
-gap, two points, is in the 15–20% band. The model separates crashes that were almost never fatal (2% in
+gaps are 2.5 points in the highest band and 2.0 points in the 15–20% band. The model separates crashes that were almost never fatal (2% in
 the lowest band) from crashes that were fatal more often than not (58% in the highest), and its
 probabilities can be read as estimates for groups of similar recorded crashes. It does not follow
 that every individual prediction is precise: within the urban zone the model ranks crashes much

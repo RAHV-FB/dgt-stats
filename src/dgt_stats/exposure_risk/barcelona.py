@@ -17,7 +17,7 @@ stopping cannot be identified at all. Three denominators bracket the unknown:
 * ``internal trips only``: crossing trips count for nothing (the smallest possible total, so the
   largest rates);
 * ``crossing trips at an internal trip's length``: each crossing trip counts for the mean road
-  length of a trip inside the city (4.6 km), or its own length if shorter;
+  length of a trip inside the city (4.7 km), or its own length if shorter;
 * ``crossing trips in full``: every crossing trip counts in full (far more than the city holds,
   so the smallest rates).
 
@@ -26,9 +26,9 @@ of each age group's rate to that of drivers aged 45-64, which is checked under a
 
 **Uncertainty.** Each interval combines the sampling error of the denominator (the EMEF
 bootstrap replicates) with Poisson error in the count (a gamma draw per replicate), paired
-replicate by replicate. Drivers whose age the police did not record (about 8%) are allocated
-across ages in proportion to those recorded for the absolute rates; the ratios do not depend on
-that allocation.
+replicate by replicate. Drivers whose age the police did not record (about 6% on working days)
+are left out of the rates; ``rate_allocated_per_bn_km`` spreads them across ages in proportion to
+those recorded. The ratios do not depend on that allocation.
 """
 
 from __future__ import annotations

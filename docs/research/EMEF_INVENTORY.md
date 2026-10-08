@@ -46,7 +46,7 @@ area every edition covers in full, so it is the basis of every comparison across
   weekends and public holidays are outside the survey. The 2023 edition added one weekend question
   (overnight trips away in the previous weekend), used for weekend exposure.
 * **Mobility professionals.** Respondents who make eight or more work trips a day (`TIPOL` 2:
-  2,132 of 100,880 respondents with trips; taxi drivers, couriers, hauliers, sales staff) have only
+  2,132 of 100,880 respondents with trips, by the code on their first trip; taxi drivers, couriers, hauliers, sales staff) have only
   their journey to and from work recorded. Driving in the course of such work is therefore not in
   the survey, which matters when the survey's kilometres are compared with national vehicle
   kilometres.

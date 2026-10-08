@@ -96,13 +96,14 @@ driving only with walking count in full.
 
 ## Contemporary estimates, 2022–2024
 
-The three most recent years are pooled with equal weight, so each figure describes the mean
-working day of 2022–2024. The survey area is the province of Barcelona
+The three most recent years are pooled by dividing each respondent's weight by the number of
+years, so each figure describes the mean working day of 2022–2024, each year counting in
+proportion to its population. The survey area is the province of Barcelona
 (`emef_exposure_contemporary.csv`).
 
 | Age | Drove on the day | Car-driver km per resident (95% CI) | Car-driver km per driver | Relative to 45–64, per resident |
 |---|---:|---:|---:|---:|
-| 16–29 | 19.8% | 9.16 (8.26–10.08) | 46.4 | 0.47 |
+| 16–29 | 19.8% | 9.16 (8.26–10.08) | 46.4 | 0.48 |
 | 30–44 | 37.2% | 17.57 (16.44–18.59) | 47.3 | 0.91 |
 | 45–64 | 40.4% | 19.29 (18.32–20.16) | 47.8 | 1 |
 | 65+ | 18.9% | 7.87 (6.72–9.09) | 41.7 | 0.41 |
@@ -244,7 +245,7 @@ the year. Three pieces of evidence bear on it.
   1.15 for those aged 16–29, each relative to all residents (`national.weekend_weights`). Older
   residents' driving is therefore somewhat less concentrated on working days.
 * **Barcelona crashes by type of day** (`risk_barcelona_day_type.csv`). For drivers aged 65 and over,
-  involvements per Saturday were 0.59 times those per working day, against 0.63 for drivers aged
+  involvements per Saturday were 0.59 times those per working day, against 0.62 for drivers aged
   45–64. Per Sunday or holiday the figures were 0.55 against 0.51. Drivers aged 16–29 were involved
   as often on a Saturday as on a working day (1.04). Crash counts mix exposure and risk, so these
   figures show only that the older group's weekend pattern resembles the middle-aged group's.
@@ -255,7 +256,7 @@ the year. Three pieces of evidence bear on it.
 The central estimate spreads DGT's annual kilometres with the working-day age mix. The sensitivity
 analysis gives non-working days the EMEF 2023 weekend mix, with 22% or 32% of annual kilometres
 (`risk_weekend_sensitivity.csv`). The ratio of the 65-and-over rate to the 45–64 rate falls from
-1.16 to 1.09 or 1.06, and the 16–29 ratio from 2.57 to 2.46 or 2.41. Weekends are a modest source
+1.16 to 1.09 or 1.06, and the 16–29 ratio from 2.57 to 2.45 or 2.41. Weekends are a modest source
 of uncertainty and move the older group's ratio downward.
 
 ## Spain: four ways to put kilometres on ages
@@ -287,7 +288,7 @@ No national source measures kilometres by the driver's age. Four methods are com
 
 | Share of car-driver km | 16–29 | 30–44 | 45–64 | 65+ |
 |---|---:|---:|---:|---:|
-| A: EMEF profile, province of Barcelona (95% CI) | 11.3% (10.3–12.4) | 27.7% (26.1–29.3) | 47.7% (46.0–49.5) | 13.4% (11.6–15.3) |
+| A: EMEF profile, province of Barcelona (95% CI) | 11.3% (10.3–12.4) | 27.6% (26.1–29.3) | 47.7% (46.0–49.5) | 13.4% (11.6–15.3) |
 | C: Barcelona city profile | 8.3% | 25.2% | 50.1% | 16.4% |
 | C: rest of the metropolitan area | 10.4% | 25.9% | 49.9% | 13.9% |
 | C: rest of the metropolitan region | 11.5% | 30.1% | 45.7% | 12.8% |
@@ -347,8 +348,9 @@ aged 18–29: residents aged 16 and 17 count in the EMEF population but cannot h
 and the 41 drivers aged 15–17 in the tables are excluded. The tables give age by sex and by urban or
 interurban road, but not age by day of the week or by province. A national working-day design would
 therefore need DGT's own cross-tabulation, which no public table provides, and none is inferred
-here from the margins. 2,234 drivers (2.2%) have no recorded age. They are allocated in proportion
-for absolute rates, which raises every rate by 2.3%; ratios between ages are unaffected.
+here from the margins. 2,234 drivers (2.2%) have no recorded age. They are left out of the rates
+shown. Allocating them to ages in proportion (`involved_per_bn_km_allocated`) would raise every
+absolute rate by 2.3% and leave the ratios between ages unchanged.
 
 | Age | Drivers involved | Drivers killed | Killed per 1,000 involved (95% CI) | Involved per 1,000 car-licence holders |
 |---|---:|---:|---:|---:|

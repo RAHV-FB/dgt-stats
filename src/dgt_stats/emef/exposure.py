@@ -215,9 +215,9 @@ def estimates(
 ) -> pd.DataFrame:
     """Weighted totals and rates by group, with 95% bootstrap intervals.
 
-    With ``pooled``, years are averaged with equal weight (each year's weights already sum to that
-    year's population), so a pooled rate is the mean working day of those years; totals are then
-    per average year.
+    With ``pooled``, every weight is divided by the number of years (each year's weights already
+    sum to that year's population), so a pooled rate is the mean working day of those years, each
+    year counting in proportion to its population; totals are then per average year.
     """
     if factors is None:
         factors = replicate_factors(frame)
