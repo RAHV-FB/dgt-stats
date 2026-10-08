@@ -44,6 +44,18 @@ REPLACE = "REPLACE with descriptive table"
 DROP = "DROP"
 OUTCOMES = (KEEP_PREDICTIVE, KEEP_RANKING, KEEP_RESEARCH, REPLACE, DROP)
 FEATURED = (KEEP_PREDICTIVE, KEEP_RANKING)
+# What the independent re-evaluation (docs/research/ML_MODEL_REVIEW.md) did with a model after
+# the rules above had decided it. The rules' decision is kept as the record; the site follows this.
+AFTER_REVIEW = {
+    "catalonia_crash_severity": (
+        "retired: its strongest predictor, the road's owner, records how a crash was documented "
+        "(a blank owner on a conventional road is far commoner on fatal records). The published "
+        "Catalan model is the crash-severity calculator's (`severity_model.py`), tested in "
+        "[`GENERALISABILITY.md`](GENERALISABILITY.md)"
+    ),
+    "barcelona_crash_severity": "removed; the site reports its table of shares by accident type",
+    "barcelona_person_severity": "kept for research only; the site shows no probability from it",
+}
 
 LEVELS = {
     0: "none",
@@ -450,14 +462,22 @@ def document(frame: pd.DataFrame) -> str:
         "Levels: 1 same source, 2 later time, 3 another region, 4 another recording source, 5",
         "Spain nationally ([`GENERALISABILITY.md`](GENERALISABILITY.md)).",
         "",
+        "The decisions are those the rules gave the original models. An independent",
+        "re-evaluation ([`research/ML_MODEL_REVIEW.md`](research/ML_MODEL_REVIEW.md)) then",
+        "changed what the site does with three of them:",
+        "",
+        *[f"- `{model}`: {status}." for model, status in AFTER_REVIEW.items()],
+        "",
         _md(summary),
         "",
     ]
     for row in frame.itertuples():
+        after = AFTER_REVIEW.get(row.model)
         lines += [
             f"## {row.model} ({row.variant})",
             "",
             f"- **Decision:** {row.decision}.",
+            *([f"- **After the review:** {after}."] if after else []),
             f"- **Unit / target / source:** {row.unit}; {row.target}; {row.source} ({row.layer}).",
             f"- **What it does:** {row.question_answered}.",
             f"- **Not answered:** {row.question_not_answered}.",

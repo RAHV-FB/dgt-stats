@@ -1,12 +1,12 @@
 comparison,universe,variable,level,share_a,share_b,variable_jsd,difference
 Catalonia vs Spain outside Catalonia,injury crashes,zone,urban,0.670701,0.634026,0.00106993,0.0366748
 Catalonia vs Spain outside Catalonia,injury crashes,zone,interurban,0.329299,0.365974,0.00106993,-0.0366748
-Catalonia vs Spain outside Catalonia,injury crashes,road_class,conventional,0.0898581,0.212177,0.0366588,-0.122319
-Catalonia vs Spain outside Catalonia,injury crashes,road_class,dual_carriageway,0.200926,0.111604,0.0366588,0.0893219
-Catalonia vs Spain outside Catalonia,injury crashes,road_class,motorway,0.0633539,0.0260773,0.0366588,0.0372766
-Catalonia vs Spain outside Catalonia,injury crashes,road_class,not specified,0,0.000129367,0.0366588,-0.000129367
-Catalonia vs Spain outside Catalonia,injury crashes,road_class,other,0.0799115,0.0489615,0.0366588,0.0309501
-Catalonia vs Spain outside Catalonia,injury crashes,road_class,urban_street,0.565951,0.601051,0.0366588,-0.0351007
+Catalonia vs Spain outside Catalonia,injury crashes,road_class,conventional,0.217525,0.2339,0.00975767,-0.0163748
+Catalonia vs Spain outside Catalonia,injury crashes,road_class,dual_carriageway,0.0732591,0.0898809,0.00975767,-0.0166218
+Catalonia vs Spain outside Catalonia,injury crashes,road_class,motorway,0.0633539,0.0260773,0.00975767,0.0372766
+Catalonia vs Spain outside Catalonia,injury crashes,road_class,not specified,0,0.000129367,0.00975767,-0.000129367
+Catalonia vs Spain outside Catalonia,injury crashes,road_class,other,0.0799115,0.0489615,0.00975767,0.0309501
+Catalonia vs Spain outside Catalonia,injury crashes,road_class,urban_street,0.565951,0.601051,0.00975767,-0.0351007
 Catalonia vs Spain outside Catalonia,injury crashes,crash_type,fall or overturn,0.112302,0.105965,0.0369388,0.0063369
 Catalonia vs Spain outside Catalonia,injury crashes,crash_type,fixed object,0.033051,0.0234793,0.0369388,0.00957173
 Catalonia vs Spain outside Catalonia,injury crashes,crash_type,front-side,0.186887,0.218025,0.0369388,-0.0311386
@@ -54,12 +54,12 @@ Catalonia vs Spain outside Catalonia,injury crashes,vehicles,1,0.337461,0.385006
 Catalonia vs Spain outside Catalonia,injury crashes,vehicles,3 or more,0.0871099,0.0862845,0.00184396,0.000825373
 Catalonia vs Spain outside Catalonia,crashes with a death or serious injury (24 h),zone,interurban,0.436335,0.501993,0.00312388,-0.0656581
 Catalonia vs Spain outside Catalonia,crashes with a death or serious injury (24 h),zone,urban,0.563665,0.498007,0.00312388,0.0656581
-Catalonia vs Spain outside Catalonia,crashes with a death or serious injury (24 h),road_class,conventional,0.140832,0.340483,0.06329,-0.199652
-Catalonia vs Spain outside Catalonia,crashes with a death or serious injury (24 h),road_class,dual_carriageway,0.272144,0.10731,0.06329,0.164834
-Catalonia vs Spain outside Catalonia,crashes with a death or serious injury (24 h),road_class,motorway,0.057926,0.0249224,0.06329,0.0330036
-Catalonia vs Spain outside Catalonia,crashes with a death or serious injury (24 h),road_class,not specified,0,0.000176546,0.06329,-0.000176546
-Catalonia vs Spain outside Catalonia,crashes with a death or serious injury (24 h),road_class,other,0.0856063,0.0679849,0.06329,0.0176214
-Catalonia vs Spain outside Catalonia,crashes with a death or serious injury (24 h),road_class,urban_street,0.443492,0.459122,0.06329,-0.0156305
+Catalonia vs Spain outside Catalonia,crashes with a death or serious injury (24 h),road_class,conventional,0.349514,0.361434,0.00713201,-0.0119196
+Catalonia vs Spain outside Catalonia,crashes with a death or serious injury (24 h),road_class,dual_carriageway,0.0634621,0.0863604,0.00713201,-0.0228983
+Catalonia vs Spain outside Catalonia,crashes with a death or serious injury (24 h),road_class,motorway,0.057926,0.0249224,0.00713201,0.0330036
+Catalonia vs Spain outside Catalonia,crashes with a death or serious injury (24 h),road_class,not specified,0,0.000176546,0.00713201,-0.000176546
+Catalonia vs Spain outside Catalonia,crashes with a death or serious injury (24 h),road_class,other,0.0856063,0.0679849,0.00713201,0.0176214
+Catalonia vs Spain outside Catalonia,crashes with a death or serious injury (24 h),road_class,urban_street,0.443492,0.459122,0.00713201,-0.0156305
 Catalonia vs Spain outside Catalonia,crashes with a death or serious injury (24 h),crash_type,fall or overturn,0.0962733,0.0887437,0.0331703,0.00752956
 Catalonia vs Spain outside Catalonia,crashes with a death or serious injury (24 h),crash_type,fixed object,0.044896,0.0238484,0.0331703,0.0210476
 Catalonia vs Spain outside Catalonia,crashes with a death or serious injury (24 h),crash_type,front-side,0.175668,0.179018,0.0331703,-0.00334915
@@ -107,11 +107,11 @@ Catalonia vs Spain outside Catalonia,crashes with a death or serious injury (24 
 Catalonia vs Spain outside Catalonia,crashes with a death or serious injury (24 h),vehicles,3 or more,0.0854712,0.0654397,0.0036097,0.0200316
 Barcelona city vs rest of Catalonia,injury crashes,zone,urban,0.921582,0.549393,0.138715,0.372189
 Barcelona city vs rest of Catalonia,injury crashes,zone,interurban,0.0784184,0.450607,0.138715,-0.372189
-Barcelona city vs rest of Catalonia,injury crashes,road_class,conventional,0.00132316,0.132667,0.189277,-0.131344
-Barcelona city vs rest of Catalonia,injury crashes,road_class,dual_carriageway,0.0467188,0.275489,0.189277,-0.228771
-Barcelona city vs rest of Catalonia,injury crashes,road_class,motorway,0.0197911,0.0844178,0.189277,-0.0646267
-Barcelona city vs rest of Catalonia,injury crashes,road_class,other,0.098491,0.0709278,0.189277,0.0275632
-Barcelona city vs rest of Catalonia,injury crashes,road_class,urban_street,0.833676,0.436498,0.189277,0.397178
+Barcelona city vs rest of Catalonia,injury crashes,road_class,conventional,0.00586977,0.319866,0.210418,-0.313996
+Barcelona city vs rest of Catalonia,injury crashes,road_class,dual_carriageway,0.0421722,0.0882905,0.210418,-0.0461183
+Barcelona city vs rest of Catalonia,injury crashes,road_class,motorway,0.0197911,0.0844178,0.210418,-0.0646267
+Barcelona city vs rest of Catalonia,injury crashes,road_class,other,0.098491,0.0709278,0.210418,0.0275632
+Barcelona city vs rest of Catalonia,injury crashes,road_class,urban_street,0.833676,0.436498,0.210418,0.397178
 Barcelona city vs rest of Catalonia,injury crashes,crash_type,fall or overturn,0.0761521,0.129781,0.178416,-0.0536292
 Barcelona city vs rest of Catalonia,injury crashes,crash_type,fixed object,0.024197,0.0373322,0.178416,-0.0131353
 Barcelona city vs rest of Catalonia,injury crashes,crash_type,front-side,0.185707,0.187457,0.178416,-0.00175041
@@ -154,11 +154,11 @@ Barcelona city vs rest of Catalonia,injury crashes,vehicles,1,0.197672,0.405053,
 Barcelona city vs rest of Catalonia,injury crashes,vehicles,3 or more,0.0895808,0.0859152,0.038605,0.00366564
 Barcelona city vs rest of Catalonia,crashes with a death or serious injury (24 h),zone,urban,0.908473,0.512558,0.147509,0.395915
 Barcelona city vs rest of Catalonia,crashes with a death or serious injury (24 h),zone,interurban,0.0915272,0.487442,0.147509,-0.395915
-Barcelona city vs rest of Catalonia,crashes with a death or serious injury (24 h),road_class,conventional,0.00209205,0.161395,0.203782,-0.159303
-Barcelona city vs rest of Catalonia,crashes with a death or serious injury (24 h),road_class,dual_carriageway,0.0543933,0.304419,0.203782,-0.250025
-Barcelona city vs rest of Catalonia,crashes with a death or serious injury (24 h),road_class,motorway,0.0224895,0.0631783,0.203782,-0.0406888
-Barcelona city vs rest of Catalonia,crashes with a death or serious injury (24 h),road_class,other,0.139644,0.0775969,0.203782,0.0620475
-Barcelona city vs rest of Catalonia,crashes with a death or serious injury (24 h),road_class,urban_street,0.781381,0.393411,0.203782,0.38797
+Barcelona city vs rest of Catalonia,crashes with a death or serious injury (24 h),road_class,conventional,0.0109833,0.39969,0.231042,-0.388707
+Barcelona city vs rest of Catalonia,crashes with a death or serious injury (24 h),road_class,dual_carriageway,0.0455021,0.066124,0.231042,-0.0206219
+Barcelona city vs rest of Catalonia,crashes with a death or serious injury (24 h),road_class,motorway,0.0224895,0.0631783,0.231042,-0.0406888
+Barcelona city vs rest of Catalonia,crashes with a death or serious injury (24 h),road_class,other,0.139644,0.0775969,0.231042,0.0620475
+Barcelona city vs rest of Catalonia,crashes with a death or serious injury (24 h),road_class,urban_street,0.781381,0.393411,0.231042,0.38797
 Barcelona city vs rest of Catalonia,crashes with a death or serious injury (24 h),crash_type,fall or overturn,0.106695,0.0947287,0.127042,0.0119659
 Barcelona city vs rest of Catalonia,crashes with a death or serious injury (24 h),crash_type,fixed object,0.0533473,0.0436434,0.127042,0.00970387
 Barcelona city vs rest of Catalonia,crashes with a death or serious injury (24 h),crash_type,front-side,0.248431,0.164884,0.127042,0.0835472
@@ -201,12 +201,12 @@ Barcelona city vs rest of Catalonia,crashes with a death or serious injury (24 h
 Barcelona city vs rest of Catalonia,crashes with a death or serious injury (24 h),vehicles,3 or more,0.0983264,0.0835659,0.00655431,0.0147605
 Barcelona city vs Spain outside Catalonia,injury crashes,zone,urban,0.921582,0.634026,0.0921013,0.287555
 Barcelona city vs Spain outside Catalonia,injury crashes,zone,interurban,0.0784184,0.365974,0.0921013,-0.287555
-Barcelona city vs Spain outside Catalonia,injury crashes,road_class,conventional,0.00132316,0.212177,0.130985,-0.210853
-Barcelona city vs Spain outside Catalonia,injury crashes,road_class,dual_carriageway,0.0467188,0.111604,0.130985,-0.064885
-Barcelona city vs Spain outside Catalonia,injury crashes,road_class,motorway,0.0197911,0.0260773,0.130985,-0.00628617
-Barcelona city vs Spain outside Catalonia,injury crashes,road_class,not specified,0,0.000129367,0.130985,-0.000129367
-Barcelona city vs Spain outside Catalonia,injury crashes,road_class,other,0.098491,0.0489615,0.130985,0.0495295
-Barcelona city vs Spain outside Catalonia,injury crashes,road_class,urban_street,0.833676,0.601051,0.130985,0.232624
+Barcelona city vs Spain outside Catalonia,injury crashes,road_class,conventional,0.00586977,0.2339,0.126513,-0.22803
+Barcelona city vs Spain outside Catalonia,injury crashes,road_class,dual_carriageway,0.0421722,0.0898809,0.126513,-0.0477087
+Barcelona city vs Spain outside Catalonia,injury crashes,road_class,motorway,0.0197911,0.0260773,0.126513,-0.00628617
+Barcelona city vs Spain outside Catalonia,injury crashes,road_class,not specified,0,0.000129367,0.126513,-0.000129367
+Barcelona city vs Spain outside Catalonia,injury crashes,road_class,other,0.098491,0.0489615,0.126513,0.0495295
+Barcelona city vs Spain outside Catalonia,injury crashes,road_class,urban_street,0.833676,0.601051,0.126513,0.232624
 Barcelona city vs Spain outside Catalonia,injury crashes,crash_type,fall or overturn,0.0761521,0.105965,0.207267,-0.0298129
 Barcelona city vs Spain outside Catalonia,injury crashes,crash_type,fixed object,0.024197,0.0234793,0.207267,0.000717659
 Barcelona city vs Spain outside Catalonia,injury crashes,crash_type,front-side,0.185707,0.218025,0.207267,-0.0323185
@@ -254,12 +254,12 @@ Barcelona city vs Spain outside Catalonia,injury crashes,vehicles,1,0.197672,0.3
 Barcelona city vs Spain outside Catalonia,injury crashes,vehicles,3 or more,0.0895808,0.0862845,0.0320123,0.00329627
 Barcelona city vs Spain outside Catalonia,crashes with a death or serious injury (24 h),zone,interurban,0.0915272,0.501993,0.156527,-0.410466
 Barcelona city vs Spain outside Catalonia,crashes with a death or serious injury (24 h),zone,urban,0.908473,0.498007,0.156527,0.410466
-Barcelona city vs Spain outside Catalonia,crashes with a death or serious injury (24 h),road_class,conventional,0.00209205,0.340483,0.208235,-0.338391
-Barcelona city vs Spain outside Catalonia,crashes with a death or serious injury (24 h),road_class,dual_carriageway,0.0543933,0.10731,0.208235,-0.0529172
-Barcelona city vs Spain outside Catalonia,crashes with a death or serious injury (24 h),road_class,motorway,0.0224895,0.0249224,0.208235,-0.00243285
-Barcelona city vs Spain outside Catalonia,crashes with a death or serious injury (24 h),road_class,not specified,0,0.000176546,0.208235,-0.000176546
-Barcelona city vs Spain outside Catalonia,crashes with a death or serious injury (24 h),road_class,other,0.139644,0.0679849,0.208235,0.0716595
-Barcelona city vs Spain outside Catalonia,crashes with a death or serious injury (24 h),road_class,urban_street,0.781381,0.459122,0.208235,0.322258
+Barcelona city vs Spain outside Catalonia,crashes with a death or serious injury (24 h),road_class,conventional,0.0109833,0.361434,0.194912,-0.35045
+Barcelona city vs Spain outside Catalonia,crashes with a death or serious injury (24 h),road_class,dual_carriageway,0.0455021,0.0863604,0.194912,-0.0408583
+Barcelona city vs Spain outside Catalonia,crashes with a death or serious injury (24 h),road_class,motorway,0.0224895,0.0249224,0.194912,-0.00243285
+Barcelona city vs Spain outside Catalonia,crashes with a death or serious injury (24 h),road_class,not specified,0,0.000176546,0.194912,-0.000176546
+Barcelona city vs Spain outside Catalonia,crashes with a death or serious injury (24 h),road_class,other,0.139644,0.0679849,0.194912,0.0716595
+Barcelona city vs Spain outside Catalonia,crashes with a death or serious injury (24 h),road_class,urban_street,0.781381,0.459122,0.194912,0.322258
 Barcelona city vs Spain outside Catalonia,crashes with a death or serious injury (24 h),crash_type,fall or overturn,0.106695,0.0887437,0.147531,0.0179508
 Barcelona city vs Spain outside Catalonia,crashes with a death or serious injury (24 h),crash_type,fixed object,0.0533473,0.0238484,0.147531,0.0294989
 Barcelona city vs Spain outside Catalonia,crashes with a death or serious injury (24 h),crash_type,front-side,0.248431,0.179018,0.147531,0.0694134

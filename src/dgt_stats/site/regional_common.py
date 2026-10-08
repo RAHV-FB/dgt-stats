@@ -16,27 +16,6 @@ from dgt_stats.site.components import (
 )
 
 MIN_N = 30
-# The names a reader sees. The two featured models are the Catalonia crash-severity model and the
-# Barcelona person-severity model; the harmonised models are validation instruments.
-MODEL_NAMES = {
-    "catalonia_crash_severity": "Catalonia crash-severity model",
-    "barcelona_person_severity": "Barcelona person-severity model",
-    "barcelona_crash_severity": "Barcelona crash-severity model",
-    "catalonia_common_dgt": "Harmonised Catalonia model (variables recorded alike by DGT)",
-    "catalonia_common_bcn": "Catalonia model on Barcelona's variables",
-    "dgt_crash_severity": "Association analysis of DGT crash records",
-    "dgt_monthly_deaths_forecast": "Monthly deaths forecast",
-}
-CARDS = {
-    "catalonia_crash_severity": "models/catalonia_fatal_severity.md",
-    "barcelona_person_severity": "models/barcelona_person_severity.md",
-    "barcelona_crash_severity": "models/barcelona_crash_severity.md",
-}
-ESTIMATORS = {
-    "baseline_prior": "Baseline (prevalence)",
-    "logistic": "Logistic regression",
-    "boosted_trees": "Boosted trees",
-}
 
 
 def _year_label(frame: pd.DataFrame) -> str:

@@ -141,14 +141,14 @@ WITHDRAWN_PAGES = {
         "errors, the smallest change in a year's deaths that the counts could reveal. Scored on "
         "the ordinary years that played no part in choosing it, the model forecast less "
         "accurately than simply repeating last year's count, so it was withdrawn, and with it "
-        "the detectable change computed from its errors. The re-evaluation is in the repository's "
-        "model review."
+        "the detectable change computed from its errors."
     ),
     "simulator": (
         "This page simulated what new speed limits, and drivers keeping to them, would do to "
-        "deaths and injuries. Its results came from speeds measured in other countries and from "
-        "published estimates of how casualties respond to speed. The Spanish crash records carry "
-        "no speeds, so none of those links could be estimated or checked here."
+        "deaths and injuries. It started from free-flow speeds measured in Spain for the EU "
+        "Baseline project, and took from studies in other countries both how speeds follow a "
+        "new limit and how casualties respond to speed. The Spanish crash records carry no "
+        "speeds, so none of those links could be estimated or checked here."
     ),
     "distraction": (
         "This page estimated how many deaths a year distraction causes, by combining the share "
@@ -164,11 +164,35 @@ WITHDRAWN_PAGES = {
     ),
     "enforcement": (
         "This page ranked enforcement against speeding, drink- and drug-driving and distraction "
-        "by the deaths each would avoid, combining the three withdrawn models with evaluations "
-        "from other countries. The repository holds no data on the effect of enforcement in "
+        "by the deaths each would avoid, combining the three withdrawn models with published "
+        "evaluations of enforcement, all from other countries but one study of Barcelona's "
+        "fixed speed cameras. The repository holds no data on the effect of enforcement in "
         "Spain."
     ),
 }
+
+
+def withdrawn_detail(slug: str) -> str:
+    """A further paragraph for a withdrawn page whose reason rests on a result table (HTML)."""
+    if slug != "forecast":
+        return ""
+    review = read_table("review_forecast")
+    held_out = review[review.set.eq("holdout")]
+    model = held_out[held_out.method.str.contains("published model")].sort_values("window")
+    naive = held_out[held_out.method.str.startswith("naive")]
+    model_error, naive_error = float(model.rmse.iloc[0]), float(naive.rmse.iloc[0])
+    if not (len(naive) == 1 and model_error > naive_error):
+        raise ValueError("forecast notice: the model no longer loses to last year's count")
+    return (
+        "<p>The model predicted each month's deaths from the month of the year, a linear trend, "
+        "the number of Fridays, Saturdays and Sundays, and the road fuel sold in that same "
+        "month. Fuel sales are known only once the month is over, so the model could not "
+        "forecast ahead: it estimated the deaths that a month's traffic would have brought. "
+        "Even so, in the ordinary years held back from its choice its error in a year's deaths "
+        f"was {_fmt_pct(model_error)}, against {_fmt_pct(naive_error)} for repeating the same "
+        "months of the year before. The re-evaluation is in the "
+        f'<a href="{DOCS_URL}/research/ML_MODEL_REVIEW.md">model review</a>.</p>'
+    )
 
 
 # House style for numbers: a typographic minus rather than a hyphen, so a negative figure in a
@@ -779,6 +803,7 @@ Català de Trànsit, the Ajuntament de Barcelona, the Autoritat del Transport Me
 the Consorcio Regional de Transportes de Madrid (<a href="https://www.crtm.es">Powered by CRTM</a>).
 All results are computed from the published files by the code in the repository.</p>
 <p><a href="sources.html">Data sources</a> · <a href="data.html">Methodology</a> ·
+<a href="data.html#reuse">Reuse and licences</a> ·
 <a href="{REPO_URL}">Repository</a></p>
 </div>
 </footer>

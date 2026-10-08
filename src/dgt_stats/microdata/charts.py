@@ -225,6 +225,8 @@ def experiment_label(experiment: str) -> str:
     text = re.sub(r"\s*\((?:DGT|Barcelona)-common features\)$", "", experiment)
     if text.startswith("temporal holdout"):
         return "Later year"
+    if text.startswith("rolling origin"):
+        return "Each year from the years before it"
     if match := re.fullmatch(r"leave out (\w+) demarcation", text):
         return f"{match.group(1)} province left out"
     if text in EXPERIMENT_LABELS:
@@ -603,18 +605,50 @@ def transport_figures(figures_dir: Path, captions: dict[str, str]) -> None:
     selected = table("ml_selected")
     chosen = selected[selected.primary].set_index("model").estimator
     reported = reported[reported.estimator.eq(reported.model.map(chosen))]
+    # The reverse Barcelona test trains the specification on Barcelona city's crashes alone: a
+    # model of the city, not the Catalonia model, so it is not drawn with the model's tests.
     best = reported.drop_duplicates(["experiment", "model"])
-    best["row"] = best.experiment.map(experiment_label)
-    best["low"] = best.roc_auc_low.fillna(best.roc_auc)
-    best["high"] = best.roc_auc_high.fillna(best.roc_auc)
+    best = best[~best.experiment.str.startswith("Barcelona municipality -> rest")]
+    calculator = table("gen_calculator_transfer")
+    calculator = calculator[~calculator.experiment.str.startswith("random")]
+    best = pd.concat([best, calculator], ignore_index=True)
+    best["test"] = best.experiment.map(experiment_label)
+    # Each test is drawn beside its reference: the same kind of model trained and cross-
+    # validated inside the test population, where one exists.
+    tested = best.assign(
+        row="Model tested",
+        kind="focal",
+        low=best.roc_auc_low.fillna(best.roc_auc),
+        high=best.roc_auc_high.fillna(best.roc_auc),
+    )
+    references = best[best.in_domain_cv_roc_auc.notna()].assign(
+        row="Trained in the test population",
+        kind="reference",
+        roc_auc=lambda d: d.in_domain_cv_roc_auc,
+        low=lambda d: d.in_domain_cv_roc_auc,
+        high=lambda d: d.in_domain_cv_roc_auc,
+    )
+    drawn = pd.concat([tested, references]).sort_index(kind="stable")
     for model, name, title, shown, source in (
+        (
+            "calculator",
+            "tr0_calculator_transfer",
+            "The calculator's model on held-out years and places",
+            "ROC-AUC of the calculator's model on crashes held out of its fitting (each year from "
+            "the years before it, the last year, each province of Catalonia in turn, Barcelona "
+            "city from the rest of Catalonia), with 95% intervals, beside the same model fitted "
+            "and cross-validated in the test population (hollow)",
+            CAT_SOURCE,
+        ),
         (
             "catalonia_crash_severity",
             "tr1_catalonia_transfer",
-            "Catalonia crash-severity model on held-out places and years",
-            "ROC-AUC of the Catalonia crash-severity model on records held out of its training: a "
-            "later year, each province of Catalonia in turn, and Barcelona city against the rest "
-            "of Catalonia, with 95% intervals where computed",
+            "Original Catalonia model (retired) on held-out places and years",
+            "ROC-AUC of the original Catalonia crash-severity model, retired because it relied on "
+            "a recording artefact, on records held out of its training (a later year, each "
+            "province of Catalonia in turn, Barcelona city from the rest of Catalonia), with 95% "
+            "intervals where computed, beside a model of the same kind trained and "
+            "cross-validated in the test population (hollow)",
             CAT_SOURCE,
         ),
         (
@@ -624,12 +658,14 @@ def transport_figures(figures_dir: Path, captions: dict[str, str]) -> None:
             "ROC-AUC of the harmonised Catalonia model (restricted to the variables DGT records "
             "in the same way) on records held out of its training: later years and each province "
             "in the Catalan file, the same crashes in DGT records, and DGT records from Spain "
-            "outside Catalonia, with 95% intervals where computed",
+            "outside Catalonia, with 95% intervals where computed, beside a model of the same "
+            "kind trained and cross-validated in the test population (hollow)",
             f"{CAT_SOURCE}; {DGT_SOURCE}",
         ),
     ):
+        part = drawn[drawn.model == model]
         plots.dot_interval(
-            best[best.model == model],
+            part,
             "row",
             "roc_auc",
             "low",
@@ -639,7 +675,9 @@ def transport_figures(figures_dir: Path, captions: dict[str, str]) -> None:
             xlabel="ROC-AUC on the held-out records",
             reference=0.5,
             reference_label="chance",
-            xlim=_roc_limits(best[best.model == model].high),
+            style="kind",
+            group="test",
+            xlim=_roc_limits(part.high),
         )
         captions[name] = _caption(shown, source)
     provinces = table("ml_transport_provinces")

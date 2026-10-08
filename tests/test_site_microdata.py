@@ -159,11 +159,13 @@ def test_validation_page_keeps_population_differences_and_validation_apart(
     pages: dict[str, str],
 ) -> None:
     text = pages["validation"]
-    # The main external test leads; how the populations differ follows the tests it qualifies.
+    # The published model's tests lead, then the external test on another source and the
+    # retired original model's; how the populations differ follows the tests it qualifies.
     headings = [
+        "<h2>The calculator's model</h2>",
         "<h2>Tested on DGT records outside Catalonia</h2>",
-        "<h2>Tested on a later year and on provinces left out</h2>",
-        "<h2>Tested on Barcelona city</h2>",
+        "<h2>The original Catalan model, tested within Catalonia</h2>",
+        "<h2>The original model on Barcelona city</h2>",
         "<h2>How the crash populations differ</h2>",
         "<h2>What the tests support</h2>",
     ]
@@ -196,7 +198,7 @@ def test_sources_page_states_the_dgt_audit_decision(pages: dict[str, str]) -> No
     checks = _table("dgt_audit_checks")
     text = pages["sources"]
     if checks.decision.iloc[0].startswith("DGT microdata stay"):
-        assert "They are not used to train a predictive severity model" in text
+        assert "but no published predictive model" in text
     artefacts = _table("dgt_audit_artefacts")
     died = artefacts[artefacts.target.str.contains("30 days")].iloc[0]
     assert f"{died.roc_auc_unrecorded_flags_only:.2f}" in text

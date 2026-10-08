@@ -881,8 +881,11 @@ def export(
     y: np.ndarray,
     evaluation: dict[str, object],
     excluded: int,
+    years: tuple[int, int],
 ) -> dict[str, object]:
-    """Everything the page needs to reproduce :func:`prediction_interval` for any scenario."""
+    """Everything the page needs to reproduce :func:`prediction_interval` for any scenario.
+
+    ``years`` is the first and last year of the fitted crashes, read from the data."""
     k = len(fitted.columns)
     lower = [
         round(float(covariance[i, j]), EXPORT_DECIMALS + 2) for i in range(k) for j in range(i + 1)
@@ -894,9 +897,10 @@ def export(
         "question": "Of crashes in Catalonia with a death or a serious injury, the share that "
         "were fatal (someone died within 24 hours), given the recorded road, conditions and "
         "crash",
-        "source": "Servei Català de Trànsit, crashes with a death or serious injury, 2010-2023",
+        "source": "Servei Català de Trànsit, crashes with a death or serious injury, "
+        f"{years[0]}-{years[1]}",
         "training": {
-            "years": [2010, 2023],
+            "years": [int(years[0]), int(years[1])],
             "crashes": int(len(y)),
             "fatal": int(y.sum()),
             "excluded_owner_not_recorded": int(excluded),

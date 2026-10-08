@@ -11,11 +11,27 @@ Barcelona 2025,crash,serious or fatal injury,crash type,other,160,0,other,0,-1.7
 Barcelona 2025,crash,serious or fatal injury,crash type,other run-off-road,2,2,other run-off-road,1,0.342372,1,True
 Barcelona 2025,crash,serious or fatal injury,crash type,overturn (more than two wheels),8,0,overturn (more than two wheels),0,0,0.324416,True
 Barcelona 2025,crash,serious or fatal injury,crash type,pedestrian struck,885,65,pedestrian struck,0.0734463,0.0580411,0.0925387,False
-Barcelona 2025,crash,serious or fatal injury,crash type,rear collision while catching up,43,26,rear collision while catching up,0.604651,0.455788,0.736349,False
-Barcelona 2025,crash,serious or fatal injury,crash type,rear-end collision,1672,2,rear-end collision,0.00119617,0.000328088,0.00435111,False
+Barcelona 2025,crash,serious or fatal injury,crash type,rear-end collision,1715,28,rear-end collision,0.0163265,0.0113196,0.0234954,False
 Barcelona 2025,crash,serious or fatal injury,crash type,run-off-road with collision,13,1,run-off-road with collision,0.0769231,0.0137101,0.333145,True
 Barcelona 2025,crash,serious or fatal injury,crash type,run-off-road with overturn,4,0,run-off-road with overturn,0,0,0.4899,True
 Barcelona 2025,crash,serious or fatal injury,crash type,side collision,1826,44,side collision,0.0240964,0.0179985,0.0321925,False
+Barcelona 2025,crash,serious or fatal injury,crash-type code as recorded,,3,0,,0,0,0.561506,True
+Barcelona 2025,crash,serious or fatal injury,crash-type code as recorded,Abast,1672,2,Abast,0.00119617,0.000328088,0.00435111,False
+Barcelona 2025,crash,serious or fatal injury,crash-type code as recorded,Abast multiple,193,0,Abast multiple,0,0,0.0195162,False
+Barcelona 2025,crash,serious or fatal injury,crash-type code as recorded,Altres,160,0,other,0,-1.73472e-18,0.023447,False
+Barcelona 2025,crash,serious or fatal injury,crash-type code as recorded,Atropellament,885,65,pedestrian struck,0.0734463,0.0580411,0.0925387,False
+Barcelona 2025,crash,serious or fatal injury,crash-type code as recorded,Bolcada (més de dues rodes),8,0,Bolcada (més de dues rodes),0,0,0.324416,True
+Barcelona 2025,crash,serious or fatal injury,crash-type code as recorded,Caiguda (dues rodes),472,14,Caiguda (dues rodes),0.029661,0.017749,0.0491673,False
+Barcelona 2025,crash,serious or fatal injury,crash-type code as recorded,Caiguda interior vehicle,402,23,Caiguda interior vehicle,0.0572139,0.0384236,0.0843869,False
+Barcelona 2025,crash,serious or fatal injury,crash-type code as recorded,Col.lisió frontal,147,9,Col.lisió frontal,0.0612245,0.0325411,0.112257,False
+Barcelona 2025,crash,serious or fatal injury,crash-type code as recorded,Col.lisió fronto-lateral,1235,56,Col.lisió fronto-lateral,0.0453441,0.0350826,0.0584254,False
+Barcelona 2025,crash,serious or fatal injury,crash-type code as recorded,Col.lisió lateral,1826,44,Col.lisió lateral,0.0240964,0.0179985,0.0321925,False
+Barcelona 2025,crash,serious or fatal injury,crash-type code as recorded,Encalç,43,26,rear-end collision,0.604651,0.455788,0.736349,False
+Barcelona 2025,crash,serious or fatal injury,crash-type code as recorded,Resta sortides de via,2,2,other run-off-road,1,0.342372,1,True
+Barcelona 2025,crash,serious or fatal injury,crash-type code as recorded,Sortida de via amb bolcada,4,0,run-off-road with overturn,0,0,0.4899,True
+Barcelona 2025,crash,serious or fatal injury,crash-type code as recorded,Sortida de via amb xoc o col.lisió,13,1,Sortida de via amb xoc o col.lisió,0.0769231,0.0137101,0.333145,True
+Barcelona 2025,crash,serious or fatal injury,crash-type code as recorded,Xoc amb animal a la calçada,12,0,hit an animal,0,0,0.242501,True
+Barcelona 2025,crash,serious or fatal injury,crash-type code as recorded,Xoc contra element estàtic,664,10,Xoc contra element estàtic,0.0150602,0.00820054,0.0274989,False
 Barcelona 2025,crash,serious or fatal injury,district,Ciutat Vella,398,7,Ciutat Vella,0.0175879,0.00854503,0.0358545,False
 Barcelona 2025,crash,serious or fatal injury,district,Eixample,1925,73,Eixample,0.0379221,0.0302685,0.0474162,False
 Barcelona 2025,crash,serious or fatal injury,district,Gràcia,417,13,Gràcia,0.0311751,0.0183076,0.0526017,False

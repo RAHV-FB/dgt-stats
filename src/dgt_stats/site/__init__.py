@@ -47,6 +47,7 @@ from dgt_stats.site.components import (
     read_captions,
     render_page,
     table,
+    withdrawn_detail,
 )
 from dgt_stats.site.data import page_data
 from dgt_stats.site.drivers import page_drivers
@@ -160,6 +161,7 @@ def page_withdrawn(slug: str) -> str:
     )
     body = (
         f"<p>{esc(WITHDRAWN_PAGES[slug])}</p>"
+        f"{withdrawn_detail(slug)}"
         f"<p>What the repository's own data show on this subject is on these pages: {links}. "
         'The <a href="data.html">methodology</a> explains how the results on the site are '
         "produced.</p>"

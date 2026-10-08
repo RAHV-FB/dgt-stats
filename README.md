@@ -183,14 +183,17 @@ and can be independently reproduced and checked through this repository.
 
 The code is released under the [MIT licence](LICENSE), which allows commercial use. The data files
 under `data/raw/` are not covered by it: each keeps the terms of the body that publishes it, listed
-file by file with its URL in [`docs/data_sources.md`](docs/data_sources.md). DGT's crash microdata
+by provider in [`docs/data_sources.md`](docs/data_sources.md), and each file's source URL is in
+`data/raw/manifest.csv`. DGT's crash microdata
 are catalogued on datos.gob.es under its legal notice; DGT's other statistics carry no reuse licence
 of their own and are redistributed here as public-sector information under Ley 37/2007 with the
 datos.gob.es conditions applied. INE population is CC BY 4.0; the Ministerio de Transportes and
-CORES series are public-sector information on the same terms. The Catalan file is published by
-the Servei Català de Trànsit and the Barcelona files by the Ajuntament de Barcelona on their open
-data portals, each under its own terms. Every published figure is an aggregate and nothing on the
-site identifies a person.
+CORES series are public-sector information on the same terms. The Catalan file is published on
+the Generalitat's open-data portal under the Llicència oberta d'ús d'informació - Catalunya, and
+the Barcelona files on Open Data BCN under CC BY 4.0. The EMEF microdata are reused under the
+open-data clause of the Observatori de la Mobilitat de Catalunya, and the EDM2018 extracts under
+the CRTM's licence, which asks that derived data be distributed under the same licence. Every
+published figure is an aggregate and nothing on the site identifies a person.
 
 The fonts are not covered by the MIT licence either. Nunito Sans and STIX Two Text, in
 `src/dgt_stats/site/fonts` and `src/dgt_stats/fonts`, and the subsets of STIX Two Text embedded in

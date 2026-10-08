@@ -46,6 +46,39 @@ def test_grouped_resamples_keep_whole_crashes_together() -> None:
         assert all(drawn[g] % sizes[g] == 0 for g in drawn.index)
 
 
+def test_population_comparisons_keep_every_conventional_road_in_one_group() -> None:
+    from dgt_stats.microdata.validation import generalisability
+
+    road = generalisability.ROAD_CLASS
+    # Code 5 (conventional, dual carriageway) is the code DGT's Catalan records use for every
+    # conventional road until 2020; code 6 replaces it from 2021.
+    assert road[4] == road[5] == road[6] == "conventional"
+    assert road[3] != "conventional" and road[1] == road[2] == "motorway"
+    assert {road[code] for code in (7, 8, 10, 11, 12, 13, 14)} == {"other"}
+
+
+def test_the_outward_path_does_not_count_a_model_of_another_population() -> None:
+    from dgt_stats.microdata.validation import generalisability
+
+    stage3 = generalisability.PATH["catalonia_crash_severity"][3][1]
+    # The reverse test trains on Barcelona city alone: a model of the city, not of Catalonia.
+    assert not any(test.startswith("Barcelona municipality ->") for test in stage3)
+    assert any(test.startswith("rest of Catalonia to ") for test in stage3)
+    calculator = generalisability.PATH["calculator"]
+    assert calculator[4][0] == "none"
+    assert calculator[3][0] == "transport" and len(calculator[3][1]) == 5
+
+
+def test_barcelona_descriptive_tables_read_the_outcome_dependent_term_as_rear_end() -> None:
+    from dgt_stats.microdata import barcelona, descriptive
+
+    recorded = pd.Series([barcelona.ACCIDENT_TYPES["Encalç"], barcelona.ACCIDENT_TYPES["Abast"]])
+    merged = descriptive._bcn_crash_type(recorded)
+    assert merged.nunique() == 1 and merged.iloc[0] == barcelona.ACCIDENT_TYPES["Abast"]
+    # The source models, fitted earlier, keep the field as recorded.
+    assert barcelona.ACCIDENT_TYPES["Encalç"] != barcelona.ACCIDENT_TYPES["Abast"]
+
+
 def test_the_layers_never_share_a_source() -> None:
     sources = [s for layer in layers.LAYERS for s in layer.sources]
     assert len(sources) == len(set(sources))
@@ -106,6 +139,36 @@ def test_every_transfer_test_with_a_reference_reports_its_gap() -> None:
         & transport.estimator.ne("baseline_prior")
     ]
     assert temporal.in_domain_cv_roc_auc.notna().all()
+
+
+def test_the_calculator_tests_sit_beside_a_reference_and_the_table() -> None:
+    tests = _table("gen_calculator_transfer")
+    assert set(tests.model) == {"calculator"}
+    held_out = tests[~tests.experiment.str.startswith(("random", "rolling"))]
+    # Each province, the city and the last year, each with its own in-domain reference.
+    assert len(held_out) == 6
+    assert held_out.in_domain_cv_roc_auc.notna().all() and held_out.table_roc_auc.notna().all()
+    gap = held_out.roc_auc - held_out.in_domain_cv_roc_auc
+    assert np.allclose(gap, held_out.transfer_gap, rtol=0, atol=5e-6)
+    rolling = tests[tests.experiment.str.startswith("rolling")].iloc[0]
+    assert np.isnan(rolling.in_domain_cv_roc_auc) and rolling.roc_auc > rolling.table_roc_auc
+    # The rolling test reproduces the calculator's own evaluation on the same crashes.
+    scores = _table("sev_rolling_scores")
+    own = scores[scores.subset.str.fullmatch(r"\d{4}-\d{4}") & scores.estimator.eq("calculator")]
+    assert int(own.n.iloc[0]) == int(rolling.test_n)
+    assert abs(float(own.roc_auc.iloc[0]) - rolling.roc_auc) < 1e-6
+
+
+def test_road_type_coding_switches_only_in_the_catalan_records() -> None:
+    coding = _table("gen_coding_by_region").set_index(["region", "year"])
+    catalonia = coding.loc["Catalonia"]
+    rest = coding.loc["Spain outside Catalonia"]
+    before, after = catalonia.loc[:2020], catalonia.loc[2021:]
+    assert (
+        before.road_type_6_single_carriageway < 0.01 * before.road_type_5_dual_carriageway
+    ).all()
+    assert (after.road_type_5_dual_carriageway == 0).all()
+    assert rest.road_type_5_dual_carriageway.max() < 1.5 * rest.road_type_5_dual_carriageway.min()
 
 
 def test_national_transferability_is_claimed_only_after_all_five_stages() -> None:
