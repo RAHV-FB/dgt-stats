@@ -44,6 +44,7 @@ from dgt_stats.site.numbers import (
     FAIL,
     INTERMEDIATE,
     MC_MARGIN,
+    OLDER_CONCLUSION,
     PASS,
     _driver_numbers,
     _older_numbers,
@@ -853,18 +854,13 @@ def page_drivers(captions: dict[str, str]) -> str:
     # The opening gives the 75+ range and one clause on what it allows; the reasons (the
     # combinations at odds with men's driving, the sampling interval at the lowest of the others)
     # are in the section on ages 75 and over.
-    direction = {
-        PASS: ", and every combination consistent with Spanish surveys of men's driving puts "
-        "them above that rate, even allowing for sampling error; how much above is not "
-        "established",
-        INTERMEDIATE: ", so these data cannot show that they are involved more often per "
-        "kilometre whatever the assumption, nor by how much",
-        FAIL: ", so whether they are involved more or less often per kilometre is not established",
-    }[tier]
+    direction = OLDER_CONCLUSION[tier]
     body = summary(
         "No national source records how far drivers of each age drive, so involvement in "
-        "crashes per kilometre is an estimate, built from a Barcelona-area survey of working "
-        f"days that accounts for {_fmt_pct(survey_cover, 0)} of DGT's car kilometres. On that "
+        "crashes per kilometre is an estimate, built from a working-day travel survey of the "
+        "Barcelona area. Carried to Spain's population, that survey's working-day driving "
+        f"accounts for {_fmt_pct(survey_cover, 0)} of DGT's car kilometres, and the central "
+        "estimate gives the rest the same age mix. On that "
         f"estimate, car drivers aged 18–29 were involved in injury crashes in Spain in {year} "
         f"{float(young.involved_ratio):.2f} times as often per kilometre driven as drivers aged "
         f"45–64 (95% sampling interval {_ci(young, 'involved_ratio')}; sensitivity range, the "
@@ -1255,9 +1251,10 @@ def page_drivers(captions: dict[str, str]) -> str:
     racc = older_variants[older_variants.assumption == national.RACC_SPLIT]
     if tier == INTERMEDIATE:
         sampling = (
-            f"Its 95% sampling interval, {joint_interval(lowest_clear)}, reaches the 45–64 rate, "
-            "so these data cannot show that drivers aged 75 and over are involved more often per "
-            "kilometre whatever the assumption, nor by how much."
+            f"Its 95% sampling interval, {joint_interval(lowest_clear)}, includes the 45–64 "
+            "rate. So even leaving out equal kilometres per licence holder, one combination "
+            "tested is consistent with no difference, and the data do not establish a higher "
+            "rate at 75 and over, or its size."
         )
     elif tier == PASS:
         sampling = (

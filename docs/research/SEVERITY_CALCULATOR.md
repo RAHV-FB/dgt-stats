@@ -21,7 +21,7 @@ Three sources could support the question.
 | Source | Unit | Fatal cases | Why chosen or not |
 |---|---|---|---|
 | Servei Català de Trànsit, 2010–2023 | crash with a death or serious injury | 2,822 of 22,638 used | **chosen**: the population the question names, fourteen years, road, conditions and units involved recorded in every row |
-| DGT crash microdata, 2016–2024 | injury crash, Spain | about 14,000 of 875,013 | not used to train: fields are blank at rates that differ by province and by outcome, and the blanks alone rank fatal crashes with ROC-AUC 0.72 ([`DGT_MICRODATA_AUDIT.md`](../DGT_MICRODATA_AUDIT.md)) |
+| DGT crash microdata, 2016–2024 | injury crash, Spain | about 14,000 of 875,013 | not used to train: fields are blank at rates that differ by province and by outcome, and the fields left unrecorded where they apply rank fatal crashes on their own with ROC-AUC 0.68 (`dgt_audit_artefacts.csv`, deaths within 30 days; [`DGT_MICRODATA_AUDIT.md`](../DGT_MICRODATA_AUDIT.md)) |
 | Guàrdia Urbana, Barcelona 2025 | person or crash | 13 deaths | far too few fatal cases for this question |
 
 **The road owner's recording artefact.** On interurban conventional roads the owner field takes two

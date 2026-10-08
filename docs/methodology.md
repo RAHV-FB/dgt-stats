@@ -26,10 +26,13 @@ geographic validation); the **rich microdata of Barcelona** (crash and person an
 person-severity model); and **validation** (harmonisation and transfer tests only, never creating
 observations). No record is linked across sources and no merged database is built. Every result
 comes from rows of the files in `data/raw/`; studies published elsewhere may define a variable or
-a method but never supply an observation, a coefficient or an effect size. One exception remains:
+a method but never supply an observation, a coefficient or an effect size. Two exceptions remain:
 the road-to-straight-line distance ratio of driving trips (1.45) and the 2021 distance benchmarks
 are typed from the EMEF 2021 distance report, which measured them on the same survey's trips but
-is not archived (section 7). The speed-law
+is not archived (section 7); and the Fundació RACC 2013 survey's shares of licence holders aged 65
+and over who do not drive and their driving days are typed from its published slide dossier, not
+archived because RACC grants no reuse licence, and set the upper limit on men's kilometres at 75
+and over in one split of the 65-and-over kilometres (section 7). The speed-law
 simulator, the distraction and alcohol-and-drug models and the enforcement comparison drew their
 results from coefficients in external studies and were withdrawn; their old pages are short
 notices (section 16). Every method below names the module that implements it. What each dataset

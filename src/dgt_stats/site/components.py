@@ -397,6 +397,10 @@ def table(
     """
     formats = formats or {}
     assert not frame.columns.duplicated().any(), list(frame.columns)
+    # A format keyed by a column the table does not have would leave that column unformatted.
+    unknown = sorted(set(formats) - set(frame.columns))
+    if unknown:
+        raise ValueError(f"table formats name columns the table does not have: {unknown}")
     formatters = {
         "year": lambda v: "" if pd.isna(v) else str(int(v)),
         "int": _fmt_int,

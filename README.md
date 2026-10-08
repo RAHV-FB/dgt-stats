@@ -79,8 +79,11 @@ The generated documents behind the regional, model and validation pages:
   (`src/dgt_stats/validate.py`). The Catalan file's fatal crashes equal DGT's 24-hour counts
   province by province, and the rules that interpret regional values are checked on every build
   ([`docs/DATA_QUALITY_MICRODATA.md`](docs/DATA_QUALITY_MICRODATA.md)).
-- Every rate names its denominator, which matches its numerator in population, geography and
-  period; no denominator is attached to an individual crash.
+- Every rate names its denominator, chosen to contain its numerator in population, geography and
+  period. Where it cannot, the page says so: visitors in rates per resident, foreign and unlicensed
+  drivers in rates per licence holder, foreign vehicles in rates per vehicle, and kilometres by
+  driver age estimated from a regional travel survey. No denominator is attached to an individual
+  crash.
 - A predictive model is compared with a simple descriptive table on later records it never saw,
   and is kept only if it beats the table by a margin set in advance. Its probabilities are read as
   estimates only if they pass a calibration rule; otherwise it is used for ranking only. A model
@@ -95,20 +98,28 @@ The generated documents behind the regional, model and validation pages:
   coefficient. Analyses whose results came from coefficients in published studies (a speed-law
   simulator, distraction and drink-driving models, an enforcement comparison) were withdrawn; so
   was the monthly deaths forecast, which did worse than last year's count on the years it had not
-  seen. Their old addresses say so. One exception remains: the ratio of road to straight-line
-  distance for driving trips (1.45) and the 2021 distance benchmarks in
+  seen. Their old addresses say so. Two exceptions remain. The first is the ratio of road to
+  straight-line distance for driving trips (1.45) and the 2021 distance benchmarks in
   `src/dgt_stats/emef/distance.py` are typed from the EMEF 2021 distance report (Institut
   Metròpoli for the ATM, October 2022, Table 1), which measured them on the same survey's 2021
   trips. The report is not archived here and could not be found again, so they rest on the
   transcription ([`docs/research/DRIVER_AGE_EXPOSURE.md`](docs/research/DRIVER_AGE_EXPOSURE.md),
   [`docs/research/EMEF_INVENTORY.md`](docs/research/EMEF_INVENTORY.md)). The ratio scales every
   age group's kilometres alike, so it moves the rates per kilometre but hardly the ratios between
-  ages.
+  ages. The second is the Fundació RACC 2013 survey of licence holders aged 65 and over: the
+  shares who do not drive and the days a week the others drive (slides 5, 11 and 19 of its
+  published dossier) are typed into `src/dgt_stats/exposure_risk/national.py` and not archived,
+  because RACC grants no licence to reuse its documents. They set the upper limit on men's
+  kilometres at 75 and over in one of the four splits of the 65-and-over kilometres, and so the
+  lowest 75+ combination not marked as at odds with men's driving
+  ([`docs/data_sources.md`](docs/data_sources.md)).
 
 ## What the data cannot do
 
-- The regional records have no measure of travel (trips or kilometres), so the Catalan and
-  Barcelona analyses describe severity among recorded crashes, not rates per journey or kilometre.
+- The regional crash records carry no measure of travel (trips or kilometres), so the Catalan and
+  Barcelona crash analyses describe severity among recorded crashes, not rates per journey or
+  kilometre. The one exception is the working-day check of involvement per kilometre in
+  Barcelona, whose kilometres come from the EMEF travel survey.
 - No crash file records vehicle speeds: the Catalan speed field is the road's posted limit.
 - No national source measures kilometres by the driver's age. They are estimated from one
   region's working-day survey applied to Spain, so per-kilometre comparisons by age carry
@@ -198,7 +209,9 @@ the choice of sources, the statistical design, the interpretation, the review an
 publish each result are the author's, and so is responsibility for them. AI coding assistants,
 including Claude Code, ChatGPT Work and GitHub Copilot, were used during implementation, debugging,
 data-processing work and review. All published results are generated from the recorded source data
-and can be independently reproduced and checked through this repository.
+and can be reproduced from this repository, except two transcribed inputs (the EMEF 2021 distance
+figures and the RACC 2013 survey figures, above), which can be checked only against their
+published reports.
 
 ## Licence and data reuse
 

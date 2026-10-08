@@ -147,6 +147,15 @@ def _driver_numbers() -> dict[str, object]:
 # The three wordings of what the per-km figures say about drivers aged 75 and over, from the
 # strongest to the weakest; :func:`_older_numbers` picks the one the tables support.
 PASS, INTERMEDIATE, FAIL = "pass", "intermediate", "fail"
+# What the 75+ sensitivity range allows, as a clause after "the sensitivity range is a to b times
+# the 45-64 rate", for every page that states it: the same evidence gets the same words.
+OLDER_CONCLUSION = {
+    PASS: "; every combination tested that agrees with surveys of men's driving puts them above "
+    "that rate, even allowing for sampling error, but how far above is not established",
+    INTERMEDIATE: ", so the data do not establish that they are involved more often per "
+    "kilometre than drivers aged 45–64, or by how much",
+    FAIL: ", so whether they are involved more or less often per kilometre is not established",
+}
 # How many Monte Carlo standard errors an end of a joint sampling interval must stand from the
 # 45-64 rate for a wording to rest on which side of it the end lies.
 MC_MARGIN = 3

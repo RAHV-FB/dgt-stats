@@ -423,6 +423,7 @@ def test_drivers_page_separates_the_two_questions(built: Path) -> None:
     covered = pd.read_csv(TABLES_DIR / "risk_coverage.csv").set_index("component")
     share = covered.loc["working days", "share_least_explained"]
     assert f"accounts for {components._fmt_pct(share, 0)} of DGT's car kilometres" in opening
+    assert "survey of working days that accounts for" not in opening
     older_rows = pd.read_csv(TABLES_DIR / "risk_older_sensitivity.csv")
     older_range = older_rows.ratio_75_plus
     if spread.involved_ratio.min()["65+"] < 1:
@@ -448,10 +449,8 @@ def test_drivers_page_separates_the_two_questions(built: Path) -> None:
     # The opening gives one clause on what the range allows, worded so that no reader can take
     # "not established under every assumption" for "established under none".
     if unmarked.min() > 1 and lowest.ratio_low <= 1:
-        assert (
-            "so these data cannot show that they are involved more often per kilometre whatever "
-            "the assumption, nor by how much" in opening
-        )
+        assert site_numbers.OLDER_CONCLUSION[site_numbers.INTERMEDIATE] in opening
+        assert "whatever the assumption" not in body
     elif unmarked.min() > 1 and lowest.ratio_low > 1 and madrid.ratio_low > 1:
         assert "even allowing for sampling error" in opening
     else:

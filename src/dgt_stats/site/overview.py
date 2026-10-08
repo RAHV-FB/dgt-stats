@@ -25,6 +25,7 @@ from dgt_stats.site.components import (
 from dgt_stats.site.numbers import (
     FAIL,
     INTERMEDIATE,
+    OLDER_CONCLUSION,
     PASS,
     _driver_numbers,
     _long_run_numbers,
@@ -273,15 +274,7 @@ def _drivers() -> str:
         "how often older drivers are in crashes or who caused them.",
         [("drivers#deaths-once-a-crash-has-happened", "Drivers: deaths once a crash has happened")],
     )
-    direction = {
-        PASS: "every combination tested that is consistent with Spanish surveys of men's "
-        "driving is above the 45–64 rate, even allowing for sampling error",
-        INTERMEDIATE: "every combination tested that is consistent with Spanish surveys of "
-        "men's driving is above the 45–64 rate, but the lowest not clearly so once sampling "
-        "error is allowed for",
-        FAIL: "some combinations consistent with Spanish surveys of men's driving put them at "
-        "or below the 45–64 rate",
-    }[tier]
+    direction = OLDER_CONCLUSION[tier]
     per_km = _finding(
         "Young drivers are in more crashes for the distance they drive.",
         "Per kilometre driven, car drivers aged 18–29 were involved in injury crashes about "
@@ -294,14 +287,17 @@ def _drivers() -> str:
         f"{float(older.involved_ratio_high):.2f}), but the sensitivity range is "
         f"{float(ranges.loc['65+', 'min']):.2f}–{float(ranges.loc['65+', 'max']):.2f}, so "
         "whether they are involved more or less often per kilometre is not established. For "
-        f"drivers aged 75 and over the sensitivity range is {full[0]:.2f}–{full[1]:.2f}; "
+        "drivers aged 75 and over no source measures their kilometres apart from those at "
+        "65–74; depending on how the 65-and-over kilometres are divided and carried to Spain, "
+        f"the sensitivity range is {full[0]:.2f} to {full[1]:.2f} times the 45–64 rate"
         f"{direction}. If people aged 75 and over drive as much less than those aged 65–74 as "
         f"in Madrid in {edm2018.SURVEY_YEAR}, they were involved about "
         f"{float(estimate.ratio_to_45_64):.1f} times as often (95% sampling interval "
         f"{joint_interval(estimate, 1)}). The "
-        "kilometres by driver age are estimated from a Barcelona-area survey of working days, "
-        "which accounts for about half of DGT's car kilometres. Involvement counts every driver "
-        "in a crash, whoever caused it.",
+        "kilometres by driver age come from a Barcelona-area survey of working days. Carried to "
+        "Spain's population, the survey's working-day driving adds up to about half of DGT's car "
+        "kilometres; the central estimate gives the rest the same age mix, and the sensitivity "
+        "range tests other mixes. Involvement counts every driver in a crash, whoever caused it.",
         [
             (
                 "drivers#involvement-in-crashes-per-kilometre-driven",

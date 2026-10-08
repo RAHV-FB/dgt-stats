@@ -114,7 +114,7 @@ def page_trends(captions: dict[str, str]) -> str:
     if not float(hosp.loc["count", "ratio_to_base"]) > float(crashes.loc["count", "ratio_to_base"]):
         raise ValueError("trends page: admissions per crash no longer rose")
 
-    # How far each denominator itself moved between the two years: the reason the rates part.
+    # How far each denominator itself moved between the two years: the reason the rates diverge.
     exposure = index[index.outcome == "deaths_30d"].set_index(["denominator", "year"]).exposure
     moved = {
         key: float(exposure.loc[(key, last)]) / float(exposure.loc[(key, base)])
@@ -337,7 +337,7 @@ def page_trends(captions: dict[str, str]) -> str:
     )
 
     body += (
-        "<h2>The rates part because the population grew while fuel sales fell</h2>"
+        "<h2>The rates diverge because the population grew while fuel sales fell</h2>"
         f"<p>Between {base} and {last} the population grew {_fmt_pct(moved['residents'] - 1)}, "
         f"licence holders {_fmt_pct(moved['licence_holders'] - 1)} and the registered fleet "
         f"{_fmt_pct(moved['vehicles'] - 1)}, while road fuel sold fell "

@@ -647,16 +647,18 @@ def page_barcelona(captions: dict[str, str]) -> str:
     struck = crash_types.loc["pedestrian struck"]
     rear_end = crash_types.loc["rear-end collision"]
     # The codes as recorded: "Encalç", the Catalan file's term for a rear-end collision, against
-    # the Guàrdia Urbana's own rear-end codes.
+    # the Guàrdia Urbana's own rear-end code ("Abast"); together they make the rear-end group.
+    # Multiple rear-end collisions ("Abast multiple") are a crash type of their own.
     codes = crashes[crashes.dimension == "crash-type code as recorded"].set_index("level")
     catching_up = codes.loc["Encalç"]
-    own_codes = codes.loc[["Abast", "Abast multiple"]]
-    own_n, own_events = int(own_codes.n.sum()), int(own_codes.events.sum())
+    own_n, own_events = int(codes.loc["Abast", "n"]), int(codes.loc["Abast", "events"])
+    multiple = codes.loc["Abast multiple"]
     _check(
         catching_up.n + codes.loc["Abast", "n"] == rear_end.n
         and catching_up.events + codes.loc["Abast", "events"] == rear_end.events
         and catching_up.share > 10 * crash_all.share
-        and own_events / own_n < crash_all.share,
+        and own_events / own_n < crash_all.share
+        and int(multiple.events) == 0,
         "barcelona",
         "the term for a catching-up rear collision marks mostly serious crashes, the force's own "
         "rear-end codes almost none, and the two together make the rear-end group",
@@ -801,8 +803,10 @@ def page_barcelona(captions: dict[str, str]) -> str:
         f"serious or fatal injury in {_fmt_pct(rear_end.share)} of {_fmt_int(rear_end.n)} "
         "crashes. They include the crashes coded with the Catalan file's term for a rear-end "
         f"collision: {_fmt_int(catching_up.events)} of those {_fmt_int(catching_up.n)} crashes "
-        f"had a serious or fatal injury, against {_fmt_int(own_events)} of the "
-        f"{_fmt_int(own_n)} under the Guàrdia Urbana's own rear-end codes. The term is used "
+        f"had a serious or fatal injury, against {_fmt_int(own_events)} of the other "
+        f"{_fmt_int(own_n)}, coded with the Guàrdia Urbana's own rear-end code (and none of the "
+        f"{_fmt_int(int(multiple.n))} multiple rear-end collisions, a crash type of their own). "
+        "The term is used "
         "when a crash is serious, so it records the outcome rather than a kind of crash, and "
         "this page counts it with the other rear-end collisions. A model of these crashes "
         "ranked them no better than a table of shares by accident type; both were fitted on the "

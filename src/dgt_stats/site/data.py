@@ -15,6 +15,7 @@ import pandas as pd
 from dgt_stats import codes, edm2018, features, io_exposure, risk_trends, severity_model
 from dgt_stats import figures as figure_data
 from dgt_stats.derive import ROAD_GROUP_BY_TYPE
+from dgt_stats.exposure_risk import national as national_rates
 from dgt_stats.microdata.ml import modelling, recording, rules
 from dgt_stats.microdata.validation import dgt_audit, transport
 from dgt_stats.paths import RAW_DATA_DIR, TABLES_DIR
@@ -231,7 +232,9 @@ def _rates() -> str:
         ),
         (
             "Per licence holder",
-            f"Counts only the drivers of {vehicles} killed or admitted to hospital.",
+            f"Counts only drivers: on the trend pages the drivers of {vehicles} killed or "
+            "admitted to hospital, and on the drivers page car drivers involved in injury "
+            "crashes, injured or not.",
         ),
         ("Per registered vehicle", f"Counts only the occupants of {vehicles}."),
         (
@@ -1314,8 +1317,9 @@ def _assumption_rows() -> list[tuple[str, str, str]]:
             f"over: {float(oldest.ratio_to_45_64):.2f} (95% sampling interval "
             f"{joint_interval(oldest)}). Sensitivity range "
             f"{oldest_range[0]:.2f}–{oldest_range[1]:.2f}; below about {oldest_clear:.1f} only "
-            "with equal kilometres per licence holder, which Spanish surveys of men's driving "
-            f"contradict; {oldest_tier}. Rising licence holding since {madrid_year} would lower "
+            "with equal kilometres per licence holder, which surveys of men's driving in "
+            f"Madrid ({madrid_year}) and by RACC ({national_rates.RACC_YEAR}) are at odds with, kept "
+            f"in the range; {oldest_tier}. Rising licence holding since {madrid_year} would lower "
             "the figure; too few people aged 75 and over in the survey's sample would raise it.",
         ),
         (

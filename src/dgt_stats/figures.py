@@ -754,6 +754,9 @@ def _severity_figures(figures_dir: Path, captions: dict[str, str]) -> None:
 
 EMEF_SOURCE = "ATM, Idescat and Institut Metròpoli, Enquesta de mobilitat en dia feiner 2022–2024"
 EDM_SOURCE = "CRTM, Encuesta Domiciliaria de Movilidad 2018 (Powered by CRTM)"
+# The sources of the age mixes and the split behind the sensitivity bands of the per-km figures.
+MOVILIA_SOURCE = "Ministerio de Transportes, Encuesta de movilidad MOVILIA 2006 and 2007"
+RACC_SOURCE = "Fundació RACC, Mayores al volante (2013)"
 GROUP_LABELS = {
     "18-29": "18–29",
     "30-44": "30–44",
@@ -846,7 +849,8 @@ def _driver_exposure_figures(figures_dir: Path, captions: dict[str, str]) -> Non
         "(sources in the table of sources below), spans of the assumptions tested with no "
         "probability attached; each end is itself an estimate with sampling error. Hatched: "
         "reached only with equal km per licence holder at 65–74 and 75 and over",
-        f"{TABLES_SOURCE}; {EMEF_SOURCE}; {EDM_SOURCE}; {KM_2024_SOURCE}; {POPULATION_SOURCE}",
+        f"{TABLES_SOURCE}; {EMEF_SOURCE}; {EDM_SOURCE}; {MOVILIA_SOURCE}; {RACC_SOURCE}; "
+        f"{KM_2024_SOURCE}; {POPULATION_SOURCE}",
         f"{int(central.involved.sum()):,} drivers involved",
     )
 
@@ -911,7 +915,8 @@ def _driver_exposure_figures(figures_dir: Path, captions: dict[str, str]) -> Non
         "Hatched: reached only with equal kilometres per licence holder at 65–74 and 75 and "
         "over. Not shown, each moving the figure less from the Madrid-pattern estimate: "
         f"{_join_words(others)}",
-        f"{TABLES_SOURCE}; {EMEF_SOURCE}; {EDM_SOURCE}; {KM_2024_SOURCE}; {POPULATION_SOURCE}",
+        f"{TABLES_SOURCE}; {EMEF_SOURCE}; {EDM_SOURCE}; {MOVILIA_SOURCE}; {RACC_SOURCE}; "
+        f"{KM_2024_SOURCE}; {POPULATION_SOURCE}",
         f"{int(counts['75+']):,} drivers aged 75 and over involved",
     )
 

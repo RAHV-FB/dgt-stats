@@ -43,14 +43,14 @@ layouts and definitions.
 | Share of residents who drove on the day, 2022–2024: 16–29 / 30–44 / 45–64 / 65+ | 19.8 / 37.2 / 40.4 / 18.9% | the same, and every sex × age cell to four decimals | agree |
 | Car-driver trips per resident, same groups | 0.571 / 1.197 / 1.296 / 0.551 | the same | agree |
 | Car driver against passenger | codes 12 and 13 | the dictionaries' labels "Cotxe com a conductor/a" and "Cotxe com a acompanyant"; 129 trips with both stages | agree |
-| Method A shares of car km: 16–29 / 30–44 / 45–64 / 65+ | 0.1126 / 0.2765 / 0.4774 / 0.1336 | the same, from INE's 1 July 2024 single ages | agree |
+| Method A shares of car km: 16–29 / 30–44 / 45–64 / 65+, as first published (now 0.1139 / 0.2787 / 0.4770 / 0.1304) | 0.1126 / 0.2765 / 0.4774 / 0.1336 | the same, from INE's 1 July 2024 single ages | agree |
 | Private-car drivers involved, 2024: 18–29 / 30–44 / 45–64 / 65+ | 21,234 / 28,775 / 35,092 / 11,425 | the same from tables 4.2 I+U; also 65–74 6,970, 75+ 4,455, aged 15–17 41, unknown age 2,234, public-service cars 1,852 | agree |
 | Drivers killed, same groups | 88 / 113 / 163 / 130 | the same from table 4.1.1 | agree |
 | DGT car km, all cars / less taxis and ride-hailing | 292.99 / 289.78 bn | the same | agree |
 | Involvement ratio to 45–64 per km, as first published (now 2.53 / 1.40 / 1 / 1.19 after the final audit's distance corrections) | 2.57 / 1.42 / 1 / 1.16 | 2.566 / 1.416 / 1 / 1.164; deaths 2.29 / 1.20 / 2.85 | agree |
 | Barcelona working days, 2025 | 248 | 248 (50 Saturdays, 67 Sundays or holidays); working-day car drivers 652 / 981 / 1,294 / 354 and 205 of unknown age, recounted from the raw file | agree |
 | Calculator calibration, 2016–2023, as first published (now 12.3% against 12.3% on the 11,611 crashes on choosable roads, nested, 9 of 10 groups inside) | 12.5% predicted, 12.6% observed | 1,616.4 predicted against 1,627 fatal of 12,961 (12.47% against 12.55%); every band inside the observed interval | agree |
-| Ratio of 65+ to 45–64 km per resident | 0.41 | 0.35–0.36 with fixed band midpoints, 0.38–0.40 once the 461 unbanded trips are imputed from duration | consistent: the gap is the treatment of unbanded trips, which the sensitivity analysis already covers |
+| Ratio of 65+ to 45–64 km per resident, as first published (now 0.40) | 0.41 | 0.35–0.36 with fixed band midpoints, 0.38–0.40 once the 461 unbanded trips are imputed from duration | consistent: the gap is the treatment of unbanded trips, which the sensitivity analysis already covers |
 
 The recomputation also found errors of rounding and wording in the research documents, which were
 corrected (point 15). No calculation in a committed table was found to be wrong.
@@ -85,7 +85,7 @@ corrected (point 15). No calculation in a committed table was found to be wrong.
 | Barcelona crash severity (logistic) | **Removed**: no gain over a table of accident type (0.737 against 0.734) |
 | Barcelona person severity (boosted trees) | **Research only**: 58 serious or fatal cases in the test months |
 | Catalan model on DGT- or Barcelona-common variables | **Research only**: transfer tests |
-| DGT crash severity (association model) | **Research only**: blank fields alone rank fatal crashes (ROC-AUC 0.72) |
+| DGT crash severity (association model) | **Research only**: the fields left unrecorded where they apply rank fatal crashes on their own (ROC-AUC 0.68; 0.72 as first published, before cells that do not apply were set aside) |
 | Monthly road deaths forecast | **Withdrawn** as a forecast: 6.6% error against 5.9% for last year's count in the ordinary held-out years; the page is a withdrawal notice |
 
 Source: [`ML_MODEL_REVIEW.md`](ML_MODEL_REVIEW.md).
@@ -162,15 +162,17 @@ distance (0% and 100% tested). The method reproduces the report's benchmarks
 
 ### 8. Workday exposure findings
 
-In 2022–2024 (province of Barcelona), residents aged 65 and over drove 7.87 car-driver km per
-working day (95% CI 6.72–9.09), against 19.29 at 45–64 (0.41 times). Most of the difference comes
+In 2022–2024 (province of Barcelona), residents aged 65 and over drove 7.52 car-driver km per
+working day (95% CI 6.50–8.59), against 18.86 at 45–64 (0.40 times). Most of the difference comes
 from how many older people drive at all (18.9% on the reference day, against 40.4%), not from how
-far those who drive go (41.7 against 47.8 km). Older women drive far less than older men (2.95
-against 14.58 km per resident). The ratio of older to middle-aged driving is nearly the same in
-every part of the province (0.40–0.47). It has risen over the decade: in the metropolitan region,
-which every edition covers, residents aged 65 and over drove 0.30 times as far as those aged 30–64
-in 2014–2016 and 0.41 times in 2021–2024. Residents aged 65 and over account for 12.5% of the car-driver kilometres of a
-working day.
+far those who drive go (39.9 against 46.7 km). Older women drive far less than older men (2.90
+against 13.81 km per resident). The ratio of older to middle-aged driving is nearly the same in
+every part of the province (0.39–0.47). It has risen over the decade: in the metropolitan region,
+which every edition covers, residents aged 65 and over drove 0.29 times as far as those aged 30–64
+in 2014–2016 and 0.40 times in 2021–2024. Residents aged 65 and over account for 12.2% of the
+car-driver kilometres of a working day. (As first published, before the final audit corrected the
+distances of unbanded trips: 7.87 against 19.29 km, 0.41, 41.7 against 47.8 km, 2.95 and 14.58,
+0.40–0.47, 0.30 to 0.41 and 12.5%.)
 
 ### 9. National extrapolation methodology
 
@@ -183,8 +185,8 @@ working day.
   Madrid household travel survey of 2018.
 - **D, registered owners**: DGT's kilometres by the owner's age, kept as a comparison only.
 
-Nationally, drivers aged 65 and over account for 13.4% of car kilometres (95% CI 11.6–15.3%), more
-than in the province because Spain's population is older.
+Nationally, drivers aged 65 and over account for 13.0% of car kilometres (95% CI 11.5–14.8%; first
+published 13.4%, 11.6–15.3%), more than in the province because Spain's population is older.
 
 ### 10. Treatment of weekend and holiday driving
 
@@ -399,7 +401,7 @@ Found in this final review and corrected:
 
 | Check | Status |
 |---|---|
-| Full test suite, local (Python 3.13 with the library versions of `requirements.lock`) | 359 passed, none skipped: the data, analysis, site and editorial tests, the calculator engine under Node (302 scenarios) and the eleven browser tests in Chromium |
+| Full test suite, local (Python 3.13 with the library versions of `requirements.lock`) | 359 passed, none skipped, when this review was first written; after the final audit, 547 passed, none skipped, at 3af96b3 (see [`ACCEPTANCE_REPORT.md`](ACCEPTANCE_REPORT.md) for the final commit) |
 | Raw-file hashes against the manifest (`pytest -m slow`) | passed |
 | Lint and format (`ruff check`, `ruff format --check`) | clean |
 | Clean rebuild of the EMEF tables, driver-age rates, figures and site from the raw files | every committed output reproduced byte for byte |
@@ -407,7 +409,8 @@ Found in this final review and corrected:
 | Deployment | **not yet deployed.** The Pages workflow publishes the site from `main`; the rebuilt pages go live when the pull request is merged |
 
 The browser tests need the optional `browser` dependencies (`pip install -e .[browser]`) and skip
-without them, as they do in CI, where the Node engine tests and the site tests still run.
+without them locally. CI runs them in a job of its own (`browser` in `.github/workflows/ci.yml`),
+with `REQUIRE_BROWSER=1` so that they cannot skip.
 
 ## Completed results and pending work
 

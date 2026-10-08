@@ -220,7 +220,7 @@ def page_vehicles(captions: dict[str, str]) -> str:
         f"Deaths of each vehicle's own occupants, by vehicle type, Spain, {year}.",
         {
             "Killed per billion km": "dec",
-            "Killed per fatal crash": "dec2",
+            "Killed per vehicle in a fatal crash": "dec2",
         },
     )
     body += (
