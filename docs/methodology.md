@@ -831,14 +831,24 @@ leakage or excluded and generates [`ML_LEAKAGE_AUDIT.md`](ML_LEAKAGE_AUDIT.md); 
 of each task uses safe features only. Questionable features (police judgements of what
 influenced a crash, recorded causes, and Catalan fields whose "not specified" level is far rarer
 among fatal crashes, measured on the training years by `recording.py`) enter only a labelled
-retrospective variant.
+retrospective variant. That recording check looks one way (placeholders rarer among fatal
+crashes) and pools the zones: it classed the blank road owner as structural, because blanks are
+common on urban streets, and so missed the interurban road-owner artefact that the re-evaluation
+below found. In Barcelona the crash-type term "Encalç", the Catalan file's word for a rear-end
+collision rather than one of the Guàrdia Urbana's own codes, marks almost only serious crashes
+(26 of 43 in 2025, against 2 of the 1,865 crashes with the force's own rear-end codes); the descriptive
+tables count it as a rear-end collision (`descriptive.BCN_OUTCOME_DEPENDENT_TYPES`) and keep the code
+as recorded. The Barcelona source models were fitted on the field as recorded and were not
+refitted; the person-severity model is kept for research only.
 
 Each task compares a prior-only baseline, an L2 logistic regression and gradient-boosted trees,
 each with a two-point grid chosen on validation data: in Catalonia the design is temporal (train
-on the early years, choose on the next two, test on the last); in Barcelona the last three months
+on the early years, choose on the next two, refit on both, test on the last); in Barcelona the last
+three months
 are the test set and cross-validation inside the training months is grouped by crash, so the
 people of one crash never straddle a split (checked in code and in the tests). Metrics are
-ROC-AUC and PR-AUC with bootstrap intervals (crashes resampled), Brier score and skill, balanced
+ROC-AUC and PR-AUC with bootstrap intervals (crashes resampled; 1,000 resamples on a model's own
+test set, 500 in the transfer tests, `transport.N_BOOT_TRANSPORT`), Brier score and skill, balanced
 accuracy, precision, recall and F1 at a threshold chosen on validation data, and the confusion
 matrix, always with N and prevalence. Calibration is the slope and intercept of a logistic
 recalibration; probabilities are shown as estimates only when a pre-declared rule passes.
@@ -898,7 +908,17 @@ missingness and prevalence reported. Generated: [`DGT_MICRODATA_AUDIT.md`](DGT_M
 inside the Catalan file (Barcelona municipality from the rest and the reverse, each demarcation
 left out, later Barcelona years from earlier years elsewhere); across sources with models
 restricted to variables recorded the same way (validated on the overlap; road class and junction
-fail); and in Barcelona, each district scored by a model trained on the others. Every transfer
+fail); and in Barcelona, each district scored by a model trained on the others. These tests use the
+original Catalan model and its restricted versions; the original model was retired (section 20),
+and its results are kept as a record. The reverse Barcelona test trains the specification on
+Barcelona city alone, so it tests a model of the city and no stage of the outward path counts it.
+The published calculator's model is tested inside the Catalan file the same way
+(`transport.calculator_tests`, `gen_calculator_transfer.csv`): each year 2016–2023 from the years
+before it, the last year, each demarcation left out (without province intercepts) and Barcelona
+city from the rest of Catalonia, each beside the same specification cross-validated inside the
+test population and beside the road × crash-type table fitted on the same training crashes. No
+other source records its inputs (the road's owning network, the posted limit), so it has no
+cross-source test. Every transfer
 score sits beside an in-domain reference (the same kind of model cross-validated inside the
 target domain, including the test year of the temporal holdouts: the target domain's native
 score) and the transfer gap, transferred minus native, is reported with the sample size, the
@@ -916,8 +936,15 @@ same held-out crashes of each target domain (Barcelona, the rest of Catalonia, u
 
 **Representativeness** is reported separately from transportability (`generalisability.py`):
 how Catalonia and Barcelona differ from the rest of Spain on variables the DGT microdata record
-identically, outcome shares, residents and severe crashes per resident by province. Neither
-question answers the other.
+with one set of codes, outcome shares, residents, and injury and severe crashes per resident by
+province. One set of codes is not one practice: each police force fills the fields in its own way.
+Road type groups every conventional road (codes 4–6) together, as `features.py` does, and the
+minor codes 7, 8 and 10–14 into one "other" group. DGT's records for the four Catalan provinces
+code almost every conventional-road crash as 5 (dual
+carriageway) up to 2020 and as 6 from 2021, while elsewhere code 5 keeps a small, steady share
+(`gen_coding_by_region.csv`, which also shows that the 2023 junction-field change and the 2024
+rise of road type "other" are Catalan). Splitting code 5 from 6 would read that recoding as a
+difference between the populations. Neither question answers the other.
 
 **The outward path toward Spain.** Five stages: held-out rows of the same source; later years;
 another region inside the source; another independently recorded Spanish dataset; national

@@ -1,0 +1,19 @@
+year,region,crashes,road_type_5_dual_carriageway,road_type_6_single_carriageway,road_type_14_other,junction_type_blank,junction_type_not_specified
+2016,Catalonia,26993,5816,0,31,15648,551
+2016,Spain outside Catalonia,75369,1482,15708,2981,46507,33
+2017,Catalonia,27052,6261,0,8,16057,602
+2017,Spain outside Catalonia,75181,1548,16860,1288,47667,5
+2018,Catalonia,26907,6068,0,9,16046,593
+2018,Spain outside Catalonia,75392,1744,16595,1151,44949,2282
+2019,Catalonia,26576,5955,0,5,15754,581
+2019,Spain outside Catalonia,77504,1666,16706,1275,46975,63
+2020,Catalonia,17779,3727,7,242,10762,350
+2020,Spain outside Catalonia,55180,1257,13017,1022,33330,23
+2021,Catalonia,21895,0,5090,1,13709,284
+2021,Spain outside Catalonia,67967,1608,14151,1922,41352,131
+2022,Catalonia,23059,0,5061,1,14376,551
+2022,Spain outside Catalonia,74857,1526,14854,1845,45831,102
+2023,Catalonia,23590,0,4329,1590,521,14659
+2023,Spain outside Catalonia,77716,1673,15385,1918,48164,73
+2024,Catalonia,24115,0,5099,15531,537,15290
+2024,Spain outside Catalonia,77881,1769,15182,1988,48497,74

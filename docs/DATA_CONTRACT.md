@@ -205,8 +205,10 @@ column name is normalised). Each table holds exactly the same set of crash ids (
 - **Crash table**: date, hour, shift, district, neighbourhood, street, coordinates, victims by
   severity, vehicles involved, pedestrian cause. Count cells leave zero blank: no count cell holds
   "0" and victims = deaths + serious + minor on every row only with blank read as zero; deaths
-  match persons who died within 24 hours and serious injuries persons hospitalised over 24
-  hours. The crash file's UTM labels are exchanged (its `X` column holds northings); corrected
+  match persons who died within 24 hours, and serious injuries persons hospitalised over 24
+  hours plus persons who died after 24 hours (the 24-hour classification of the Catalan file).
+  Minor injuries include people who refused medical care, whom DGT's definition of a slight
+  injury, which requires medical care, would not count. The crash file's UTM labels are exchanged (its `X` column holds northings); corrected
   columns sit beside the source columns, and maps use WGS84.
 - **People**: age, sex, role (driver, passenger, pedestrian), vehicle type on the record,
   pedestrian location and trip purpose, victimisation. `person_record_id` is a surrogate
@@ -224,9 +226,15 @@ column name is normalised). Each table holds exactly the same set of crash ids (
   out of scope. Presence of a vehicle type in a crash is allowed (the set of types agrees with
   the person records for every crash). See [`BARCELONA_VEHICLE_AUDIT.md`](BARCELONA_VEHICLE_AUDIT.md).
 - **Allowed joins**: within the six tables on `Numero_expedient`, as above.
+- **Allowed with stated limits**: car drivers involved in crashes with a victim per kilometre
+  driven inside the city on working days, by age group, as ratios to the 45-64 group
+  (`exposure_risk.barcelona`): aggregate matching to the EMEF 2022-2024 working-day car-driver
+  kilometres of residents of the province, never record linkage. The numerator counts every
+  driver, residents of the province or not, in 2025; the denominator counts residents' kilometres
+  in other years, and trips crossing the city boundary are bracketed by three denominators.
 - **Forbidden**: any record-level link to Catalonia or the DGT microdata; any rate per resident
-  or per km (no municipal denominator in the repository); any person-level use of the cause
-  tables.
+  (no municipal population denominator in the repository); any per-km rate other than the one
+  above; any person-level use of the cause tables.
 
 ## Where sources meet
 
@@ -240,6 +248,8 @@ definitions on each side and what was validated in `reports/tables/gen_cross_sou
 | Catalan file per resident | province x year | rate per resident, not risk |
 | Catalan model applied to DGT crashes | none (model applied to rows) | ten fields harmonised and validated on the shared crashes |
 | Catalan model applied to Barcelona 2025 | none (model applied to rows) | eight fields harmonised; too few fatal crashes to benchmark |
+| Car drivers involved per km by age, Spain | age group, no record matched | DGT drivers of 2024 against a regional working-day survey profile transferred to Spain's population and DGT's car-km total: ratios between ages, with a sensitivity range |
+| Car drivers involved per km by age, Barcelona city working days | age group x working day, no record matched | Guàrdia Urbana drivers of 2025 against EMEF 2022-2024 residents' km inside the city: a range of ratios between ages |
 
 The harmonised fields, with exact, defensible, approximate and unusable mappings, are in
 `reports/tables/ml_common_features.csv`; only exact and defensible fields that pass the overlap
