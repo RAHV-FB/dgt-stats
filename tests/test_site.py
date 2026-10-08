@@ -512,7 +512,7 @@ def test_trend_pages_show_every_denominator_and_the_projection(built: Path) -> N
     fuel_effects = effects[effects.exposure == "road_fuel_tonnes"].set_index("month")
     for month in (7, 8):
         assert fuel_effects.loc[month, "low"] > 1
-        assert components._times(float(fuel_effects.loc[month, "rate_ratio"])) in seasons
+        assert f"{float(fuel_effects.loc[month, 'rate_ratio']):.2f} times" in seasons
     assert "per unit of petrol" not in seasons.lower()
 
 
