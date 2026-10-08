@@ -257,9 +257,11 @@ No duplicate identifiers were found in any year.
 - The age in that table is the registered owner's. Checked against B-permit holders by age
   (`NUM_PERMISOS_B` in the 2024 census text file), it does not hold as a stand-in for the driver's
   at either end: there are 0.23 cars per B-permit holder at 18–24, 0.56 at 25–34 and 1.14 at 75+
-  (`q7_owner_age_check.csv`). Per-km ratios by age are therefore published as sensitivity
-  ranges, from a transfer scenario to the published ratio, and deaths per driver involved, which need no
-  kilometres, are given beside them ([`methodology.md`](methodology.md), section 7).
+  (`q7_owner_age_check.csv`). The owner-age kilometres were the denominator of the former
+  driver-age figure; they are now kept only as a comparison (Method D), and the per-km rates by
+  driver age divide by kilometres measured in the EMEF and EDM2018 travel surveys
+  ([`methodology.md`](methodology.md), section 7;
+  [`research/DRIVER_AGE_EXPOSURE.md`](research/DRIVER_AGE_EXPOSURE.md)).
 
 ### Monthly traffic series
 
@@ -338,12 +340,12 @@ No duplicate identifiers were found in any year.
 | Person-level severity and recorded causes, Barcelona 2025 | Yes, for one city and one year | the Guàrdia Urbana crash, person and cause tables, which share `Numero_expedient`; a cause is what the police recorded, not an established cause |
 | Province comparisons per resident, per licensed driver, per registered vehicle | Per resident and per licence holder, yes; per registered vehicle, only for Spain as a whole | INE residents and the census files give population and drivers by province; the fleet is only national in the series |
 | Vulnerable road users (pedestrians, cyclists, moped riders, motorcyclists, VMP) fatality shares and trends | Yes | `TOT_*_MU30DF` columns |
-| Older road users, per unit of driving | Partly, for 2024 | DGT's 2024 kilometre release gives km by the **registered owner's** age band; the driver tables give car-driver deaths and involvements by age. The owner's age does not hold as a stand-in for the driver's at either end (section 3), so per-km ratios are ranges; deaths per driver involved need no kilometres. Earlier years have no age-specific kilometres |
+| Older road users, per unit of driving | Yes for 65 and over, as a range for 75 and over (2024) | the EMEF (Barcelona area, 2014–2024) measures car-driver kilometres by driver age up to 65+, and EDM2018 (Madrid, exact ages) gives the profile above 65; transferred to Spain's population and DGT's car kilometres, they divide the driver tables' car drivers involved and killed by age. The EMEF's public files merge 65–74 and 75+, so the 75+ rate is model-dependent and given only as a range ([`research/DRIVER_AGE_EXPOSURE.md`](research/DRIVER_AGE_EXPOSURE.md)). Deaths per driver involved need no kilometres |
 | Heavy vehicles and buses per vehicle-km | Only for 2022, and only occupant deaths | involvement not in microdata; km by vehicle type only for 2022 (the Ministry's table 1.2.14 gives only the share of heavy vehicles on interurban roads, as one group) |
 | Alcohol, distraction, drugs, speed and illegal manoeuvres as recorded concurrent factors, year to year | Partly | DGT's speed report counts injury crashes with each factor, 2014–2023, for Spain without Cataluña and País Vasco; comparable only within runs of years without a recording break (urban distraction breaks in 2016 and 2019, urban alcohol in 2016, drugs throughout); deaths by factor are published for speed only |
 | Speed as a severity factor | Yes, as an association | the speed report's speed-related crashes and deaths by road type against microdata totals for the same provinces. The microdata restricted to the report's provinces reproduce its totals by year and zone exactly (`speed_report_scope`); the report gives no totals by road type, so the mapping of the microdata to its road types is not reconciled |
 | Alcohol × speed interaction, fatigue, protective equipment | **No** | none of these variables exist in the DGT crash-level file, and the report gives no cross-tabulation of factors |
-| Driver age and sex risk | Yes, per licence holder and per driver involved, 2014–2024; per km of cars registered to owners of each age, 2024 only, as ranges | aggregate tables 4.1.1 and 4.2 with the driver census; no file gives kilometres by sex, so the sex comparison is per licence holder (any class) and per driver involved |
+| Driver age and sex risk | Yes, per licence holder and per driver involved, 2014–2024; per km driven by drivers of each age, 2024, with intervals and sensitivity ranges | aggregate tables 4.1.1 and 4.2 with the driver census and the travel surveys; the comparison of men and women is per licence holder (any class) and per driver involved |
 | Campaign or policy evaluation with daily resolution | Not for Spain | no calendar day in the DGT microdata, so only monthly evaluation is possible; the Catalan and Barcelona files carry dates for their own areas |
 | Annual and monthly exposure for risk trends and seasonality | Partly | CORES road fuel (all roads, but tonnes, not km) is the only monthly series divided into deaths; no series measures kilometres per tonne on all roads. Petrol alone and toll-motorway intensity are shown beside deaths as traffic indices, never as denominators. On the State, regional and provincial interurban networks the Ministry measures annual vehicle-km, 2004–2023 (comparable from 2008, without urban or municipal roads); DGT's 2022 and 2024 kilometre estimates cannot be chained |
 | The 2019 conventional-road speed limit | **No** | the aggregate two-group design fails its own placebo, and section identifiers, limits, speeds and volumes are not published |

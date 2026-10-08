@@ -24,25 +24,6 @@ def _severity_numbers() -> dict[str, object]:
     }
 
 
-def _age_numbers() -> dict[str, object]:
-    """``ratios`` are the published ratios to 35-54; ``owner`` (by band) holds the owner-age check
-    and every per-km ratio under the transfer scenario, so a per-km ratio is quoted as a range."""
-    ratios = read_table("q7_km_ratio").set_index(["measure", "band"])
-    rates = read_table("q7_km_rates").set_index("band")
-    contrast = read_table("q7_denominator_contrast").set_index(["denominator", "band"])
-    company = read_table("q7_company_km").set_index(["allocation", "band"])
-    owner = read_table("q7_owner_age_check").set_index("band")
-    older = read_table("q7_km_ratio_65_74").set_index(["measure", "band"])
-    return {
-        "ratios": ratios,
-        "rates": rates,
-        "contrast": contrast,
-        "company": company,
-        "owner": owner,
-        "older": older,
-    }
-
-
 def _policy_numbers() -> dict[str, object]:
     sensitivity = read_table("q8_points_sensitivity").set_index("variant")
     calendar = read_table("q8_points_calendar_placebo")

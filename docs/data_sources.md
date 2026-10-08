@@ -14,7 +14,9 @@ road-class split, which no other page shows.
 
 Each file read by the code serves one of the four layers declared in `src/dgt_stats/layers.py`. The
 DGT, INE, Ministerio de Transportes and CORES files are the national context: trends, denominators,
-exposure, rates, the deaths forecast and aggregate comparisons. The Servei Català de Trànsit file
+exposure, rates and aggregate comparisons (the deaths forecast that also used them was withdrawn).
+The EMEF and EDM2018 travel surveys supply car-driving kilometres by driver age to the same
+layer's rates. The Servei Català de Trànsit file
 is the Catalan crash microdata: the crash-severity model and its temporal and geographic
 validation. The Guàrdia Urbana tables are the Barcelona microdata: crash and person analysis and
 the person-severity model. The validation layer adds no file: it harmonises variables and tests
@@ -130,7 +132,7 @@ published in the records held for 2016–2023, and the record gives the dictiona
 | `ine/ine_poblacion_provincias_edad_sexo.csv` | 2002–2025 | residents by province, five-year age group and sex, 1 January and 1 July | 2019–2024, age and sex, Catalonia and how far the results reach (severe crashes per resident by province) |
 | `dgt/km_itv_2022/media_km_antiguedad_tipo_2022.xlsx` | 2022 | circulating fleet ("parque circulante": vehicles with an ITV, insurance, ownership-change, re-registration or fine record in the previous ten years) and mean annual km by vehicle type and age | vehicles, 2019–2024 (the check of the two kilometre estimates against fuel) |
 | `dgt/km_itv_2022/km_recorridos_estimados_2022.xlsx` | 2022 | km per vehicle by stratum (type, Euro class, age, engine, fuel) | parsed; not on the site |
-| `dgt/km_itv_2024/km_edad_propietario_2024.xlsx` | 2024 | vehicles, total and mean annual km by vehicle category **and by the age band of the registered owner**; the denominator of the age-and-exposure analysis | age and sex |
+| `dgt/km_itv_2024/km_edad_propietario_2024.xlsx` | 2024 | vehicles, total and mean annual km by vehicle category **and by the age band of the registered owner**; the denominator of the former driver-age figure, now the comparison Method D and one assumption of the 75-and-over split, never a driver-age denominator | drivers (former figure, Method D) |
 | `dgt/km_itv_2024/km_medios_tipo_2024.xlsx` | 2024 | vehicles and mean annual km by category (the release's table 6), used to reconcile the owner-age table against the published fleet, and compared with fuel on the 2019–2024 page | age and sex (check), 2019–2024 |
 | `dgt/km_itv_2024/km_servicio_2024.xlsx` | 2024 | vehicles and total and mean annual km by category and class of service (private; public: taxi, car hire with and without driver, driving school...): the national car-km total of the driver-age rates, less taxis and ride-hailing cars | drivers (driver-age exposure, Method B) |
 | `dgt/km_itv_2024/km_comunidades_2024.xlsx` | 2024 | the release's table 9: mean annual km by category and the owner's autonomous community, with vehicles and total km in the 2024 detail sheet; read for the scale comparison of Catalonia and Madrid | drivers (driver-age exposure, text) |
@@ -198,7 +200,7 @@ their results came from external-study coefficients, and their pages are now wit
 
 | File | Content | Page |
 |---|---|---|
-| `compiled/driving_activity_by_age.csv` | 2008, 2018, 2023: hand-typed survey register of ESRA national shares of adults who drive (Spain) and three Fundación MAPFRE rows on driving days per week among Madrid drivers 65+. Kept as the record of what was searched; no code reads it, since DGT's 2024 kilometres by owner age replaced the survey-based driving denominator | none |
+| `compiled/driving_activity_by_age.csv` | 2008, 2018, 2023: hand-typed survey register of ESRA national shares of adults who drive (Spain) and three Fundación MAPFRE rows on driving days per week among Madrid drivers 65+. Kept as the record of what was searched; no code reads it. The survey-based driving denominator it fed was withdrawn, and driving by age is now measured from the EMEF and EDM2018 microdata | none |
 | `compiled/evidence/simulator_parameters.csv` | the register of the withdrawn speed-law simulator, 33 rows, one per published value it used with its source, the table or page, the URL and a verbatim quote: Elvik (2009, TØI report 1034/2009, table S1) Power Model exponents by road environment; the limit-to-mean-speed curve of the Norwegian road-safety handbook (Trafikksikkerhetshåndboken, chapter 3.11, figure 3.11.2); free-flow car speeds measured in Spain in 2022 for the EU Baseline project (KPI Speeding report, tables 9–11 and 12a, and for autovías the Annex 1 text introducing tables 12a–12c); the legal limits (Reglamento General de Circulación art. 48; Real Decreto 970/2020 art. 50); DGT's 2024 values of preventing a death, a serious and a slight injury (Universidad de Murcia for DGT) | none (withdrawal notice) |
 | `compiled/evidence/factor_parameters.csv` | the register of the withdrawn distraction and alcohol-and-drug models and enforcement comparison, 112 rows: DGT's fatal crashes with each concurrent factor, all roads and interurban roads, 2022–2024 (Tabla 50 of the yearly Principales cifras, with the 2024 errata), and injury crashes with distraction and alcohol (2024); the INTCF toxicology of drivers killed in 2023 and 2024 (blood alcohol bands, drugs, alcohol with drugs, medicines); the drugs the police detected in 2023; the EU DRUID project's relative risks of serious injury or death by blood alcohol and by drug; the crash risks of distraction from the SHRP 2 naturalistic driving study (Dingus et al. 2016); roadside prevalence of alcohol, drugs and handheld phones (EDAP 2024, Baseline KPI reports, ESRA3); the Guardia Civil's breath and drug tests (2023 and 2024) and DGT's speed fines (2024); the deaths in 2024 crashes in which a driver's alcohol was recorded, and how many of them were those drivers; the risk of phone use by crash severity (Trafikksikkerhetshåndboken chapter 8.14); and 17 published evaluations of enforcement (Trafikksikkerhetshåndboken chapters 8.1, 8.2, 8.7, 8.14 and 8.15; Novoa et al. 2010; Bergen et al. 2014; Zhu et al. 2021; Ferdinand et al. 2014) | none (withdrawal notices) |
 
@@ -240,13 +242,18 @@ same time; nothing from them enters a table.
   them by owner age and by category but the vehicles page needs the type × involvement pairing
   that only the 2022 release supports at that level of detail. The Ministry's table 1.2.14 splits
   interurban traffic only into heavy vehicles, as one group, and the rest.
-- Distance driven by the **driver's** age. DGT's 2024 kilometre release is the closest Spanish
-  source and gives the **owner's** age band. MOVILIA 2006/2007 count trips and travel time, not
-  kilometres, and do not separate drivers from passengers; INE's EHMA 2008 gives mean annual
-  kilometres per household vehicle by the age of the household's reference person, in four
-  bands that stop at 65+, and is sixteen years older than the crash counts; ESRA gives a
-  national share of adults who drive with no age split. Each was checked and is registered
-  above; the DGT owner-age table is the one used, and the page states what it is.
+- Distance driven by the **driver's** age **for Spain as a whole**. Two regional travel surveys
+  measure it from their microdata: the EMEF for the Barcelona area (working days, age groups
+  ending at 65+) and EDM2018 for Madrid (weekdays, exact age). The national rates transfer their
+  age profiles to Spain's population (`research/DRIVER_AGE_EXPOSURE.md`). DGT's 2024 kilometre
+  release gives the **owner's** age band and is kept as a comparison. MOVILIA 2006/2007 count
+  trips and travel time, not kilometres, and do not separate drivers from passengers; INE's EHMA
+  2008 gives mean annual kilometres per household vehicle by the age of the household's reference
+  person, in four bands that stop at 65+; ESRA gives a national share of adults who drive with no
+  age split. Each was checked and is registered above.
+- Car-driving distance at 75 and over in the EMEF. The public files merge 65–74 and 75+; the
+  confidential records hold exact age, and a request for tables is prepared but not sent
+  (`research/EMEF_DATA_REQUEST.md`).
 - Monthly vehicle-kilometres on all Spanish roads, and annual urban vehicle-kilometres. The two
   monthly series registered above are proxies with known limits: CORES measures fuel sold, not
   distance, and its petrol/diesel mix shifts over the 2000s; the toll-motorway series measures

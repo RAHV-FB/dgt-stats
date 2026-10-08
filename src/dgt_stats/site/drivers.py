@@ -6,7 +6,7 @@ EMEF working-day survey's age profile, Spain's population and DGT's car kilometr
 (``scripts/exposure_risk.py``; ``docs/research/DRIVER_AGE_EXPOSURE.md``). It then checks the
 result in Barcelona on working days, gives the model-dependent range for 65–74 and 75 and over,
 deaths once involved, the former figure on owner-age kilometres and the comparison of men and
-women. Every number is read from the ``risk_*``, ``q7_*`` and ``drivers_sex_*`` tables, and every
+women. Every number is read from the ``risk_*`` and ``drivers_sex_*`` tables, and every
 qualitative sentence is checked against them before the page is written.
 """
 

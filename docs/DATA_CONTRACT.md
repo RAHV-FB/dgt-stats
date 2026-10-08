@@ -108,15 +108,35 @@ hand from publications: not source data, see below).
 
 - **Census unit**: licence holders by province, sex, licence class or age band, year. Denominator
   for driver outcomes of the same sex, age band and year; not for passengers or pedestrians.
-- **Kilometres**: vehicle-kilometres by vehicle type (2022) and by the **owner's** age band
-  (2024), from ITV odometer readings. Owner age is not driver age: per-km rates by age are "per km
-  driven by cars registered to owners of this age" and are reported as ranges.
+- **Kilometres**: vehicle-kilometres by vehicle type (2022), by the **owner's** age band (2024)
+  and by class of service (2024), from ITV odometer readings. Owner age is not driver age, so the
+  owner-age kilometres are never the denominator of a per-km rate by driver age: they are the
+  comparison Method D and one of the assumptions of the 75-and-over split. The car total by class
+  of service, less taxis and ride-hailing cars, sets the level of the driver-age rates (Method B).
 
-### INE population (`ine/ine_poblacion_provincias_edad_sexo.csv`)
+### INE population (`ine/ine_poblacion_provincias_edad_sexo.csv`, `ine/ine_poblacion_edad_simple_sexo.csv`)
 
-- **Unit**: residents by province, five-year age group, sex and reference date, 2002-2025.
+- **Unit**: residents by province, five-year age group, sex and reference date, 2002-2025; and
+  residents of Spain by single year of age and sex, read from single years and "105 y más" only
+  (the file's overlapping aggregates "85 y más" and "100 y más" are never summed). Annual rates
+  divide by the 1 July population.
 - **Allowed**: rates per resident at province-year or Spain-year, labelled as per resident (not
   per trip or kilometre). **Forbidden**: attaching residents to crashes or people.
+
+### Travel surveys (`emef/`, `crtm/edm2018/`)
+
+- **Unit**: a respondent and the trips they made on one reference day (EMEF: a working day in the
+  Barcelona area, 2014–2024; EDM2018: a weekday in the Community of Madrid, 2018), with the
+  survey's expansion weight. Car-driver trips are those with a stage coded as car driver; a
+  passenger stage never makes a driving trip.
+- **Allowed**: weighted kilometres, trips and shares of residents by sex and age group, as the
+  denominator of car drivers' crash involvement by age once transferred to a population by
+  Methods A to C ([`research/DRIVER_AGE_EXPOSURE.md`](research/DRIVER_AGE_EXPOSURE.md)).
+  Estimates carry bootstrap intervals from the respondents (EMEF, within year and comarca) or
+  households (EDM2018).
+- **Forbidden**: attaching respondents to crashes or people; publishing an EMEF estimate that
+  rests on fewer than 20 sample observations (the data holders' rule); splitting the EMEF's 65+
+  group, which no public file allows, except as a labelled model-dependent estimate.
 
 ### Traffic and fuel (`transportes/`, `cores/`) and surveys (`ine/` EHMA, ECEPOV; MOVILIA)
 

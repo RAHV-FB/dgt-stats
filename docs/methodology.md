@@ -7,19 +7,21 @@ order:
 1. **Spain.** National trends, and how deaths compare between years, drivers, vehicles and roads
    once each count is divided by a denominator that could contain it (residents, licence holders,
    vehicles, fuel, kilometres), with each death rate split into crash frequency and severity where
-   the data allow (sections 1 to 10, 12 and 15). The forecast of monthly deaths (section 11), the
-   associations in DGT's crash records (section 13) and the 2006 case study (section 14) are
-   supporting analyses.
+   the data allow (sections 1 to 10, 12 and 15). Kilometres driven by drivers of each age come
+   from two travel surveys (section 7). The associations in DGT's crash records (section 13) and
+   the 2006 case study (section 14) are supporting analyses; the forecast of monthly deaths
+   (section 11) was withdrawn.
 2. **Individual crash records.** What the Catalan and Barcelona crash records show (section 19).
 3. **Predictive models.** A severity model is presented only if it ranks later, unseen records
    better than a descriptive table of outcome shares on the same test rows; otherwise the table
-   replaces it (section 20).
+   replaces it (section 20). The public model is the crash-severity calculator, whose predicted
+   probabilities are checked against observed outcomes in years it was not fitted on.
 4. **External validation.** Whether a model holds in later years, other places and another
    recording source, and how the training population differs from Spain (section 21).
 
 The data are in four layers, each with one role (`src/dgt_stats/layers.py`): the **national
-context** (DGT and INE: trends, denominators, exposure, rates, forecasting and aggregate
-comparison); the **crash microdata of Catalonia** (the crash-severity model and its temporal and
+context** (DGT and INE, with the travel surveys for kilometres by driver age: trends,
+denominators, exposure, rates and aggregate comparison); the **crash microdata of Catalonia** (the crash-severity model and its temporal and
 geographic validation); the **rich microdata of Barcelona** (crash and person analysis and the
 person-severity model); and **validation** (harmonisation and transfer tests only, never creating
 observations). No record is linked across sources and no merged database is built. Every result
@@ -294,98 +296,87 @@ all seasonality. The lockdown comparison (`lockdown_months`) sets each month of 
 same month's 2017–2019 mean for deaths, for each traffic series and for deaths per tonne of road
 fuel (`deaths_per_road_fuel_tonnes_change`).
 
-## 7. Age and driving exposure (`driver_risk.py`, `agebands.py`)
+## 7. Age and driving exposure (`exposure_risk/`, `emef/`, `edm2018.py`, `driver_risk.py`)
 
 Two questions are asked of car drivers by age, and kept apart. How often a driver already
 involved in an injury crash dies needs no measure of driving. How often drivers of each age are
-involved in crashes is set against **kilometres driven by cars registered to owners of each age**,
-taken from DGT's 2024 release *Kilómetros anualizados recorridos por el parque móvil*, whose additional
-material gives vehicles, total annual kilometres and mean annual kilometres **by vehicle category
-and by the age band of the registered owner** (18–20, 21–24, then five-year bands to 75+).
+involved in crashes is set against **kilometres driven by drivers of that age**, measured in two
+travel surveys. The full analysis, with every table and sensitivity analysis, is
+[`research/DRIVER_AGE_EXPOSURE.md`](research/DRIVER_AGE_EXPOSURE.md); how the surveys were read,
+harmonised and checked is [`research/EMEF_INVENTORY.md`](research/EMEF_INVENTORY.md).
 
-- **Numerator**: car drivers involved in injury crashes (table 4.2) and killed within 30 days
-  (table 4.1.1), car rows only, both zones and both sexes, 2024, the same year as the kilometres.
-- **Denominator**: kilometres driven in 2024 by cars whose registered owner is in the band.
-- **Bands** (`agebands.EXPOSURE_BANDS`): 18–24, 25–34, 35–54 (the baseline), 55–64, 65–74, 75+.
-  Each is a sum of whole source bands of DGT's driver tables, its driver census and the kilometre
-  release, which share the same cuts from 18 up, so numerator and denominator are cut in the same
-  places and no published band is split. The five-year source bands are pooled because most hold
-  too few driver deaths a year for a stable rate. The kilometre reader stages each owner band at
-  the source's own cuts (`DGT_BANDS`), and `driver_risk` sums them. The 15–17 row exists only in
-  the driver tables and is reported, never compared.
-  Drivers of unrecorded age (2.2 % of those involved in 2024, 2,243 of 100,660 car drivers
-  involved; 2.0 % and 2.3 % in 2022 and 2023) are kept as their own row.
+- **Numerator** (`exposure_risk.national.drivers_involved`): drivers of private cars, with or
+  without a trailer, involved in injury crashes in Spain in 2024 (table 4.2) and killed within 30
+  days (table 4.1.1). Drivers of public-service cars (taxis and ride-hailing, 1,852 involved) are
+  excluded to match the denominator. The groups are 18–29, 30–44, 45–64 (the reference) and 65+,
+  with 65–74 and 75+ for the model-dependent split. The EMEF group 16–29 is matched to drivers
+  aged 18–29; the 41 drivers aged 15–17 are left out. Drivers of unrecorded age (2.2 %) are left
+  out of the rates, which lowers every absolute rate by that share and leaves the ratios between
+  ages unchanged.
+- **Kilometres by age** (`emef.exposure`): car-driver kilometres per resident on a working day,
+  by sex and age group, from the EMEF microdata of 2022–2024 (province of Barcelona), weighted by
+  `PESAIX`. The public files give each trip's straight-line distance in seven bands from 2021. An
+  interval-censored log-normal model of distance given duration and trip type places each trip in
+  its band (`emef.distance`), and the EMEF 2021 distance report's ratio of road to straight-line
+  distance for driving trips (12.9 / 8.9 km = 1.45) converts it to road kilometres. Trips without
+  a band take the model's mean given duration, bounded by 100 km/h door to door, which is within
+  10 % of the band-based distance in every year and age group where both exist.
+- **Spain** (`exposure_risk.national`). Method A applies the EMEF kilometres per resident by sex
+  and age to INE's single-age population of Spain on 1 July 2024. Method B scales the shares to
+  DGT's 2024 car kilometres less taxis and ride-hailing cars (289.8 billion km, from
+  `km_servicio_2024.xlsx`); it sets the level of the rates, not their ratios. Method C repeats A
+  with the profile of each part of the province and of the Madrid household travel survey 2018
+  (`edm2018.py`). Method D, the kilometres of cars by their registered owner's age, is a
+  comparison only.
+- **Uncertainty.** 95 % intervals pair 300 bootstrap replicates of the EMEF (respondents
+  resampled within year and comarca), or of EDM2018 households, with gamma draws for each count.
+  Sensitivity ranges (the regional profile, non-working days, the treatment of distances) are
+  reported separately and never merged into an interval.
+- **75 and over.** The public EMEF files stop at 65+. `national.older_split` divides the measured
+  65+ kilometres between 65–74 and 75+ under four stated assumptions (EDM2018 kilometres per
+  resident or per licence holder, the owners' split, equal kilometres per licence holder), keeps
+  the 65+ total, and publishes the result only as a range labelled model-dependent.
+- **A check matched in place** (`exposure_risk.barcelona`). Barcelona's 2025 person table gives
+  the exact age of every driver in a crash with victims, and the date. On the 248 working days of
+  2025 those drivers are set against EMEF kilometres driven inside the city, under three
+  denominators that bracket the unmeasured part of trips crossing the city boundary.
+- **Weekends and holidays** (`national.weekend_sensitivity`). The EMEF covers working days only.
+  The central estimate spreads DGT's annual kilometres with the working-day age mix; the
+  sensitivity analysis gives 22 % or 32 % of annual kilometres the age mix of the EMEF 2023
+  weekend question.
+- **Quasi-induced exposure** is not applied: no public source has driver-level crash records with
+  age and an indicator of fault.
 
 Three quantities, reported separately because they answer different questions:
 
 1. `involved_per_bn_km`: drivers of this age involved in an injury crash per billion km driven by
-   cars registered to owners of this age.
-2. `deaths_per_1000_involved`: how often an involved driver of this age is killed. This needs no
+   drivers of this age.
+2. `killed_per_1000_involved`: how often an involved driver of this age is killed. This needs no
    exposure at all, so the kilometre estimate cannot affect it.
-3. `deaths_per_bn_km`: drivers of this age killed per billion km driven by cars registered to
-   owners of this age; the product of the two.
+3. `killed_per_bn_km`: drivers of this age killed per billion km; the product of the two.
 
-Intervals are exact Poisson on the count with the kilometres treated as known; ratios to the
-baseline carry log-normal intervals.
-
-What the denominator is not: it is the **owner's** age, not the driver's, and cars registered to
-companies carry no age at all (2.2 million cars, 40 billion km in 2024). Those kilometres leave the
-denominator while their drivers stay in the numerator. `company_km_sensitivity` gives two
-scenarios, because the data hold no driver age for company cars: spreading those kilometres over
-every band in proportion cannot change a ratio between two bands, and spreading them over the
-bands from 18 to 64 adds kilometres to the 35–54 reference and none to 65 and over, so by
-arithmetic it raises the 75-and-over ratio of deaths per km from 3.99 to 4.76.
-
-**Owner's age against driver's age** (`owner_age_check`). The check uses holders of a B (car) permit
-(`io_exposure.b_permit_holders_by_age`, `NUM_PERMISOS_B` of the 2024 census text file). If every car
-were registered to the person who drives it, cars per B-permit holder would say how many cars each
-driver has. Cars registered to owners aged 18–24 come to 0.23 per B-permit holder of that age, with
-3,095 km per holder, and those of owners aged 25–34 to 0.56, with 7,631 km, against 0.80 cars and
-10,345 km at 35–54; at 75 and over there are 1.14 cars per B-permit holder, more cars than there
-are B-permit holders of that age. So the owner's age does not stand for the driver's at either end
-of the range, and least of all at 18–24. No band supports an owner-equals-driver reference either
-(0.93 and 0.94 cars per B-permit holder at 55–64 and 65–74 do not show that the owner drives), so
-35–54 is kept as the reference and the per-km ratios are published as ranges. One end of each range
-is the published ratio; the other is a scenario, not an estimate: 15.29 billion km move from the
-35–54 band to 18–24 (9.95 billion) and 25–34 (5.34 billion) until all three have the same
-kilometres per B-permit holder (9,030 km a year), as if the whole gap were young drivers' driving
-registered to owners aged 35–54. The data say neither how much of the gap that is nor which older
-band holds it, so the two ends form a sensitivity range, not a confidence interval, and the true
-ratio need not lie between them. Under the scenario the 18–24 involvement ratio per km goes from
-6.75 to 2.02, the 25–34 one from 1.83 to 1.35 and the 75-and-over one from 1.02 to 0.89; deaths
-per driver involved need no kilometres and do not move (1.03 at 18–24 and 0.89 at 25–34, both with
-intervals that include 1; 3.93 at 75 and over). Every band and measure, with both ratios and their
-intervals, is in `q7_owner_age_check.csv`.
-
-The owner-age kilometres cannot be corrected, because no source says who drives each car: DGT
-publishes drivers' recorded infractions by vehicle type, not by age, and its national crash
-microdata hold no records of drivers, so neither a split of kilometres between owners and other
-drivers nor a quasi-induced-exposure estimate is possible. `driver_risk.breakeven_km` turns the
-question round. For each band it gives the kilometres a year per B-permit holder at which the
-band's drivers would be involved in injury crashes no more often per km than drivers aged 35–54
-(and, for 75 and over, than drivers aged 65–74), with a 95% interval from the crash counts;
-divided by the kilometres credited to cars of owners that age, it equals the published per-km
-ratio. At 18–24 the distance needed is about 20,900 km a year (18,200 under the scenario), about
-twice the most credited per holder to any owner band (10,734 at 55–64); at 25–34 it is about
-14,000. At 75 and over it is about 8,200 against 35–54, almost exactly the 8,023 credited, and
-about 11,500 against 65–74, more than any owner band is credited with. The results are in
-`q7_breakeven_km.csv`.
-
-`denominator_contrast` puts the same deaths over residents, B-permit holders, drivers involved and
-kilometres of cars registered to owners of the band, as ratios to the 35–54 band, because the
-movement between them is the point: at 75 and over the ratio is 1.23 per resident, 3.10 per
-B-permit holder, 3.93 per driver involved and 3.99 per owner-age km. The contrast starts at 25
-because INE publishes residents in five-year groups (15–19, 20–24) and no resident count can be cut
-at 18.
+**The former owner-age figure** (`driver_risk.py`; `q7_*` tables, kept as the record). Before the
+rebuild, the per-km rates divided the same drivers by DGT's 2024 kilometres of cars registered to
+owners of each age band (18–24, 25–34, 35–54 as the reference, 55–64, 65–74, 75+), from the
+release *Kilómetros anualizados recorridos por el parque móvil*. The owner's age does not stand for
+the driver's at either end of the range (`owner_age_check`, using holders of a B permit): there
+are 0.23 cars per B-permit holder aged 18–24, 0.56 at 25–34 and 0.80 at 35–54, but 1.14 at 75 and
+over, more cars than B-permit holders of that age. Cars registered to companies (2.2 million, 40
+billion km) carry no age. Young drivers' kilometres were therefore understated and their rate
+overstated, and older drivers' kilometres overstated: that figure put drivers aged 18–24 at 6.75
+times the 35–54 rate and those aged 65–74 at 0.71 times. Measured by the driver's age, drivers
+aged 18–29 are at about 2.6 times the 45–64 rate and drivers aged 65 and over at about 1.2 times
+(`risk_owner_age_comparison.csv`). The owner-age tables are still built from the raw release, and
+the drivers page explains the difference.
 
 **Sources considered and not used**, with the reason (registered in
 [`data_sources.md`](data_sources.md)): MOVILIA 2006/2007 count trips and travel time, not
-kilometres, and do not separate drivers from passengers, and MOVILIA's top band is 65+; INE's EHMA
-2008 gives mean annual kilometres per household vehicle by the reference person's age in four bands
-stopping at 65+, sixteen years before the crash counts; ESRA gives a national driving share with no
-age split. An earlier version of this site combined the last two into a "travel-weighted driver"
-denominator; it is withdrawn, because it was not kilometres, it gave 65–74 and 75+ the same assumed
-intensity, and it applied a 2006 travel profile to 2014–2024.
+kilometres, and do not separate drivers from passengers; INE's EHMA 2008 gives mean annual
+kilometres per household vehicle by the reference person's age in four bands stopping at 65+;
+ESRA gives a national driving share with no age split. An earlier version of this site combined
+the last two into a "travel-weighted driver" denominator; it is withdrawn, because it was not
+kilometres, it gave 65–74 and 75+ the same assumed intensity, and it applied a 2006 travel profile
+to 2014–2024.
 
 ### 7.1 Sex (`driver_risk.py`)
 
@@ -399,8 +390,9 @@ other two, and a test holds that identity. `sex_ratios` gives men against women 
 log-normal intervals. `sex_trend` gives the three rates for drivers aged 18 and over, by sex and
 year, 2014–2024.
 
-No file in the repository measures kilometres driven by sex, so the sex comparison is per licence
-holder (any class) and per driver involved. The MOVILIA 2006 bracket that used to sit beside it was
+The comparison of men and women is per licence holder (any class) and per driver involved, the
+measures that national data support for every year from 2014; no per-km rate by sex is
+published. The MOVILIA 2006 bracket that used to sit beside it was
 withdrawn: it divided a 2022–2024 crash ratio by a 2006 car-or-motorcycle trip ratio that counts
 passengers. B-permit holders by sex exist only from 2021, so the rates keep holders of any class.
 
@@ -472,7 +464,13 @@ The rule finds the breaks the report's own tables show on inspection: urban dist
 and 2019, urban alcohol in 2016, and drugs throughout. Interurban alcohol, inappropriate speed in
 both zones and interurban distraction run unbroken across the decade.
 
-## 11. Predicting deaths, and what a before-and-after comparison can see (`forecast.py`)
+## 11. Predicting deaths, and what a before-and-after comparison can see (`forecast.py`; withdrawn)
+
+**Status: withdrawn.** The forecast does worse than last year's count in the ordinary held-out
+years, so it is no longer used, and its page is a withdrawal notice that says why
+([`research/ML_MODEL_REVIEW.md`](research/ML_MODEL_REVIEW.md) explains the reason: with a flat
+trend, estimating the trend adds variance and no information). The investigation below is kept as
+the record; nothing on the site quotes it.
 
 Any before-and-after reading compares the deaths after a change with the deaths that would have
 been recorded without it, and the second number is a forecast whose error decides what the
@@ -514,7 +512,7 @@ In the flat held-back years the model does slightly worse than repeating last ye
 5.9 %); it does far better in the selection years and the lockdowns, when the trend or the traffic
 moved. Because it does not beat last year's count in the held-back ordinary years, the generated
 decision table does not feature it as a model ([`MODEL_DECISIONS.md`](MODEL_DECISIONS.md)), and
-its page is listed with the supporting analyses. Its worst held-back year is 2022, forecast from a
+its page was withdrawn. Its worst held-back year is 2022, forecast from a
 window that contains the lockdowns. The tuned trees do worse than the model on every kind of
 road (all roads, interurban roads, urban streets) and in every set of years: a tree cannot extend
 a trend beyond the years it has seen, and with 48 rows a small leaf fits the noise. Trees whose
@@ -527,7 +525,8 @@ be picked in advance, because whether the years ahead will be flat is not known 
 made. A synthetic test checks that the fit recovers a known traffic elasticity and weekday effect,
 and that its forecast follows a traffic shock that last year's count misses.
 
-**Detectability** (`horizon_errors`, `detectability`, `detection_power`). The error of the forecast
+**Detectability** (`horizon_errors`, `detectability`, `detection_power`). These figures rest on the
+rejected model's errors and are no longer published. The error of the forecast
 of an `n`-year total is measured the same way at every origin from 2006, leaving out every forecast
 that covers 2020 or 2021. The origins 2022–2024, whose four-year fitting windows include the
 lockdowns, are kept, because a forecast made today is fitted on such a window too; they
@@ -555,9 +554,11 @@ listed with their results on the data page.
 | A year's count varies only by chance | dispersion around the 2013–2019 trend | fails for all three counts, least for deaths and most for injury crashes; intervals widened (section 4); against 2019, the 2024 rise in admissions is beyond an ordinary year as a count and per tonne of road fuel, and no change in injury crashes is |
 | Road fuel tracks the kilometres driven | measured interurban vehicle-km against national road fuel (the scopes differ, so a diagnostic of the proxy, not a rate) | cannot be tested on all roads: the measured kilometres cover only State, regional and provincial interurban roads; per measured km, interurban deaths in 2023 are +5 % on trend, inside the interval; 8.7 % to 11.2 % of interurban deaths are on roads the kilometres leave out (section 5) |
 | CORES road fuel includes the biofuel blended into it, and a tonne means the same every year | each subtotal against the sum of its products, biofuels included, every month; the published biofuel share | holds: biofuel was 6.6 % of road fuel by mass in 2019 and 7.8 % in 2023, and as it carries less energy per tonne it cannot explain the rise in interurban kilometres per tonne (section 5) |
-| The owner's age stands for the driver's | cars and km per B-permit holder by band | does not hold at either end (0.23 cars per B-permit holder at 18–24, 0.56 at 25–34, 1.14 at 75+); per-km ratios published as ranges; deaths per driver involved need no kilometres (section 7) |
+| The owner's age stands for the driver's | cars and km per B-permit holder by band | does not hold at either end (0.23 cars per B-permit holder at 18–24, 0.56 at 25–34, 1.14 at 75+); the owner-age kilometres are replaced by kilometres driven by drivers of each age (section 7) |
+| One region's age profile of driving holds for Spain | the per-km ratios recomputed with each part of the province of Barcelona and with the Madrid survey of 2018; Barcelona's crashes on working days against driving inside the city | the ratio of older to middle-aged driving per resident is nearly the same across the province (0.40–0.47), but Madrid's older residents drive less; ratios by age are published with these sensitivity ranges (section 7) |
+| Working-day driving represents the year | the EMEF 2023 weekend question and Barcelona's crashes by type of day | non-working days move the 65-and-over ratio from 1.16 to 1.06–1.09; a modest, downward source of uncertainty (section 7) |
 | The fall in deaths was in how deadly crashes are | exact frequency × severity split | holds; the split, not the product, depends on recording (section 4) |
-| A forecast can show a change in the counts | out-of-sample forecast errors | only for large changes: a fall of about 15 % of interurban deaths is detected four times in five in the first year, smaller ones less often (section 11) |
+| A forecast can show a change in the counts | out-of-sample forecast errors | the forecast loses to last year's count in the ordinary held-out years and was withdrawn, with the detectable changes computed from its errors (section 11) |
 
 ## 13. Supporting analysis: associations in DGT crash records (not a predictive model) (`features.py`, `models.py`, `scripts/model.py`)
 
@@ -713,13 +714,11 @@ The navigation (`NAV_GROUPS` in `src/dgt_stats/site/components.py`) follows the 
 - **Overview**: what the study is, its data, its main results and where to read on. It quotes no
   model metric.
 - **Spain**: trends since 2019, the long run, seasons, drivers (age and sex), vehicles, speed and
-  recorded factors, with three **supporting analyses** inside it: crash circumstances (section 13),
-  the monthly deaths forecast (section 11) and the 2006 points licence (section 14). The line above
-  each supporting page's title says so.
+  recorded factors, with two **supporting analyses** inside it: crash circumstances (section 13)
+  and the 2006 points licence (section 14). The line above each supporting page's title says so.
 - **Regional data**: Catalonia's serious and fatal crashes, and Barcelona's crashes and people.
-- **Models**: the severity models (section 20) and their external validation (section 21). The
-  deaths forecast is not in this group because it does not beat last year's monthly counts in the
-  held-back ordinary years (section 11).
+- **Models**: the crash-severity model and its calculator (section 20) and the external
+  validation of the severity models (section 21).
 - **Methods**: data sources and scope, and methodology (definitions, with the assumptions tested,
   section 12).
 
@@ -728,10 +727,10 @@ it is (a rate comparison, an association, a predictive model or a data check); e
 limitation is stated once, beside the result it changes.
 
 Pages renamed in an earlier reorganisation (`older-drivers.html`, `context.html`) are kept as
-pointers that refresh to their successors. The four withdrawn analyses (`simulator.html`,
-`distraction.html`, `alcohol-drugs.html`, `enforcement.html`) are kept as short notices, not
-redirects, that say what the page was, why it was withdrawn and which live pages hold what the
-repository's own data show on the subject; no live page links to them.
+pointers that refresh to their successors. The five withdrawn analyses (`simulator.html`,
+`distraction.html`, `alcohol-drugs.html`, `enforcement.html`, `forecast.html`) are kept as short
+notices, not redirects, that say what the page was, why it was withdrawn and which live pages hold
+what the repository's own data show on the subject; no live page links to them.
 
 Nearly every number in a page's sentences, the front-page digest included, is computed from the
 result tables at build time, so a rebuilt table rewrites the text that quotes it; where a sentence
@@ -739,8 +738,13 @@ says which results lie inside or outside an interval, the build stops if the tab
 supports it. Full result tables are copied into `site/tables/` and linked as CSV rather than
 printed: the default on a page is one figure, one interpretation and one limits note per finding.
 Tests check that every internal link and anchor resolves, every image has alt text, every page has
-one heading and a description, that no page runs a script, and that each page's headline numbers
-match the tables they come from. The site builder is the `dgt_stats.site` package: one module per
+one heading and a description, that no page runs a script other than the site's reading aid and,
+on the models page, the calculator, that no year or result is typed into page code, and that each
+page's headline numbers match the tables they come from. The calculator's arithmetic
+(`site/assets/severity-engine.js`) is tested against the Python model under Node, and the built
+page is tested in Chromium: the probabilities it shows, the keyboard, a phone's width and the
+page without scripting (`tests/test_site_browser.py`, which needs the optional `browser`
+dependencies). The site builder is the `dgt_stats.site` package: one module per
 page (the Catalonia and Barcelona pages share `regional`), the result tables several pages quote in
 `numbers`, and the shared furniture in `components`.
 
@@ -758,7 +762,13 @@ page (the Catalonia and Barcelona pages share `regional`), the result tables sev
 - All logic in `src/dgt_stats/` and `scripts/`; no notebooks. The gradient-boosted trees of the
   forecast comparison are given a fixed seed and, at these sizes, draw nothing at random. The
   regional severity models, their cross-validation folds and bootstrap resamples use one fixed seed
-  (`microdata/ml/modelling.SEED`); every other fit is deterministic and needs no seed.
+  (`microdata/ml/modelling.SEED`); the calculator model's bootstrap and the travel-survey and
+  driver-age bootstraps use theirs (`severity_model.SEED`, `emef.exposure.SEED`,
+  `edm2018.SEED`, `exposure_risk.national.SEED`, `exposure_risk.barcelona.SEED`); every other fit
+  is deterministic and needs no seed.
+- The travel-survey layers are rebuilt from the raw files by `scripts/emef.py all` and
+  `scripts/exposure_risk.py all` (about three minutes together), and the severity model and its
+  exported file by `scripts/severity_calculator.py all`.
 - A rebuild from empty staging, processed and feature layers, with every result table, figure and
   model card removed first, reproduces the committed result tables (checked for this release to a
   relative tolerance of 1e-4).
@@ -777,8 +787,9 @@ page (the Catalonia and Barcelona pages share `regional`), the result tables sev
   time with a policy change, and its falsification tests only partly set it apart from ordinary
   years.
 - Vehicle-kilometres by vehicle type exist in detail for 2022 only (2024 by category, and each
-  year on interurban roads only as heavy against other vehicles); kilometres by age are the
-  owner's age; the speed report excludes two regions; road-type coding changed in 2021
+  year on interurban roads only as heavy against other vehicles); kilometres by driver age are
+  measured in two regional travel surveys and transferred to Spain, and stop at 65 and over in
+  the EMEF's public files; the speed report excludes two regions; road-type coding changed in 2021
   (interurban conventional roads), 2022 and 2024 (toll and free motorways, with 2023 back at the
   earlier split) and 2024 (urban), and the junction field changed in 2023.
 
@@ -844,6 +855,22 @@ exceeds the table's by at least 0.02 and the paired bootstrap interval of the di
 zero; a model that does not is replaced by its table on the site and kept only as a diagnostic.
 The decision for every model, with where it works and fails, is generated in
 [`MODEL_DECISIONS.md`](MODEL_DECISIONS.md) (`validation/decisions.py`).
+
+**Re-evaluation and the public model** (`model_review.py`, `severity_model.py`,
+`scripts/severity_calculator.py`). Every model above was refitted with separate code and scored
+by rolling origin: each year 2016–2023 is predicted by a model fitted only on the years before it,
+against a table of the same records, with calibration checked as well as ranking
+([`research/ML_MODEL_REVIEW.md`](research/ML_MODEL_REVIEW.md)). The original Catalan model's lead
+over a table rested partly on a recording artefact, so it was rebuilt as a penalised logistic
+regression on circumstances a reader can describe (zone and road, crash type, road users and how
+many, lighting, weather, surface, junction, posted limit, time of day): ROC-AUC 0.772 against
+0.745 for the road × crash-type table, calibration slope 1.04, mean predicted 12.5 % against
+12.6 % observed. Its predicted probabilities lie within the 95 % interval of the observed share in
+every band of predicted risk. It is the model behind the calculator on the models page, whose
+browser engine reproduces the Python predictions and their delta-method intervals to 10⁻¹⁰
+([`research/SEVERITY_CALCULATOR.md`](research/SEVERITY_CALCULATOR.md)). The retrospective
+variant and the Barcelona crash model were removed; the Barcelona person model and the DGT
+association model are research only.
 
 ## 21. Validation: transportability, representativeness and the outward path (`microdata/validation/`)
 
