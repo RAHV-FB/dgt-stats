@@ -23,9 +23,11 @@ the person-severity model. The validation layer adds no file: it harmonises vari
 models on these files' real records, and never creates observations. No record is linked across
 sources and there is no merged database. The DGT crash microdata do not train a predictive model
 ([`DGT_MICRODATA_AUDIT.md`](DGT_MICRODATA_AUDIT.md)); the DGT severity regression is a supporting
-association analysis. The MOVILIA, ECEPOV and EHMA survey files and the `compiled/` registers are
-read by no code: no analysis or page uses them, and the only code that opens them is the generated
-inventory, which opens every file under `data/raw/` to count its rows.
+association analysis. MOVILIA 2006 table 64 is read for one sensitivity test of the national
+driver-age rates (the age mix of weekend car trips). The other MOVILIA files, the ECEPOV and EHMA
+survey files and the `compiled/` registers are read by no code: no analysis or page uses them, and
+the only code that opens them is the generated inventory, which opens every file under `data/raw/`
+to count its rows.
 
 ## Providers
 
@@ -153,7 +155,7 @@ published in the records held for 2016–2023, and the record gives the dictiona
 | `transportes/peaje_trafico_total.xls` | 1990–2026, monthly | average daily intensity and vehicle-kilometres on the state toll-motorway network: a traffic index, never a denominator. The 2006 break uses the intensity, because the network's vehicle-kilometres step up with its length in July 2006 | seasons (traffic index), 2006 break (intensity covariate) |
 | `transportes/anuario_carreteras_2023.pdf` | 2004–2023, annual | Ministerio de Transportes, Anuario Estadístico 2023, chapter on roads; table 1.2.14 gives vehicle-kilometres measured on the State, regional and provincial interurban networks by type of road (toll motorways; autovías and free motorways; multi-lane; conventional), each with its share of heavy vehicles, parsed by `io_traffic.read_road_traffic`, which requires the four types to add up to the published total. Comparable from 2008 (new road inventory); municipal interurban roads, up to a tenth of traffic by the Ministry's estimate, are not included, and the crash microdata record 8.7%–11.2% of interurban deaths, 2016–2024, on roads of municipal, other or unspecified owners, outside these networks (`longrun_km_coverage`) | long run (per measured km), 2019–2024 (the kilometre check), road class (owners 1–3; overview split), data (assumptions tested) |
 | `dgt/km_itv_2022/metodologia.pdf` | 2014–2023 ITV | how the kilometres are modelled; the definition of the circulating fleet (Anexo III) and the category definitions that settle the heavy-truck mapping | vehicles (limits) |
-| `transportes/movilia_2006.xls` | 2006 | table 64, trips by main mode × sex × age. Once the basis of the retired travel-weighted age denominator, which it could not support (its car-or-motorcycle column counts passengers as well as drivers and its top band is 65+). Not read by any code; the sex travel bracket was withdrawn | none |
+| `transportes/movilia_2006.xls` | 2006 | table 64, trips by main mode × sex × age. Once the basis of the retired travel-weighted age denominator, which it could not support (its car-or-motorcycle column counts passengers as well as drivers and its top band is 65+). Read again for one sensitivity test of the national driver-age rates: the age mix of car trips on an average weekend day (sheet T64-5), which weights the weekend kilometres (`exposure_risk/national.py`, `movilia_weekend_weights`) | Drivers (sensitivity range) |
 | `transportes/movilia_2007.xls`, `comunidad_madrid/movilia_madrid/*.xls` | 2006–2007 | long-distance and Madrid extracts, inspected; not read by any code | none |
 | `ine/ine_ecepov_2021_55378.xlsx` | 2021 | commuters by main vehicle, sex and age | registered and checked in the audit; not read by the code and not on the site |
 | `ine/ine_ehma_2008_10016.csv`, `ine/ine_ehma_2008_10019.csv` | 2008 | household km per vehicle by fuel and vehicle age | registered and checked in the audit; not read by the code and not on the site |
@@ -195,6 +197,8 @@ file whose `ID` values all appear in the respondent file.
 | `emef/<year>/emef_<year>_persons.csv` (`..._Indivi_...` or `..._Individus.csv` for 2014–2017, 2021, 2022 and 2024; `..._Opinió.csv` for 2018–2020 and 2023) | 2014–2024, 9,461–11,420 respondents a year | one row per respondent, with sex, age group, residence, the opinion module and the weights `PESAIX` (expansion) and `PESMOS` (sample) |
 | `emef/<year>/emef_<year>_dictionary.xlsx` | one per year | variable list, record layout and value labels of both files |
 | `emef/2022/emef_2022_dictionary_revised.xlsx` | 2022 | the dictionary the OMC page links today: identical to the first release except for the trip-file value-label sheet |
+| `emef/2024/emef_2024_executive_summary.pdf` (`emef_2024_resum_executiu.pdf`, from recam.amb.cat) | 2024 | the survey's published executive summary: its technical sheet (sampling, calibration, fieldwork dates) and the published benchmarks the trip-distance estimates are checked against (mean straight-line trip 4.7 km; daily straight-line km per person by age), typed into `emef/distance.py` |
+| `idescat/idescat_census_2024_activity_release.html` (Idescat release of 8 July 2026) | 1 January 2024, Catalonia | the census count of employed people aged 65 and over in Catalonia (67,143), typed into `emef/exposure.py` to benchmark the survey's employed share at 65 and over, one choice in the drivers' sensitivity range |
 
 How the eleven years were read, harmonised and checked, and what they cannot show (no age group
 finer than 65 and over), is set out in

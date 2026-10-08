@@ -161,6 +161,18 @@ RULES: tuple[Rule, ...] = (
         "{year}",
     ),
     Rule(
+        r"emef/(\d{4})/emef_\d{4}_executive_summary",
+        "EMEF executive summary (ATM, Idescat and Institut Metròpoli)",
+        "document",
+        "{year}, ATM Barcelona area",
+    ),
+    Rule(
+        r"idescat/idescat_census_(\d{4})",
+        "Idescat, Population and Housing Census release",
+        "document (published shares of the population in employment)",
+        "{year}, Catalonia",
+    ),
+    Rule(
         r"crtm/edm(\d{4})/edm\d{4}_individuos",
         "CRTM Encuesta Domiciliaria de Movilidad, public microdata (extract)",
         "one respondent",
