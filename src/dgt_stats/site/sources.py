@@ -267,8 +267,8 @@ def _source_table(numbers: dict[str, str], inventory: pd.DataFrame) -> str:
             f"Catalonia, {numbers['cat_span']}",
             "One row per crash with at least one death or serious injury "
             f"({numbers['cat_rows']} crashes).",
-            "The analysis of Catalan crashes; the crash-severity calculator's model and its "
-            "tests; the original Catalan model, now retired.",
+            "The analysis of Catalan crashes; the Catalan severity model behind the calculator, "
+            "and its tests; the original Catalan model, now retired.",
         ),
         (
             "Barcelona crash records",
@@ -354,7 +354,7 @@ def _meeting(cat_dgt: pd.DataFrame) -> str:
         '(<a href="catalonia.html#dgt-agreement">Catalonia</a>). Versions of the original '
         "Catalan model restricted to variables another source records in the same way are "
         "applied to DGT's records elsewhere in Spain and to Barcelona's records, without "
-        "merging either with the Catalan file; the calculator's model, whose inputs no other "
+        "merging either with the Catalan file; the Catalan severity model, whose inputs no other "
         'source records, has no such test (<a href="validation.html">External '
         "validation</a>). The rates per kilometre by driver age divide counts of drivers by age "
         "by the travel surveys' kilometres by age, in total "

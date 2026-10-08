@@ -157,10 +157,12 @@ def test_model_scores_come_from_the_tables(pages: dict[str, str]) -> None:
     pooled = scores[scores.subset.str.fullmatch(r"\d{4}-\d{4}")].set_index("estimator")
     calc, table = pooled.loc["calculator"], pooled.loc["road_x_crash_table"]
     trees = pooled.loc["boosted_trees"]
-    # Ranking is put in plain words: how often a fatal crash gets the higher estimate.
-    assert f"higher estimate {round(100 * calc.roc_auc)} times in 100" in text
-    assert f"the table {round(100 * table.roc_auc)} times" in text
-    assert f"({round(100 * trees.roc_auc)} times in 100) but gives no interval" in text
+    # Ranking is given as ROC-AUC to two decimals, the scale the validation page uses.
+    assert f"The model's ROC-AUC is {calc.roc_auc:.2f} and the table's {table.roc_auc:.2f}" in text
+    assert f"({trees.roc_auc:.2f}) but gives no interval" in text
+    gap = _table("sev_comparison").set_index(["estimator", "metric"])
+    lead = gap.loc[("road_x_crash_table", "roc_auc_minus_calculator")]
+    assert f"lead is {-lead.high:.2f}–{-lead.low:.2f} (95% interval)" in text
     assert _fmt_pct(calc.mean_predicted) in text and _fmt_pct(calc.prevalence) in text
     # Predicted against observed leads the page, before the calculator, and no score box.
     body = text[text.find("<main>") : text.find("</main>")]
@@ -189,8 +191,23 @@ def test_transfer_scores_and_the_small_barcelona_benchmark_come_from_the_tables(
         .sort_values("roc_auc")
         .iloc[-1]
     )
-    assert f"{national.roc_auc:.3f}" in pages["validation"]
-    assert f"{national.in_domain_cv_roc_auc:.3f}" in pages["validation"]
+    # Ranking skill to two decimals, with the interval; no side-by-side pair without one.
+    assert (
+        f"ROC-AUC of {national.roc_auc:.2f} (95% interval {national.roc_auc_low:.2f}–"
+        f"{national.roc_auc_high:.2f})" in pages["validation"]
+    )
+    if f"{national.roc_auc:.2f}" == f"{national.in_domain_cv_roc_auc:.2f}":
+        assert "the same to two decimals as a model of the same kind" in pages["validation"]
+    else:
+        assert f"against {national.in_domain_cv_roc_auc:.2f} for a model" in pages["validation"]
+    assert 'class="compare"' not in pages["validation"]
+    # The published model's own tests come first, with its rolling score and interval.
+    calculator = _table("gen_calculator_transfer").set_index("experiment")
+    rolling = calculator.loc[calculator.index[calculator.index.str.startswith("rolling")][0]]
+    assert (
+        f"ROC-AUC of {rolling.roc_auc:.2f} (95% interval {rolling.roc_auc_low:.2f}–"
+        f"{rolling.roc_auc_high:.2f})" in pages["validation"]
+    )
 
 
 def test_models_page_follows_the_decisions(pages: dict[str, str]) -> None:
@@ -219,18 +236,20 @@ def test_validation_page_keeps_population_differences_and_validation_apart(
     pages: dict[str, str],
 ) -> None:
     text = pages["validation"]
-    # The published model's tests lead, then the external test on another source and the
-    # retired original model's; how the populations differ follows the tests it qualifies.
+    # The published model's tests lead; then the external test on another source, of a version
+    # of the retired original model, and how the populations differ, which qualifies it; then
+    # the original model's own tests, labelled as such.
     headings = [
-        "<h2>The calculator's model</h2>",
-        "<h2>Tested on DGT records outside Catalonia</h2>",
-        "<h2>The original Catalan model, tested within Catalonia</h2>",
-        "<h2>The original model on Barcelona city</h2>",
-        "<h2>How the crash populations differ</h2>",
-        "<h2>What the tests support</h2>",
+        "<h2>The Catalan severity model: ranking holds, estimates miss in Barcelona</h2>",
+        "<h2>Spain outside Catalonia: a version of the original model holds its ranking</h2>",
+        "<h2>Catalonia's serious crashes differ from Spain's in type and in recording</h2>",
+        "<h2>The original Catalan model (retired), tested within Catalonia</h2>",
+        "<h2>Barcelona city: the original model's ranking carries over, its estimates do not</h2>",
+        "<h2>No model has passed every kind of test</h2>",
     ]
     positions = [
-        re.search(heading.replace("<h2>", "<h2[^>]*>"), text).start() for heading in headings
+        re.search(re.escape(heading).replace("<h2>", "<h2[^>]*>"), text).start()
+        for heading in headings
     ]
     assert positions == sorted(positions)
     # The Barcelona comparison comes from the tables, and the parts of the fall in Barcelona are
@@ -247,7 +266,8 @@ def test_validation_page_keeps_population_differences_and_validation_apart(
     full = verdicts[verdicts.features.str.startswith("full")]
     row = full.set_index("estimator").loc[chosen["catalonia_crash_severity"]]
     for value in (to_bcn.roc_auc, to_bcn.in_domain_cv_roc_auc, to_bcn.roc_auc + row.total_drop):
-        assert f"{value:.3f}" in text, value
+        assert f"{value:.2f}" in text, value
+    assert f"calibration slope there is {to_bcn.calibration_slope:.2f}" in text
     assert 'href="tables/ml_barcelona_diagnosis_components.csv"' in text
     path = _table("ml_outward_path")
     if not path.verdict.eq("potentially nationally transferable").any():

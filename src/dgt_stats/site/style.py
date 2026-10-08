@@ -2,16 +2,16 @@
 
 Fonts and tokens first (colour, type, spacing, widths), then the frame (header, navigation, theme
 switch, page grid, local contents, footer), then the components an article is built from (summary,
-key result, figure, table, technical details, limitation, data and method, pager), then the home
+calculator, figure, table, technical details, limitation, data and method, pager), then the home
 page, the dark theme, print and reduced motion. The text column is narrower than the figures and
 tables, which break out of it; most elements have no box, no radius and no shadow, and hierarchy
 comes from type size, weight and spacing, with thin rules where a separator is needed.
 
-Two typefaces carry the text. Avenir Next, or Nunito Sans where it is not installed, sets the
-argument: body, headings, navigation. STIX Two Text, a modern Times, sets the technical text:
-tables, figure captions and sources, technical details, model definitions and notes (and, embedded
-in the SVGs, the charts). The colours are defined once for each theme (``LIGHT``, ``DARK``): the dark
-theme follows the system unless the reader picks one with the switch in the header.
+One typeface sets every HTML text: Avenir Next, or Nunito Sans where it is not installed. Tables,
+captions and technical details are a step smaller, with tabular figures. The charts carry their
+own embedded subset of STIX Two Text. The type scale is 13, 15, 16, 18, 20, 24 and 36 px. The
+colours are defined once for each theme (``LIGHT``, ``DARK``): the dark theme follows the system
+unless the reader picks one with the switch in the header.
 """
 
 from __future__ import annotations
@@ -81,20 +81,6 @@ STYLE = (
     + UNICODE_RANGE
     + """;
 }
-@font-face {
-  font-family: "STIX Two Text"; font-style: normal; font-weight: 400 700; font-display: swap;
-  src: url("fonts/STIXTwoText.woff2") format("woff2");
-  unicode-range: """
-    + UNICODE_RANGE
-    + """;
-}
-@font-face {
-  font-family: "STIX Two Text"; font-style: italic; font-weight: 400 700; font-display: swap;
-  src: url("fonts/STIXTwoText-Italic.woff2") format("woff2");
-  unicode-range: """
-    + UNICODE_RANGE
-    + """;
-}
 
 :root {
   /* Colour */
@@ -106,16 +92,14 @@ STYLE = (
   /* Type */
   --font: "Avenir Next", Avenir, "Nunito Sans", system-ui, -apple-system, "Segoe UI", Roboto,
     "Helvetica Neue", Arial, sans-serif;
-  --font-serif: "STIX Two Text", "STIX Two", "Times New Roman", Times, serif;
   --text-xs: 0.8125rem;
   --text-sm: 0.9375rem;
   --text-base: 1.125rem;
   --text-md: 1.25rem;
   --text-lg: 1.5rem;
   --text-xl: 2.25rem;
-  --text-serif: 1rem;
-  --text-serif-prose: 1.0625rem;
-  --leading: 1.65;
+  --text-small: 1rem;
+  --leading: 1.55;
   --leading-tight: 1.22;
 
   /* Space */
@@ -129,7 +113,7 @@ STYLE = (
   --space-8: 4.5rem;
 
   /* Widths */
-  --measure: 43rem;
+  --measure: 38rem;
   --wide: 60rem;
   --page: 80rem;
   --toc: 12.5rem;
@@ -172,17 +156,9 @@ h1, h2, h3 { font-weight: 600; line-height: var(--leading-tight); max-width: var
 h1 { font-size: var(--text-xl); letter-spacing: -0.015em; margin: 0 0 var(--space-4); text-wrap: balance; }
 h2 {
   font-size: var(--text-lg); letter-spacing: -0.008em; text-wrap: balance;
-  margin: var(--space-8) 0 var(--space-4); scroll-margin-top: var(--space-5);
+  margin: var(--space-7) 0 var(--space-4); scroll-margin-top: var(--space-5);
 }
 h3 { font-size: var(--text-md); margin: var(--space-6) 0 var(--space-3); }
-/* The technical text: a modern Times. Its prose is set a step below the body and on a shorter
-   measure (the serif is narrower); tables and captions are smaller still, as small print. Titles
-   and the notes about scrolling inside a technical disclosure stay in the sans. */
-figcaption, .table-note, table, .technical-body, .facts, .limit, .evidence-note {
-  font-family: var(--font-serif);
-}
-.technical-body :is(.figure-title, .table-title, .figure-tools, .table-tools) { font-family: var(--font); }
-figcaption, .table-note, .technical-body > p, .limit, .evidence-note { max-width: 36rem; }
 .visually-hidden {
   position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px;
   overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
@@ -265,8 +241,7 @@ html:not(.js) .nav-group:focus-within > .nav-menu { display: block; }
   .nav-trigger { display: none; }
   .nav-label {
     display: block; margin: var(--space-4) 0 var(--space-1);
-    font-size: var(--text-xs); letter-spacing: 0.06em; text-transform: uppercase;
-    color: var(--text-muted); font-weight: 600;
+    font-size: var(--text-sm); color: var(--text-muted); font-weight: 600;
   }
   .nav-top { display: block; padding: var(--space-3) 0; }
   .nav-top[aria-current="page"] { box-shadow: none; font-weight: 600; }
@@ -295,26 +270,13 @@ main { padding: var(--space-7) 0 var(--space-7); min-width: 0; }
 
 /* ------------------------------------------------------------------ page opening */
 .page-header { margin: 0 0 var(--space-5); }
-.eyebrow {
-  margin: 0 0 var(--space-3); font-size: var(--text-xs); font-weight: 600;
-  letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-muted);
-}
-.lead { font-size: var(--text-md); line-height: 1.5; color: var(--text-muted); margin: 0; }
-.scope {
-  margin: var(--space-4) 0 0; font-size: var(--text-sm); color: var(--text-muted);
-  font-variant-numeric: tabular-nums;
-}
-.summary {
-  font-size: 1.1875rem; line-height: 1.6; margin: 0 0 var(--space-6);
-  padding-top: var(--space-5); border-top: 1px solid var(--rule);
-}
+.eyebrow { margin: 0 0 var(--space-2); font-size: var(--text-sm); font-weight: 600; color: var(--text-muted); }
+.lead { color: var(--text-muted); margin: 0; }
+.summary { margin: 0 0 var(--space-6); }
 
 /* ------------------------------------------------------------------ local contents */
 .toc { position: sticky; top: var(--space-5); font-size: var(--text-sm); line-height: 1.4; }
-.toc-title, .toc-inline > summary {
-  font-size: var(--text-xs); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
-  color: var(--text-muted);
-}
+.toc-title, .toc-inline > summary { font-size: var(--text-sm); font-weight: 600; color: var(--text-muted); }
 .toc-title { margin: 0 0 var(--space-3); line-height: var(--leading); }
 .toc ol { list-style: none; margin: 0; padding: 0; border-left: 1px solid var(--rule); }
 .toc li { margin: 0; max-width: none; }
@@ -329,7 +291,6 @@ main { padding: var(--space-7) 0 var(--space-7); min-width: 0; }
   margin: 0 0 var(--space-6); max-width: var(--measure);
   border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule);
 }
-.compare + .toc-inline, .key-result + .toc-inline { border-top: 0; margin-top: calc(-1 * var(--space-6)); }
 .toc-inline > summary { cursor: pointer; padding: var(--space-3) 0; list-style: none; }
 .toc-inline > summary::-webkit-details-marker { display: none; }
 .toc-inline > summary::before, details.technical > summary::before {
@@ -343,25 +304,12 @@ main { padding: var(--space-7) 0 var(--space-7); min-width: 0; }
 .toc-inline ol { margin: 0 0 var(--space-4); padding-left: 1.4em; font-size: var(--text-sm); }
 .toc-inline li + li { margin-top: var(--space-1); }
 
-/* ------------------------------------------------------------------ key results */
-.key-result, .compare {
-  margin: var(--space-6) 0; max-width: var(--measure);
-  border-top: 2px solid var(--mark); border-bottom: 1px solid var(--rule);
-  padding: var(--space-4) 0;
-}
-.key-result { display: grid; grid-template-columns: minmax(6.5rem, auto) 1fr; gap: var(--space-5); align-items: baseline; }
-.key-value, .compare-value {
-  margin: 0; font-size: 2.25rem; font-weight: 500; line-height: 1.05; letter-spacing: -0.015em;
-  font-variant-numeric: tabular-nums lining-nums;
-}
-.key-text { margin: 0; font-size: var(--text-base); }
-.compare-items { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-5); }
-.compare-item + .compare-item { border-left: 1px solid var(--rule); padding-left: var(--space-5); }
-.compare-label { margin: var(--space-2) 0 0; font-size: var(--text-sm); color: var(--text-muted); }
-.compare-note { margin: var(--space-4) 0 0; font-size: var(--text-base); }
-
 /* ------------------------------------------------------------------ calculator */
-.calculator { margin: var(--space-6) 0; max-width: var(--measure); }
+/* The form, then a panel with the result and the comparison. Where the calculator has room, the
+   panel sits beside the form and stays in view while the form scrolls, so that changing an input
+   never moves the estimate off the screen; on a phone it follows the form. */
+.calculator { margin: var(--space-6) 0; max-width: var(--wide); container-type: inline-size; }
+.calc-layout > form, .calc-panel { max-width: var(--measure); }
 .calculator form { margin: 0; }
 .calculator fieldset {
   margin: 0 0 var(--space-5); padding: 0; border: 0; border-top: 1px solid var(--rule);
@@ -386,30 +334,36 @@ main { padding: var(--space-7) 0 var(--space-7); min-width: 0; }
 .calculator select:focus-visible, .calculator input:focus-visible, .calc-actions button:focus-visible {
   outline: 3px solid var(--mark); outline-offset: 2px;
 }
-.calc-result, .calc-baseline { border-top: 2px solid var(--mark); padding: var(--space-4) 0; }
-.calc-baseline { border-top: 1px solid var(--rule); }
+.calc-result, .calc-baseline { border-top: 1px solid var(--rule); padding: var(--space-4) 0; }
 .calc-value { margin: 0; font-size: 2.25rem; font-weight: 500; line-height: 1.05; font-variant-numeric: tabular-nums lining-nums; }
 .calc-label, .calc-compare { margin: var(--space-2) 0 0; font-size: var(--text-base); }
 .calc-note, .calc-kept { margin: var(--space-2) 0 0; font-size: var(--text-sm); color: var(--text-muted); }
 .calc-warnings { margin: var(--space-3) 0 0; padding-left: 1.2em; font-size: var(--text-sm); }
 .calc-result[data-state="error"] { border-top-color: var(--rule-strong); }
 .calc-error-title { margin: 0; font-weight: 600; }
+@container (min-width: 50rem) {
+  .calc-layout {
+    display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+    column-gap: var(--space-6); align-items: start;
+  }
+  .calc-panel {
+    position: sticky; top: var(--space-4);
+    max-height: calc(100vh - 2 * var(--space-4)); overflow-y: auto;
+  }
+  .calc-baseline { padding-bottom: 0; }
+  .calc-label, .calc-compare { font-size: var(--text-sm); }
+}
 
-/* ------------------------------------------------------------------ facts (model summaries) */
+/* ------------------------------------------------------------------ definition lists */
 .facts {
   display: grid; grid-template-columns: max-content minmax(0, 1fr); column-gap: 0;
   margin: var(--space-4) 0 var(--space-6); max-width: var(--measure);
-  border-top: 1px solid var(--rule-strong); font-size: var(--text-serif-prose); line-height: 1.45;
+  border-top: 1px solid var(--rule-strong); font-size: var(--text-small); line-height: 1.45;
 }
 .facts > div { display: contents; }
 .facts dt, .facts dd { margin: 0; padding: var(--space-2) 0; border-bottom: 1px solid var(--rule); }
 .facts dt { color: var(--text-muted); padding-right: var(--space-5); }
 .facts dd { font-variant-numeric: tabular-nums; }
-.decision-label {
-  display: inline-block; margin-left: var(--space-3); padding-left: var(--space-3);
-  border-left: 1px solid var(--rule-strong); vertical-align: 0.12em;
-  font-size: var(--text-sm); font-weight: 500; line-height: 1.2; color: var(--text-muted);
-}
 
 /* ------------------------------------------------------------------ figures */
 figure { margin: var(--space-6) 0 var(--space-7); max-width: var(--wide); }
@@ -428,7 +382,7 @@ figure { margin: var(--space-6) 0 var(--space-7); max-width: var(--wide); }
 .figure-media img { display: block; width: var(--w); max-width: 100%; min-width: var(--w-small); height: auto; }
 figcaption {
   margin-top: var(--space-3); max-width: var(--measure);
-  font-size: var(--text-serif); line-height: 1.5; color: var(--text-muted);
+  font-size: var(--text-sm); line-height: 1.5; color: var(--text-muted);
 }
 figcaption p { margin: 0; }
 .figure-source { margin-top: var(--space-1); }
@@ -446,11 +400,11 @@ figcaption p { margin: 0; }
 .table-block .table-title { margin-bottom: var(--space-1); }
 .table-note {
   margin: 0 0 var(--space-3); max-width: var(--measure);
-  font-size: var(--text-serif); line-height: 1.5; color: var(--text-muted);
+  font-size: var(--text-sm); line-height: 1.5; color: var(--text-muted);
 }
 .table-tools { margin: 0 0 var(--space-2); font-size: var(--text-xs); color: var(--text-muted); }
 .table-wrap { overflow-x: auto; }
-table { border-collapse: collapse; font-size: var(--text-serif); line-height: 1.45; }
+table { border-collapse: collapse; font-size: var(--text-sm); line-height: 1.45; font-variant-numeric: tabular-nums lining-nums; }
 th, td {
   padding: var(--space-2) var(--space-4) var(--space-2) 0; text-align: left; vertical-align: top;
   border-bottom: 1px solid var(--rule);
@@ -464,14 +418,12 @@ tbody th { font-weight: 400; }
 tbody th:not(.wrap) { white-space: nowrap; }
 .num { text-align: right; padding-left: var(--space-3); font-variant-numeric: tabular-nums lining-nums; }
 td.num { white-space: nowrap; }
-th.num { min-width: 8ch; }
 .wrap { min-width: 14ch; max-width: 34ch; }
 tr.is-reference > * { background: var(--highlight); }
 tr.is-reference > th { font-weight: 600; }
 .table-wrap:focus-visible, .figure-media:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 @media (max-width: 40rem) {
   .wrap { min-width: 16ch; }
-  table:not(.stack) th.num { min-width: 15ch; }
   table.stack, table.stack tbody, table.stack tr, table.stack th, table.stack td { display: block; }
   table.stack thead {
     position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
@@ -498,33 +450,25 @@ details.technical > summary {
 }
 details.technical > summary::-webkit-details-marker { display: none; }
 details.technical > summary:hover { color: var(--accent); }
-.technical-body { padding: 0 0 var(--space-5); font-size: var(--text-serif-prose); line-height: 1.55; }
-.technical-body table, .technical-body figcaption { font-size: var(--text-serif); }
+.technical-body { padding: 0 0 var(--space-5); font-size: var(--text-small); line-height: 1.55; }
+.technical-body table, .technical-body figcaption { font-size: var(--text-sm); }
 .technical-body > p { max-width: var(--measure); }
 .technical-body figure { margin: var(--space-4) 0; }
 .technical-body .table-block { margin: var(--space-4) 0; }
 
 /* ------------------------------------------------------------------ limitation, notes */
-.limit {
-  margin: var(--space-6) 0; max-width: var(--measure); padding: var(--space-1) 0 var(--space-1) var(--space-4);
-  border-left: 2px solid var(--rule-strong); font-size: var(--text-serif-prose); line-height: 1.55;
-}
+/* Limitations and evidence notes are ordinary paragraphs: they are what a reader most needs to
+   weigh a result, so they are not set apart as asides. */
+.limit { margin: var(--space-6) 0; max-width: var(--measure); }
 .limit p { margin: 0; }
-.limit-label {
-  display: block; margin-bottom: var(--space-1); font-family: var(--font); font-size: var(--text-xs);
-  font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-muted);
-}
-.evidence-note {
-  margin: 0 0 var(--space-5); max-width: var(--measure); font-size: var(--text-serif-prose); line-height: 1.55;
-  color: var(--text-muted); padding: var(--space-1) 0 var(--space-1) var(--space-4);
-  border-left: 2px solid var(--rule-strong);
-}
+.limit-label { font-weight: 600; }
+.evidence-note { margin: 0 0 var(--space-4); max-width: var(--measure); }
 .evidence-note p { margin: 0; }
 
 /* ------------------------------------------------------------------ data and method */
 .data-method {
   margin: var(--space-8) 0 0; padding-top: var(--space-4); border-top: 1px solid var(--rule-strong);
-  max-width: var(--wide); font-size: var(--text-sm);
+  max-width: var(--measure); font-size: var(--text-sm);
 }
 .data-method > h2 { font-size: var(--text-base); margin: 0 0 var(--space-3); }
 .data-method dl {
@@ -541,7 +485,7 @@ details.technical > summary:hover { color: var(--accent); }
 nav.pager {
   display: flex; justify-content: space-between; gap: var(--space-5);
   margin-top: var(--space-7); padding-top: var(--space-4); border-top: 1px solid var(--rule);
-  font-size: var(--text-sm); max-width: var(--wide);
+  font-size: var(--text-sm); max-width: var(--measure);
 }
 nav.pager a { color: var(--text); text-decoration: none; display: flex; flex-direction: column; gap: var(--space-1); }
 nav.pager a:hover .pager-title { color: var(--accent); text-decoration: underline; }
@@ -564,7 +508,6 @@ nav.pager a[rel="next"] .pager-title::after { transform: rotate(-45deg); margin-
 
 /* ------------------------------------------------------------------ home page */
 .home .page-header { margin-bottom: var(--space-6); }
-.home h1 { font-size: 2.5rem; }
 .home h2 { margin-top: var(--space-7); }
 .findings { list-style: none; padding: 0; margin: var(--space-4) 0 0; max-width: var(--measure); }
 .findings > li { margin: 0; padding: var(--space-4) 0; border-top: 1px solid var(--rule); }
@@ -580,17 +523,11 @@ nav.pager a[rel="next"] .pager-title::after { transform: rotate(-45deg); margin-
 @media (max-width: 40rem) {
   .calc-fields, .calc-users { grid-template-columns: 1fr; }
   body { font-size: 1.0625rem; }
-  h1, .home h1 { font-size: 1.875rem; }
-  h2 { font-size: 1.3125rem; margin-top: var(--space-7); }
-  .lead { font-size: 1.125rem; }
-  .summary { font-size: 1.0625rem; }
+  h1 { font-size: 1.875rem; }
+  h2 { font-size: 1.3125rem; margin-top: var(--space-6); }
   main { padding-top: var(--space-6); }
-  .key-result { grid-template-columns: 1fr; gap: var(--space-2); }
-  .compare-items { grid-template-columns: 1fr; gap: var(--space-4); }
-  .compare-item + .compare-item { border-left: 0; padding-left: 0; border-top: 1px solid var(--rule); padding-top: var(--space-4); }
   .facts { grid-template-columns: 1fr; }
   .facts dt { border-bottom: 0; padding-bottom: 0; padding-right: 0; }
-  .decision-label { display: block; margin: var(--space-2) 0 0; padding-left: 0; border-left: 0; }
   .data-method dl { grid-template-columns: 1fr; }
   .data-method dd { margin-bottom: var(--space-3); }
   .data-method ul { columns: 1; }
@@ -605,7 +542,7 @@ nav.pager a[rel="next"] .pager-title::after { transform: rotate(-45deg); margin-
     + """
     color-scheme: dark;
   }
-  :root:not([data-theme="light"]) .figure-media { padding: var(--space-3); border-radius: var(--radius); }
+  :root:not([data-theme="light"]) .figure-media { padding: var(--space-3); }
 }
 :root[data-theme="dark"] {
 """
@@ -613,7 +550,7 @@ nav.pager a[rel="next"] .pager-title::after { transform: rotate(-45deg); margin-
     + """
   color-scheme: dark;
 }
-:root[data-theme="dark"] .figure-media { padding: var(--space-3); border-radius: var(--radius); }
+:root[data-theme="dark"] .figure-media { padding: var(--space-3); }
 
 /* ------------------------------------------------------------------ forced colours */
 @media (forced-colors: active) {
@@ -623,7 +560,6 @@ nav.pager a[rel="next"] .pager-title::after { transform: rotate(-45deg); margin-
   .nav-menu a[aria-current="page"] { border-left: 2px solid CanvasText; }
   .toc a { border-left-color: Canvas; }
   .toc a[aria-current="true"] { border-left-color: Highlight; }
-  .key-result, .compare { border-top-color: CanvasText; }
 }
 
 /* ------------------------------------------------------------------ motion */
@@ -649,7 +585,7 @@ nav.pager a[rel="next"] .pager-title::after { transform: rotate(-45deg); margin-
   h3 { break-after: avoid; }
   p, li { orphans: 3; widows: 3; }
   a { color: var(--text); text-decoration: none; }
-  figure, .table-block, .key-result, .compare, .facts, .limit { break-inside: avoid; }
+  figure, .table-block, .facts, .limit { break-inside: avoid; }
   figure { max-width: 100%; }
   .figure-media, :root[data-theme] .figure-media, :root:not([data-theme="light"]) .figure-media {
     overflow: visible; padding: 0;

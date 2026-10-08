@@ -178,7 +178,7 @@ def test_long_pages_have_contents_and_short_pages_do_not(pages: dict[str, str]) 
         assert listed == [anchor for anchor in sections if anchor != "data-and-method"], slug
         assert re.findall(r'href="#([^"]+)"', inline.group(1)) == listed, slug
     assert '<aside class="toc-rail">' not in pages["index"]
-    # The inline contents follow the opening summary, and any headline number set right after it.
+    # The inline contents follow the opening summary directly.
     for slug in LIVE:
         main = _main(pages[slug])
         if '<details class="toc-inline">' not in main:
@@ -186,9 +186,7 @@ def test_long_pages_have_contents_and_short_pages_do_not(pages: dict[str, str]) 
         before = main[: main.index('<details class="toc-inline">')]
         between = before[before.index('<p class="summary">') :].split("</p>", 1)[1]
         assert "<h2" not in between and "<p>" not in between, slug
-        assert between == "" or re.fullmatch(
-            r'<div class="(compare|key-result)">.*</div>', between, re.S
-        ), slug
+        assert between == "", slug
 
 
 def test_technical_details_and_limitations_use_one_form(pages: dict[str, str]) -> None:
@@ -202,7 +200,7 @@ def test_technical_details_and_limitations_use_one_form(pages: dict[str, str]) -
         for label in labels:
             assert len(label) > 10 and label.lower() not in {"details", "more", "technical"}
         for note in re.findall(r'<aside class="limit"[^>]*>(.*?)</aside>', main, re.S):
-            assert '<span class="limit-label">Limitation' in note, slug
+            assert '<span class="limit-label">Limitations.</span> ' in note, slug
         # Every page closes on the same block: its tables, its method (the methodology page is
         # its own) and its sources.
         if slug != "index":
@@ -250,7 +248,6 @@ def test_the_stylesheet_is_one_token_system() -> None:
         "--mark",
         "--accent",
         "--font",
-        "--font-serif",
         "--measure",
         "--wide",
         "--radius",
@@ -275,12 +272,12 @@ def test_the_stylesheet_is_one_token_system() -> None:
     assert "@import" not in STYLE and "http" not in STYLE
     stack = re.search(r"--font: ([^;]*);", STYLE).group(1)
     assert stack.index('"Avenir Next"') < stack.index('"Nunito Sans"') < stack.index("sans-serif")
-    assert re.search(r'--font-serif: "STIX Two Text"', STYLE)
-    # The technical text is set in the serif: tables, captions, technical details, definitions
-    # and notes.
-    serif_rule = re.search(r"([^{}]*)\{\s*font-family: var\(--font-serif\);\s*\}", STYLE)
-    for selector in ("figcaption", ".table-note", "table", ".technical-body", ".facts", ".limit"):
-        assert selector in serif_rule.group(1), selector
+    # One family for every HTML text; the charts embed their own serif.
+    assert "--font-serif" not in STYLE and "STIX" not in STYLE
+    families = set(re.findall(r"font-family: ([^;]+);", STYLE))
+    assert families <= {"var(--font)", '"Nunito Sans"'}, families
+    # No uppercase, letter-spaced labels: section names and signposts are set in sentence case.
+    assert "text-transform: uppercase" not in STYLE
     assert "gradient" not in STYLE and "@keyframes" not in STYLE
     for media in ("prefers-reduced-motion", "@media print"):
         assert media in STYLE, media
@@ -292,8 +289,8 @@ def test_fonts_are_shipped_with_their_licences(built: Path) -> None:
     shipped = {path.name for path in (built / "fonts").iterdir()}
     for name in (
         "NunitoSans.woff2",
-        "STIXTwoText.woff2",
         "OFL-NunitoSans.txt",
+        # The charts embed subsets of STIX Two Text, so its licence ships with them.
         "OFL-STIXTwoText.txt",
     ):
         assert name in shipped, name

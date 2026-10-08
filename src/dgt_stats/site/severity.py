@@ -394,9 +394,9 @@ def page_severity(captions: dict[str, str]) -> str:
     def ci_of(row: pd.Series) -> str:
         return _ci(float(row.odds_ratio), float(row.or_low), float(row.or_high))
 
-    def in_100(auc: float) -> str:
-        """ROC-AUC as 'times in 100', the scale the severity model's page uses."""
-        return f"{round(100 * float(auc))}"
+    def auc(value: float) -> str:
+        """ROC-AUC to two decimals, the scale of the model and validation pages."""
+        return f"{float(value):.2f}"
 
     body = summary(
         f"DGT's national records hold {_fmt_int(numbers['n'])} injury crashes in Spain for "
@@ -603,19 +603,19 @@ def page_severity(captions: dict[str, str]) -> str:
         "How stable the associations are over time",
         f"<p>Fitted on {train_span} without a year term and applied to the crashes of "
         f"{test_span}, the two regressions keep their ordering of crashes. Given one crash with "
-        "the outcome and one without, the regression for a death gives the fatal crash the "
-        f"higher probability {in_100(numbers['auc_fatal'])} times in 100, and the regression for "
-        "a death or a hospitalisation does so "
-        f"{in_100(numbers['auc_serious'])} times (50 is chance). Part of that ordering comes "
-        "from how the form was filled in rather than from the crash: refitted with every level "
-        "that records a missing value folded into its reference, the regression for a death "
-        f"does so {in_100(fatal_holdout.auc_recorded_only)} times in 100, and those levels on "
-        f"their own {in_100(fatal_holdout.auc_missing_only)} times. Across the wider set of "
-        "fields the DGT microdata audit examines, which fields were left blank ranks fatal "
-        f"crashes {in_100(artefact.roc_auc_unrecorded_flags_only)} times in 100 on its own, one "
-        "reason the file is not used to train a predictive model. The "
-        '<a href="severity-models.html">severity model for Catalonia</a> does so '
-        f"{in_100(catalonia_model.roc_auc)} times in 100 on years it had not seen, but among "
+        "the outcome and one without, the share of such pairs in which a regression gives the "
+        "crash with the outcome the higher probability is its ROC-AUC, from 0.5 for chance to 1 "
+        f"for a perfect ranking: {auc(numbers['auc_fatal'])} for the regression for a death and "
+        f"{auc(numbers['auc_serious'])} for a death or a hospitalisation. Part of that ordering "
+        "comes from how the form was filled in rather than from the crash: refitted with every "
+        "level that records a missing value folded into its reference, the regression for a "
+        f"death scores {auc(fatal_holdout.auc_recorded_only)}, and those levels on their own "
+        f"{auc(fatal_holdout.auc_missing_only)}. Across the wider set of fields the DGT "
+        "microdata audit examines, which fields were left blank scores "
+        f"{auc(artefact.roc_auc_unrecorded_flags_only)} on its own, one reason the file is not "
+        "used to train a predictive model. The "
+        '<a href="severity-models.html">Catalan severity model</a> scores '
+        f"{auc(catalonia_model.roc_auc)} on years it had not seen, but among "
         "crashes already selected for a death or serious injury; here the deaths are picked out "
         f"among all injury crashes, of which {_fmt_pct(numbers['fatal_share'])} were fatal. As "
         "probabilities, the fitted values improve little on giving every crash the training "
