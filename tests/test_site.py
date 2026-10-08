@@ -508,7 +508,7 @@ def test_front_page_is_an_overview_of_the_study(built: Path) -> None:
     visible = re.sub(r"<[^>]+>", " ", body)
     for jargon in ("ROC-AUC", "calibration slope", "Jensen", "transportab", "odds ratio"):
         assert jargon not in visible, jargon
-    assert "national use" in sections["Main findings"]
+    assert "tested only within Catalonia" in sections["Main findings"]
     assert site.PROFILE_URL in index and "Russell Howard" in index
     # Short, and nothing from the withdrawn external-study models.
     assert len(body) < 9_000

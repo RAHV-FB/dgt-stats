@@ -69,16 +69,17 @@ def run_review() -> None:
 def run_calculator() -> None:
     grid = severity_model.choose_penalty()
     write(grid, "sev_penalty")
-    best = grid[grid.chosen].iloc[0]
-    c, scale = float(best.c), float(best.deviation_scale)
+    c = float(grid[grid.chosen].iloc[0].c)
 
-    rolling = severity_model.rolling_predictions(c, scale)
+    rolling = severity_model.rolling_predictions(c)
     estimators = ["calculator", "boosted_trees", "road_x_crash_table"]
     rows = []
+    urban = rolling.zone == "urban"
     subsets = {"2016-2023": rolling.year > 0}
     subsets |= {str(year): rolling.year == year for year in severity_model.ROLLING_TEST_YEARS}
     subsets |= {f"zone: {zone}": rolling.zone == zone for zone in severity_model.ZONES}
-    subsets["roads a reader can choose"] = ~rolling.road.isin(severity_model.TRAINING_ONLY_ROADS)
+    subsets["Barcelona city, urban streets"] = urban & rolling.barcelona_city
+    subsets["urban streets outside Barcelona city"] = urban & ~rolling.barcelona_city
     for subset, mask in subsets.items():
         part = rolling[mask]
         for name in estimators:
@@ -93,19 +94,21 @@ def run_calculator() -> None:
     )
     write(comparison, "sev_comparison")
     calibration = []
-    for name in ("calculator", "boosted_trees"):
-        table = model_review.calibration_table(y, rolling[name].to_numpy())
+    for name in estimators:
+        table = model_review.calibration_groups(y, rolling[name].to_numpy())
         table.insert(0, "estimator", name)
         calibration.append(table)
     write(pd.concat(calibration, ignore_index=True), "sev_calibration")
+    write(severity_model.geography(c), "sev_geography")
+    write(severity_model.specification_check(c), "sev_specification")
 
-    fitted, x = severity_model.final_fit(c, scale)
+    fitted, x = severity_model.final_fit(c)
     frame, _, y_all = severity_model.load()
-    draws = severity_model.bootstrap_draws(x, y_all, c, scale)
+    draws = severity_model.bootstrap_draws(x, y_all, c)
     covariance = np.cov(draws, rowvar=False)
     contrasts = pd.concat(
         [
-            severity_model.scenario_contrasts(fitted, draws, base).assign(base=label)
+            severity_model.scenario_contrasts(fitted, covariance, base).assign(base=label)
             for label, base in (
                 ("interurban", severity_model.REFERENCE_SCENARIO),
                 ("urban", severity_model.URBAN_REFERENCE),
@@ -115,7 +118,7 @@ def run_calculator() -> None:
     )
     write(contrasts, "sev_contrasts")
     write(severity_model.marginal_and_adjusted(fitted, draws), "sev_marginal_adjusted")
-    write(severity_model.stability(c, scale), "sev_stability")
+    write(severity_model.stability(c), "sev_stability")
     coefficients = pd.DataFrame(
         {
             "column": fitted.columns,
@@ -142,7 +145,8 @@ def run_calculator() -> None:
         "observed": round(float(pooled.prevalence), 4),
     }
     scenarios = severity_model.scenarios_from_records(frame)
-    exported = severity_model.export(fitted, covariance, scenarios, y_all, evaluation)
+    excluded = len(severity_model.load_all()) - len(frame)
+    exported = severity_model.export(fitted, covariance, scenarios, y_all, evaluation, excluded)
     MODELS_DIR.mkdir(parents=True, exist_ok=True)
     MODEL_PATH.write_text(json.dumps(exported, ensure_ascii=False, separators=(",", ":")) + "\n")
     log.info("model: %s (%.0f kB)", MODEL_PATH, MODEL_PATH.stat().st_size / 1024)

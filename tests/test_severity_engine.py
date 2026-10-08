@@ -38,9 +38,9 @@ def _scenarios(n_random: int = 300) -> list[dict]:
     for base in (sm.REFERENCE_SCENARIO, sm.URBAN_REFERENCE):
         out += [scenario for _, _, scenario in sm._variants(base)]
     rng = np.random.default_rng(7)
-    roads = [r for r in sm.ROADS if r not in sm.TRAINING_ONLY_ROADS]
+    roads = list(sm.ROADS)
     while len(out) < n_random + 2:
-        scenario = {"road": str(rng.choice(roads))}
+        scenario = {"road": str(rng.choice(roads)), "province": str(rng.choice(list(sm.PROVINCES)))}
         for name, levels in sm.CATEGORICAL.items():
             scenario[name] = str(rng.choice(list(levels)))
         for user in sm.USERS:
@@ -78,15 +78,42 @@ def test_every_source_value_is_recoded() -> None:
         pytest.skip("run scripts/microdata.py features")
     scenarios = sm.scenarios_from_records(frame)
     assert scenarios.notna().all().all()
-    assert set(scenarios.road) <= set(sm.ROADS)
+    assert set(scenarios.road) <= set(sm.ROADS) | set(sm.EXCLUDED_ROADS)
     for name, levels in sm.CATEGORICAL.items():
         assert set(scenarios[name]) <= set(levels), name
 
 
-def test_training_only_roads_are_never_offered() -> None:
+def test_the_recording_artefact_roads_are_never_fitted_or_offered() -> None:
+    """Crashes on roads whose owner is "other" or blank are excluded from fitting, evaluation and
+    the counts shown, and the calculator offers exactly the roads the model was fitted on."""
     offered = {level["value"] for level in sm.input_specification()["inputs"]["road"]["levels"]}
-    assert not offered & set(sm.TRAINING_ONLY_ROADS)
-    assert offered | set(sm.TRAINING_ONLY_ROADS) == set(sm.ROADS)
+    assert offered == set(sm.ROADS)
+    assert not offered & set(sm.EXCLUDED_ROADS)
+    if not sm.FEATURES_PATH.exists():
+        pytest.skip("run scripts/microdata.py features")
+    frame, _, y = sm.load()
+    assert not set(sm.scenarios_from_records(frame).road) & set(sm.EXCLUDED_ROADS)
+    assert len(sm.load_all()) > len(frame) == len(y)
+
+
+def test_unknown_input_levels_are_errors_not_the_reference() -> None:
+    with pytest.raises(ValueError):
+        sm.scenario_frame(sm.REFERENCE_SCENARIO | {"crash_type": "foo"})
+    with pytest.raises(ValueError):
+        sm.scenario_frame(sm.REFERENCE_SCENARIO | {"road": "conventional_owner_blank"})
+
+
+def test_four_or_more_units_has_no_upper_bound() -> None:
+    five_kinds = sm.REFERENCE_SCENARIO | {
+        "units": "4+",
+        "pedestrian": 1,
+        "bicycle": 1,
+        "moped": 1,
+        "motorcycle": 1,
+        "crash_type": "pedestrian_struck",
+    }
+    assert "units_cover_users" not in sm.check_scenario(five_kinds)
+    assert "units_cover_users" in sm.check_scenario(five_kinds | {"units": "3"})
 
 
 def test_hard_rules_hold_in_the_training_records() -> None:
@@ -111,8 +138,10 @@ def test_exported_coefficients_reproduce_the_fitted_model() -> None:
     if not sm.FEATURES_PATH.exists():
         pytest.skip("run scripts/microdata.py features")
     model = _model()
-    fitted, x = sm.final_fit(model["penalty"]["C"], model["penalty"]["deviation_scale"])
+    fitted, x = sm.final_fit(model["penalty"]["C"])
     assert fitted.columns == model["columns"]
+    assert model["model_id"] == sm.model_id(model["columns"], model["coefficients"])
+    assert not any(column.startswith(("urban:", "interurban:")) for column in model["columns"])
     exported = np.array(model["coefficients"])
     assert np.abs(fitted.coef - exported).max() < 1e-7
     assert np.abs(sm.expit(x @ fitted.coef) - sm.expit(x @ exported)).max() < 1e-7
@@ -182,3 +211,46 @@ process.stdout.write(JSON.stringify(pairs.map(p => e.compare(p[0], p[1]))));
         for key, value in expected.items():
             assert abs(js[key] - value) < 1e-10, key
         assert expected["ratio_low"] <= expected["ratio"] <= expected["ratio_high"]
+
+
+@needs_model
+def test_worked_examples_use_the_calculators_arithmetic() -> None:
+    """The page's table of one-input changes and the calculator give the same intervals."""
+    from dgt_stats.paths import TABLES_DIR
+
+    model = _model()
+    contrasts = pd.read_csv(TABLES_DIR / "sev_contrasts.csv")
+    for base_name, base in (("interurban", sm.REFERENCE_SCENARIO), ("urban", sm.URBAN_REFERENCE)):
+        rows = contrasts[contrasts.base == base_name].set_index(["input", "level"])
+        for name, level, scenario in sm._variants(base):
+            row = rows.loc[(name, level)]
+            predicted = sm.predict_exported(model, scenario)
+            compared = sm.compare_exported(model, scenario, base)
+            assert abs(row.probability_low - predicted["low"]) < 1e-6, (name, level)
+            assert abs(row.probability_high - predicted["high"]) < 1e-6, (name, level)
+            assert abs(row.ratio_low - compared["ratio_low"]) < 1e-6, (name, level)
+            assert abs(row.ratio_high - compared["ratio_high"]) < 1e-6, (name, level)
+
+
+@needs_model
+@needs_node
+def test_rare_levels_are_flagged_for_the_chosen_road() -> None:
+    """An input level seldom recorded on the chosen road is flagged even when it is common in
+    its zone (a posted 100-120 km/h limit on a local road)."""
+    model = _model()
+    scenario = sm.REFERENCE_SCENARIO | {"road": "conventional_local", "speed_limit": "100_120"}
+    count = model["level_support"].get("conventional_local|speed_limit=100_120", 0)
+    assert count < sm.SUPPORT_FEW
+    (result,) = _run_engine([scenario])
+    assert "rare_level" in result["check"]["warnings"]
+    assert "speed_limit" in result["check"]["rare"]
+
+
+@needs_model
+def test_roads_through_towns_show_the_average_not_an_estimate() -> None:
+    model = _model()
+    rule = next(r for r in model["rules"] if r["id"] == "through_town")
+    assert rule["kind"] == "average"
+    # The page shows the observed share for roads through towns in the chosen province.
+    for province in sm.PROVINCES:
+        assert 0 < model["zone_average"][f"through_town|{province}"] < 1

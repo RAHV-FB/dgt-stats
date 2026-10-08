@@ -260,6 +260,27 @@ def calibration_table(
     return out.drop(columns="band")
 
 
+def calibration_groups(y: np.ndarray, p: np.ndarray, n_groups: int = 10) -> pd.DataFrame:
+    """Predicted against observed in ``n_groups`` equal-sized groups of predicted probability
+    (tenths by default), with Wilson 95% intervals for the observed share."""
+    order = np.argsort(p, kind="stable")
+    group = np.empty(len(p), dtype=int)
+    group[order] = np.arange(len(p)) * n_groups // len(p)
+    frame = pd.DataFrame({"y": y, "p": p, "group": group + 1})
+    out = frame.groupby("group").agg(
+        n=("y", "size"),
+        positives=("y", "sum"),
+        mean_predicted=("p", "mean"),
+        predicted_low=("p", "min"),
+        predicted_high=("p", "max"),
+    )
+    out["observed"] = out.positives / out.n
+    limits = [wilson(k, n) for k, n in zip(out.positives, out.n)]
+    out["observed_low"] = [low for low, _ in limits]
+    out["observed_high"] = [high for _, high in limits]
+    return out.reset_index()
+
+
 # --------------------------------------------------------------------------- Catalonia
 
 

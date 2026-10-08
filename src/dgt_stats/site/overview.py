@@ -268,48 +268,39 @@ def _models() -> str:
     first_test, last_test = span.split("-")
     pooled = scores[scores.subset == span].set_index("estimator")
     calibration = read_table("sev_calibration")
-    bands = calibration[calibration.estimator == "calculator"]
     calc, table_score = pooled.loc["calculator"], pooled.loc["road_x_crash_table"]
-    selected = read_table("ml_selected")
-    primary = selected[selected.primary].set_index("model")
-    transport = read_table("ml_transport_validation")
-    path = read_table("ml_outward_path")
-    national = transport[
-        transport.experiment.eq("Catalonia -> Spain outside Catalonia")
-        & transport.model.eq("catalonia_common_dgt")
-        & transport.estimator.eq(primary.loc["catalonia_common_dgt", "estimator"])
-        & transport.status.eq("reported")
-    ].iloc[0]
+
+    def fifth(estimator: str, top: bool) -> float:
+        groups = calibration[calibration.estimator == estimator].sort_values("group")
+        part = groups.tail(2) if top else groups.head(2)
+        return float(part.positives.sum() / part.n.sum())
+
+    top, bottom = fifth("calculator", True), fifth("calculator", False)
+    top_table, bottom_table = fifth("road_x_crash_table", True), fifth("road_x_crash_table", False)
     _require(
         "models",
         {
-            "the calculator's model ranks better than the table": float(calc.roc_auc)
+            "the model ranks better than the table": float(calc.roc_auc)
             > float(table_score.roc_auc),
-            "its predictions match the observed shares in every band": bool(
-                (
-                    (bands.mean_predicted >= bands.observed_low)
-                    & (bands.mean_predicted <= bands.observed_high)
-                ).all()
-            ),
-            "the Catalonia-trained model ranks Spanish crashes almost as well as one trained "
-            "on them": abs(float(national.transfer_gap)) <= 0.01,
-            "no model is called fit for national use": not path.verdict.eq(
-                "potentially nationally transferable"
-            ).any(),
+            "the model separates the extremes better than the table": top > top_table
+            and bottom < bottom_table,
+            "its estimates match the observed share overall": abs(
+                float(calc.mean_predicted) - float(calc.prevalence)
+            )
+            < 0.005,
         },
     )
     return _finding(
-        _fmt_pct(float(calc.mean_predicted)),
-        "A model of which crashes with a death or serious injury in Catalonia were fatal, tested "
-        f"on each year from {first_test} to {last_test} with a model fitted only on earlier years, "
-        f"predicted {_fmt_pct(float(calc.mean_predicted))} of them fatal against "
-        f"{_fmt_pct(float(calc.prevalence))} observed, and its predicted shares matched the "
-        "observed ones across the whole range. It picked out the fatal crashes better than a "
-        "table of the same records, and a calculator applies it to any crash a reader "
-        "describes. Of the project's other models, the Barcelona crash model did no better "
-        "than a table and was removed. A version of the Catalan model ranked serious crashes in "
-        "the rest of Spain almost as well as a model trained on them, which does not make it fit "
-        "for national use. None of the models predicts whether a crash will happen.",
+        f"{_fmt_pct(top, 0)} / {_fmt_pct(bottom, 0)}",
+        "Among crashes in Catalonia in which someone was killed or seriously injured, a model of "
+        "the recorded road, conditions and crash sorted the crashes of "
+        f"{first_test}–{last_test}, each year predicted from earlier years only, into more and "
+        f"less deadly groups: of the fifth it rated most likely to be fatal, {_fmt_pct(top, 0)} "
+        f"were; of the fifth it rated least likely, {_fmt_pct(bottom, 0)}. A table of fatal "
+        f"shares by road and crash type separates them less ({_fmt_pct(top_table, 0)} and "
+        f"{_fmt_pct(bottom_table, 0)}). A calculator applies the model to a crash a reader "
+        "describes. It cannot say whether a crash will happen, and it has been tested only "
+        "within Catalonia.",
         [
             ("severity-models", "Severity model and calculator"),
             ("validation", "External validation"),

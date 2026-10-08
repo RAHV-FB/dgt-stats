@@ -19,7 +19,8 @@
   "use strict";
 
   var Z = 1.959964;
-  var UNITS = { "1": 1, "2": 2, "3": 3, "4+": 4 };
+  // "4+" means four or more: no upper bound (dgt_stats.severity_model.UNIT_COUNTS).
+  var UNITS = { "1": 1, "2": 2, "3": 3, "4+": Infinity };
   var ERROR_RULES = {
     at_least_one_user: true,
     units_cover_users: true,
@@ -53,11 +54,12 @@
 
     var roads = {};
     model.inputs.road.levels.forEach(function (level) { roads[level.value] = level; });
+    var provinces = {};
+    model.inputs.province.levels.forEach(function (level) { provinces[level.value] = true; });
     var categorical = Object.keys(model.inputs).filter(function (name) {
       return model.inputs[name].type === "categorical" && name !== "road";
     });
     var users = model.inputs.users.levels.map(function (level) { return level.value; });
-    var deviationZones = { urban: true, interurban: true };
 
     function zoneOf(road) {
       if (!roads[road]) throw new Error("unknown road: " + road);
@@ -75,16 +77,18 @@
       function set(name) {
         if (Object.prototype.hasOwnProperty.call(index, name)) ones.push(index[name]);
       }
+      if (!provinces[scenario.province]) throw new Error("unknown province: " + scenario.province);
       set("zone=" + zone);
+      set("zone_province=" + zone + "|" + scenario.province);
       set("road=" + scenario.road);
-      var prefixes = deviationZones[zone] ? ["all", zone] : ["all"];
-      prefixes.forEach(function (prefix) {
-        categorical.forEach(function (name) {
-          set(prefix + ":" + name + "=" + String(scenario[name]));
-        });
-        users.forEach(function (user) {
-          if (scenario[user]) set(prefix + ":" + user);
-        });
+      categorical.forEach(function (name) {
+        var value = String(scenario[name]);
+        var known = model.inputs[name].levels.some(function (level) { return level.value === value; });
+        if (!known) throw new Error("unknown " + name + ": " + value);
+        set("all:" + name + "=" + value);
+      });
+      users.forEach(function (user) {
+        if (scenario[user]) set("all:" + user);
       });
       ones.sort(function (a, b) { return a - b; });
       return ones;
@@ -160,7 +164,8 @@
     }
 
     // Rule ids broken by a scenario, as dgt_stats.severity_model.check_scenario, plus the two
-    // warnings that need the training counts.
+    // warnings that need the training counts: few similar crashes in the zone, and an input level
+    // rarely or never recorded on the chosen road.
     function check(scenario) {
       var chosen = ticked(scenario);
       var units = UNITS[String(scenario.units)];
@@ -182,13 +187,13 @@
         var threshold = 20;
         model.rules.forEach(function (rule) { if (rule.id === "few_similar") threshold = rule.threshold; });
         if (similar(scenario).crashes < threshold) warnings.push("few_similar");
-        var zone = zoneOf(scenario.road);
+        var road = String(scenario.road);
         categorical.forEach(function (name) {
-          var count = model.level_support[zone + "|" + name + "=" + String(scenario[name])] || 0;
+          var count = model.level_support[road + "|" + name + "=" + String(scenario[name])] || 0;
           if (count < threshold) rare.push(name);
         });
         chosen.forEach(function (user) {
-          var count = model.level_support[zone + "|" + user] || 0;
+          var count = model.level_support[road + "|" + user] || 0;
           if (count < threshold) rare.push(user);
         });
         if (rare.length) warnings.push("rare_level");

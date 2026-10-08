@@ -211,33 +211,31 @@ def test_the_front_page_is_a_research_overview(built: dict[str, str]) -> None:
     # The modelling is described in plain words, with the model that lost to its table named as
     # such, and the supporting association analysis is not presented as a model.
     visible = _visible(built["index"])
-    assert "did no better than a table" in visible
+    assert "cannot say whether a crash will happen" in visible
     assert "Association analysis of DGT crash records" not in visible
 
 
 def test_the_models_page_leads_with_predicted_against_observed(built: dict[str, str]) -> None:
     visible = _visible(built["severity-models"])
     main = _main(built["severity-models"])
-    # What the model predicts is said first, then predicted against observed, then the scores.
+    # Predicted against observed, then the plain conclusion, then the calculator, then what the
+    # model shows and a short method; scores tables stay in the research documents.
     headings = re.findall(r"<h2[^>]*>(.*?)</h2>", main, re.S)
-    assert headings[:5] == [
+    assert headings[:4] == [
         "Predicted and observed",
-        "How well it separates fatal from serious crashes",
+        "Try the model",
         "What the model shows",
-        "The calculator",
-        "Every model the project fitted",
+        "How it was built and tested",
     ]
-    assert main.find("sev1_predicted_observed") < main.find("ROC-AUC")
-    # ROC-AUC is explained in the scores table's note (which a table also carries in its hidden
-    # caption), after the first comparison it is used for.
-    explained = visible.find("ROC-AUC is the chance")
-    assert 0 < visible.find("ROC-AUC") < explained
+    assert main.find("sev1_predicted_observed") < main.find('id="calculator"')
+    # Ranking skill is said in plain words, never as a bare score.
+    assert "ROC-AUC" not in visible
+    assert "times in 100" in visible
     # What the calculator answers, and what its inputs are not, are said in plain words.
-    assert "posted speed limit is not a speed" in visible.lower()
-    assert "cannot say how likely a crash is to happen" in visible
-    # The supporting analyses are linked rather than tabled beside the models, and no withdrawn
-    # page is linked.
-    assert 'href="severity.html"' in main and 'href="validation.html"' in main
+    assert "a posted limit is not a speed" in visible.lower()
+    assert "cannot say whether a crash will happen" in visible
+    assert "died within 24 hours" in visible
+    # No withdrawn page is linked.
     assert 'href="forecast.html"' not in main
 
 

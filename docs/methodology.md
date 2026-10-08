@@ -861,13 +861,16 @@ The decision for every model, with where it works and fails, is generated in
 by rolling origin: each year 2016–2023 is predicted by a model fitted only on the years before it,
 against a table of the same records, with calibration checked as well as ranking
 ([`research/ML_MODEL_REVIEW.md`](research/ML_MODEL_REVIEW.md)). The original Catalan model's lead
-over a table rested partly on a recording artefact, so it was rebuilt as a penalised logistic
-regression on circumstances a reader can describe (zone and road, crash type, road users and how
-many, lighting, weather, surface, junction, posted limit, time of day): ROC-AUC 0.772 against
-0.745 for the road × crash-type table, calibration slope 1.04, mean predicted 12.5 % against
-12.6 % observed. Its predicted probabilities lie within the 95 % interval of the observed share in
-every band of predicted risk. It is the model behind the calculator on the models page, whose
-browser engine reproduces the Python predictions and their delta-method intervals to 10⁻¹⁰
+over a table rested partly on a recording artefact (the road owner recorded as "other" or left blank,
+which separates fatal from serious crashes by how they were documented), so it was rebuilt as a
+penalised logistic regression on circumstances a reader can describe (province, zone and road,
+crash type, road users and how many, lighting, weather, surface, junction, posted limit, time of
+day), without the 1,840 artefact crashes. On the 11,611 crashes of 2016–2023 on the roads a reader
+can choose it scores ROC-AUC 0.743 against 0.709 for the road × crash-type table and 0.748 for
+boosted trees on the same inputs (the original model: 0.7475), calibration slope 1.10, mean
+predicted 12.2 % against 12.3 % observed. In nine of ten groups of predicted risk the mean
+prediction lies within the 95 % interval of the observed share. It is the model behind the
+calculator on the models page, whose browser engine reproduces the Python predictions and their delta-method intervals to 10⁻¹⁰
 ([`research/SEVERITY_CALCULATOR.md`](research/SEVERITY_CALCULATOR.md)). The retrospective
 variant and the Barcelona crash model were removed; the Barcelona person model and the DGT
 association model are research only.

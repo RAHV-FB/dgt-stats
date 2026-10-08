@@ -1151,6 +1151,77 @@ def calibration_intervals(
     return save(fig, path)
 
 
+def calibration_comparison(
+    frame: pd.DataFrame,
+    path: Path,
+    title: str,
+    series: dict[str, str],
+    xlabel: str = "Predicted probability (mean in the group)",
+    ylabel: str = "Observed share",
+) -> Path:
+    """Observed share against mean predicted probability, by equal-sized group of prediction, for
+    two estimators on the same records: the first in ``series`` as filled dots with 95% intervals,
+    the second as hollow dots, both labelled directly at their highest group. Equal axes, with the
+    diagonal on which prediction equals observation."""
+    apply_style()
+    fig, axis = plt.subplots(figsize=(5.4, 5.4))
+    top = float(frame[["mean_predicted", "observed_high"]].max().max()) * 1.06
+    axis.plot([0, top], [0, top], color=REFERENCE, linewidth=1.1, linestyle=":", zorder=1)
+    axis.annotate(
+        "predicted = observed",
+        (top * 0.62, top * 0.56),
+        ha="left",
+        va="top",
+        rotation=45,
+        rotation_mode="anchor",
+        fontsize=NOTE_SIZE,
+        color=TEXT_SECONDARY,
+    )
+    styles = [
+        {"color": ACCENT, "markerfacecolor": ACCENT, "markersize": 7, "offset": 0.0},
+        {"color": NEUTRAL, "markerfacecolor": SURFACE, "markersize": 6.5, "offset": 0.003},
+    ]
+    handles = []
+    for (estimator, label), style in zip(series.items(), styles):
+        part = frame[frame.estimator == estimator].sort_values("mean_predicted")
+        x = part.mean_predicted + style["offset"]
+        axis.vlines(
+            x, part.observed_low, part.observed_high, color=style["color"], linewidth=1.4, zorder=2
+        )
+        (handle,) = axis.plot(
+            x,
+            part.observed,
+            marker="o",
+            linestyle="none",
+            color=style["color"],
+            markerfacecolor=style["markerfacecolor"],
+            markeredgecolor=style["color"],
+            markeredgewidth=1.4,
+            markersize=style["markersize"],
+            zorder=3,
+            label=label,
+        )
+        handles.append(handle)
+    axis.legend(
+        handles=handles,
+        loc="upper left",
+        frameon=False,
+        fontsize=NOTE_SIZE + 0.5,
+        handletextpad=0.4,
+        borderaxespad=0.2,
+    )
+    axis.set_xlim(0, top)
+    axis.set_ylim(0, top)
+    axis.set_aspect("equal", adjustable="box")
+    axis.grid(True, axis="both")
+    _percent(axis, 0)
+    axis.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(lambda v, _: f"{v * 100:.0f}%"))
+    _title(path, title)
+    axis.set_xlabel(xlabel)
+    axis.set_ylabel(ylabel)
+    return save(fig, path)
+
+
 def missingness_heatmap(profile: pd.DataFrame, path: Path, title: str) -> Path:
     """Year × column share of observed (non-missing) values."""
     matrix = profile.pivot(index="column", columns="year", values="share_observed")

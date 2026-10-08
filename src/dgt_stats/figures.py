@@ -789,20 +789,24 @@ def _severity_calculator_figures(figures_dir: Path, captions: dict[str, str]) ->
     if not path.exists():
         log.warning("sev_calibration.csv missing: run scripts/severity_calculator.py calculator")
         return
-    bands = pd.read_csv(path)
-    bands = bands[bands.estimator == "calculator"]
-    plots.calibration_intervals(
-        bands,
+    groups = pd.read_csv(path)
+    groups = groups[groups.estimator.isin(["calculator", "road_x_crash_table"])]
+    plots.calibration_comparison(
+        groups,
         figures_dir / "sev1_predicted_observed.svg",
         "Predicted and observed: the share of severe crashes that were fatal",
-        xlabel="Predicted probability that the crash was fatal (mean in the band)",
+        {"calculator": "the model", "road_x_crash_table": "a table by road and crash type"},
+        xlabel="Predicted chance that the crash was fatal (average in the group)",
         ylabel="Share of the crashes that were fatal",
     )
+    model = groups[groups.estimator == "calculator"]
     captions["sev1_predicted_observed"] = _caption(
-        "Crashes in Catalonia with a death or serious injury, 2016–2023, grouped by the "
-        "calculator model's predicted probability that the crash was fatal; each year is "
-        "predicted by a model fitted only on the years before it. Dots are the observed fatal "
-        "share in each band with its 95% interval, and n is the number of crashes in the band",
+        "Crashes in Catalonia in which someone was killed or seriously injured, 2016–2023, on "
+        "the roads the calculator offers. Each year was predicted by a model fitted only on the "
+        "years before it. The crashes are split into ten equal groups by the model's prediction "
+        f"(about {int(model.n.median()):,} crashes each), and separately by the table's. Each dot "
+        "is the share of a group's crashes that were fatal (someone died within 24 hours), with "
+        "its 95% interval, against the group's average prediction",
         "Servei Català de Trànsit, crashes with a death or serious injury",
-        int(bands.n.sum()),
+        int(model.n.sum()),
     )

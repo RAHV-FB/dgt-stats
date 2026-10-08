@@ -96,15 +96,20 @@ def test_model_scores_come_from_the_tables(pages: dict[str, str]) -> None:
     scores = _table("sev_rolling_scores")
     pooled = scores[scores.subset.str.fullmatch(r"\d{4}-\d{4}")].set_index("estimator")
     calc, table = pooled.loc["calculator"], pooled.loc["road_x_crash_table"]
-    assert f"{calc.roc_auc:.2f}" in text and f"{table.roc_auc:.2f}" in text
-    assert f"{pooled.loc['boosted_trees', 'roc_auc']:.3f}" in text
+    trees = pooled.loc["boosted_trees"]
+    # Ranking is put in plain words: how often a fatal crash gets the higher estimate.
+    assert f"higher estimate {round(100 * calc.roc_auc)} times in 100" in text
+    assert f"the table {round(100 * table.roc_auc)} times" in text
+    assert f"({round(100 * trees.roc_auc)} times in 100) but gives no interval" in text
     assert _fmt_pct(calc.mean_predicted) in text and _fmt_pct(calc.prevalence) in text
-    # Predicted against observed leads the page, before any score.
+    # Predicted against observed leads the page, before the calculator, and no score box.
     body = text[text.find("<main>") : text.find("</main>")]
-    assert body.find("sev1_predicted_observed") < body.find('<div class="key-result">')
-    barcelona = _table("review_barcelona").set_index(["model", "estimator"])
-    person = barcelona.loc[("barcelona_person_severity", "boosted_trees")]
-    assert f"{person.roc_auc:.2f}" in text
+    assert body.find("sev1_predicted_observed") < body.find('id="calculator"')
+    assert 'class="key-result"' not in body
+    calibration = _table("sev_calibration")
+    model = calibration[calibration.estimator == "calculator"].sort_values("group")
+    top = model.tail(2).positives.sum() / model.tail(2).n.sum()
+    assert f"rated most likely to have been fatal, {_fmt_pct(top, 0)} were" in text
 
 
 def test_transfer_scores_and_the_small_barcelona_benchmark_come_from_the_tables(
@@ -130,18 +135,10 @@ def test_transfer_scores_and_the_small_barcelona_benchmark_come_from_the_tables(
 
 def test_models_page_follows_the_decisions(pages: dict[str, str]) -> None:
     text = pages["severity-models"]
-    # Every model of the re-evaluation appears with its decision (docs/research/ML_MODEL_REVIEW.md).
-    for decision in (
-        "Rebuilt as the calculator",
-        "Research only: too few serious cases",
-        "Removed: no gain over the table",
-        "Removed: last year&#x27;s count does better",
-        "Research only: see the external validation",
-        "Research only: its coefficients describe police records",
-    ):
-        assert decision in text, decision
-    crash = _table("review_barcelona").set_index(["model", "estimator"])
-    assert f"{crash.loc[('barcelona_crash_severity', 'table'), 'roc_auc']:.3f}" in text
+    # The other models are named as not used, with the reason, and the review is linked; no
+    # other model's probabilities are shown.
+    assert "are not used as predictors" in text
+    assert "can only rank" in text
     assert "ML_MODEL_REVIEW.md" in text and "SEVERITY_CALCULATOR.md" in text
     # The calculator's form offers exactly the exported model's inputs.
     import json

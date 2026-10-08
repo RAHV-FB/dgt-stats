@@ -1,15 +1,32 @@
 /*
  * The crash-severity calculator's page: reads the form, asks the engine (severity-engine.js)
- * for the predicted share of fatal crashes and its interval, and compares the crash with a
+ * for the estimated share of fatal crashes and its interval, and compares the crash with a
  * second one the reader keeps. Every number comes from the exported model
  * (models/severity_model.json); this file only moves values between the form and the engine.
- * Without scripting the form stays hidden and the page's tables of worked examples remain.
+ * Without scripting the form stays hidden and the page's worked examples remain.
  */
 (function () {
   "use strict";
 
   var root = document.getElementById("calculator");
-  if (!root || !window.SeverityEngine) return;
+  var fallback = document.getElementById("calculator-fallback");
+  var FAILED =
+    "The calculator could not load. The worked examples on this page give the model's " +
+    "estimates for typical crashes.";
+
+  function fail() {
+    if (root) root.hidden = true;
+    if (fallback) {
+      fallback.hidden = false;
+      fallback.textContent = FAILED;
+    }
+  }
+
+  if (!root) return;
+  if (!window.SeverityEngine) {
+    fail();
+    return;
+  }
   var form = root.querySelector("form");
   var output = root.querySelector("[data-output]");
   var baselineBox = root.querySelector("[data-baseline]");
@@ -20,14 +37,14 @@
   var model = null;
   var baseline = null;
 
-  function percent(value, decimals) {
-    return (100 * value).toFixed(decimals === undefined ? 1 : decimals) + "%";
+  function percent(value) {
+    return (100 * value).toFixed(1) + "%";
   }
 
   function points(value) {
     var shown = (100 * value).toFixed(1);
     if (Number(shown) === 0) shown = (0).toFixed(1);
-    return (value > 0 ? "+" : "") + shown.replace("-", "−") + " points";
+    return (value > 0 ? "+" : "") + shown.replace("-", "−");
   }
 
   function text(tag, content, className) {
@@ -35,6 +52,16 @@
     node.textContent = content;
     if (className) node.className = className;
     return node;
+  }
+
+  function announce(message) {
+    // Clear first so that an identical message is announced again.
+    status.textContent = "";
+    window.setTimeout(function () { status.textContent = message; }, 50);
+  }
+
+  function rule(id) {
+    return model.rules.filter(function (r) { return r.id === id; })[0];
   }
 
   function scenarioFromForm() {
@@ -53,6 +80,11 @@
     return scenario;
   }
 
+  function levelLabel(name, value) {
+    var level = model.inputs[name].levels.filter(function (l) { return l.value === value; })[0];
+    return level ? level.label : value;
+  }
+
   function describe(scenario) {
     var parts = [];
     Object.keys(model.inputs).forEach(function (name) {
@@ -61,26 +93,41 @@
         var ticked = input.levels.filter(function (level) { return scenario[level.value]; });
         parts.push(input.label + ": " + ticked.map(function (l) { return l.label; }).join(", "));
       } else {
-        var level = input.levels.filter(function (l) { return l.value === scenario[name]; })[0];
-        parts.push(input.label + ": " + (level ? level.label : scenario[name]));
+        parts.push(input.label + ": " + levelLabel(name, scenario[name]));
       }
     });
     return parts.join("; ");
   }
 
   function ruleText(id, rare) {
-    var rule = model.rules.filter(function (r) { return r.id === id; })[0];
-    if (!rule) return id;
-    var words = rule.text.replace("{threshold}", String(rule.threshold || ""));
+    var found = rule(id);
+    if (!found) return id;
+    var words = found.text.replace("{threshold}", String(found.threshold || ""));
     if (id === "rare_level") {
       var labels = rare.map(function (name) {
         if (model.inputs[name]) return model.inputs[name].label.toLowerCase();
-        var level = model.inputs.users.levels.filter(function (l) { return l.value === name; })[0];
-        return level ? level.label.toLowerCase() : name;
+        return levelLabel("users", name).toLowerCase();
       });
       words = words.replace("{input}", labels.join(", "));
     }
     return words;
+  }
+
+  function zoneLabel(zone) {
+    return { urban: "urban streets", through_town: "roads through towns", interurban: "interurban roads" }[zone];
+  }
+
+  // The comparison area when the current crash has no estimate: no numbers, but the kept crash
+  // is still named so that the reader can return to a valid crash or clear it.
+  function noComparison(message) {
+    baselineBox.textContent = "";
+    if (!baseline) {
+      clear.hidden = true;
+      return;
+    }
+    clear.hidden = false;
+    baselineBox.appendChild(text("p", message, "calc-note"));
+    baselineBox.appendChild(text("p", "Kept crash: " + describe(baseline) + ".", "calc-kept"));
   }
 
   function render() {
@@ -94,6 +141,30 @@
       output.appendChild(list);
       output.setAttribute("data-state", "error");
       keep.disabled = true;
+      noComparison("No comparison until the crash above has an estimate.");
+      announce("No estimate: " + checked.errors.map(function (id) { return ruleText(id); }).join(" "));
+      return;
+    }
+    var zone = engine.zoneOf(scenario.road);
+    var averages = model.zone_average;
+    var local = averages[zone + "|" + scenario.province];
+    var place = zoneLabel(zone) + " in the province of " + levelLabel("province", scenario.province);
+    if (checked.warnings.indexOf("through_town") >= 0) {
+      // The model cannot rank crashes on these roads: show what was observed on them instead.
+      output.setAttribute("data-state", "average");
+      keep.disabled = true;
+      output.appendChild(text("p", percent(local), "calc-value"));
+      output.appendChild(
+        text(
+          "p",
+          "of crashes with a death or serious injury on " + place + " in " +
+            model.training.years[0] + "–" + model.training.years[1] +
+            " were fatal. " + ruleText("through_town"),
+          "calc-label"
+        )
+      );
+      noComparison("No comparison: roads through towns have no estimate of their own.");
+      announce("Roads through towns: " + percent(local) + " were fatal on average.");
       return;
     }
     keep.disabled = false;
@@ -104,31 +175,49 @@
     output.appendChild(
       text(
         "p",
-        "of crashes like this one, among those with a death or serious injury, are predicted to " +
-          "have been fatal (95% interval " + percent(result.low) + "–" + percent(result.high) +
-          ").",
+        "of crashes like this one, among crashes in Catalonia in which someone was killed or " +
+          "seriously injured, are estimated to have been fatal (someone died within 24 hours). " +
+          "95% confidence interval for this share: " + percent(result.low) + "–" +
+          percent(result.high) + ".",
         "calc-label"
       )
     );
     output.appendChild(
       text(
         "p",
-        similar.crashes +
-          " recorded crashes in " + model.training.years[0] + "–" + model.training.years[1] +
-          " share this zone, crash type, road users and number involved" +
-          (similar.crashes ? ", of which " + similar.fatal + " were fatal." : "."),
+        "For comparison, " + percent(averages.all) + " of all such crashes in Catalonia were " +
+          "fatal, and " + percent(local) + " of those on " + place + ".",
         "calc-note"
       )
     );
-    if (checked.warnings.length) {
-      var warnings = document.createElement("ul");
-      warnings.className = "calc-warnings";
-      checked.warnings.forEach(function (id) {
-        warnings.appendChild(text("li", ruleText(id, checked.rare)));
+    output.appendChild(
+      text(
+        "p",
+        similar.crashes.toLocaleString("en") + " recorded crashes in " + model.training.years[0] +
+          "–" + model.training.years[1] + " share this zone, crash type, road users and number " +
+          "involved" +
+          (similar.crashes
+            ? ", and " + similar.fatal.toLocaleString("en") + " of them were fatal. They differ " +
+              "in other ways, so their own share can differ from the estimate."
+            : "."),
+        "calc-note"
+      )
+    );
+    var warnings = checked.warnings.filter(function (id) { return id !== "through_town"; });
+    if (warnings.length) {
+      var list2 = document.createElement("ul");
+      list2.className = "calc-warnings";
+      warnings.forEach(function (id) {
+        list2.appendChild(text("li", ruleText(id, checked.rare)));
       });
-      output.appendChild(warnings);
+      output.appendChild(list2);
     }
-    renderComparison(scenario, result);
+    var comparison = renderComparison(scenario, result);
+    announce(
+      "Estimate " + percent(result.probability) + ", interval " + percent(result.low) + " to " +
+        percent(result.high) + "." + (comparison ? " " + comparison : "") +
+        (warnings.length ? " With a warning." : "")
+    );
   }
 
   function renderComparison(scenario, result) {
@@ -138,12 +227,11 @@
       baselineBox.appendChild(
         text(
           "p",
-          "Keep this crash for comparison, then change any input to see how the predicted share " +
-            "changes.",
+          "To compare two crashes, press “Keep this crash for comparison”, then change an input.",
           "calc-note"
         )
       );
-      return;
+      return "";
     }
     clear.hidden = false;
     var kept = engine.predict(baseline);
@@ -156,25 +244,38 @@
         "calc-note"
       )
     );
+    var ratio = comparison.ratio.toFixed(2);
     baselineBox.appendChild(
       text(
         "p",
-        "This crash against the kept one: " + comparison.ratio.toFixed(2) + " times the share " +
-          "(95% interval " + comparison.ratio_low.toFixed(2) + "–" +
-          comparison.ratio_high.toFixed(2) + "), a difference of " + points(comparison.difference) +
-          " (" + points(comparison.difference_low) + " to " + points(comparison.difference_high) +
-          ").",
+        "This crash against the kept one: " + ratio + " times the share (95% confidence " +
+          "interval " + comparison.ratio_low.toFixed(2) + "–" + comparison.ratio_high.toFixed(2) +
+          "), a difference of " + points(comparison.difference) + " percentage points (" +
+          points(comparison.difference_low) + " to " + points(comparison.difference_high) + ").",
         "calc-compare"
       )
     );
+    baselineBox.appendChild(
+      text(
+        "p",
+        "Both are estimates for kinds of recorded crash. The difference is an association in " +
+          "police records, not the effect of changing that circumstance on a real road.",
+        "calc-note"
+      )
+    );
     baselineBox.appendChild(text("p", "Kept crash: " + describe(baseline) + ".", "calc-kept"));
+    return ratio + " times the kept crash.";
   }
 
   function start(exported) {
+    if (exported.model_id !== root.getAttribute("data-model-id")) {
+      // The page and the model file come from different builds: compute nothing.
+      fail();
+      return;
+    }
     model = exported;
     engine = window.SeverityEngine.create(model);
     root.hidden = false;
-    var fallback = document.getElementById("calculator-fallback");
     if (fallback) fallback.hidden = true;
     form.addEventListener("change", render);
     form.addEventListener("submit", function (event) {
@@ -184,33 +285,28 @@
     keep.addEventListener("click", function () {
       baseline = scenarioFromForm();
       render();
-      status.textContent = "Crash kept for comparison.";
+      announce("Crash kept for comparison.");
     });
     clear.addEventListener("click", function () {
       baseline = null;
       render();
-      status.textContent = "Comparison cleared.";
+      announce("Comparison cleared.");
       keep.focus();
     });
     form.addEventListener("reset", function () {
-      window.setTimeout(render, 0);
+      window.setTimeout(function () {
+        render();
+        announce("Inputs reset.");
+      }, 0);
     });
     render();
   }
 
-  fetch(root.getAttribute("data-model"))
+  fetch(root.getAttribute("data-model") + "?v=" + encodeURIComponent(root.getAttribute("data-model-id")))
     .then(function (response) {
       if (!response.ok) throw new Error("model not found");
       return response.json();
     })
     .then(start)
-    .catch(function () {
-      var fallback = document.getElementById("calculator-fallback");
-      if (fallback) {
-        fallback.hidden = false;
-        fallback.textContent =
-          "The calculator could not load its model. The worked examples below give its estimates " +
-          "for typical crashes.";
-      }
-    });
+    .catch(fail);
 })();

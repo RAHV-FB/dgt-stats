@@ -108,9 +108,9 @@ def _scenarios(n: int) -> list[dict]:
     for base in (sm.REFERENCE_SCENARIO, sm.URBAN_REFERENCE):
         out += [scenario for _, _, scenario in sm._variants(base)]
     rng = np.random.default_rng(11)
-    roads = [r for r in sm.ROADS if r not in sm.TRAINING_ONLY_ROADS]
+    roads = [r for r in sm.ROADS if r != "through_town"]
     while len(out) < n:
-        scenario = {"road": str(rng.choice(roads))}
+        scenario = {"road": str(rng.choice(roads)), "province": str(rng.choice(list(sm.PROVINCES)))}
         for name, levels in sm.CATEGORICAL.items():
             scenario[name] = str(rng.choice(list(levels)))
         for user in sm.USERS:
@@ -129,13 +129,19 @@ def _shown(page) -> str:
 
 def test_reference_crashes_match_python(calculator) -> None:
     model = _model()
-    urban = sm.predict_exported(model, sm.URBAN_REFERENCE)
-    text = _shown(calculator)
-    assert text.startswith(_percent(urban["probability"]))
-    assert f"{_percent(urban['low'])}–{_percent(urban['high'])}" in text
-    calculator.select_option("#calc-road", sm.REFERENCE_SCENARIO["road"])
+    # The calculator opens on the worked examples' reference crash.
     regional = sm.predict_exported(model, sm.REFERENCE_SCENARIO)
-    assert _shown(calculator).startswith(_percent(regional["probability"]))
+    text = _shown(calculator)
+    assert text.startswith(_percent(regional["probability"]))
+    assert f"{_percent(regional['low'])}–{_percent(regional['high'])}" in text
+    assert "95% confidence interval" in text and "within 24 hours" in text
+    calculator.select_option("#calc-road", "urban_street")
+    urban = sm.predict_exported(model, sm.URBAN_REFERENCE)
+    assert _shown(calculator).startswith(_percent(urban["probability"]))
+    urban_here = model["zone_average"][f"urban|{sm.REFERENCE_SCENARIO['province']}"]
+    assert f"{_percent(urban_here)} of those on urban streets in the province of" in _shown(
+        calculator
+    )
 
 
 def test_the_engine_in_the_page_matches_python(calculator) -> None:
@@ -162,7 +168,6 @@ def test_the_engine_in_the_page_matches_python(calculator) -> None:
 
 def test_comparison_matches_python(calculator) -> None:
     model = _model()
-    calculator.select_option("#calc-road", sm.REFERENCE_SCENARIO["road"])
     calculator.click("[data-keep]")
     calculator.check('input[name="users"][value="heavy_vehicle"]')
     expected = sm.compare_exported(
@@ -171,8 +176,38 @@ def test_comparison_matches_python(calculator) -> None:
     text = re.sub(r"\s+", " ", calculator.text_content("[data-baseline]"))
     assert f"{expected['ratio']:.2f} times the share" in text
     assert f"{expected['ratio_low']:.2f}–{expected['ratio_high']:.2f}" in text
+    assert "percentage points" in text and "not the effect of changing" in text
     calculator.click("[data-clear]")
     assert "Keep this crash" in calculator.text_content("[data-baseline]")
+
+
+def test_a_refused_crash_shows_no_comparison(calculator) -> None:
+    """Once the current inputs are refused, no ratio from an earlier state stays on screen."""
+    calculator.click("[data-keep]")
+    calculator.check('input[name="users"][value="heavy_vehicle"]')
+    assert "times the share" in calculator.text_content("[data-baseline]")
+    calculator.select_option("#calc-crash_type", "pedestrian_struck")
+    assert "No estimate" in _shown(calculator)
+    baseline = calculator.text_content("[data-baseline]")
+    assert "times the share" not in baseline and "No comparison" in baseline
+    assert "Kept crash:" in baseline
+
+
+def test_roads_through_towns_show_their_average(calculator) -> None:
+    model = _model()
+    calculator.select_option("#calc-road", "through_town")
+    calculator.select_option("#calc-province", "Tarragona")
+    text = _shown(calculator)
+    assert text.startswith(_percent(model["zone_average"]["through_town|Tarragona"]))
+    assert "in the province of Tarragona" in text
+    assert "cannot tell more and less deadly crashes apart" in text
+    assert calculator.is_disabled("[data-keep]")
+
+
+def test_a_rarely_recorded_level_on_the_chosen_road_is_flagged(calculator) -> None:
+    calculator.select_option("#calc-road", "conventional_local")
+    calculator.select_option("#calc-speed_limit", "100_120")
+    assert "Fewer than" in _shown(calculator) and "posted speed limit" in _shown(calculator)
 
 
 def test_keyboard_alone_operates_the_calculator(calculator) -> None:
@@ -180,15 +215,17 @@ def test_keyboard_alone_operates_the_calculator(calculator) -> None:
     before = _shown(calculator)
     # Choose another road with the arrow keys, as a keyboard user would.
     calculator.keyboard.press("ArrowDown")
-    assert calculator.input_value("#calc-road") != "urban_street"
+    assert calculator.input_value("#calc-road") != sm.REFERENCE_SCENARIO["road"]
     assert _shown(calculator) != before
     # Tab reaches every control in order, and the keep button works from the keyboard.
     calculator.focus('input[name="users"][value="other_unit"]')
     calculator.keyboard.press("Tab")
     assert calculator.evaluate("document.activeElement.hasAttribute('data-keep')")
     calculator.keyboard.press("Enter")
-    assert calculator.text_content("[data-status]") == "Crash kept for comparison."
-    assert calculator.get_attribute("[data-output]", "aria-live") == "polite"
+    calculator.wait_for_function(
+        "document.querySelector('[data-status]').textContent === 'Crash kept for comparison.'"
+    )
+    assert calculator.get_attribute("[data-status]", "aria-live") == "polite"
     for control in calculator.query_selector_all("#calculator select"):
         label = calculator.evaluate(
             "(el) => document.querySelector(`label[for='${el.id}']`)?.textContent", control
@@ -215,6 +252,27 @@ def test_no_page_scrolls_sideways_on_a_phone(browser, server, slug: str) -> None
     )
     page.close()
     assert overflow <= 1, (slug, overflow)
+
+
+@pytest.mark.parametrize("broken", ["missing", "mismatched"])
+def test_a_model_that_fails_to_load_leaves_the_fallback(browser, server, broken: str) -> None:
+    page = browser.new_page()
+    if broken == "missing":
+        page.route("**/models/severity_model.json*", lambda route: route.fulfill(status=404))
+    else:
+        mismatched = json.dumps(_model() | {"model_id": "another-build"})
+        page.route(
+            "**/models/severity_model.json*",
+            lambda route: route.fulfill(
+                status=200, body=mismatched, content_type="application/json"
+            ),
+        )
+    page.goto(f"{server}/{PAGE}", wait_until="networkidle")
+    page.wait_for_function(
+        "document.getElementById('calculator-fallback').textContent.includes('could not load')"
+    )
+    assert not page.is_visible("#calculator")
+    page.close()
 
 
 def test_without_scripting_the_fallback_is_shown(browser, server) -> None:

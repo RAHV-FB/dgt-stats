@@ -10,8 +10,8 @@ and `reports/tables/sev_*.csv`.
 
 | Model | Target and unit | Benchmark | Model | Calibration | Decision |
 |---|---|---|---|---|---|
-| Catalan crash severity, original feature set (boosted trees) | fatal rather than serious; one Catalan crash with a death or serious injury | type × zone table: ROC-AUC 0.699 on 2016–2023 | 0.779 (rolling origins, 12,961 crashes, 1,627 fatal) | slope 1.08 | **REBUILD** as the calculator model below; the original is retired from the site |
-| Catalan crash severity, calculator (penalised logistic regression) | same | road × crash type table: 0.745 | 0.772 | slope 1.04, mean predicted 12.5% against 12.6% observed | **KEEP**: the public model |
+| Catalan crash severity, original feature set (boosted trees) | fatal rather than serious; one Catalan crash with a death or serious injury | type × zone table: ROC-AUC 0.699 on 2016–2023 | 0.779 (rolling origins, 12,961 crashes, 1,627 fatal); 0.7475 on the 11,611 crashes on roads a reader can choose | slope 1.08 | **REBUILD** as the calculator model below; the original is retired from the site |
+| Catalan crash severity, calculator (penalised logistic regression) | same, without the 1,840 crashes whose road owner is an artefact | road × crash type table: 0.709 | 0.743 (rolling origins, 11,611 crashes, 1,429 fatal); boosted trees on the same inputs 0.748 | slope 1.10, mean predicted 12.2% against 12.3% observed | **KEEP**: the public model |
 | Catalan crash severity, "retrospective administrative" variant | same, adding police judgements of influence | the original model: 0.790 on 2023 | 0.796 | slope 0.91 | **REMOVE**: +0.006 from fields recorded after the event |
 | Barcelona person severity (boosted trees) | serious or fatal injury; one person in a 2025 Barcelona crash | role × vehicle table: 0.780 | 0.851 (months 10–12 of 2025, 4,049 people, 58 serious or fatal) | slope 0.91 here, 0.63 in the original run | **RESEARCH ONLY** |
 | Barcelona crash severity (logistic) | serious or fatal injury in the crash; one 2025 Barcelona crash | accident-type table: 0.734 | 0.737 (1,994 crashes, 58 positive) | slope 0.84 | **REMOVE**: no gain over the table |
@@ -42,10 +42,11 @@ the named networks; "Altres" grew from 27 crashes in 2010 to about 170 a year fr
 whose blank and "other" values separate fatal from serious crashes this sharply records how a
 crash was documented, not the road. The original audit classified the field as safe. Part of the
 original model's advantage over its table therefore came from documentation, which no user of a
-calculator can choose. The rebuilt model keeps the named networks as inputs and absorbs the two
-artefact values in categories used only in training (see
-[`SEVERITY_CALCULATOR.md`](SEVERITY_CALCULATOR.md)); on the road categories a reader can choose,
-its held-out ROC-AUC is 0.738.
+calculator can choose. The rebuilt model keeps the named networks as inputs and leaves the 1,840 artefact crashes out
+of fitting and of evaluation (see [`SEVERITY_CALCULATOR.md`](SEVERITY_CALCULATOR.md)). On the
+11,611 crashes of 2016–2023 on the roads a reader can choose, the original model scores ROC-AUC
+0.7475, boosted trees on the calculator's inputs 0.7476 and the calculator 0.743: once the
+artefact is removed, the original model has no advantage left.
 
 **Barcelona.** The person model reproduces (0.851 here, 0.843 published; the role × vehicle table
 0.780 in both), but it rests on 58 serious or fatal injuries in three months of one city's
@@ -89,24 +90,28 @@ rejected model. The page is withdrawn, and the investigation is kept here.
 
 The public result for the retained model is its calibration on years it was not fitted on
 (`reports/figures/sev1_predicted_observed.svg`, `reports/tables/sev_calibration.csv`). Each year
-2016–2023 is predicted by the model fitted on the years before it, and the 12,961 crashes are
-grouped into eight bands of predicted probability:
+2016–2023 is predicted by the model fitted on the years before it, and the 11,611 crashes on the
+roads a reader can choose are split into ten equal groups by predicted probability.
 
-| Predicted band | Crashes | Fatal | Mean predicted | Observed (95% interval) |
+| Tenth | Crashes | Fatal | Mean predicted | Observed (95% interval) |
 |---|---|---|---|---|
-| under 3% | 1,459 | 29 | 2.1% | 2.0% (1.4–2.8) |
-| 3–6% | 3,493 | 145 | 4.5% | 4.2% (3.5–4.9) |
-| 6–10% | 2,524 | 193 | 7.8% | 7.6% (6.7–8.7) |
-| 10–15% | 1,887 | 231 | 12.2% | 12.2% (10.8–13.8) |
-| 15–20% | 1,101 | 214 | 17.4% | 19.4% (17.2–21.9) |
-| 20–30% | 1,414 | 340 | 24.3% | 24.0% (21.9–26.3) |
-| 30–45% | 701 | 254 | 35.9% | 36.2% (32.8–39.9) |
-| 45% and over | 382 | 221 | 55.4% | 57.9% (52.8–62.7) |
+| 1 | 1,162 | 28 | 3.3% | 2.4% (1.7–3.5) |
+| 2 | 1,161 | 45 | 4.9% | 3.9% (2.9–5.1) |
+| 3 | 1,161 | 69 | 6.0% | 5.9% (4.7–7.5) |
+| 4 | 1,161 | 83 | 7.0% | 7.1% (5.8–8.8) |
+| 5 | 1,161 | 76 | 8.1% | 6.5% (5.3–8.1) |
+| 6 | 1,161 | 98 | 9.5% | 8.4% (7.0–10.2) |
+| 7 | 1,161 | 142 | 12.0% | 12.2% (10.5–14.2) |
+| 8 | 1,161 | 185 | 15.5% | 15.9% (13.9–18.2) |
+| 9 | 1,161 | 285 | 21.2% | 24.5% (22.2–27.1) |
+| 10 | 1,161 | 418 | 34.9% | 36.0% (33.3–38.8) |
 
-In every band the mean prediction lies inside the 95% interval of the observed share; the largest
-gaps are 2.5 points in the highest band and 2.0 points in the 15–20% band. The model separates crashes that were almost never fatal (2% in
-the lowest band) from crashes that were fatal more often than not (58% in the highest), and its
-probabilities can be read as estimates for groups of similar recorded crashes. It does not follow
-that every individual prediction is precise: within the urban zone the model ranks crashes much
-less well (ROC-AUC 0.673) than on interurban roads (0.766), and on roads through towns it barely
-ranks them at all (0.596, 86 fatal crashes), which the calculator says when such a road is chosen.
+In nine of the ten groups the mean prediction lies inside the 95% interval of the observed share;
+in the ninth it is 1 point below the interval. The pooled calibration slope is 1.10: the crashes
+rated least likely to be fatal were fatal a little less often than predicted, and those rated most
+likely a little more often. Of the fifth of crashes the model rated most likely to be fatal, 30.3%
+were; of the fifth rated least likely, 3.1%. The model's probabilities can be read as estimates for
+groups of similar recorded crashes. It does not follow that every individual prediction is
+precise: within the urban zone the model ranks crashes less well (ROC-AUC 0.664) than on interurban
+roads (0.704), and on roads through towns it does not rank them at all (0.595, 86 fatal crashes),
+so the calculator shows the observed average for such roads instead of an estimate.
