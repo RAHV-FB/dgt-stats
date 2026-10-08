@@ -444,7 +444,8 @@ and no interval is attached to a figure that is itself an assumption.
    crash. Car drivers aged 65 and over were killed in 11.4 of every 1,000 involvements, against
    4.6 at 45–64; drivers aged 75 and over in 15.9. Driver deaths per kilometre are therefore 2.9
    times the middle-aged rate at 65 and over, although involvement is only 1.2 times. The excess
-   in deaths reflects frailty more than crash involvement.
+   in deaths comes from the outcome once a crash has happened, not from being in more crashes;
+   these data cannot say why older drivers fare worse.
 4. **Responsibility** cannot be assessed with public data (see above). Involvement counts every
    driver in an injury crash, whoever caused it.
 5. **Per licence holder.** Older licence holders are involved less often than middle-aged ones (2.4
