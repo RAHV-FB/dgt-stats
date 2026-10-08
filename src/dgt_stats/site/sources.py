@@ -1,4 +1,8 @@
-"""Data sources and scope: what each dataset is, how the sources meet, and what they leave out."""
+"""Data sources and scope: what each source is, what it covers and what it cannot show.
+
+How the results are produced from the sources, the checks on them and the assumptions tested are
+on the methodology page (``data``).
+"""
 
 from __future__ import annotations
 
@@ -6,6 +10,7 @@ import re
 
 import pandas as pd
 
+from dgt_stats.microdata.ml import recording
 from dgt_stats.microdata.validation import dgt_audit
 from dgt_stats.site.components import (
     ALL_PAGES,
@@ -120,6 +125,16 @@ def _source_table(numbers: dict[str, str], inventory: pd.DataFrame) -> str:
     emef_years = _span(_inventory_years(inventory, "raw/emef/"))
     edm_year = _span(_inventory_years(inventory, "raw/crtm/"))
     toll_from = min(_inventory_years(inventory, "raw/transportes/peaje"))
+    # The weekend age mix and the employment benchmark of the rates per km by driver age.
+    weekend = read_table("risk_weekend_sensitivity").non_working_age_mix.dropna()
+    movilia = sorted({m for label in weekend for m in re.findall(r"MOVILIA (\d{4})", label)})
+    benchmark = read_table("emef_employment_benchmark")
+    census = benchmark[benchmark.source.str.startswith("census")]
+    _check(
+        len(movilia) == 1 and len(census) == 1,
+        "sources",
+        "one MOVILIA survey and one census benchmark enter the sensitivity range",
+    )
     rows = [
         (
             "National crash records",
@@ -166,10 +181,9 @@ def _source_table(numbers: dict[str, str], inventory: pd.DataFrame) -> str:
             "Kilometre estimates",
             "DGT",
             f"Spain, {_span(km_years)}",
-            "Circulating fleet and mean annual kilometres from the odometer readings of "
-            "roadworthiness inspections, in two releases, the later of which gives the mean "
-            "kilometres of each year from the first release's year on as one series; the "
-            f"{km_owner} release also gives them by the owner's age band.",
+            "Circulating fleet and mean annual kilometres by vehicle type, from the odometer "
+            "readings of roadworthiness inspections, in two releases; the later one gives every "
+            "year since the earlier one as one series, and kilometres by the owner's age band.",
             f"The national car-kilometre total behind the rates per kilometre by driver age "
             f"({km_owner}); rates per kilometre by vehicle type ({km_type}); kilometres by the "
             "owner's age band, as a comparison only.",
@@ -192,9 +206,9 @@ def _source_table(numbers: dict[str, str], inventory: pd.DataFrame) -> str:
         (
             "Working-day mobility survey (EMEF)",
             "Autoritat del Transport Metropolità, Idescat and Institut Metròpoli",
-            f"Barcelona metropolitan area, working days, {emef_years}",
-            "Public-use microdata of residents aged 16 and over: one row per respondent and per "
-            "trip, with sex, age group, mode and distance.",
+            f"Barcelona area, working days, {emef_years}",
+            "Public-use microdata of residents aged 16 and over of the ATM's planning area: one "
+            "row per respondent and per trip, with sex, age group, mode and distance.",
             "Car-driving kilometres by age: the age profile behind the national rates per "
             "kilometre by driver age, and the kilometres driven inside Barcelona city behind its "
             "working-day rates.",
@@ -207,6 +221,22 @@ def _source_table(numbers: dict[str, str], inventory: pd.DataFrame) -> str:
             "drivers with distance.",
             "The split of driving between ages 65 to 74 and 75 and over, and a second age profile "
             "for the national rates per kilometre by driver age.",
+        ),
+        (
+            "Mobility survey of Spain (MOVILIA)",
+            "Ministerio de Transportes",
+            f"Spain, {movilia[0]}",
+            "Published tables of trips by age, main mode and type of day.",
+            "One of the two weekend age mixes in the sensitivity range of the rates per "
+            "kilometre by driver age.",
+        ),
+        (
+            "Population census, relation with economic activity",
+            "Idescat",
+            f"Catalonia, 1 January {int(census.year.iloc[0])}",
+            "Employed residents aged 65 and over.",
+            "A check on the share of the EMEF's older respondents in work, one of the choices "
+            "in the sensitivity range of the rates per kilometre by driver age.",
         ),
         (
             "Road fuel",
@@ -254,12 +284,21 @@ def _source_table(numbers: dict[str, str], inventory: pd.DataFrame) -> str:
     frame = pd.DataFrame(
         rows, columns=["Source", "Published by", "Coverage", "Records", "Used for"]
     )
-    policy = f'<a href="policy.html">{esc(TITLES["policy"])}</a>'
+    pages = _join(
+        [f'<a href="{slug}.html">{esc(TITLES[slug])}</a>' for slug in ("long-run", "policy")]
+    )
+    long_run = read_table("longrun_projection_sensitivity")
+    policy = read_table("q8_points_sensitivity")
+    _check(
+        long_run.variant.eq("deaths_24h").any() and policy.variant.eq("24h").any(),
+        "sources",
+        "the long-run trends and the points-licence study each have a 24-hour sensitivity test",
+    )
     return (
         table(frame, "Sources used in the study.")
-        + "<p>The yearbook series, monthly as well as annual, and the statistical tables count "
-        "deaths within 30 days; the yearbook's monthly 24-hour series is used only to check the "
-        f"crash records and in one sensitivity test of {policy} "
+        + "<p>The yearbook series and the statistical tables count deaths within 30 days. The "
+        "yearbook's deaths within 24 hours are used only to check the crash records and in "
+        f"sensitivity tests on {pages} "
         '(<a href="data.html#definitions">definitions</a>).</p>'
     )
 
@@ -274,10 +313,9 @@ def _crash_records(numbers: dict[str, str]) -> str:
         "the analysis of drivers uses DGT's aggregate tables.</p>"
         "<p>The Catalan file has one row per crash with at least one death or serious injury: "
         f"{numbers['cat_fatal']} of its {numbers['cat_rows']} crashes ({numbers['cat_share']}) "
-        "were fatal. Crashes with only slight injuries are not in the file. Deaths are counted "
-        "within 24 hours, and there is no crash identifier. Its “influence” fields record "
-        "whether the police judged that a condition, such as fog or wind, influenced the "
-        "crash.</p>"
+        "were fatal. Deaths are counted within 24 hours, and there is no crash identifier. Its "
+        "“influence” fields record whether the police judged that a condition, such as fog or "
+        "wind, influenced the crash.</p>"
         f"<p>Barcelona's Guàrdia Urbana publishes six tables for {numbers['bcn_year']} that "
         f"share a case number: crashes ({numbers['bcn_crashes']}, of which "
         f"{numbers['bcn_no_victim']} record no victim), crash types, contributing factors, "
@@ -286,11 +324,10 @@ def _crash_records(numbers: dict[str, str]) -> str:
         f"with deaths within 24 hours kept apart from later deaths: {numbers['bcn_dead_24h']} "
         f"people died within 24 hours and {numbers['bcn_dead_later']} later, and "
         f"{numbers['bcn_serious']} were seriously injured; {numbers['bcn_not_recorded']} person "
-        "records carry no severity. Like the Catalan file, the crash table classifies at 24 "
-        "hours: its deaths are the deaths within 24 hours, and the later deaths count among its "
-        f"{numbers['bcn_serious_crash_table']} serious injuries. The vehicle table has more rows "
-        "than the crash table "
-        f"reports vehicles ({numbers['bcn_reported']}), so a vehicle row is not a unique "
+        "records carry no severity. The crash table classifies at 24 hours, so its "
+        f"{numbers['bcn_serious_crash_table']} serious injuries include the "
+        f"{numbers['bcn_dead_later']} later deaths. The vehicle table has more rows than the "
+        f"crash table reports vehicles ({numbers['bcn_reported']}), so a vehicle row is not a unique "
         "vehicle; this and a correction to the crash table's coordinates are described in the "
         f"{quality}.</p>"
     )
@@ -299,24 +336,33 @@ def _crash_records(numbers: dict[str, str]) -> str:
 def _meeting(cat_dgt: pd.DataFrame) -> str:
     equal = int((cat_dgt.ratio_fatal_24h == 1).sum())
     _check(equal == len(cat_dgt), "sources", "fatal counts equal DGT's in every province-year")
+    outward = read_table("ml_outward_path").set_index(["model", "stage"]).status
+    _check(
+        outward[("calculator", 4)] == "not run"
+        and outward[("catalonia_common_dgt", 4)] == "passed"
+        and outward[("catalonia_common_bcn", 4)] != "not run",
+        "sources",
+        "restricted versions of the original Catalan model meet DGT's and Barcelona's records; "
+        "the calculator's model meets no other source",
+    )
     period = _span_of(cat_dgt.year)
     return (
-        "<h2>How the sources meet</h2>"
+        "<h2>No record is linked across sources</h2>"
         "<p>The files share no identifier, and crashes are not matched on date or place. The "
-        "sources meet in three ways. At province-year totals, "
-        "the Catalan file's fatal crashes equal DGT's crashes with a death within 24 hours in "
-        f"every province-year of {period} "
-        '(<a href="catalonia.html#dgt-agreement">Catalonia</a>). In '
-        "held-out tests, versions of the original Catalan model restricted to the variables "
-        "another source records in the same way score DGT's crash records elsewhere in Spain "
-        "and Barcelona's crashes, without merging either with the Catalan file "
-        '(<a href="validation.html">External validation</a>). In the rates per kilometre by '
-        "driver age, counts of drivers by age meet the travel surveys' kilometres by age, again "
-        'in total and never record by record (<a href="drivers.html">Drivers</a>).</p>'
+        "Catalan file's fatal crashes equal DGT's crashes with a death within 24 hours in every "
+        f"province and year of {period} "
+        '(<a href="catalonia.html#dgt-agreement">Catalonia</a>). Versions of the original '
+        "Catalan model restricted to variables another source records in the same way are "
+        "applied to DGT's records elsewhere in Spain and to Barcelona's records, without "
+        "merging either with the Catalan file; the calculator's model, whose inputs no other "
+        'source records, has no such test (<a href="validation.html">External '
+        "validation</a>). The rates per kilometre by driver age divide counts of drivers by age "
+        "by the travel surveys' kilometres by age, in total "
+        '(<a href="drivers.html">Drivers</a>).</p>'
     )
 
 
-def _audit(validation: pd.DataFrame) -> str:
+def _audit() -> str:
     checks = read_table("dgt_audit_checks")
     artefacts = read_table("dgt_audit_artefacts")
     regional = read_table("dgt_audit_regional")
@@ -342,13 +388,13 @@ def _audit(validation: pd.DataFrame) -> str:
         "sources",
         "the right-of-way fields are not recorded alike across provinces",
     )
-    # The right-of-way flags answer one question in several columns that are blank together,
+    # The right-of-way flags answer one question in several columns unrecorded together,
     # so they count as one field.
     fields = len(regional) - len(priority) + 1
     _check(
         float(priority.unrecorded_share.max() - priority.unrecorded_share.min()) < 0.01,
         "sources",
-        "the right-of-way flags are blank together",
+        "the right-of-way flags are unrecorded together",
     )
     _check(comparable <= fields / 2, "sources", "at most half the fields are recorded alike")
     coding = read_table("gen_coding_by_region").set_index(["region", "year"]).sort_index()
@@ -373,7 +419,7 @@ def _audit(validation: pd.DataFrame) -> str:
     _check(
         bool(died_30.artefacts_dominate) and not bool(died_24.artefacts_dominate),
         "sources",
-        "blanks dominate for 30-day deaths and not among serious crashes",
+        "unrecorded fields dominate for 30-day deaths and not among serious crashes",
     )
     _check(
         float(died_24.artefact_share_of_lift)
@@ -382,50 +428,61 @@ def _audit(validation: pd.DataFrame) -> str:
         "sources",
         "the artefact shares fall either side of the limit",
     )
+    # Fields whose unrecorded share differs between fatal and other crashes by the recording
+    # check's factor, in DGT's records for Catalonia or for the rest of Spain.
+    outcome = read_table("dgt_audit_outcome_recording")
+    limit = recording.RATIO_LIMIT
+    dependent = outcome[
+        (outcome.unrecorded_share_not_fatal >= recording.MIN_RATE)
+        & (
+            (outcome.ratio_fatal_to_not_fatal >= limit)
+            | (outcome.ratio_fatal_to_not_fatal <= 1 / limit)
+        )
+    ]
+    lower_when_fatal = dependent.groupby("field").ratio_fatal_to_not_fatal.max() <= 1 / limit
+    _check(
+        not dependent.empty and lower_when_fatal.sum() > len(lower_when_fatal) / 2,
+        "sources",
+        "in most fields recorded differently by outcome, fatal crashes are unrecorded less often",
+    )
     severity = f'<a href="severity.html">{esc(TITLES["severity"])}</a>'
-    tables_year = int(validation[validation.check.eq("table_1_1_province")].year.max())
     return (
         "<h2>Uneven recording in the national crash records</h2>"
-        f"<p>All {_fmt_int(len(validation))} of the repository's reconciliation checks pass. "
-        "Those on the national crash records check that each crash has one identifier and every "
-        "code is in DGT's dictionary, and compare the file's crashes and victims per year with "
-        "DGT's yearbook, its crashes and deaths by province and month with DGT's "
-        f"{tables_year} tables, its deaths and vehicles by type with DGT's statistical tables, "
-        "and its counts for the speed report's provinces with that report; the others check "
-        "the driver census and the yearbook's driver tables "
-        '(<a href="data.html#checks">checks on the data</a>). The crash file therefore matches '
-        "the published totals it was checked against, which makes it the right source for "
-        "national counts and trends. Comparisons between provinces, and a model trained on the "
-        "file, would also need each variable to mean the same everywhere. An audit with "
-        "criteria fixed in advance found the file complete and consistent, but found three "
-        "problems in what its variables mean: fields are recorded unevenly between provinces, "
-        "some fields that are always filled in are coded differently in Catalonia, and the "
-        "blanks themselves carry information about the outcome.</p>"
+        "<p>DGT's national crash file matches every published total it was checked against "
+        '(<a href="data.html#checks">checks on the data</a>), which makes it the source for '
+        "national counts and trends. Comparing provinces, or training a model on the file, also "
+        "needs each field to mean the same everywhere. An audit with criteria fixed in advance "
+        "found three problems: provinces leave fields unrecorded at very different rates, "
+        "the records for the Catalan provinces code some fields their own way, and which fields "
+        "are unrecorded carries information about the outcome. A field counts as unrecorded "
+        "when it is “not specified”, “unknown” or left blank.</p>"
         f"<p>Of the {_fmt_int(fields)} fields examined (the {_fmt_int(len(priority))} that "
-        f"record who had right of way counted as one), {_words(comparable)} have a share of "
-        f"blanks that varies by no more than {dgt_audit.MAX_REGIONAL_SPREAD * 100:.0f} "
+        f"record who had right of way counted as one), {_words(comparable)} have an unrecorded "
+        f"share that varies by no more than {dgt_audit.MAX_REGIONAL_SPREAD * 100:.0f} "
         "percentage points across the provinces with at least "
         f"{_fmt_int(dgt_audit.MIN_PROVINCE_CRASHES)} crashes. The right-of-way fields are "
-        f"blank in {_fmt_pct(priority.province_min.min(), 0)} of crashes in one province and "
-        f"{_fmt_pct(priority.province_max.max(), 0)} in another. That audit looks at blanks "
-        "only, and a field that is always filled in can still be coded differently: DGT's "
-        "records for the four Catalan provinces give almost every crash on a conventional road "
-        f"the code for a dual carriageway until {switch - 1} and the code for a single "
-        f"carriageway from {switch}, and from {junction_year} mark a missing junction type as "
-        "“not specified” instead of leaving it blank, while the rest of Spain does neither "
-        '(<a href="data.html#coding-breaks">coding breaks</a>).</p>'
-        "<p>A model that sees only which fields were left blank ranks crashes with a death "
-        "within 30 days with "
+        f"unrecorded in {_fmt_pct(priority.province_min.min(), 0)} of crashes in one province "
+        f"and {_fmt_pct(priority.province_max.max(), 0)} in another. Fields that are always "
+        "filled in can still be coded differently: the records for the four Catalan provinces "
+        f"code conventional roads as dual carriageways until {switch - 1}, and from "
+        f"{junction_year} mark a missing junction type as “not specified” instead of leaving it "
+        'blank, while the rest of Spain does neither (<a href="data.html#coding-breaks">coding '
+        "breaks</a>).</p>"
+        f"<p>Recording also depends on the outcome. In {_words(dependent.field.nunique())} "
+        f"fields the unrecorded share differs by a factor of {limit:.1f} or more between fatal "
+        "and other crashes, in Catalonia or in the rest of Spain, and in most of them it is "
+        "lower when someone died. A model that sees only which fields were unrecorded ranks "
+        "crashes with a death within 30 days with "
         f"a ROC-AUC of {float(died_30.roc_auc_unrecorded_flags_only):.2f} "
         '(<a href="data.html#models">ranking measure</a>), against '
         f"{float(died_30.roc_auc_recorded_values):.2f} for a model that sees the recorded "
-        f"values. The blanks alone give {_fmt_pct(float(died_30.artefact_share_of_lift), 0)} of "
-        "the recorded model's gain over chance, above the "
-        f"{_fmt_pct(dgt_audit.MAX_ARTEFACT_SHARE, 0)} limit set in advance; among crashes with "
-        "a death or serious injury, the population of the external test, the share is "
-        f"{_fmt_pct(float(died_24.artefact_share_of_lift), 0)}, below it. A model trained on all "
-        "of Spain would partly be ranking crashes by how completely each province records "
-        "them.</p>"
+        "values: which fields are unrecorded gives "
+        f"{_fmt_pct(float(died_30.artefact_share_of_lift), 0)} of the recorded model's gain over "
+        f"chance, above the {_fmt_pct(dgt_audit.MAX_ARTEFACT_SHARE, 0)} limit set in advance. "
+        "Among crashes with a death or serious injury, the population of the external test, "
+        f"the share is {_fmt_pct(float(died_24.artefact_share_of_lift), 0)}, below it. A model "
+        "trained on all of Spain would partly be ranking crashes by how completely each "
+        "province records them.</p>"
         "<p>The national records are therefore used to describe Spain, including the "
         f"associations reported under {severity}, and, on the variables validated against the "
         "Catalan file, as an external test of a version of the original Catalan model. They "
@@ -439,8 +496,7 @@ def _scope() -> str:
     # The second item of each pair may carry a link, so it is written as HTML.
     items = "".join(f"<li>{esc(what)}. {why}</li>" for what, why in SCOPE)
     return (
-        '<h2 id="scope">Scope of the data</h2>'
-        f"<p>Several quantities lie outside what the files record:</p><ul>{items}</ul>"
+        f'<h2 id="scope">What the files do not record</h2><ul>{items}</ul>'
         f'<p>The <a href="{DOCS_URL}/SOURCE_COMPARISON.md">source comparison</a> describes how '
         "each file is produced, and the "
         f'<a href="{DOCS_URL}/DATA_CONTRACT.md">usage rules</a> state how each may be used.</p>'
@@ -504,37 +560,35 @@ def page_sources(captions: dict[str, str]) -> str:
         "bcn_not_recorded": _fmt_int(people["not_recorded"]),
     }
     body = summary(
-        "Beside DGT's national statistics, the study uses three sets of police crash records: "
+        "The study uses DGT's national statistics and three sets of police crash records: "
         "DGT's national file of injury crashes, the Servei Català de Trànsit's file of crashes "
         "with a death or serious injury in Catalonia, and the Guàrdia Urbana's records for "
         "Barcelona city. Two travel surveys, of the Barcelona area and of Madrid, supply the "
-        "kilometres driven by age. Each source is analysed separately. No record is linked "
-        "across sources, because they share no identifier; they meet only at aggregate totals "
+        "kilometres driven by age. No record is linked across sources; they meet only in totals "
         "and in tests of the models. The national crash records describe Spain but train no "
-        "published predictive model, because their fields are recorded unevenly between "
-        "provinces and their blanks carry information about the outcome."
+        "published model, because provinces record their fields unevenly and which fields are "
+        "left unrecorded carries information about the outcome."
     )
     body += "<h2>The sources</h2>"
     body += _source_table(numbers, inventory)
     body += _crash_records(numbers)
     body += _meeting(read_table("cat_vs_dgt_province_year"))
-    body += _audit(validation)
+    body += _audit()
     body += _scope()
     body += downloads(
         [
             ("source_comparison", "source comparison"),
             ("data_inventory", "raw-file inventory"),
             ("dgt_audit_checks", "audit checks"),
-            ("dgt_audit_regional", "blank shares by field and province"),
-            ("dgt_audit_artefacts", "ranking from blanks alone"),
-            ("dgt_audit_outcome_recording", "blank shares by outcome"),
+            ("dgt_audit_regional", "unrecorded shares by field and province"),
+            ("dgt_audit_artefacts", "ranking from unrecorded fields alone"),
+            ("dgt_audit_outcome_recording", "unrecorded shares by outcome"),
         ],
         method=("data.html#records", "reading police crash records"),
     )
     return render_page(
         "sources",
         "Data sources and scope",
-        "The published sources behind the study, from DGT's national yearbook to the police "
-        "records of individual crashes in Barcelona.",
+        "What each source behind the study is, what it covers and what it cannot show.",
         body,
     )

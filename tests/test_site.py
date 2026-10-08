@@ -636,6 +636,53 @@ def test_the_development_note_is_professional_and_present(built: Path) -> None:
             assert "Claude Code" not in text
 
 
+def test_methodology_lists_every_assumption_the_methods_document_tests(built: Path) -> None:
+    data = (built / "data.html").read_text(encoding="utf-8")
+    main = data[data.find("<main>") : data.find("</main>")]
+    # The glossary and the denominators are definition lists, not bulleted lists with bold leads.
+    assert '<dl class="facts" aria-label="Definitions">' in main
+    assert '<dl class="facts" aria-label="Denominators">' in main
+    assert "<li><strong>" not in main
+    # One row on the page for each row of the methods document's table of assumptions tested.
+    doc = (TABLES_DIR.parents[1] / "docs" / "methodology.md").read_text(encoding="utf-8")
+    section = doc[doc.index("## 12. Assumptions tested") :]
+    section = section[: section.index("\n## ", 1)]
+    documented = [line for line in section.splitlines() if line.startswith("| ")][1:]
+    block = main[main.index('id="assumptions-tested"') :]
+    body = block[block.index("<tbody>") : block.index("</tbody>")]
+    rows = re.findall(r"<tr>(.*?)</tr>", body, re.S)
+    rows = [re.sub(r"<[^>]+>", " ", components.html.unescape(row)) for row in rows]
+    assert len(rows) == len(documented) >= 10
+    text = {row.split("  ")[0].strip(): " ".join(row.split()) for row in rows}
+
+    def row(start: str) -> str:
+        return next(value for key, value in text.items() if key.startswith(start))
+
+    # The transfer of one region's age profile is a sensitivity range, not a test.
+    transfer = row("One region's age profile")
+    assert "cannot be tested" in transfer and "sensitivity range" in transfer
+    assert "was tested" not in transfer and "were tested" not in transfer
+    # The rows added by the national corrections carry numbers from their tables.
+    split = pd.read_csv(TABLES_DIR / "risk_frequency_severity.csv").set_index("year").iloc[-1]
+    fall = components._fmt_pct(1 - float(split.deaths_per_fuel_index) / 100, 0)
+    assert f"Deaths per tonne fell {fall}" in row("The fall in deaths per tonne")
+    panel = pd.read_csv(TABLES_DIR / "risk_annual_panel.csv").set_index("year")
+    ratio = panel.deaths_30d / panel.deaths_24h
+    for year in (2010, 2011):
+        assert f"{ratio.loc[year]:.3f} in {year}" in row("The 30-day death series")
+    projection = pd.read_csv(TABLES_DIR / "longrun_projection_sensitivity.csv")
+    later = projection[
+        (projection.measure == "road_fuel")
+        & (projection.variant.isin(["main"]) | projection.variant.str.startswith("start_"))
+        & (projection.year >= projection.year.max() - 1)
+    ]
+    for value in later.ratio:
+        assert components._fmt_pct(float(value) - 1, 0) in row("The excess of deaths per tonne")
+    # The dispersion factors are given on the trends page, not repeated here.
+    scatter = pd.read_csv(TABLES_DIR / "risk_dispersion.csv").set_index("outcome").dispersion
+    assert f"{components._fmt_dec(scatter['crashes'], 0)} times" not in main
+
+
 def test_forecast_page_is_withdrawn_and_says_why(built: Path) -> None:
     text = (built / "forecast.html").read_text(encoding="utf-8")
     body = text[text.find("<main>") : text.find("</main>")]
