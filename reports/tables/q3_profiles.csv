@@ -1,5 +1,5 @@
 profile,fatal,serious
-"Urban street, side collision, daylight, two vehicles",0.00356654,0.0583529
+"Urban street, side or front-side collision, daylight, two vehicles",0.00356654,0.0583529
 "Urban street, pedestrian struck, dark with lighting",0.0250372,0.140327
 "Conventional road, head-on collision, daylight, two vehicles",0.119356,0.34937
 "Conventional road, run-off in a curve, dark without lighting, one vehicle, 00:00–06:59",0.0893182,0.267036

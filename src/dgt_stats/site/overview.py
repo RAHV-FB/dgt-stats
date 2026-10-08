@@ -251,9 +251,14 @@ def _drivers() -> str:
 
 def _speed() -> str:
     numbers = _speed_numbers()
-    adjusted = numbers["pooled"].loc["adjusted"]
+    pooled = numbers["pooled"]
+    adjusted = pooled.loc["adjusted"]
+    types = pooled.drop(index="adjusted")
+    lowest, highest = types.loc[types.rate_ratio.idxmin()], types.loc[types.rate_ratio.idxmax()]
     all_roads = numbers["all_roads"]
     last = int(all_roads.index.max())
+    # The pooled rows carry their period as "first-last".
+    first_year, last_year = (int(year) for year in str(adjusted.year).split("-"))
     _require(
         "speed",
         {
@@ -261,15 +266,32 @@ def _speed() -> str:
             <= float(adjusted.rate_ratio)
             <= 2.2
             and float(adjusted.ratio_low) > 1,
+            "the pooled ratios and the adjusted one cover the same years": set(
+                pooled.year.astype(str)
+            )
+            == {str(adjusted.year)},
+            "every road type has more deaths per crash where speed is recorded": bool(
+                (types.ratio_low > 1).all()
+            ),
+            "the lowest ratio is on dual carriageways and the highest on urban streets": (
+                lowest.name == "dual_carriageway" and highest.name == "urban"
+            ),
+            "the adjusted ratio lies between the road-type ratios": float(lowest.rate_ratio)
+            < float(adjusted.rate_ratio)
+            < float(highest.rate_ratio),
         },
     )
     return _finding(
         f"{float(adjusted.rate_ratio):.1f}×",
         "In Spain outside Catalonia and the Basque Country, police recorded inappropriate speed "
         f"in {_fmt_pct(float(all_roads.loc[last, 'share_of_crashes']))} of injury crashes in "
-        f"{last}. Those crashes had about twice the deaths per crash of other crashes on the "
-        "same kind of road in the same year. This is an association in police records, not an "
-        "estimate of how many crashes or deaths speeding caused.",
+        f"{last}. Over {first_year}–{last_year}, those crashes had more deaths per crash than "
+        "other crashes on the same kind of road, from "
+        f"{float(lowest.rate_ratio):.1f} times on dual carriageways to "
+        f"{float(highest.rate_ratio):.1f} times on urban streets, and about twice as many "
+        f"({float(adjusted.rate_ratio):.1f} times) with the road types taken together. This is "
+        "an association in police records, not an estimate of how many crashes or deaths "
+        "speeding caused.",
         [("speed", "Speed"), ("factors", "Recorded factors")],
     )
 

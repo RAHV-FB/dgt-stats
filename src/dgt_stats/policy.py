@@ -216,6 +216,8 @@ class ItsFit:
     slope_high: float
     dispersion: float
     series: pd.DataFrame  # period (, group), deaths, fitted, counterfactual, post
+    # The Newey–West covariance of the coefficients, for combinations of the level and slope terms.
+    cov: pd.DataFrame | None = None
 
 
 def _month_dummies(period: pd.Series) -> pd.DataFrame:
@@ -309,10 +311,11 @@ def _fit(
     family: str,
     offset: pd.Series | None,
     cov: dict[str, object] | None = None,
-) -> tuple[pd.Series, pd.DataFrame, float, np.ndarray]:
+) -> tuple[pd.Series, pd.DataFrame, float, np.ndarray, pd.DataFrame]:
     """Fit a Poisson or negative-binomial regression with Newey–West errors.
 
-    Returns the parameters, their 95 % intervals, the Pearson dispersion and the fitted means.
+    Returns the parameters, their 95 % intervals, the Pearson dispersion, the fitted means and the
+    covariance of the parameters.
     """
     import statsmodels.api as sm  # imported here: the site build never needs statsmodels
 
@@ -346,7 +349,10 @@ def _fit(
     ).assign(low=conf.low.values, high=conf.high.values)
     df_resid = len(values) - design.shape[1]
     dispersion = float(np.sum((values - mu) ** 2 / variance) / df_resid)
-    return params, coefficients, dispersion, mu
+    cov_params = pd.DataFrame(
+        np.asarray(result.cov_params()), index=params.index, columns=params.index
+    )
+    return params, coefficients, dispersion, mu, cov_params
 
 
 def _change(
@@ -399,7 +405,7 @@ def segmented_fit(
     design = _segmented_design(
         frame, break_date, slope, second_break, pandemic, trend, knots, covariates
     )
-    params, coefficients, dispersion, mu = _fit(frame.deaths, design, family, None)
+    params, coefficients, dispersion, mu, cov = _fit(frame.deaths, design, family, None)
     counterfactual_design = design.copy()
     for column in ("post", "post_t", "post2"):
         if column in counterfactual_design:
@@ -421,7 +427,49 @@ def segmented_fit(
         *slope_change,
         dispersion,
         out,
+        cov,
     )
+
+
+def post_period_change(fit: ItsFit, months: int) -> dict[str, float]:
+    """The level and slope terms read together over the first ``months`` months from the break.
+
+    The step (``post``) is the change in the first month only. With a slope change after the
+    break, the change in month ``k`` (0 for the month of the break) is ``post + k * post_t`` on
+    the log scale, so a positive slope change wears the step away. ``mean_*`` is that change
+    averaged over months 0 to ``months - 1`` (equal to the change in the middle month),
+    ``end_*`` the change in the last of those months, each with a 95 % interval from the fit's
+    covariance, as proportional changes. ``months_to_zero`` is the month (from the break) in which
+    the fitted change reaches zero, NaN when the slope does not bring it back or the model has no
+    slope term.
+    """
+    if fit.cov is None:
+        raise ValueError("post_period_change needs a fit that carries its covariance")
+    params = fit.coefficients.set_index("term").estimate
+    weights_mean = {"post": 1.0, "post_t": (months - 1) / 2.0}
+    weights_end = {"post": 1.0, "post_t": float(months - 1)}
+
+    def combine(weights: dict[str, float]) -> tuple[float, float, float]:
+        terms = [term for term in weights if term in params.index]
+        w = np.array([weights[term] for term in terms])
+        estimate = float(w @ params[terms].to_numpy())
+        se = float(np.sqrt(w @ fit.cov.loc[terms, terms].to_numpy() @ w))
+        return tuple(
+            float(np.expm1(v)) for v in (estimate, estimate - 1.96 * se, estimate + 1.96 * se)
+        )
+
+    mean, end = combine(weights_mean), combine(weights_end)
+    step, slope = float(params["post"]), float(params.get("post_t", np.nan))
+    crossing = -step / slope if np.isfinite(slope) and slope != 0 else np.nan
+    return {
+        "mean_change": mean[0],
+        "mean_low": mean[1],
+        "mean_high": mean[2],
+        "end_change": end[0],
+        "end_low": end[1],
+        "end_high": end[2],
+        "months_to_zero": crossing if np.isfinite(crossing) and crossing > 0 else np.nan,
+    }
 
 
 def placebo_fits(
@@ -516,8 +564,8 @@ def calendar_placebo_fits(
 
     The generic placebo distribution (``placebo_fits``) moves the break to arbitrary months, which
     answers "is a drop this size unusual for this series?" but not the question a sceptic asks of a
-    July intervention: Spanish road deaths peak every July and August, so is the summer 2006
-    movement unusual *for a July*? Each fit here uses a window of the same shape, 60 months before
+    July intervention: Spanish road deaths usually peak in July or August (``peak_month`` in
+    ``seasonal_transitions``), so is the summer 2006 movement unusual *for a July*? Each fit here uses a window of the same shape, 60 months before
     the break and 17 after, placed at July of a year the points licence cannot have affected, and
     the true break is refitted on that same shape so the comparison is like for like.
     """
@@ -551,6 +599,54 @@ def calendar_placebo_fits(
     return out
 
 
+def placebo_calibration(calendar: pd.DataFrame, alpha: float = 0.05) -> pd.DataFrame:
+    """How well the model's own intervals hold up at the July placebos, and an interval that
+    uses the placebos instead.
+
+    At a placebo July nothing was introduced, so a model whose 95 % intervals were right would
+    exclude no change at about one placebo in twenty. ``n_excluding_zero`` counts how often the
+    Newey–West interval does. ``placebo_sd`` is the standard deviation of the placebo steps on
+    the log scale: how much the step estimate moves from July to July when nothing happens, which
+    includes the error of projecting a trend that is not straight. ``se_ratio`` compares it with
+    the median standard error the model reports for those same fits. The calibrated interval for
+    the true July is its step plus or minus the Student t quantile (``n_placebos - 1`` degrees of
+    freedom) times ``placebo_sd``; it is computed for the calendar-matched fit, which has the same
+    window shape as the placebos, and for no other specification.
+    """
+    from scipy import stats
+
+    z = float(stats.norm.ppf(1 - alpha / 2))
+    placebos = calendar[~calendar.is_true.astype(bool)]
+    true = calendar[calendar.is_true.astype(bool)].iloc[0]
+    steps = np.log1p(placebos.level_change.to_numpy(dtype=float))
+    nominal_se = (
+        np.log1p(placebos.high.to_numpy(dtype=float)) - np.log1p(placebos.low.to_numpy(dtype=float))
+    ) / (2 * z)
+    excluding = int(((placebos.low > 0) | (placebos.high < 0)).sum())
+    spread = float(np.std(steps, ddof=1))
+    quantile = float(stats.t.ppf(1 - alpha / 2, len(steps) - 1))
+    estimate = float(np.log1p(true.level_change))
+    return pd.DataFrame(
+        [
+            {
+                "year": int(true.year),
+                "level_change": float(true.level_change),
+                "nominal_low": float(true.low),
+                "nominal_high": float(true.high),
+                "n_placebos": len(placebos),
+                "n_excluding_zero": excluding,
+                "expected_excluding_zero": alpha * len(placebos),
+                "placebo_sd": spread,
+                "median_nominal_se": float(np.median(nominal_se)),
+                "se_ratio": spread / float(np.median(nominal_se)),
+                "t_quantile": quantile,
+                "calibrated_low": float(np.expm1(estimate - quantile * spread)),
+                "calibrated_high": float(np.expm1(estimate + quantile * spread)),
+            }
+        ]
+    )
+
+
 def seasonal_transitions(series: pd.DataFrame) -> pd.DataFrame:
     """Year-by-year summer transitions in monthly deaths, with no model between them.
 
@@ -559,6 +655,7 @@ def seasonal_transitions(series: pd.DataFrame) -> pd.DataFrame:
     months from July to the twelve months before July. The last one has the same number of each
     calendar month on both sides, so seasonality cancels exactly and what is left is the level
     change across that July. ``rank`` orders the years by that statistic, smallest first.
+    ``peak_month`` is the calendar month with most deaths in the year (the first, on a tie).
     """
     values = series.set_index("period").deaths
     records: list[dict[str, object]] = []
@@ -567,6 +664,9 @@ def seasonal_transitions(series: pd.DataFrame) -> pd.DataFrame:
 
         def month(y: int, m: int) -> float:
             return float(values.get(pd.Timestamp(year=y, month=m, day=1), np.nan))
+
+        months = [month(year, m) for m in range(1, 13)]
+        row["peak_month"] = int(np.nanargmax(months)) + 1 if not np.isnan(months).all() else np.nan
 
         for label, (m1, m2) in {
             "jun_to_jul": (6, 7),
@@ -601,10 +701,13 @@ def forecast_validation(
 
     For each break date the model (linear trend and month-of-year terms, no intervention term at
     all) is fitted on the 60 months before it and used to predict the 17 months after it. The
-    statistic is the log ratio of observed to predicted deaths over the forecast window, with a
-    z score that scales it by the Poisson standard error inflated by the fit's own dispersion.
-    Running the same exercise at July of other years turns the true year's forecast error into a
-    rank inside an empirical distribution, rather than a number with nothing to compare it to.
+    statistic is the log ratio of observed to predicted deaths over the forecast window, the
+    proportional shortfall the page describes; ``rank`` orders the Julys by it, largest shortfall
+    first. The z score, which scales the difference by the Poisson standard error inflated by the
+    fit's own dispersion, is kept with its own rank (``rank_z``): it weighs the large counts of the
+    early years more heavily, so the two orders differ. Running the same exercise at July of other
+    years turns the true year's forecast error into a rank inside an empirical distribution,
+    rather than a number with nothing to compare it to.
     """
     import statsmodels.api as sm
 
@@ -660,7 +763,8 @@ def forecast_validation(
             }
         )
     out = pd.DataFrame.from_records(records).sort_values("break_date").reset_index(drop=True)
-    out["rank"] = out.z.rank(method="min").astype(int)
+    out["rank"] = out.log_ratio.rank(method="min").astype(int)
+    out["rank_z"] = out.z.rank(method="min").astype(int)
     out["n_fits"] = len(out)
     return out
 
@@ -672,17 +776,22 @@ def choose_trend_knot(
 
     Every candidate month that leaves ``edge_months`` on each side is tried as the single knot of a
     continuous piecewise-linear trend fitted to the months before the intervention, with the same
-    month-of-year terms and nothing else. The knot with the lowest AIC wins, and the one-line trend
-    is in the comparison as the no-knot case, so a flexible pre-trend is only adopted if the
-    pre-2006 series asks for it. Returns the winning knot (``None`` when the straight line wins)
-    and the table of candidates.
+    month-of-year terms and nothing else. The candidates are compared on QAIC, the Poisson AIC
+    with the log-likelihood divided by the Pearson dispersion of the best one-knot fit (floored at
+    1), because monthly deaths vary more than a Poisson model assumes; a knot costs two
+    parameters, its slope change and its position, which was searched for (as in the long-run
+    joinpoint search). The knot with the lowest QAIC wins, and the one-line trend is in the
+    comparison as the no-knot case, so a flexible pre-trend is only adopted if the pre-2006
+    series asks for it. Returns the winning knot (``None`` when the straight line wins) and the
+    table of candidates.
     """
     import statsmodels.api as sm
 
     pre = window(series, intervention.pre_start, intervention.date)
     pre = pre[pre.period < intervention.date].reset_index(drop=True)
+    y = pre.deaths.to_numpy(dtype=float)
 
-    def aic(knots: tuple[pd.Timestamp, ...]) -> float:
+    def fit(knots: tuple[pd.Timestamp, ...]) -> dict[str, float]:
         design = pd.concat(
             [
                 pd.DataFrame({"const": 1.0}, index=pre.index),
@@ -691,18 +800,28 @@ def choose_trend_knot(
             ],
             axis=1,
         )
-        fit = sm.GLM(pre.deaths.to_numpy(dtype=float), design, family=sm.families.Poisson()).fit()
-        return float(fit.aic)
+        result = sm.GLM(y, design, family=sm.families.Poisson()).fit()
+        return {
+            "log_likelihood": float(result.llf),
+            "deviance": float(result.deviance),
+            "n_parameters": design.shape[1] + len(knots),
+            "pearson_dispersion": float(result.pearson_chi2 / result.df_resid),
+        }
 
-    records = [{"knot": pd.NaT, "label": "one linear trend", "aic": aic(())}]
+    records = [{"knot": pd.NaT, "label": "one linear trend", **fit(())}]
     candidates = pre.period.iloc[edge_months:-edge_months]
     for knot in candidates:
-        records.append({"knot": knot, "label": f"knot at {knot:%b %Y}", "aic": aic((knot,))})
+        records.append({"knot": knot, "label": f"knot at {knot:%b %Y}", **fit((knot,))})
     table = pd.DataFrame.from_records(records)
-    table["delta_aic"] = table.aic - table.aic.min()
-    best = table.loc[table.aic.idxmin()]
+    knotted = table[table.knot.notna()]
+    dispersion = max(1.0, float(knotted.loc[knotted.deviance.idxmin(), "pearson_dispersion"]))
+    table["dispersion"] = dispersion
+    table["qaic"] = -2 * table.log_likelihood / dispersion + 2 * table.n_parameters
+    table["delta_qaic"] = table.qaic - table.qaic.min()
+    best = table.loc[table.qaic.idxmin()]
     chosen = None if pd.isna(best.knot) else pd.Timestamp(best.knot)
-    return chosen, table.sort_values("aic").reset_index(drop=True)
+    columns = ["knot", "label", "n_parameters", "deviance", "dispersion", "qaic", "delta_qaic"]
+    return chosen, table.sort_values("qaic").reset_index(drop=True)[columns]
 
 
 def _did_design(
@@ -761,7 +880,9 @@ def did_fit(
         raise ValueError("did_fit: the window has no post-intervention months")
     design = _did_design(frame, break_date, slope, pandemic)
     groups = frame.group.astype("category").cat.codes.to_numpy()
-    params, coefficients, dispersion, mu = _fit(frame.deaths, design, family, None, _hac(groups))
+    params, coefficients, dispersion, mu, cov = _fit(
+        frame.deaths, design, family, None, _hac(groups)
+    )
     counterfactual_design = design.copy()
     for column in ("post_treated", "post_t_treated"):
         if column in counterfactual_design:
@@ -783,6 +904,7 @@ def did_fit(
         *slope_change,
         dispersion,
         out,
+        cov,
     )
 
 
@@ -833,8 +955,10 @@ def did_placebos(
 # --------------------------------------------------------------------------- Q8 tables
 
 
-def _fit_row(fit: ItsFit, window_text: str) -> dict[str, object]:
-    return {
+def _fit_row(fit: ItsFit, window_text: str, months: int | None = None) -> dict[str, object]:
+    """One specification's row; with ``months``, also its change over that many months from the
+    break (``post_period_change``), for the segmented design."""
+    row = {
         "variant": fit.variant,
         "family": fit.family,
         "window": window_text,
@@ -847,21 +971,59 @@ def _fit_row(fit: ItsFit, window_text: str) -> dict[str, object]:
         "slope_high": fit.slope_high,
         "dispersion": fit.dispersion,
     }
+    if months is not None:
+        row["post_months"] = months
+        row.update(post_period_change(fit, months))
+    return row
 
 
 def _window_text(start: pd.Timestamp, end: pd.Timestamp) -> str:
     return f"{start:%b %Y} to {end:%b %Y}"
 
 
+def death_definition_ratio(thirty_day: pd.DataFrame, one_day: pd.DataFrame) -> pd.DataFrame:
+    """The monthly ratio of 30-day to 24-hour deaths, summarised by year.
+
+    A 30-day count that follows each victim moves from month to month independently of the
+    24-hour count; one derived from the 24-hour count with a correction factor keeps an almost
+    constant ratio within a year. ``sd`` is the standard deviation of the twelve monthly ratios.
+    ``regime_from`` names the first year, if any, from which every year's ``sd`` exceeds that of
+    every earlier year (NaN when no such year exists); ``later_regime`` marks the years from it.
+    The page reads from this whether the 24-hour fit is an independent check of the 30-day one.
+    """
+    ratio = thirty_day.set_index("period").deaths / one_day.set_index("period").deaths
+    if ratio.isna().any():
+        raise ValueError("the 30-day and 24-hour series do not cover the same months")
+    frame = ratio.rename("ratio").reset_index()
+    out = (
+        frame.groupby(frame.period.dt.year)
+        .ratio.agg(mean="mean", sd="std", low="min", high="max", months="size")
+        .reset_index()
+        .rename(columns={"period": "year"})
+    )
+    full = out[out.months == 12].reset_index(drop=True)
+    split = np.nan
+    for index in range(1, len(full)):
+        if float(full.sd.iloc[index:].min()) > float(full.sd.iloc[:index].max()):
+            split = int(full.year.iloc[index])
+            break
+    out["regime_from"] = split
+    out["later_regime"] = out.year >= split if np.isfinite(split) else False
+    return out
+
+
 def points_licence_fits() -> dict[str, pd.DataFrame]:
     """Main fit, falsification tests and sensitivity table for the 2006 points licence.
 
     The main specification is the one the months *before* July 2006 prefer: a continuous
-    piecewise-linear trend whose single knot is chosen by AIC on the pre-intervention months alone
-    (``choose_trend_knot``), with month-of-year terms and a level and slope change at the break.
-    The straight-line trend that earlier versions of this study used is kept as the first
+    piecewise-linear trend whose single knot is chosen by QAIC on the pre-intervention months
+    alone (``choose_trend_knot``), with month-of-year terms and a level and slope change at the
+    break. The straight-line trend that earlier versions of this study used is kept as the first
     sensitivity row, because the difference between the two is most of the difference between a
-    twelve per cent drop and a seven per cent one.
+    twelve per cent drop and a seven per cent one. Every specification also carries its change
+    averaged over the post-period and in its last month (``post_period_change``): under the
+    preferred pre-trend the slope change wears the step away within the window, which the step
+    alone does not show.
     """
     it = INTERVENTIONS["points_licence"]
     series = monthly_series()
@@ -951,7 +1113,10 @@ def points_licence_fits() -> dict[str, pd.DataFrame]:
         ),
     ]
     sensitivity = pd.DataFrame(
-        [{"label": label, **_fit_row(fit, _window_text(s, e))} for label, fit, s, e in variants]
+        [
+            {"label": label, **_fit_row(fit, _window_text(s, e), it.post_months)}
+            for label, fit, s, e in variants
+        ]
     )
     long_index = len(variants) - 1
     sensitivity["second_break_change"] = np.nan
@@ -975,13 +1140,16 @@ def points_licence_fits() -> dict[str, pd.DataFrame]:
     # specification the page is arguing against and would otherwise fall off the end.
     straight = trend_choice[trend_choice.label == "one linear trend"]
     trend_choice = pd.concat([trend_choice.head(8), straight]).drop_duplicates(subset="label")
+    calendar = calendar_placebo_fits(series, it)
     return {
         "q8_points_fit": coefficients,
         "q8_points_series": series_out,
         "q8_points_sensitivity": sensitivity,
         "q8_points_trend_choice": trend_choice,
         "q8_points_placebo": placebo_fits(series, it),
-        "q8_points_calendar_placebo": calendar_placebo_fits(series, it),
+        "q8_points_calendar_placebo": calendar,
+        "q8_points_calibration": placebo_calibration(calendar),
+        "q8_points_death_definitions": death_definition_ratio(series, monthly_series("deaths_24h")),
         "q8_points_transitions": seasonal_transitions(series),
         "q8_points_forecast": forecast_validation(series, it),
     }

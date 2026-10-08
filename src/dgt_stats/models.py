@@ -22,11 +22,28 @@ log = logging.getLogger(__name__)
 
 HOLDOUT_YEARS = (2023, 2024)
 STABILITY_TERMS = 10
+# Terms the yearly refits always follow besides the largest ones: the two adverse conditions the
+# severity page leads with, the junction among them because its coding changed in 2023.
+STABILITY_EXTRA_TERMS: tuple[tuple[str, str], ...] = (
+    ("junction", "at a junction"),
+    ("surface", "wet"),
+)
+# The first year DGT's records code junctions the new way (the junction-type field stops being
+# empty, and Catalonia's share of crashes at a junction jumps from 38 % to 62 %; data.html's coding
+# breaks). ``period_refits`` fits the years before it and from it apart.
+JUNCTION_RECODING_YEAR = 2023
+PERIOD_TERMS: tuple[tuple[str, str], ...] = (
+    ("junction", "at a junction"),
+    ("surface", "wet"),
+    ("weather", "rain"),
+    ("crash_type", "head-on collision"),
+    ("crash_type", "pedestrian struck"),
+)
 PROFILE_YEAR = "2024"
 
 # Named crash profiles for the predicted-probability table; unspecified predictors sit at reference.
 PROFILES: dict[str, dict[str, str]] = {
-    "Urban street, side collision, daylight, two vehicles": {},
+    "Urban street, side or front-side collision, daylight, two vehicles": {},
     "Urban street, pedestrian struck, dark with lighting": {
         "crash_type": "pedestrian struck",
         "lighting": "dark, street lighting",
@@ -453,6 +470,30 @@ def _merge_small_levels(
     return train, test, merged
 
 
+def _recode_missing(frame: pd.DataFrame, predictors: tuple[str, ...], keep: bool) -> pd.DataFrame:
+    """Each predictor reduced to its recorded values or to its missing states.
+
+    With ``keep`` False every missing-state level is folded into the predictor's reference level,
+    so a model sees only recorded values. With ``keep`` True every recorded value becomes one
+    reference level, "recorded", and only the missing states stay apart, so a model sees only
+    which fields were left unrecorded.
+    """
+    out = frame.copy()
+    for name in predictors:
+        column = out[name]
+        missing = [level for level in column.cat.categories if features.is_nuisance(level)]
+        values = column.astype(str)
+        if keep:
+            values = values.where(values.isin(missing), "recorded")
+            categories = ["recorded", *missing]
+        else:
+            reference = str(column.cat.categories[0])
+            values = values.where(~values.isin(missing), reference)
+            categories = [level for level in column.cat.categories if level not in missing]
+        out[name] = pd.Categorical(values, categories=categories, ordered=True)
+    return out
+
+
 def holdout_check(
     frame: pd.DataFrame, outcome: str, holdout_years: tuple[int, ...] = HOLDOUT_YEARS
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -464,6 +505,11 @@ def holdout_check(
     (:func:`_merge_small_levels`). The Brier skill is against a forecast that gives every held-out
     crash the training years' base rate, which needs nothing from the held-out years;
     ``brier_test_mean`` scores the held-out years' own mean, an oracle shown for comparison only.
+
+    Part of any ranking from these records comes from how the form was filled in rather than from
+    the crash (``docs/DGT_MICRODATA_AUDIT.md``, check 7). Two refits on the same years measure it
+    for this model's own predictors: ``auc_recorded_only`` folds every missing-state level into
+    its reference, and ``auc_missing_only`` sees nothing but which fields were left unrecorded.
     """
     predictors = tuple(name for name in features.PREDICTORS if name != "year")
     train = frame[~frame.crash_year.isin(holdout_years)]
@@ -472,6 +518,14 @@ def holdout_check(
     fit = fit_severity(train, outcome, predictors, cluster=None)
     scores = predict(fit, design_matrix(test, predictors))
     y = test[outcome].astype(int).to_numpy()
+    partial_auc = {}
+    for label, keep in (("auc_recorded_only", False), ("auc_missing_only", True)):
+        part_train = _recode_missing(train, predictors, keep)
+        part_test = _recode_missing(test, predictors, keep)
+        part_fit = fit_severity(part_train, outcome, predictors, cluster=None)
+        partial_auc[label] = float(
+            roc_auc_score(y, predict(part_fit, design_matrix(part_test, predictors)))
+        )
     deciles = pd.qcut(scores, 10, labels=False, duplicates="drop")
     calibration = (
         pd.DataFrame({"decile": deciles + 1, "predicted": scores, "observed": y})
@@ -508,6 +562,7 @@ def holdout_check(
                 "brier_skill": 1 - brier / brier_train_rate,
                 "brier_test_mean": float(brier_score_loss(y, np.full_like(scores, y.mean()))),
                 "auc": float(roc_auc_score(y, scores)),
+                **partial_auc,
                 "levels_merged_on_training_years": "; ".join(
                     f"{name}: {', '.join(levels)}" for name, levels in merged.items()
                 ),
@@ -517,18 +572,40 @@ def holdout_check(
     return calibration, summary
 
 
-def year_stability(frame: pd.DataFrame, full: Fit, terms: int = STABILITY_TERMS) -> pd.DataFrame:
+def year_stability(
+    frame: pd.DataFrame,
+    full: Fit,
+    terms: int = STABILITY_TERMS,
+    extra: tuple[tuple[str, str], ...] = STABILITY_EXTRA_TERMS,
+) -> pd.DataFrame:
     """Refit per year (without the year predictor) for the largest effects of the full model.
 
     The three missing states, not specified, not applicable and a field's explicit unknown code,
     are left out of the selection: their odds ratios reflect reporting practice, which is exactly
-    what changes from year to year. The per-year fits are clustered by province, like the full
-    model, so the intervals are comparable.
+    what changes from year to year. The ``extra`` terms are followed whatever their size
+    (``is_largest`` marks the ``terms`` largest). The per-year fits are clustered by province,
+    like the full model, so the intervals are comparable.
+
+    A yearly estimate outside the full model's interval (``within_full_interval``) is expected now
+    and then even when nothing changes, because each year's estimate has its own sampling error.
+    Two columns account for it. ``full_within_year_interval`` says whether the full model's odds
+    ratio lies inside the year's own interval. ``heterogeneity_q`` is Cochran's Q for the term
+    across years, the inverse-variance weighted sum of squared deviations of the yearly log odds
+    ratios from their weighted mean, and ``heterogeneity_p`` its chi-squared p-value on one fewer
+    degrees of freedom than there are years; a small p says the term varies between years by more
+    than the yearly errors allow, whatever the cause.
     """
+    from scipy import stats
+
     ranked = odds_ratios(full)
     ranked = ranked[(ranked.predictor != "year") & (~ranked.level.isin(features.MISSING_LEVELS))]
     ranked = ranked.reindex(ranked.log_odds.abs().sort_values(ascending=False).index)
-    keep = ranked.head(terms)
+    largest = ranked.head(terms)
+    keyed = ranked.set_index(["predictor", "level"])
+    chosen = set(zip(largest.predictor, largest.level, strict=True))
+    added = [key for key in extra if key in keyed.index and key not in chosen]
+    keep = pd.concat([largest, keyed.loc[added].reset_index()], ignore_index=True)
+    keep["is_largest"] = [index < len(largest) for index in range(len(keep))]
     predictors = tuple(name for name in full.predictors if name != "year")
     records = []
     for year, group in frame.groupby("crash_year"):
@@ -546,6 +623,9 @@ def year_stability(frame: pd.DataFrame, full: Fit, terms: int = STABILITY_TERMS)
                     "predictor": row.predictor,
                     "predictor_label": row.predictor_label,
                     "level": row.level,
+                    "is_largest": bool(row.is_largest),
+                    "log_odds": float(got.log_odds),
+                    "se": float(got.se),
                     "odds_ratio": float(got.odds_ratio),
                     "or_low": float(got.or_low),
                     "or_high": float(got.or_high),
@@ -558,7 +638,136 @@ def year_stability(frame: pd.DataFrame, full: Fit, terms: int = STABILITY_TERMS)
     out["within_full_interval"] = (out.odds_ratio >= out.full_model_or_low) & (
         out.odds_ratio <= out.full_model_or_high
     )
+    out["full_within_year_interval"] = (out.full_model_odds_ratio >= out.or_low) & (
+        out.full_model_odds_ratio <= out.or_high
+    )
+    q_values, p_values = {}, {}
+    for key, group in out.groupby(["predictor", "level"], sort=False):
+        weights = 1 / group.se**2
+        mean = float((weights * group.log_odds).sum() / weights.sum())
+        q = float((weights * (group.log_odds - mean) ** 2).sum())
+        q_values[key] = q
+        p_values[key] = float(stats.chi2.sf(q, len(group) - 1)) if len(group) > 1 else np.nan
+    keys = list(zip(out.predictor, out.level, strict=True))
+    out["heterogeneity_q"] = [q_values[key] for key in keys]
+    out["heterogeneity_p"] = [p_values[key] for key in keys]
     return out
+
+
+def period_refits(
+    frame: pd.DataFrame,
+    outcome: str = "fatal",
+    break_year: int = JUNCTION_RECODING_YEAR,
+    terms: tuple[tuple[str, str], ...] = PERIOD_TERMS,
+    provinces: tuple[str, ...] = features.CATALAN_PROVINCES,
+) -> pd.DataFrame:
+    """The full model refitted on the years before ``break_year`` and on the years from it.
+
+    DGT's records code junctions differently from 2023, and almost all of the change is in
+    Catalonia, so the pooled junction odds ratio mixes two recording regimes. Each period is
+    fitted with every predictor, year included, on all provinces and again without
+    ``provinces`` (``provinces`` alone are too few clusters for the province-clustered errors).
+    One row per period, scope and term in ``terms``. ``share_at_level`` is the share of the
+    scope's crashes at the term's level and ``share_at_level_inside`` the same share among the
+    period's crashes in ``provinces``, so the jump in crashes coded at a junction can be read
+    beside the odds ratio.
+    """
+    records = []
+    periods = (
+        ("before", frame.crash_year < break_year),
+        ("from", frame.crash_year >= break_year),
+    )
+    inside = frame.province.isin(provinces)
+    for period, mask in periods:
+        for scope, rows in (
+            ("all provinces", frame[mask]),
+            ("outside Catalonia", frame[mask & ~inside]),
+        ):
+            rows = _drop_unused(rows)
+            fit = fit_severity(rows, outcome)
+            table = odds_ratios(fit).set_index(["predictor", "level"])
+            for predictor, level in terms:
+                if (predictor, level) not in table.index:
+                    continue
+                row = table.loc[(predictor, level)]
+                records.append(
+                    {
+                        "outcome": outcome,
+                        "period": period,
+                        "first_year": int(rows.crash_year.min()),
+                        "last_year": int(rows.crash_year.max()),
+                        "scope": scope,
+                        "predictor": predictor,
+                        "predictor_label": features.PREDICTOR_LABELS[predictor],
+                        "level": level,
+                        "n": len(rows),
+                        "n_level": int((rows[predictor] == level).sum()),
+                        "share_at_level": float((rows[predictor] == level).mean()),
+                        "share_at_level_inside": float(
+                            (frame.loc[mask & inside, predictor] == level).mean()
+                        ),
+                        "odds_ratio": float(row.odds_ratio),
+                        "or_low": float(row.or_low),
+                        "or_high": float(row.or_high),
+                    }
+                )
+    return pd.DataFrame.from_records(records)
+
+
+def location_contrasts(
+    frame: pd.DataFrame, fit: Fit, min_crashes: int = features.MIN_LEVEL_CRASHES
+) -> pd.DataFrame:
+    """The odds ratio of each zone and road-type combination against a street-zone urban street.
+
+    Zone and road type describe one location between them (no interurban crash is on an urban
+    street, and the urban-street road type lies almost entirely in the street zone), so each of
+    their odds ratios is read against the other's reference and neither describes a location on
+    its own. The joint contrast adds the two log odds ratios and takes its standard error from
+    their covariance in the full model, ``var(a) + var(b) + 2 cov(a, b)``. Only combinations
+    with at least ``min_crashes`` crashes are reported, and none with a missing-value level; the
+    reference combination is the first row, at 1.
+    """
+    from scipy import stats
+
+    z = float(stats.norm.ppf(0.975))
+    zone_reference = str(frame.zone.cat.categories[0])
+    road_reference = str(frame.road.cat.categories[0])
+    counts = frame.groupby(["zone", "road"], observed=True).size()
+    records = []
+    for (zone, road), crashes in counts.items():
+        if crashes < min_crashes or features.is_nuisance(zone) or features.is_nuisance(road):
+            continue
+        columns = []
+        if str(zone) != zone_reference:
+            columns.append(f"zone={zone}")
+        if str(road) != road_reference:
+            columns.append(f"road={road}")
+        if any(column not in fit.params.index for column in columns):
+            continue
+        weights = pd.Series(1.0, index=columns)
+        estimate = float(weights @ fit.params[columns]) if columns else 0.0
+        se = float(np.sqrt(weights @ fit.cov.loc[columns, columns] @ weights)) if columns else 0.0
+        records.append(
+            {
+                "outcome": fit.outcome,
+                "zone": str(zone),
+                "road": str(road),
+                "is_reference": not columns,
+                "crashes": int(crashes),
+                "observed_share": float(
+                    frame.loc[(frame.zone == zone) & (frame.road == road), fit.outcome].mean()
+                ),
+                "log_odds": estimate,
+                "se": se,
+                "odds_ratio": float(np.exp(estimate)),
+                "or_low": float(np.exp(estimate - z * se)),
+                "or_high": float(np.exp(estimate + z * se)),
+            }
+        )
+    out = pd.DataFrame.from_records(records)
+    return out.sort_values(["is_reference", "odds_ratio"], ascending=[False, False]).reset_index(
+        drop=True
+    )
 
 
 def _profile_design(frame: pd.DataFrame, fit: Fit, settings: dict[str, str]) -> pd.DataFrame:

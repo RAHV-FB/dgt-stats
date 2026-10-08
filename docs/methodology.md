@@ -575,11 +575,17 @@ microdata restricted to the report's provinces, which reproduce the report's zon
 (`speed_report_scope`). The road types map from the microdata's zone and road-type code (motorways
 1–2, dual carriageways 3, every other interurban code to the rest). The mapping is not reconciled
 by road type, because `speed_report_scope` checks year by zone only, and the ratio adjusted for
-road type and year (2.00, `speed_severity_pooled.csv`) rests on it. Rate ratios carry log-normal
-intervals; `speed_severity_pooled` pools 2016–2023 by road type and fits a quasi-Poisson model of
-deaths with the log of crashes as offset and road type and year as factors, whose speed
-coefficient is the ratio on the same kind of road.
-The crude ratio is reported beside it. The ratio is an association open to two biases the data
+road type and year (2.00, `speed_severity_pooled.csv`) rests on it. Yearly rate ratios carry
+log-normal Poisson intervals; `speed_severity_pooled` pools 2016–2023 by road type, widening each
+road type's Poisson interval by the square root of the Pearson dispersion (1.9 to 2.4) of a Poisson
+model of its deaths with speed and year as terms, and fits a quasi-Poisson model of deaths with the
+log of crashes as offset and road type and year as factors, whose speed coefficient is the ratio on
+the same kind of road. That model assumes one ratio for every road type, which the data reject: the
+ratios run from 1.22 (dual carriageways) to 5.90 (urban streets), letting them differ improves the
+fit by a likelihood-ratio statistic of 446 on 3 degrees of freedom, and the Pearson dispersion
+falls from 13.5 to 2.0 once they may. The 2.00 is therefore a weighted summary, dominated by other
+interurban roads, and its wide interval mostly reflects the differences between road types; the
+pages give the range by road type with it. The crude ratio is reported beside it. The ratio is an association open to two biases the data
 cannot measure: differential recording (if speed is more often found when a crash is fatal, the
 ratio is inflated) and unrecorded speed in the comparison group (which deflates it).
 
@@ -613,7 +619,14 @@ rule splits runs at a jump and at an untestable change.
 
 The rule finds the breaks the report's own tables show on inspection: urban distraction in 2016
 and 2019, urban alcohol in 2016, and drugs throughout. Interurban alcohol, inappropriate speed in
-both zones and interurban distraction run unbroken across the decade.
+both zones and interurban distraction run unbroken across the decade. An unbroken run is not proof
+of consistent recording: the rule only rules out single-year jumps. Interurban alcohol rose 11 % in
+2016, the year the urban series broke and the driver tables' unrecorded speed status jumped, and 30
+% from 2016 to 2023; the page gives both. The all-roads share of crashes with speed recorded fell
+31 % from 2014 to 2023, but about 24 % within each zone (18.6 % to 14.3 % interurban, 4.1 % to 3.1 %
+urban): the rest is the shift of crashes towards urban streets (40.6 % of crashes were interurban
+in 2014, 34.2 % in 2023), and at the 2014 zone mix the 2023 share would be 7.6 %, not 6.9 %. The
+page leads with the within-zone falls.
 
 ## 11. Predicting deaths, and what a before-and-after comparison can see (`forecast.py`; withdrawn)
 
@@ -716,7 +729,8 @@ listed with their results on the data page.
 ## 13. Supporting analysis: associations in DGT crash records (not a predictive model) (`features.py`, `models.py`, `scripts/model.py`)
 
 Listed under "Spain: supporting" in the navigation, with a note that says why. DGT's national crash
-microdata carry no driver, vehicle or speed records, and their audit
+microdata carry one row per crash, with counts of the people killed and injured but no record of
+individual drivers, vehicles or people and no speed field, and their audit
 ([`DGT_MICRODATA_AUDIT.md`](DGT_MICRODATA_AUDIT.md), section 21) keeps them out of model training:
 the DGT microdata do not train a predictive model. This analysis describes which recorded
 circumstances go with a fatal or serious outcome, given an injury crash. The model card is
@@ -724,8 +738,11 @@ circumstances go with a fatal or serious outcome, given an injury crash. The mod
 
 Two logistic regressions on all 875,013 crashes: the odds that a crash is fatal, and that it is
 serious. Predictors are the circumstances the crash record carries: zone, road type, crash type,
-junction, lighting, weather, surface, alignment, time of day, weekend, number of vehicles and year.
-Road type comes from the road-type code itself (`TIPO_VIA`), with codes 4 to 6 as conventional
+junction, lighting, weather, surface, alignment, time of day, weekend (Friday from 20:00 to the end
+of Sunday, section 3), number of vehicles and year. The crash-type reference level holds DGT codes
+2 (front-side, "fronto-lateral") and 3 (side, "lateral") and is labelled "side or front-side
+collision"; the regional pages keep the two apart. Road type comes from the road-type code itself
+(`TIPO_VIA`), with codes 4 to 6 as conventional
 roads. DGT recoded most code-5 crashes as code 6 from 2021; grouping the two keeps that recoding
 inside one level, and the model card states it. Each predictor is an ordered categorical whose
 reference is its most common level. Missing states are separate levels, as in section 3, never
@@ -739,12 +756,46 @@ The fit is main effects only, by iteratively reweighted least squares in `numpy`
 cluster-robust sandwich covariance by province. It reports odds ratios with 95 % intervals, average
 marginal effects, predicted probabilities for six named crash profiles, and three checks: a holdout
 (fit on 2016–2022 with every predictor but the year, scored on 2023–2024), year-by-year stability
-of the ten largest effects, and separation. The holdout checks that the associations carry across
-years; it does not measure a predictive tool. Small levels are merged on the training years alone,
-so the held-out years decide nothing about the model scored on them (lighting and surface "not
-specified" are the levels merged). The Brier skill is measured against giving every held-out
-crash the training years' share of the outcome (1.6 % fatal, 9.4 % serious): it is 0.042 for the
-fatal outcome and 0.053 for the serious one (`q3_holdout_summary.csv`).
+of the ten largest effects and of the junction and wet-surface terms, and separation. The holdout
+checks that the associations carry across years; it does not measure a predictive tool. Small
+levels are merged on the training years alone, so the held-out years decide nothing about the
+model scored on them (lighting and surface "not specified" are the levels merged). The Brier skill
+is measured against giving every held-out crash the training years' share of the outcome (1.6 %
+fatal, 9.4 % serious): it is 0.042 for the fatal outcome and 0.053 for the serious one
+(`q3_holdout_summary.csv`). The fatal ROC-AUC of 0.80 is partly recording: refitted with every
+missing-state level folded into its reference it is 0.78, and the missing-state levels alone give
+0.54 (`auc_recorded_only`, `auc_missing_only`); over the audit's wider set of 30 fields, which
+fields were left blank gives 0.72 on its own (`dgt_audit_artefacts.csv`). The page states this
+beside the AUC.
+
+**Zone and road type together** (`models.location_contrasts`). The two predictors describe one
+location between them, so each odds ratio is read against the other's reference. The joint
+contrast of every zone and road-type combination with at least 500 crashes against a street-zone
+urban street adds the two log odds ratios and takes its variance from their covariance
+(`q3_location_contrasts.csv`): a conventional interurban road has 6.69 (4.96–9.02) times the odds
+of a death, of the same size as a head-on collision (5.66) or a pedestrian struck (6.44); the four
+interurban road types run from 5.72 to 7.34, and a conventional road through a town (zone "urban
+crossing") reaches 8.74. The page names crash type and location together as the strongest
+associations.
+
+**The junction coding change** (`models.period_refits`). From 2023 DGT's records code junctions
+differently (the junction-type field stops being empty when the crash is not at a junction), and
+the at-junction share rises from 38 % to 44 % nationally, almost all of it in Catalonia (40 % of
+Catalan crashes in 2016–2022, 63 % in 2023–2024, against 39 % and 38 % elsewhere). Refitted
+on each period, with every predictor, the fatal junction odds ratio is 0.69 (0.65–0.72) in
+2016–2022 and 0.98 (0.76–1.28) in 2023–2024; outside Catalonia it is 0.69 and 0.74 (0.66–0.83).
+The full model's 0.75 pools the two regimes, and the page reads the junction result from the
+earlier years. None of the adverse-condition variants (section 13.1) splits the years.
+
+**Year-by-year refits** (`models.year_stability`). Each yearly estimate has its own sampling
+error, so a yearly odds ratio outside the full model's interval is expected now and then. The
+table also says whether the full model's value lies inside the year's own interval, and gives
+Cochran's Q for each term across years with its chi-squared p-value. For the fatal outcome 39 of
+the 108 yearly estimates fall outside the full interval, 20 of them road-type terms, whose odds
+ratios swing from year to year against the zone odds ratio (the two split one location contrast);
+by Q, only the junction term varies by more than its yearly errors allow (p = 0.005), at 0.63 to
+0.79 in every year to 2022 and 1.00 in 2023 and 2024. No other departure is tied to a coding
+change.
 
 **Nuisance levels and the recording regime** (`features.is_nuisance`, `models.recording_regime`,
 `models.regime_sensitivity`). The missing states record how a police force fills in the form,
@@ -792,19 +843,42 @@ twelve lags.
 **The pre-trend is chosen on the pre-intervention months alone** (`choose_trend_knot`). Every
 candidate month that leaves 18 months on each side is tried as the single knot of a continuous
 piecewise-linear trend fitted to the months before July 2006, with the same month terms and nothing
-else; the straight line is in the comparison as the no-knot case and the lowest AIC wins. The
-pre-2006 series prefers a knot in 2003 over a straight line by about 16 points of AIC, and that
-choice, made without the post-period, moves the estimated level change from about −12 % to about
-−7 %. The straight-line fit is kept as the first sensitivity row.
+else; the straight line is in the comparison as the no-knot case and the lowest QAIC wins. QAIC is
+the Poisson AIC with the log-likelihood divided by the Pearson dispersion of the best one-knot fit
+(1.61, floored at 1), and a knot costs two parameters, its slope change and its searched position,
+as in the long-run joinpoint search (section 5). The pre-2006 series prefers a knot in August 2003
+over a straight line by about 7 QAIC points (the plain Poisson AIC, which ignores the
+overdispersion and the search, said 16): a preference, not decisive evidence. That choice, made
+without the post-period, moves the estimated step from about −12 % to about −7 %. The straight-line
+fit is kept as the first sensitivity row.
+
+**The step and the slope change are read together** (`post_period_change`). The step is the change
+in July 2006 alone. Under the preferred pre-trend the slope then changes by +7.5 % a year (95 %
+interval +1.4 % to +14.0 %), which brings fitted deaths back to the projection after about twelve
+months; by November 2007 they are 2.3 % above it. Averaged over the 17 post-period months the
+change in log deaths, `post + 8 × post_t`, is −2.5 % (−7.8 % to +3.2 %). Only the straight-line
+pre-trend gives an average fall whose interval excludes zero (−9.5 %). Every specification in
+`q8_points_sensitivity.csv` carries the average and the last-month change beside the step, and the
+page quotes the step only with them.
 
 Four falsification tests, each aimed at a specific alternative explanation:
 
-- **Calendar-matched placebos** (`calendar_placebo_fits`). Spanish road deaths peak every July and
-  August, so moving the break to arbitrary months does not answer whether the summer of 2006 was
-  unusual. The same model is refitted with the break at 1 July of every year whose window is clean:
-  60 months before, 17 after, never containing the true intervention or the pandemic. The true
-  break is refitted on the same shape. July 2006 ranks first of fifteen, but the runner-up is
-  close, so the one-sided empirical p-value is about 0.07.
+- **Calendar-matched placebos** (`calendar_placebo_fits`). Spanish road deaths usually peak in July
+  or August (the deadliest month in 27 of the 32 years 1993–2024, `peak_month` in
+  `q8_points_transitions.csv`), so moving the break to arbitrary months does not answer whether the
+  summer of 2006 was unusual. The same model is refitted with the break at 1 July of every year
+  whose window is clean: 60 months before, 17 after, never containing the true intervention or the
+  pandemic. The true break is refitted on the same shape. July 2006 ranks first of fifteen, but the
+  runner-up is close, so the one-sided empirical p-value is about 0.07.
+- **What the placebos say about the intervals** (`placebo_calibration`). At 6 of the 14 placebo
+  Julys the model's Newey–West 95 % interval excludes zero, where a correct interval would do so
+  about 0.7 times; the placebo steps have a standard deviation 2.5 times the model's median standard
+  error. The model's intervals are therefore too narrow, most likely because a straight or
+  once-bent trend does not capture how the series wanders. An interval set by the placebo spread
+  (the July 2006 step plus or minus the t quantile on 13 degrees of freedom times the placebo
+  standard deviation) runs from −21 % to +3 % (`q8_points_calibration.csv`). It is computed only
+  for the calendar-matched fit, which has the placebos' window shape; the page labels every other
+  interval model-based.
 - **Seasonality-free transitions** (`seasonal_transitions`). For each year, the log change from
   June to July, July to August and August to September, and the log ratio of the twelve months from
   July to the twelve months before. The last statistic has the same twelve calendar months on each
@@ -812,10 +886,13 @@ Four falsification tests, each aimed at a specific alternative explanation:
   fall of the 27 years that can be measured; 2019–2021 are excluded from the ranking.
 - **Out-of-sample forecasts** (`forecast_validation`). The 60 months before each July are fitted
   with a trend and month terms and *no* intervention term, and the next 17 months are forecast. The
-  statistic is the log ratio of observed to predicted over that window, with a z score scaling it
-  by the Poisson standard error inflated by the fit's own dispersion. Run at every admissible July,
-  it puts 2006 fourth of fifteen: three other Julys undershot their own forecast by more. This is
-  the test that most weakens the original headline, and the page says so.
+  statistic is the log ratio of observed to predicted over that window, and the Julys are ranked by
+  it. Run at every admissible July, it puts 2006 third of fifteen (7.1 % below its forecast): the
+  months after July 2004 and July 2001 fell further below their own forecasts. A z score that
+  scales the difference by the Poisson standard error inflated by the fit's own dispersion is kept
+  with its own rank (`rank_z`); it weighs the larger counts of the early years more and puts 2006
+  fourth, just behind 2000 (z −3.92 against −3.88), although 2000 fell less in proportion (6.0 %).
+  This is the test that most weakens the original headline, and the page says so.
 - **Exposure** (`exposure_covariate`). Two monthly Spanish series reach back past 2006: CORES's
   national road-fuel consumption (petrol plus road diesel, tonnes, from 1996), which covers every
   road, and the average daily intensity on the state toll-motorway network (vehicles a day on the
@@ -830,7 +907,13 @@ Four falsification tests, each aimed at a specific alternative explanation:
 Other sensitivity fits: quadratic trend; a knot fixed at January 2004; 24-hour deaths; interurban
 and urban deaths separately; a level change without the slope term; a negative binomial whose
 dispersion is set by moments from the Poisson fit; and the window extended to December 2009 with a
-second break at the Penal Code reform.
+second break at the Penal Code reform. The 24-hour fit is not an independent check: up to 2010 the
+monthly ratio of 30-day to 24-hour deaths has a within-year standard deviation of at most 0.024,
+against at least 0.027 in every year from 2011 (`death_definition_ratio`,
+`q8_points_death_definitions.csv`), which suggests the earlier 30-day counts were derived from the
+24-hour ones. The Penal Code reform and the 2008 recession bear on the extended window, not on the
+17-month window, which ends before both; inside that window the step competes with the 2003
+steepening and with July-to-July movements of similar size.
 
 **The 2019 speed-limit study is not published.** Its design, conventional roads (raw codes 5 and 6)
 against motorways and dual carriageways (codes 1 to 3), month by month from the microdata, fails

@@ -51,6 +51,7 @@ def page_speed(captions: dict[str, str]) -> str:
     urban = pooled.loc["urban"]
     other = pooled.loc["other_interurban"]
     dual = pooled.loc["dual_carriageway"]
+    motorway = pooled.loc["motorway"]
     unknown_after = status.share_unknown.loc[status_jump:]
     speed_changes = read_table("factor_changes")
 
@@ -73,6 +74,23 @@ def page_speed(captions: dict[str, str]) -> str:
         "dual carriageways carry the smallest ratio": types.rate_ratio.idxmin()
         == "dual_carriageway",
         "the adjusted model has extra variation to allow for": float(adjusted.dispersion) > 1,
+        # The prose calls the adjusted ratio a weighted summary of unequal ratios, not a ratio
+        # that holds on every road.
+        "the road-type ratios differ by more than chance": float(adjusted.heterogeneity_p) < 0.001,
+        "letting the ratio differ by road type removes most of the extra variation": float(
+            adjusted.dispersion_by_road_type
+        )
+        < float(adjusted.dispersion) / 2,
+        "the adjusted ratio lies between the road-type ratios": float(types.rate_ratio.min())
+        < rate
+        < float(types.rate_ratio.max()),
+        "most deaths in speed crashes are on other interurban roads": float(
+            types.loc["other_interurban", "speed_deaths"]
+        )
+        > types.speed_deaths.sum() / 2,
+        "the road-type intervals allow for year-to-year variation": bool(
+            (types.dispersion >= 1).all()
+        ),
         "the unknown speed status jumps and stays near half": bool(
             (unknown_after > 2 * status.share_unknown.loc[first_status]).all()
             and unknown_after.between(0.45, 0.55).all()
@@ -98,19 +116,22 @@ def page_speed(captions: dict[str, str]) -> str:
         f"{types_span}, crashes with speed recorded had {crude:.2f} times as many deaths per "
         "crash as other injury crashes. Part of that difference is where they happen: they are "
         "concentrated on interurban roads other than motorways and dual carriageways, where any "
-        "crash is more often fatal. Compared with other crashes on the same kind of road in the "
-        f"same year, they had about twice as many deaths: {rate:.2f} times (95% interval "
-        f"{adjusted_ci}). Police-recorded inappropriate speed is associated with greater crash "
-        "severity. This is not an estimate of causation."
+        "crash is more often fatal. Compared with other crashes on the same kind of road, they "
+        f"had more deaths per crash on every road type, from {float(dual.rate_ratio):.2f} times "
+        f"on dual carriageways to {float(urban.rate_ratio):.2f} times on urban streets. Taken "
+        f"together, with the year allowed for, the road types give {rate:.2f} times (95% "
+        f"interval {adjusted_ci}): a weighted summary of ratios that differ, not one ratio that "
+        "holds on every road. Police-recorded inappropriate speed is associated with greater "
+        "crash severity. This is not an estimate of causation."
     )
 
     body += "<h2>Deaths per crash by road type</h2>"
     body += figure(
         "f1_speed_severity",
-        "Dot chart of the ratio of deaths per 100 injury crashes with speed recorded to deaths "
-        "per 100 other crashes, with 95% intervals, for urban streets, motorways, dual "
-        "carriageways, other interurban roads and all roads adjusted for road type and year. "
-        "Every ratio is above one; the urban ratio is far above the rest.",
+        "Dot chart, on a logarithmic scale, of the ratio of deaths per 100 injury crashes with "
+        "speed recorded to deaths per 100 other crashes, with 95% intervals, for urban streets, "
+        "motorways, dual carriageways, other interurban roads and all roads adjusted for road "
+        "type and year. Every ratio is above one; the urban ratio is far above the rest.",
         captions,
     )
     rows = []
@@ -130,7 +151,8 @@ def page_speed(captions: dict[str, str]) -> str:
     body += table(
         pd.DataFrame(rows),
         f"Deaths per 100 injury crashes with and without speed recorded, by road type, Spain "
-        f"outside Catalonia and the Basque Country, {types_span}.",
+        f"outside Catalonia and the Basque Country, {types_span}. The intervals allow for the "
+        "ratio varying from year to year more than chance alone would make it.",
         {
             "Crashes with speed recorded": "int",
             "Deaths per 100 crashes with speed recorded": "dec2",
@@ -143,10 +165,13 @@ def page_speed(captions: dict[str, str]) -> str:
         f"({float(urban.other_deaths_per_100):.2f} deaths per 100 crashes): there, crashes with "
         f"speed recorded had {float(urban.rate_ratio):.2f} times as many deaths. On interurban "
         "roads other than motorways and dual carriageways the ratio was "
-        f"{float(other.rate_ratio):.2f}, and on dual carriageways {float(dual.rate_ratio):.2f}. "
-        f"The figure of {rate:.2f} for all roads compares crashes within the same road type and "
-        "year and summarises these ratios, with an interval widened to allow for how much they "
-        "vary.</p>"
+        f"{float(other.rate_ratio):.2f}, on motorways {float(motorway.rate_ratio):.2f} and on "
+        f"dual carriageways {float(dual.rate_ratio):.2f}. The figure of {rate:.2f} for all roads "
+        "compares crashes within the same road type and year and averages these ratios, "
+        "weighted towards other interurban roads, where most deaths in crashes with speed "
+        "recorded occur. The ratios differ by road type by more than chance, so the summary "
+        "describes no single kind of road, and its interval is widened to allow for how much "
+        "they differ.</p>"
     )
     body += technical(
         "How the speed report and the crash records are combined",
@@ -162,7 +187,16 @@ def page_speed(captions: dict[str, str]) -> str:
         "<p>The adjusted ratio comes from a quasi-Poisson model of deaths per crash with road "
         f"type and year. It brings the crude ratio of {_times(crude)} down to {_times(rate)}; "
         "on a logarithmic scale, road type and year account for "
-        f"{_fmt_pct(where_share, 0)} of the crude ratio.</p>",
+        f"{_fmt_pct(where_share, 0)} of the crude ratio. The model assumes one ratio for every "
+        "road type. Letting the ratio differ by road type improves the fit by a "
+        f"likelihood-ratio statistic of {float(adjusted.heterogeneity_lr):.0f} on "
+        f"{int(adjusted.heterogeneity_df)} degrees of freedom and lowers the Pearson dispersion "
+        f"from {float(adjusted.dispersion):.1f} to "
+        f"{float(adjusted.dispersion_by_road_type):.1f}: most of the extra variation the "
+        "summary's interval allows for is the difference between road types. The road-type "
+        "intervals are Poisson intervals widened by the square root of each road type's own "
+        f"dispersion across years ({float(types.dispersion.min()):.1f} to "
+        f"{float(types.dispersion.max()):.1f}).</p>",
     )
 
     body += "<h2>What a speed record shows</h2>"
@@ -185,8 +219,9 @@ def page_speed(captions: dict[str, str]) -> str:
     all_first = float(status.loc[first_status, "share_speed_infraction"])
     all_last = float(status.loc[last_status, "share_speed_infraction"])
     body += (
-        "<p>DGT's yearbook tables also record, for each driver involved in an injury crash, "
-        "whether the police noted a speed infraction. From "
+        "<p>DGT's yearbook tables, which cover all of Spain, Catalonia and the Basque Country "
+        "included, also record for each driver involved in an injury crash whether the police "
+        "noted a speed infraction. From "
         f"{status_jump}, about half of drivers have no speed status recorded "
         f"({_fmt_pct(status.loc[status_jump, 'share_unknown'], 0)} in {status_jump} and "
         f"{_fmt_pct(status.loc[last_status, 'share_unknown'], 0)} in {last_status}, against "

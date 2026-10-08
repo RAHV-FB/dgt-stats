@@ -208,18 +208,53 @@ def speed_severity() -> pd.DataFrame:
     return pd.DataFrame.from_records(records)
 
 
+def _long_panel(detail: pd.DataFrame) -> pd.DataFrame:
+    """One row per year, road type and speed status (1 recorded, 0 not): crashes and deaths."""
+    long = pd.concat(
+        [
+            detail[["year", "road_type", "speed_crashes", "speed_deaths"]]
+            .rename(columns={"speed_crashes": "crashes", "speed_deaths": "deaths"})
+            .assign(speed=1),
+            detail[["year", "road_type", "other_crashes", "other_deaths"]]
+            .rename(columns={"other_crashes": "crashes", "other_deaths": "deaths"})
+            .assign(speed=0),
+        ],
+        ignore_index=True,
+    )
+    return long.astype({"crashes": float, "deaths": float, "road_type": str})
+
+
+def _poisson(formula: str, data: pd.DataFrame):
+    """A Poisson model of deaths with the log of crashes as offset."""
+    return smf.glm(
+        formula, data=data, family=sm.families.Poisson(), offset=np.log(data.crashes)
+    ).fit()
+
+
 def speed_severity_pooled() -> pd.DataFrame:
     """The 2016–2023 ratio pooled by road type, then adjusted for road type and year.
 
-    The pooled rows sum the eight years. The adjusted row is the speed coefficient of a
-    quasi-Poisson model of deaths with the number of crashes as exposure, and road type and year
-    as factors: the ratio with the concentration of speed crashes on deadlier roads taken out.
+    The pooled rows sum the eight years. Their intervals allow for the deaths varying from year to
+    year more than a Poisson count would: the log-normal Poisson interval is widened by the
+    square root of the Pearson dispersion (floored at 1) of a Poisson model of that road type's
+    deaths with speed and year as terms (``dispersion``). The adjusted row is the speed
+    coefficient of a quasi-Poisson model of deaths with the number of crashes as exposure, and
+    road type and year as factors. It assumes one ratio for every road type, which the data
+    reject: ``heterogeneity_lr`` is the likelihood-ratio statistic for letting the ratio differ by
+    road type (``heterogeneity_df`` degrees of freedom), and ``dispersion_by_road_type`` the
+    Pearson dispersion once it may, against ``dispersion`` for the common ratio. The adjusted
+    ratio is therefore a weighted summary of unequal road-type ratios, weighted towards the road
+    types with most deaths, and its interval is wide because the ratios differ.
     """
+    from scipy import stats
+
     table = speed_severity()
     detail = table[
         table.road_type.isin(["motorway", "dual_carriageway", "other_interurban", "urban"])
     ]
     detail = detail[detail.year >= 2016]
+    long = _long_panel(detail)
+    z = float(stats.norm.ppf(0.975))
     records = []
     for road_type, group in detail.groupby("road_type", sort=False):
         sums = group[["speed_crashes", "speed_deaths", "other_crashes", "other_deaths"]].sum()
@@ -234,19 +269,17 @@ def speed_severity_pooled() -> pd.DataFrame:
             total_d,
             "pooled",
         )
+        own = _poisson("deaths ~ speed + C(year)", long[long.road_type == road_type])
+        dispersion = max(1.0, float(own.pearson_chi2 / own.df_resid))
+        se = np.sqrt(dispersion * (1 / sums.speed_deaths + 1 / sums.other_deaths))
+        row["ratio_low"] = float(row["rate_ratio"] * np.exp(-z * se))
+        row["ratio_high"] = float(row["rate_ratio"] * np.exp(z * se))
+        row["dispersion"] = dispersion
         records.append(row)
-    long = pd.concat(
-        [
-            detail[["year", "road_type", "speed_crashes", "speed_deaths"]]
-            .rename(columns={"speed_crashes": "crashes", "speed_deaths": "deaths"})
-            .assign(speed=1),
-            detail[["year", "road_type", "other_crashes", "other_deaths"]]
-            .rename(columns={"other_crashes": "crashes", "other_deaths": "deaths"})
-            .assign(speed=0),
-        ],
-        ignore_index=True,
-    )
-    long = long.astype({"crashes": float, "deaths": float, "road_type": str})
+    common = _poisson("deaths ~ speed + C(road_type) + C(year)", long)
+    varying = _poisson("deaths ~ speed * C(road_type) + C(year)", long)
+    lr = float(common.deviance - varying.deviance)
+    lr_df = int(common.df_resid - varying.df_resid)
     result = smf.glm(
         "deaths ~ speed + C(road_type) + C(year)",
         data=long,
@@ -262,10 +295,14 @@ def speed_severity_pooled() -> pd.DataFrame:
             "road_type_label": "All roads, adjusted for road type and year",
             "totals_source": "model",
             "rate_ratio": float(np.exp(coefficient)),
-            "ratio_low": float(np.exp(coefficient - 1.96 * se)),
-            "ratio_high": float(np.exp(coefficient + 1.96 * se)),
+            "ratio_low": float(np.exp(coefficient - z * se)),
+            "ratio_high": float(np.exp(coefficient + z * se)),
             "crude_ratio": crude,
             "dispersion": float(result.scale),
+            "heterogeneity_lr": lr,
+            "heterogeneity_df": lr_df,
+            "heterogeneity_p": float(stats.chi2.sf(lr, lr_df)),
+            "dispersion_by_road_type": float(varying.pearson_chi2 / varying.df_resid),
         }
     )
     return pd.DataFrame.from_records(records)

@@ -159,6 +159,59 @@ def test_dot_interval(tmp_path: Path) -> None:
     _svg_ok(out)
 
 
+def test_ratio_charts_can_use_a_log_axis(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    # Ratios on a log axis, so a halving and a doubling look the same size; the axes are
+    # captured as each chart is saved.
+    drawn = []
+    save = plots.save
+
+    def keep(fig, path):
+        drawn.append([axis for axis in fig.axes])
+        return save(fig, path)
+
+    monkeypatch.setattr(plots, "save", keep)
+    ratios = pd.DataFrame(
+        {
+            "name": ["a", "b", "c"],
+            "v": [1.2, 1.9, 5.9],
+            "lo": [1.0, 1.3, 5.1],
+            "hi": [1.5, 2.8, 6.9],
+        }
+    )
+    out = plots.dot_interval(
+        ratios, "name", "v", "lo", "hi", tmp_path / "log.svg", "Log", reference=1.0, log=True
+    )
+    _svg_ok(out)
+    axis = drawn[-1][0]
+    assert axis.get_xscale() == "log"
+    assert list(axis.get_xticks()) == [1.0, 2.0, 4.0]
+    left, right = axis.get_xlim()
+    assert left < 1.0 and right > 6.9
+    odds = ratios.assign(
+        panel=["p", "p", "q"], v=[0.6, 0.8, 0.7], lo=[0.5, 0.7, 0.6], hi=[0.7, 0.9, 1.1]
+    )
+    out = plots.dot_interval_panels(
+        odds,
+        "panel",
+        "name",
+        "v",
+        "lo",
+        "hi",
+        tmp_path / "logpanels.svg",
+        "Log panels",
+        reference=1.0,
+        from_zero=False,
+        shared=True,
+        log=True,
+    )
+    _svg_ok(out)
+    for axis in drawn[-1]:
+        if axis.get_xticks().size:
+            assert axis.get_xscale() == "log"
+            # Fewer than three doublings in range, so the ticks add 0.75 between them.
+            assert list(axis.get_xticks()) == [0.5, 0.75, 1.0]
+
+
 def test_charts_embed_the_glyphs_of_their_serif(tmp_path: Path) -> None:
     import base64
     import io
@@ -373,7 +426,9 @@ def test_build_all_writes_every_registered_figure(tmp_path: Path) -> None:
     assert saved == captions
     # n is counted from the frame each figure draws and says what it counts.
     n_speed = int(frames["speed_severity_pooled"].speed_crashes.sum())
-    assert captions["f1_speed_severity"].endswith(f"n = {n_speed:,} speed-related crashes.")
+    assert captions["f1_speed_severity"].endswith(
+        f"n = {n_speed:,} crashes with inappropriate speed recorded."
+    )
     n_drivers = int(frames["q9_infraction_shares"].query("zone == 'all'").total.sum())
     assert captions["c3_speed_status"].endswith(f"n = {n_drivers:,} drivers.")
     if EXPECTED_DRIVER_FIGURES:

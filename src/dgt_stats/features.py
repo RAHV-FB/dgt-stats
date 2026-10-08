@@ -88,8 +88,10 @@ PREDICTORS: dict[str, dict[str, object]] = {
     },
     "crash_type": {
         "source": "TIPO_ACCIDENTE",
+        # DGT code 2 is a front-side collision ("fronto-lateral") and code 3 a side collision
+        # ("lateral"); the reference level holds both, so its label names both.
         "levels": [
-            "side collision",
+            "side or front-side collision",
             "rear-end or chain collision",
             "pedestrian struck",
             "run-off or overturn",
@@ -100,8 +102,8 @@ PREDICTORS: dict[str, dict[str, object]] = {
         ],
         "map": {
             1: "head-on collision",
-            2: "side collision",
-            3: "side collision",
+            2: "side or front-side collision",
+            3: "side or front-side collision",
             4: "rear-end or chain collision",
             5: "rear-end or chain collision",
             6: "object or animal struck",
@@ -124,8 +126,9 @@ PREDICTORS: dict[str, dict[str, object]] = {
     },
     "junction": {
         # Only the yes/no field is used; the junction type (NUDO_INFO) is not. From 2023 the
-        # at-junction share rises from 38 % to 44 %, mostly in Barcelona, and NUDO_INFO stops
-        # being empty exactly when NUDO says "not at a junction"; the level pools both regimes.
+        # at-junction share rises from 38 % to 44 %, almost all of it in Catalonia (38 % to 62 %
+        # of Catalan crashes), and NUDO_INFO stops being empty exactly when NUDO says "not at a
+        # junction". The full model pools both regimes; ``models.period_refits`` fits them apart.
         "source": "NUDO",
         "levels": ["not at a junction", "at a junction"],
         "map": {2: "not at a junction", 1: "at a junction"},

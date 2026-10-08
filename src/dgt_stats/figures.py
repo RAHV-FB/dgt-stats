@@ -468,18 +468,20 @@ def _factor_figures(figures_dir: Path, captions: dict[str, str], summary) -> Non
         "ratio_high",
         figures_dir / "f1_speed_severity.svg",
         "Deaths per crash when speed is recorded, against other crashes",
-        xlabel="Ratio of deaths per 100 crashes (dotted line: the same)",
+        xlabel="Ratio of deaths per 100 crashes, log scale (dotted line: the same)",
         reference=1.0,
         style="kind",
         group="block",
+        log=True,
     )
     captions["f1_speed_severity"] = _caption(
         "Deaths within 30 days per 100 injury crashes in which the police recorded "
         "inappropriate speed, as a ratio to the same rate in the other injury crashes on the "
         "same type of road, Spain outside Catalonia and the Basque Country, 2016–2023 pooled, "
-        "with 95% intervals",
+        "with 95% intervals that allow for year-to-year variation (for the adjusted ratio, also "
+        "for the differences between road types)",
         f"{SPEED_REPORT_SOURCE}; {MICRODATA_SOURCE}",
-        f"{int(pooled.speed_crashes.sum()):,} speed-related crashes",
+        f"{int(pooled.speed_crashes.sum()):,} crashes with inappropriate speed recorded",
     )
 
     shares = summary("factor_shares")
@@ -557,7 +559,8 @@ def _severity_figures(figures_dir: Path, captions: dict[str, str]) -> None:
     captions["s1_forest_fatal"] = _caption(
         "Odds ratios for at least one death in an injury crash, by crash circumstance, from a "
         "logistic regression that also includes the year, against reference levels (hollow "
-        f"markers), with 95% intervals, Spain, {years.min()}–{years.max()}"
+        f"markers), with 95% intervals, Spain, {years.min()}–{years.max()}; zone and road "
+        "type describe one location between them and are read together"
         + note
         + (
             "; levels that record a missing value are in the model but not drawn"
@@ -586,10 +589,11 @@ def _severity_figures(figures_dir: Path, captions: dict[str, str]) -> None:
             for level in ("wet", "rain", "hail or snow", "at a junction")
             if level.capitalize() in set(fatal.level.map(str.capitalize))
         ],
-        xlabel="Odds ratio against the reference level (dotted line: no difference)",
+        xlabel="Odds ratio against the reference level, log scale (dotted line: no difference)",
         reference=1.0,
         from_zero=False,
         shared=True,
+        log=True,
     )
     captions["s2_adverse_conditions"] = _caption(
         "Odds ratios for at least one death in an injury crash under each adverse condition "
@@ -798,7 +802,8 @@ def _policy_figures(figures_dir: Path, captions: dict[str, str], summary) -> Non
         "Estimated change in the level of monthly deaths at 1 July 2006 and at every other "
         f"July of {july.min()}–{july.max()} whose window avoids July 2006 and the pandemic, "
         "each from the same segmented regression on 60 months before and 17 after, Spain, "
-        "with 95% intervals; the filled marker is July 2006",
+        "with model-based 95% intervals, which these placebos show to be too narrow; the "
+        "filled marker is July 2006",
         SERIES_SOURCE,
         f"{int(placebo.n_fits.iloc[0])} fits",
     )

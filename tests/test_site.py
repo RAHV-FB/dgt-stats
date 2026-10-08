@@ -1,6 +1,7 @@
 import re
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -224,7 +225,34 @@ def test_severity_page_leads_with_the_adverse_finding(built: Path) -> None:
     assert components._fmt_pct(float(holdout.loc["fatal", "brier_skill"])) in text
     # The full coefficient table is linked, not printed.
     assert 'href="tables/q3_model_coefficients.csv"' in text
-    assert text.count("<table>") <= 3
+    assert text.count("<table>") <= 4
+    # The summary names location beside crash type, from the joint zone and road-type contrast,
+    # and gives the junction association by coding period, not pooled across the change.
+    opening = re.search(r'<p class="summary">(.*?)</p>', text, re.S).group(1)
+    locations = pd.read_csv(TABLES_DIR / "q3_location_contrasts.csv")
+    conventional = locations[
+        (locations.outcome == "fatal")
+        & (locations.zone == "interurban road")
+        & (locations.road == "conventional")
+    ].iloc[0]
+    assert f"{conventional.odds_ratio:.2f} times the odds" in opening
+    assert "side or front-side collision" in opening
+    periods = pd.read_csv(TABLES_DIR / "q3_period_refits.csv")
+    junction = periods[
+        (periods.outcome == "fatal")
+        & (periods.level == "at a junction")
+        & (periods.scope == "all provinces")
+    ].set_index("period")
+    for period in ("before", "from"):
+        assert f"({junction.loc[period, 'odds_ratio']:.2f}" in opening
+    assert "in every model variant, and so does that of the junction" not in text
+    # The ranking is quoted with what the missing-value levels contribute to it.
+    assert f"{holdout.loc['fatal', 'auc_recorded_only']:.2f}" in text
+    assert f"{holdout.loc['fatal', 'auc_missing_only']:.2f}" in text
+    assert "the two regressions keep their ordering" in text
+    # The weekend is defined, and the file's per-crash counts are not called absent.
+    assert "from 20:00 on Friday" in text
+    assert "no fields for drivers" not in text
 
 
 def test_drivers_page_separates_the_two_questions(built: Path) -> None:
@@ -305,11 +333,23 @@ def test_policy_page_reports_the_falsification_not_the_headline(built: Path) -> 
     forecast = pd.read_csv(TABLES_DIR / "q8_points_forecast.csv")
     true_forecast = forecast[forecast.is_true].iloc[0]
     ordinal = components._ordinal(int(true_forecast["rank"]))
-    assert f"{ordinal} of {int(true_forecast.n_fits)}" in text
+    assert f"{ordinal} largest of {int(true_forecast.n_fits)}" in text
+    # The forecast shortfall is printed as the proportional change the rank orders.
+    assert f"{abs(np.expm1(true_forecast.log_ratio)) * 100:.1f}% below their forecast" in text
     assert 'src="figures/p2_july_placebos.svg"' in text
     # The fall is not attributed to the licence, and the 2019 study is a collapsed note.
     opening = re.search(r'<p class="summary">(.*?)</p>', text, re.S).group(1)
     assert "cannot show that the licence caused" in opening
+    # The step is never quoted without what the slope change does to it: the summary gives the
+    # average over the post-period with its interval, and says the intervals are too narrow.
+    main_row = sensitivity.loc["main"]
+    assert f"{abs(main_row.mean_change) * 100:.1f}% below the projection" in opening
+    assert components._signed_pct(float(main_row.mean_high), 1) in opening
+    calibration = pd.read_csv(TABLES_DIR / "q8_points_calibration.csv").iloc[0]
+    assert f"at {int(calibration.n_excluding_zero)} of the {int(calibration.n_placebos)}" in opening
+    assert "too narrow" in opening
+    assert components._signed_pct(float(calibration.calibrated_low)) in text
+    assert "strong evidence" not in text and "QAIC" in text
     assert "2019" in text and 'src="figures/q8_speed_series.svg"' not in text
     # The exposure series are named and their effect reported; the toll series is its
     # intensity, which does not step with the network's length, and no offset is used.
@@ -327,6 +367,14 @@ def test_speed_page_carries_severity_and_the_recording_discontinuity(built: Path
     assert f"{adjusted.rate_ratio:.2f} times" in opening
     assert f"{adjusted.ratio_low:.2f}–{adjusted.ratio_high:.2f}" in opening
     assert f"{adjusted.crude_ratio:.2f}" in opening  # the unadjusted ratio is shown beside it
+    # The road-type ratios differ, so the summary gives their range and calls the adjusted ratio
+    # a weighted summary; the home page says the same, with the pooled years.
+    assert f"{pooled.loc['dual_carriageway', 'rate_ratio']:.2f} times on dual" in opening
+    assert f"{pooled.loc['urban', 'rate_ratio']:.2f} times on urban streets" in opening
+    assert "weighted summary" in opening
+    home = (built / "index.html").read_text(encoding="utf-8")
+    assert f"{pooled.loc['urban', 'rate_ratio']:.1f} times on urban streets" in home
+    assert "Over 2016–2023, those crashes" in home
     # The summary says plainly that a recorded factor is an association, not a cause.
     assert (
         "Police-recorded inappropriate speed is associated with greater crash severity" in opening
@@ -367,6 +415,14 @@ def test_factors_page_reads_trends_only_within_comparable_runs(built: Path) -> N
     assert "break in comparability" in text and "Drugs" in text
     # A break is a threshold, never an explanation of what changed.
     assert "cannot say whether a break" in text and "from recording or from both" in text
+    # The summary gives the fall in recorded speed within each kind of road, not only the
+    # all-roads fall that the shift towards urban crashes enlarges, and makes no claim that the
+    # recording is consistent.
+    opening = re.search(r'<p class="summary">(.*?)</p>', text, re.S).group(1)
+    speed = windows[windows.factor == "Inappropriate speed"].set_index("zone")
+    for zone in ("interurban", "urban", "all"):
+        assert f"{speed.loc[zone, 'share_last'] * 100:.1f}%" in opening
+    assert "recording is consistent" not in opening and "point to changes in recording" not in text
 
 
 def test_trend_pages_show_every_denominator_and_the_projection(built: Path) -> None:
