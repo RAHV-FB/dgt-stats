@@ -10,9 +10,10 @@ import math
 
 import pandas as pd
 
-from dgt_stats import policy
+from dgt_stats import policy, risk_trends
 from dgt_stats.site.components import (
     DOCS_URL,
+    _fmt_pct,
     _join,
     _ordinal,
     _signed_pct,
@@ -25,7 +26,7 @@ from dgt_stats.site.components import (
     table,
     technical,
 )
-from dgt_stats.site.numbers import _policy_numbers
+from dgt_stats.site.numbers import _long_run_numbers, _policy_numbers
 
 # Human labels for the specifications in ``q8_points_sensitivity``. The two whose labels carry a
 # date keep the table's own wording, lightly rephrased (see ``_specification_label``).
@@ -166,8 +167,9 @@ def page_policy(captions: dict[str, str]) -> str:
     lasting = sensitivity[sensitivity.mean_high < 0]
     # The 30-day and 24-hour series before and after the year their monthly ratio starts to vary.
     regime_from = int(definitions.regime_from.iloc[0])
-    early_ratio = definitions[~definitions.later_regime.astype(bool)]
-    late_ratio = definitions[definitions.later_regime.astype(bool)]
+    # The steep segment of the long-run count, against which a fall across one July is read.
+    segments = _long_run_numbers()["segments"].query("measure == 'count'")
+    steep = segments[(segments.start <= it.date.year) & (segments.end > it.date.year)].iloc[0]
     window_years = definitions[definitions.year.between(it.pre_start.year, it.post_end.year)]
     # The Julys the placebo design leaves out inside its range, and why: their windows hold the
     # true July.
@@ -275,6 +277,12 @@ def page_policy(captions: dict[str, str]) -> str:
         < 0.02,
         "the fitted window lies before the year the monthly 30-day to 24-hour ratio starts to "
         "vary": it.post_end.year < regime_from and not window_years.later_regime.astype(bool).any(),
+        "that year is the first DGT counted 30-day deaths directly": regime_from
+        == risk_trends.DEATHS_30D_COUNTED_FROM,
+        "the change falls inside the steep segment of the long-run count, and the fall across "
+        "it is no larger than a year of that segment's decline": float(steep.annual_change) < 0
+        and abs(math.expm1(float(true_transition.twelve_month_ratio)))
+        < abs(float(steep.annual_change)) * 1.25,
     }
     failed = [claim for claim, holds in checks.items() if not holds]
     if failed:
@@ -377,9 +385,10 @@ def page_policy(captions: dict[str, str]) -> str:
         f"{int(runner_up.year)} gives {_signed_pct(float(runner_up.level_change), 1)} and July "
         f"{int(third.year)} {_signed_pct(float(third.level_change), 1)}, and their intervals "
         f"overlap. If the licence had changed nothing, July {it.date.year} would still rank "
-        f"first one time in {int(true_calendar.n_fits)} (a one-sided p-value of about "
-        f"{1 / float(true_calendar.n_fits):.2f}), which falls short of conventional "
-        "significance.</p>"
+        f"first one time in {int(true_calendar.n_fits)}, a one-sided p-value of about "
+        f"{1 / float(true_calendar.n_fits):.2f}. That is the smallest this test can give with "
+        f"{int(true_calendar.n_fits)} Julys, so it cannot reach conventional significance; the "
+        "narrow margin over the next July is the better guide.</p>"
         "<p>The same fits show that the model's own intervals are too narrow. At "
         f"{int(calibration.n_excluding_zero)} of the {int(calibration.n_placebos)} other Julys, "
         "where nothing was introduced, the 95% interval lies entirely on one side of zero; an "
@@ -419,7 +428,10 @@ def page_policy(captions: dict[str, str]) -> str:
         f"{abs(math.expm1(float(true_transition.twelve_month_ratio))) * 100:.1f}% across July "
         f"{it.date.year}, the {_ordinal(int(true_transition['rank']))} largest fall of the "
         f"{int(true_transition.n_ranked)} years that can be measured. The larger falls all came "
-        f"later, in {_join([str(int(year)) for year in sorted(larger.year)])}.</p>"
+        f"later, in {_join([str(int(year)) for year in sorted(larger.year)])}. This comparison "
+        f"does not remove the trend: over {int(steep.start)}–{int(steep.end)} deaths fell about "
+        f"{_fmt_pct(abs(float(steep.annual_change)), 0)} a year, so a fall of this size across "
+        "one July is what the trend alone would give.</p>"
     )
     largest = ranked.nsmallest(8, "twelve_month_ratio")
     show = pd.concat([largest, ranked[ranked.year == it.date.year]]).drop_duplicates("year")
@@ -507,13 +519,11 @@ def page_policy(captions: dict[str, str]) -> str:
             f"Change in deaths at {break_month} and averaged over the {post_months} months from "
             f"it under each specification, with model-based 95% intervals, which the July "
             "placebos show to be too narrow; monthly deaths "
-            f"{_month(it.pre_start)} to {_month(it.post_end)} unless stated. Before "
-            f"{regime_from} the monthly ratio of 30-day to 24-hour deaths varies little within a "
-            "year (a standard deviation of at most "
-            f"{float(early_ratio.sd.max()):.3f}, against at least "
-            f"{float(late_ratio.sd.min()):.3f} from {regime_from}), so the 30-day counts of the "
-            "fitted window appear to be derived from the 24-hour counts, and the 24-hour "
-            "specification repeats the main one rather than checking it.",
+            f"{_month(it.pre_start)} to {_month(it.post_end)} unless stated. Until "
+            f"{regime_from - 1} DGT estimated 30-day deaths from 24-hour deaths with correction "
+            "factors (see Long-run trends), so the 30-day counts of the "
+            "fitted window are derived from the 24-hour counts, and the 24-hour specification "
+            "repeats the main one rather than checking it.",
         ),
     )
     body += technical(

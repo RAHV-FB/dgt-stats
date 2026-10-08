@@ -1169,7 +1169,7 @@ def speed_limit_fits() -> dict[str, pd.DataFrame]:
     main = did_fit(panel, it)
     variants: list[tuple[str, ItsFit, pd.Timestamp, pd.Timestamp]] = [
         (
-            "Main: conventional against motorways and dual carriageways, Poisson",
+            "Design as specified: conventional against motorways and dual carriageways, Poisson",
             main,
             it.pre_start,
             it.post_end,
@@ -1198,6 +1198,8 @@ def speed_limit_fits() -> dict[str, pd.DataFrame]:
     )
     control = [_change(fit.coefficients, "post")[0] for _, fit, _, _ in variants]
     sensitivity["control_change"] = control
+    # Every row is a fit of a design that fails its placebo test: none is an estimate.
+    sensitivity.insert(0, "status", "not an estimate: the design fails its placebo test")
     return {
         "q8_speed_placebo": did_placebos(panel, it),
         "q8_speed_sensitivity": sensitivity,

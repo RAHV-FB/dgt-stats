@@ -221,6 +221,23 @@ def page_trends(captions: dict[str, str]) -> str:
     def size(frame: pd.DataFrame, key: str) -> str:
         return _size(float(frame.loc[key, "ratio_to_base"]))
 
+    # The only rise beyond ordinary variation is in admissions per tonne of fuel: the extra
+    # yearly growth in kilometres per tonne that would bring its lower bound to no change.
+    hosp_drift = float(hosp.loc["road_fuel", "ratio_low_yty"]) ** (1 / (last - base)) - 1
+    hosp_other = [key for key in PER if key not in ("count", "road_fuel")]
+    _check(
+        float(hosp.loc["road_fuel", "ratio_low_yty"]) > 1
+        and all(float(hosp.loc[key, "ratio_low_yty"]) <= 1 for key in hosp_other)
+        and 0 < hosp_drift < 0.01,
+        "admissions rise beyond ordinary variation only per tonne of fuel, and a small drift in "
+        "kilometres per tonne would bring that within it",
+    )
+    _check(
+        all(not bool(row.outside_interval) for row in later_rows),
+        "for a trend started with the count's last turning point, neither year is outside the "
+        "range",
+    )
+
     recent_link = '<a href="long-run.html#recent-years">Long-run trends</a>'
     body = summary(
         f"Spain recorded {_fmt_int(deaths.loc['count', 'count'])} road deaths in {last}, "
@@ -232,10 +249,12 @@ def page_trends(captions: dict[str, str]) -> str:
         f"{_fmt_pct(-trend_slope, 0)} a year, the rate in {last - 1} and {last} was "
         f"{_size(above[0].ratio, 0)} and {_size(above[1].ratio, 0)} above the projected trend, "
         f"outside its range, or {_size(later_rows[0].ratio, 0)} and "
-        f"{_size(later_rows[1].ratio, 0)} for a trend started in {int(count_trend)} "
-        f"({recent_link}). The number of people admitted to hospital after a crash rose "
-        f"{size(hosp, 'count')} as a count, at the edge of ordinary variation, and "
-        f"{size(hosp, 'road_fuel')} per tonne of road fuel, beyond it."
+        f"{_size(later_rows[1].ratio, 0)} for a trend started in {int(count_trend)}, within "
+        f"its range ({recent_link}). The number of people admitted to hospital after a crash "
+        f"rose {size(hosp, 'count')} as a count, at the edge of ordinary variation, and "
+        f"{size(hosp, 'road_fuel')} per tonne of road fuel, beyond it; that excess would "
+        f"disappear if kilometres per tonne of fuel had grown {_fmt_pct(hosp_drift)} a year "
+        "faster than before."
     )
     body += figure(
         "r1_risk_change",
@@ -249,8 +268,8 @@ def page_trends(captions: dict[str, str]) -> str:
 
     crash_width = (dispersion["crashes"] ** 0.5) * quantile / NORMAL_QUANTILE
     body += (
-        "<h2>Deaths moved within ordinary variation, but hospital admissions per tonne of fuel "
-        "rose beyond it</h2>"
+        "<h2>Deaths moved within ordinary variation; hospital admissions rose beyond it only per "
+        "tonne of fuel</h2>"
         "<p>An ordinary year's variation is how far each annual count moved around its trend "
         f"over {scatter_years}, the last segment of the long-run trend before the pandemic. A "
         "change outside the interval in the table is larger than the count usually moves from "
@@ -409,7 +428,9 @@ def page_trends(captions: dict[str, str]) -> str:
     )
     body += limitation(
         "The denominators are national totals that weight every resident, licence, vehicle and "
-        "tonne of fuel alike. The intervals allow for the year-to-year variation of the casualty "
+        "tonne of fuel alike. The casualties include visitors, foreign and unlicensed drivers "
+        "and the occupants of foreign-registered vehicles, whom no denominator counts. The "
+        "intervals allow for the year-to-year variation of the casualty "
         "counts, and for the uncertainty of that variation, but treat every denominator as "
         "exact."
     )

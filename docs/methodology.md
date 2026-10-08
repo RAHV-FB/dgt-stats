@@ -868,8 +868,9 @@ Four falsification tests, each aimed at a specific alternative explanation:
   `q8_points_transitions.csv`), so moving the break to arbitrary months does not answer whether the
   summer of 2006 was unusual. The same model is refitted with the break at 1 July of every year
   whose window is clean: 60 months before, 17 after, never containing the true intervention or the
-  pandemic. The true break is refitted on the same shape. July 2006 ranks first of fifteen, but the
-  runner-up is close, so the one-sided empirical p-value is about 0.07.
+  pandemic. The true break is refitted on the same shape. July 2006 ranks first of fifteen, so the
+  one-sided empirical p-value is 1/15, about 0.07: the smallest this test can give with fifteen
+  Julys, so it cannot reach 0.05. The runner-up is close, which is the better guide.
 - **What the placebos say about the intervals** (`placebo_calibration`). At 6 of the 14 placebo
   Julys the model's Newey–West 95 % interval excludes zero, where a correct interval would do so
   about 0.7 times; the placebo steps have a standard deviation 2.5 times the model's median standard
@@ -883,7 +884,9 @@ Four falsification tests, each aimed at a specific alternative explanation:
   June to July, July to August and August to September, and the log ratio of the twelve months from
   July to the twelve months before. The last statistic has the same twelve calendar months on each
   side, so seasonality cancels exactly and no model is involved. July 2006 is the fourth largest
-  fall of the 27 years that can be measured; 2019–2021 are excluded from the ranking.
+  fall of the 27 years that can be measured; 2019–2021 are excluded from the ranking. The statistic
+  does not remove the trend: over 2003–2013 deaths fell about 11 % a year, so a fall of that size
+  across one July is what the trend alone gives.
 - **Out-of-sample forecasts** (`forecast_validation`). The 60 months before each July are fitted
   with a trend and month terms and *no* intervention term, and the next 17 months are forecast. The
   statistic is the log ratio of observed to predicted over that window, and the Julys are ranked by
@@ -907,11 +910,12 @@ Four falsification tests, each aimed at a specific alternative explanation:
 Other sensitivity fits: quadratic trend; a knot fixed at January 2004; 24-hour deaths; interurban
 and urban deaths separately; a level change without the slope term; a negative binomial whose
 dispersion is set by moments from the Poisson fit; and the window extended to December 2009 with a
-second break at the Penal Code reform. The 24-hour fit is not an independent check: up to 2010 the
-monthly ratio of 30-day to 24-hour deaths has a within-year standard deviation of at most 0.024,
-against at least 0.027 in every year from 2011 (`death_definition_ratio`,
-`q8_points_death_definitions.csv`), which suggests the earlier 30-day counts were derived from the
-24-hour ones. The Penal Code reform and the 2008 recession bear on the extended window, not on the
+second break at the Penal Code reform. The 24-hour fit is not an independent check: until 2010 DGT
+estimated 30-day deaths from 24-hour deaths with correction factors (Anuario estadístico de
+accidentes 2014, annex II), so the 30-day counts of the window are derived from the 24-hour ones.
+The within-year spread of the monthly ratio (`q8_points_death_definitions.csv`, at most 0.024 up to
+2010 against at least 0.027 from 2011) is consistent with that but does not show it, because
+monthly counts fell by about two thirds over those years and smaller counts scatter more. The Penal Code reform and the 2008 recession bear on the extended window, not on the
 17-month window, which ends before both; inside that window the step competes with the 2003
 steepening and with July-to-July movements of similar size.
 

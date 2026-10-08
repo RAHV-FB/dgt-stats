@@ -233,6 +233,11 @@ def page_long_run(captions: dict[str, str]) -> str:
     def needed(year: int) -> float:
         return float(at_pace.loc[year, "ratio_low"]) ** (1 / (year - fit_end)) - 1
 
+    def points_up(rate: float) -> str:
+        """A rate in percentage points, rounded up to one decimal, so that the stated drift is
+        always enough."""
+        return f"{math.ceil(rate * 1000) / 10:.1f}"
+
     # Conventional roads, single and dual carriageway, against autopistas and autovías.
     roads = read_table("road_class_risk")
     road_year = int(roads.year.max())
@@ -241,6 +246,19 @@ def page_long_run(captions: dict[str, str]) -> str:
     road_deaths = float(conventional.deaths_per_bn_km / motorway.deaths_per_bn_km)
     road_crashes = float(conventional.injury_crashes_per_bn_km / motorway.injury_crashes_per_bn_km)
     road_deadly = road_deaths / road_crashes
+    # Kilometres are taken as exact; the interval allows for Poisson error in the two death counts.
+    road_log_se = math.sqrt(1 / float(conventional.deaths) + 1 / float(motorway.deaths))
+    road_low = road_deaths * math.exp(-risk_trends.NORMAL_QUANTILE * road_log_se)
+    road_high = road_deaths * math.exp(risk_trends.NORMAL_QUANTILE * road_log_se)
+    all_roads = read_table("road_class_risk").pivot(
+        index="year", columns="road_class", values="deaths_per_bn_km"
+    )
+    road_years = all_roads.conventional / all_roads.motorway
+    # DGT's inspection-based kilometres, the other source, over their own years.
+    crosscheck = read_table("risk_km_crosscheck").dropna(subset=["billion_km_ratio"])
+    dgt_km_end = crosscheck.iloc[-1]
+    dgt_per_tonne = float(dgt_km_end.billion_km_ratio / dgt_km_end.road_fuel_tonnes_ratio) - 1
+    dgt_years = f"{int(crosscheck.year.iloc[0])}–{int(dgt_km_end.year)}"
 
     # The prose below states each of these; stop if the tables stop supporting them.
     checks = {
@@ -628,9 +646,9 @@ def page_long_run(captions: dict[str, str]) -> str:
         "the kilometres a tonne of fuel represents kept changing after "
         f"{fit_end} at their pace of {fuel_start}–{fit_end}, which no series can check on all "
         'roads (<a href="trends.html#road-fuel">road fuel as a measure of traffic</a>). Had '
-        f"they grown faster by {needed(last - 1) * 100:.1f} percentage points a year from "
+        f"they grown faster by {points_up(needed(last - 1))} percentage points a year from "
         f"{pandemic}, the {last - 1} excess would fall within the range; for {last}, "
-        f"{needed(last) * 100:.1f} points would be enough. On interurban roads, where "
+        f"{points_up(needed(last))} points would be enough. On interurban roads, where "
         "kilometres are measured, kilometres per tonne of national fuel did grow faster by "
         'more than that (<a href="#interurban">below</a>).</p>'
     )
@@ -638,7 +656,10 @@ def page_long_run(captions: dict[str, str]) -> str:
         ("main", "Last segment refitted, as above"),
         (other_start, f"Last segment from {plateau_start} for every measure"),
         ("normal_quantile", "Last segment refitted, normal quantile in place of Student's t"),
-        ("joinpoint", f"Joinpoint trend continued, scatter of the whole {first}–{fit_end} fit"),
+        (
+            "joinpoint",
+            f"Joinpoint trend continued, scatter of the whole {first}–{fit_end} fit, normal quantile",
+        ),
         ("deaths_24h", "Deaths within 24 hours, turning points searched again"),
     ]
     columns = [
@@ -672,7 +693,10 @@ def page_long_run(captions: dict[str, str]) -> str:
         "<p>The Ministerio de Transportes measures, by traffic counts, the vehicle-kilometres "
         "travelled each year on the interurban roads of the State, the regions and the "
         "provincial councils. Dividing interurban deaths by them gives the only available "
-        "series whose numerator and denominator cover nearly the same roads. Over "
+        "series whose numerator and denominator cover nearly the same roads. The latest "
+        f"year, {km_last}, is partly estimated: the yearbook keeps the regional and provincial "
+        "networks' lengths of the year before and takes the State network's traffic as the "
+        "reference for all networks. Over "
         f"{km_first}–{fit_end} (the kilometre series is comparable only from {km_comparable}) "
         f"the same trend model places the last turning point in {km_base}, and the trend "
         f"refitted to {km_base}–{fit_end} falls {_fmt_pct(-float(km_row.projection_annual_change))} "
@@ -699,8 +723,13 @@ def page_long_run(captions: dict[str, str]) -> str:
         f"{_fmt_int(per_tonne.loc[fit_end])} to {_fmt_int(per_tonne.loc[km_last])}), "
         f"{drift_extra * 100:.1f} percentage points a year faster. Had kilometres per tonne "
         f"grown that much faster on all roads, the {km_last} excess in deaths per tonne of fuel "
-        '(<a href="#recent-years">above</a>) would fall within its range. On all roads, deaths '
-        "per kilometre are not measured.</p>"
+        '(<a href="#recent-years">above</a>) would fall within its range. The other source '
+        "points the other way: DGT's inspection-based kilometres, which start in "
+        f"{dgt_years.split('–')[0]}, put kilometres per tonne of fuel "
+        f"{_fmt_pct(abs(dgt_per_tonne))} {'lower' if dgt_per_tonne < 0 else 'higher'} in "
+        f"{dgt_years.split('–')[1]} than in {dgt_years.split('–')[0]} "
+        '(<a href="trends.html#road-fuel">road fuel as a measure of traffic</a>). On all '
+        "roads, deaths per kilometre are not measured.</p>"
     )
     body += figure(
         "l4_km_against_fuel",
@@ -711,17 +740,20 @@ def page_long_run(captions: dict[str, str]) -> str:
         captions,
     )
     body += (
-        f'<h2 id="road-types">Conventional roads have {road_deaths:.2f} times the deaths per '
-        "kilometre of motorways</h2>"
+        f'<h2 id="road-types">Conventional roads have {road_years.min():.0f} to '
+        f"{road_years.max():.0f} times the deaths per kilometre of motorways</h2>"
         "<p>The measured kilometres also separate road types. Counting only deaths and injury "
         f"crashes on the networks whose traffic is measured, conventional roads, single and "
         f"dual carriageway, had {_fmt_dec(conventional.deaths_per_bn_km, 2)} deaths per "
         f"billion vehicle-kilometres in {road_year} and motorways (autopistas and autovías) "
         f"{_fmt_dec(motorway.deaths_per_bn_km, 2)}: {road_deaths:.2f} times as many on "
-        f"conventional roads. That ratio combines {road_crashes:.2f} times as many injury "
-        f"crashes per kilometre with {road_deadly:.2f} times as many deaths per injury crash, "
-        "so more of the difference lies in how often crashes happen than in how deadly they "
-        "are.</p>"
+        f"conventional roads (95% interval {road_low:.2f}–{road_high:.2f}). Over "
+        f"{int(road_years.index.min())}–{int(road_years.index.max())} the ratio ran from "
+        f"{road_years.min():.2f} to {road_years.max():.2f}. In {road_year} it combines "
+        f"{road_crashes:.2f} times as many injury crashes per kilometre with "
+        f"{road_deadly:.2f} times as many deaths per injury crash; that split depends on how "
+        "completely injury crashes are recorded on each kind of road "
+        '(<a href="data.html#rates">frequency and severity</a>).</p>'
     )
 
     body += limitation(

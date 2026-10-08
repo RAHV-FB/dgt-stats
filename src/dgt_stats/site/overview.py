@@ -162,6 +162,16 @@ def _long_run() -> str:
                 (per_fuel_recent > 1).all()
             ),
             "both trend starts are present": len(per_fuel_recent) == 4,
+            "with the later start, neither year is outside the trend's range": not bool(
+                projections[
+                    (projections.measure == "road_fuel")
+                    & (projections.variant == other_start)
+                    & projections.year.isin([last - 1, last])
+                ].outside_interval.any()
+            ),
+            "deaths per measured interurban kilometre stayed within their range": not bool(
+                read_table("longrun_km_check").query("measure == 'per_km'").outside_interval.any()
+            ),
         },
     )
     trend = _finding(
@@ -176,7 +186,9 @@ def _long_run() -> str:
         f"road fuel in {last - 1} and {last} were higher than projected, by "
         f"{_fmt_pct(float(per_fuel_recent.min()) - 1, 0)} to "
         f"{_fmt_pct(float(per_fuel_recent.max()) - 1, 0)} depending on where that trend is "
-        "taken to start.",
+        f"taken to start; with the trend started in {int(flat.start)}, neither year lies "
+        "outside the trend's range, and on interurban roads deaths per measured kilometre "
+        "stayed within theirs.",
         [
             ("long-run", "Long-run trends"),
             ("long-run#recent-years", "Recent years against the trend"),
@@ -327,9 +339,9 @@ def _models() -> str:
         "Among crashes in Catalonia in which someone was killed or seriously injured, the same "
         "crash on a regional road was fatal "
         f"{float(heavy.ratio):.1f} times as often with a lorry or bus involved (95% interval "
-        f"{float(heavy.ratio_low):.1f}–{float(heavy.ratio_high):.1f}), and about half as often "
-        f"({float(urban.ratio):.2f} times) on an urban street, other recorded circumstances "
-        "held equal. A calculator gives the model's estimate for a crash a reader "
+        f"{float(heavy.ratio_low):.1f}–{float(heavy.ratio_high):.1f}), and on an urban street "
+        f"rather than a regional road about half as often ({float(urban.ratio):.2f} times), "
+        "other recorded circumstances held equal. A calculator gives the model's estimate for a crash a reader "
         "describes; it has been tested only within Catalonia, on years it had not seen.",
         [
             ("severity-models", "Severity model and calculator"),
