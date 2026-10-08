@@ -12,7 +12,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from dgt_stats.emef import distance, exposure, ingest
+from dgt_stats.emef import distance, exposure, ingest, publication
 from dgt_stats.emef import variables as v
 
 
@@ -176,9 +176,52 @@ def test_bounded_ratio_reproduces_the_report_mean() -> None:
 
 
 def test_band_table_shares_sum_to_one() -> None:
-    table = exposure.km_by_band()
+    table = exposure.km_by_band(publishable=False)
     sums = table.groupby("age4")[["share_of_trips", "share_of_km"]].sum()
     assert np.allclose(sums, 1.0)
+
+
+def _assert_publishable(table: pd.DataFrame, count: str, measures: list[str]) -> None:
+    small = table[count] < publication.MIN_SAMPLE_OBSERVATIONS
+    assert (table.suppressed == small).all()
+    assert table.loc[small, measures].isna().all().all()
+    assert table.loc[~small, measures].notna().all().all()
+
+
+def test_band_table_suppresses_bands_with_fewer_than_20_trips() -> None:
+    table = exposure.km_by_band()
+    measures = ["share_of_trips", "share_of_km", "mean_straight_km", "median_road_speed_kmh"]
+    _assert_publishable(table, "sample_trips", measures)
+    # The cells the drivers page combines: trips of 100 km or more at 45-64 and 65+.
+    long = table[table.band == "100 km or more"].set_index("age4")
+    assert long.loc[["45-64", "65+"], "share_of_km"].notna().all()
+
+
+def test_frequency_table_suppresses_answers_of_fewer_than_20_respondents() -> None:
+    table = exposure.usual_frequency()
+    _assert_publishable(table, "respondents", ["share_of_age", "share_drove_on_reference_day"])
+
+
+def test_suppression_follows_the_survey_rule() -> None:
+    frame = pd.DataFrame({"n": [19, 20, 400, 25, 30], "x": [0.1, 0.2, 0.3, 0.4, 0.5]})
+    out = publication.suppress_small_cells(frame, "n", ["x"], flag=True)
+    assert out.x.isna().tolist() == [True, False, False, False, False]
+    assert out.suppressed.tolist() == [True, False, False, False, False]
+    assert out.n.tolist() == frame.n.tolist()
+    # A table with fewer than 60% of its cells publishable may not be published at all.
+    with pytest.raises(ValueError):
+        publication.suppress_small_cells(frame.assign(n=[5, 5, 400, 5, 30]), "n", ["x"])
+
+
+def test_the_rule_is_the_one_every_dictionary_states() -> None:
+    import openpyxl
+
+    for year in v.YEARS:
+        path = ingest.RAW_EMEF_DIR / str(year) / f"emef_{year}_dictionary.xlsx"
+        sheet = openpyxl.load_workbook(path, read_only=True)["Sumari"]
+        text = " ".join(str(c) for row in sheet.iter_rows(values_only=True) for c in row if c)
+        assert "mínim de 20 observacions mostrals" in text, year
+        assert "mínim del 60% de les cel·les" in text, year
 
 
 def test_duration_only_distance_matches_the_band_on_short_trips() -> None:
@@ -189,6 +232,8 @@ def test_duration_only_distance_matches_the_band_on_short_trips() -> None:
         assert abs(table.loc[duration, "bounded_relative"] - 1) < 0.05
     assert abs(table.loc["all", "bounded_relative"] - 1) < 0.10
     assert (table.sample_trips > 0).all()
+    measures = [c for c in table.columns if c not in ("sample_trips", "suppressed")]
+    _assert_publishable(table.reset_index(), "sample_trips", measures)
 
 
 def test_a_band_out_of_reach_in_the_duration_is_flagged() -> None:

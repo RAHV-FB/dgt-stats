@@ -16,7 +16,7 @@ import numpy as np
 import pandas as pd
 
 from dgt_stats import edm2018
-from dgt_stats.emef import exposure
+from dgt_stats.emef import exposure, publication
 from dgt_stats.emef import variables as emef_variables
 from dgt_stats.exposure_risk import barcelona as city_design
 from dgt_stats.exposure_risk import calendar as day_calendar
@@ -324,10 +324,20 @@ def page_drivers(captions: dict[str, str]) -> str:
         "of DGT's car kilometres",
     )
     bands = read_table("emef_km_by_band")
-    long_trips = (
-        bands[bands.band.isin(["100 km or more", "no band"])]
-        .groupby("age4")[["share_of_trips", "share_of_km"]]
-        .sum()
+    # Trips of 100 km or more and trips with no band, together: one minus the shorter bands, so
+    # that a band suppressed under the survey's publication rule (fewer than 20 sample trips, as
+    # at 16-29) is never read; the combined cell itself must rest on 20 sample trips or more.
+    long_bands = bands.band.isin(["100 km or more", "no band"])
+    shorter = bands[~long_bands]
+    _check(
+        bool(shorter[["share_of_trips", "share_of_km"]].notna().all().all()),
+        "every band under 100 km is published in every age group",
+    )
+    long_trips = 1 - shorter.groupby("age4")[["share_of_trips", "share_of_km"]].sum()
+    long_sample = bands[long_bands].groupby("age4").sample_trips.sum()
+    _check(
+        bool((long_sample >= publication.MIN_SAMPLE_OBSERVATIONS).all()),
+        "the long and unbanded trips of every age group rest on enough sample trips to publish",
     )
     _check(
         long_trips.share_of_km.idxmax() == "65+"

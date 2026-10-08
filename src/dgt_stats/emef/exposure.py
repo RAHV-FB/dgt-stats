@@ -24,8 +24,8 @@ mean but no more than the distance the duration allows at ``UNBANDED_MAX_SPEED``
 to door, a long-distance average that allows for stops and slower roads at either end. The
 alternatives in :data:`TRIP_VARIANTS` (60 and 100 km/h, durations capped at four hours, no bound,
 the trips left out) are carried into every national ratio as a sensitivity range, because a
-handful of long trips weighs heavily: in 2022–2024 six unbanded trips of 6.5 to 12 hours by
-respondents aged 65 and over carry about a tenth of that group's car-driver kilometres. A banded
+few long trips weigh heavily: in 2022–2024 the 79 car-driver trips without a band made by
+respondents aged 65 and over carry about a fifth of that group's car-driver kilometres. A banded
 trip whose band cannot be reached in its duration (the band's lower edge, by road, at more than
 ``BAND_SPEED_LIMIT`` door to door) is a recording error and is treated as unbanded.
 
@@ -43,6 +43,10 @@ files carry no sampling units, although the survey's technical sheet describes s
 multi-stage sampling from the population register with weights calibrated to the census, so
 clustering above the respondent and the calibration of the weights are not reflected and the
 intervals are probably too narrow.
+
+**Publication.** Every table applies the survey's own rule (:mod:`publication`): an estimate
+resting on fewer than 20 sample observations (respondents, drivers or trips, whichever the cell
+counts) is left empty, with its sample count kept.
 """
 
 from __future__ import annotations
@@ -52,7 +56,7 @@ from functools import cache
 import numpy as np
 import pandas as pd
 
-from dgt_stats.emef import distance, ingest
+from dgt_stats.emef import distance, ingest, publication
 from dgt_stats.emef import variables as v
 
 ROAD_RATIO = distance.ROAD_RATIO["driving"]
@@ -183,7 +187,8 @@ def imputation_check() -> pd.DataFrame:
     For each duration class: the banded trips behind it, the share of trips whose duration-only
     distance falls outside their band's edges, and the weighted duration-only kilometres relative
     to the band-based kilometres. The open band over 100 km is left out: its distances are the
-    model's own extrapolation, so comparing with them would be circular."""
+    model's own extrapolation, so comparing with them would be circular. A class with fewer than
+    20 sample trips is suppressed (:mod:`publication`)."""
     car = car_driver_trips()
     banded = car.km_source == "band and duration"
     closed = car.distance_band.astype("Int64").isin([c for c in v.DISTANCE_BANDS if c != 7])
@@ -217,7 +222,9 @@ def imputation_check() -> pd.DataFrame:
             row[f"{treatment}_outside_band"] = float(outside.mean())
             row[f"{treatment}_relative"] = float((part.weight * values).sum()) / banded_km
         rows.append(row)
-    return pd.DataFrame(rows)
+    out = pd.DataFrame(rows)
+    measures = [c for c in out.columns if c not in ("duration", "sample_trips")]
+    return publication.suppress_small_cells(out, "sample_trips", measures, flag=True)
 
 
 @cache
@@ -317,6 +324,27 @@ def estimates(
     return pd.DataFrame(rows)
 
 
+# Estimates that rest only on the respondents of a group; the others rest on those who drove.
+RESPONDENT_ESTIMATES = ("residents", "share_driving")
+
+
+def publishable_estimates(table: pd.DataFrame) -> pd.DataFrame:
+    """A table of :func:`estimates` under the survey's publication rule (:mod:`publication`): a
+    group's resident total and share driving need 20 respondents, and everything computed from its
+    trips or kilometres needs 20 respondents who drove."""
+    measures = [
+        c
+        for c in table.columns
+        if c in TOTALS or c.removesuffix("_low").removesuffix("_high") in RATES
+    ]
+    on_respondents = [
+        c for c in measures if c.removesuffix("_low").removesuffix("_high") in RESPONDENT_ESTIMATES
+    ]
+    on_drivers = [c for c in measures if c not in on_respondents]
+    table = publication.suppress_small_cells(table, "respondents", on_respondents)
+    return publication.suppress_small_cells(table, "respondents_driving", on_drivers)
+
+
 # --------------------------------------------------------------------------- results
 
 AREAS: dict[str, tuple[int, ...]] = {
@@ -342,7 +370,7 @@ def contemporary(years: tuple[int, ...] = CONTEMPORARY_YEARS) -> pd.DataFrame:
     every = estimates(both.assign(age4="16+"), ["sex", "age4"], factors, pooled=True)
     out = pd.concat([by_age, every], ignore_index=True)
     out.insert(0, "years", f"{min(years)}-{max(years)}")
-    return out
+    return publishable_estimates(out)
 
 
 def by_area(years: tuple[int, ...] = CONTEMPORARY_YEARS) -> pd.DataFrame:
@@ -362,7 +390,7 @@ def by_area(years: tuple[int, ...] = CONTEMPORARY_YEARS) -> pd.DataFrame:
         ignore_index=True,
     )
     out.insert(0, "years", f"{min(years)}-{max(years)}")
-    return out
+    return publishable_estimates(out)
 
 
 def series() -> pd.DataFrame:
@@ -389,7 +417,7 @@ def series() -> pd.DataFrame:
     out["area_definition"] = np.where(
         out.area == "RMB", "constant (seven comarques)", out.year.map(v.AREA)
     )
-    return out
+    return publishable_estimates(out)
 
 
 PERIODS: dict[str, tuple[int, ...]] = {
@@ -423,7 +451,7 @@ def periods() -> pd.DataFrame:
         pieces.append(table)
     out = pd.concat(pieces, ignore_index=True)
     out.loc[out.period.str.startswith("2014-2024"), "km_source"] = "modelled to 2020, band after"
-    return out
+    return publishable_estimates(out)
 
 
 def km_shares(frame: pd.DataFrame, column: str = "car_km", by: str = "age4") -> pd.Series:
@@ -486,9 +514,14 @@ BAND_LABELS: dict[int, str] = {
 }
 
 
-def km_by_band(years: tuple[int, ...] = CONTEMPORARY_YEARS) -> pd.DataFrame:
+def km_by_band(
+    years: tuple[int, ...] = CONTEMPORARY_YEARS, publishable: bool = True
+) -> pd.DataFrame:
     """Each straight-line band's share of car-driver trips and kilometres by age group, with the
-    sample trips behind it and the median door-to-door road speed the central method implies."""
+    sample trips behind it and the median door-to-door road speed the central method implies.
+
+    A band with fewer than 20 sample trips in an age group is suppressed (:mod:`publication`);
+    ``publishable=False`` keeps every value, for checks only."""
     car = car_driver_trips()
     car = car[car.year.isin(years)]
     car = car.assign(
@@ -513,7 +546,11 @@ def km_by_band(years: tuple[int, ...] = CONTEMPORARY_YEARS) -> pd.DataFrame:
     order = [*BAND_LABELS.values(), "no band"]
     out = pd.DataFrame(rows)
     out["band"] = pd.Categorical(out.band, order, ordered=True)
-    return out.sort_values(["age4", "band"]).reset_index(drop=True)
+    out = out.sort_values(["age4", "band"]).reset_index(drop=True)
+    if not publishable:
+        return out
+    measures = ["share_of_trips", "share_of_km", "mean_straight_km", "median_road_speed_kmh"]
+    return publication.suppress_small_cells(out, "sample_trips", measures, flag=True)
 
 
 # Alternatives to the central distance treatment, carried into every national ratio. Each is a
@@ -717,7 +754,8 @@ FREQUENCY_LABELS = {
 
 def usual_frequency(years: tuple[int, ...] = CONTEMPORARY_YEARS) -> pd.DataFrame:
     """How often respondents say they drive a car, by age, and the share who drove on the
-    reference working day within each frequency (2022-2024, eight-point scale)."""
+    reference working day within each frequency (2022-2024, eight-point scale). A frequency
+    answered by fewer than 20 respondents of an age group is suppressed (:mod:`publication`)."""
     scales = {v.CAR_DRIVER_FREQUENCY.get(year, (None, None))[1] for year in years}
     if scales != {"eight_point"}:
         raise ValueError(f"usual_frequency: the labels are for the eight-point years, not {years}")
@@ -739,7 +777,9 @@ def usual_frequency(years: tuple[int, ...] = CONTEMPORARY_YEARS) -> pd.DataFrame
                 ),
             }
         )
-    return pd.DataFrame(rows).sort_values(["age4", "code"]).reset_index(drop=True)
+    out = pd.DataFrame(rows).sort_values(["age4", "code"]).reset_index(drop=True)
+    measures = ["share_of_age", "share_drove_on_reference_day"]
+    return publication.suppress_small_cells(out, "respondents", measures, flag=True)
 
 
 WEEKEND_MODES = ("V14A_1", "V14A_2", "V14A_3", "V14B_1", "V14B_2", "V14B_3")
@@ -771,4 +811,5 @@ def weekend_away_2023() -> pd.DataFrame:
                 "weekends_away_per_resident": float((w * group.weekends_away).sum() / w.sum()),
             }
         )
-    return pd.DataFrame(rows)
+    measures = ["share_away", "share_away_driving", "weekends_away_per_resident"]
+    return publication.suppress_small_cells(pd.DataFrame(rows), "respondents", measures)

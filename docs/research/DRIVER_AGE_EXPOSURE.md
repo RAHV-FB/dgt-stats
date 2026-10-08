@@ -37,6 +37,20 @@ neither the clustering above the respondent nor the calibration, and the interva
 too narrow. **Sensitivity ranges**, reported separately, describe how much an estimate moves under
 other defensible analytic choices.
 
+**Publication rule.** Every EMEF dictionary (sheet `Sumari`, note 3) adopts the precision
+requirements of Eurostat and Idescat: an estimate may be published only if its cell rests on at
+least 20 sample observations, and a table only if at least 60% of its cells can be; other cells are
+marked "..". The `emef_*.csv` tables and `risk_barcelona_km.csv` apply it
+(`src/dgt_stats/emef/publication.py`): a cell below the threshold keeps its sample count, its
+estimates are left empty, and, in the three tables where a cell falls below it, a `suppressed`
+column marks the row. Three cells do: trips of 100 km or more at 16–29 in `emef_km_by_band.csv`
+(11 sample trips), "less than monthly" at 16–29 in `emef_driving_frequency.csv` (17 respondents)
+and trips of three hours or more in `emef_imputation_check.csv` (8 sample trips). The rule is
+about precision, not confidentiality, so no further cell is hidden to stop a suppressed share
+being recovered from the others. The drivers page reads only cells above the threshold: it
+combines trips of 100 km or more with trips without a band, at least 52 sample trips in every age
+group.
+
 ## From distance bands to road kilometres
 
 The public files give each trip's straight-line distance only from 2021, and only in seven bands:
@@ -108,10 +122,9 @@ is the model's mean given duration and the other covariates, but no more than th
 duration allows at 80 km/h door to door (100 km/h before the revision). 80 km/h is a long-distance
 average that allows for stops and slower roads at either end. It is a choice, not an estimate.
 
-A handful of long trips weighs heavily. In 2022–2024, six unbanded trips of 6.5 to 12 hours by
-respondents aged 65 and over carry about a tenth of that group's working-day car-driver
-kilometres. Trips without a band carry 19.6% of the kilometres of drivers aged 65 and over,
-against 4.8% at 16–29, 6.8% at 30–44 and 10.2% at 45–64.
+A few long trips weigh heavily. In 2022–2024, trips without a band carry 19.6% of the kilometres of
+drivers aged 65 and over (79 sample trips), against 4.8% at 16–29, 6.8% at 30–44 and 10.2% at
+45–64.
 
 **Checking the duration-only treatment** (`emef_imputation_check.csv`). The duration-only
 treatments are applied to banded car-driver trips of 2021–2024 whose band is closed (under
@@ -125,15 +138,15 @@ with it, which made the check circular.
 | 30–60 min | 8,775 | 17.5 | 21% | 1.00 | 0.84 | 1.00 |
 | 60–120 min | 2,281 | 37.3 | 29% | 1.14 | 0.87 | 1.15 |
 | 120–180 min | 145 | 50.3 | 78% | 1.82 | 1.29 | 1.90 |
-| 180 min or more | 8 | 54.7 | 100% | 3.26 | 2.20 | 3.72 |
+| 180 min or more | 8 | .. | .. | .. | .. | .. |
 | All | 46,567 | 8.8 | 39% | 1.05 | 0.87 | 1.06 |
 
 Up to two hours, the central treatment is within 14% of the band-based total in every class,
 although it often places an individual trip in the wrong band (21–44% of trips). Truncating the
 distribution at the speed bound, which an earlier version used, removes the long-distance tail
 from every trip and gives 0.84–0.89 of the band-based total in the same classes. Beyond two hours
-the central treatment gives 1.82 times the band-based kilometres at 120–180 minutes and 3.26 times
-at three hours or more.
+the central treatment gives 1.82 times the band-based kilometres at 120–180 minutes; the eight
+banded trips of three hours or more are too few to publish.
 
 That last comparison is biased the other way for long trips. The check keeps only trips known to
 be under 100 km in a straight line, and among long durations that selects slow trips with stops.

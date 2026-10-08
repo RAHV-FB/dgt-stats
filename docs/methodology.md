@@ -403,14 +403,20 @@ was revised in October 2026 after an independent audit.
 - **Trips without a usable band.** No trip before 2021 has a band, nor do 1.2 % of car-driver
   trips in 2021–2024; 25 banded trips whose band cannot be reached in their duration (the band's
   lower edge × 1.45 / duration above 150 km/h) are treated as unbanded. These take the model's mean
-  given duration, bounded by 80 km/h door to door. A few long trips weigh heavily: six unbanded
-  trips of 6.5 to 12 hours by respondents aged 65 and over carry about a tenth of that group's
-  working-day kilometres in 2022–2024. `exposure.imputation_check` compares the duration-only
+  given duration, bounded by 80 km/h door to door. A few long trips weigh heavily: the 79
+  car-driver trips without a band made by respondents aged 65 and over carry 19.6 % of that
+  group's working-day kilometres in 2022–2024. `exposure.imputation_check` compares the duration-only
   distance with the band on banded trips under 100 km, by duration class, so that it never uses
   the model's own extrapolation of the open band. It is within 14 % of the band-based total up to
   two hours and well above it beyond (1.82 times at 120–180 minutes). For long trips the check is
   biased the other way, because it keeps only trips known to be under 100 km. The data cannot
   settle the distance of long unbanded trips, so their treatment is carried as a sensitivity range.
+- **Publication rule** (`emef.publication`). The EMEF's dictionaries allow an estimate to be
+  published only if it rests on at least 20 sample observations, and a table only if at least 60 %
+  of its cells can be. Every EMEF table applies the rule: a cell below it keeps its sample count and
+  its estimates are left empty, with a `suppressed` column where a table can have such a cell.
+  Three cells are suppressed, in `emef_km_by_band`, `emef_driving_frequency` and
+  `emef_imputation_check`; no sentence or check of the site reads them.
 - **Spain** (`exposure_risk.national`). Method A applies the EMEF kilometres per resident by sex
   and age to INE's single-age population of Spain on 1 July 2024. Method A2, the licence-calibrated
   transfer, carries over kilometres per B-licence holder instead, scaling each group by Spain's
