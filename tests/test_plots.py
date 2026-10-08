@@ -721,3 +721,15 @@ def test_season_long_run_and_sex_ratio_charts(
     assert titles == list(figures.LONG_RUN_PANELS.values())
     assert all("deaths a year" in title for title in titles)
     assert "per registered vehicle" in titles[1] and "per tonne of road fuel" in titles[2]
+
+
+@pytest.mark.skipif(not summaries.model_tables_present(), reason="run `python scripts/model.py`")
+def test_the_forest_plot_names_road_types_in_english(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    drawn = _capture_axes(monkeypatch)
+    figures._severity_figures(tmp_path, {})
+    labels = [label.get_text().strip() for label in drawn[0][0].get_yticklabels()]
+    # The page and its tables call DGT's autovía a dual carriageway; so does the chart.
+    assert "dual carriageway" in labels
+    assert not any("autov" in label.lower() for label in labels)

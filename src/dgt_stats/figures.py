@@ -601,6 +601,11 @@ def _factor_figures(figures_dir: Path, captions: dict[str, str], summary) -> Non
 # --------------------------------------------------------------------------- severity
 
 
+# The model table keeps DGT's Spanish name for a road type; the figure uses the English one that
+# the crash-circumstances page and its tables use.
+FOREST_LEVELS = {"autovía": "dual carriageway"}
+
+
 def _severity_figures(figures_dir: Path, captions: dict[str, str]) -> None:
     coefficients = summaries.read_model_table("q3_model_coefficients")
     n_model = int(coefficients.n.iloc[0])
@@ -611,8 +616,11 @@ def _severity_figures(figures_dir: Path, captions: dict[str, str]) -> None:
     # happened (``is_nuisance``); they stay in the table and are left out of the figure.
     nuisance = fatal_rows[fatal_rows.is_nuisance.astype(bool)]
     table = fatal_rows[~fatal_rows.is_nuisance.astype(bool)].assign(
-        level=lambda f: f.level.astype(str).map(_ranges)
+        level=lambda f: f.level.astype(str).replace(FOREST_LEVELS).map(_ranges)
     )
+    spanish = sorted(set(table.level[table.level.str.contains("[áéíóúñ]")]))
+    if spanish:
+        raise ValueError(f"s1 forest plot: levels without an English label: {spanish}")
     plots.forest(
         table,
         "predictor_label",

@@ -1,7 +1,7 @@
 """Figures for the regional pages, drawn from the committed result tables with the site's plots.
 
-Every figure is a single-series dot-and-interval or bar chart in the project's fixed palette (or
-a calibration chart with one line per model), with its N in the caption, and the same numbers
+Every figure is a single-series dot-and-interval chart in the project's fixed palette (or a
+calibration chart with one line per model), with its N in the caption, and the same numbers
 in a table on the page. Nothing is recomputed here: the tables in ``reports/tables`` are the
 input, so a figure cannot disagree with the table beside it. The labels a reader sees are
 translated from the source field names and pipeline codes by the maps below.
@@ -14,8 +14,6 @@ import math
 import re
 from pathlib import Path
 
-import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
 
 from dgt_stats import plots
@@ -303,19 +301,6 @@ def _shares(
     )
 
 
-def _bars(values: pd.Series, path: Path, title: str, ylabel: str) -> Path:
-    plots.apply_style()
-    fig, axis = plt.subplots(figsize=(plots.FIGURE_WIDTH, 3.6))
-    positions = np.arange(len(values))
-    axis.bar(positions, values.to_numpy(), width=0.68, color=plots.ACCENT, linewidth=0)
-    axis.set_xticks(positions, [str(v) for v in values.index], fontsize=plots.NOTE_SIZE)
-    axis.tick_params(axis="x", length=0)
-    axis.set_ylabel(ylabel)
-    plots._thousands(axis)
-    plots._title(path, title)
-    return plots.save(fig, path)
-
-
 def catalonia_figures(figures_dir: Path, captions: dict[str, str]) -> None:
     shares = table("cat_fatal_share")
     # The file's 'other unit' is any vehicle outside the named types; the figure says 'other'.
@@ -361,19 +346,6 @@ def catalonia_figures(figures_dir: Path, captions: dict[str, str]) -> None:
             CAT_SOURCE,
             n,
         )
-    frequency = table("cat_frequency").groupby("year").crashes.sum()
-    _bars(
-        frequency,
-        figures_dir / "cat6_crashes_by_year.svg",
-        "Crashes with a death or serious injury, by year",
-        "Crashes",
-    )
-    captions["cat6_crashes_by_year"] = _caption(
-        f"Recorded crashes with at least one death or serious injury, Catalonia, {period}; "
-        "counts of recorded crashes, not rates",
-        CAT_SOURCE,
-        f"{int(frequency.sum()):,} crashes",
-    )
 
 
 def barcelona_figures(figures_dir: Path, captions: dict[str, str]) -> None:
@@ -726,7 +698,6 @@ def build(figures_dir: Path, captions: dict[str, str]) -> None:
         "bcn_frequency",
         "bcn_person_severity_share",
         "cat_fatal_share",
-        "cat_frequency",
         "gen_province_rates",
         "ml_calibration",
         "ml_importance",
