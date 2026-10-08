@@ -72,15 +72,16 @@ input has missing values.
 
 A logistic regression with:
 
-- one intercept for each zone (urban street, road through a town, interurban road) in each
-  province, Barcelona being the reference province;
+- one intercept for each zone (urban street, road through a town, interurban road), and, if the
+  rule below keeps them, one for each zone in each province, Barcelona being the reference
+  province;
 - an effect for each interurban road type (a regional conventional road is the reference);
 - one effect for each level of every other input, either common to all zones ("common", 58
   coefficients) or with an additional departure on urban streets and on interurban roads
   ("by zone", 136 coefficients).
 
 Every coefficient but the intercepts takes the same L2 penalty; the intercepts are penalised
-hardly at all. Three choices are made on data, always by the same rule (`severity_model.select`):
+hardly at all. Four choices are made on data, always by the same rule (`severity_model.select`):
 fit on all but the last two years of the crashes the choice may use, score those two years by
 log loss, and keep the best.
 
@@ -92,18 +93,24 @@ log loss, and keep the best.
   best penalty.
 - **Roads through towns**: the model's estimate, or the average fatal share of such roads in the
   province, whichever has the lower log loss on the validation years' crashes on such roads.
+- **Province intercepts**: the three choices above are made once with one intercept per zone and
+  province and once with one per zone, and the design whose chosen fit has the lower validation
+  loss is kept. The province intercepts were first added after the 2016–2023 rolling calibration
+  by province had been examined, a choice made on the test years; since October 2026 they are
+  chosen by this rule like the others.
 
 **The published model** follows the rule on all the years: fitted on 2010–2021 and scored on
 2022–2023, the by-zone specification (validation log loss 0.3321) beat the common one (0.3334),
 with C = 0.1, inside the grid; on the 198 through-town crashes of 2022–2023 (26 fatal), the
-average (0.4006) beat the model (0.4043). It is then fitted on all 22,638 crashes of 2010–2023.
+average (0.4006) beat the model (0.4043); and the province intercepts (0.3321) beat one
+intercept per zone (0.3350). It is then fitted on all 22,638 crashes of 2010–2023.
 Its covariance comes from 500 bootstrap refits of the training crashes. This changed the
 published model: the earlier one had common effects (58 coefficients); the choices of penalty and
 through-town rule are unchanged (C = 0.1, the average).
 
 ## Evaluation: nested rolling origin
 
-Each year 2016–2023 is predicted by a model whose three choices were made on the years before it
+Each year 2016–2023 is predicted by a model whose four choices were made on the years before it
 alone, by the rule above, and whose coefficients were then fitted on all the years before it.
 For 2016 the choices are made by fitting on 2010–2013 and scoring 2014–2015; for 2023, by fitting
 on 2010–2020 and scoring 2021–2022. The table of fatal shares by road and crash type is fitted on
@@ -112,30 +119,30 @@ left for a further test. Gradient-boosted trees on the same inputs, with fixed s
 fitted on the same years for comparison. The choices, year by year (`sev_choices`, with every
 grid point in `sev_penalty`):
 
-| Test year | Choices made on | Specification | C | Roads through towns |
-|---|---|---|---|---|
-| 2016 | 2010–2013, scored on 2014–2015 | by zone | 0.1 | average |
-| 2017 | 2010–2014, scored on 2015–2016 | common | 1,000 (the grid's weak end: the loss had stopped changing, so in effect unpenalised) | model |
-| 2018 | 2010–2015, scored on 2016–2017 | common | 0.32 | model |
-| 2019 | 2010–2016, scored on 2017–2018 | by zone | 0.1 | model |
-| 2020 | 2010–2017, scored on 2018–2019 | by zone | 0.032 | model |
-| 2021 | 2010–2018, scored on 2019–2020 | by zone | 0.01 | model |
-| 2022 | 2010–2019, scored on 2020–2021 | by zone | 0.1 | average |
-| 2023 | 2010–2020, scored on 2021–2022 | by zone | 0.1 | average |
+| Test year | Choices made on | Specification | C | Roads through towns | Province intercepts |
+|---|---|---|---|---|---|
+| 2016 | 2010–2013, scored on 2014–2015 | by zone | 0.32 | average | no |
+| 2017 | 2010–2014, scored on 2015–2016 | common | 1,000 (the grid's weak end: the loss had stopped changing, so in effect unpenalised) | model | yes |
+| 2018 | 2010–2015, scored on 2016–2017 | common | 0.32 | model | yes |
+| 2019 | 2010–2016, scored on 2017–2018 | by zone | 0.1 | model | yes |
+| 2020 | 2010–2017, scored on 2018–2019 | by zone | 0.032 | model | yes |
+| 2021 | 2010–2018, scored on 2019–2020 | by zone | 0.01 | model | yes |
+| 2022 | 2010–2019, scored on 2020–2021 | by zone | 0.1 | average | yes |
+| 2023 | 2010–2020, scored on 2021–2022 | by zone | 0.1 | average | yes |
 
 There are 11,611 crashes on the roads a reader can choose, 1,429 of them fatal
 (`sev_rolling_scores`, `sev_comparison`, `sev_calibration`).
 
 | Model (nested rolling origin, 2016–2023) | ROC-AUC (95% interval) | Brier skill | Log loss | Calibration slope | Mean predicted (observed 12.3%) |
 |---|---|---|---|---|---|
-| Penalised logistic regression (published) | 0.741 (0.727–0.754) | 0.098 | 0.331 | 1.05 | 12.3% |
+| Penalised logistic regression (published) | 0.739 (0.725–0.753) | 0.096 | 0.331 | 1.03 | 12.4% |
 | Gradient-boosted trees | 0.748 (0.734–0.761) | 0.102 | 0.329 | 1.08 | 12.3% |
 | Fatal share of the road × crash type | 0.709 (0.694–0.723) | 0.069 | 0.342 | 1.08 | 12.2% |
 
-The logistic regression's ROC-AUC is higher than the table's by 0.032 (paired bootstrap interval
-+0.022 to +0.042) and its log loss lower by 0.011 (0.008 to 0.014). The trees rank a little
-better than the logistic regression: +0.007 in ROC-AUC (+0.001 to +0.012) and −0.002 in log loss
-(−0.004 to −0.000). The logistic regression is published for three reasons:
+The logistic regression's ROC-AUC is higher than the table's by 0.030 (paired bootstrap interval
++0.021 to +0.040) and its log loss lower by 0.010 (0.007 to 0.014). The trees rank a little
+better than the logistic regression: +0.008 in ROC-AUC (+0.002 to +0.014) and −0.003 in log loss
+(−0.005 to −0.001). The logistic regression is published for three reasons:
 
 - Every prediction is a sum of named coefficients, so the browser reproduces it exactly.
 - A coefficient covariance gives an interval for any scenario, and for a comparison of two.
@@ -143,15 +150,21 @@ better than the logistic regression: +0.007 in ROC-AUC (+0.001 to +0.012) and �
 
 **What nesting changed** (`sev_nested_steps`). The figures published before (ROC-AUC 0.7425,
 gain over the table +0.034, slope 1.10) were not nested: the penalty was chosen on 2021–2022,
-which are test years, and the specification and the through-town rule were decided on the
-2016–2023 rolling scores, 2023 included. Replacing those choices one at a time:
+which are test years, and the specification, the through-town rule and the province intercepts
+were decided on the 2016–2023 rolling scores, 2023 included. Replacing those choices one at a
+time:
 
 | Design | ROC-AUC | Gain over the table (95% paired interval) | Calibration slope |
 |---|---|---|---|
 | Previous (not nested) | 0.7425 | +0.034 (+0.023 to +0.044) | 1.10 |
 | Penalty nested | 0.7414 | +0.032 (+0.022 to +0.042) | 1.08 |
 | Penalty and specification nested | 0.7417 | +0.033 (+0.023 to +0.042) | 1.05 |
-| Every choice nested (published) | 0.7409 | +0.032 (+0.022 to +0.042) | 1.05 |
+| Penalty, specification and through-town rule nested, province intercepts kept | 0.7409 | +0.032 (+0.022 to +0.042) | 1.05 |
+| Every choice nested, province intercepts included (published) | 0.7395 | +0.030 (+0.021 to +0.040) | 1.03 |
+
+Nesting the province intercepts changed one year: in 2016, scored on 2014–2015 after fitting
+2010–2013, one intercept per zone predicted better than one per zone and province, and the 2016
+test then ranked less well (0.706 against 0.716) and overpredicted as before.
 
 Nesting the penalty changed four years; most of the fall is 2017, where the unpenalised model
 chosen on 2015–2016 ranked 2017 less well (0.726 against 0.731). The by-zone specification, chosen
@@ -168,13 +181,13 @@ All figures are from the nested evaluation unless marked.
 
 | Check | Result |
 |---|---|
-| Calibration by tenth of predicted probability (`sev_calibration`) | the mean prediction lies inside the 95% interval of the observed share in nine of ten groups; in the ninth tenth the model said 21.8% and 24.7% were fatal (22.3–27.3%) |
-| Calibration slope and intercept, pooled | 1.05 and 0.07: the crashes rated most and least likely to be fatal were a little more extreme than predicted |
-| Fifths | of the fifth rated most likely to be fatal, 30.2% were; of the fifth rated least likely, 3.4%; for the table, 27.4% and 4.4% |
-| Discrimination by year | ROC-AUC 0.716 (2016) to 0.769 (2018), above the table in every year |
-| Calibration by year | in 2016 the model predicted 12.9% and 11.0% were fatal (9.6–12.6%), outside the interval; in every other year the mean prediction lies inside the observed interval |
-| Zones | interurban ROC-AUC 0.701, slope 1.02, 19.9% predicted against 21.0% (19.8–22.2%); urban 0.660, slope 0.92, 7.3% against 6.6% (6.0–7.2%), too high; through town 0.544, scored with the average in three of the eight years |
-| Provinces and zones (`sev_rolling_scores`, "province and zone") | outside the observed interval on interurban roads in Girona (23.5% against 26.8%, 23.8–30.1%) and Tarragona (27.2% against 31.0%, 27.8–34.4%), and on urban streets in the province of Barcelona (7.5% against 6.7%, 6.0–7.5%); inside it in the other nine zones of provinces |
+| Calibration by tenth of predicted probability (`sev_calibration`) | the mean prediction lies inside the 95% interval of the observed share in all ten groups; in the ninth tenth the model said 21.9% and 24.2% were fatal (21.8–26.7%) |
+| Calibration slope and intercept, pooled | 1.03 and 0.05: the crashes rated most and least likely to be fatal were very slightly more extreme than predicted |
+| Fifths | of the fifth rated most likely to be fatal, 30.0% were; of the fifth rated least likely, 3.4%; for the table, 27.4% and 4.4% |
+| Discrimination by year | ROC-AUC 0.706 (2016) to 0.769 (2018), above the table in every year |
+| Calibration by year | in 2016 the model predicted 13.0% and 11.0% were fatal (9.6–12.6%), outside the interval; in every other year the mean prediction lies inside the observed interval |
+| Zones | interurban ROC-AUC 0.697, slope 1.00, 20.0% predicted against 20.9% (19.8–22.2%); urban 0.660, slope 0.90, 7.3% against 6.6% (6.0–7.2%), too high; through town 0.546, scored with the average in three of the eight years |
+| Provinces and zones (`sev_rolling_scores`, "province and zone") | outside the observed interval on interurban roads in Girona (23.2% against 26.8%, 23.8–30.1%) and Tarragona (26.7% against 31.0%, 27.8–34.4%), and on urban streets in the province of Barcelona (7.54% against 6.70%, 6.02–7.45%); inside it in the other nine zones of provinces |
 | Barcelona city | urban streets in the city: ROC-AUC 0.658, mean predicted 8.1% against 8.5% observed; urban streets elsewhere: 0.661, 7.1% against 6.0% |
 | A province left out (`sev_geography`; no province terms, choices made on the other three) | ROC-AUC 0.68 (Barcelona) to 0.77 (Tarragona). Mean estimate against observed: Barcelona 11.2% against 9.5% (9.1–10.0%), too high; Girona 14.3% against 17.2% (15.9–18.5%), too low; Lleida 16.4% against 17.6% (16.1–19.2%), inside; Tarragona 14.3% against 17.0% (15.7–18.3%), too low |
 | Barcelona city's urban streets from the rest of Catalonia's | ROC-AUC 0.656; 5.9% predicted against 9.9% (8.8–11.0%) |
@@ -290,13 +303,13 @@ two kinds of road; the figures below are for the interurban reference crash unle
    daylight) comes from where and when they happen (15.7% standardised).
 5. **Junctions and rain.** On interurban roads, crashes within a junction are associated with
    ×0.76 (0.65–0.88); on urban streets a junction makes no difference (×1.00, 0.86–1.16). Heavy
-   rain, hail or snow goes with ×0.73 (0.54–0.99) on interurban roads. but ×0.63 in 2010–2016 and ×1.12 in 2017–2023. That estimate is not stable and the page says so. The junction association is the same in both periods (×0.76).
+   rain, hail or snow goes with ×0.73 (0.54–0.99) on interurban roads, but ×0.63 in 2010–2016 and ×1.12 in 2017–2023. That estimate is not stable and the page says so. The junction association is the same in both periods (×0.76).
 6. **Posted limits.** On interurban roads, a posted 80–90 or 100–120 km/h limit goes with ×1.10
    and ×1.18 against no posted limit, and 40–50 km/h with ×0.66 (0.56–0.77); on urban streets a
    posted 40–50 km/h limit goes with ×1.54 (1.25–1.91) and 60–70 km/h with ×2.61. These are signs,
    not speeds, and the crashes that carry a recorded limit are not a random sample of the roads.
 7. **What the model adds.** Over the fatal share of the crash's road and type, the model raises
-   ROC-AUC from 0.709 to 0.741 on the nested test and lowers the log loss by 0.011. The table
+   ROC-AUC from 0.709 to 0.739 on the nested test and lowers the log loss by 0.010. The table
    ignores the province, the road users involved, the time of day, lighting, weather, surface,
    junction and posted limit. The gain is real but modest: most of what these records can tell is
    in the road and the type of crash.

@@ -551,6 +551,13 @@ nav.pager a[rel="next"] .pager-title::after { transform: rotate(-45deg); margin-
   color-scheme: dark;
 }
 :root[data-theme="dark"] .figure-media { padding: var(--space-3); }
+/* On phones the dark frame stays thin, so the chart drawn for the column keeps its text size. */
+@media (prefers-color-scheme: dark) and (max-width: 40rem) {
+  :root:not([data-theme="light"]) .figure-media { padding: var(--space-1); }
+}
+@media (max-width: 40rem) {
+  :root[data-theme="dark"] .figure-media { padding: var(--space-1); }
+}
 
 /* ------------------------------------------------------------------ forced colours */
 @media (forced-colors: active) {

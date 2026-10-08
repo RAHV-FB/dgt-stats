@@ -220,13 +220,13 @@ def test_exported_coefficients_reproduce_the_fitted_model() -> None:
         specification=exported_choice["specification"],
         c=exported_choice["C"],
         through_town=exported_choice["through_town"],
-        provinces=True,
+        provinces=exported_choice["provinces"],
         train_years=tuple(exported_choice["train_years"]),
         validation_years=tuple(exported_choice["validation_years"]),
         c_bracketed=exported_choice["c_bracketed"],
     )
     fitted, x = sm.final_fit(choice)
-    assert fitted.columns == model["columns"] == sm.specification_columns(choice.specification)
+    assert fitted.columns == model["columns"] == choice.columns
     assert model["model_id"] == sm.model_id(model["columns"], model["coefficients"])
     assert model["penalty"]["C"] == choice.c and model["through_town"] == choice.through_town
     exported = np.array(model["coefficients"])

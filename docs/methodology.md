@@ -1239,15 +1239,16 @@ crash type, road users and how many, lighting, weather, surface, junction, poste
 day), without the 1,840 artefact crashes, so its estimates and tests describe crashes on roads
 with a named owning network or of another type. Its evaluation is nested: for each year
 2016–2023 the penalty (on a grid extended until the best value lies inside it), whether effects
-differ between urban streets and interurban roads, and whether roads through towns get the
-estimate or the province's average are chosen by fitting on the earlier years except the last two
-and scoring those two, and the model is then refitted on all earlier years; the published model is
-chosen by the same rule on 2022–2023. On the 11,611 crashes of 2016–2023 on the roads a reader can
-choose it scores ROC-AUC 0.741 against 0.709 for the road × crash-type table fitted on the same
-years (gain 0.032, paired interval 0.022–0.042) and 0.748 for boosted trees on the same inputs
-(the original model: 0.7475), calibration slope 1.05, intercept 0.07, mean predicted 12.3 %
+differ between urban streets and interurban roads, whether roads through towns get the estimate
+or the province's average, and whether the model has an intercept for each province and zone are
+chosen by fitting on the earlier years except the last two and scoring those two, and the model is
+then refitted on all earlier years; the published model is chosen by the same rule on 2022–2023
+(and keeps the province intercepts). On the 11,611 crashes of 2016–2023 on the roads a reader can
+choose it scores ROC-AUC 0.739 against 0.709 for the road × crash-type table fitted on the same
+years (gain 0.030, paired interval 0.021–0.040) and 0.748 for boosted trees on the same inputs
+(the original model: 0.7475), calibration slope 1.03, intercept 0.05, mean predicted 12.4 %
 against 12.3 % observed. The earlier, non-nested design, whose choices used test years, scored
-0.743. In nine of ten groups of predicted risk the mean prediction lies within the 95 % interval
+0.743. In all ten groups of predicted risk the mean prediction lies within the 95 % interval
 of the observed share; by province and zone it misses on interurban roads in Girona and Tarragona
 (too low) and on urban streets in the province of Barcelona (too high). It is the model behind the
 calculator on the models page, whose browser engine reproduces the Python predictions and their delta-method intervals to 10⁻¹⁰

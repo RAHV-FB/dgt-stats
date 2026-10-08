@@ -252,8 +252,9 @@ def run_calculator() -> None:
     pooled = scores[(scores.subset == _pooled_label()) & (scores.estimator == "calculator")].iloc[0]
     evaluation = {
         "design": "nested rolling origin: each year "
-        f"{_pooled_label()} predicted by a model whose penalty, specification and "
-        "through-town rule were chosen, and whose coefficients were fitted, on the years before it",
+        f"{_pooled_label()} predicted by a model whose penalty, specification, through-town rule "
+        "and province intercepts were chosen, and whose coefficients were fitted, on the years "
+        "before it",
         "crashes": int(pooled.n),
         "fatal": int(pooled.positives),
         "roc_auc": round(float(pooled.roc_auc), 4),

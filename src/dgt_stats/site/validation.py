@@ -78,9 +78,9 @@ EVIDENCE_COLUMNS = {
     5: "Crashes resemble Spain's",
 }
 EVIDENCE_CELLS = {
-    "passed": "passed",
-    "failed": "failed",
-    "partly": "partly passed",
+    "passed": "ranking held",
+    "failed": "ranking failed",
+    "partly": "ranking partly held",
     "not run": "not run",
     "not testable": "too few cases",
 }
@@ -404,8 +404,9 @@ def _calculator_section(
         '(<a href="severity-models.html">Severity model and calculator</a>). It has been tested '
         "only within the Catalan file, on crashes on the roads a reader can choose. Each year "
         f"of {_years(rolling.test_domain)} was predicted by a model whose settings (penalty, "
-        "form and the rule for roads through towns) were chosen on the two years before it and "
-        "whose coefficients were fitted on all earlier years, so no choice saw the year it "
+        "form, the rule for roads through towns and whether each province has a starting level "
+        "of its own) were chosen on the two years before it and whose coefficients were fitted "
+        "on all earlier years, so no choice saw the year it "
         f"predicts. Over the {_fmt_int(rolling.test_n)} crashes this gives a ROC-AUC of "
         f"{_auc(rolling.roc_auc)} (95% interval "
         f"{_interval(rolling.roc_auc_low, rolling.roc_auc_high)}), against "
@@ -1151,7 +1152,7 @@ def page_validation(captions: dict[str, str]) -> str:
     )
     body += "<h2>No model has passed every kind of test</h2>"
     body += technical(
-        "Tests passed by each model",
+        "How each model's ranking held in each kind of test",
         table(
             pd.DataFrame(
                 {
@@ -1162,12 +1163,13 @@ def page_validation(captions: dict[str, str]) -> str:
                     },
                 }
             ),
-            "Result of each kind of test, by model, from the records closest to the fitting "
-            "data to the comparison of the fitting crashes with Spain's.",
+            "Whether each model's ranking held in each kind of test, from the records closest to "
+            "the fitting data to the comparison of the fitting crashes with Spain's.",
         )
-        + "<p>“Passed” means that the model ranks above chance with 95% confidence and, where a "
-        "model fitted within the test population gives a reference, scores no more than "
-        f"{tolerance:g} below it. The last column is “yes” only if no variable's distribution "
+        + "<p>“Ranking held” means that the model ranks above chance with 95% confidence and, "
+        "where a model fitted within the test population gives a reference, scores no more "
+        f"than {tolerance:g} below it. It says nothing about whether the model's estimates of "
+        "the fatal share were right, which the sections above test separately. The last column is “yes” only if no variable's distribution "
         "differs from Spain's by more than a Jensen–Shannon divergence of "
         f"{resemblance:g}, a measure that is 0 for identical distributions. Both limits were "
         "set before any result was "

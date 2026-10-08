@@ -938,6 +938,10 @@ def dot_interval(
         _log_ratio_axis(axis, ordered[low], ordered[high], reference)
     elif float(ordered[low].min()) >= -1e-9:
         axis.set_xlim(left=0)
+        # A share of 0 sits on the axis: its marker and interval are drawn whole, not cut in half
+        # by the plot edge (every value lies inside the limits, so nothing else leaves the axes).
+        for artist in [*axis.lines, *axis.collections]:
+            artist.set_clip_on(False)
     if percent:
         # Changes carry a sign; shares do not (an interval may end a rounding error below 0).
         signed = float(ordered[low].min()) < -1e-9

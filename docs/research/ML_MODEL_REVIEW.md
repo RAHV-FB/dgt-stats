@@ -11,7 +11,7 @@ and `reports/tables/sev_*.csv`.
 | Model | Target and unit | Benchmark | Model | Calibration | Decision |
 |---|---|---|---|---|---|
 | Catalan crash severity, original feature set (boosted trees) | fatal rather than serious; one Catalan crash with a death or serious injury | type × zone table: ROC-AUC 0.699 on 2016–2023 | 0.779 (rolling origins, 12,961 crashes, 1,627 fatal); 0.7475 on the 11,611 crashes on roads a reader can choose | slope 1.08 | **REBUILD** as the calculator model below; the original is retired from the site |
-| Catalan crash severity, calculator (penalised logistic regression) | same, without the 1,840 crashes whose road owner is an artefact | road × crash type table: 0.709 | 0.741 (nested rolling origins: every choice made on earlier years; 11,611 crashes, 1,429 fatal); boosted trees on the same inputs 0.748 | slope 1.05, mean predicted 12.3% against 12.3% observed; off in three zones of provinces | **KEEP**: the public model |
+| Catalan crash severity, calculator (penalised logistic regression) | same, without the 1,840 crashes whose road owner is an artefact | road × crash type table: 0.709 | 0.739 (nested rolling origins: every choice made on earlier years; 11,611 crashes, 1,429 fatal); boosted trees on the same inputs 0.748 | slope 1.03, mean predicted 12.4% against 12.3% observed; off in three zones of provinces | **KEEP**: the public model |
 | Catalan crash severity, "retrospective administrative" variant | same, adding police judgements of influence | the original model: 0.790 on 2023 | 0.796 | slope 0.91 | **REMOVE**: +0.006 from fields recorded after the event |
 | Barcelona person severity (boosted trees) | serious or fatal injury; one person in a 2025 Barcelona crash | role × vehicle table: 0.780 | 0.851 (months 10–12 of 2025, 4,049 people, 58 serious or fatal) | slope 0.91 here, 0.63 in the original run | **RESEARCH ONLY** |
 | Barcelona crash severity (logistic) | serious or fatal injury in the crash; one 2025 Barcelona crash | accident-type table: 0.734 | 0.737 (1,994 crashes, 58 positive) | slope 0.84 | **REMOVE**: no gain over the table |
@@ -45,7 +45,7 @@ original model's advantage over its table therefore came from documentation, whi
 calculator can choose. The rebuilt model keeps the named networks as inputs and leaves the 1,840 artefact crashes out
 of fitting and of evaluation (see [`SEVERITY_CALCULATOR.md`](SEVERITY_CALCULATOR.md)). On the
 11,611 crashes of 2016–2023 on the roads a reader can choose, the original model scores ROC-AUC
-0.7475, boosted trees on the calculator's inputs 0.7476 and the calculator 0.741 with every
+0.7475, boosted trees on the calculator's inputs 0.7476 and the calculator 0.739 with every
 choice nested (0.743 under the earlier design, whose choices used the test years): once the
 artefact is removed, the original model has no advantage left.
 
@@ -105,16 +105,17 @@ in `sev_choices.csv`, every grid point in `sev_penalty.csv`.
 
 The design published before was not nested. Its penalty was chosen once, by fitting on 2010–2020
 and scoring 2021–2022, two of the test years, from six values whose best (C = 0.1) was the
-strongest tried. The choice of common effects and the average for roads through towns were made
-on the rolling scores of 2016–2023 themselves. `sev_nested_steps.csv` replaces those choices one
-at a time:
+strongest tried. The choice of common effects, the average for roads through towns and the
+intercept for each province and zone were made on the rolling scores of 2016–2023 themselves.
+`sev_nested_steps.csv` replaces those choices one at a time:
 
 | Design (2016–2023, 11,611 crashes) | ROC-AUC | Gain over the table (95% paired interval) | Calibration slope | Mean predicted (observed 12.3%) |
 |---|---|---|---|---|
 | Previous: penalty chosen on 2021–2022, common effects, the model on roads through towns (not nested) | 0.7425 | +0.034 (+0.023 to +0.044) | 1.10 | 12.2% |
 | Penalty chosen on the years before each test year | 0.7414 | +0.032 (+0.022 to +0.042) | 1.08 | 12.2% |
 | Penalty and specification chosen on earlier years | 0.7417 | +0.033 (+0.023 to +0.042) | 1.05 | 12.4% |
-| Nested: penalty, specification and through-town rule chosen on earlier years (published) | 0.7409 | +0.032 (+0.022 to +0.042) | 1.05 | 12.3% |
+| Penalty, specification and through-town rule chosen on earlier years, province intercepts kept | 0.7409 | +0.032 (+0.022 to +0.042) | 1.05 | 12.3% |
+| Nested: every choice, the province intercepts included, made on earlier years (published) | 0.7395 | +0.030 (+0.021 to +0.040) | 1.03 | 12.4% |
 
 Each difference has one cause. Nesting the penalty changed four test years: in 2017 the loss on
 2015–2016 fell steadily as the penalty weakened, to the edge of the grid (C = 1,000, in effect no
@@ -124,29 +125,30 @@ eight years, which ranked the crashes about as well and brought the calibration 
 (1.05).
 The through-town rule gave such roads the average in 2016, 2022 and 2023, where the average then
 predicted the test year's through-town crashes worse than the model would have (ROC-AUC on those
-roads 0.54 against 0.60). The nested score is 0.002 below the earlier one: the earlier choices
-had not flattered the published result.
+roads 0.54 against 0.60). Choosing the province intercepts on earlier years dropped them in one
+year, 2016, which then ranked less well (0.706 against 0.716). The nested score is 0.003 below
+the earlier one: the earlier choices had flattered the published result only slightly.
 
 With every choice nested, the 11,611 crashes split into ten equal groups by predicted
 probability:
 
 | Tenth | Crashes | Fatal | Mean predicted | Observed (95% interval) |
 |---|---|---|---|---|
-| 1 | 1,162 | 34 | 2.8% | 2.9% (2.1–4.1) |
-| 2 | 1,161 | 44 | 4.4% | 3.8% (2.8–5.1) |
-| 3 | 1,161 | 55 | 5.6% | 4.7% (3.7–6.1) |
-| 4 | 1,161 | 89 | 6.7% | 7.7% (6.3–9.3) |
-| 5 | 1,161 | 86 | 8.1% | 7.4% (6.0–9.1) |
-| 6 | 1,161 | 99 | 9.8% | 8.5% (7.1–10.3) |
+| 1 | 1,162 | 33 | 2.8% | 2.8% (2.0–4.0) |
+| 2 | 1,161 | 45 | 4.4% | 3.9% (2.9–5.1) |
+| 3 | 1,161 | 56 | 5.6% | 4.8% (3.7–6.2) |
+| 4 | 1,161 | 88 | 6.7% | 7.6% (6.2–9.2) |
+| 5 | 1,161 | 87 | 8.2% | 7.5% (6.1–9.2) |
+| 6 | 1,161 | 99 | 10.0% | 8.5% (7.1–10.3) |
 | 7 | 1,161 | 131 | 12.4% | 11.3% (9.6–13.2) |
-| 8 | 1,161 | 191 | 16.1% | 16.5% (14.4–18.7) |
-| 9 | 1,161 | 287 | 21.8% | 24.7% (22.3–27.3) |
-| 10 | 1,161 | 413 | 35.6% | 35.6% (32.9–38.4) |
+| 8 | 1,161 | 194 | 16.1% | 16.7% (14.7–19.0) |
+| 9 | 1,161 | 281 | 21.9% | 24.2% (21.8–26.7) |
+| 10 | 1,161 | 415 | 35.7% | 35.7% (33.0–38.5) |
 
-In nine of the ten groups the mean prediction lies inside the 95% interval of the observed share;
-in the ninth it is 0.5 points below the interval. The pooled calibration slope is 1.05 and the
-intercept 0.07; the mean prediction is 12.3%, as observed. Of the fifth of crashes the
-model rated most likely to be fatal, 30.2% were; of the fifth rated least likely, 3.4% (the
+In all ten groups the mean prediction lies inside the 95% interval of the observed share; in the
+ninth it is 0.1 points inside the lower end. The pooled calibration slope is 1.03 and the
+intercept 0.05; the mean prediction is 12.4%, against 12.3% observed. Of the fifth of crashes the
+model rated most likely to be fatal, 30.0% were; of the fifth rated least likely, 3.4% (the
 table: 27.4% and 4.4%). The model's probabilities can be read as estimates for groups of similar
 recorded crashes, with exceptions. In 2016 it predicted 12.9% and 11.0% were fatal (9.6–12.6%).
 On urban streets it predicted 7.3% against 6.6% (6.0–7.2%). By province and zone, the mean

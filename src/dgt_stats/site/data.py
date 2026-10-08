@@ -1572,12 +1572,13 @@ def _reuse() -> str:
 
 def page_data(captions: dict[str, str]) -> str:
     body = summary(
-        "Each count is divided by a denominator meant to contain it, with the exceptions named "
-        "below, and a change is read against the variation of an ordinary year. Severity "
-        "among recorded crashes is kept apart from how often crashes happen, police-recorded "
-        "factors are treated as judgements, and missing values stay missing. A predictive model "
-        "is kept only if it ranks unseen records better than a simple table fixed in advance. "
-        "Every assumption the data can test is listed with what the test found."
+        "This page defines the terms the site uses and explains how each rate is built, how a "
+        "change is judged against the variation of an ordinary year, and how the models were "
+        "tested: a model is kept only if it ranks unseen records better than a simple table "
+        "fixed in advance. Severity among recorded crashes is kept apart from how often crashes "
+        "happen, police-recorded factors are read as the officers' judgements, and missing "
+        "values stay missing. The last section lists every assumption the data can test, with "
+        "what the test found."
     )
     body += _definitions()
     body += _rates()

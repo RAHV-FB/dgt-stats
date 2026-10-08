@@ -95,8 +95,9 @@ ROADS: dict[str, tuple[str, str]] = {
     "other_interurban": ("Other interurban road", "interurban"),
 }
 # The four provinces (the file's demarcations). The share of severe crashes that were fatal differs
-# between them within each zone (on interurban roads from 14% in Barcelona to 31% in Tarragona in
-# 2016-2023), so the model has one intercept per province and zone; Barcelona is the reference.
+# between them within each zone, so the model may have one intercept per province and zone
+# (Barcelona the reference); whether it does is chosen on the training years, like the penalty
+# (:func:`select`).
 PROVINCES: dict[str, str] = {
     "Barcelona": "Barcelona",
     "Girona": "Girona",
@@ -556,9 +557,35 @@ class Choice:
 
 
 def select(
-    rec: Records, rows: np.ndarray, provinces: bool = True, label: str = ""
+    rec: Records, rows: np.ndarray, provinces: bool | None = None, label: str = ""
 ) -> tuple[Choice, pd.DataFrame]:
-    """The penalty, the specification and the through-town rule, chosen from ``rows`` alone.
+    """The penalty, the specification, the through-town rule and whether the model has one
+    intercept per province and zone, chosen from ``rows`` alone.
+
+    With ``provinces`` None (every test year and the published model), both designs are chosen
+    as in :func:`_select_given` and the one whose chosen fit has the lower validation log loss is
+    kept; the grid returned is the kept design's, with both losses. A fixed ``provinces`` is for
+    tests that leave a province out, where it has no intercept of its own to learn."""
+    if provinces is not None:
+        return _select_given(rec, rows, provinces, label)
+    candidates = {flag: _select_given(rec, rows, flag, label) for flag in (True, False)}
+    losses = {
+        flag: float(grid[grid.chosen].validation_log_loss.iloc[0])
+        for flag, (_, grid) in candidates.items()
+    }
+    kept = min(losses, key=losses.get)
+    choice, grid = candidates[kept]
+    return choice, grid.assign(
+        validation_log_loss_with_provinces=losses[True],
+        validation_log_loss_without_provinces=losses[False],
+    )
+
+
+def _select_given(
+    rec: Records, rows: np.ndarray, provinces: bool, label: str = ""
+) -> tuple[Choice, pd.DataFrame]:
+    """The penalty, the specification and the through-town rule, chosen from ``rows`` alone for
+    a given choice of province intercepts.
 
     Each specification is fitted on all but the last ``VALIDATION_SPAN`` years of ``rows`` at
     every penalty of the grid (extended while its best value is at an end), and scored by log
@@ -684,6 +711,15 @@ def choice_row(choice: Choice, grid: pd.DataFrame, label: str) -> dict[str, obje
             for spec in SPECIFICATIONS
         },
         "through_town": choice.through_town,
+        "provinces": choice.provinces,
+        **{
+            column: float(grid[column].iloc[0])
+            for column in (
+                "validation_log_loss_with_provinces",
+                "validation_log_loss_without_provinces",
+            )
+            if column in grid
+        },
         **{
             column: grid[column].iloc[0]
             for column in (
@@ -749,8 +785,10 @@ STEPS: dict[str, str] = {
     "model's estimate on roads through towns",
     "nested_penalty_specification": "penalty and specification chosen on the years before each "
     "test year; the model's estimate on roads through towns",
-    "calculator": "nested: penalty, specification and through-town rule chosen on the years "
-    "before each test year (published)",
+    "nested_with_provinces": "penalty, specification and through-town rule chosen on the years "
+    "before each test year; one intercept per province and zone kept in every year",
+    "calculator": "nested: penalty, specification, through-town rule and province intercepts "
+    "chosen on the years before each test year (published)",
 }
 
 
@@ -802,8 +840,8 @@ class Nested:
 def nested_rolling(rec: Records | None = None, comparators: bool = True) -> Nested:
     """Each year 2016-2023 predicted from the years before it, every choice nested.
 
-    For test year ``t`` the penalty, the specification and the through-town rule are chosen by
-    :func:`select` on the years before ``t`` (fit on all but the last two, score those two), the
+    For test year ``t`` the penalty, the specification, the through-town rule and the province
+    intercepts are chosen by :func:`select` on the years before ``t`` (fit on all but the last two, score those two), the
     model is refitted on all years before ``t`` and predicts ``t``. The table of fatal shares by
     road and crash type is fitted on the same years. With ``comparators``, also gradient-boosted
     trees on the same inputs (fixed settings, fitted on the same years) and the steps from the
@@ -828,32 +866,40 @@ def nested_rolling(rec: Records | None = None, comparators: bool = True) -> Nest
             "road_x_crash_table": _table(rec.scenarios[train], rec.y[train], rec.scenarios[test]),
         }
         if comparators:
-            best = grid[grid.best_for_specification].set_index("specification").c
+            # The earlier steps keep one intercept per province and zone, as the previous design
+            # did, so their choices come from the selection with province intercepts.
+            kept, kept_grid = (
+                (choice, grid)
+                if choice.provinces
+                else _select_given(rec, train, True, label=str(year))
+            )
+            best = kept_grid[kept_grid.best_for_specification].set_index("specification").c
             common = Choice(
                 "common",
                 float(best["common"]),
                 "model",
                 True,
-                choice.train_years,
-                choice.validation_years,
-                choice.c_bracketed,
+                kept.train_years,
+                kept.validation_years,
+                kept.c_bracketed,
             )
             frame["previous_design"] = predict_chosen(rec, previous, train, test)
             frame["nested_penalty"] = predict_chosen(rec, common, train, test)
             frame["nested_penalty_specification"] = predict_chosen(
                 rec,
                 Choice(
-                    choice.specification,
-                    choice.c,
+                    kept.specification,
+                    kept.c,
                     "model",
                     True,
-                    choice.train_years,
-                    choice.validation_years,
-                    choice.c_bracketed,
+                    kept.train_years,
+                    kept.validation_years,
+                    kept.c_bracketed,
                 ),
                 train,
                 test,
             )
+            frame["nested_with_provinces"] = predict_chosen(rec, kept, train, test)
             trees = _trees().fit(rec.scenarios[train], rec.y[train])
             frame["boosted_trees"] = trees.predict_proba(rec.scenarios[test])[:, 1]
         pieces.append(pd.DataFrame(frame))
@@ -1117,17 +1163,16 @@ def input_specification(
             "id": "few_similar",
             "kind": "warning",
             "threshold": SUPPORT_FEW,
-            "text": "Fewer than {threshold} recorded crashes, perhaps none, share this zone, "
-            "crash type, road users and number involved: the estimate rests on the model's "
-            "assumptions more than on similar crashes.",
+            "text": "Fewer than {threshold} recorded crashes share this zone, crash type, road "
+            "users and number involved: the estimate rests on the model's assumptions more than "
+            "on similar crashes.",
         },
         {
             "id": "rare_level",
             "kind": "warning",
             "threshold": SUPPORT_FEW,
-            "text": "Fewer than {threshold} recorded crashes on this road have this value of "
-            "{input}: the estimate for it is extrapolated, and its interval does not show how "
-            "few records there are.",
+            "text": "Fewer than {threshold} recorded crashes on this road {input}: the estimate "
+            "for it is extrapolated, and its interval does not show how few records there are.",
         },
     ]
     if through_town == "average":
@@ -1224,13 +1269,15 @@ def export(
         },
         "zone_average": zone_average(scenarios, y),
         "zone_counts": zone_counts(scenarios, y),
-        "estimator": "logistic regression, L2 penalty, one intercept per zone and province, "
-        f"{SPECIFICATIONS[choice.specification]}",
+        "estimator": "logistic regression, L2 penalty, one intercept per zone"
+        + (" and province, " if choice.provinces else ", ")
+        + SPECIFICATIONS[choice.specification],
         "penalty": {"C": fitted.c},
         "choice": {
             "specification": choice.specification,
             "C": choice.c,
             "through_town": choice.through_town,
+            "provinces": choice.provinces,
             "train_years": list(choice.train_years),
             "validation_years": list(choice.validation_years),
             "c_bracketed": choice.c_bracketed,

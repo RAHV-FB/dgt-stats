@@ -118,11 +118,15 @@
     if (!found) return id;
     var words = found.text.replace("{threshold}", String(found.threshold || ""));
     if (id === "rare_level") {
-      var labels = rare.map(function (name) {
-        if (model.inputs[name]) return model.inputs[name].label.toLowerCase();
-        return levelLabel("users", name).toLowerCase();
+      // One phrase per rare item: an input's value, or a kind of road user involved.
+      var phrases = rare.map(function (name) {
+        if (model.inputs[name]) return "have this " + model.inputs[name].label.toLowerCase();
+        return "involve " + levelLabel("users", name).toLowerCase();
       });
-      words = words.replace("{input}", labels.join(", "));
+      var joined = phrases.length < 2
+        ? phrases.join("")
+        : phrases.slice(0, -1).join(", ") + " or " + phrases[phrases.length - 1];
+      words = words.replace("{input}", joined);
     }
     return words;
   }

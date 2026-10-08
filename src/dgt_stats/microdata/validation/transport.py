@@ -922,7 +922,7 @@ def calculator_tests() -> pd.DataFrame:
             specification=str(part.specification),
             c=float(part.c),
             through_town=str(part.through_town),
-            provinces=True,
+            provinces=bool(part.provinces),
             train_years=tuple(int(v) for v in str(part.train_years).split("-")),
             validation_years=tuple(int(v) for v in str(part.validation_years).split("-")),
             c_bracketed=bool(part.c_bracketed),

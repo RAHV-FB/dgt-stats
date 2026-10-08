@@ -34,6 +34,7 @@ from dgt_stats.site.numbers import (
     _speed_numbers,
     joint_interval,
 )
+from dgt_stats.site.regional_common import _year_label
 
 NUMBER_WORDS = {0: "none", 1: "one", 2: "two", 3: "all three"}
 
@@ -86,10 +87,11 @@ def page_index(captions: dict[str, str]) -> str:
     body += _models()
     body += "</ul>"
     body += _explore()
+    barcelona_year = _year_label(read_table("bcn_person_severity_share"))
     lead = (
         f"An independent statistical study of road deaths and injuries in Spain from {first} to "
         f"{last}, built from official statistics and from police crash records for Catalonia and "
-        "Barcelona."
+        f"for Barcelona ({barcelona_year})."
     )
     return render_page("index", "Road safety in Spain", lead, body)
 
@@ -390,8 +392,9 @@ def _models() -> str:
         f"rather than a regional road {float(urban.ratio):.2f} times as often (95% interval "
         f"{float(urban.ratio_low):.2f}–{float(urban.ratio_high):.2f}), other recorded "
         "circumstances held equal. A calculator gives the model's estimate for a crash "
-        "a reader describes; it has been tested only within Catalonia, on years whose data "
-        "played no part in fitting or choosing it.",
+        "a reader describes. The way the model is fitted and tuned has been tested only within "
+        "Catalonia, by predicting each year from the years before it; the published model, "
+        "fitted on every year, has no later year left to test.",
         [
             ("severity-models", "Severity model and calculator"),
             ("validation", "External validation"),

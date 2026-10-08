@@ -49,7 +49,7 @@ layouts and definitions.
 | DGT car km, all cars / less taxis and ride-hailing | 292.99 / 289.78 bn | the same | agree |
 | Involvement ratio to 45–64 per km, as first published (now 2.53 / 1.40 / 1 / 1.19 after the final audit's distance corrections) | 2.57 / 1.42 / 1 / 1.16 | 2.566 / 1.416 / 1 / 1.164; deaths 2.29 / 1.20 / 2.85 | agree |
 | Barcelona working days, 2025 | 248 | 248 (50 Saturdays, 67 Sundays or holidays); working-day car drivers 652 / 981 / 1,294 / 354 and 205 of unknown age, recounted from the raw file | agree |
-| Calculator calibration, 2016–2023, as first published (now 12.3% against 12.3% on the 11,611 crashes on choosable roads, nested, 9 of 10 groups inside) | 12.5% predicted, 12.6% observed | 1,616.4 predicted against 1,627 fatal of 12,961 (12.47% against 12.55%); every band inside the observed interval | agree |
+| Calculator calibration, 2016–2023, as first published (now 12.4% against 12.3% on the 11,611 crashes on choosable roads, nested, all 10 groups inside) | 12.5% predicted, 12.6% observed | 1,616.4 predicted against 1,627 fatal of 12,961 (12.47% against 12.55%); every band inside the observed interval | agree |
 | Ratio of 65+ to 45–64 km per resident, as first published (now 0.40) | 0.41 | 0.35–0.36 with fixed band midpoints, 0.38–0.40 once the 461 unbanded trips are imputed from duration | consistent: the gap is the treatment of unbanded trips, which the sensitivity analysis already covers |
 
 The recomputation also found errors of rounding and wording in the research documents, which were
@@ -69,7 +69,7 @@ corrected (point 15). No calculation in a committed table was found to be wrong.
 | Crash-numerator compatibility | private cars only, public-service cars removed from both numerator and denominator; drivers of unknown age left out of the rates and the effect stated (2.3%) | confirmed; the wording of one document corrected (point 15) |
 | Uncertainty | bootstrap replicates paired with gamma draws for counts; intervals and sensitivity ranges reported separately throughout | confirmed |
 | Model performance | rolling-origin scores of every model against a table of the same records (`sev_rolling_scores`, `review_*`); for the published model the evaluation is nested, every choice made on earlier years (`sev_choices`, `sev_nested_steps`) | confirmed (points 1–3) |
-| Model calibration | predicted against observed in ten groups of predicted risk on years that played no part in fitting or choosing the model (`sev_calibration`), and by year, zone and province (`sev_rolling_scores`) | nine of ten groups' mean predictions inside the observed 95% interval; outside it in 2016, on urban streets, and on interurban roads in Girona and Tarragona |
+| Model calibration | predicted against observed in ten groups of predicted risk on years that played no part in fitting or choosing the model (`sev_calibration`), and by year, zone and province (`sev_rolling_scores`) | all ten groups' mean predictions inside the observed 95% interval (nine of ten before the province intercepts were nested); outside it in 2016, on urban streets, and on interurban roads in Girona and Tarragona |
 | Frontend inference | the browser engine against the Python model on 302 scenarios under Node, and on 120 scenarios in Chromium on the built page, to 10⁻¹⁰; the comparison of two crashes against `compare_exported` | agree |
 | Website conclusions | every number in page prose is formatted from a table at build time; qualitative words are guarded by build checks; tests fail on a number or year typed into page code | the build and the tests pass |
 
@@ -96,27 +96,28 @@ The penalised logistic regression behind the calculator, trained on the Servei C
 file (22,638 crashes with a death or serious injury, 2010–2023, 2,822 fatal; the 1,840 on
 conventional roads with no named owning network are left out). It was validated by
 nested rolling origin over eight years (each of 2016–2023 predicted by a model whose penalty,
-specification and through-town rule were chosen, and whose coefficients were fitted, on earlier
+specification, through-town rule and province intercepts were chosen, and whose coefficients were
+fitted, on earlier
 years only; 11,611 crashes on the roads a reader can choose, 1,429 fatal), by the stability of its
 contrasts across periods and areas, and by bootstrap refits. The transfer tests of the original
 Catalan model, on DGT and Barcelona records, bear on its reach: its probabilities describe
 Catalonia and are likely to be low elsewhere. Gradient-boosted trees rank a little better
-(ROC-AUC 0.748 against 0.741) but give no interval for an estimate and cannot be read term by
+(ROC-AUC 0.748 against 0.739) but give no interval for an estimate and cannot be read term by
 term. Source: [`SEVERITY_CALCULATOR.md`](SEVERITY_CALCULATOR.md).
 
 ### 3. Model performance against baseline
 
 | Model, nested rolling origin 2016–2023 | ROC-AUC (95% CI) | Brier skill | Log loss | Calibration slope | Mean predicted (observed 12.3%) |
 |---|---|---|---|---|---|
-| Calculator model | 0.741 (0.727–0.754) | 0.098 | 0.331 | 1.05 | 12.3% |
+| Calculator model | 0.739 (0.725–0.753) | 0.096 | 0.331 | 1.03 | 12.4% |
 | Gradient-boosted trees | 0.748 (0.734–0.761) | 0.102 | 0.329 | 1.08 | 12.3% |
 | Fatal share of road × crash type | 0.709 (0.694–0.723) | 0.069 | 0.342 | 1.08 | 12.2% |
 
-The model improves on the table by +0.032 ROC-AUC (paired interval +0.022 to +0.042) and lowers
-the log loss by 0.011. The earlier, non-nested design, whose penalty was chosen on two of the test
-years and whose specification and through-town rule were decided on the test scores, gave 0.743
-and +0.034. The improvement is real but modest: most of the information is in the road and the
-crash type. The model ranks crashes moderately on interurban roads (0.701) and urban streets
+The model improves on the table by +0.030 ROC-AUC (paired interval +0.021 to +0.040) and lowers
+the log loss by 0.010. The earlier, non-nested design, whose penalty was chosen on two of the test
+years and whose specification, through-town rule and province intercepts were decided on the test
+scores, gave 0.743 and +0.034; nesting all but the province intercepts gave 0.741. The improvement is real but modest: most of the information is in the road and the
+crash type. The model ranks crashes moderately on interurban roads (0.697) and urban streets
 (0.660) and not on roads through towns, where the calculator shows the province's average.
 
 ### 4. EMEF years successfully imported
