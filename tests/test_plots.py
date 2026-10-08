@@ -37,6 +37,10 @@ EXPECTED_MODEL_FIGURES = {
     "s1_forest_fatal",
     "s2_adverse_conditions",
 }
+# The calculator's predicted-against-observed figure, drawn when its table is committed.
+EXPECTED_CALCULATOR_FIGURES = (
+    {"sev1_predicted_observed"} if (TABLES_DIR / "sev_calibration.csv").exists() else set()
+)
 _TABLES_PRESENT = all(
     (TABLES_DIR / f"{name}.csv").exists() for name in (*summaries.SUMMARIES, "missingness_by_year")
 )
@@ -356,6 +360,7 @@ def test_build_all_writes_every_registered_figure(tmp_path: Path) -> None:
     expected = (
         EXPECTED_FIGURES
         | (EXPECTED_MODEL_FIGURES if summaries.model_tables_present() else set())
+        | EXPECTED_CALCULATOR_FIGURES
         | set(regional)
     )
     assert set(captions) == expected

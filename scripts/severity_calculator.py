@@ -1,15 +1,20 @@
-"""The independent review of the repository's predictive models.
+"""The independent model review and the crash-severity calculator.
 
 Usage:
     python scripts/severity_calculator.py review       # reports/tables/review_*.csv
+    python scripts/severity_calculator.py calculator   # reports/tables/sev_*.csv and
+                                                      # reports/models/severity_model.json
+    python scripts/severity_calculator.py all
 
-It reads the feature tables written by ``scripts/microdata.py features`` and, for the forecast
-diagnosis, the national layer built by ``scripts/ingest.py``; it takes about ten minutes.
+Both read the feature tables written by ``scripts/microdata.py features`` and, for the forecast
+diagnosis, the national layer built by ``scripts/ingest.py``. ``calculator`` takes about two
+minutes, ``review`` about ten.
 """
 
 from __future__ import annotations
 
 import argparse
+import json
 import logging
 import sys
 import time
@@ -17,12 +22,15 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
+import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
 
-from dgt_stats import model_review  # noqa: E402
-from dgt_stats.paths import TABLES_DIR  # noqa: E402
+from dgt_stats import model_review, severity_model  # noqa: E402
+from dgt_stats.paths import REPORTS_DIR, TABLES_DIR  # noqa: E402
 
 log = logging.getLogger("severity_calculator")
+MODELS_DIR = REPORTS_DIR / "models"
+MODEL_PATH = MODELS_DIR / "severity_model.json"
 
 
 def write(frame: pd.DataFrame, name: str) -> None:
@@ -58,13 +66,98 @@ def run_review() -> None:
     write(model_review.forecast_diagnosis(), "review_forecast")
 
 
+def run_calculator() -> None:
+    grid = severity_model.choose_penalty()
+    write(grid, "sev_penalty")
+    best = grid[grid.chosen].iloc[0]
+    c, scale = float(best.c), float(best.deviation_scale)
+
+    rolling = severity_model.rolling_predictions(c, scale)
+    estimators = ["calculator", "boosted_trees", "road_x_crash_table"]
+    rows = []
+    subsets = {"2016-2023": rolling.year > 0}
+    subsets |= {str(year): rolling.year == year for year in severity_model.ROLLING_TEST_YEARS}
+    subsets |= {f"zone: {zone}": rolling.zone == zone for zone in severity_model.ZONES}
+    subsets["roads a reader can choose"] = ~rolling.road.isin(severity_model.TRAINING_ONLY_ROADS)
+    for subset, mask in subsets.items():
+        part = rolling[mask]
+        for name in estimators:
+            rows.append(
+                {"subset": subset, "estimator": name}
+                | model_review.scores(part.fatal.to_numpy(), part[name].to_numpy())
+            )
+    write(pd.DataFrame(rows), "sev_rolling_scores")
+    y = rolling.fatal.to_numpy()
+    comparison = model_review.bootstrap_intervals(
+        y, {name: rolling[name].to_numpy() for name in estimators}, reference="calculator"
+    )
+    write(comparison, "sev_comparison")
+    calibration = []
+    for name in ("calculator", "boosted_trees"):
+        table = model_review.calibration_table(y, rolling[name].to_numpy())
+        table.insert(0, "estimator", name)
+        calibration.append(table)
+    write(pd.concat(calibration, ignore_index=True), "sev_calibration")
+
+    fitted, x = severity_model.final_fit(c, scale)
+    frame, _, y_all = severity_model.load()
+    draws = severity_model.bootstrap_draws(x, y_all, c, scale)
+    covariance = np.cov(draws, rowvar=False)
+    contrasts = pd.concat(
+        [
+            severity_model.scenario_contrasts(fitted, draws, base).assign(base=label)
+            for label, base in (
+                ("interurban", severity_model.REFERENCE_SCENARIO),
+                ("urban", severity_model.URBAN_REFERENCE),
+            )
+        ],
+        ignore_index=True,
+    )
+    write(contrasts, "sev_contrasts")
+    write(severity_model.marginal_and_adjusted(fitted, draws), "sev_marginal_adjusted")
+    write(severity_model.stability(c, scale), "sev_stability")
+    coefficients = pd.DataFrame(
+        {
+            "column": fitted.columns,
+            "group": [severity_model.column_group(col) for col in fitted.columns],
+            "coefficient": fitted.coef,
+            "bootstrap_se": np.sqrt(np.diag(covariance)),
+        }
+    )
+    write(coefficients, "sev_coefficients")
+
+    pooled = (
+        pd.read_csv(TABLES_DIR / "sev_rolling_scores.csv")
+        .query("subset == '2016-2023' and estimator == 'calculator'")
+        .iloc[0]
+    )
+    evaluation = {
+        "design": "each year 2016-2023 predicted by a model fitted on the years before it",
+        "crashes": int(pooled.n),
+        "fatal": int(pooled.positives),
+        "roc_auc": round(float(pooled.roc_auc), 4),
+        "brier_skill": round(float(pooled.brier_skill), 4),
+        "calibration_slope": round(float(pooled.calibration_slope), 4),
+        "mean_predicted": round(float(pooled.mean_predicted), 4),
+        "observed": round(float(pooled.prevalence), 4),
+    }
+    scenarios = severity_model.scenarios_from_records(frame)
+    exported = severity_model.export(fitted, covariance, scenarios, y_all, evaluation)
+    MODELS_DIR.mkdir(parents=True, exist_ok=True)
+    MODEL_PATH.write_text(json.dumps(exported, ensure_ascii=False, separators=(",", ":")) + "\n")
+    log.info("model: %s (%.0f kB)", MODEL_PATH, MODEL_PATH.stat().st_size / 1024)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    parser.add_argument("step", choices=("review",))
-    parser.parse_args()
+    parser.add_argument("step", choices=("review", "calculator", "all"))
+    args = parser.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     start = time.time()
-    run_review()
+    if args.step in ("calculator", "all"):
+        run_calculator()
+    if args.step in ("review", "all"):
+        run_review()
     log.info("done in %.1f s", time.time() - start)
 
 

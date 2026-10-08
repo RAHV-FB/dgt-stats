@@ -1,0 +1,16 @@
+estimator,metric,low,high
+calculator,roc_auc,0.7588652873,0.7838278304
+calculator,brier,0.09111731235,0.09856439485
+calculator,log_loss,0.3107457106,0.3313220436
+boosted_trees,roc_auc,0.7663021092,0.7903749998
+boosted_trees,roc_auc_minus_calculator,0.001968187098,0.01039208118
+boosted_trees,brier,0.09024872047,0.09768333908
+boosted_trees,brier_minus_calculator,-0.001498705162,-0.0002914624767
+boosted_trees,log_loss,0.3078373733,0.3284898765
+boosted_trees,log_loss_minus_calculator,-0.004696262936,-0.001041148815
+road_x_crash_table,roc_auc,0.7325835595,0.7572793753
+road_x_crash_table,roc_auc_minus_calculator,-0.03479109592,-0.01892453827
+road_x_crash_table,brier,0.09481510829,0.102432011
+road_x_crash_table,brier_minus_calculator,0.002695962034,0.004821604035
+road_x_crash_table,log_loss,0.3227428883,0.3437281506
+road_x_crash_table,log_loss_minus_calculator,0.008934025586,0.01578116539

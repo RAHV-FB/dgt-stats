@@ -998,6 +998,71 @@ def calibration(
     return save(fig, path)
 
 
+def calibration_intervals(
+    frame: pd.DataFrame,
+    path: Path,
+    title: str,
+    xlabel: str = "Predicted probability (mean in the band)",
+    ylabel: str = "Observed share",
+) -> Path:
+    """Observed share against mean predicted probability by probability band, one dot per band
+    with its 95% interval (``observed_low``, ``observed_high``) and its number of records (``n``)
+    written below and to the right of it, on equal axes with the diagonal on which prediction equals observation."""
+    apply_style()
+    fig, axis = plt.subplots(figsize=(FIGURE_WIDTH, 5.2))
+    frame = frame.sort_values("mean_predicted")
+    top = float(frame[["mean_predicted", "observed_high"]].max().max()) * 1.08
+    axis.plot([0, top], [0, top], color=REFERENCE, linewidth=1.1, linestyle=":", zorder=1)
+    axis.annotate(
+        "predicted = observed",
+        (top * 0.70, top * 0.60),
+        ha="left",
+        va="top",
+        fontsize=NOTE_SIZE,
+        color=TEXT_SECONDARY,
+    )
+    axis.vlines(
+        frame.mean_predicted,
+        frame.observed_low,
+        frame.observed_high,
+        color=ACCENT,
+        linewidth=1.6,
+        zorder=2,
+    )
+    axis.plot(
+        frame.mean_predicted,
+        frame.observed,
+        marker="o",
+        markersize=7,
+        linestyle="none",
+        color=ACCENT,
+        markeredgecolor=SURFACE,
+        markeredgewidth=1,
+        zorder=3,
+    )
+    for _, row in frame.iterrows():
+        axis.annotate(
+            f"{int(row.n):,}",
+            (float(row.mean_predicted), float(row.observed)),
+            xytext=(7, -6),
+            textcoords="offset points",
+            ha="left",
+            va="top",
+            fontsize=NOTE_SIZE,
+            color=TEXT_SECONDARY,
+        )
+    axis.set_xlim(0, top)
+    axis.set_ylim(0, top)
+    axis.set_aspect("equal", adjustable="box")
+    axis.grid(True, axis="both")
+    _percent(axis, 0)
+    axis.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(lambda v, _: f"{v * 100:.0f}%"))
+    _title(path, title)
+    axis.set_xlabel(xlabel)
+    axis.set_ylabel(ylabel)
+    return save(fig, path)
+
+
 def missingness_heatmap(profile: pd.DataFrame, path: Path, title: str) -> Path:
     """Year × column share of observed (non-missing) values."""
     matrix = profile.pivot(index="column", columns="year", values="share_observed")

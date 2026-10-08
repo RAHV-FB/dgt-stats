@@ -109,6 +109,7 @@ def build_all(
     # The regional crash-record figures (Catalonia, Barcelona, models, generalisability); skipped
     # when the microdata tables are not built.
     microdata_charts.build(figures_dir, captions)
+    _severity_calculator_figures(figures_dir, captions)
 
     target = figures_dir / CAPTIONS_PATH.name
     target.write_text(json.dumps(captions, indent=2, ensure_ascii=False), encoding="utf-8")
@@ -828,4 +829,32 @@ def _data_figures(figures_dir: Path, captions: dict[str, str]) -> None:
         "inventariada'; COD_MUNICIPIO 00000)",
         MICRODATA_SOURCE,
         f"{int(profile.groupby('year').rows.first().sum()):,} crashes",
+    )
+
+
+# --------------------------------------------------------------------------- severity calculator
+
+
+def _severity_calculator_figures(figures_dir: Path, captions: dict[str, str]) -> None:
+    """Predicted against observed for the calculator's model, on years it was not fitted on."""
+    path = TABLES_DIR / "sev_calibration.csv"
+    if not path.exists():
+        log.warning("sev_calibration.csv missing: run scripts/severity_calculator.py calculator")
+        return
+    bands = pd.read_csv(path)
+    bands = bands[bands.estimator == "calculator"]
+    plots.calibration_intervals(
+        bands,
+        figures_dir / "sev1_predicted_observed.svg",
+        "Predicted and observed: the share of severe crashes that were fatal",
+        xlabel="Predicted probability that the crash was fatal (mean in the band)",
+        ylabel="Share of the crashes that were fatal",
+    )
+    captions["sev1_predicted_observed"] = _caption(
+        "Crashes in Catalonia with a death or serious injury, 2016–2023, grouped by the "
+        "calculator model's predicted probability that the crash was fatal; each year is "
+        "predicted by a model fitted only on the years before it. Dots are the observed fatal "
+        "share in each band with its 95% interval, and n is the number of crashes in the band",
+        "Servei Català de Trànsit, crashes with a death or serious injury",
+        int(bands.n.sum()),
     )

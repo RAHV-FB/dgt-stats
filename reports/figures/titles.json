@@ -36,5 +36,6 @@
   "ml3_importance_barcelona_person_severity": "Barcelona person-severity model: the variables it relies on most",
   "tr1_catalonia_transfer": "Catalonia crash-severity model on held-out places and years",
   "tr2_dgt_transfer": "Harmonised Catalonia model on other sources, years and Spain",
-  "tr3_province_auc": "Harmonised Catalonia model, province by province outside Catalonia"
+  "tr3_province_auc": "Harmonised Catalonia model, province by province outside Catalonia",
+  "sev1_predicted_observed": "Predicted and observed: the share of severe crashes that were fatal"
 }
