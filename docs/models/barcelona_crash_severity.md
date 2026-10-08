@@ -127,7 +127,7 @@ Highest validated level on the outward path ([`GENERALISABILITY.md`](../GENERALI
 | 2 | later months of the same year | passed | train months 1-9 with 5-fold cross-validation grouped by crash; test months 10-12: ROC-AUC 0.737 (0.686-0.782); n=1,994, positives=58 |
 | 3 | another district of the same city | passed | leave one district out (pooled out-of-district scores): ROC-AUC 0.767 (0.741-0.792), in-domain 0.775, gap -0.008 |
 | 4 | another independently recorded Spanish dataset | not run | the Catalan file holds only serious or fatal crashes, so it cannot test a model of serious-or-fatal against lower severity |
-| 5 | national aggregates: does the training population resemble Spain? | failed | Barcelona city vs Spain outside Catalonia (injury crashes): differs on alignment_recorded (JSD 0.233), crash_type (JSD 0.207), road_class (JSD 0.131), zone (JSD 0.092), weather (JSD 0.046), vehicles (JSD 0.032), surface (JSD 0.023); fatal share of severe crashes 9.1% against 15.4% |
+| 5 | national aggregates: does the training population resemble Spain? | failed | Barcelona city vs Spain outside Catalonia (injury crashes): differs on alignment_recorded (JSD 0.233), crash_type (JSD 0.207), road_class (JSD 0.127), zone (JSD 0.092), weather (JSD 0.046), vehicles (JSD 0.032), surface (JSD 0.023); fatal share of severe crashes 9.1% against 15.4% |
 
 ## Valid interpretation
 

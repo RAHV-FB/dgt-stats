@@ -810,7 +810,9 @@ def _models() -> str:
         "For DGT's records elsewhere in Spain, a harmonised version of the original model refits the "
         f"original model's specification on the {len(used)} of {len(candidates)} candidate "
         "variables whose mapped distributions match on the Catalan crashes of "
-        f"{_span(overlap)}, which both files contain ({excluded} do not). Barcelona's records "
+        f"{_span(overlap)}, which both files contain ({excluded} "
+        + ("does" if len(dropped) == 1 else "do")
+        + " not). Barcelona's records "
         f"share no crash with the Catalan file, so the {_words(len(bcn_shared))} variables "
         "used for Barcelona were chosen only because their codings map exactly or defensibly "
         f"({validation}).</p>"

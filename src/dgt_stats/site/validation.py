@@ -238,7 +238,9 @@ def _per_resident(rates: pd.DataFrame) -> dict[bool, pd.Series]:
     return {bool(key): row * 1e5 for key, row in per.iterrows()}
 
 
-def _calculator_section(calculator: pd.DataFrame, rolling_scores: pd.DataFrame) -> str:
+def _calculator_section(
+    calculator: pd.DataFrame, rolling_scores: pd.DataFrame, mapping: pd.DataFrame
+) -> str:
     """The published model's tests: later years, provinces and Barcelona city left out."""
     tolerance = generalisability.MAX_TRANSFER_GAP
     slope_low, slope_high = modelling.CALIBRATION_SLOPE_RANGE
@@ -260,6 +262,17 @@ def _calculator_section(calculator: pd.DataFrame, rolling_scores: pd.DataFrame) 
     lowest = provinces.loc[provinces.roc_auc.idxmin()]
     highest = provinces.loc[provinces.roc_auc.idxmax()]
     barcelona = provinces.set_index("name").loc["Barcelona"]
+    # The harmonised fields whose codings fail the overlap check: road type, among the
+    # calculator's inputs. The junction passes once DGT's inverted Catalan flag is read the other
+    # way round (``harmonise.dgt_junction_codes``).
+    differing = mapping[
+        mapping.a_priori_status.isin(["exact", "defensible"]) & ~mapping.validated.astype(bool)
+    ]
+    _check(
+        set(differing.field) == {"road_class"},
+        PAGE,
+        "of the calculator's inputs DGT's records hold, only road type is coded differently",
+    )
     tolerance_band = modelling.CALIBRATION_LARGE_TOLERANCE
 
     def calibrated(row) -> bool:
@@ -343,8 +356,11 @@ def _calculator_section(calculator: pd.DataFrame, rolling_scores: pd.DataFrame) 
         f"fitting, its estimates for the city's streets are close "
         f"({_fmt_pct(in_city.mean_predicted)} against {_fmt_pct(in_city.prevalence)}).</p>"
         "<p>No other source records its inputs: DGT's national records have no field for the "
-        "road's owning network or the posted limit, and their road-type and junction codings "
-        "disagree with the Catalan file's on the crashes both hold. The Catalan severity model "
+        "road's owning network or the posted limit, and their "
+        + _join([_variable(field).replace(" ", "-") for field in differing.field])
+        + " "
+        + ("coding disagrees" if len(differing) == 1 else "codings disagree")
+        + " with the Catalan file's on the crashes both hold. The Catalan severity model "
         "therefore has no test outside Catalonia. The tests that follow are of other models.</p>"
     )
 
@@ -423,9 +439,10 @@ def page_validation(captions: dict[str, str]) -> str:
     # ------------------------------------------------------------------ the principal result
     _check(national.roc_auc_low > 0.5, PAGE, "the national test ranks well above chance")
     _check(
-        abs(national.transfer_gap) < 0.01,
+        -tolerance <= national.transfer_gap < 0,
         PAGE,
-        "the Catalonia-fitted model ranks Spanish crashes about as well as a model fitted there",
+        "the Catalonia-fitted model ranks Spanish crashes nearly as well as a model fitted there, "
+        "within the transfer limit",
     )
     _check(
         slope_low <= national.calibration_slope <= slope_high
@@ -476,13 +493,13 @@ def page_validation(captions: dict[str, str]) -> str:
         "out of its fitting it ranked crashes better than a table of fatal shares by road and "
         "crash type, but its estimates of the fatal share were off for the province and for "
         "the city of Barcelona. A harmonised version of the original Catalan model (retired) "
-        "ranked crashes elsewhere in Spain about as well as a model fitted there. Because "
+        "ranked crashes elsewhere in Spain nearly as well as a model fitted there. Because "
         "Catalonia's serious crashes differ from the rest of Spain's in the mix of crash types "
         "and in how several fields are recorded, national use of the models is not established."
     )
 
     # ------------------------------------------------------------------ the published model
-    body += _calculator_section(calculator, rolling_scores)
+    body += _calculator_section(calculator, rolling_scores, mapping)
     body += figure(
         "tr0_calculator_transfer",
         "Dot chart of the Catalan severity model's ROC-AUC, with 95% intervals, on later years, "
@@ -542,9 +559,10 @@ def page_validation(captions: dict[str, str]) -> str:
     )
     for row in (early, reweighted):
         _check(
-            abs(row.roc_auc - national.roc_auc) < 0.01,
+            row.transfer_gap >= -tolerance and row.roc_auc_low > 0.5,
             PAGE,
-            "the national result is unchanged by earlier fitting years or reweighting",
+            "the national result holds, within the transfer limit, with earlier fitting years or "
+            "reweighting",
         )
     _check(
         abs(same_cat.roc_auc - same_dgt.roc_auc) < 0.005,
@@ -652,8 +670,13 @@ def page_validation(captions: dict[str, str]) -> str:
     body += technical(
         "Variables of the harmonised version",
         f"<p>The {_count(len(used))} variables are {_variables(used.field)}. "
-        f"{_variables(disagree.field).capitalize()} were left out because their codings "
-        "disagree on the crashes both sources hold, and "
+        f"{_variables(disagree.field).capitalize()} "
+        + (
+            "was left out because its coding disagrees"
+            if len(disagree) == 1
+            else "were left out because their codings disagree"
+        )
+        + " on the crashes both sources hold, and "
         f"{_join(['the ' + _variable(v) for v in unusable.field])} are not available in a "
         "comparable form. Averaged over the variables used, values recorded as not specified "
         f"make up at most {_fmt_pct(max(missing) / 100)} of any source's records, although "

@@ -182,12 +182,12 @@ barcelona_crash_severity,retrospective,granular,boosted_trees,"learning_rate=0.0
 catalonia_common_dgt,common,none,baseline_prior,,validation,3032,393,0.129617,0.5,0.129617,0.112827,-9.42318e-05,0.385707,0.126357,0.126357,0.129617,1,0.229489,0.5,0,2639,0,393
 catalonia_common_dgt,common,none,baseline_prior,,training fit,22746,2884,0.126792,0.5,0.126792,0.110715,1.11022e-16,0.380242,0.126792,,,,,,,,,
 catalonia_common_dgt,common,none,baseline_prior,,test,1732,209,0.12067,0.5,0.12067,0.106146,-0.000353187,0.368429,0.126792,0.126357,0.12067,1,0.215353,0.5,0,1523,0,209
-catalonia_common_dgt,common,none,logistic,C=0.05,validation,3032,393,0.129617,0.715184,0.275702,0.104753,0.0714744,0.352651,0.119118,0.171247,0.282738,0.483461,0.356808,0.650408,2157,482,203,190
-catalonia_common_dgt,common,none,logistic,C=0.05,training fit,22746,2884,0.126792,0.696407,0.252998,0.104016,0.0605105,0.352539,0.126744,,,,,,,,,
-catalonia_common_dgt,common,none,logistic,C=0.05,test,1732,209,0.12067,0.704609,0.277461,0.0985037,0.0716701,0.338052,0.117757,0.171247,0.276712,0.483254,0.351916,0.654956,1259,264,108,101
-catalonia_common_dgt,common,none,boosted_trees,"learning_rate=0.05, max_leaf_nodes=15, min_samples_leaf=40, l2_regularization=1.0, max_iter=250",validation,3032,393,0.129617,0.712947,0.290334,0.103948,0.0786114,0.352049,0.124483,0.191266,0.291866,0.465649,0.358824,0.648702,2195,444,210,183
-catalonia_common_dgt,common,none,boosted_trees,"learning_rate=0.05, max_leaf_nodes=15, min_samples_leaf=40, l2_regularization=1.0, max_iter=250",training fit,22746,2884,0.126792,0.785672,0.401762,0.0951226,0.140837,0.320304,0.126815,,,,,,,,,
-catalonia_common_dgt,common,none,boosted_trees,"learning_rate=0.05, max_leaf_nodes=15, min_samples_leaf=40, l2_regularization=1.0, max_iter=250",test,1732,209,0.12067,0.70225,0.264777,0.099107,0.0659849,0.340581,0.125138,0.191266,0.281818,0.444976,0.345083,0.644681,1286,237,116,93
+catalonia_common_dgt,common,none,logistic,C=0.5,validation,3032,393,0.129617,0.714292,0.285381,0.104281,0.0756634,0.35181,0.118573,0.170734,0.288722,0.48855,0.362949,0.654658,2166,473,201,192
+catalonia_common_dgt,common,none,logistic,C=0.5,training fit,22746,2884,0.126792,0.698501,0.258543,0.103689,0.0634613,0.351526,0.126741,,,,,,,,,
+catalonia_common_dgt,common,none,logistic,C=0.5,test,1732,209,0.12067,0.709688,0.282983,0.0980217,0.0762128,0.336421,0.118147,0.170734,0.275862,0.497608,0.354949,0.659178,1250,273,105,104
+catalonia_common_dgt,common,none,boosted_trees,"learning_rate=0.05, max_leaf_nodes=15, min_samples_leaf=40, l2_regularization=1.0, max_iter=250",validation,3032,393,0.129617,0.71637,0.289052,0.103825,0.0796982,0.350721,0.123513,0.220205,0.321285,0.407125,0.359147,0.639523,2301,338,233,160
+catalonia_common_dgt,common,none,boosted_trees,"learning_rate=0.05, max_leaf_nodes=15, min_samples_leaf=40, l2_regularization=1.0, max_iter=250",training fit,22746,2884,0.126792,0.792554,0.407294,0.0944967,0.14649,0.317894,0.1268,,,,,,,,,
+catalonia_common_dgt,common,none,boosted_trees,"learning_rate=0.05, max_leaf_nodes=15, min_samples_leaf=40, l2_regularization=1.0, max_iter=250",test,1732,209,0.12067,0.705896,0.27913,0.0983067,0.0735276,0.338407,0.124922,0.220205,0.315353,0.363636,0.337778,0.627649,1358,165,133,76
 catalonia_common_bcn,common,none,baseline_prior,,validation,3032,393,0.129617,0.5,0.129617,0.112827,-9.42318e-05,0.385707,0.126357,0.126357,0.129617,1,0.229489,0.5,0,2639,0,393
 catalonia_common_bcn,common,none,baseline_prior,,training fit,22746,2884,0.126792,0.5,0.126792,0.110715,1.11022e-16,0.380242,0.126792,,,,,,,,,
 catalonia_common_bcn,common,none,baseline_prior,,test,1732,209,0.12067,0.5,0.12067,0.106146,-0.000353187,0.368429,0.126792,0.126357,0.12067,1,0.215353,0.5,0,1523,0,209

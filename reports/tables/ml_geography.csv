@@ -39,7 +39,7 @@ barcelona_crash_severity,retrospective,broad,logistic,0.839455,0.778891,0.73682,
 barcelona_crash_severity,retrospective,broad,boosted_trees,0.988168,0.766636,0.751327,0.236841
 barcelona_crash_severity,retrospective,granular,logistic,0.857393,0.771663,0.707217,0.150176
 barcelona_crash_severity,retrospective,granular,boosted_trees,0.998463,0.719162,0.700716,0.297747
-catalonia_common_dgt,common,none,logistic,0.696407,0.715184,0.704609,-0.00820251
-catalonia_common_dgt,common,none,boosted_trees,0.785672,0.712947,0.70225,0.083422
+catalonia_common_dgt,common,none,logistic,0.698501,0.714292,0.709688,-0.011186
+catalonia_common_dgt,common,none,boosted_trees,0.792554,0.71637,0.705896,0.0866585
 catalonia_common_bcn,common,none,logistic,0.67299,0.667456,0.678545,-0.00555418
 catalonia_common_bcn,common,none,boosted_trees,0.713355,0.669291,0.680615,0.0327404

@@ -100,9 +100,9 @@ The Catalan common-feature model is scored on DGT crashes outside Catalonia. The
 | inclusion equivalence | the Catalan file holds the crashes DGT records with a death or serious injury within 24 hours (counts within 2% in every province-year) | Catalan / DGT count ratio 1.000 to 1.005 | yes |
 | no Catalan records in the national test | test rows exclude the four Catalan provinces; the model is trained on the Catalan file only | 0 test rows in a Catalan province, 0 without a province, of 67,971 | yes |
 | prevalence | reported, not a pass/fail: a shift moves calibration, not ranking | training 12.6%, national test 15.4%; mean predicted 14.2% | yes |
-| feature coding | only fields whose two codings agree on the crashes both sources hold (Jensen-Shannon divergence at most 0.005) | 10 fields used, largest divergence 0.00032; excluded: road_class, junction, speed_limit, unit_types, geography | yes |
-| missingness | reported: mean share 'not specified' over the fields used | Catalan file 0.0%; DGT Catalonia 0.0%; DGT outside Catalonia 0.8% | yes |
-| in-domain reference and transfer gap | a model trained on DGT crashes outside Catalonia, same fields (5-fold CV), against the transferred Catalan model on the same crashes | target-domain native ROC-AUC 0.712, transferred 0.708 (0.702-0.712); gap (transferred minus native) -0.004; n=67,971, positives=10,457, calibration slope 1.10 | yes |
+| feature coding | only fields whose two codings agree on the crashes both sources hold (Jensen-Shannon divergence at most 0.005) | 11 fields used, largest divergence 0.00032; excluded: road_class, speed_limit, unit_types, geography | yes |
+| missingness | reported: mean share 'not specified' over the fields used | Catalan file 0.0%; DGT Catalonia 0.0%; DGT outside Catalonia 0.7% | yes |
+| in-domain reference and transfer gap | a model trained on DGT crashes outside Catalonia, same fields (5-fold CV), against the transferred Catalan model on the same crashes | target-domain native ROC-AUC 0.721, transferred 0.709 (0.704-0.714); gap (transferred minus native) -0.012; n=67,971, positives=10,457, calibration slope 1.04 | yes |
 
 ## What this means
 

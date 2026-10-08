@@ -1245,8 +1245,10 @@ missingness and prevalence reported. Generated: [`DGT_MICRODATA_AUDIT.md`](DGT_M
 **Transportability** (`transport.py`). Each model is tested on records it could not have seen:
 inside the Catalan file (Barcelona municipality from the rest and the reverse, each demarcation
 left out, later Barcelona years from earlier years elsewhere); across sources with models
-restricted to variables recorded the same way (validated on the overlap; road class and junction
-fail); and in Barcelona, each district scored by a model trained on the others. These tests use the
+restricted to variables recorded the same way (validated on the overlap: road class fails; the
+junction passes with DGT's inverted Catalan flag of 2023 read the other way round, as in the
+association analysis, and the Catalan file's approach zone, within 50 m of a junction, counted as
+a junction, where DGT's flag puts it in every year the two files share but 2021); and in Barcelona, each district scored by a model trained on the others. These tests use the
 original Catalan model and its restricted versions; the original model was retired (section 20),
 and its results are kept as a record. The reverse Barcelona test trains the specification on
 Barcelona city alone, so it tests a model of the city and no stage of the outward path counts it.

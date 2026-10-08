@@ -825,8 +825,8 @@ def calculator_tests() -> pd.DataFrame:
     A province left out has no intercept of its own to learn, so those tests use the
     specification without province intercepts; the other tests use the published one. No test
     uses another source: no other file records the calculator's inputs (DGT's records lack the
-    road's owning network and the posted limit, and their road-type and junction codings
-    disagree with the Catalan file's on the same crashes).
+    road's owning network and the posted limit, and their road-type coding disagrees with the
+    Catalan file's on the same crashes).
     """
     from dgt_stats import severity_model as sev
 

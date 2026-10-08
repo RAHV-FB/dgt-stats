@@ -29,9 +29,9 @@ Catalonia vs Spain outside Catalonia,injury crashes,surface,dry,0.894566,0.82885
 Catalonia vs Spain outside Catalonia,injury crashes,surface,not specified,0,0.0290664,0.0174486,-0.0290664
 Catalonia vs Spain outside Catalonia,injury crashes,surface,"slippery, icy or snowy",0.0171678,0.025642,0.0174486,-0.00847419
 Catalonia vs Spain outside Catalonia,injury crashes,surface,wet,0.0882661,0.116435,0.0174486,-0.0281685
-Catalonia vs Spain outside Catalonia,injury crashes,junction,junction,0.446643,0.384017,0.00316549,0.0626264
-Catalonia vs Spain outside Catalonia,injury crashes,junction,not specified,0,0.000541818,0.00316549,-0.000541818
-Catalonia vs Spain outside Catalonia,injury crashes,junction,section,0.553357,0.615442,0.00316549,-0.0620846
+Catalonia vs Spain outside Catalonia,injury crashes,junction,junction,0.390703,0.384017,0.000302843,0.00668647
+Catalonia vs Spain outside Catalonia,injury crashes,junction,not specified,0,0.000541818,0.000302843,-0.000541818
+Catalonia vs Spain outside Catalonia,injury crashes,junction,section,0.609297,0.615442,0.000302843,-0.00614465
 Catalonia vs Spain outside Catalonia,injury crashes,alignment_recorded,not applicable,0.628332,0.623493,0.288075,0.00483925
 Catalonia vs Spain outside Catalonia,injury crashes,alignment_recorded,not specified,0,9.13177e-06,0.288075,-9.13177e-06
 Catalonia vs Spain outside Catalonia,injury crashes,alignment_recorded,recorded,0.0247149,0.371375,0.288075,-0.34666
@@ -82,9 +82,9 @@ Catalonia vs Spain outside Catalonia,crashes with a death or serious injury (24 
 Catalonia vs Spain outside Catalonia,crashes with a death or serious injury (24 h),surface,not specified,0,0.0157126,0.0282325,-0.0157126
 Catalonia vs Spain outside Catalonia,crashes with a death or serious injury (24 h),surface,"slippery, icy or snowy",0.00796651,0.0294979,0.0282325,-0.0215314
 Catalonia vs Spain outside Catalonia,crashes with a death or serious injury (24 h),surface,wet,0.031596,0.0998073,0.0282325,-0.0682113
-Catalonia vs Spain outside Catalonia,crashes with a death or serious injury (24 h),junction,junction,0.40825,0.318768,0.00633911,0.0894818
-Catalonia vs Spain outside Catalonia,crashes with a death or serious injury (24 h),junction,not specified,0,0.000191258,0.00633911,-0.000191258
-Catalonia vs Spain outside Catalonia,crashes with a death or serious injury (24 h),junction,section,0.59175,0.68104,0.00633911,-0.0892905
+Catalonia vs Spain outside Catalonia,crashes with a death or serious injury (24 h),junction,junction,0.315893,0.318768,0.000102814,-0.00287578
+Catalonia vs Spain outside Catalonia,crashes with a death or serious injury (24 h),junction,not specified,0,0.000191258,0.000102814,-0.000191258
+Catalonia vs Spain outside Catalonia,crashes with a death or serious injury (24 h),junction,section,0.684107,0.68104,0.000102814,0.00306704
 Catalonia vs Spain outside Catalonia,crashes with a death or serious injury (24 h),alignment_recorded,not applicable,0.506144,0.485192,0.0696313,0.0209515
 Catalonia vs Spain outside Catalonia,crashes with a death or serious injury (24 h),alignment_recorded,not specified,0,2.94243e-05,0.0696313,-2.94243e-05
 Catalonia vs Spain outside Catalonia,crashes with a death or serious injury (24 h),alignment_recorded,recorded,0.353767,0.510894,0.0696313,-0.157127
@@ -131,8 +131,8 @@ Barcelona city vs rest of Catalonia,injury crashes,weather,rain,0.0519974,0.0763
 Barcelona city vs rest of Catalonia,injury crashes,surface,dry,0.920695,0.881932,0.0035135,0.0387626
 Barcelona city vs rest of Catalonia,injury crashes,surface,wet,0.069846,0.0971727,0.0035135,-0.0273267
 Barcelona city vs rest of Catalonia,injury crashes,surface,"slippery, icy or snowy",0.00945919,0.0208952,0.0035135,-0.011436
-Barcelona city vs rest of Catalonia,injury crashes,junction,junction,0.501351,0.42019,0.00478649,0.0811613
-Barcelona city vs rest of Catalonia,injury crashes,junction,section,0.498649,0.57981,0.00478649,-0.0811613
+Barcelona city vs rest of Catalonia,injury crashes,junction,section,0.525717,0.64971,0.0114767,-0.123993
+Barcelona city vs rest of Catalonia,injury crashes,junction,junction,0.474283,0.35029,0.0114767,0.123993
 Barcelona city vs rest of Catalonia,injury crashes,alignment_recorded,not applicable,0.918978,0.487796,0.177525,0.431181
 Barcelona city vs rest of Catalonia,injury crashes,alignment_recorded,unknown,0.0806847,0.475702,0.177525,-0.395017
 Barcelona city vs rest of Catalonia,injury crashes,alignment_recorded,recorded,0.000337828,0.0365019,0.177525,-0.036164
@@ -178,8 +178,8 @@ Barcelona city vs rest of Catalonia,crashes with a death or serious injury (24 h
 Barcelona city vs rest of Catalonia,crashes with a death or serious injury (24 h),surface,dry,0.94613,0.962558,0.00260064,-0.0164284
 Barcelona city vs rest of Catalonia,crashes with a death or serious injury (24 h),surface,wet,0.0496862,0.0289147,0.00260064,0.0207715
 Barcelona city vs rest of Catalonia,crashes with a death or serious injury (24 h),surface,"slippery, icy or snowy",0.0041841,0.00852713,0.00260064,-0.00434303
-Barcelona city vs rest of Catalonia,crashes with a death or serious injury (24 h),junction,junction,0.531904,0.389922,0.0146819,0.141981
-Barcelona city vs rest of Catalonia,crashes with a death or serious injury (24 h),junction,section,0.468096,0.610078,0.0146819,-0.141981
+Barcelona city vs rest of Catalonia,crashes with a death or serious injury (24 h),junction,junction,0.520397,0.285581,0.0418005,0.234816
+Barcelona city vs rest of Catalonia,crashes with a death or serious injury (24 h),junction,section,0.479603,0.714419,0.0418005,-0.234816
 Barcelona city vs rest of Catalonia,crashes with a death or serious injury (24 h),alignment_recorded,not applicable,0.905335,0.446977,0.231996,0.458358
 Barcelona city vs rest of Catalonia,crashes with a death or serious injury (24 h),alignment_recorded,recorded,0.0125523,0.404341,0.231996,-0.391789
 Barcelona city vs rest of Catalonia,crashes with a death or serious injury (24 h),alignment_recorded,unknown,0.082113,0.148682,0.231996,-0.0665692
@@ -229,9 +229,9 @@ Barcelona city vs Spain outside Catalonia,injury crashes,surface,dry,0.920695,0.
 Barcelona city vs Spain outside Catalonia,injury crashes,surface,not specified,0,0.0290664,0.0233156,-0.0290664
 Barcelona city vs Spain outside Catalonia,injury crashes,surface,"slippery, icy or snowy",0.00945919,0.025642,0.0233156,-0.0161828
 Barcelona city vs Spain outside Catalonia,injury crashes,surface,wet,0.069846,0.116435,0.0233156,-0.0465886
-Barcelona city vs Spain outside Catalonia,injury crashes,junction,junction,0.501351,0.384017,0.01032,0.117335
-Barcelona city vs Spain outside Catalonia,injury crashes,junction,not specified,0,0.000541818,0.01032,-0.000541818
-Barcelona city vs Spain outside Catalonia,injury crashes,junction,section,0.498649,0.615442,0.01032,-0.116793
+Barcelona city vs Spain outside Catalonia,injury crashes,junction,junction,0.474283,0.384017,0.00624823,0.0902662
+Barcelona city vs Spain outside Catalonia,injury crashes,junction,not specified,0,0.000541818,0.00624823,-0.000541818
+Barcelona city vs Spain outside Catalonia,injury crashes,junction,section,0.525717,0.615442,0.00624823,-0.0897243
 Barcelona city vs Spain outside Catalonia,injury crashes,alignment_recorded,not applicable,0.918978,0.623493,0.233359,0.295485
 Barcelona city vs Spain outside Catalonia,injury crashes,alignment_recorded,not specified,0,9.13177e-06,0.233359,-9.13177e-06
 Barcelona city vs Spain outside Catalonia,injury crashes,alignment_recorded,recorded,0.000337828,0.371375,0.233359,-0.371037
@@ -282,9 +282,9 @@ Barcelona city vs Spain outside Catalonia,crashes with a death or serious injury
 Barcelona city vs Spain outside Catalonia,crashes with a death or serious injury (24 h),surface,not specified,0,0.0157126,0.0234241,-0.0157126
 Barcelona city vs Spain outside Catalonia,crashes with a death or serious injury (24 h),surface,"slippery, icy or snowy",0.0041841,0.0294979,0.0234241,-0.0253138
 Barcelona city vs Spain outside Catalonia,crashes with a death or serious injury (24 h),surface,wet,0.0496862,0.0998073,0.0234241,-0.0501211
-Barcelona city vs Spain outside Catalonia,crashes with a death or serious injury (24 h),junction,junction,0.531904,0.318768,0.0338776,0.213135
-Barcelona city vs Spain outside Catalonia,crashes with a death or serious injury (24 h),junction,not specified,0,0.000191258,0.0338776,-0.000191258
-Barcelona city vs Spain outside Catalonia,crashes with a death or serious injury (24 h),junction,section,0.468096,0.68104,0.0338776,-0.212944
+Barcelona city vs Spain outside Catalonia,crashes with a death or serious injury (24 h),junction,junction,0.520397,0.318768,0.0304146,0.201629
+Barcelona city vs Spain outside Catalonia,crashes with a death or serious injury (24 h),junction,not specified,0,0.000191258,0.0304146,-0.000191258
+Barcelona city vs Spain outside Catalonia,crashes with a death or serious injury (24 h),junction,section,0.479603,0.68104,0.0304146,-0.201438
 Barcelona city vs Spain outside Catalonia,crashes with a death or serious injury (24 h),alignment_recorded,not applicable,0.905335,0.485192,0.297106,0.420143
 Barcelona city vs Spain outside Catalonia,crashes with a death or serious injury (24 h),alignment_recorded,not specified,0,2.94243e-05,0.297106,-2.94243e-05
 Barcelona city vs Spain outside Catalonia,crashes with a death or serious injury (24 h),alignment_recorded,recorded,0.0125523,0.510894,0.297106,-0.498342

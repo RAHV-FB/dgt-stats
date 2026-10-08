@@ -149,6 +149,7 @@ catalonia_common_dgt,dgt_crash_type,categorical,0,0,0,explicit 'not recorded' ca
 catalonia_common_dgt,dgt_lighting,categorical,0,0,0,explicit 'not recorded' category; source placeholders kept as categories
 catalonia_common_dgt,dgt_weather,categorical,0,0,0,explicit 'not recorded' category; source placeholders kept as categories
 catalonia_common_dgt,dgt_surface,categorical,0,0,0,explicit 'not recorded' category; source placeholders kept as categories
+catalonia_common_dgt,dgt_junction,categorical,0,0,0,explicit 'not recorded' category; source placeholders kept as categories
 catalonia_common_dgt,dgt_vehicles,categorical,0,0,0,explicit 'not recorded' category; source placeholders kept as categories
 catalonia_common_bcn,bcn_weekday,categorical,0,0,0,explicit 'not recorded' category; source placeholders kept as categories
 catalonia_common_bcn,bcn_hour_band,categorical,0,0,0,explicit 'not recorded' category; source placeholders kept as categories

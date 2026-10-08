@@ -246,7 +246,7 @@ definitions on each side and what was validated in `reports/tables/gen_cross_sou
 |---|---|---|
 | Catalan file vs DGT microdata | province x year, 2016-2023 | counts compared; 24-hour definition validated |
 | Catalan file per resident | province x year | rate per resident, not risk |
-| Catalan model applied to DGT crashes | none (model applied to rows) | ten fields harmonised and validated on the shared crashes |
+| Catalan model applied to DGT crashes | none (model applied to rows) | eleven fields harmonised and validated on the shared crashes (DGT's inverted Catalan junction flag of 2023 read the other way round) |
 | Catalan model applied to Barcelona 2025 | none (model applied to rows) | eight fields harmonised; too few fatal crashes to benchmark |
 | Car drivers involved per km by age, Spain | age group, no record matched | DGT drivers of 2024 against a regional working-day survey profile transferred to Spain's population and DGT's car-km total: ratios between ages, with a sensitivity range |
 | Car drivers involved per km by age, Barcelona city working days | age group x working day, no record matched | Guàrdia Urbana drivers of 2025 against EMEF 2022-2024 residents' km inside the city: a range of ratios between ages |

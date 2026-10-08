@@ -55,6 +55,7 @@ DGT_COLUMNS = [
     "CONDICION_METEO",
     "CONDICION_FIRME",
     "NUDO",
+    "NUDO_INFO",
     "TRAZADO_PLANTA",
     "HORA",
     "DIA_SEMANA",
@@ -97,7 +98,9 @@ def dgt_frame() -> pd.DataFrame:
             "lighting": code("CONDICION_ILUMINACION").map(harmonise.DGT_LIGHT).fillna(ns),
             "weather": code("CONDICION_METEO").map(harmonise.DGT_WEATHER).fillna(ns),
             "surface": code("CONDICION_FIRME").map(harmonise.DGT_SURFACE).fillna(ns),
-            "junction": code("NUDO").map({1: "junction", 2: "section"}).fillna(ns),
+            # Read the other way round where DGT's flag is inverted, as in the cross-source
+            # tests and the national association model.
+            "junction": harmonise.dgt_junction_codes(dgt).map(harmonise.DGT_JUNCTION).fillna(ns),
             "alignment_recorded": code("TRAZADO_PLANTA")
             .map(
                 {
@@ -311,6 +314,24 @@ def coding_by_region() -> pd.DataFrame:
     return out.reset_index().astype({c: int for c in out.columns})
 
 
+def cross_source_register(validation: pd.DataFrame) -> pd.DataFrame:
+    """:data:`CROSS_SOURCE_REGISTER` with the DGT row's variables counted and named from the
+    overlap validation (``ml_common_feature_validation``)."""
+    used = validation[validation.enters_cross_source_tests.astype(bool)]
+    failed = validation[
+        validation.a_priori_status.isin(harmonise.USABLE) & ~validation.validated.astype(bool)
+    ]
+    names = [str(field).replace("_", " ") for field in failed.field]
+    failed_text = names[0] if len(names) == 1 else ", ".join(names[:-1]) + " and " + names[-1]
+    out = CROSS_SOURCE_REGISTER.copy()
+    for column in ("transformation", "exclusions"):
+        out[column] = [
+            text.replace("{used}", str(len(used))).replace("{failed}", failed_text)
+            for text in out[column]
+        ]
+    return out
+
+
 def population_context() -> pd.DataFrame:
     """The age structure on the latest date INE has published (1 January of the latest year): a
     snapshot of who lives where, not the denominator of a rate."""
@@ -402,11 +423,13 @@ CROSS_SOURCE_REGISTER = pd.DataFrame(
             "dgt_definition": "crashes with a death or serious injury within 24 h; target death within "
             "24 h",
             "other_definition": "Catalan file inclusion rule (24 h, validated)",
-            "transformation": "ten harmonised variables (harmonise.DGT_FIELDS), each validated on the "
-            "2016-2023 crashes both sources hold",
+            # Counted and named from the overlap validation (:func:`cross_source_register`).
+            "transformation": "{used} harmonised variables (harmonise.DGT_FIELDS), each validated "
+            "on the 2016-2023 crashes both sources hold; DGT's junction flag read the other way "
+            "round where it is inverted (harmonise.dgt_junction_codes)",
             "denominator": "-",
-            "exclusions": "road class and junction (failed the overlap check), "
-            "speed limit and unit types (absent or outcome counts in DGT)",
+            "exclusions": "{failed} (failed the overlap check), speed limit and unit types (absent "
+            "or outcome counts in DGT)",
             "definition_compatibility": "validated field by field (ml_common_feature_validation.csv)",
         },
         {
@@ -532,8 +555,8 @@ PATH: dict[str, dict[int, tuple]] = {
         4: (
             "none",
             "no other source records the calculator's inputs: DGT's records lack the road's "
-            "owning network and the posted limit, and their road-type and junction codings "
-            "disagree with the Catalan file's on the same crashes",
+            "owning network and the posted limit, and their road-type coding disagrees with the "
+            "Catalan file's on the same crashes",
         ),
         5: ("resemblance", "Catalonia vs Spain outside Catalonia"),
     },
@@ -1176,7 +1199,7 @@ def document(tables: dict[str, pd.DataFrame]) -> str:
         "",
         "Every place two sources meet, with the key, definitions and what was validated:",
         "",
-        _md(CROSS_SOURCE_REGISTER),
+        _md(tables["gen_cross_source_register"]),
         "",
         "## What this does not establish",
         "",
@@ -1198,7 +1221,7 @@ def run(tables: dict[str, pd.DataFrame]) -> dict[str, pd.DataFrame]:
         "gen_outcomes": outcome_rows,
         "gen_province_rates": province_rates(),
         "gen_population_context": population_context(),
-        "gen_cross_source_register": CROSS_SOURCE_REGISTER,
+        "gen_cross_source_register": cross_source_register(tables["ml_common_feature_validation"]),
         "gen_coding_by_region": coding_by_region(),
         "gen_calculator_transfer": transport.calculator_tests(),
     }
