@@ -47,12 +47,17 @@ NAV_GROUPS: tuple[tuple[str, tuple[tuple[str, str], ...]], ...] = (
         SUPPORTING,
         (
             ("severity", "Crash circumstances"),
-            ("forecast", "Monthly deaths forecast"),
             ("policy", "The 2006 points licence"),
         ),
     ),
     (REGIONAL, (("catalonia", "Catalonia"), ("barcelona", "Barcelona"))),
-    (MODELS, (("severity-models", "Severity models"), ("validation", "External validation"))),
+    (
+        MODELS,
+        (
+            ("severity-models", "Severity model and calculator"),
+            ("validation", "External validation"),
+        ),
+    ),
     (METHODS, (("sources", "Data sources and scope"), ("data", "Methodology"))),
 )
 # The line above a page's title: the part of the argument the page belongs to.
@@ -89,14 +94,30 @@ WITHDRAWN_REASON = (
     "This analysis was withdrawn because its results came from coefficients published in "
     "external studies rather than from data in this repository."
 )
+# A withdrawn page whose reason differs from ``WITHDRAWN_REASON``.
+WITHDRAWN_LEADS = {
+    "forecast": (
+        "This analysis was withdrawn because, re-evaluated on years it had not been fitted on, "
+        "the model forecast ordinary years less accurately than last year's count."
+    ),
+}
 # What each withdrawn page was, as its notice names it.
 WITHDRAWN_TITLES = {
+    "forecast": "Monthly deaths forecast",
     "simulator": "Speed-limit simulator",
     "distraction": "Deaths attributed to distraction",
     "alcohol-drugs": "Deaths attributed to alcohol and drugs",
     "enforcement": "Ranking of enforcement measures",
 }
 WITHDRAWN_PAGES = {
+    "forecast": (
+        "This page published a model of Spain's monthly road deaths and, from its forecast "
+        "errors, the smallest change in a year's deaths that the counts could reveal. Scored on "
+        "the ordinary years that played no part in choosing it, the model forecast less "
+        "accurately than simply repeating last year's count, so it was withdrawn, and with it "
+        "the detectable change computed from its errors. The re-evaluation is in the repository's "
+        "model review."
+    ),
     "simulator": (
         "This page simulated what new speed limits, and drivers keeping to them, would do to "
         "deaths and injuries. Its results came from speeds measured in other countries and from "
@@ -726,8 +747,9 @@ def render_page(
 <div class="site-footer-inner">
 <p>{SITE_TITLE}, an independent analysis by <a href="{PROFILE_URL}">Russell Howard (RAHV-FB)</a>.
 Data from the Dirección General de Tráfico, INE, the Ministerio de Transportes, CORES, the Servei
-Català de Trànsit and the Ajuntament de Barcelona. All results are computed from the published
-files by the code in the repository.</p>
+Català de Trànsit, the Ajuntament de Barcelona, the Autoritat del Transport Metropolità (EMEF) and
+the Consorcio Regional de Transportes de Madrid (<a href="https://www.crtm.es">Powered by CRTM</a>).
+All results are computed from the published files by the code in the repository.</p>
 <p><a href="sources.html">Data sources</a> · <a href="data.html">Methodology</a> ·
 <a href="{REPO_URL}">Repository</a></p>
 </div>

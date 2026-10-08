@@ -16,18 +16,13 @@ EXPECTED_FIGURES = {
     "l2_observed_over_trend",
     "l3_frequency_severity",
     "l4_km_against_fuel",
-    "k1_forecast_check",
-    "k2_detectability",
     "m1_season_profile",
     "m2_month_effects",
     "m3_lockdown",
     "a3_sex_ratios",
-    "a4_involved_per_km",
     "f1_speed_severity",
     "f2_factor_shares",
     "c3_speed_status",
-    "a1_killed_per_involved",
-    "a2_denominator_contrast",
     "v1_per_vehicle_vs_per_km",
     "p1_points_series",
     "p2_july_placebos",
@@ -37,6 +32,12 @@ EXPECTED_MODEL_FIGURES = {
     "s1_forest_fatal",
     "s2_adverse_conditions",
 }
+# The driver-age figures, drawn from the committed risk tables (scripts/exposure_risk.py).
+EXPECTED_DRIVER_FIGURES = (
+    {"dr1_involved_per_km", "dr2_killed_per_involved"}
+    if (TABLES_DIR / "risk_national_rates.csv").exists()
+    else set()
+)
 # The calculator's predicted-against-observed figure, drawn when its table is committed.
 EXPECTED_CALCULATOR_FIGURES = (
     {"sev1_predicted_observed"} if (TABLES_DIR / "sev_calibration.csv").exists() else set()
@@ -361,6 +362,7 @@ def test_build_all_writes_every_registered_figure(tmp_path: Path) -> None:
         EXPECTED_FIGURES
         | (EXPECTED_MODEL_FIGURES if summaries.model_tables_present() else set())
         | EXPECTED_CALCULATOR_FIGURES
+        | EXPECTED_DRIVER_FIGURES
         | set(regional)
     )
     assert set(captions) == expected
@@ -374,8 +376,10 @@ def test_build_all_writes_every_registered_figure(tmp_path: Path) -> None:
     assert captions["f1_speed_severity"].endswith(f"n = {n_speed:,} speed-related crashes.")
     n_drivers = int(frames["q9_infraction_shares"].query("zone == 'all'").total.sum())
     assert captions["c3_speed_status"].endswith(f"n = {n_drivers:,} drivers.")
-    n_involved = int(frames["q7_km_rates"].drivers_involved.sum())
-    assert captions["a1_killed_per_involved"].endswith(f"n = {n_involved:,} drivers involved.")
+    if EXPECTED_DRIVER_FIGURES:
+        severity = pd.read_csv(TABLES_DIR / "risk_severity_and_licences.csv")
+        n_involved = int(severity[severity.group != "65+"].involved.sum())
+        assert captions["dr2_killed_per_involved"].endswith(f"n = {n_involved:,} drivers involved.")
 
 
 @pytest.mark.skipif(not _TABLES_PRESENT, reason="run `python scripts/analyse.py tables` first")

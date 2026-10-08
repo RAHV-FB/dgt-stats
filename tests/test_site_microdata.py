@@ -92,14 +92,19 @@ def test_barcelona_headline_numbers_come_from_the_tables(pages: dict[str, str]) 
 
 
 def test_model_scores_come_from_the_tables(pages: dict[str, str]) -> None:
-    selected = _table("ml_selected")
-    # The three models trained on regional records; the harmonised ones are validation
-    # instruments, reported on the validation page.
-    regional = _table("ml_rule_comparison").model
-    for row in selected[selected.primary & selected.model.isin(regional)].itertuples():
-        assert f"{row.roc_auc:.2f}" in pages["severity-models"], row.model
-        if not row.probabilities_shown_as_estimates:
-            assert "probabilities cannot be read literally" in pages["severity-models"]
+    text = pages["severity-models"]
+    scores = _table("sev_rolling_scores")
+    pooled = scores[scores.subset.str.fullmatch(r"\d{4}-\d{4}")].set_index("estimator")
+    calc, table = pooled.loc["calculator"], pooled.loc["road_x_crash_table"]
+    assert f"{calc.roc_auc:.2f}" in text and f"{table.roc_auc:.2f}" in text
+    assert f"{pooled.loc['boosted_trees', 'roc_auc']:.3f}" in text
+    assert _fmt_pct(calc.mean_predicted) in text and _fmt_pct(calc.prevalence) in text
+    # Predicted against observed leads the page, before any score.
+    body = text[text.find("<main>") : text.find("</main>")]
+    assert body.find("sev1_predicted_observed") < body.find('<div class="key-result">')
+    barcelona = _table("review_barcelona").set_index(["model", "estimator"])
+    person = barcelona.loc[("barcelona_person_severity", "boosted_trees")]
+    assert f"{person.roc_auc:.2f}" in text
 
 
 def test_transfer_scores_and_the_small_barcelona_benchmark_come_from_the_tables(
@@ -124,17 +129,33 @@ def test_transfer_scores_and_the_small_barcelona_benchmark_come_from_the_tables(
 
 
 def test_models_page_follows_the_decisions(pages: dict[str, str]) -> None:
-    decisions = _table("ml_model_decisions")
-    rules = _table("ml_rule_comparison")
     text = pages["severity-models"]
-    for row in rules.itertuples():
-        assert f"{row.rule_roc_auc:.2f}" in text, row.model
-    replaced = decisions[
-        decisions.decision.eq("REPLACE with descriptive table") & decisions.variant.eq("context")
-    ]
-    for model in replaced.model:
-        assert "used in place of the model" in text, model
-    assert "MODEL_DECISIONS.md" in text
+    # Every model of the re-evaluation appears with its decision (docs/research/ML_MODEL_REVIEW.md).
+    for decision in (
+        "Rebuilt as the calculator",
+        "Research only: too few serious cases",
+        "Removed: no gain over the table",
+        "Removed: last year&#x27;s count does better",
+        "Research only: see the external validation",
+        "Research only: its coefficients describe police records",
+    ):
+        assert decision in text, decision
+    crash = _table("review_barcelona").set_index(["model", "estimator"])
+    assert f"{crash.loc[('barcelona_crash_severity', 'table'), 'roc_auc']:.3f}" in text
+    assert "ML_MODEL_REVIEW.md" in text and "SEVERITY_CALCULATOR.md" in text
+    # The calculator's form offers exactly the exported model's inputs.
+    import json
+
+    from dgt_stats.paths import REPORTS_DIR
+
+    model = json.loads((REPORTS_DIR / "models" / "severity_model.json").read_text())
+    for name, spec in model["inputs"].items():
+        if spec["type"] == "flags":
+            for level in spec["levels"]:
+                assert f'name="users" value="{level["value"]}"' in text, level
+        else:
+            assert f'name="{name}"' in text, name
+            assert text.count(f'id="calc-{name}"') == 1, name
 
 
 def test_validation_page_keeps_population_differences_and_validation_apart(

@@ -198,7 +198,8 @@ def _rates() -> str:
             "Vehicle-kilometres",
             "are the Ministerio de Transportes' measurements on State, regional and provincial "
             "interurban roads, and DGT's estimates from inspection odometer readings by vehicle "
-            "type and by the owner's age.",
+            "type. Kilometres by driver age are estimated from the EMEF working-day survey's "
+            "age profile applied to Spain's population and scaled to DGT's car kilometres.",
         ),
         (
             "Drivers involved",
@@ -210,14 +211,18 @@ def _rates() -> str:
     trends = f'<a href="trends.html">{TITLES["trends"]}</a>'
     return (
         '<h2 id="rates">Rates, denominators and intervals</h2>'
-        "<p>Each rate pairs a count with a denominator that could contain it:</p>"
+        "<p>Each rate pairs a count with a denominator meant to contain it:</p>"
         f"<ul>{items}</ul>"
         "<p>Pedestrians and cyclists hold no licence for the trip in which they are hurt and "
         "travel in no registered vehicle, so they are counted against residents and road fuel "
         "only. Road fuel stands in for the kilometres driven on all roads "
-        f'(<a href="trends.html#road-fuel">{TITLES["trends"]}</a>), and DGT\'s '
-        "kilometres by age are those of cars registered to owners of that age; both proxies "
-        'were tested (<a href="#assumptions-tested">assumptions tested</a>).</p>'
+        f'(<a href="trends.html#road-fuel">{TITLES["trends"]}</a>), and the kilometres by '
+        "driver age transfer one region's survey to Spain; both were tested "
+        '(<a href="#assumptions-tested">assumptions tested</a>). Three rates do not fully '
+        "meet the rule, and each page says so: rates by sex count unlicensed and foreign "
+        "drivers but divide by holders of any licence, rates by vehicle type count foreign "
+        "vehicles against the kilometres of Spanish ones, and interurban deaths are compared "
+        "with national road fuel only as a check.</p>"
         "<h3>How often crashes happen and how deadly they are</h3>"
         "<p>A death rate measured against traffic combines two quantities that can move "
         "separately: deaths per kilometre (or per tonne of fuel) equal injury crashes per "
@@ -513,16 +518,14 @@ def _assumptions() -> str:
     segments = read_table("longrun_segments")
     base_year = int(segments[segments.measure == "road_fuel"].start.max())
     bio = read_table("longrun_fuel_bio").set_index("year").bio_share
-    owner = read_table("q7_owner_age_check").set_index("band")
+    rates = read_table("risk_national_rates")
+    rates = rates[rates.km_total == "less taxi and ride-hailing"]
+    spread = rates.groupby("group").involved_ratio
+    central = rates[rates.method.str.startswith("A:")].set_index("group").involved_ratio
+    city = read_table("risk_barcelona_rates")
+    city_older = city[city.age4 == "65+"].ratio_to_45_64
     reference = risk_trends.BASE_YEAR
     per_km_last = km_check.loc[("per_km", km_last)]
-    youngest, young, middle, old = (
-        owner.loc["18-24"],
-        owner.loc["25-34"],
-        owner.loc["35-54"],
-        owner.loc["75+"],
-    )
-    moved = -float(middle.transfer_bn_km)
 
     def growth(a: int, b: int) -> float:
         ratio = float(km.loc[b, "km_per_tonne"] / km.loc[a, "km_per_tonne"])
@@ -538,13 +541,10 @@ def _assumptions() -> str:
             and recent > 0,
             "the biofuel share rose, which lowers km per tonne": float(bio.loc[km_last])
             > float(bio.loc[reference]),
-            "owner age does not stand for driver age at either end": float(
-                youngest.cars_per_b_permit
+            "the regional profiles keep the young above the middle-aged per km": float(
+                spread.get_group("16-29").min()
             )
-            < float(young.cars_per_b_permit)
-            < float(middle.cars_per_b_permit)
-            < 1
-            < float(old.cars_per_b_permit),
+            > 1.5,
         }
     )
     fuel_pages = _join([TITLES[slug] for slug in ("trends", "long-run", "seasons")])
@@ -568,26 +568,21 @@ def _assumptions() -> str:
             "per tonne.",
         ),
         (
-            f"The registered owner's age stands for the driver's ({TITLES['drivers']})",
-            "Cars per car-licence (B permit) holder: "
-            f"{float(youngest.cars_per_b_permit):.2f} at 18–24, "
-            f"{float(young.cars_per_b_permit):.2f} at 25–34, "
-            f"{float(middle.cars_per_b_permit):.2f} at 35–54 and "
-            f"{float(old.cars_per_b_permit):.2f} at 75 and over. Kilometres per holder: "
-            f"{float(youngest.km_per_b_permit):,.0f} at 18–24, "
-            f"{float(young.km_per_b_permit):,.0f} at 25–34 and "
-            f"{float(middle.km_per_b_permit):,.0f} at 35–54.",
-            "The owner's age cannot be treated as the driver's, especially at the two ends of "
-            f"the age range. Moving {moved:.1f} billion km from the 35–54 band to the two young "
-            "bands, until all three have the same kilometres per holder, takes the 18–24 "
-            "involvement ratio per "
-            f"km from {float(youngest.involved_per_bn_km_ratio):.2f}× to "
-            f"{float(youngest.involved_per_bn_km_ratio_transfer):.2f}×, the 25–34 ratio from "
-            f"{float(young.involved_per_bn_km_ratio):.2f}× to "
-            f"{float(young.involved_per_bn_km_ratio_transfer):.2f}× and the ratio for 75 and "
-            f"over from {float(old.involved_per_bn_km_ratio):.2f}× to "
-            f"{float(old.involved_per_bn_km_ratio_transfer):.2f}×, so ratios per km by age are "
-            "given as sensitivity ranges. Deaths per driver involved need no kilometres.",
+            f"One region's age profile of driving holds for Spain ({TITLES['drivers']})",
+            "The working-day kilometres per resident by age of each part of the province of "
+            "Barcelona, and of the Madrid household survey of 2018, applied to Spain in turn: "
+            "involvement per km at 18–29 runs from "
+            f"{float(spread.get_group('16-29').min()):.2f}× to "
+            f"{float(spread.get_group('16-29').max()):.2f}× the 45–64 rate "
+            f"({float(central['16-29']):.2f}× centrally), and at 65 and over from "
+            f"{float(spread.get_group('65+').min()):.2f}× to "
+            f"{float(spread.get_group('65+').max()):.2f}× "
+            f"({float(central['65+']):.2f}×).",
+            "Ratios per km by age are given with these sensitivity ranges. A comparison matched "
+            "in place and time, Barcelona's crashes on working days against the same survey's "
+            f"driving inside the city, gives {float(city_older.min()):.2f}×–"
+            f"{float(city_older.max()):.2f}× at 65 and over. Deaths per driver involved need no "
+            "kilometres.",
         ),
     ]
     frame = pd.DataFrame(rows, columns=["Assumption", "Test and result", "Consequence"])
@@ -660,8 +655,9 @@ def _reuse() -> str:
 def page_data(captions: dict[str, str]) -> str:
     body = summary(
         "This page defines the terms the site uses and explains how its rates, police records "
-        "and models are built and read. Each count is divided only by a denominator that could "
-        "contain it, and a change is read against the variation of an ordinary year. Severity "
+        "and models are built and read. Each count is divided by a denominator meant to contain "
+        "it, with the exceptions named below, and a change is read against the variation of an "
+        "ordinary year. Severity "
         "among recorded crashes is kept apart from how often crashes happen, police-recorded "
         "factors are treated as judgements, and missing values stay missing. A predictive model "
         "is kept only if it ranks unseen records better than a simple table fixed in advance."

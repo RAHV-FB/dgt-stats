@@ -10,8 +10,8 @@ from __future__ import annotations
 
 import math
 
-from dgt_stats import driver_risk
-from dgt_stats.microdata.validation import decisions as decision_rules
+from dgt_stats import edm2018
+from dgt_stats.exposure_risk import national as national_rates
 from dgt_stats.site.components import (
     ALL_PAGES,
     _fmt_int,
@@ -21,7 +21,7 @@ from dgt_stats.site.components import (
     render_page,
     summary,
 )
-from dgt_stats.site.numbers import _age_numbers, _long_run_numbers, _risk_numbers, _speed_numbers
+from dgt_stats.site.numbers import _long_run_numbers, _risk_numbers, _speed_numbers
 from dgt_stats.site.regional_common import _year_label
 
 NUMBER_WORDS = {0: "none", 1: "one", 2: "two", 3: "all three"}
@@ -106,7 +106,9 @@ def _data(first: int, last: int) -> str:
         f"{records_first} and its estimates of kilometres driven; INE population figures, "
         "road-fuel sales and traffic counts; Catalonia's crashes with a death or serious injury, "
         f"{int(cat_years.min())}–{int(cat_years.max())}; and Barcelona's police-attended "
-        f"crashes, {bcn_year}. The sources share no record identifier and are analysed "
+        f"crashes, {bcn_year}; and two travel surveys for kilometres by driver age, the "
+        "Barcelona area's working-day mobility survey (EMEF) and Madrid's household travel "
+        f"survey of {edm2018.SURVEY_YEAR}. The sources share no record identifier and are analysed "
         f"separately. {_link('sources.html', 'Data sources and scope')}."
         "</p></div>"
     )
@@ -185,45 +187,54 @@ def _long_run() -> str:
 
 
 def _drivers() -> str:
-    age = _age_numbers()
-    ratios, rates, owner = age["ratios"], age["rates"], age["owner"]
-    oldest = ratios.loc[("deaths_per_1000_involved", "75+")]
-    young = driver_risk.TRANSFER_BANDS[0]
-    young_low = float(owner.loc[young, "involved_per_bn_km_range_low"])
-    young_high = float(owner.loc[young, "involved_per_bn_km_range_high"])
-    young_fatality = ratios.loc[("deaths_per_1000_involved", young)]
+    rates = read_table("risk_national_rates")
+    rates = rates[rates.km_total == "less taxi and ride-hailing"]
+    central = rates[rates.method.str.startswith("A:")].set_index("group")
+    spread = rates.groupby("group").involved_ratio
+    severity = read_table("risk_severity_and_licences").set_index("group")
+    young, older = central.loc["16-29"], central.loc["65+"]
+    oldest, reference = severity.loc["75+"], severity.loc["45-64"]
+    ratio = float(oldest.killed_per_1000_involved) / float(reference.killed_per_1000_involved)
     _require(
         "drivers",
         {
-            "drivers aged 75 and over die more once involved": float(oldest.low) > 1,
-            "the youngest drivers do not die more once involved": float(young_fatality.low)
-            <= 1
-            <= float(young_fatality.high),
-            "the youngest drivers are involved more per km at both ends of the range": young_low
-            > 1,
+            "drivers aged 75 and over die more once involved": float(
+                oldest.killed_per_1000_involved_low
+            )
+            > float(reference.killed_per_1000_involved_high),
+            "the youngest drivers are involved more per km on every method": float(
+                spread.get_group("16-29").min()
+            )
+            > 1.5
+            and float(young.involved_ratio_low) > 2,
+            "drivers aged 65 and over are involved about as often per km as 45-64": 0.95
+            < float(older.involved_ratio_low)
+            and float(older.involved_ratio) < 1.3,
         },
     )
-    km_year = driver_risk.KM_YEAR
-    older = _finding(
-        f"{float(oldest.ratio):.1f}×",
-        f"In {km_year}, car drivers aged 75 and over who were involved in an injury crash died "
-        f"{float(oldest.ratio):.1f} times as often as drivers aged 35–54 "
-        f"({float(rates.loc['75+', 'deaths_per_1000_involved']):.1f} against "
-        f"{float(rates.loc[driver_risk.REFERENCE_BAND, 'deaths_per_1000_involved']):.1f} per "
-        "1,000 involved), a result that needs no estimate of kilometres.",
+    deaths = _finding(
+        f"{ratio:.1f}×",
+        f"In {national_rates.YEAR}, car drivers aged 75 and over who were involved in an injury crash died "
+        f"{ratio:.1f} times as often as drivers aged 45–64 "
+        f"({float(oldest.killed_per_1000_involved):.1f} against "
+        f"{float(reference.killed_per_1000_involved):.1f} per 1,000 involved), a result that "
+        "needs no estimate of kilometres.",
         [("drivers#deaths-once-a-crash-has-happened", "Drivers: deaths once a crash has happened")],
     )
-    younger = _finding(
-        f"{young_low:.1f}–{young_high:.1f}×",
-        "On DGT's kilometre estimates, which are published by the age of a car's registered "
-        f"owner and not its driver, drivers aged 18–24 were involved in {young_high:.1f} times "
-        "as many injury crashes per kilometre as drivers aged 35–54. Under a deliberately "
-        f"extreme reassignment of kilometres to young owners, the ratio falls to "
-        f"{young_low:.1f}, still above 1. Once involved, they died about as often as drivers "
-        "aged 35–54.",
-        [("drivers#crashes-relative-to-kilometres-by-owner-age", "Drivers: crashes per kilometre")],
+    per_km = _finding(
+        f"{float(young.involved_ratio):.1f}×",
+        "Per kilometre driven, car drivers aged 18–29 were involved in injury crashes "
+        f"{float(young.involved_ratio):.1f} times as often as drivers aged 45–64 in "
+        f"{national_rates.YEAR} (95% "
+        f"interval {float(young.involved_ratio_low):.1f}–{float(young.involved_ratio_high):.1f}), "
+        "and drivers aged 65 and over about as often as the middle-aged or modestly more "
+        f"({float(older.involved_ratio):.2f}). The kilometres by driver age come from the "
+        "Barcelona-area working-day mobility survey applied to Spain's population, so the "
+        "ratios carry sensitivity ranges; the former figure, on kilometres by the age of a "
+        "car's registered owner, put the young drivers' excess at nearly seven times.",
+        [("drivers#involvement-in-crashes-per-kilometre-driven", "Drivers: crashes per kilometre")],
     )
-    return older + younger
+    return deaths + per_km
 
 
 def _speed() -> str:
@@ -252,9 +263,13 @@ def _speed() -> str:
 
 
 def _models() -> str:
-    rules = read_table("ml_rule_comparison").set_index("model")
-    decisions = read_table("ml_model_decisions")
-    context = decisions[decisions.variant.eq("context")].set_index("model").decision
+    scores = read_table("sev_rolling_scores")
+    span = str(scores.subset[scores.subset.str.fullmatch(r"\d{4}-\d{4}")].iloc[0])
+    first_test, last_test = span.split("-")
+    pooled = scores[scores.subset == span].set_index("estimator")
+    calibration = read_table("sev_calibration")
+    bands = calibration[calibration.estimator == "calculator"]
+    calc, table_score = pooled.loc["calculator"], pooled.loc["road_x_crash_table"]
     selected = read_table("ml_selected")
     primary = selected[selected.primary].set_index("model")
     transport = read_table("ml_transport_validation")
@@ -265,16 +280,17 @@ def _models() -> str:
         & transport.estimator.eq(primary.loc["catalonia_common_dgt", "estimator"])
         & transport.status.eq("reported")
     ].iloc[0]
-    beat = [m for m in REGIONAL_MODELS if bool(rules.loc[m, "model_adds_signal_over_table"])]
     _require(
         "models",
         {
-            "the Catalonia and Barcelona person models beat their tables, the crash model does "
-            "not": beat == list(REGIONAL_MODELS[:2]),
-            "the decision record keeps the first two and replaces the third with its table": all(
-                context[m] in decision_rules.FEATURED for m in REGIONAL_MODELS[:2]
-            )
-            and context[REGIONAL_MODELS[2]] == decision_rules.REPLACE,
+            "the calculator's model ranks better than the table": float(calc.roc_auc)
+            > float(table_score.roc_auc),
+            "its predictions match the observed shares in every band": bool(
+                (
+                    (bands.mean_predicted >= bands.observed_low)
+                    & (bands.mean_predicted <= bands.observed_high)
+                ).all()
+            ),
             "the Catalonia-trained model ranks Spanish crashes almost as well as one trained "
             "on them": abs(float(national.transfer_gap)) <= 0.01,
             "no model is called fit for national use": not path.verdict.eq(
@@ -282,16 +298,22 @@ def _models() -> str:
             ).any(),
         },
     )
-    kept = len(beat)
     return _finding(
-        f"{kept} of {len(REGIONAL_MODELS)}",
-        "Of the three models that rank recorded crashes, or the people in them, by severity in "
-        f"Catalonia and Barcelona, {NUMBER_WORDS[kept]} did better on later records than a "
-        "simple table of the same records. The third did no better than a table, and the table "
-        "is reported instead. A version of the Catalan model ranked serious crashes in the rest "
-        "of Spain almost as well as a model trained on them, which does not make it fit for "
-        "national use. None of the models predicts whether a crash will happen.",
-        [("severity-models", "Severity models"), ("validation", "External validation")],
+        _fmt_pct(float(calc.mean_predicted)),
+        "A model of which crashes with a death or serious injury in Catalonia were fatal, tested "
+        f"on each year from {first_test} to {last_test} with a model fitted only on earlier years, "
+        f"predicted {_fmt_pct(float(calc.mean_predicted))} of them fatal against "
+        f"{_fmt_pct(float(calc.prevalence))} observed, and its predicted shares matched the "
+        "observed ones across the whole range. It picked out the fatal crashes better than a "
+        "table of the same records, and a calculator applies it to any crash a reader "
+        "describes. Of the project's other models, the Barcelona crash model did no better "
+        "than a table and was removed. A version of the Catalan model ranked serious crashes in "
+        "the rest of Spain almost as well as a model trained on them, which does not make it fit "
+        "for national use. None of the models predicts whether a crash will happen.",
+        [
+            ("severity-models", "Severity model and calculator"),
+            ("validation", "External validation"),
+        ],
     )
 
 
@@ -301,7 +323,7 @@ EXPLORE = (
         "National trends and exposure",
         "Deaths and crashes over time, against residents, licence holders, vehicles, fuel and "
         "kilometres.",
-        ("trends", "long-run", "seasons", "forecast", "policy"),
+        ("trends", "long-run", "seasons", "policy"),
     ),
     (
         "Drivers and vehicles",
@@ -320,7 +342,8 @@ EXPLORE = (
     ),
     (
         "Predictive severity models",
-        "Models that rank recorded crashes by severity, and how they held up on other records.",
+        "A model of which severe crashes were fatal, its calculator, and how every model held up "
+        "on other records.",
         ("severity-models", "validation"),
     ),
     (

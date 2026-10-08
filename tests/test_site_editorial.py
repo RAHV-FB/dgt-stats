@@ -97,7 +97,8 @@ def test_navigation_follows_the_argument(built: dict[str, str]) -> None:
     assert '<p class="eyebrow">Spain</p>' in built["speed"]
     assert 'href="vehicles.html" rel="prev"' in built["speed"]
     assert 'href="factors.html" rel="next"' in built["speed"]
-    assert '<p class="eyebrow">Spain · supporting analysis</p>' in built["forecast"]
+    assert '<p class="eyebrow">Spain · supporting analysis</p>' in built["policy"]
+    assert '<p class="eyebrow">Withdrawn analysis</p>' in built["forecast"]
     assert '<p class="eyebrow">Models</p>' in built["validation"]
     assert '<p class="eyebrow">' not in built["index"]
 
@@ -214,44 +215,30 @@ def test_the_front_page_is_a_research_overview(built: dict[str, str]) -> None:
     assert "Association analysis of DGT crash records" not in visible
 
 
-def test_the_models_page_presents_two_models_and_one_table(built: dict[str, str]) -> None:
-    import pandas as pd
-
-    from dgt_stats.microdata.validation import decisions as rules
-
+def test_the_models_page_leads_with_predicted_against_observed(built: dict[str, str]) -> None:
     visible = _visible(built["severity-models"])
-    decisions = pd.read_csv(TABLES_DIR / "ml_model_decisions.csv")
-    context = decisions[decisions.variant.eq("context")].set_index("model").decision
-    featured = [model for model, decision in context.items() if decision in rules.FEATURED]
-    assert featured == ["catalonia_crash_severity", "barcelona_person_severity"]
-    assert context["barcelona_crash_severity"] == rules.REPLACE
-    # The DGT regression and the forecast are supporting analyses, linked rather than tabled
-    # beside the models.
     main = _main(built["severity-models"])
-    assert 'href="severity.html"' in main and 'href="forecast.html"' in main
-    for table_html in re.findall(r"<table>.*?</table>", main, re.S):
-        assert "DGT crash records" not in table_html
-        assert "monthly deaths" not in table_html.lower()
-    assert "ROC-AUC" in visible
-    # The three decisions are in the section headings, where a reader scanning the page sees them.
-    # Each is labelled in words, not by colour, and the label is read out as the decision.
+    # What the model predicts is said first, then predicted against observed, then the scores.
     headings = re.findall(r"<h2[^>]*>(.*?)</h2>", main, re.S)
-    for name, decision in (
-        ("Catalonia crash-severity model", "Kept"),
-        ("Barcelona person-severity model", "Ranking only"),
-        ("Barcelona crash-severity model", "Replaced by table"),
-    ):
-        label = (
-            '<span class="decision-label"><span class="visually-hidden">Decision: </span>'
-            f"<span>{decision}</span></span>"
-        )
-        assert f"{name} {label}" in headings, (name, decision)
-    # Each model's section opens on the same short definition table.
-    for term in ("Unit", "Outcome", "Simple benchmark ROC-AUC", "Model ROC-AUC", "Decision"):
-        assert main.count(f"<dt>{term}</dt>") == 3, term
-    # ROC-AUC is explained once, after the first comparison it is used for, not before it.
-    explained = visible.find("ROC-AUC measures ranking")
-    assert visible.find("ROC-AUC") < explained and visible.count("ROC-AUC measures ranking") == 1
+    assert headings[:5] == [
+        "Predicted and observed",
+        "How well it separates fatal from serious crashes",
+        "What the model shows",
+        "The calculator",
+        "Every model the project fitted",
+    ]
+    assert main.find("sev1_predicted_observed") < main.find("ROC-AUC")
+    # ROC-AUC is explained in the scores table's note (which a table also carries in its hidden
+    # caption), after the first comparison it is used for.
+    explained = visible.find("ROC-AUC is the chance")
+    assert 0 < visible.find("ROC-AUC") < explained
+    # What the calculator answers, and what its inputs are not, are said in plain words.
+    assert "posted speed limit is not a speed" in visible.lower()
+    assert "cannot say how likely a crash is to happen" in visible
+    # The supporting analyses are linked rather than tabled beside the models, and no withdrawn
+    # page is linked.
+    assert 'href="severity.html"' in main and 'href="validation.html"' in main
+    assert 'href="forecast.html"' not in main
 
 
 def test_the_validation_page_does_not_claim_national_transferability(

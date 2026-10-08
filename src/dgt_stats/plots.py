@@ -865,6 +865,94 @@ def dot_range(
     return save(fig, path)
 
 
+def estimate_and_range(
+    frame: pd.DataFrame,
+    path: Path,
+    title: str,
+    xlabel: str = "",
+    reference: float = 1.0,
+    reference_label: str = "",
+    estimate_label: str = "",
+    range_label: str = "",
+    ticks: tuple[float, ...] = (0.5, 0.75, 1, 1.5, 2, 3, 4),
+) -> Path:
+    """One row per ``label`` (first row at the top), on a log scale: an estimate with its 95%
+    interval where ``value`` is given, and a sensitivity range (``range_low`` to ``range_high``)
+    drawn as a broad light band behind it. A row with a range but no estimate, such as a
+    model-dependent figure, shows the band alone. ``reference_row`` marks the row every other is
+    compared with; it carries no mark.
+
+    The band and the whisker answer different questions, so they never share a look: the whisker
+    is sampling error, the band is how far the estimate moves under other analytic choices.
+    """
+    apply_style()
+    ordered = frame.reset_index(drop=True)
+    height = max(2.6, 0.36 * len(ordered) + 1.6)
+    fig, axis = plt.subplots(figsize=(FIGURE_WIDTH, height))
+    positions = np.arange(len(ordered))[::-1]
+    labels = []
+    for position, (_, row) in zip(positions, ordered.iterrows()):
+        text = str(row["label"])
+        if bool(row.get("reference_row", False)):
+            labels.append(text + " (reference)")
+            continue
+        labels.append(text)
+        if pd.notna(row.get("range_low")) and pd.notna(row.get("range_high")):
+            axis.hlines(
+                position,
+                float(row.range_low),
+                float(row.range_high),
+                color=NEUTRAL_LIGHT,
+                linewidth=8,
+                alpha=0.6,
+                capstyle="butt",
+                zorder=1,
+            )
+        if pd.notna(row.get("value")):
+            _dots(axis, [row.value], [position], [row.low], [row.high], "focal")
+    _reference_line(axis, reference, vertical=True)
+    if reference_label:
+        axis.annotate(
+            reference_label,
+            (reference, len(ordered) - 0.55),
+            xytext=(4, 0),
+            textcoords="offset points",
+            fontsize=NOTE_SIZE,
+            color=TEXT_SECONDARY,
+            va="center",
+        )
+    axis.set_xscale("log")
+    axis.xaxis.set_major_locator(matplotlib.ticker.FixedLocator(list(ticks)))
+    axis.xaxis.set_minor_locator(matplotlib.ticker.NullLocator())
+    axis.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(_tick))
+    axis.set_xlim(min(ticks) * 0.9, max(ticks) * 1.1)
+    axis.set_yticks(positions, labels, fontsize=TICK_SIZE)
+    axis.tick_params(axis="y", length=0)
+    axis.spines["left"].set_visible(False)
+    axis.grid(True, axis="x")
+    axis.grid(False, axis="y")
+    axis.set_ylim(-0.7, len(ordered) - 0.3)
+    handles = [
+        matplotlib.lines.Line2D(
+            [],
+            [],
+            color=ACCENT,
+            marker="o",
+            markersize=6.5,
+            markeredgecolor=SURFACE,
+            linewidth=1.6,
+            label=estimate_label,
+        ),
+        matplotlib.lines.Line2D(
+            [], [], color=NEUTRAL_LIGHT, linewidth=8, alpha=0.6, label=range_label
+        ),
+    ]
+    axis.legend(handles=handles, loc="upper left", bbox_to_anchor=(0, -0.16), ncol=1)
+    _title(path, title)
+    axis.set_xlabel(xlabel)
+    return save(fig, path)
+
+
 def forest(
     frame: pd.DataFrame,
     group: str,

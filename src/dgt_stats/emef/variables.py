@@ -104,6 +104,9 @@ AGE_COLUMN: dict[int, tuple[str, str]] = {
 AGE3_LABELS: dict[int, str] = {1: "16-29", 2: "30-64", 3: "65+"}
 AGE4_LABELS: dict[int, str] = {1: "16-29", 2: "30-44", 3: "45-64", 4: "65+"}
 AGE4_FROM = 2019
+# The last edition that sampled 65-74 and 75 and over as separate strata (methodology report
+# 2003-2018, Table 5); no public file publishes either group.
+OLDER_STRATA_LAST = 2016
 
 
 def age_labels(year: int) -> dict[int, str]:

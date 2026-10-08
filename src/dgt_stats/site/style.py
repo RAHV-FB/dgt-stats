@@ -360,6 +360,41 @@ main { padding: var(--space-7) 0 var(--space-7); min-width: 0; }
 .compare-label { margin: var(--space-2) 0 0; font-size: var(--text-sm); color: var(--text-muted); }
 .compare-note { margin: var(--space-4) 0 0; font-size: var(--text-base); }
 
+/* ------------------------------------------------------------------ calculator */
+.calculator { margin: var(--space-6) 0; max-width: var(--measure); }
+.calculator form { margin: 0; }
+.calculator fieldset {
+  margin: 0 0 var(--space-5); padding: 0; border: 0; border-top: 1px solid var(--rule);
+}
+.calculator legend { padding: var(--space-3) 0 var(--space-2); font-weight: 600; }
+.calc-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4) var(--space-5); }
+.calc-field label { display: block; margin-bottom: var(--space-1); font-size: var(--text-sm); color: var(--text-muted); }
+.calc-field select {
+  width: 100%; min-height: 2.75rem; padding: var(--space-2); font: inherit; font-size: var(--text-sm);
+  color: var(--text); background: var(--bg); border: 1px solid var(--rule-strong); border-radius: 2px;
+}
+.calc-users { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-2) var(--space-5); margin: 0; padding: 0; list-style: none; }
+.calc-users li { margin: 0; }
+.calc-users label { display: flex; gap: var(--space-2); align-items: center; min-height: 2.75rem; font-size: var(--text-sm); }
+.calc-users input { width: 1.25rem; height: 1.25rem; margin: 0; accent-color: var(--accent); }
+.calc-actions { display: flex; flex-wrap: wrap; gap: var(--space-3); margin: var(--space-4) 0; }
+.calc-actions button {
+  min-height: 2.75rem; padding: var(--space-2) var(--space-4); font: inherit; font-size: var(--text-sm);
+  color: var(--text); background: var(--surface); border: 1px solid var(--rule-strong); border-radius: 2px; cursor: pointer;
+}
+.calc-actions button:disabled { opacity: 0.5; cursor: not-allowed; }
+.calculator select:focus-visible, .calculator input:focus-visible, .calc-actions button:focus-visible {
+  outline: 3px solid var(--mark); outline-offset: 2px;
+}
+.calc-result, .calc-baseline { border-top: 2px solid var(--mark); padding: var(--space-4) 0; }
+.calc-baseline { border-top: 1px solid var(--rule); }
+.calc-value { margin: 0; font-size: 2.25rem; font-weight: 500; line-height: 1.05; font-variant-numeric: tabular-nums lining-nums; }
+.calc-label, .calc-compare { margin: var(--space-2) 0 0; font-size: var(--text-base); }
+.calc-note, .calc-kept { margin: var(--space-2) 0 0; font-size: var(--text-sm); color: var(--text-muted); }
+.calc-warnings { margin: var(--space-3) 0 0; padding-left: 1.2em; font-size: var(--text-sm); }
+.calc-result[data-state="error"] { border-top-color: var(--rule-strong); }
+.calc-error-title { margin: 0; font-weight: 600; }
+
 /* ------------------------------------------------------------------ facts (model summaries) */
 .facts {
   display: grid; grid-template-columns: max-content minmax(0, 1fr); column-gap: 0;
@@ -557,6 +592,7 @@ nav.pager a[rel="next"] .pager-title::after { transform: rotate(-45deg); margin-
 
 /* ------------------------------------------------------------------ small screens */
 @media (max-width: 40rem) {
+  .calc-fields, .calc-users { grid-template-columns: 1fr; }
   body { font-size: 1.0625rem; }
   h1, .home h1 { font-size: 1.875rem; }
   h2 { font-size: 1.3125rem; margin-top: var(--space-7); }

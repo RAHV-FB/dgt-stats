@@ -18,7 +18,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from dgt_stats import agebands, driver_risk, factors, plots, policy, summaries
+from dgt_stats import factors, plots, policy, summaries
 from dgt_stats.microdata import charts as microdata_charts
 from dgt_stats.paths import FIGURES_DIR, TABLES_DIR
 
@@ -42,14 +42,6 @@ TRAFFIC_SOURCE = (
     "tráfico en autopistas estatales de peaje"
 )
 VEHICLE_FLEET_SOURCE = "DGT registered vehicle fleet"
-
-# Panel titles for the four-denominator contrast, short enough to sit over a panel.
-CONTRAST_PANELS = {
-    "residents": "Per resident",
-    "b_permit_holders": "Per B-permit holder",
-    "drivers_involved": "Per driver involved",
-    "kilometres": "Per km, by owner's age",
-}
 
 SPEED_STATUS_LABELS = {
     "speed_infraction": "Speed infraction recorded",
@@ -94,7 +86,6 @@ def build_all(
     _trend_figures(figures_dir, captions, summary)
     _long_run_figures(figures_dir, captions, summary)
     _season_figures(figures_dir, captions, summary)
-    _forecast_figures(figures_dir, captions, summary)
     _sex_figures(figures_dir, captions, summary)
     _factor_figures(figures_dir, captions, summary)
     _speed_status_figure(figures_dir, captions, summary)
@@ -102,7 +93,7 @@ def build_all(
         _severity_figures(figures_dir, captions)
     else:
         log.warning("model tables missing: run scripts/model.py to get the severity figures")
-    _age_figures(figures_dir, captions, summary)
+    _driver_exposure_figures(figures_dir, captions)
     _vehicle_figures(figures_dir, captions, summary)
     _policy_figures(figures_dir, captions, summary)
     _data_figures(figures_dir, captions)
@@ -321,63 +312,6 @@ def _long_run_figures(figures_dir: Path, captions: dict[str, str], summary) -> N
 
 
 # --------------------------------------------------------------------------- forecasts
-
-
-def _forecast_figures(figures_dir: Path, captions: dict[str, str], summary) -> None:
-    backtest = summary("forecast_backtest")
-    national = backtest[backtest.outcome == "deaths_all"]
-    labels = {
-        "observed": "Deaths",
-        "model": "Model forecast",
-        "naive_last_year": "Last year's count",
-    }
-    long = national.melt(
-        id_vars="year", value_vars=list(labels), var_name="series", value_name="deaths"
-    ).assign(series_label=lambda f: f.series.map(labels))
-    first, last = int(national.year.min()), int(national.year.max())
-    plots.line_series(
-        long,
-        "year",
-        "deaths",
-        figures_dir / "k1_forecast_check.svg",
-        "Each year's deaths against two forecasts made before it",
-        series="series_label",
-        ylabel="Deaths (30 days), all roads",
-        zero_based=True,
-        end_labels=False,
-        colors={
-            labels["observed"]: plots.TEXT_PRIMARY,
-            labels["model"]: plots.ACCENT,
-            labels["naive_last_year"]: plots.NEUTRAL,
-        },
-        linestyles={labels["naive_last_year"]: (0, (5, 2))},
-    )
-    captions["k1_forecast_check"] = _caption(
-        f"Road deaths within 30 days in each year, Spain, {first}–{last}, against two "
-        "forecasts made from the four years before it: a regression of monthly deaths on "
-        "season, trend, road fuel and weekend days, and the previous year's count; the model "
-        "was chosen on the forecasts of 2006–2015 alone",
-        f"{SERIES_SOURCE}; {FUEL_SOURCE}",
-    )
-    detect = summary("forecast_detectability")
-    plots.line_series(
-        detect.assign(mde_pct=lambda f: f.mde),
-        "horizon",
-        "mde_pct",
-        figures_dir / "k2_detectability.svg",
-        "The fall in deaths a comparison detects four times in five, by years summed",
-        series="outcome_label",
-        ylabel="Fall detected 4 times in 5",
-        percent=True,
-        end_labels=True,
-    )
-    captions["k2_detectability"] = _caption(
-        "The fall in deaths, summed over the years after a change (horizontal axis), that a "
-        "comparison with the model's forecast detects four times in five (80% power at the 5% "
-        "level), Spain, by zone; it allows for chance and for the forecast's own error, "
-        "measured on 2006–2024 without the pandemic years",
-        f"{SERIES_SOURCE}; {FUEL_SOURCE}",
-    )
 
 
 def _season_figures(figures_dir: Path, captions: dict[str, str], summary) -> None:
@@ -635,92 +569,106 @@ def _severity_figures(figures_dir: Path, captions: dict[str, str]) -> None:
 # --------------------------------------------------------------------------- older drivers
 
 
-def _age_figures(figures_dir: Path, captions: dict[str, str], summary) -> None:
-    rates = summary("q7_km_rates")
-    reference = rates[rates.band == driver_risk.REFERENCE_BAND].iloc[0]
-    # Deaths per driver involved need no measure of distance, so they are drawn as points with
-    # their intervals; the per-km ratios depend on the owner-age kilometres and are given on the
-    # page as ranges rather than drawn as points.
+# --------------------------------------------------------------------------- driver age per km
+
+EMEF_SOURCE = "ATM, Idescat and Institut Metròpoli, Enquesta de mobilitat en dia feiner 2022–2024"
+EDM_SOURCE = "CRTM, Encuesta Domiciliaria de Movilidad 2018 (Powered by CRTM)"
+GROUP_LABELS = {
+    "16-29": "18–29",
+    "30-44": "30–44",
+    "45-64": "45–64",
+    "65+": "65 and over",
+    "65-74": "65–74",
+    "75+": "75 and over",
+}
+
+
+def _driver_exposure_figures(figures_dir: Path, captions: dict[str, str]) -> None:
+    """Involvement per kilometre by driver age, and deaths once involved, from the committed
+    ``risk_*`` tables (``scripts/exposure_risk.py``)."""
+    path = TABLES_DIR / "risk_national_rates.csv"
+    if not path.exists():
+        log.warning("risk_national_rates.csv missing: run scripts/exposure_risk.py national")
+        return
+    rates = pd.read_csv(path)
+    rates = rates[rates.km_total == "less taxi and ride-hailing"]
+    central = rates[rates.method.str.startswith("A:")].set_index("group")
+    weekend = pd.read_csv(TABLES_DIR / "risk_weekend_sensitivity.csv")
+    older = pd.read_csv(TABLES_DIR / "risk_older_split.csv")
+    rows = []
+    for group in ("16-29", "30-44", "45-64", "65+"):
+        spread = pd.concat(
+            [
+                rates[rates.group == group].involved_ratio,
+                weekend[weekend.group == group].ratio_to_45_64,
+            ]
+        )
+        rows.append(
+            {
+                "label": GROUP_LABELS[group],
+                "reference_row": group == "45-64",
+                "value": float(central.loc[group, "involved_ratio"]),
+                "low": float(central.loc[group, "involved_ratio_low"]),
+                "high": float(central.loc[group, "involved_ratio_high"]),
+                "range_low": float(spread.min()),
+                "range_high": float(spread.max()),
+            }
+        )
+    for group in ("65-74", "75+"):
+        part = older[older.group == group].ratio_to_45_64
+        rows.append(
+            {
+                "label": f"{GROUP_LABELS[group]} (model-dependent)",
+                "reference_row": False,
+                "value": np.nan,
+                "low": np.nan,
+                "high": np.nan,
+                "range_low": float(part.min()),
+                "range_high": float(part.max()),
+            }
+        )
+    plots.estimate_and_range(
+        pd.DataFrame(rows),
+        figures_dir / "dr1_involved_per_km.svg",
+        "Car drivers involved in injury crashes per kilometre driven, against drivers aged "
+        "45–64 (2024)",
+        xlabel="Rate ratio per km against drivers aged 45–64 (log scale)",
+        reference_label="45–64 rate",
+        estimate_label="Estimate with 95% interval (EMEF age profile, Spain's population, DGT km)",
+        range_label="Sensitivity range: other regional profiles, weekend mixes, or the "
+        "assumption splitting 65+",
+    )
+    captions["dr1_involved_per_km"] = _caption(
+        "Car drivers involved in injury crashes in Spain in 2024 per kilometre driven by drivers "
+        "of the same age, as ratios to drivers aged 45–64; kilometres by age from the EMEF's "
+        "working-day profile applied to Spain's population and scaled to DGT's car kilometres. "
+        "The grey bands are sensitivity ranges, not intervals; the rows for 65–74 and 75 and "
+        "over rest on the Madrid survey's age profile and carry no point estimate",
+        f"{TABLES_SOURCE}; {EMEF_SOURCE}; {EDM_SOURCE}; {KM_2024_SOURCE}; {POPULATION_SOURCE}",
+        f"{int(central.involved.sum()):,} drivers involved",
+    )
+
+    severity = pd.read_csv(TABLES_DIR / "risk_severity_and_licences.csv")
+    severity = severity[severity.group != "65+"].assign(label=lambda f: f.group.map(GROUP_LABELS))
     plots.dot_interval(
-        rates.assign(label=[agebands.band_label(band) for band in rates.band]),
+        severity,
         "label",
-        "deaths_per_1000_involved",
-        "deaths_per_1000_involved_low",
-        "deaths_per_1000_involved_high",
-        figures_dir / "a1_killed_per_involved.svg",
+        "killed_per_1000_involved",
+        "killed_per_1000_involved_low",
+        "killed_per_1000_involved_high",
+        figures_dir / "dr2_killed_per_involved.svg",
         "Car drivers killed per 1,000 involved in an injury crash, by age (2024)",
         xlabel="Drivers killed within 30 days per 1,000 drivers involved",
-        reference=float(reference.deaths_per_1000_involved),
-        reference_label=f"{agebands.band_label(driver_risk.REFERENCE_BAND)} rate",
+        reference=float(severity.set_index("group").loc["45-64", "killed_per_1000_involved"]),
+        reference_label="45–64 rate",
         keep_order=True,
-        reference_row=agebands.band_label(driver_risk.REFERENCE_BAND),
+        reference_row="45–64",
     )
-    captions["a1_killed_per_involved"] = _caption(
-        "Car drivers who died within 30 days per 1,000 car drivers involved in an injury crash, "
-        "by age band, Spain, 2024, with 95% intervals; the dotted line is the rate at 35–54, and "
-        "no estimate of distance driven enters the rate",
+    captions["dr2_killed_per_involved"] = _caption(
+        "Private-car drivers who died within 30 days per 1,000 involved in an injury crash, by "
+        "age, Spain, 2024, with 95% intervals; no measure of driving enters the rate",
         TABLES_SOURCE,
-        f"{int(rates.drivers_involved.sum()):,} drivers involved",
-    )
-
-    check = summary("q7_owner_age_check")
-    involved = rates.set_index("band")
-    per_km = check.assign(
-        label=[agebands.band_label(band) for band in check.band],
-        published=lambda f: f.band.map(involved.involved_per_bn_km),
-        low=lambda f: f.band.map(involved.involved_per_bn_km_low),
-        high=lambda f: f.band.map(involved.involved_per_bn_km_high),
-        scenario=lambda f: f.drivers_involved / f.billion_km_transfer,
-    )
-    plots.dot_range(
-        per_km,
-        "label",
-        "published",
-        "low",
-        "high",
-        "scenario",
-        figures_dir / "a4_involved_per_km.svg",
-        "Car drivers involved in injury crashes per billion km, by age (2024)",
-        xlabel="Drivers involved per billion km of cars registered to owners of each age "
-        "(log scale)",
-        value_label="On the published kilometres, by owner age (with 95% interval)",
-        alternative_label="With kilometres moved from 35–54 to the two young bands (scenario)",
-        log=True,
-        reference=float(involved.loc[driver_risk.REFERENCE_BAND, "involved_per_bn_km"]),
-        reference_label=f"{agebands.band_label(driver_risk.REFERENCE_BAND)} rate",
-    )
-    captions["a4_involved_per_km"] = _caption(
-        "Car drivers involved in injury crashes per billion kilometres driven by cars registered "
-        "to owners of the same age band, Spain, 2024, with 95% intervals that treat the "
-        "kilometres as known; the grey band runs to the rate under a scenario that moves "
-        "kilometres from the 35–54 band to 18–24 and 25–34 until all three have the same "
-        "kilometres per licence holder, a sensitivity range rather than an interval",
-        f"{TABLES_SOURCE}; {KM_2024_SOURCE}; {CENSUS_SOURCE}",
-        f"{int(check.drivers_involved.sum()):,} drivers involved",
-    )
-
-    contrast = summary("q7_denominator_contrast")
-    plots.dot_interval_panels(
-        contrast.assign(panel=contrast.denominator.map(CONTRAST_PANELS)),
-        "panel",
-        "band_label",
-        "ratio",
-        "low",
-        "high",
-        figures_dir / "a2_denominator_contrast.svg",
-        "The same car-driver deaths, four denominators: each band against 35–54 (2024)",
-        order=[agebands.band_label(band) for band in dict.fromkeys(contrast.band)],
-        panel_order=[CONTRAST_PANELS[key] for key in dict.fromkeys(contrast.denominator)],
-        xlabel="Rate ratio against drivers aged 35–54 (dotted line: the same rate)",
-        reference=1.0,
-    )
-    captions["a2_denominator_contrast"] = _caption(
-        "Car-driver deaths within 30 days by age band, per resident, per holder of a B (car) "
-        "permit, per car driver involved in an injury crash and per kilometre driven by cars "
-        "registered to owners of the band, as ratios to drivers aged 35–54, Spain, 2024, with "
-        "95% intervals; the numerator is the same in every panel, and 18–24 is left out because "
-        "INE groups residents as 15–19 and 20–24",
-        f"{TABLES_SOURCE}; {KM_2024_SOURCE}; {POPULATION_SOURCE}; {CENSUS_SOURCE}",
+        f"{int(severity.involved.sum()):,} drivers involved",
     )
 
 

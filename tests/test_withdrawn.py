@@ -30,13 +30,17 @@ def test_the_withdrawn_models_and_their_scripts_are_gone() -> None:
     package = PROJECT_ROOT / "src" / "dgt_stats"
     for name in ("simulator.py", "factor_models.py", "site/simulator.py", "site/factor_pages.py"):
         assert not (package / name).exists(), name
-    # The one script in the package is the severity calculator's engine, which computes from the
-    # exported model and holds no coefficient of its own: its only decimal constant is the 97.5%
-    # normal quantile.
+    # The two scripts in the package are the severity calculator's: its engine, which computes
+    # from the exported model and holds no coefficient of its own (its only decimal constant is
+    # the 97.5% normal quantile), and its page script, which only moves values between the form
+    # and the engine and holds no decimal constant at all.
     scripts = sorted(path.relative_to(package).as_posix() for path in package.rglob("*.js"))
-    assert scripts == ["site/assets/severity-engine.js"]
-    engine = (package / scripts[0]).read_text(encoding="utf-8")
+    assert scripts == ["site/assets/severity-calculator.js", "site/assets/severity-engine.js"]
+    engine = (package / "site/assets/severity-engine.js").read_text(encoding="utf-8")
     assert set(re.findall(r"\b\d+\.\d+\b", engine)) == {"1.959964"}
+    page = (package / "site/assets/severity-calculator.js").read_text(encoding="utf-8")
+    assert not re.findall(r"\b\d+\.\d+\b", page)
+    assert not re.findall(r"\b(19|20)\d\d\b", page)
     for path in _python_files():
         text = path.read_text(encoding="utf-8")
         assert not WITHDRAWN_MODULES.search(text), path.relative_to(PROJECT_ROOT)

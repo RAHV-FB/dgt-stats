@@ -29,6 +29,7 @@ import pandas as pd
 from dgt_stats.paths import RAW_DATA_DIR
 
 EDM_DIR = RAW_DATA_DIR / "crtm" / "edm2018"
+SURVEY_YEAR = 2018
 CAR_LICENCE_CODES = (4, 5)  # "car (B) or higher" and "motorcycle and car"
 BANDS: tuple[tuple[int, int, str], ...] = (
     (18, 24, "18-24"),

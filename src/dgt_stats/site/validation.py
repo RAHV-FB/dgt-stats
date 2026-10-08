@@ -483,6 +483,13 @@ def page_validation(captions: dict[str, str]) -> str:
         f"({names[worst.province_code]}) to {best.roc_auc:.2f} ({names[best.province_code]}), "
         f"with a median of {shown_provinces.roc_auc.median():.2f}.</p>"
     )
+    body += figure(
+        "tr3_province_auc",
+        f"Dot chart of the harmonised Catalonia model's ROC-AUC in each of the "
+        f"{len(shown_provinces)} provinces outside Catalonia with enough fatal and non-fatal "
+        f"crashes, from {worst.roc_auc:.2f} to {best.roc_auc:.2f}.",
+        captions,
+    )
     _check(
         weather_blank.share_b > 0,
         PAGE,
