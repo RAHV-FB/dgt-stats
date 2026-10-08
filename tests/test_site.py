@@ -418,12 +418,13 @@ def test_speed_page_carries_severity_and_the_recording_discontinuity(built: Path
     assert f"{pooled.loc['urban', 'rate_ratio']:.1f} times on urban streets" in home
     assert "Over 2016–2023, those crashes" in home
     # The summary says plainly that a recorded factor is an association, not a cause.
-    assert (
-        "Police-recorded inappropriate speed is associated with greater crash severity" in opening
+    assert "These are associations in police records, not estimates of what speed causes" in (
+        opening
     )
-    assert "This is not an estimate of causation." in opening
-    # The two biases are named, in both directions.
+    # The two biases are named, in both directions, and what a recorded factor is is explained
+    # once, on the factors page, which this page links to.
     assert "which would raise it" in text and "which would lower it" in text
+    assert 'href="factors.html#recorded-factors"' in text
     shares = pd.read_csv(TABLES_DIR / "q9_infraction_shares.csv")
     all_roads = shares[shares.zone == "all"].set_index("year")
     for year in (2014, 2016, int(all_roads.index.max())):
@@ -465,6 +466,8 @@ def test_factors_page_reads_trends_only_within_comparable_runs(built: Path) -> N
     for zone in ("interurban", "urban", "all"):
         assert f"{speed.loc[zone, 'share_last'] * 100:.1f}%" in opening
     assert "recording is consistent" not in opening and "point to changes in recording" not in text
+    # The driver tables' break is set out once, on the speed page, which this page links to.
+    assert 'href="speed.html#driver-tables"' in text
 
 
 def test_trend_pages_show_every_denominator_and_the_projection(built: Path) -> None:
@@ -767,7 +770,9 @@ def test_vehicles_page_quotes_per_km_rates_for_all_roads_only(built: Path) -> No
         truck.fatal_involvement_per_100k_vehicles / car.fatal_involvement_per_100k_vehicles
     )
     per_km = truck.fatal_involvement_per_bn_km / car.fatal_involvement_per_bn_km
-    assert f"{per_vehicle:.1f}×" in text and f"{per_km:.1f}×" in text
+    assert f"{per_vehicle:.1f} times" in text and f"{per_km:.1f} times" in text
+    # The weight class of a vehicle label never breaks across lines.
+    assert "3,500\u00a0kg" in text and "3,500 kg" not in text
     # The occupant shares are computed, not typed.
     assert f"{bike.occupant_deaths_per_fatal_involvement:.2f} for a motorcycle" in text
     assert f"a figure of {truck.occupant_deaths_per_fatal_involvement:.2f}" in text
