@@ -1,26 +1,40 @@
-"""Driver age and sex: how often car drivers are in crashes, and how often a crash kills the driver.
+"""Driver age and sex: how often car drivers are involved in crashes for the distance they drive,
+and how often a crash kills the driver.
 
-The page leads with deaths per driver involved, the one comparison that needs no estimate of
-kilometres, and then compares involvement in crashes with DGT's kilometres by the registered
-owner's age, which are not kilometres by the driver's age. Every number is read from the ``q7_*`` and ``drivers_sex_*`` tables,
-and every qualitative sentence is checked against them before the page is written.
+The page leads with involvement per kilometre driven by drivers of each age, estimated from the
+EMEF working-day survey's age profile, Spain's population and DGT's car kilometres
+(``scripts/exposure_risk.py``; ``docs/research/DRIVER_AGE_EXPOSURE.md``). That section sets out
+how much of DGT's kilometres the survey covers, what the rest is made of and how other age mixes
+for it move the ratios, and closes with a short note on the former owner-age figure. It then
+gives deaths once involved, the check in Barcelona on working days, the oldest drivers (counted
+deaths once involved and involvement per licence holder, a conditional estimate per kilometre
+beside the sensitivity range, and what moves it), and the comparison of men and women. Every number is read from the ``risk_*`` and ``drivers_sex_*``
+tables, and every qualitative sentence is checked against them before the page is written.
 """
 
 from __future__ import annotations
 
-import math
-
+import numpy as np
 import pandas as pd
 
-from dgt_stats import agebands, driver_risk
+from dgt_stats import edm2018
+from dgt_stats import figures as figures_module
+from dgt_stats.emef import exposure, publication
+from dgt_stats.emef import variables as emef_variables
+from dgt_stats.exposure_risk import barcelona as city_design
+from dgt_stats.exposure_risk import calendar as day_calendar
+from dgt_stats.exposure_risk import coverage as coverage_design
+from dgt_stats.exposure_risk import national
 from dgt_stats.site.components import (
+    DOCS_URL,
+    _fmt_dec,
     _fmt_pct,
-    _ratio_ci,
-    _times,
+    _join,
+    definition_link,
     downloads,
     evidence_note,
     figure,
-    key_result,
+    figure_ref,
     limitation,
     read_table,
     render_page,
@@ -28,23 +42,38 @@ from dgt_stats.site.components import (
     table,
     technical,
 )
-from dgt_stats.site.numbers import _age_numbers, _sex_numbers
+from dgt_stats.site.numbers import (
+    FAIL,
+    INTERMEDIATE,
+    MC_MARGIN,
+    OLDER_CONCLUSION,
+    PASS,
+    _driver_numbers,
+    _older_numbers,
+    _sex_numbers,
+    joint_interval,
+    mc_digits,
+    mc_interval,
+    rate_interval,
+    side_of_one_shown,
+)
 
-YOUNG = driver_risk.TRANSFER_BANDS
-REFERENCE = driver_risk.REFERENCE_BAND
-OLDEST = "75+"
-# The bands between the reference and the oldest, which the scenario does not touch.
-MIDDLE = ("55-64", "65-74")
-
-
-def _label(band: str) -> str:
-    """A band key as printed in prose: '18-24' as 18–24, '75+' as 75 and over."""
-    return "75 and over" if band == OLDEST else band.replace("-", "–")
-
-
-def _range(low: float, high: float) -> str:
-    """A per-km ratio as the range from the reallocation scenario to the published figure."""
-    return f"{low:.2f}–{high:.2f}×"
+REFERENCE = "45-64"
+YEAR = national.YEAR
+CITY_YEAR = city_design.YEAR
+SURVEY_YEARS = f"{min(exposure.CONTEMPORARY_YEARS)}–{max(exposure.CONTEMPORARY_YEARS)}"
+CENTRAL_KM = "less taxi and ride-hailing"
+GROUPS = ("18-29", "30-44", "45-64", "65+")
+LABELS = {
+    "18-29": "18–29",
+    "30-44": "30–44",
+    "45-64": "45–64",
+    "65+": "65 and over",
+    "65-74": "65–74",
+    "75+": "75 and over",
+}
+CRTM_URL = "https://www.crtm.es"
+EXPOSURE_DOC = "https://github.com/RAHV-FB/dgt-stats/blob/main/docs/research/DRIVER_AGE_EXPOSURE.md"
 
 
 def _check(holds: bool, claim: str) -> None:
@@ -52,106 +81,330 @@ def _check(holds: bool, claim: str) -> None:
         raise ValueError(f"drivers page: the tables no longer support: {claim}")
 
 
-def _licence_shares() -> tuple[int, pd.DataFrame]:
-    """The latest year of licence holding by age band and sex, indexed by (band, sex)."""
-    licence = read_table("q7_licence_share")
-    year = int(licence.year.max())
-    return year, licence[licence.year == year].set_index(["band", "sex"])
+def _ci(row: pd.Series, column: str, sep: str = "–") -> str:
+    """A ratio's sampling interval from ``risk_national_rates``, at the precision its Monte Carlo
+    error supports."""
+    return rate_interval(row, column, sep)
 
 
-def _ratio_table(ratios: pd.DataFrame, owner: pd.DataFrame, rates: pd.DataFrame, year: int) -> str:
-    """Ratios to 35–54: involvement per km × deaths per driver involved = deaths per km."""
+# The closed sections the text sends readers to, with their ids.
+SOURCES_TITLE, SOURCES_ANCHOR = (
+    "Sources of the sensitivity range",
+    "sources-of-the-sensitivity-range",
+)
+COVERAGE_TITLE, COVERAGE_ANCHOR = "What DGT's kilometres are made of", "what-dgts-kilometres"
 
-    def per_involved(band: str) -> str:
-        if band == REFERENCE:
-            return "1 (reference)"
-        row = ratios.loc[("deaths_per_1000_involved", band)]
-        return _ratio_ci(float(row.ratio), float(row.low), float(row.high))
 
-    def per_km(measure: str, band: str) -> str:
-        if band == REFERENCE:
-            return "1 (reference)"
-        row = owner.loc[band]
-        return _range(float(row[f"{measure}_range_low"]), float(row[f"{measure}_range_high"]))
+NUMBER_WORDS = ("no", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine")
 
-    rows = [
+
+def _words(number: int) -> str:
+    """A count under ten in words, as in running prose."""
+    return NUMBER_WORDS[number] if 0 <= number < len(NUMBER_WORDS) else f"{number:,}"
+
+
+def _open_link(anchor: str, label: str) -> str:
+    """A pointer to a closed section of technical detail further down the page."""
+    return f'open “<a href="#{anchor}">{label}</a>” below'
+
+
+def _span(values: pd.Series) -> str:
+    return f"{float(values.min()):.2f}–{float(values.max()):.2f}"
+
+
+RATE_COARSEST = -2  # rates per billion km may be rounded to tens, never to thousands
+DIGIT_WORDS = {2: "two decimals", 1: "one decimal", 0: "whole numbers", -1: "tens"}
+
+
+def _mc_errors(rows: pd.DataFrame, column: str) -> float:
+    """The largest Monte Carlo standard error of the interval ends of ``column`` in ``rows``."""
+    return float(rows[[f"{column}_mc_se_low", f"{column}_mc_se_high"]].max().max())
+
+
+def _precision_rule(central: pd.DataFrame) -> str:
+    """The page's one statement of how its sampling intervals are printed, with the Monte Carlo
+    errors of the ratios and rates of Table 1 and of the death ratios quoted with them."""
+    shown = central.loc[[group for group in GROUPS if group != REFERENCE]]
+    involved = _mc_errors(shown, "involved_ratio")
+    killed = _mc_errors(shown, "killed_ratio")
+    rate_digits = sorted(
         {
-            "Age band": rates.loc[band, "band_label"],
-            "Involved in an injury crash, per km": per_km("involved_per_bn_km", band),
-            "Killed once involved": per_involved(band),
-            "Killed, per km": per_km("deaths_per_bn_km", band),
-        }
-        for band in rates.index
-    ]
-    return table(
-        pd.DataFrame(rows),
-        f"Car drivers by age, {year}, as ratios to drivers aged 35–54. Each per-kilometre ratio "
-        "runs from the scenario to the published owner-age kilometres; deaths once involved need "
-        "no kilometres and carry a 95% interval. At either end of a range, involvement per km × "
-        "deaths once involved = deaths per km.",
-    )
-
-
-def _rates_table(rates: pd.DataFrame, year: int) -> str:
-    frame = pd.DataFrame(
-        {
-            "Age band": rates.band_label,
-            "Drivers involved": rates.drivers_involved,
-            "Drivers killed": rates.driver_deaths,
-            "Killed per 1,000 involved": rates.deaths_per_1000_involved,
-            "Kilometres (billion)": rates.billion_km,
-            "Involved per billion km": rates.involved_per_bn_km,
-            "Killed per billion km": rates.deaths_per_bn_km,
-        }
-    )
-    return table(
-        frame,
-        f"Car drivers by age, {year}: drivers involved in injury crashes and killed within 30 "
-        "days, and DGT's published kilometres of cars registered to owners in each band. Involved "
-        "per billion km × killed per 1,000 involved ÷ 1,000 = killed per billion km.",
-        {
-            "Drivers involved": "int",
-            "Drivers killed": "int",
-            "Killed per 1,000 involved": "dec",
-            "Kilometres (billion)": "dec",
-            "Involved per billion km": "dec0",
-            "Killed per billion km": "dec2",
+            mc_digits(
+                row.involved_per_bn_km_mc_se_low,
+                row.involved_per_bn_km_mc_se_high,
+                coarsest=RATE_COARSEST,
+            )
+            for row in central.itertuples()
         },
-        reference_rows=(agebands.band_label(REFERENCE),),
+        reverse=True,
+    )
+    ratio_digits = mc_digits(involved, killed)
+    each = {
+        mc_digits(getattr(row, f"{c}_mc_se_low"), getattr(row, f"{c}_mc_se_high"))
+        for row in shown.itertuples()
+        for c in ("involved_ratio", "killed_ratio")
+    }
+    _check(
+        0 < involved < 0.05 and 0 < killed < 0.05 and each == {ratio_digits} and ratio_digits >= 1,
+        "the ratios' interval ends move by less than 0.05 between resamples, so they keep one "
+        "decimal at least, and every ratio's interval is printed to the same digit",
+    )
+    rates = " or ".join(DIGIT_WORDS[d] for d in rate_digits)
+    return (
+        "How every sampling interval on this page is printed: it comes from resampling the "
+        "surveys and the crash counts, and another set of resamples would move its ends "
+        "slightly, so both ends are printed to the last digit that the larger of their Monte "
+        "Carlo standard errors supports, a unit at least twice that error. Here the ratios' ends "
+        f"carry errors of up to {involved:.3f} for involvement and {killed:.3f} for deaths per "
+        f"kilometre, so the ratios' intervals are given to {DIGIT_WORDS[ratio_digits]}; the "
+        f"rates' ends carry errors of up to {_mc_errors(central, 'involved_per_bn_km'):.1f} per "
+        f"billion km, so they are given to {rates}, as each row's error allows. One exception: "
+        "an interval that lies wholly on one side of 1 but would print as reaching it, with its "
+        f"nearer end {_words(MC_MARGIN)} Monte Carlo errors clear of 1, gets a second decimal, "
+        "so that it is not read as touching 1. No sentence on "
+        "the page rests on which side of 1 an end lies unless the printed end shows it and "
+        f"stands {_words(MC_MARGIN)} Monte Carlo errors clear of 1. The 95% intervals of men "
+        "against women per licence holder come from a formula, not from resampling."
     )
 
 
-def _breakeven_table(breakeven: pd.DataFrame, year: int) -> str:
-    """For each band, the km per licence holder needed to match the 35–54 rate per km."""
+def _rates_table(central: pd.DataFrame, ranges: pd.DataFrame, level: pd.Series, year: int) -> str:
     rows = []
-    for (reference, kilometres, band), row in breakeven.iterrows():
-        if reference != REFERENCE or kilometres != "published":
-            continue
+    for group in GROUPS:
+        row = central.loc[group]
+        reference = group == REFERENCE
         rows.append(
             {
-                "Age band": row.band_label,
-                "Credited to cars of owners this age": row.credited_km_per_b_permit,
-                "Needed to match drivers aged 35–54": (
-                    f"{row.needed_km_per_b_permit:,.0f} "
-                    f"({row.needed_low:,.0f}–{row.needed_high:,.0f})"
+                "Age": LABELS[group],
+                "Drivers involved": row.involved,
+                "Kilometres (billion)": row.billion_km,
+                "Involved per billion km (95% sampling interval)": (
+                    f"{row.involved_per_bn_km:,.0f} "
+                    f"({rate_interval(row, 'involved_per_bn_km', coarsest=RATE_COARSEST)})"
                 ),
-                "Needed ÷ credited": f"{row.needed_over_credited:.2f}",
+                "Ratio to 45–64 (95% sampling interval)": "1 (reference)"
+                if reference
+                else f"{row.involved_ratio:.2f} ({_ci(row, 'involved_ratio')})",
+                "Sensitivity range of the ratio": ""
+                if reference
+                else f"{ranges.loc[group, 'min']:.2f}–{ranges.loc[group, 'max']:.2f}",
+            }
+        )
+    # A reader reproducing the table needs the rows of the published CSV it comes from.
+    method, km_total = str(central.method.iloc[0]), str(central.km_total.iloc[0])
+    return table(
+        pd.DataFrame(rows),
+        f"Car drivers involved in injury crashes per kilometre driven, by age, Spain, {year}. "
+        "Kilometres by age from the EMEF's working-day profile applied to Spain's population "
+        "and scaled to DGT's car kilometres less taxis and ride-hailing cars. The 95% sampling "
+        "intervals combine a bootstrap of the survey (the bootstrap replicates are not "
+        "published) with Poisson error in the crash counts, "
+        f"{national.COUNT_DRAWS} draws of each count for every replicate. "
+        f"{_precision_rule(central)} The sensitivity range spans "
+        f"every alternative in the closed section “{SOURCES_TITLE}” below. Data: "
+        "the rows of the CSV of involvement and deaths per km by "
+        f"age with method “{method}” and kilometre total “{km_total}”; its other kilometre "
+        f"totals change the rates (from {float(level.min()):,.0f} to {float(level.max()):,.0f} "
+        "per billion km at 65 and over) but not the ratios.",
+        {"Drivers involved": "int", "Kilometres (billion)": "dec"},
+    )
+
+
+SOURCE_LABELS = {
+    "regional profile": (
+        f"Another region's age profile (four parts of the province; Madrid {edm2018.SURVEY_YEAR})"
+    ),
+    "licence-calibrated transfer": "Driving per licence holder, not per resident, carried to Spain",
+    "distance": "Other treatments of trip distances",
+    "survey years": "Other survey years",
+    "professionals' work driving": "Professional drivers' unrecorded work driving",
+    "older sample": (
+        "Survey's older respondents: employed share set to the census, or too few aged 75 and "
+        "over (bound)"
+    ),
+    "non-working days": "A different age mix on weekends and holidays",
+    national.COVERAGE_SOURCE: "Other age mixes for the kilometres the survey does not cover",
+    national.COVERAGE_PROFILE_SOURCE: "Another region's profile together with those age mixes",
+}
+
+
+def _sources_table(by_source: pd.DataFrame) -> str:
+    rows = []
+    for source, label in SOURCE_LABELS.items():
+        row = {"What changes": label}
+        for group in ("18-29", "30-44", "65+"):
+            low, high = by_source.loc[(source, group)]
+            row[LABELS[group]] = (
+                f"{low:.2f}" if abs(high - low) < 0.005 else f"{low:.2f}–{high:.2f}"
+            )
+        rows.append(row)
+    return table(
+        pd.DataFrame(rows),
+        "Ratio of each age group's involvement per kilometre to that of drivers aged 45–64 under "
+        "each alternative choice, Spain. Each cell spans the variants of one choice in the CSV "
+        "of ratios under every alternative; the sensitivity range in the table above is the "
+        "span of all of them.",
+    )
+
+
+PROFESSIONAL_PART = "professionals' work driving"
+COVERAGE_LABELS = {
+    "working days": ("Working days, as the survey measures them", "survey's working days"),
+    PROFESSIONAL_PART: (
+        "Work trips of people who drive for a living, counted but not described by the survey",
+        "survey's working days; their own age mix tested",
+    ),
+    "regional level": (
+        "More driving per resident in Spain than in the province",
+        "survey's working days",
+    ),
+    "non-working days": (
+        "Weekends and public holidays",
+        "survey's working days; two weekend mixes tested",
+    ),
+    "months outside the fieldwork": (
+        "Months outside the survey's fieldwork",
+        "survey's working days",
+    ),
+    "remainder (not explained)": (
+        "Not explained by any part above",
+        "survey's working days; three other measured mixes tested, three bounds reported",
+    ),
+    "cars registered to companies": (
+        "Cars registered to companies (overlaps the parts above)",
+        "no age recorded",
+    ),
+    "car hire without driver": ("Hire cars (overlaps the parts above)", "no age recorded"),
+}
+
+
+def _between(low: float, high: float, fmt) -> str:
+    """One value, or 'a to b' from the lower to the higher (either may be negative)."""
+    low, high = sorted((float(low), float(high)))
+    return fmt(low) if fmt(low) == fmt(high) else f"{fmt(low)} to {fmt(high)}"
+
+
+def _coverage_table(parts: pd.DataFrame) -> str:
+    rows = []
+    for component, (label, mix) in COVERAGE_LABELS.items():
+        row = parts.loc[component]
+        rows.append(
+            {
+                "Part of DGT's car kilometres": label,
+                "Billion km": _between(
+                    row.bn_km_least_explained, row.bn_km_most_explained, _fmt_dec
+                ),
+                "Share of DGT's total": _between(
+                    row.share_least_explained,
+                    row.share_most_explained,
+                    lambda v: _fmt_pct(v, 0),
+                ),
+                "Age mix in the central estimate": mix,
+            }
+        )
+    total = float(parts.dgt_total_bn_km.iloc[0])
+    return table(
+        pd.DataFrame(rows),
+        f"What the {YEAR} DGT car kilometres less taxis and ride-hailing cars "
+        f"({_fmt_dec(total)} billion) are made of, as far as the data show. Each part is given at "
+        "the setting that explains least and the one that explains most, and the parts are "
+        "added in the order shown; the last two rows overlap them and are not added. Data: the "
+        "CSV of the coverage of DGT's kilometres and the CSV of the evidence behind it.",
+    )
+
+
+def _barcelona_table(barcelona: pd.DataFrame) -> str:
+    rows = []
+    for group in GROUPS:
+        part = barcelona[barcelona.age4 == group].set_index("denominator")
+        row = {"Age": LABELS[group], "Drivers involved": int(part.drivers_involved.iloc[0])}
+        for denominator, column in (
+            ("internal trips only", "Inside-city trips only"),
+            (
+                "crossing trips at an internal trip's length",
+                "Crossing trips at a city trip's length",
+            ),
+            ("crossing trips in full", "Crossing trips in full"),
+        ):
+            value = part.loc[denominator]
+            row[column] = (
+                "1 (reference)"
+                if group == REFERENCE
+                else f"{value.ratio_to_45_64:.2f} ({joint_interval(value)})"
+            )
+        rows.append(row)
+    return table(
+        pd.DataFrame(rows),
+        "Car drivers involved in injury crashes per kilometre driven inside Barcelona on working "
+        f"days, {CITY_YEAR}, as ratios to drivers aged 45–64 under three versions of the "
+        f"kilometres, with 95% intervals. The kilometres are EMEF {SURVEY_YEARS} car-driver trips "
+        "inside the city by residents of the survey area, with trips that cross the city boundary "
+        "counted not at all, at the length of a trip inside the city, or in full. Taxis and "
+        "ride-hailing cars are left out.",
+        {"Drivers involved": "int"},
+    )
+
+
+def _older_table(
+    older: pd.DataFrame, variants: pd.DataFrame, full: str, madrid: str, like_for_like: float
+) -> str:
+    labels = national.public_split_labels()
+    oldest = older[older.group == "75+"].set_index("assumption")
+    men = oldest.men_km_per_holder_75_vs_65_74
+    ratio = oldest.ratio_to_45_64
+    _check(
+        np.isclose(float(men[national.LICENCE_SPLIT]), like_for_like)
+        and abs(float(ratio[national.LICENCE_SPLIT]) / float(ratio[national.REFERENCE_SPLIT]) - 1)
+        < 0.05
+        and float(ratio[national.RACC_SPLIT]) < float(ratio[national.REFERENCE_SPLIT]),
+        "the licence split implies Madrid's own men's ratio per DGT licence holder and gives "
+        "nearly the Madrid split's figure, and the RACC upper limit on men's km gives a lower "
+        "involvement ratio",
+    )
+    rows = []
+    for split in national.SPLITS:
+        part = older[older.assumption == split].set_index("group")
+        spread = variants[variants.assumption == split].ratio_75_plus
+        rows.append(
+            {
+                "Split of the 65-and-over kilometres": labels[split],
+                "75 and over: ratio to 45–64 (95% sampling interval)": (
+                    f"{part.loc['75+', 'ratio_to_45_64']:.2f} ({joint_interval(part.loc['75+'])})"
+                ),
+                "75 and over: sensitivity range under this split": _span(spread),
+                "65–74: ratio (95% sampling interval)": (
+                    f"{part.loc['65-74', 'ratio_to_45_64']:.2f} "
+                    f"({joint_interval(part.loc['65-74'])})"
+                ),
+                "Implied km per licence holder, men 75 and over against 65–74": float(
+                    part.loc["75+", "men_km_per_holder_75_vs_65_74"]
+                ),
             }
         )
     return table(
         pd.DataFrame(rows),
-        f"Kilometres a year per B-licence holder, car drivers by age, {year}. The distance "
-        "needed is the one at which the band's drivers would be involved in injury crashes no "
-        "more often per kilometre than drivers aged 35–54, with a 95% interval from the crash "
-        "counts; needed ÷ credited equals the ratio of involvement per kilometre on the "
-        "published owner-age kilometres.",
-        {"Credited to cars of owners this age": "dec0"},
+        f"Car drivers involved in injury crashes per kilometre at 75 and over and at 65–74, Spain, "
+        f"{YEAR}, as ratios to drivers aged 45–64, under each split of the 65-and-over "
+        "kilometres, with every other choice as in the central estimate; the sensitivity range "
+        f"over all four splits and every other choice is {full} at 75 and over. The first two "
+        "rows' intervals include the Madrid survey's sampling error; the last two include only "
+        "the Barcelona-area survey's and the crash counts', and the RACC figure is held fixed. "
+        f"{madrid} The second row carries Madrid's kilometres per licence holder, with holders "
+        f"counted on DGT's {YEAR} register in the province of Madrid and in Spain alike, to "
+        "Spain's licence holders; licence holding falls about as much from 65–74 to 75 and over "
+        "in the province of Madrid as in Spain, so it gives nearly the figures of the first. The "
+        "third row's upper limit is on men's kilometres, so it gives a lower ratio of "
+        "involvement.",
+        {"Implied km per licence holder, men 75 and over against 65–74": "dec2"},
     )
 
 
 def _sex_rates_table(rates_table: pd.DataFrame, years: str) -> str:
     rows = []
-    for scope, scope_label in (("car", "Car drivers"), ("motor", "All motor-vehicle drivers")):
+    for scope, scope_label in (
+        ("car", "Private-car drivers"),
+        ("motor", "All motor-vehicle drivers"),
+    ):
         for sex, sex_label in (("male", "Men"), ("female", "Women")):
             row = rates_table.loc[(scope, "18+", sex)]
             rows.append(
@@ -167,7 +420,7 @@ def _sex_rates_table(rates_table: pd.DataFrame, years: str) -> str:
     return table(
         pd.DataFrame(rows),
         f"Drivers aged 18 and over by sex, {years} pooled. Licence holders include every type "
-        "of licence.",
+        "of licence; private cars exclude taxis and ride-hailing cars.",
         {
             "Involved per 1,000 licence holders a year": "dec2",
             "Killed per million licence holders a year": "dec",
@@ -177,489 +430,1254 @@ def _sex_rates_table(rates_table: pd.DataFrame, years: str) -> str:
     )
 
 
+def _fmt_span(low: float, high: float, digits: int = 2) -> str:
+    return f"{low:.{digits}f}–{high:.{digits}f}"
+
+
 def page_drivers(captions: dict[str, str]) -> str:
-    numbers = _age_numbers()
-    ratios, rates, contrast = numbers["ratios"], numbers["rates"], numbers["contrast"]
-    company, owner, older = numbers["company"], numbers["owner"], numbers["older"]
-    km_table = read_table("q7_km_by_owner_age").set_index("band")
-    year = driver_risk.KM_YEAR
+    numbers = _driver_numbers()
+    central, licence = numbers["central"], numbers["licence"]
+    ranges, by_source = numbers["ranges"], numbers["by_source"]
+    year = YEAR
+    all_rates = read_table("risk_national_rates")
+    central_rows = all_rates[all_rates.method == central.method.iloc[0]]
+    level = central_rows[central_rows.group == "65+"].set_index("km_total").involved_per_bn_km
+    city = numbers["city"]
+    city_all = numbers["city_all"]
+    older = numbers["older"]
+    older_range = numbers["older_range"]
+    city_split = numbers["city_older"]
+    severity = numbers["severity"]
+    comparison = read_table("risk_owner_age_comparison")
+    numerator = read_table("risk_national_numerator").set_index("group")
+    shares = read_table("risk_national_shares")
+    unknown_bounds = read_table("risk_unknown_age_bounds")
+    city_unknown = read_table("risk_barcelona_unknown_age_bounds")
+    employment = read_table("emef_employment_benchmark")
+    prevalence = read_table("risk_licence_prevalence")
+    sex_km = read_table("risk_sex_per_km").set_index("measure")
+    b_licence = read_table("drivers_sex_b_licence").set_index("denominator")
     sex_numbers = _sex_numbers()
     sex_ratios, sex_rates = sex_numbers["ratios"], sex_numbers["rates"]
     sex_years = str(sex_rates.years.iloc[0]).replace("-", "–")
     trend = read_table("drivers_sex_trend")
     trend_years = f"{int(trend.year.min())}–{int(trend.year.max())}"
-    licence_year, licence = _licence_shares()
+    parts = read_table("risk_coverage").set_index("component")
+    proof = read_table("risk_coverage_evidence").set_index("measure").value
+    scenarios = read_table("risk_coverage_scenarios")
+    oldest_numbers = _older_numbers()
+    older_variants = oldest_numbers["older"]
+    unmarked = oldest_numbers["unmarked"]
+    tier = oldest_numbers["tier"]
+    conditional = oldest_numbers["conditional"]
+    cond_75, cond_65 = conditional.loc["75+"], conditional.loc["65-74"]
+    clear = oldest_numbers["clear"]
+    lowest_clear = oldest_numbers["lowest_clear"]
+    checks = read_table("risk_older_reference_checks")
+    decomposition = read_table("risk_older_decomposition")
+    madrid_year = edm2018.SURVEY_YEAR
 
-    def ratio(measure: str, band: str, frame: pd.DataFrame = ratios) -> pd.Series:
-        return frame.loc[(measure, band)]
-
-    def ci(row: pd.Series) -> str:
-        return f"{float(row.low):.2f}–{float(row.high):.2f}"
-
-    def rate(band: str) -> float:
-        return float(rates.loc[band, "deaths_per_1000_involved"])
-
-    def end(measure: str, band: str, which: str) -> float:
-        return float(owner.loc[band, f"{measure}_range_{which}"])
-
-    def published(measure: str, band: str) -> float:
-        return float(owner.loc[band, f"{measure}_ratio"])
-
-    def scenario(measure: str, band: str) -> float:
-        return float(owner.loc[band, f"{measure}_ratio_transfer"])
-
-    bands = list(rates.index)
-    others = [b for b in bands if b != REFERENCE]
-    fatality = {b: ratio("deaths_per_1000_involved", b) for b in others}
-    base, oldest = owner.loc[REFERENCE], owner.loc[OLDEST]
-    moved = -float(base.transfer_bn_km)
-    pooled_km = float(owner.loc[YOUNG[0], "billion_km_transfer"]) / float(
-        owner.loc[YOUNG[0], "b_permit_holders"]
+    young, older_all = central.loc["18-29"], central.loc["65+"]
+    by_older = older.set_index(["assumption", "group"])
+    old_65 = older[older.group == "65-74"].ratio_to_45_64
+    city_older = city[city.age4 == "65+"].set_index("denominator").ratio_to_45_64
+    city_young = city[city.age4 == "18-29"].ratio_to_45_64
+    on_duty = city_all[
+        (city_all.numerator == city_design.NUMERATORS[1]) & (city_all.age4 == "65+")
+    ].set_index("denominator")
+    city_75 = city_split[city_split.age == "75+"].ratio_to_45_64
+    owner = comparison[comparison.denominator.str.endswith("(former figure)")].set_index("group")
+    owner_same = comparison[comparison.denominator.str.endswith("same age groups")].set_index(
+        "group"
     )
-    peers_involved = ratio("involved_per_bn_km", OLDEST, older)
-    peers_fatality = ratio("deaths_per_1000_involved", OLDEST, older)
-    working = company.loc[("to_working_age", OLDEST)]
-    spread = company.loc["to_all_bands"].ratio_to_reference
-    left_out = company.loc["excluded"].ratio_to_reference
+    killed = {g: float(severity.loc[g, "killed_per_1000_involved"]) for g in severity.index}
+    a_share = shares[shares.method.str.startswith("A:")].set_index("group")
+    unknown_share = float(numerator.unknown_share.iloc[0])
+    madrid = by_older.loc[national.REFERENCE_SPLIT]
+    variants = numbers["sensitivity"]
+    sensitivity = variants.set_index(["source", "variant", "group"]).involved_ratio
+    composition_older = float(
+        sensitivity.loc[("older sample", national.COMPOSITION_VARIANT, "65+")]
+    )
+    employed_survey = employment[employment.source.str.startswith("EMEF")].set_index("year")
+    employed_census = float(
+        employment[employment.source.str.startswith("census")].employed_share.iloc[0]
+    )
+    early_years = [y for y in employed_survey.index if y < min(exposure.CONTEMPORARY_YEARS)]
+    late_years = list(exposure.CONTEMPORARY_YEARS)
+    employed_reweighted = float(
+        sensitivity.loc[("older sample", national.EMPLOYMENT_VARIANT, "65+")]
+    )
+    professional = by_source.loc[("professionals' work driving", "65+")]
+    weekend = by_source.loc[("non-working days", "65+")]
+    regional_young = by_source.loc[("regional profile", "18-29")]
+    regional_old = by_source.loc[("regional profile", "65+")]
+    distance_old = by_source.loc[("distance", "65+")]
+    unknown_young = float(
+        unknown_bounds[
+            (unknown_bounds.unknown_age_assigned_to == "18-29") & (unknown_bounds.group == "18-29")
+        ].involved_ratio.iloc[0]
+    )
+    city_unknown_old = (
+        city_unknown[city_unknown.age4 == "65+"].set_index("unknown_age_assigned_to").ratio_to_45_64
+    )
+    city_unknown_share = float(
+        city.drivers_age_not_recorded.iloc[0]
+        / (
+            city.drivers_age_not_recorded.iloc[0]
+            + city[city.denominator == city.denominator.iloc[0]].drivers_involved.sum()
+        )
+    )
+
+    killed_range = variants.groupby("group").killed_ratio.agg(["min", "max"]).loc["65+"]
+    km_total = read_table("risk_national_km_total").set_index("variant").km
+    working, non_working = national.working_days(year)
+    survey_cover = float(parts.loc["working days", "share_least_explained"])
+    _check(
+        abs(
+            float(a_share.workday_km_per_day_millions.sum()) * 1e6 * working
+            - float(parts.loc["working days", "bn_km_least_explained"]) * 1e9
+        )
+        < 1e6
+        and abs(float(parts.dgt_total_bn_km.iloc[0]) * 1e9 - float(km_total[CENTRAL_KM])) < 1e6
+        and 0.45 < survey_cover < 0.55,
+        "the survey's working days, carried to Spain, cover about half of DGT's car kilometres",
+    )
+
+    def part(component: str) -> tuple[float, float]:
+        row = parts.loc[component]
+        return tuple(sorted((float(row.share_least_explained), float(row.share_most_explained))))
+
+    def share_span(component: str) -> str:
+        return _between(*part(component), lambda v: _fmt_pct(v, 0))
+
+    regional = proof[proof.index.str.startswith("car or motorcycle trips per resident, week (")]
+    dgt_regional = proof[proof.index.str.startswith("car km per resident aged 15 and over, Spain")]
+    seasonal = proof[proof.index.str.contains("mean day of")]
+    weekend_trips = float(
+        proof[proof.index.str.startswith("car or motorcycle trips on an average weekend day")].iloc[
+            0
+        ]
+    )
+    weekend_minutes = float(proof[proof.index.str.startswith("mean trip duration")].iloc[0])
+    remainder = part("remainder (not explained)")
+    _check(
+        part("non-working days")[0] > part("regional level")[0]
+        and part("non-working days")[1] > part("professionals' work driving")[1]
+        and remainder[0] < 0 < 0.2 < remainder[1]
+        and float(regional.iloc[0]) < float(dgt_regional.min())
+        and float(seasonal.min()) < 1 < float(seasonal.max())
+        and abs(float(seasonal.max()) - 1) < 0.05
+        and abs(float(seasonal.min()) - 1) < 0.05
+        and weekend_trips < 1 < weekend_minutes,
+        "weekends are the largest measured part; the measured parts can explain all of the gap "
+        "or leave over a fifth; MOVILIA's regional level is below DGT's; the months outside the "
+        "fieldwork change the total by a few per cent either way; weekend days have fewer car "
+        "trips and longer trips",
+    )
+    credible = scenarios[scenarios.credible]
+    alone = credible[credible.profile == national.CENTRAL_METHOD]
+    others = variants[
+        ~variants.source.isin([national.COVERAGE_SOURCE, national.COVERAGE_PROFILE_SOURCE])
+    ]
+    other_ranges = others.groupby("group").involved_ratio.agg(["min", "max"])
+    # The bounds with every profile, the basis on which the page quotes all three.
+    every_bound = {mix: scenarios[scenarios.remainder_mix == mix] for mix in coverage_design.BOUNDS}
+    licence_bound = every_bound[coverage_design.LICENCE_MIX]
+    under_65_bound = every_bound[coverage_design.UNDER_65_MIX]
+    owner_bound = every_bound[coverage_design.OWNER_MIX]
+    measured_mixes = [
+        mix
+        for mix in coverage_design.REMAINDER_MIXES
+        if mix not in coverage_design.BOUNDS and mix != coverage_design.WORKING_DAY_MIX
+    ]
+    _check(
+        not bool(owner_bound.credible.any())
+        and set(scenarios[~scenarios.credible].remainder_mix) == set(coverage_design.BOUNDS)
+        and len(measured_mixes) == len(coverage_design.BOUNDS) == 3,
+        "the owner-age mix is a bound, left out of the range like the two constructed ones: "
+        "three measured mixes besides the working day's and three bounds, as Table 2 says",
+    )
+    for group, column in (("18-29", "ratio_18_29"), ("65+", "ratio_65_plus")):
+        _check(
+            float(other_ranges.loc[group, "min"]) <= float(alone[column].min())
+            and float(alone[column].max()) <= float(other_ranges.loc[group, "max"])
+            and float(ranges.loc[group, "min"]) < float(other_ranges.loc[group, "min"])
+            and np.isclose(float(credible[column].min()), float(ranges.loc[group, "min"]))
+            and float(credible[column].max()) <= float(ranges.loc[group, "max"]) + 1e-9,
+            f"for {group}, the uncovered kilometres alone stay inside the other tests' range, and "
+            "with another region's profile they widen it and stay inside the sensitivity range",
+        )
+    _check(
+        float(ranges.loc["65+", "min"]) <= float(licence_bound.ratio_65_plus.min())
+        and float(licence_bound.ratio_65_plus.max()) <= float(ranges.loc["65+", "max"])
+        and float(under_65_bound.ratio_65_plus.max()) > float(ranges.loc["65+", "max"]),
+        "the licence-holder bound lies inside the 65+ range and the under-65 bound above it",
+    )
+    # Ages 75 and over: the marking rule, the ends of the range and what sets them.
+    weekend_mixes = (national.EMEF_WEEKEND_PROXY, national.MOVILIA_WEEKEND)
+    marked = older_variants[older_variants.at_odds_with_mens_driving]
+    lowest_75 = older_variants.loc[older_variants.ratio_75_plus.idxmin()]
+    highest_75 = older_variants.loc[older_variants.ratio_75_plus.idxmax()]
+    lowest_clear_row = unmarked.loc[unmarked.ratio_75_plus.idxmin()]
+    _check(
+        set(marked.assumption) == {national.EQUAL_SPLIT}
+        and len(marked) == int((older_variants.assumption == national.EQUAL_SPLIT).sum())
+        and len(older_variants)
+        == len(national.SPLITS) * len(older_variants.drop_duplicates(["source", "variant"])),
+        "exactly the equal-split rows are marked, as a property of the split, and no row is "
+        "dropped",
+    )
+    _check(
+        bool(lowest_75.at_odds_with_mens_driving)
+        and "Barcelona city" in str(lowest_75.profile)
+        and str(lowest_clear_row.assumption) == national.RACC_SPLIT
+        and "Barcelona city" in str(lowest_clear_row.profile)
+        and str(lowest_clear_row.non_working_mix) in weekend_mixes
+        and str(lowest_clear_row.remainder_mix) in weekend_mixes
+        and clear["75+"][0] > older_range["75+"][0]
+        and np.isclose(clear["75+"][1], older_range["75+"][1])
+        and not bool(highest_75.at_odds_with_mens_driving)
+        and clear["65-74"][1] < older_range["65-74"][1],
+        "the lowest combination is marked; the lowest unmarked one combines Barcelona city's "
+        "profile, weekend mixes for the km outside the working days and the RACC limit; marked "
+        "rows alone reach the bottom of the 75+ range and the top of the 65-74 range",
+    )
+    _check(
+        older_range["75+"][0] <= 1 < older_range["75+"][1]
+        and float(cond_75.ratio_low) > 1
+        and float(cond_75.ratio_low) <= float(cond_75.ratio_to_45_64) <= float(cond_75.ratio_high)
+        and older_range["75+"][0] <= float(cond_75.ratio_to_45_64) <= older_range["75+"][1]
+        and str(lowest_clear.assumption) == national.RACC_SPLIT
+        and (
+            (tier == INTERMEDIATE and float(lowest_clear.ratio_low) <= 1 < clear["75+"][0])
+            or (tier == PASS and float(lowest_clear.ratio_low) > 1)
+            or (tier == FAIL and clear["75+"][0] <= 1)
+        ),
+        "the 75+ sensitivity range reaches the 45-64 rate; the conditional estimate's interval "
+        "lies above it; the wording chosen matches the lowest unmarked combination and its "
+        "sampling interval",
+    )
+    bands = read_table("emef_km_by_band")
+    # Trips of 100 km or more and trips with no band, together: one minus the shorter bands, so
+    # that a band suppressed under the survey's publication rule (fewer than 20 sample trips, as
+    # at 16-29) is never read; the combined cell itself must rest on 20 sample trips or more.
+    long_bands = bands.band.isin(["100 km or more", "no band"])
+    shorter = bands[~long_bands]
+    _check(
+        bool(shorter[["share_of_trips", "share_of_km"]].notna().all().all()),
+        "every band under 100 km is published in every age group",
+    )
+    long_trips = 1 - shorter.groupby("age4")[["share_of_trips", "share_of_km"]].sum()
+    long_sample = bands[long_bands].groupby("age4").sample_trips.sum()
+    _check(
+        bool((long_sample >= publication.MIN_SAMPLE_OBSERVATIONS).all()),
+        "the long and unbanded trips of every age group rest on enough sample trips to publish",
+    )
+    _check(
+        long_trips.share_of_km.idxmax() == "65+"
+        and float(long_trips.loc["65+", "share_of_km"])
+        > 2 * float(long_trips.loc[REFERENCE, "share_of_km"]),
+        "the 65+ kilometres depend most on long and unbanded trips",
+    )
+    unknown_old = unknown_bounds[unknown_bounds.group == "65+"].involved_ratio
+    _check(
+        float(unknown_old.min()) < float(older_all.involved_ratio) < float(unknown_old.max()),
+        "the 65+ ratio under the unknown-age bounds brackets the central figure",
+    )
+    # Involvement per km: young drivers above the middle-aged on every assumption, and the
+    # highest of the four groups centrally; drivers aged 65 and over above them on the central
+    # estimate, with a sensitivity range on both sides of 1, so no direction is claimed.
+    _check(
+        float(young.involved_ratio_low) > 2
+        and float(ranges.loc["18-29", "min"]) > 1.2
+        and central.involved_ratio.idxmax() == "18-29",
+        "drivers aged 18-29 are involved more often per km than 45-64 on every assumption, and "
+        "most often of the four groups centrally",
+    )
+    _check(
+        1 < float(older_all.involved_ratio) < 1.35
+        and float(older_all.involved_ratio_low) > 0.95
+        and float(ranges.loc["65+", "min"]) < 1 < float(ranges.loc["65+", "max"]),
+        "drivers aged 65 and over above 45-64 on the central estimate, but on either side of it "
+        "under the alternatives, so the direction is not established",
+    )
+    # The kilometre total sets the level of the rates, never their ratios.
+    _check(
+        bool(
+            central_rows.groupby("group")
+            .involved_ratio.agg(lambda r: r.max() - r.min())
+            .lt(1e-9)
+            .all()
+        ),
+        "the other DGT kilometre totals change the rates but not the ratios",
+    )
+    # The sources of the sensitivity range, as the text describes them.
+    profiles = variants[(variants.source == "regional profile") & (variants.group == "65+")]
+    profiles = profiles.set_index("variant").involved_ratio
+    distances = variants[(variants.source == "distance") & (variants.group == "65+")]
+    distances = distances.set_index("variant").involved_ratio
+    youngest = prevalence[prevalence.group == prevalence.group.min()]
+    spain = youngest[youngest.place == "Spain"].set_index("sex").prevalence
+    province = youngest[youngest.place != "Spain"].set_index("sex").prevalence
+    _check(
+        bool((province < spain.reindex(province.index)).all())
+        and float(licence.loc["18-29", "involved_ratio"]) < float(young.involved_ratio),
+        "young people in the province of Barcelona hold car licences less often than in Spain, "
+        "so the licence-calibrated transfer lowers the young drivers' ratio",
+    )
+    _check(
+        "Barcelona city" in profiles.idxmin() and "Madrid" in profiles.idxmax(),
+        "for 65 and over the regional profiles run from Barcelona city's to the Madrid survey's",
+    )
+    _check(
+        "unbanded trips left out" in distances.idxmax(),
+        "for 65 and over, leaving out the trips with no distance band raises the ratio most",
+    )
+    _check(
+        float(weekend["max"]) < float(older_all.involved_ratio),
+        "a different age mix on weekends lowers the 65-and-over ratio",
+    )
+    _check(
+        all(
+            float(employed_survey.loc[y, "employed_share"]) < 1.2 * employed_census
+            for y in early_years
+        )
+        and all(
+            float(employed_survey.loc[y, "employed_share"]) > 1.3 * employed_census
+            for y in late_years
+        ),
+        "the survey's employed share at 65+ matched the census in the earlier editions and "
+        "exceeds it in the recent ones",
+    )
+    _check(
+        employed_reweighted > float(older_all.involved_ratio)
+        and float(professional["min"]) > float(older_all.involved_ratio)
+        and float(older_all.involved_ratio) < composition_older <= float(ranges.loc["65+", "max"]),
+        "the corrections for the survey's older respondents, and the bound on too few aged 75 "
+        "and over in its sample, raise the 65-and-over ratio inside its range",
+    )
+    _check(
+        float(weekend["max"]) < float(older_all.involved_ratio)
+        and float(regional_old["min"]) < float(older_all.involved_ratio),
+        "the weekend age mix and Barcelona city's profile lower the 65-and-over ratio",
+    )
+    _check(
+        float(owner_same.loc["18-29", "ratio_to_reference"]) > float(young.involved_ratio) + 1
+        and float(owner_same.loc["65+", "ratio_to_reference"]) < float(older_all.involved_ratio),
+        "on the same age groups the owner kilometres put the young higher and 65+ lower",
+    )
+    # Deaths once involved: highest at 75 and over, and above 45-64 at both older ages.
+    _check(
+        float(severity.loc["75+", "killed_per_1000_involved_low"])
+        > float(severity.loc[REFERENCE, "killed_per_1000_involved_high"])
+        and float(severity.loc["65-74", "killed_per_1000_involved_low"])
+        > float(severity.loc[REFERENCE, "killed_per_1000_involved_high"])
+        and severity.killed_per_1000_involved.idxmax() == "75+",
+        "drivers aged 65-74 and 75 and over die more often once involved than drivers aged "
+        "45-64, and 75 and over most often",
+    )
+    killed_ratio_old = float(older_all.killed_ratio)
+    _check(
+        killed_ratio_old > 2 * float(older_all.involved_ratio)
+        and float(killed_range["min"]) > float(ranges.loc["65+", "max"]),
+        "older drivers' higher deaths per km come mainly from severity once involved, under "
+        "every alternative",
+    )
+    # The clearest difference at older ages is the outcome once involved: the deaths-once-involved
+    # ratio exceeds every involvement-per-km ratio at 65-74 and at 75 and over.
+    _check(
+        killed["75+"] / killed[REFERENCE] > older_range["75+"][1]
+        and killed["65-74"] / killed[REFERENCE] > older_range["65-74"][1],
+        "deaths once involved separate the older groups from 45-64 more than involvement per km",
+    )
+    # Barcelona's working-day check.
+    city_rows = city[city.age4 == "65+"]
+    _check(
+        bool((city_rows.ratio_low < 1).all())
+        and bool((city_rows.ratio_high > 1).all())
+        and all(
+            side_of_one_shown(row.ratio_low, row.mc_se_low, row.mc_se_low, row.mc_se_high)
+            and side_of_one_shown(row.ratio_high, row.mc_se_high, row.mc_se_low, row.mc_se_high)
+            for row in city_rows.itertuples()
+        )
+        and bool((city_young > 1.8).all()),
+        "in Barcelona on working days, 65+ at about the 45-64 rate (every interval includes 1) "
+        "and the young at about twice it or more",
+    )
+    _check(
+        bool((on_duty.ratio_to_45_64 > city_older.reindex(on_duty.index)).all()),
+        "leaving out the drivers recorded as on duty raises the older drivers' ratio in Barcelona",
+    )
+    # Ages 75 and over without kilometres: involvement per licence holder, below the 45-64 rate
+    # even allowing for chance in the counts, and below every per-km ratio, so that every
+    # assumption gives licence holders aged 75 and over fewer km than those aged 45-64.
+    check = checks.set_index(["check", "subject"])
+    per_holder = {
+        group: float(
+            check.loc[
+                (national.CHECK_PER_HOLDER, group),
+                "value",
+            ]
+        )
+        for group in ("75+", "65-74", REFERENCE)
+    }
+    holder_ratio = check.loc[
+        (
+            national.CHECK_HOLDER_RATIO,
+            "count-only 95% interval",
+        )
+    ]
+    _check(
+        float(holder_ratio.value) < 1
+        and float(holder_ratio.high) < 1
+        and older_range["75+"][0] > float(holder_ratio.value)
+        and np.isclose(per_holder["75+"] / per_holder[REFERENCE], float(holder_ratio.value)),
+        "drivers aged 75 and over are involved less often per licence holder than drivers aged "
+        "45-64, and every per-km ratio is above that ratio",
+    )
+    # What supports the Madrid pattern, and what does not.
+    prevalence_ratio = check.xs(national.CHECK_PREVALENCE, level="check").value
+    places = ("province of Madrid", "province of Barcelona", "Spain")
+    licence_fall = {
+        sex: [float(prevalence_ratio[f"{place}, {sex}"]) for place in places]
+        for sex in national.SEXES
+    }
+    transfer = check.xs(national.CHECK_TRANSFER, level="check").value
+    within_survey = check.xs(national.CHECK_WITHIN_SURVEY, level="check").value
+    like_for_like = check.xs(national.CHECK_MADRID_PER_HOLDER, level="check")
+    men_madrid = like_for_like.loc["male"]
+    women_madrid = like_for_like.loc["female"]
+    men_madrid_ci = mc_interval(
+        men_madrid.low, men_madrid.high, men_madrid.mc_se_low, men_madrid.mc_se_high
+    )
+    _check(
+        side_of_one_shown(
+            men_madrid.high, men_madrid.mc_se_high, men_madrid.mc_se_low, men_madrid.mc_se_high
+        )
+        and float(men_madrid.high) < 1
+        and abs(
+            float(within_survey[national.CENTRAL_METHOD]) - float(transfer[national.CENTRAL_METHOD])
+        )
+        < 0.05,
+        "Madrid's men drive less per licence holder at 75+ even at the top of the printed "
+        "interval; the Barcelona-area survey's own 65+/45-64 ratio is close to its value after "
+        "transfer",
+    )
+    trend_key = national.CHECK_LICENCE_TREND
+    licence_trend = check.xs(trend_key, level="check").value
+    licence_gradient = check.xs(national.CHECK_LICENCE_GRADIENT_TREND, level="check").value
+    cohort_update = check.loc[(national.CHECK_COHORT_UPDATE, "both sexes"), "value"]
+    composition_75 = older_variants[
+        (older_variants.variant == national.COMPOSITION_VARIANT)
+        & (older_variants.assumption == national.REFERENCE_SPLIT)
+    ].ratio_75_plus.iloc[0]
+    racc_limit = float(
+        older_variants[
+            older_variants.assumption == national.RACC_SPLIT
+        ].men_km_per_holder_75_vs_65_74.iloc[0]
+    )
+    _check(
+        all(max(v) - min(v) < 0.05 for v in licence_fall.values())
+        and float(transfer[national.MADRID_METHOD]) < float(transfer[national.CENTRAL_METHOD])
+        and float(men_madrid.high) < 1 < float(women_madrid.high)
+        and float(women_madrid.low) < 1
+        and bool((licence_trend > 1).all())
+        and bool((licence_gradient > 1).all())
+        and float(cohort_update) < float(cond_75.ratio_to_45_64)
+        and float(cond_75.women_km_per_holder_75_vs_65_74) > 1
+        and float(composition_75) > float(cond_75.ratio_to_45_64)
+        and older_range["75+"][0] <= float(composition_75) <= older_range["75+"][1]
+        and float(cond_75.men_km_per_holder_75_vs_65_74) < racc_limit < 1,
+        "licence holding falls alike from 65-74 to 75+ in the three places while Madrid's older "
+        "residents drive less than the transfer implies; Madrid's men drive less per licence "
+        "holder at 75+ and its women's interval includes 1; licence holding at 75+ has risen "
+        "since the Madrid survey, more than at 65-74, which on its own would lower the figure; "
+        "the Madrid split has women aged 75+ driving further per licence holder than at 65-74; "
+        "the composition bound raises the figure inside the range; the "
+        "Madrid split's men's ratio is below the RACC limit, which is below 1",
+    )
+    # Barcelona's working-day check of the splits, with the counts behind it.
+    city_split_75 = city_split[city_split.age == "75+"]
+    city_madrid = city_split_75[city_split_75.assumption == national.REFERENCE_SPLIT]
+    _check(
+        float(city_75.min()) < 1 < float(city_75.max())
+        and float(city_madrid.ratio_low.min()) < 1
+        and set(city_split.assumption) == set(national.SPLITS)
+        and int(city_split_75.drivers_involved.iloc[0]) < 200,
+        "in Barcelona the four splits put 75 and over on both sides of the 45-64 rate, and the "
+        "Madrid split's intervals reach below it, with few drivers aged 75 and over",
+    )
+    # The top of the range against the owner kilometres (a tension, not a test).
+    _check(
+        float(highest_75.driver_over_owner_km_75_plus)
+        < float(highest_75.driver_over_owner_km_45_64),
+        "at the top of the range drivers aged 75 and over drive a smaller share of their owner "
+        "km than drivers aged 45-64",
+    )
+    _check(
+        float(old_65.min()) > 0.8 and float(old_65.max()) < 1.2,
+        "65-74 at about the 45-64 rate under the four splits",
+    )
+
     men_involved = sex_ratios.loc[("car", "18+", "involved_per_1000_licences")]
     men_fatality = sex_ratios.loc[("car", "18+", "deaths_per_1000_involved")]
     men_killed = sex_ratios.loc[("car", "18+", "deaths_per_million_licences")]
     motor_killed = sex_ratios.loc[("motor", "18+", "deaths_per_million_licences")]
     motor_fatality = sex_ratios.loc[("motor", "18+", "deaths_per_1000_involved")]
-    by_band_fatality = sex_ratios.xs(
-        ("car", "deaths_per_1000_involved"), level=["scope", "measure"]
-    )
-    by_band_fatality = by_band_fatality.drop(index="18+")
-    residents_75 = contrast.loc[("residents", OLDEST)]
-    permit_75 = contrast.loc[("b_permit_holders", OLDEST)]
-    involved_75 = contrast.loc[("drivers_involved", OLDEST)]
-    km_75 = contrast.loc[("kilometres", OLDEST)]
-    reference_census = ("35-44", "45-54")
-
-    def chain_holds(band: str, which: str) -> bool:
-        return math.isclose(
-            end("involved_per_bn_km", band, which) * float(fatality[band].ratio),
-            end("deaths_per_bn_km", band, which),
-            rel_tol=1e-6,
-        )
-
-    # Deaths once involved: the oldest band far above the reference, a rise with every band
-    # after it, and no difference at either young band.
-    after = [rate(b) for b in bands[bands.index(REFERENCE) :]]
-    _check(float(fatality[OLDEST].low) > 1, "drivers aged 75 and over die more once involved")
-    _check(after == sorted(after), "deaths once involved rise with every band after 35-54")
-    _check(
-        all(float(fatality[b].low) <= 1 <= float(fatality[b].high) for b in YOUNG),
-        "neither young band differs from 35-54 once involved",
-    )
-    # The owner's age stands poorly for the driver's at the young end and at 75 and over.
-    _check(
-        all(
-            float(owner.loc[b, "cars_per_b_permit"]) < float(base.cars_per_b_permit)
-            and float(owner.loc[b, "km_per_b_permit"]) < float(base.km_per_b_permit)
-            for b in YOUNG
-        )
-        and float(owner.loc[YOUNG[0], "km_per_b_permit"])
-        < float(owner.loc[YOUNG[1], "km_per_b_permit"]),
-        "young licence holders have fewer cars and kilometres registered to them, the youngest "
-        "fewest",
-    )
-    _check(
-        float(oldest.cars_per_b_permit) > 1
-        and all(float(owner.loc[b, "cars_per_b_permit"]) < 1 for b in bands if b != OLDEST),
-        "75 and over is the only band with more cars than licence holders",
-    )
-    # The scenario adds kilometres to the young bands only, and lowers every ratio.
-    _check(
-        all(float(owner.loc[b, "transfer_bn_km"]) > 0 for b in YOUNG)
-        and all(float(owner.loc[b, "transfer_bn_km"]) == 0 for b in (*MIDDLE, OLDEST))
-        and all(
-            scenario(m, b) < published(m, b)
-            for m in ("involved_per_bn_km", "deaths_per_bn_km")
-            for b in others
-        ),
-        "the scenario moves kilometres to the young bands only and lowers every ratio",
-    )
-    _check(
-        all(chain_holds(b, which) for b in others for which in ("low", "high")),
-        "involvement per km times deaths once involved equals deaths per km",
-    )
-    # Frequency: the young above the reference at both ends, 55-74 below at both ends, the
-    # oldest about level; deaths per km above the reference for the young and the oldest.
-    _check(
-        all(end("involved_per_bn_km", b, "low") > 1 for b in YOUNG)
-        and end("involved_per_bn_km", YOUNG[0], "low")
-        > end("involved_per_bn_km", YOUNG[1], "high"),
-        "both young bands are involved more often per km, 18-24 most",
-    )
-    _check(
-        all(end("involved_per_bn_km", b, "high") < 1 for b in MIDDLE),
-        "55-64 and 65-74 are involved less often per km at both ends",
-    )
-    _check(
-        0.85 < end("involved_per_bn_km", OLDEST, "low")
-        and end("involved_per_bn_km", OLDEST, "high") < 1.15,
-        "drivers aged 75 and over are involved about as often per km as 35-54",
-    )
-    _check(
-        all(end("deaths_per_bn_km", b, "low") > 1 for b in (*YOUNG, OLDEST))
-        and all(
-            abs(math.log(end("involved_per_bn_km", OLDEST, which)))
-            < 0.5 * math.log(end("deaths_per_bn_km", OLDEST, which))
-            for which in ("low", "high")
-        ),
-        "the young and the oldest die more per km; the oldest mainly through severity",
-    )
-    _check(
-        float(peers_involved.low) > 1 and float(peers_fatality.low) > 1,
-        "against 65-74, drivers aged 75 and over are higher on both factors",
-    )
-    _check(
-        all(math.isclose(float(spread[b]), float(left_out[b]), rel_tol=1e-6) for b in spread.index)
-        and float(working.ratio_to_reference) > published("deaths_per_bn_km", OLDEST),
-        "company kilometres spread in proportion change no ratio; over 18-64 they raise 75+",
-    )
-    # The four denominators for the oldest band, each step larger than the one before.
-    _check(
-        math.isclose(float(km_75.ratio), published("deaths_per_bn_km", OLDEST), rel_tol=1e-6)
-        and float(residents_75.ratio) < float(permit_75.ratio) < float(km_75.ratio)
-        and all(
-            float(licence.loc[(OLDEST, "total"), "licence_share"])
-            < float(licence.loc[(b, "total"), "licence_share"])
-            for b in reference_census
-        ),
-        "per resident, per B-permit holder and per km rise in turn for 75 and over",
-    )
-    # Men against women: higher on every measure, more so once involved, in every age band.
+    car_bands = sex_ratios.xs("car", level="scope").drop(index="18+", level="band")
+    per_km_involved = sex_km.loc["involved per km"]
+    per_km_killed = sex_km.loc["killed per km"]
     _check(
         min(float(men_involved.low), float(men_fatality.low), float(men_killed.low)) > 1
         and float(men_fatality.ratio) > float(men_involved.ratio)
         and float(motor_killed.ratio) > float(men_killed.ratio)
         and float(motor_fatality.ratio) > float(men_fatality.ratio)
-        and bool((by_band_fatality.low > 1).all()),
-        "men are higher than women on every measure, most of all once involved, in every band",
-    )
-
-    young_high = {b: end("involved_per_bn_km", b, "high") for b in YOUNG}
-
-    # How far each band would have to drive to match the 35–54 (or 65–74) rate per kilometre.
-    breakeven = read_table("q7_breakeven_km").set_index(["reference_band", "kilometres", "band"])
-
-    def needed(band: str, reference: str = REFERENCE, kilometres: str = "published") -> pd.Series:
-        return breakeven.loc[(reference, kilometres, band)]
-
-    youngest_need, young_need = needed(YOUNG[0]), needed(YOUNG[1])
-    youngest_scenario = needed(YOUNG[0], kilometres="scenario")
-    oldest_need, oldest_peer_need = needed(OLDEST), needed(OLDEST, reference="65-74")
-    highest_km = float(youngest_need.highest_credited_km)
-    highest_band = str(youngest_need.highest_credited_band)
-    middle_need = {b: needed(b) for b in MIDDLE}
-    km_per_car = owner.billion_km * 1e9 / owner.cars
-    _check(
-        float(youngest_need.needed_low) > 1.5 * highest_km
-        and float(youngest_scenario.needed_low) > highest_km,
-        "18-24 drivers would need far more km per holder than any owner band is credited with",
+        and bool((car_bands.low > 1).all()),
+        "men are higher than women per licence holder and once involved, on every measure in "
+        "every band",
     )
     _check(
-        float(young_need.needed_low) > highest_km,
-        "25-34 drivers would need more km per holder than any owner band is credited with",
+        float(per_km_involved.range_low) < 1 < float(per_km_involved.range_high)
+        and float(per_km_involved.ratio_high) < float(men_involved.low)
+        and float(per_km_involved.ratio_men_to_women) < 1
+        and float(per_km_killed.range_low) > 1.5,
+        "per km, neither sex is shown to be involved more often (the profiles span 1), while men "
+        "are killed far more often; under the central profile men's higher involvement per "
+        "licence holder comes from driving further",
     )
     _check(
-        all(float(middle_need[b].needed_over_credited_high) < 1 for b in MIDDLE),
-        "55-64 and 65-74 would match 35-54 only by driving less than their cars are credited",
-    )
-    _check(
-        float(oldest_need.needed_over_credited_low)
-        < 1
-        < float(oldest_need.needed_over_credited_high),
-        "against 35-54, the 75+ break-even distance is what their cars are credited with",
-    )
-    _check(
-        float(oldest_peer_need.needed_low) > highest_km
-        and float(km_per_car[OLDEST]) == float(km_per_car.min()),
-        "against 65-74, 75+ would need more km than any band is credited, and their cars are "
-        "driven least",
+        float(b_licence.loc["B-licence holders", "ratio"])
+        > float(b_licence.loc["licence holders of any class", "ratio"]),
+        "counting only car-licence holders makes the men's excess slightly larger",
     )
 
-    def km(value: float) -> str:
-        return f"{float(value):,.0f}"
+    def ci(row: pd.Series) -> str:
+        return f"{float(row.low):.2f}–{float(row.high):.2f}"
 
-    def round_km(value: float) -> str:
-        return f"{round(float(value), -2):,.0f}"
+    def spread(group: str) -> str:
+        return _fmt_span(float(ranges.loc[group, "min"]), float(ranges.loc[group, "max"]))
 
+    older_75 = _fmt_span(*older_range["75+"])
+    full_75 = f"{older_range['75+'][0]:.2f} to {older_range['75+'][1]:.2f}"
+    madrid_pattern = (
+        "if people aged 75 and over drive as much less than those aged 65–74 as in Madrid in "
+        f"{madrid_year}"
+    )
+    # The opening gives the 75+ range and one clause on what it allows; the reasons (the
+    # combinations at odds with men's driving, the sampling interval at the lowest of the others)
+    # are in the section on ages 75 and over.
+    direction = OLDER_CONCLUSION[tier]
     body = summary(
-        "Once they are in an injury crash, car drivers aged 75 and over die far more often than "
-        f"middle-aged drivers: in {year}, {rate(OLDEST):.1f} of every 1,000 involved died within "
-        f"30 days, against {rate(REFERENCE):.1f} per 1,000 at 35–54. That comparison uses only "
-        "crash records. How often each age group is involved in crashes for the distance it "
-        "drives is less certain, because DGT counts kilometres by the age of a car's registered "
-        "owner, not its driver. On those kilometres, drivers aged 18–24 were involved in "
-        f"{young_high[YOUNG[0]]:.2f} times as many injury crashes per kilometre as drivers aged "
-        "35–54; for them to be involved no more often, each would have to drive about twice as "
-        "far as the licence holders of any owner age group are credited with. Drivers aged 75 "
-        "and over were involved about as often per kilometre as drivers aged 35–54, and "
-        f"{float(peers_involved.ratio):.2f} times as often as drivers aged 65–74. Per licence "
-        f"holder, men died at the wheel of a car {float(men_killed.ratio):.2f} times as often as "
-        f"women in {sex_years}."
+        "No national source records how far drivers of each age drive, so involvement in "
+        "crashes per kilometre is an estimate, built from a working-day travel survey of the "
+        "Barcelona area. Carried to Spain's population, that survey's working-day driving "
+        f"accounts for {_fmt_pct(survey_cover, 0)} of DGT's car kilometres, and the central "
+        "estimate gives the rest the same age mix. On that "
+        f"estimate, car drivers aged 18–29 were involved in injury crashes in Spain in {year} "
+        f"{float(young.involved_ratio):.2f} times as often per kilometre driven as drivers aged "
+        f"45–64 (95% {definition_link('Sampling interval')} {_ci(young, 'involved_ratio')}; "
+        f"{definition_link('Sensitivity range')}, the span across the assumptions tested, "
+        f"{spread('18-29')}), and more often under every "
+        "assumption tested. Drivers aged 65 and over were involved "
+        f"{float(older_all.involved_ratio):.2f} times as often (95% sampling interval "
+        f"{_ci(older_all, 'involved_ratio')}; sensitivity range {spread('65+')}), so whether "
+        "they are involved more or less often per kilometre is not established. For drivers "
+        "aged 75 and over, whose kilometres no source for Spain separates from those at 65–74, "
+        f"the sensitivity range is {full_75} times the 45–64 rate{direction}. "
+        f"{madrid_pattern[:1].upper()}{madrid_pattern[1:]}, on the same estimate they were "
+        f"involved about {float(cond_75.ratio_to_45_64):.1f} times as often (95% sampling "
+        f"interval {joint_interval(cond_75, 1)}), a {definition_link('Conditional estimate')} "
+        "that holds only on that assumption. Counted directly, with no kilometres, "
+        f"{killed['75+']:.1f} of every 1,000 car drivers aged 75 and over involved in an injury "
+        f"crash died within 30 days, against {killed[REFERENCE]:.1f} at 45–64. Involvement "
+        "counts every driver in a crash, whoever caused it, and the death rate only the "
+        "driver's own death: no rate here shows who caused a crash or whether older drivers' "
+        "crashes are more dangerous to others."
+    )
+
+    # ------------------------------------------------------------------- per kilometre
+    body += (
+        '<h2 id="involvement-in-crashes-per-kilometre-driven">'
+        "Crashes per kilometre: above the 45–64 rate at 18–29; at 65 and over it depends on "
+        "assumptions</h2>"
+    )
+    body += (
+        "<p>No national source counts kilometres by the age of the driver, so they are estimated, "
+        "and the ratios per kilometre are estimates with ranges, not measurements; the method "
+        f'and its checks are set out in <a href="{EXPOSURE_DOC}">the exposure study</a>. The '
+        "EMEF, the working-day mobility survey of the province of Barcelona, records the car "
+        "trips its respondents drove on one working day, with each trip's duration and, from "
+        f"{emef_variables.DISTANCE_FROM}, its straight-line distance in bands, from which each "
+        f"trip's kilometres are estimated. Its {SURVEY_YEARS} editions give each age group's "
+        "car-driver kilometres per resident, by sex. Applied to the population of Spain and "
+        f"scaled to DGT's {YEAR} car kilometres from inspection odometer readings, less taxis and "
+        "ride-hailing cars (whose drivers are outside both counts), they put "
+        f"{_fmt_pct(float(a_share.loc['18-29', 'share_of_km']))} of car kilometres with drivers "
+        f"aged 18–29, {_fmt_pct(float(a_share.loc['45-64', 'share_of_km']))} with 45–64 and "
+        f"{_fmt_pct(float(a_share.loc['65+', 'share_of_km']))} with 65 and over. Over the "
+        f"{working} working days of {year} (weekdays less public holidays), the survey's "
+        f"driving comes to {_fmt_pct(survey_cover, 0)} of those kilometres. The central "
+        "estimate gives the rest the same age mix; the tests below measure what the rest is made "
+        "of and give it other age mixes. The drivers involved are DGT's count of private-car "
+        f"drivers in injury crashes in {year}.</p>"
+    )
+
+    def to(low: float, high: float) -> str:
+        return f"{low:.2f} to {high:.2f}"
+
+    def alt_row(group: str) -> str:
+        row = central.loc[group]
+        return (
+            f"{LABELS[group]}: {int(row.involved):,} involved; "
+            f"{float(row.involved_ratio):.2f} times the 45–64 rate (95% sampling interval "
+            f"{_ci(row, 'involved_ratio', ' to ')}; sensitivity "
+            f"range {to(float(ranges.loc[group, 'min']), float(ranges.loc[group, 'max']))})"
+        )
+
+    body += figure(
+        "dr1_involved_per_km",
+        f"Dot chart of car drivers involved in injury crashes per kilometre in {year}, as ratios "
+        "to drivers aged 45–64, on a log scale, with the number of drivers involved under each "
+        f"age. {alt_row('18-29')}. {alt_row('30-44')}. 45–64: "
+        f"{int(central.loc[REFERENCE, 'involved']):,} involved. {alt_row('65+')}. Of these, "
+        f"65–74: {int(severity.loc['65-74', 'involved']):,} involved; "
+        f"{float(cond_65.ratio_to_45_64):.2f} times the 45–64 rate per kilometre "
+        f"{madrid_pattern.replace('those aged 65–74', '65–74s')} (95% sampling interval "
+        f"{joint_interval(cond_65, sep=' to ')}); sensitivity range "
+        f"{to(*older_range['65-74'])}, above about {clear['65-74'][1]:.2f} only with equal "
+        "kilometres per licence holder at 65–74 and 75 and over. 75 and over: "
+        f"{int(severity.loc['75+', 'involved']):,} involved; "
+        f"{float(cond_75.ratio_to_45_64):.2f} times on the same assumption (95% sampling "
+        f"interval {joint_interval(cond_75, sep=' to ')}); sensitivity "
+        f"range {to(*older_range['75+'])}, below about {clear['75+'][0]:.1f} only with equal "
+        "kilometres per licence holder.",
+        captions,
+    )
+    body += _rates_table(central, ranges, level, year)
+    body += (
+        "<p>The 95% sampling interval reflects only sampling error in the survey and chance "
+        "variation in the crash counts, and is probably too narrow, because the resampling "
+        "treats respondents as independent although the survey samples them in clusters; the "
+        "sensitivity range adds the other choices (to see them, "
+        f"{_open_link(SOURCES_ANCHOR, SOURCES_TITLE)}). For "
+        "drivers aged 18–29 the largest is which region's age profile stands in for Spain's "
+        f"({_fmt_span(float(regional_young['min']), float(regional_young['max']))}). Carrying "
+        "the survey's driving per licence holder rather than per resident to Spain gives "
+        f"{float(licence.loc['18-29', 'involved_ratio']):.2f}, because young people in the "
+        "province of Barcelona hold car licences less often than in Spain as a whole. For 65 "
+        "and over the treatments of trip distances give "
+        f"{_fmt_span(float(distance_old['min']), float(distance_old['max']))}, leaving out the "
+        "long trips that have no distance band raising it most. This group is the most "
+        "sensitive to them: trips of 100 km or more and trips with no distance band are "
+        f"{_fmt_pct(float(long_trips.loc['65+', 'share_of_trips']))} of its trips but carry "
+        f"{_fmt_pct(float(long_trips.loc['65+', 'share_of_km']), 0)} of its kilometres, against "
+        f"{_fmt_pct(float(long_trips.loc[REFERENCE, 'share_of_km']), 0)} at 45–64. A different "
+        "age mix on weekends "
+        f"lowers it to {_fmt_span(float(weekend['min']), float(weekend['max']))}; and the "
+        "regional profiles give "
+        f"{_fmt_span(float(regional_old['min']), float(regional_old['max']))}, from Barcelona "
+        "city's to the Madrid survey's.</p>"
+    )
+    dgt_low, dgt_high = float(dgt_regional.min()), float(dgt_regional.max())
+    body += (
+        "<p>The other half of DGT's kilometres is not measured by age, but most of it can be "
+        "sized from the sources this site uses (for each part, "
+        f"{_open_link(COVERAGE_ANCHOR, COVERAGE_TITLE)}). Weekends and "
+        f"public holidays, {non_working} days in {year}, add {share_span('non-working days')} "
+        f"of DGT's total if each carries {_fmt_pct(national.NON_WORKING_RATIOS[0], 0)} to "
+        f"{_fmt_pct(national.NON_WORKING_RATIOS[1], 0)} of a working day's driving; "
+        f"{coverage_design.MOVILIA_DAILY} counted {weekend_trips:.2f} times as many car trips, "
+        "drivers and passengers together, on an average weekend day as on a working day, and "
+        f"weekend trips of all modes lasted {weekend_minutes:.2f} times as long. Spain drives "
+        "more per resident than the province of Barcelona: "
+        f"{float(regional.iloc[0]):.2f} times as many car trips per resident in "
+        f"{coverage_design.MOVILIA_DAILY}, and {dgt_low:.2f} to {dgt_high:.2f} times "
+        f"Catalonia's car kilometres per resident in DGT's {year} figures, which adds "
+        f"{share_span('regional level')}. The work trips of people who drive for a living, "
+        "which the survey counts but does not describe, add "
+        f"{share_span(PROFESSIONAL_PART)}. Judged by fuel sales and toll-motorway traffic, the "
+        "months outside the survey's fieldwork change the total by "
+        f"{share_span('months outside the fieldwork')}. At their lowest these parts leave "
+        f"{_fmt_pct(remainder[1], 0)} of DGT's total unexplained; at their highest they exceed "
+        f"it by {_fmt_pct(-remainder[0], 0)}. Cars registered to companies "
+        f"({_fmt_pct(part('cars registered to companies')[0], 0)} of the total) and hire cars "
+        f"({_fmt_pct(part('car hire without driver')[0], 0)}) are driven within these parts, "
+        "not beside them; hire cars also bound the driving that visitors from abroad do in "
+        "Spanish cars.</p>"
+    )
+    body += technical(COVERAGE_TITLE, _coverage_table(parts), COVERAGE_ANCHOR)
+    body += (
+        "<p>The central estimate gives all of these parts the survey's working-day age mix. To "
+        "test that, the non-working days and the unexplained part, taken at its largest "
+        f"({_fmt_pct(remainder[1], 0)} of the total), were given age mixes measured elsewhere "
+        f"by the traveller's own age: car journeys over 50 km per resident in "
+        f"{coverage_design.MOVILIA_LONG}, and the two weekend mixes. With the "
+        f"survey's profile for the rest, these give {_span(alone.ratio_18_29)} at 18–29 and "
+        f"{_span(alone.ratio_65_plus)} at 65 and over, inside the ranges of the other tests. "
+        "Combined with another region's profile, the two largest uncertainties together, they "
+        f"give {_span(credible.ratio_18_29)} and {_span(credible.ratio_65_plus)}, and the "
+        "sensitivity range includes these combinations. Three allocations of the unexplained "
+        "part are reported but left out of the range. Two are constructed, and no source "
+        "supports them: the same kilometres per licence holder at every age, and no driving at "
+        "65 and over. The third is DGT's kilometres by the age of a car's private owner, which "
+        "is not the age of its driver (see the former figure, at the end of this section). "
+        "With each region's profile they would give "
+        f"{_span(licence_bound.ratio_18_29)}, {_span(under_65_bound.ratio_18_29)} and "
+        f"{_span(owner_bound.ratio_18_29)} at 18–29, and "
+        f"{_span(licence_bound.ratio_65_plus)}, {_span(under_65_bound.ratio_65_plus)} and "
+        f"{_span(owner_bound.ratio_65_plus)} at 65 and over.</p>"
+    )
+    body += technical(SOURCES_TITLE, _sources_table(by_source), SOURCES_ANCHOR)
+    body += (
+        "<p>Further choices raise the 65-and-over ratio. The share of the survey's older "
+        f"respondents in work was about {_fmt_pct(float(employed_survey.loc[early_years, 'employed_share'].mean()))} "
+        f"in {min(early_years)}–{max(early_years)}, the same as the census for Catalonia, but "
+        f"{_fmt_pct(float(employed_survey.loc[late_years, 'employed_share'].min()))} to "
+        f"{_fmt_pct(float(employed_survey.loc[late_years, 'employed_share'].max()))} in "
+        f"{SURVEY_YEARS}; setting it back to the census share moves the 65-and-over ratio from "
+        f"{float(older_all.involved_ratio):.2f} to {employed_reweighted:.2f}. And the survey "
+        "does not record the work trips of people who drive for a living, most of them under "
+        "65: counting a quarter or a half of those trips as car trips raises the ratio to "
+        f"{_fmt_span(float(professional['min']), float(professional['max']))}. If the "
+        "survey's 65-and-over sample holds too few people aged 75 and over, who drive less, its "
+        "65-and-over kilometres per resident are too high; at the bound described in the "
+        f"section on ages 75 and over, the ratio rises to {composition_older:.2f}. The weekend "
+        "age mix and Barcelona city's profile point the other way, so the evidence does not say "
+        "in which direction the central figure errs.</p>"
+    )
+    # The former figure, compared like with like: change history, kept short.
+    body += (
+        "<p>Earlier versions of this page divided the same drivers, taxi and ride-hailing "
+        "drivers included, by DGT's kilometres of cars registered to owners of each age, the "
+        "only kilometres by age that DGT publishes. On the age groups used here, those owner "
+        "kilometres put drivers aged 18–29 at "
+        f"{float(owner_same.loc['18-29', 'ratio_to_reference']):.2f} times the 45–64 rate and "
+        f"drivers aged 65 and over at {float(owner_same.loc['65+', 'ratio_to_reference']):.2f}, "
+        f"against {float(young.involved_ratio):.2f} and {float(older_all.involved_ratio):.2f} "
+        "here; the figure the page used to give, "
+        f"{float(owner.loc['18-24', 'ratio_to_reference']):.2f}, compared drivers aged 18–24 "
+        "with 35–54. A car's owner is often not its driver: young people drive cars registered "
+        "to their parents, and older owners' cars are partly driven by others, so the owner "
+        "kilometres credited too little driving to the young and too much to the old.</p>"
     )
 
     # ------------------------------------------------------------------- deaths once involved
-    body += "<h2>Deaths once a crash has happened</h2>"
-    body += key_result(
-        f"{float(fatality[OLDEST].ratio):.2f}×",
-        "Car drivers aged 75 and over who were involved in an injury crash died within 30 days "
-        f"{float(fatality[OLDEST].ratio):.2f} times as often as drivers aged 35–54 "
-        f"({rate(OLDEST):.1f} against {rate(REFERENCE):.1f} per 1,000 drivers involved, {year}; "
-        f"95% interval {ci(fatality[OLDEST])}).",
+    body += (
+        '<h2 id="deaths-once-a-crash-has-happened">'
+        "Deaths once a crash has happened: highest at 75 and over</h2>"
     )
     body += (
         "<p>This rate divides the car drivers killed within 30 days by all car drivers involved "
-        "in injury crashes, injured or not, of the same age in the same year. Both counts come "
-        "from DGT's tables of drivers involved in crashes, so no measure of driving enters it. "
-        f"It rises with every band after 35–54: {rate(MIDDLE[0]):.1f} deaths per 1,000 drivers "
-        f"involved at 55–64, {rate(MIDDLE[1]):.1f} at 65–74 and {rate(OLDEST):.1f} at 75 and "
-        f"over. Drivers aged 18–24 ({rate(YOUNG[0]):.1f}) and 25–34 ({rate(YOUNG[1]):.1f}) "
-        f"cannot be distinguished from those aged 35–54 ({rate(REFERENCE):.1f}): the 95% "
-        f"intervals of their ratios to 35–54, {ci(fatality[YOUNG[0]])} and "
-        f"{ci(fatality[YOUNG[1]])}, both include 1.</p>"
+        "in injury crashes, injured or not, of the same age and year, so no measure of driving "
+        "enters it. It counts only the driver's own death: DGT's tables do not say how often "
+        f"other people in the same crashes died. In {year} it was {killed['18-29']:.1f} per "
+        f"1,000 at 18–29, {killed['30-44']:.1f} at 30–44, {killed[REFERENCE]:.1f} at 45–64, "
+        f"{killed['65-74']:.1f} at 65–74 and {killed['75+']:.1f} at 75 and over, about "
+        f"{killed['75+'] / killed[REFERENCE]:.1f} times the 45–64 rate.</p>"
     )
     body += figure(
-        "a1_killed_per_involved",
-        f"Dot chart of car drivers killed per 1,000 involved in an injury crash in {year}, by age "
-        "band, with 95% intervals. The rate is level from 18 to 54 and rises with each older "
-        "band, to about four times the 35–54 rate at 75 and over.",
+        "dr2_killed_per_involved",
+        f"Dot chart of private-car drivers killed per 1,000 involved in an injury crash in {year}, "
+        f"by age, with 95% intervals. The rate is {killed['18-29']:.1f} at 18–29, "
+        f"{killed['30-44']:.1f} at 30–44, {killed[REFERENCE]:.1f} at 45–64, "
+        f"{killed['65-74']:.1f} at 65–74 and {killed['75+']:.1f} at 75 and over.",
         captions,
     )
     body += (
-        "<p>The rate counts only the driver's own death. The tables do not say how often other "
-        "people in the same crashes died, so the measure cannot show whether older drivers' "
-        "crashes are more dangerous to others.</p>"
+        "<p>Deaths per kilometre combine the two measures, so they carry the estimate of "
+        "kilometres. On the central estimate, drivers aged 65 and over were killed "
+        f"{killed_ratio_old:.2f} times as often per kilometre driven as drivers aged 45–64 (95% "
+        f"sampling interval {_ci(older_all, 'killed_ratio')}; sensitivity range "
+        f"{_fmt_span(float(killed_range['min']), float(killed_range['max']))}), while their "
+        f"involvement per kilometre was {float(older_all.involved_ratio):.2f} times (sensitivity "
+        f"range {spread('65+')}). Under every assumption tested the first ratio is above the "
+        "second, so most of the excess in deaths per kilometre comes from how often a crash "
+        "kills an older driver, not from how often older drivers are in crashes.</p>"
     )
 
-    # ------------------------------------------------------------------- crashes per kilometre
-    young_km = owner.loc[list(YOUNG)]
-    body += "<h2>Crashes relative to kilometres by owner age</h2>"
+    # ------------------------------------------------------------------- Barcelona
+    city_span = _fmt_span(float(city_older.min()), float(city_older.max()))
+    body += (
+        '<h2 id="a-check-in-barcelona-city-on-working-days">'
+        "Barcelona on working days: 65 and over at about the 45–64 rate</h2>"
+    )
+    body += (
+        "<p>Inside Barcelona on working days, involvement per kilometre can be compared without "
+        "carrying the survey to Spain or assuming anything about weekends. The Guàrdia Urbana's "
+        f"{CITY_YEAR} records give the age of {_fmt_pct(1 - city_unknown_share)} of the car "
+        "drivers involved in injury crashes in the city on working days, uninjured drivers "
+        "included; the EMEF gives the kilometres the survey area's residents drove inside the "
+        f"city on a working day in {SURVEY_YEARS}, counted over the "
+        f"{day_calendar.days_in_year(CITY_YEAR)[day_calendar.WORKING_DAY]} working days of "
+        f"{CITY_YEAR} (weekdays less the Catalan and Barcelona public holidays). The part of a "
+        "trip into or out of the city that lies inside it cannot be measured, so the table "
+        "gives three versions of the kilometres, and only the ratios between ages are read.</p>"
+    )
+    body += _barcelona_table(city)
+    body += (
+        "<p>Across the three versions, drivers aged 65 and over were involved at "
+        f"{city_span} times the rate of drivers aged 45–64, each with a 95% interval that "
+        f"includes 1, and drivers aged 18–29 at {_span(city_young)} times it. The crashes "
+        "include drivers whose kilometres the survey does not count: people living outside the "
+        "survey area, traffic passing through the city, and people driving ordinary cars for "
+        "work. They are mostly of working age, so the older drivers' ratio is more likely "
+        "biased down than up; leaving out the drivers recorded as on duty raises it to "
+        f"{_span(on_duty.ratio_to_45_64)}. The ratios assume that the drivers with no recorded "
+        "age follow the recorded mix; if all were aged 65 or over, the ratio for trips inside "
+        f"the city would be {float(city_unknown_old.loc['65+']):.2f}.</p>"
+    )
+
+    # ------------------------------------------------------------------- 75 and over
+    body += (
+        '<h2 id="ages-75-and-over">75 and over: deaths once involved are counted; crashes per '
+        "kilometre depend on how much less they drive</h2>"
+    )
     body += evidence_note(
-        "The rates in this section rest on kilometres counted by the age of a car's registered "
-        "owner, not its driver, so they are less certain than the deaths once involved above."
+        "No source for Spain measures how far drivers aged 75 and over drive apart from those "
+        "aged 65–74. The rates per kilometre below rest on an assumption about how the "
+        "65-and-over kilometres divide between the two ages: one is given as a conditional "
+        "estimate, the others in the sensitivity range. The counts, the rates per licence holder "
+        "and the deaths once involved need no kilometres."
+    )
+    oldest_counts = severity.loc["75+"]
+    body += (
+        f"<p><strong>Counted.</strong> In {year}, "
+        f"{int(oldest_counts.involved):,} car drivers aged 75 and over and "
+        f"{int(severity.loc['65-74', 'involved']):,} aged 65–74 were involved in injury crashes "
+        f"in Spain, and {int(oldest_counts.killed):,} and "
+        f"{int(severity.loc['65-74', 'killed']):,} of them died within 30 days: "
+        f"{killed['75+']:.1f} and {killed['65-74']:.1f} per 1,000 involved, against "
+        f"{killed[REFERENCE]:.1f} at 45–64 (Figure {figure_ref('dr2_killed_per_involved')}). "
+        "These figures say how often a crash kills the driver. They do not say how often "
+        "drivers of these ages are in crashes for the distance they drive, or who caused the "
+        f"crashes. Per 1,000 holders of a car licence, {per_holder['75+']:.2f} drivers aged 75 "
+        f"and over were involved, against {per_holder['65-74']:.2f} at 65–74 and "
+        f"{per_holder[REFERENCE]:.2f} at 45–64. Many licence holders aged 75 and over drive "
+        "little or not at all, so these are not rates per driver. Every estimate per kilometre "
+        f"below is higher than the ratio of these rates, {float(holder_ratio.value):.2f}, "
+        "because under every assumption tested licence holders aged 75 and over drive fewer "
+        "kilometres than those aged 45–64.</p>"
     )
     body += (
-        f"<p>DGT estimates the kilometres driven by cars in {year} from odometer readings taken "
-        "at roadworthiness (ITV) inspections, and publishes them by the age of each car's "
-        "registered owner. No source gives kilometres by the driver's age. The rates per "
-        "kilometre on this page therefore divide the drivers of each age involved in injury "
-        "crashes by the kilometres of cars registered to owners of the same age. On those "
-        "kilometres, drivers aged 18–24 were involved in "
-        f"{float(rates.loc[YOUNG[0], 'involved_per_bn_km']):,.0f} injury crashes per billion km "
-        f"and drivers aged 25–34 in {float(rates.loc[YOUNG[1], 'involved_per_bn_km']):,.0f}, "
-        f"against {float(rates.loc[REFERENCE, 'involved_per_bn_km']):,.0f} at 35–54, "
-        f"{float(rates.loc[MIDDLE[0], 'involved_per_bn_km']):,.0f} at 55–64, "
-        f"{float(rates.loc[MIDDLE[1], 'involved_per_bn_km']):,.0f} at 65–74 and "
-        f"{float(rates.loc[OLDEST, 'involved_per_bn_km']):,.0f} at 75 and over.</p>"
+        "<p><strong>Conditional estimate.</strong> The EMEF's public files group everyone aged "
+        "65 and over, although the survey sampled 65–74 and 75 and over separately until "
+        f"{emef_variables.OLDER_STRATA_LAST}. Madrid's {madrid_year} household travel survey "
+        "records exact ages: there, residents aged 75 and over drove "
+        f"{float(madrid.loc['75+', 'ratio_75_to_65_74_male']):.2f} times the car distance per "
+        "resident of those aged 65–74 if men and "
+        f"{float(madrid.loc['75+', 'ratio_75_to_65_74_female']):.2f} times if women. If people "
+        f"aged 75 and over in Spain in {year} drive as much less as in Madrid, with the other "
+        "assumptions as in the central estimate, drivers aged 75 and over were involved in injury "
+        "crashes "
+        f"{float(cond_75.ratio_to_45_64):.2f} times as often per kilometre as drivers aged 45–64 "
+        f"(95% sampling interval {joint_interval(cond_75)}), and drivers aged 65–74 "
+        f"{float(cond_65.ratio_to_45_64):.2f} times ({joint_interval(cond_65)}). The interval "
+        "allows for sampling error in both surveys and chance in the crash counts, and holds "
+        "the assumption fixed. It may be too narrow or too wide: the Barcelona-area survey's "
+        "resampling treats respondents as independent although the survey samples them in "
+        "clusters, which makes an interval too narrow, and the Madrid survey's ignores the "
+        "stratification of its sample, which makes one too wide. The estimate takes the "
+        "Barcelona-area survey's kilometres at 65 and over as they stand: a mean over the "
+        "province of Barcelona's residents of those ages, a slightly larger share of whom are "
+        "aged 75 and over than in Spain. Standardised to Spain's mix of ages, as the Madrid "
+        "profile in the sensitivity range is, they would make this figure and the 65–74 figure "
+        "slightly lower. Under the other assumptions "
+        f"tested the figure for 75 and over runs from {full_75} (the sensitivity range, "
+        "below).</p>"
+    )
+    places_text = {
+        sex: ", ".join(f"{v:.2f}" for v in values) for sex, values in licence_fall.items()
+    }
+    years_after = YEAR - madrid_year
+    _check(
+        0 < years_after < 10
+        and float(transfer[national.MADRID_METHOD]) < float(transfer[national.CENTRAL_METHOD])
+        and float(within_survey[national.MADRID_METHOD])
+        < float(within_survey[national.CENTRAL_METHOD]),
+        "the licence split counts holders some years after the Madrid survey; Madrid's 65+ "
+        "residents drive less, against 45-64, than the Barcelona-area survey's, within each "
+        "survey and carried to Spain",
+    )
+    body += technical(
+        "Why this assumption, and what could move it",
+        "<ul>"
+        "<li>It uses only kilometres measured by exact age; the second split, Madrid's "
+        "kilometres per licence holder, also needs DGT's counts of licence holders, taken "
+        f"{_words(years_after)} years after the survey.</li>"
+        "<li>Car-licence holding falls about equally from 65–74 to 75 and over in the province "
+        "of Madrid, the province of Barcelona and Spain (holders per resident at 75 and over "
+        f"against 65–74, DGT, {year}: men {places_text['male']}; women "
+        f"{places_text['female']}). That is consistent with the assumption but does not test "
+        "it: the Madrid survey has residents aged 65 and over driving much less, relative to "
+        "those aged 45–64, than the Barcelona-area survey does. Each survey's profile carried "
+        f"to Spain's population gives {float(transfer[national.MADRID_METHOD]):.2f} against "
+        f"{float(transfer[national.CENTRAL_METHOD]):.2f} times as far per resident on working "
+        "days; among each survey's own residents the figures are "
+        f"{float(within_survey[national.MADRID_METHOD]):.2f} and "
+        f"{float(within_survey[national.CENTRAL_METHOD]):.2f}.</li>"
+        "<li>Some evidence points lower: licence holding at 75 and over has risen since "
+        f"{madrid_year}, more than at 65–74, and surveys in other European countries show a "
+        f'gentler fall in driving after 75 (see <a href="{EXPOSURE_DOC}">the exposure '
+        "study</a>).</li>"
+        "<li>Some points higher: the Barcelona-area survey's weighting does not separate 75 and "
+        "over within 65 and over, so its 65-and-over sample may hold too few people aged 75 and "
+        f"over; at the most this would raise the figure to about {float(composition_75):.2f}, a "
+        "case included in the sensitivity range. And applied to Spain's licence holders, the "
+        "Madrid pattern implies that women aged 75 and over with a car licence drive "
+        f"{float(cond_75.women_km_per_holder_75_vs_65_74):.2f} times as far as women aged 65–74 "
+        "with one, while Spanish surveys of women's driving, though too uncertain to rule that "
+        "out, point to less; less driving by these women would raise the figure.</li>"
+        "<li>Which way the figure errs is not known.</li>"
+        "</ul>",
+    )
+    # Which choices the sensitivity table crosses, and which it varies one at a time.
+    crossed = older_variants[
+        older_variants.source.isin([national.COVERAGE_SOURCE, national.COVERAGE_PROFILE_SOURCE])
+    ]
+    one_at_a_time = older_variants.drop(crossed.index)
+    factorial = [crossed[c].nunique() for c in ("profile", "non_working_mix", "remainder_mix")]
+    _check(
+        len(crossed) == int(np.prod(factorial)) * len(national.SPLITS)
+        and factorial[0] == len(national._profile_methods())
+        and set(one_at_a_time.source)
+        == {
+            "regional profile",
+            "licence-calibrated transfer",
+            "distance",
+            "survey years",
+            "professionals' work driving",
+            "older sample",
+            "non-working days",
+        }
+        and bool(
+            older_variants.groupby(["source", "variant"])
+            .assumption.nunique()
+            .eq(len(national.SPLITS))
+            .all()
+        ),
+        "every split is combined with every structure; the profiles are crossed with the age "
+        "mixes of weekends and of the unexplained km; the other choices vary one at a time",
+    )
+    bound_75 = {mix: _span(part.ratio_75_plus) for mix, part in every_bound.items()}
+    body += (
+        "<p><strong>Across the assumptions.</strong> Four splits of the 65-and-over kilometres "
+        "were tested: Madrid's, used for the estimate; Madrid's kilometres per licence holder "
+        "applied to Spain's licence holders; an upper limit for men from the number of days "
+        "they drive, with women driving as far per licence holder at 75 and over as at 65–74; "
+        "and equal kilometres per licence holder at 65–74 and 75 and over. Each split was "
+        "combined with every alternative for the 65-and-over kilometres. Of these, the region "
+        "whose age profile stands in for Spain's (the province of Barcelona's, its four parts, "
+        "Madrid's, or the province's carried per licence holder) was crossed with the age "
+        "mixes for weekends and holidays and for the kilometres no part explains; trip "
+        "distances, survey years, work driving, the older respondents' employment and age mix, "
+        "and a weekend age mix on its own were varied one at a time, each with everything else "
+        "as in the central estimate. Together they give "
+        f"a sensitivity range of {full_75} at 75 and over and "
+        f"{to(*older_range['65-74'])} at 65–74. A sensitivity range is not an interval: it "
+        "carries no probability, and it is not a limit, because the choices varied one at a "
+        "time are not combined with each other or with the crossed ones, which would move both "
+        "ends. The split with equal kilometres per licence holder stays in the range: women's "
+        "driving does not rule it out, and the evidence against it for men comes from regional "
+        "or dated surveys rather than a national measure of kilometres. The three allocations "
+        "of the unexplained kilometres reported above stay out of it, for the reasons given "
+        "there; at 75 and over, across the profiles and splits, they would give "
+        f"{bound_75[coverage_design.LICENCE_MIX]} with the same kilometres per licence holder at "
+        f"every age, {bound_75[coverage_design.UNDER_65_MIX]} with no driving at 65 and over, "
+        f"and {bound_75[coverage_design.OWNER_MIX]} with DGT's kilometres by the owner's "
+        "age.</p>"
+    )
+    body += _older_table(
+        older,
+        older_variants,
+        older_75,
+        f"In Madrid in {madrid_year} men aged 75 and over drove {float(men_madrid.value):.2f} "
+        f"times ({men_madrid_ci}) as far per {YEAR} DGT licence holder as men aged 65–74 (the "
+        f"survey's kilometres per resident over the province's licence holding in {YEAR}).",
+        float(men_madrid.value),
+    )
+    whole = decomposition[decomposition.kind == "all"].iloc[0]
+    shown = decomposition[decomposition.kind == "factor"].head(figures_module.DR3_FACTORS)
+    bars = "; ".join(
+        f"{row.short_label.lower()} {to(float(row.low), float(row.high))}"
+        for row in shown.itertuples()
     )
     body += figure(
-        "a4_involved_per_km",
-        f"Dot chart of car drivers involved in injury crashes per billion kilometres in {year}, "
-        "by age band, on a log scale. On the published owner-age kilometres the rate is highest "
-        "at 18–24, falls to 35–54, is lowest at 55–74 and returns to about the 35–54 level at 75 "
-        "and over; moving kilometres to the young bands narrows their excess but leaves it above "
-        "35–54.",
+        "dr3_older_range_sources",
+        "Bar chart, on a log scale, of the ratio of involvement per kilometre at 75 and over to "
+        "45–64 when one choice at a time changes, the others as in the Madrid-pattern estimate "
+        f"({float(whole.estimate):.2f}). All combinations tested: {to(whole.low, whole.high)}, "
+        f"the part below {float(whole.clear_low):.2f} reached only with equal kilometres per "
+        f"licence holder. One choice changed: {bars}.",
         captions,
     )
+    _check(
+        np.isclose(float(whole.low), older_range["75+"][0])
+        and np.isclose(float(whole.high), older_range["75+"][1])
+        and np.isclose(float(whole.clear_low), clear["75+"][0])
+        and np.isclose(float(whole.estimate), float(cond_75.ratio_to_45_64)),
+        "Figure 3's top bar is the sensitivity range and its line the conditional estimate",
+    )
+    racc = older_variants[older_variants.assumption == national.RACC_SPLIT]
+    if tier == INTERMEDIATE:
+        sampling = (
+            f"Its 95% sampling interval, {joint_interval(lowest_clear)}, includes the 45–64 "
+            "rate. So even leaving out equal kilometres per licence holder, one combination "
+            "tested is consistent with no difference, and the data do not establish a higher "
+            "rate at 75 and over, or its size."
+        )
+    elif tier == PASS:
+        sampling = (
+            f"Its 95% sampling interval, {joint_interval(lowest_clear)}, stays above the 45–64 "
+            "rate, so among the "
+            "combinations tested the evidence points to more involvement per kilometre at 75 and "
+            "over; how much more is not established."
+        )
+    else:
+        sampling = (
+            "It is at or below the 45–64 rate, so whether drivers aged 75 and over are involved "
+            "more or less often per kilometre is not established."
+        )
     body += (
-        "<p>Few cars are registered to young owners. For every holder of a B (car) licence, "
-        "there are "
-        f"{float(young_km.loc[YOUNG[0], 'cars_per_b_permit']):.2f} cars and "
-        f"{float(young_km.loc[YOUNG[0], 'km_per_b_permit']):,.0f} km a year registered to "
-        f"owners aged 18–24, {float(young_km.loc[YOUNG[1], 'cars_per_b_permit']):.2f} cars and "
-        f"{float(young_km.loc[YOUNG[1], 'km_per_b_permit']):,.0f} km at 25–34, and "
-        f"{float(base.cars_per_b_permit):.2f} cars and {float(base.km_per_b_permit):,.0f} km at "
-        "35–54. The gap can reflect less driving by young licence holders, their use of cars "
-        "registered to older people or to companies, or a combination of these. The source "
-        "cannot separate them. Kilometres that young people drive in cars registered to others "
-        "are counted in another band, which makes their published rates per kilometre too "
-        "high.</p>"
+        f"<p>Below about {clear['75+'][0]:.1f} the sensitivity range is reached only with "
+        "equal kilometres per licence holder at 65–74 and 75 and over, which assumes men aged "
+        "75 and over with a car licence drive as far as men aged 65–74 with one. Spanish "
+        f"surveys of men's driving show them driving less: in Madrid in {madrid_year}, "
+        f"{float(men_madrid.value):.2f} times as far per {YEAR} DGT licence holder (95% "
+        f"sampling interval {men_madrid_ci}); in RACC's survey of "
+        f"licence holders aged 65 and over, published in {national.RACC_YEAR}, on about "
+        f"{racc_limit:.2f} times as many days, an upper limit for their kilometres. Surveys of "
+        "women's driving are too uncertain to "
+        "say the same for them. These combinations stay in the sensitivity range and are "
+        f"hatched in Figures {figure_ref('dr1_involved_per_km')} and "
+        f"{figure_ref('dr3_older_range_sources')}. Among the other combinations tested, the "
+        f"lowest, about {clear['75+'][0]:.1f}, combines Barcelona city's age profile, weekend "
+        "age mixes for the kilometres outside the survey's working days and the RACC limit; "
+        f"this edge is set by that limit. {sampling} The top, {older_range['75+'][1]:.2f}, "
+        "combines Madrid's age profile, the age mix of long car journeys for the kilometres no "
+        "part explains and Madrid's kilometres per licence holder, the second split. There "
+        "drivers aged 75 and over would drive "
+        f"{_fmt_pct(float(highest_75.driver_over_owner_km_75_plus), 0)} of the kilometres DGT "
+        "records for cars registered to owners of that age, against "
+        f"{_fmt_pct(float(highest_75.driver_over_owner_km_45_64), 0)} at 45–64; owner figures "
+        "cannot say who drove, so this is noted, not counted against it.</p>"
+    )
+    _check(
+        str(highest_75.profile) == national.MADRID_METHOD
+        and str(highest_75.remainder_mix) == coverage_design.LONG_DISTANCE_MIX
+        and str(highest_75.assumption) == national.LICENCE_SPLIT,
+        "the top of the 75+ range combines Madrid's profile, the long-journey mix for the "
+        "unexplained km and the licence split",
+    )
+    _check(
+        float(racc.ratio_75_plus.min()) == clear["75+"][0]
+        or np.isclose(float(racc.ratio_75_plus.min()), clear["75+"][0]),
+        "the lowest unmarked combination uses the RACC limit",
+    )
+    madrid_intervals = [joint_interval(row) for _, row in city_madrid.iterrows()]
+    # Where each interval lies against the 45-64 rate; a lower end within Monte Carlo error of it
+    # is said to end at about it, since another set of replicates could put it on either side.
+    sides = []
+    for _, row in city_madrid.iterrows():
+        _check(
+            float(row.ratio_high) - 1 > MC_MARGIN * float(row.mc_se_high),
+            "in Barcelona every interval of the Madrid split reaches above the 45-64 rate",
+        )
+        if abs(float(row.ratio_low) - 1) < MC_MARGIN * float(row.mc_se_low):
+            sides.append("about")
+        else:
+            sides.append("above" if float(row.ratio_low) > 1 else "includes")
+    _check(
+        len(sides) == 3 and "includes" in sides,
+        "in Barcelona at least one interval of the Madrid split includes the 45-64 rate",
+    )
+    words = ("none", "one", "two", "three")
+    clauses = []
+    for side, singular, plural in (
+        ("includes", "includes the 45–64 rate", "include the 45–64 rate"),
+        ("above", "lies above it", "lie above it"),
+        (
+            "about",
+            "ends so close to it that another set of resamples could put its lower end on "
+            "either side",
+            "end so close to it that another set of resamples could put their lower ends on "
+            "either side",
+        ),
+    ):
+        count = sides.count(side)
+        if count:
+            clauses.append(f"{words[count]} {singular if count == 1 else plural}")
+    body += (
+        "<p>In Barcelona's working-day check, with no transfer to Spain (the 65-and-over "
+        "kilometres are still divided by each split), the four splits give "
+        f"{_span(city_75)} at 75 and over across the three ways of counting trips that cross "
+        "the city boundary, below the 45–64 rate in some combinations and above it in others. "
+        f"With {int(city_split_75.drivers_involved.iloc[0])} drivers aged 75 and over, the "
+        f"Madrid split's 95% sampling intervals ({', '.join(madrid_intervals[:-1])} and "
+        f"{madrid_intervals[-1]}) are wide: {_join(clauses)}. The figures disagree with each "
+        "other, so the check neither confirms nor rules out a rate above the 45–64 rate.</p>"
+    )
+    # What would narrow the range: the owner asked the page to name the missing data.
+    body += (
+        "<p>Two kinds of data would narrow this range. The EMEF's own records hold each "
+        "respondent's exact age, so its kilometres at 65–74 and at 75 and over, tabulated by "
+        "the Institut Metròpoli or the ATM, would replace the transfer of Madrid's pattern; a "
+        "request for those tables has been prepared but not sent "
+        f'(<a href="{DOCS_URL}/research/EMEF_DATA_REQUEST.md">the data request</a>). A survey '
+        "of driving on every day of the week across Spain, by exact age, would replace the "
+        "assumptions about weekends and about the kilometres the working-day survey does not "
+        "cover.</p>"
     )
     body += (
-        "<p>A sensitivity scenario, the grey band in the chart, shows how much this could change "
-        "the result. It moves kilometres from the 35–54 band to the two young bands until all "
-        f"three have the same kilometres per licence holder ({pooled_km * 1e9:,.0f} a year), as "
-        "if the whole gap were young people driving cars registered to owners aged 35–54. The "
-        f"reassignment is deliberately extreme: {moved:.1f} billion km, "
-        f"{_fmt_pct(moved / float(base.billion_km))} of the 35–54 kilometres. Under it, drivers "
-        "aged 18–24 were involved in injury crashes "
-        f"{scenario('involved_per_bn_km', YOUNG[0]):.2f} times as often per kilometre as drivers "
-        f"aged 35–54, against {published('involved_per_bn_km', YOUNG[0]):.2f} times on the "
-        "published owner-age kilometres; for drivers aged 25–34 the figures are "
-        f"{scenario('involved_per_bn_km', YOUNG[1]):.2f} and "
-        f"{published('involved_per_bn_km', YOUNG[1]):.2f}. The two values form a sensitivity "
-        "range, not a confidence interval: the data do not show how many kilometres should be "
-        "reassigned between age groups, so the true ratio need not lie between them.</p>"
+        "<p>Drivers who drive few kilometres, at any age, tend to have more crashes per "
+        "kilometre, partly because more of their driving is on streets with junctions and less "
+        "on motorways, so a higher rate per kilometre at 75 and over would not by itself show "
+        "that age makes driving less safe. These rates are averages over everyone of an age who "
+        "drives and say nothing about any one driver. They count involvement in injury crashes, "
+        "whoever caused them; responsibility is not measured. The higher deaths once involved "
+        "are counted and do not depend on any of these assumptions. The Madrid survey data are "
+        "reused under the open-data licence of the Consorcio Regional de Transportes de Madrid. "
+        f'<a href="{CRTM_URL}">Powered by CRTM</a>.</p>'
     )
-
-    body += "<h3>The distance each age group would have to drive</h3>"
-    body += (
-        "<p>The owner-age kilometres cannot be corrected without knowing who drives each car, "
-        "and the data do not say: DGT publishes drivers' recorded infractions by vehicle type, "
-        "not by age, and its national crash file has no records of drivers. The question can be "
-        "turned round. The table gives, for each age group, the distance each B-licence holder "
-        "would have to drive in a year for the group to be involved in injury crashes no more "
-        "often per kilometre than drivers aged 35–54, beside the kilometres per licence holder "
-        "credited to cars of owners that age.</p>"
-    )
-    body += _breakeven_table(breakeven, year)
-    body += (
-        f"<p>Drivers aged 18–24 would each have to drive about "
-        f"{round_km(youngest_need.needed_km_per_b_permit)} km a year (95% interval "
-        f"{round_km(youngest_need.needed_low)}–{round_km(youngest_need.needed_high)}): "
-        f"{float(youngest_need.needed_over_credited):.2f} times the kilometres credited to cars "
-        "of owners their age, and about twice the most credited per licence holder to any "
-        f"owner age group ({km(highest_km)} at {highest_band.replace('-', '–')}). Even after "
-        "the scenario moves kilometres to them, they would need "
-        f"{round_km(youngest_scenario.needed_km_per_b_permit)}. Their higher involvement per "
-        "kilometre therefore does not depend on the owner-age kilometres being right. Drivers "
-        f"aged 25–34 would need about {round_km(young_need.needed_km_per_b_permit)} km, "
-        f"{float(young_need.needed_km_per_b_permit) / highest_km:.2f} times the most credited to "
-        "any owner age group, so their higher involvement is likely but less clear-cut. Drivers "
-        "aged 55–64 and 65–74 would be involved as often per kilometre as drivers aged 35–54 if "
-        "they drove about "
-        f"{_fmt_pct(1 - float(middle_need[MIDDLE[0]].needed_over_credited), 0)} and "
-        f"{_fmt_pct(1 - float(middle_need[MIDDLE[1]].needed_over_credited), 0)} less than the "
-        "kilometres credited to their cars. The data cannot rule that out, so their lower "
-        "involvement per kilometre is less firmly established than the young drivers' higher "
-        "one.</p>"
+    # The change note is written against the last deployed page, which divided the drivers by
+    # the kilometres of cars registered to owners of each age (35-54 the reference).
+    former_75 = float(owner.loc["75+", "ratio_to_reference"])
+    cars_per_holder = check.xs(
+        "Cars registered to private owners per B-licence holder", level="check"
+    ).value
+    _check(
+        0.9 < former_75 < 1.1
+        and str(owner.reference.iloc[0]) == "35-54"
+        and float(cars_per_holder["75+"]) > 1 > float(cars_per_holder["65-74"]),
+        "the former figure put drivers aged 75+ at about the 35-54 rate per owner km, and owners "
+        "aged 75+ have more cars than car-licence holders",
     )
     body += (
-        "<p>For drivers aged 75 and over the distance needed to match drivers aged 35–54, about "
-        f"{round_km(oldest_need.needed_km_per_b_permit)} km, is almost exactly what is credited "
-        f"to cars of owners their age ({km(oldest_need.credited_km_per_b_permit)}), so that "
-        "comparison turns on whether they drive more or less than their own cars' kilometres. "
-        "Owners aged 75 and over also have "
-        f"{float(oldest.cars_per_b_permit):.2f} cars per licence holder, the only band with more "
-        "cars than licence holders, which shows again that owner age cannot be treated as "
-        "driver age; the data do not identify who drives those cars. Drivers aged 65–74 give a "
-        "closer comparison. Against them, on the published owner-age kilometres, drivers aged 75 "
-        f"and over were involved in injury crashes {float(peers_involved.ratio):.2f} times as "
-        f"often per kilometre ({ci(peers_involved)}) and died "
-        f"{float(peers_fatality.ratio):.2f} times as often once involved "
-        f"({ci(peers_fatality)}). To be involved no more often per kilometre than drivers aged "
-        "65–74, they would each need to drive about "
-        f"{round_km(oldest_peer_need.needed_km_per_b_permit)} km a year (95% interval "
-        f"{round_km(oldest_peer_need.needed_low)}–{round_km(oldest_peer_need.needed_high)}), "
-        "more than is "
-        "credited per licence holder to any owner age group. The data give no sign that they "
-        "do: cars registered to owners aged 75 and over are driven fewer kilometres a year "
-        f"({km(km_per_car[OLDEST])} per car) than the cars of any other owner age group.</p>"
-    )
-    body += _ratio_table(ratios, owner, rates, year)
-    body += (
-        "<p>The columns of this table separate crash frequency from severity. At both ends of "
-        "the range, drivers aged 18–24 and 25–34 have higher death rates per kilometre than "
-        "drivers aged 35–54 because they are involved in more crashes per kilometre; once "
-        "involved, their death rates cannot be distinguished from the 35–54 rate. Drivers aged "
-        "75 and over are involved about as often per kilometre as drivers aged 35–54 but die "
-        "far more often once involved, so their higher death rate per kilometre "
-        f"({_range(end('deaths_per_bn_km', OLDEST, 'low'), end('deaths_per_bn_km', OLDEST, 'high'))}) "
-        "comes mainly from severity. The scenario takes kilometres from the reference band, so it "
-        "lowers the oldest band's ratios too, which is why they are also ranges.</p>"
+        f"<p>Changed in {national.OLDER_ESTIMATE_CHANGED}: this page used to divide the drivers "
+        "involved by DGT's kilometres of cars registered to owners of each age, and on those "
+        "kilometres said that drivers aged 75 and over were involved about as often per "
+        f"kilometre as drivers aged 35–54 ({former_75:.2f} times). A car's owner is often not its "
+        f"driver: owners aged 75 and over have {float(cars_per_holder['75+']):.2f} cars "
+        "registered to them for every car-licence holder of that age, more cars than holders, "
+        "and others drive some of them, so those kilometres do not measure how far drivers of "
+        "that age drive. The page now estimates the kilometres driven by drivers of each age and "
+        "gives, for 75 and over, a conditional estimate beside the sensitivity range; the "
+        "former figure is compared like for like at the end of the section on crashes per "
+        "kilometre.</p>"
     )
 
     # ------------------------------------------------------------------- men and women
-    body += "<h2>Men and women</h2>"
     body += (
-        "<p>No source records kilometres driven by sex, so men and women are compared per "
-        f"licence holder and per driver involved, pooling {sex_years}. Male car drivers were "
-        f"involved in injury crashes {float(men_involved.ratio):.2f} times as often as female "
-        f"drivers per licence holder ({ci(men_involved)}) and, once involved, died "
-        f"{float(men_fatality.ratio):.2f} times as often ({ci(men_fatality)}). Combined, per "
-        f"licence holder, men died at the wheel {float(men_killed.ratio):.2f} times as often as "
-        f"women ({ci(men_killed)}). The gap once involved holds in every age band. Involvement "
-        "per licence holder combines how far men and women drive with how often they crash per "
-        "kilometre, and no source separates the two.</p>"
+        '<h2 id="men-and-women">'
+        "Men and women: no clear difference in crashes per kilometre, more deaths among men</h2>"
+    )
+    body += (
+        "<p>The survey's kilometres can be split by sex and carried to Spain in the same way as "
+        f"by age. On that estimate men drove {_fmt_pct(float(per_km_involved.men_share_of_km))} "
+        f"of car kilometres in {year}. Per kilometre, male private-car drivers aged 18 and over "
+        f"were involved in injury crashes {float(per_km_involved.ratio_men_to_women):.2f} times "
+        f"as often as female drivers (95% sampling interval {ci_km(per_km_involved)}), but across the "
+        "regional profiles that ratio runs from "
+        f"{_fmt_span(float(per_km_involved.range_low), float(per_km_involved.range_high)).replace('–', ' to ')}, "
+        "so neither sex is shown to be involved more often per kilometre. Men were killed "
+        f"{float(per_km_killed.ratio_men_to_women):.2f} times as often (95% sampling interval "
+        f"{ci_km(per_km_killed)}; sensitivity range "
+        f"{_fmt_span(float(per_km_killed.range_low), float(per_km_killed.range_high))}). Per "
+        f"licence holder, pooling {sex_years}, men were involved "
+        f"{float(men_involved.ratio):.2f} times as often as women (95% interval "
+        f"{ci(men_involved)}) and, once involved, died {float(men_fatality.ratio):.2f} times as "
+        f"often ({ci(men_fatality)}); combined, they died at the wheel "
+        f"{float(men_killed.ratio):.2f} times as often ({ci(men_killed)}). Under the central "
+        "profile, men's higher involvement per licence holder comes from their driving further; "
+        "their higher death rate holds per kilometre under every profile and, in every age band, "
+        "once a crash has happened.</p>"
     )
     body += figure(
         "a3_sex_ratios",
-        f"Ratios of men's to women's rates for car drivers, {sex_years}, overall and by age band: "
-        "involvement in injury crashes per licence holder, deaths per licence holder, and deaths "
-        "per driver involved",
+        f"Ratios of men's to women's rates for private-car drivers, {sex_years}, overall and by "
+        "age band: involvement in injury crashes per licence holder, deaths per licence holder, "
+        "and deaths per driver involved. Men's rates are above women's on all three measures "
+        f"in every age band; at 18 and over men were involved {float(men_involved.ratio):.2f} "
+        f"times as often, killed {float(men_killed.ratio):.2f} times as often per licence "
+        f"holder and {float(men_fatality.ratio):.2f} times as often once involved.",
         captions,
     )
     body += (
-        "<p>Across all motor-vehicle drivers, which adds motorcyclists, moped riders and the "
-        "drivers of vans, trucks and buses, the gaps are wider: men died "
+        "<p>Across all motor-vehicle drivers, which adds motorcyclists, moped riders, the drivers "
+        "of vans, trucks and buses and other motor vehicles, the gaps are wider: men died "
         f"{float(motor_killed.ratio):.2f} times as often as women per licence holder and "
-        f"{float(motor_fatality.ratio):.2f} times as often once involved.</p>"
+        f"{float(motor_fatality.ratio):.2f} times as often once involved. The licence holders "
+        "are holders of any class of licence. The census gives car-licence holders by sex and "
+        f"age for {str(b_licence.years.iloc[0]).replace('-', '–')} only; counting only them "
+        "raises the ratio of men's to women's deaths per licence holder in those years from "
+        f"{float(b_licence.loc['licence holders of any class', 'ratio']):.2f} to "
+        f"{float(b_licence.loc['B-licence holders', 'ratio']):.2f}.</p>"
     )
-
-    # ------------------------------------------------------------------- technical detail
-    licence_share = float(licence.loc[(OLDEST, "total"), "licence_share"])
-    reference_shares = [float(licence.loc[(b, "total"), "licence_share"]) for b in reference_census]
-    body += technical(
-        "The same deaths under four denominators",
-        "<p>Against drivers aged 35–54, car drivers aged 75 and over died "
-        f"{_times(float(residents_75.ratio))} as often per resident, "
-        f"{_times(float(permit_75.ratio))} per holder of a B permit, "
-        f"{_times(float(km_75.ratio))} per kilometre on the published owner-age kilometres and "
-        f"{_times(float(involved_75.ratio))} per driver involved. The deaths are the same in "
-        "each case; only the denominator changes. Dividing by licence holders allows for how "
-        f"many people in each band hold a licence: in {licence_year}, "
-        f"{_fmt_pct(licence_share)} of residents aged 75 and over held one, against "
-        f"{_fmt_pct(min(reference_shares))}–{_fmt_pct(max(reference_shares))} at 35–54. "
-        "Dividing by kilometres allows for distance driven only as far as the kilometres of "
-        "cars registered to owners of each age reflect it. Dividing by drivers involved removes "
-        "crash frequency and leaves severity. Drivers aged 18–24 are missing from this comparison "
-        "because INE's resident counts are grouped as 15–19 and 20–24.</p>"
-        + figure(
-            "a2_denominator_contrast",
-            f"Car-driver deaths in {year} by age band, as ratios to drivers aged 35–54, divided in "
-            "turn by residents, B-permit holders, drivers involved in injury crashes and "
-            "kilometres of cars registered to owners of each age",
-            captions,
-        ),
-    )
-    company_share = float(km_table.loc[driver_risk.COMPANY_BAND, "share_of_km"])
-    body += technical(
-        "Company cars and the kilometre denominator",
-        f"<p>Cars registered to companies, {_fmt_pct(company_share)} of car kilometres, have no "
-        "owner age, so their kilometres drop out of the denominator while their drivers stay in "
-        "the numerator. Spreading those kilometres over every band in proportion changes no "
-        "ratio. Spreading them over the bands from 18 to 64 raises the ratio of deaths per "
-        f"kilometre at 75 and over from {_times(published('deaths_per_bn_km', OLDEST))} to "
-        f"{_times(float(working.ratio_to_reference))}. Deaths once involved are unaffected.</p>",
-    )
-    body += technical(
-        "Detailed counts, kilometres and rates",
-        _rates_table(rates, year) + _sex_rates_table(sex_rates, sex_years),
-    )
+    body += technical("Detailed counts by sex", _sex_rates_table(sex_rates, sex_years))
 
     body += limitation(
-        "DGT describes its kilometre estimates as valid only in aggregate, and the intervals "
-        "treat them as exact. The crash counts include foreign-registered cars and unlicensed "
-        "drivers; the kilometres cover Spanish-registered cars only. Drivers whose age or sex "
-        "the tables do not record are left out."
+        "The kilometres by age and sex are estimates transferred from one region's working-day "
+        "survey; DGT describes its kilometre totals as valid only in aggregate. The crash counts "
+        "include foreign and unlicensed drivers. Drivers whose age the tables do not record "
+        f"({_fmt_pct(unknown_share)} of those involved) are left out of every rate, which lowers "
+        "each absolute rate by that share; the ratios assume their ages follow the recorded mix "
+        f"(if all were aged 18–29, the young drivers' ratio would be {unknown_young:.2f}; "
+        "assigned to any one age group, they would put the ratio for 65 and over between "
+        f"{_fmt_span(float(unknown_old.min()), float(unknown_old.max())).replace('–', ' and ')})."
     )
     body += downloads(
         [
-            ("q7_km_rates", "rates by age band"),
-            ("q7_km_ratio", "ratios to drivers aged 35–54"),
-            ("q7_km_ratio_65_74", "ratios to drivers aged 65–74"),
-            ("q7_owner_age_check", "owner-age check and scenario"),
-            ("q7_breakeven_km", "distance needed to match drivers aged 35–54 and 65–74"),
-            ("q7_company_km", "company-car scenarios"),
-            ("q7_denominator_contrast", "the four denominators"),
-            ("q7_km_by_owner_age", "kilometres by owner age"),
-            ("q7_licence_share", "licence holding by age and sex"),
+            (
+                "risk_national_rates",
+                "involvement and deaths per km by age, every method and kilometre total",
+            ),
+            ("risk_national_sensitivity", "the ratios under every alternative choice"),
+            ("risk_national_shares", "share of car kilometres by age, every method"),
+            ("risk_national_numerator", "drivers involved and killed by age"),
+            ("risk_weekend_sensitivity", "the ratios under other weekend and holiday age mixes"),
+            ("risk_coverage", "the coverage of DGT's kilometres: what they are made of"),
+            ("risk_coverage_evidence", "the evidence behind the coverage of DGT's kilometres"),
+            ("risk_coverage_mixes", "age mixes for the kilometres the survey does not cover"),
+            (
+                "risk_coverage_scenarios",
+                "the ratios under every age mix for those kilometres, with each profile",
+            ),
+            ("risk_licence_prevalence", "car-licence holders per resident, Spain and province"),
+            ("emef_employment_benchmark", "survey's employed share at 65 and over"),
+            ("risk_owner_age_comparison", "owner-age against driver-age kilometres"),
+            ("q7_km_by_owner_age", "DGT kilometres by owner age"),
+            ("risk_severity_and_licences", "deaths once involved, by age"),
+            ("risk_barcelona_rates", "Barcelona working days, three versions of the kilometres"),
+            ("risk_barcelona_day_type", "Barcelona crashes by type of day"),
+            ("risk_older_split", "65–74 and 75 and over under the four splits"),
+            (
+                "risk_older_sensitivity",
+                "65–74 and 75 and over under every alternative, with what each row implies",
+            ),
+            ("risk_older_extremes", "sampling intervals at the ends of the 75+ range"),
+            ("risk_older_decomposition", "what moves the 75+ figure, one choice at a time"),
+            ("risk_older_reference_checks", "the checks the 75+ estimate is read against"),
+            ("emef_routing_older", "the survey's 65+ sample: share identified as aged 75+"),
+            ("risk_barcelona_older", "65–74 and 75 and over in Barcelona"),
+            ("edm_older_split", "Madrid survey: driving at 65–74 and at 75 and over"),
+            ("risk_sex_per_km", "men against women per km"),
+            ("drivers_sex_ratios", "men against women per licence holder and once involved"),
             ("drivers_sex_rates", "rates by sex and age"),
-            ("drivers_sex_ratios", "men against women"),
-            ("drivers_sex_trend", f"by sex and year, {trend_years}"),
+            ("drivers_sex_b_licence", "men against women per car-licence holder"),
+            ("drivers_sex_trend", f"rates by sex and year, {trend_years}"),
         ],
-        method=("data.html#rates", "rates and denominators"),
+        method=(EXPOSURE_DOC, "how the kilometres by age were estimated"),
     )
     return render_page(
         "drivers",
         "Driver age and sex",
-        "Car drivers compared by age and by sex, using DGT's counts of drivers involved in "
-        "injury crashes and killed, set against the measures of driving available for each "
-        "group.",
+        "How often car drivers of each age are involved in injury crashes for the distance they "
+        "drive, how often a crash kills them, and how men and women compare.",
         body,
     )
+
+
+def ci_km(row: pd.Series) -> str:
+    """The sampling interval of a ratio of men's to women's rates per km, at the precision its
+    Monte Carlo error supports."""
+    return joint_interval(row)

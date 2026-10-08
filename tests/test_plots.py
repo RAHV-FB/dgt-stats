@@ -1,6 +1,9 @@
+import contextlib
 import json
+import re
 from pathlib import Path
 
+import matplotlib.dates
 import pandas as pd
 import pytest
 
@@ -16,18 +19,13 @@ EXPECTED_FIGURES = {
     "l2_observed_over_trend",
     "l3_frequency_severity",
     "l4_km_against_fuel",
-    "k1_forecast_check",
-    "k2_detectability",
     "m1_season_profile",
     "m2_month_effects",
     "m3_lockdown",
     "a3_sex_ratios",
-    "a4_involved_per_km",
     "f1_speed_severity",
     "f2_factor_shares",
     "c3_speed_status",
-    "a1_killed_per_involved",
-    "a2_denominator_contrast",
     "v1_per_vehicle_vs_per_km",
     "p1_points_series",
     "p2_july_placebos",
@@ -37,6 +35,16 @@ EXPECTED_MODEL_FIGURES = {
     "s1_forest_fatal",
     "s2_adverse_conditions",
 }
+# The driver-age figures, drawn from the committed risk tables (scripts/exposure_risk.py).
+EXPECTED_DRIVER_FIGURES = (
+    {"dr1_involved_per_km", "dr2_killed_per_involved", "dr3_older_range_sources"}
+    if (TABLES_DIR / "risk_national_rates.csv").exists()
+    else set()
+)
+# The calculator's predicted-against-observed figure, drawn when its table is committed.
+EXPECTED_CALCULATOR_FIGURES = (
+    {"sev1_predicted_observed"} if (TABLES_DIR / "sev_calibration.csv").exists() else set()
+)
 _TABLES_PRESENT = all(
     (TABLES_DIR / f"{name}.csv").exists() for name in (*summaries.SUMMARIES, "missingness_by_year")
 )
@@ -77,15 +85,133 @@ def test_bar_shares_and_heatmap(tmp_path: Path) -> None:
     _svg_ok(plots.heatmap(matrix, tmp_path / "heat.svg", "Heat", percent=True))
 
 
-def test_missingness_heatmap(tmp_path: Path) -> None:
-    profile = pd.DataFrame(
-        {
-            "year": [2016, 2017, 2016, 2017],
-            "column": ["A", "A", "B", "B"],
-            "share_observed": [0.9, 0.8, 0.5, 0.4],
-        }
+def test_missingness_heatmap(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    drawn = _capture_axes(monkeypatch)
+    matrix = pd.DataFrame(
+        [[1.0, 0.97], [0.9, 0.8], [0.5, None]], index=["A", "B", "C"], columns=[2016, 2017]
     )
-    _svg_ok(plots.missingness_heatmap(profile, tmp_path / "miss.svg", "Missing"))
+    _svg_ok(plots.missingness_heatmap(matrix, tmp_path / "miss.svg", "Missing"))
+    heat, bar = drawn[0]
+    # The rows keep the matrix's order, the first at the top.
+    assert [label.get_text() for label in heat.get_yticklabels()] == ["A", "B", "C"]
+    # A binned scale with every band's edges labelled, 0% included.
+    labels = [label.get_text() for label in bar.get_yticklabels()]
+    assert labels == ["0%", "20%", "50%", "80%", "95%", "100%"]
+    image = heat.get_images()[0]
+    colours = {tuple(image.cmap(image.norm(v))) for v in (0.96, 1.0)}
+    assert len(colours) == 1  # 96% and 100% fall in the same band
+    assert image.cmap(image.norm(0.94)) != image.cmap(image.norm(0.96))
+
+
+def _profile(rows: list[tuple[str, dict[str, float]]]) -> pd.DataFrame:
+    """A missing-values table (``missingness_by_year``) for one year from per-field shares."""
+    records = []
+    for column, shares in rows:
+        record = {"year": 2020, "column": column, "rows": 1000}
+        for state in ("empty", "not_specified", "not_applicable", "unknown"):
+            record[f"share_{state}"] = shares.get(state, 0.0)
+        record["share_observed"] = 1 - sum(shares.values())
+        records.append(record)
+    return pd.DataFrame(records)
+
+
+def _applicability(rows: list[tuple[str, int, int]]) -> pd.DataFrame:
+    """The audited fields' table (``missingness_where_applicable``) for one year of 1000 crashes:
+    each field with the crashes it applies to and those with a value recorded."""
+    return pd.DataFrame(
+        [
+            {"year": 2020, "column": column, "rows": 1000, "applies": applies, "recorded": recorded}
+            for column, applies, recorded in rows
+        ]
+    )
+
+
+def test_the_missing_values_chart_leaves_not_applicable_out() -> None:
+    from dgt_stats import codes
+
+    profile = _profile(
+        [
+            ("DIA_SEMANA", {}),
+            # The dictionary defines the island's empty cell as "No aplica".
+            ("ISLA", {"empty": 0.9, "not_specified": 0.02}),
+            # Fields the audit examines: their shares in this table are not read.
+            ("ACERA", {"not_applicable": 0.8, "not_specified": 0.05}),
+            ("CONDICION_NIEBLA", {"empty": 0.9}),
+            ("NUDO_INFO", {"empty": 0.6}),
+            ("CARRETERA_CRUCE", {"empty": 0.97}),
+            *[(column, {"not_specified": 0.6}) for column in codes.PRIORI_COLUMNS],
+        ]
+    )
+    applicability = _applicability(
+        [
+            ("DIA_SEMANA", 1000, 1000),
+            # 998: left out of the denominator.
+            ("ACERA", 200, 150),
+            # A presence field: every crash is recorded, a blank being the recorded "no".
+            ("CONDICION_NIEBLA", 1000, 1000),
+            # Not applicable away from a junction.
+            ("NUDO_INFO", 400, 380),
+            # The crossing road, like the junction fields, applies only at a junction.
+            ("CARRETERA_CRUCE", 400, 30),
+            *[(column, 450, 360 + i // 10) for i, column in enumerate(codes.PRIORI_COLUMNS)],
+        ]
+    )
+    shown = figures.recorded_where_applicable(profile, applicability)[2020]
+    names = figures.MISSINGNESS_FIELDS
+    assert shown[names["ACERA"]] == pytest.approx(0.75)
+    assert shown[names["ISLA"]] == pytest.approx(0.08 / 0.1)
+    assert shown[names["CONDICION_NIEBLA"]] == pytest.approx(1.0)
+    assert shown[names["NUDO_INFO"]] == pytest.approx(0.95)
+    assert shown[names["CARRETERA_CRUCE"]] == pytest.approx(0.075)
+    # The right-of-way flags share one row, and no raw field name is left.
+    row = figures.priority_row(len(codes.PRIORI_COLUMNS))
+    assert shown[row] == pytest.approx(0.8, abs=0.01)
+    assert not any("_" in label for label in shown.index)
+    # Most completely recorded first.
+    assert list(shown) == sorted(shown, reverse=True)
+    # Flags that are no longer recorded together stop the build.
+    apart = applicability.copy()
+    apart.loc[apart.column == "PRIORI_OTRA", "recorded"] = 450
+    with pytest.raises(ValueError):
+        figures.recorded_where_applicable(profile, apart)
+    # So does a field without an English name, or tables of different years.
+    with pytest.raises(ValueError):
+        figures.recorded_where_applicable(
+            _profile([("NEW_FIELD", {})]), _applicability([("DIA_SEMANA", 1000, 1000)])
+        )
+    with pytest.raises(ValueError):
+        figures.recorded_where_applicable(profile, applicability.assign(year=2021))
+
+
+def test_the_missing_values_chart_reads_the_audit_rule() -> None:
+    """On the committed tables, the chart's audited rows are the audit's: the fog and strong-wind
+    fields are always recorded, and, with the inverted Catalan junction flag read the other way
+    round, the junction fields are not recorded less often in the inverted years."""
+    profile_path = TABLES_DIR / "missingness_by_year.csv"
+    audited_path = TABLES_DIR / "missingness_where_applicable.csv"
+    junctions_path = TABLES_DIR / "dgt_audit_junction_coding.csv"
+    if not (profile_path.exists() and audited_path.exists() and junctions_path.exists()):
+        pytest.skip("the missing-values tables are not built")
+    applicability = pd.read_csv(audited_path)
+    shown = figures.recorded_where_applicable(pd.read_csv(profile_path), applicability)
+    names = figures.MISSINGNESS_FIELDS
+    assert (shown.loc[[names["CONDICION_NIEBLA"], names["CONDICION_VIENTO"]]] == 1).all().all()
+    junctions = pd.read_csv(junctions_path)
+    years = figures.inverted_junction_years(shown, junctions)
+    assert years == [2023, 2024]
+    for column in ("NUDO_INFO", "CARRETERA_CRUCE"):
+        rows = applicability[applicability.column == column]
+        assert (rows.applies < rows.rows).all()
+    # Read as published, the inverted years' junction type would fall far below every other
+    # year's; read the other way round, it does not.
+    junction_type = shown.loc[figures.MISSINGNESS_FIELDS["NUDO_INFO"]]
+    others = [year for year in shown.columns if year not in years]
+    assert junction_type[years].min() >= junction_type[others].min()
+    # A table that shows the drop is refused.
+    dropped = shown.copy()
+    dropped.loc[figures.MISSINGNESS_FIELDS["NUDO_INFO"], years] = 0.7
+    with pytest.raises(ValueError):
+        figures.inverted_junction_years(dropped, junctions)
 
 
 def test_caption_format() -> None:
@@ -152,6 +278,76 @@ def test_dot_interval(tmp_path: Path) -> None:
         reference_label="Spain",
     )
     _svg_ok(out)
+
+
+def test_dot_interval_can_keep_its_ticks_on_whole_numbers(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Deaths per 1,000 involved run from about 3 to 20: whole-number ticks, no needless decimals.
+    drawn = _capture_axes(monkeypatch)
+    frame = pd.DataFrame(
+        {"name": list("abc"), "v": [4.1, 8.5, 15.9], "lo": [3.3, 6.5, 12.6], "hi": [5.1, 10.8, 20]}
+    )
+    plots.dot_interval(
+        frame, "name", "v", "lo", "hi", tmp_path / "w.svg", "W", keep_order=True, integer_ticks=True
+    )
+    axis = drawn[0][0]
+    axis.figure.canvas.draw()
+    labels = [label.get_text() for label in axis.get_xticklabels() if label.get_text()]
+    assert labels and all("." not in label for label in labels), labels
+
+
+def test_ratio_charts_can_use_a_log_axis(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    # Ratios on a log axis, so a halving and a doubling look the same size; the axes are
+    # captured as each chart is saved.
+    drawn = []
+    save = plots.save
+
+    def keep(fig, path):
+        drawn.append([axis for axis in fig.axes])
+        return save(fig, path)
+
+    monkeypatch.setattr(plots, "save", keep)
+    ratios = pd.DataFrame(
+        {
+            "name": ["a", "b", "c"],
+            "v": [1.2, 1.9, 5.9],
+            "lo": [1.0, 1.3, 5.1],
+            "hi": [1.5, 2.8, 6.9],
+        }
+    )
+    out = plots.dot_interval(
+        ratios, "name", "v", "lo", "hi", tmp_path / "log.svg", "Log", reference=1.0, log=True
+    )
+    _svg_ok(out)
+    axis = drawn[-1][0]
+    assert axis.get_xscale() == "log"
+    assert list(axis.get_xticks()) == [1.0, 2.0, 4.0]
+    left, right = axis.get_xlim()
+    assert left < 1.0 and right > 6.9
+    odds = ratios.assign(
+        panel=["p", "p", "q"], v=[0.6, 0.8, 0.7], lo=[0.5, 0.7, 0.6], hi=[0.7, 0.9, 1.1]
+    )
+    out = plots.dot_interval_panels(
+        odds,
+        "panel",
+        "name",
+        "v",
+        "lo",
+        "hi",
+        tmp_path / "logpanels.svg",
+        "Log panels",
+        reference=1.0,
+        from_zero=False,
+        shared=True,
+        log=True,
+    )
+    _svg_ok(out)
+    for axis in drawn[-1]:
+        if axis.get_xticks().size:
+            assert axis.get_xscale() == "log"
+            # Fewer than three doublings in range, so the ticks add 0.75 between them.
+            assert list(axis.get_xticks()) == [0.5, 0.75, 1.0]
 
 
 def test_charts_embed_the_glyphs_of_their_serif(tmp_path: Path) -> None:
@@ -345,6 +541,177 @@ def test_intervention_and_placebo_dots(tmp_path: Path) -> None:
     _svg_ok(out)
 
 
+def test_intervention_enlarges_the_months_after_the_break(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    drawn = _capture_axes(monkeypatch)
+    periods = pd.date_range("2000-01-01", "2007-11-01", freq="MS")
+    frame = pd.DataFrame(
+        {
+            "period": periods,
+            "deaths": [400 + (i % 12) * 10 for i in range(len(periods))],
+            "fitted": [400.0] * len(periods),
+            "cf": [410.0] * len(periods),
+            "alt": [420.0] * len(periods),
+        }
+    )
+    names = {"observed": "Observed deaths", "fitted": "Fitted model", "counterfactual": "Main"}
+    for narrow in (False, True):
+        with plots.narrow() if narrow else contextlib.nullcontext():
+            _svg_ok(
+                plots.intervention(
+                    frame,
+                    "period",
+                    "deaths",
+                    "fitted",
+                    "cf",
+                    tmp_path / f"zoom_{narrow}.svg",
+                    "Zoom",
+                    pd.Timestamp("2006-07-01"),
+                    "1 July 2006",
+                    alternative=("alt", "Straight"),
+                    names=names,
+                    zero_based=False,
+                    zoom_from=pd.Timestamp("2005-01-01"),
+                )
+            )
+    for axes in drawn:
+        overview, zoom = axes[:2]
+        # The value axes start near the data, not at zero.
+        assert overview.get_ylim()[0] > 300 and zoom.get_ylim()[0] > 300
+        # The second panel holds the enlarged months only.
+        left, right = zoom.get_xlim()
+        assert matplotlib.dates.num2date(left).year == 2004
+        assert matplotlib.dates.num2date(right) < matplotlib.dates.num2date(overview.get_xlim()[1])
+        # One name for each line, as given.
+        legend = axes[0].figure.legends or [axes[1].get_legend()]
+        texts = [text.get_text().replace("\n", " ") for text in legend[0].get_texts()]
+        assert texts == ["Observed deaths", "Fitted model", "Main", "Straight"]
+    with pytest.raises(ValueError):
+        plots.intervention(
+            frame.assign(group="a"),
+            "period",
+            "deaths",
+            "fitted",
+            "cf",
+            tmp_path / "bad.svg",
+            "Bad",
+            pd.Timestamp("2006-07-01"),
+            "July",
+            facet="group",
+            zoom_from=pd.Timestamp("2005-01-01"),
+        )
+
+
+def test_hidden_bar_series_count_in_the_total_but_are_not_drawn(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    drawn = _capture_axes(monkeypatch)
+    frame = pd.DataFrame({"year": [2023] * 3, "status": ["a", "b", "rare"], "drivers": [50, 49, 1]})
+    plots.bar_shares(
+        frame,
+        "year",
+        "status",
+        "drivers",
+        tmp_path / "bars.svg",
+        "Bars",
+        order=["a", "b"],
+        hidden=("rare",),
+    )
+    axis = drawn[0][0]
+    assert [text.get_text() for text in axis.get_legend().get_texts()] == ["a", "b"]
+    tops = [patch.get_y() + patch.get_height() for patch in axis.patches]
+    assert max(tops) == pytest.approx(0.99)
+
+
+def test_dot_rows_without_a_value_are_notes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    drawn = _capture_axes(monkeypatch)
+    frame = pd.DataFrame(
+        {
+            "label": ["2004", "2005: left out", "2006"],
+            "v": [0.01, None, -0.1],
+            "lo": [-0.02, None, -0.15],
+            "hi": [0.04, None, -0.05],
+            "is_true": [False, False, True],
+        }
+    )
+    plots.dot_interval(
+        frame,
+        "label",
+        "v",
+        "lo",
+        "hi",
+        tmp_path / "notes.svg",
+        "Notes",
+        percent=True,
+        reference=0.0,
+        highlight="is_true",
+        keep_order=True,
+    )
+    axis = drawn[0][0]
+    assert [label.get_text() for label in axis.get_yticklabels()] == [
+        "2004",
+        "2005: left out",
+        "2006",
+    ]
+    # Two markers, none at the note's row.
+    points = [
+        (x, y)
+        for line in axis.get_lines()
+        if line.get_marker() not in (None, "None", "")
+        for x, y in zip(line.get_xdata(), line.get_ydata())
+    ]
+    assert len(points) == 2 and all(y != 1 for _, y in points)
+
+
+def test_breaks_are_marked_and_a_series_that_always_breaks_is_unjoined(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    drawn = _capture_axes(monkeypatch)
+    years = list(range(2014, 2020))
+    frame = pd.DataFrame(
+        {
+            "factor": ["A"] * 12,
+            "zone": ["x"] * 6 + ["y"] * 6,
+            "year": years * 2,
+            "share": [0.1] * 12,
+            # x breaks once, after 2016; y breaks at every year.
+            "segment": [0, 0, 0, 1, 1, 1] + list(range(6)),
+        }
+    )
+    plots.segmented_small_multiples(
+        frame, "factor", "year", "share", "zone", "segment", tmp_path / "f.svg", "F"
+    )
+    marks = [line for line in drawn[0][0].get_lines() if line.get_marker() == "|"]
+    assert len(marks) == 1 and marks[0].get_xdata()[0] == pytest.approx(2016.5)
+
+
+def test_the_reference_row_has_a_hollow_marker(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    drawn = _capture_axes(monkeypatch)
+    frame = pd.DataFrame(
+        {
+            "label": ["young", "middle"],
+            "reference_row": [False, True],
+            "value": [2.0, None],
+            "low": [1.5, None],
+            "high": [2.5, None],
+            "range_low": [1.4, None],
+            "range_high": [3.0, None],
+        }
+    )
+    plots.estimate_and_range(frame, tmp_path / "range.svg", "Range")
+    hollow = [
+        line
+        for line in drawn[0][0].get_lines()
+        if line.get_marker() == "o" and line.get_markerfacecolor() == plots.SURFACE
+    ]
+    assert len(hollow) == 1 and list(hollow[0].get_xdata()) == [1.0]
+
+
 @pytest.mark.skipif(not _TABLES_PRESENT, reason="run `python scripts/analyse.py tables` first")
 def test_build_all_writes_every_registered_figure(tmp_path: Path) -> None:
     frames = {name: pd.read_csv(TABLES_DIR / f"{name}.csv") for name in summaries.SUMMARIES}
@@ -356,27 +723,483 @@ def test_build_all_writes_every_registered_figure(tmp_path: Path) -> None:
     expected = (
         EXPECTED_FIGURES
         | (EXPECTED_MODEL_FIGURES if summaries.model_tables_present() else set())
+        | EXPECTED_CALCULATOR_FIGURES
+        | EXPECTED_DRIVER_FIGURES
         | set(regional)
     )
     assert set(captions) == expected
     assert {p.stem for p in tmp_path.glob("*.svg")} == expected
     for name in expected:
         _svg_ok(tmp_path / f"{name}.svg")
+    # Every figure is also drawn for a phone's column, no wider than the column allows, with
+    # every piece of text at the size of the tick labels or larger.
+    narrow = tmp_path / "narrow"
+    assert {p.stem for p in narrow.glob("*.svg")} == expected
+    for name in expected:
+        _svg_ok(narrow / f"{name}.svg")
+        width, smallest = _svg_width_and_smallest_text(narrow / f"{name}.svg")
+        assert width <= plots.NARROW_MAX_POINTS, name
+        assert smallest >= plots.TICK_SIZE, name
+        # Shown 334 px wide (a 390 px phone, inside the dark theme's chart box), the smallest
+        # text is 11 px or more.
+        assert smallest * 334 / width >= 11, name
+        assert width < figures.svg_width(tmp_path / f"{name}.svg"), name
     saved = json.loads((tmp_path / "captions.json").read_text(encoding="utf-8"))
     assert saved == captions
     # n is counted from the frame each figure draws and says what it counts.
     n_speed = int(frames["speed_severity_pooled"].speed_crashes.sum())
-    assert captions["f1_speed_severity"].endswith(f"n = {n_speed:,} speed-related crashes.")
+    assert captions["f1_speed_severity"].endswith(
+        f"n = {n_speed:,} crashes with inappropriate speed recorded."
+    )
     n_drivers = int(frames["q9_infraction_shares"].query("zone == 'all'").total.sum())
     assert captions["c3_speed_status"].endswith(f"n = {n_drivers:,} drivers.")
-    n_involved = int(frames["q7_km_rates"].drivers_involved.sum())
-    assert captions["a1_killed_per_involved"].endswith(f"n = {n_involved:,} drivers involved.")
+    if EXPECTED_DRIVER_FIGURES:
+        severity = pd.read_csv(TABLES_DIR / "risk_severity_and_licences.csv")
+        n_involved = int(severity[severity.group != "65+"].involved.sum())
+        assert captions["dr2_killed_per_involved"].endswith(f"n = {n_involved:,} drivers involved.")
+        # The per-km chart and its breakdown for 75 and over fit a phone in height too.
+        for name in ("dr1_involved_per_km", "dr3_older_range_sources"):
+            height = float(
+                re.search(r'height="([\d.]+)pt"', (narrow / f"{name}.svg").read_text()).group(1)
+            )
+            assert height < 720, name
+        older = pd.read_csv(TABLES_DIR / "risk_older_sensitivity.csv").ratio_75_plus
+        full = f"({older.min():.2f}–{older.max():.2f})"
+        assert full in captions["dr3_older_range_sources"]
+        assert "no probability attached" in captions["dr1_involved_per_km"]
 
 
 @pytest.mark.skipif(not _TABLES_PRESENT, reason="run `python scripts/analyse.py tables` first")
 def test_build_all_removes_a_figure_that_is_no_longer_registered(tmp_path: Path) -> None:
     stale = tmp_path / "q9_report_day_hour.svg"
     stale.write_text("<svg></svg>", encoding="utf-8")
+    (tmp_path / "narrow").mkdir()
+    stale_narrow = tmp_path / "narrow" / "ml9_withdrawn.svg"
+    stale_narrow.write_text("<svg></svg>", encoding="utf-8")
     frames = {name: pd.read_csv(TABLES_DIR / f"{name}.csv") for name in summaries.SUMMARIES}
     figures.build_all(tmp_path, frames=frames)
-    assert not stale.exists()
+    assert not stale.exists() and not stale_narrow.exists()
+
+
+def _svg_width_and_smallest_text(path: Path) -> tuple[float, float]:
+    """A chart's width in points and the size of its smallest text, in the same units."""
+    import re
+
+    text = path.read_text(encoding="utf-8")
+    sizes = [float(size) for size in re.findall(r"font-size: ([\d.]+)px", text)]
+    return figures.svg_width(path), min(sizes)
+
+
+def _capture_axes(monkeypatch: pytest.MonkeyPatch) -> list[list]:
+    """The axes of every chart drawn from now on, captured as it is saved."""
+    drawn: list[list] = []
+    save = plots.save
+
+    def keep(fig, path):
+        drawn.append(list(fig.axes))
+        return save(fig, path)
+
+    monkeypatch.setattr(plots, "save", keep)
+    return drawn
+
+
+def test_narrow_sets_and_restores_the_drawing_width() -> None:
+    wide = (plots.FIGURE_WIDTH, plots.NOTE_SIZE, plots.NARROW)
+    with plots.narrow():
+        assert plots.FIGURE_WIDTH == plots.NARROW_WIDTH and plots.NARROW
+        # Notes are set at the tick size, the smallest text a phone shows.
+        assert plots.NOTE_SIZE == plots.TICK_SIZE
+    assert (plots.FIGURE_WIDTH, plots.NOTE_SIZE, plots.NARROW) == wide
+    with pytest.raises(RuntimeError), plots.narrow():
+        raise RuntimeError("a chart failed")
+    assert (plots.FIGURE_WIDTH, plots.NOTE_SIZE, plots.NARROW) == wide
+
+
+def test_narrow_labels_wrap_and_wide_ones_do_not() -> None:
+    label = "generic limit for the road (value not recorded)  (n=17,969)"
+    assert plots._fit(label) == label
+    with plots.narrow():
+        lines = plots._fit(label).split("\n")
+        assert lines[-1] == "(n=17,969)" and lines[-2] == "(value not recorded)"
+        assert all(len(line) <= plots.NARROW_LABEL_CHARS for line in lines)
+        # Never broken at a hyphen; a short label is left alone.
+        assert plots._fit("75 and over (model-dependent)") == "75 and over\n(model-dependent)"
+        assert plots._fit("Per resident") == "Per resident"
+
+
+def test_narrow_charts_fit_a_phone_column(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    drawn = _capture_axes(monkeypatch)
+    rows = pd.DataFrame(
+        {
+            "name": [
+                "personal mobility vehicle rider  (n=528)",
+                "van or light truck passenger  (n=40)",
+                "car driver  (n=4,671)",
+            ],
+            "v": [0.02, 0.01, 0.001],
+            "lo": [0.01, 0.0, 0.0005],
+            "hi": [0.03, 0.09, 0.002],
+        }
+    )
+    panels = pd.concat([rows.assign(panel=p) for p in ("First", "Second", "Third")])
+    wide_out = plots.dot_interval_panels(
+        panels, "panel", "name", "v", "lo", "hi", tmp_path / "wide.svg", "Wide", xlabel="Share"
+    )
+    with plots.narrow():
+        dots = plots.dot_interval(
+            rows,
+            "name",
+            "v",
+            "lo",
+            "hi",
+            tmp_path / "dots.svg",
+            "Dots",
+            xlabel="Share of people in recorded crashes with a long axis label",
+            reference=0.016,
+            reference_label="all",
+            percent=True,
+        )
+        stacked = plots.dot_interval_panels(
+            panels, "panel", "name", "v", "lo", "hi", tmp_path / "panels.svg", "P", xlabel="Share"
+        )
+    for out in (dots, stacked):
+        _svg_ok(out)
+        width, smallest = _svg_width_and_smallest_text(out)
+        assert width <= plots.NARROW_MAX_POINTS and smallest >= plots.TICK_SIZE, out.name
+    assert figures.svg_width(wide_out) > 2 * plots.NARROW_MAX_POINTS
+    # The long labels wrap, their counts on a line of their own.
+    labels = [tick.get_text() for tick in drawn[1][0].get_yticklabels()]
+    assert "personal mobility\nvehicle rider\n(n=528)" in labels
+    # Side by side when wide, stacked when narrow, each stacked panel with its own numbers.
+    wide_axes, narrow_axes = drawn[0], drawn[2]
+    assert len({round(axis.get_position().y0, 3) for axis in wide_axes}) == 1
+    assert len({round(axis.get_position().x0, 3) for axis in narrow_axes}) == 1
+    assert len({round(axis.get_position().y0, 3) for axis in narrow_axes}) == 3
+    assert all(axis.xaxis.get_tick_params()["labelbottom"] for axis in narrow_axes)
+
+
+def test_narrow_bars_thin_crowded_year_labels(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    drawn = _capture_axes(monkeypatch)
+    years = pd.DataFrame(
+        {
+            "year": [y for y in range(2010, 2025) for _ in range(2)],
+            "group": ["a", "b"] * 15,
+            "v": [1, 2] * 15,
+        }
+    )
+    plots.bar_shares(years, "year", "group", "v", tmp_path / "wide.svg", "Bars")
+    with plots.narrow():
+        out = plots.bar_shares(years, "year", "group", "v", tmp_path / "narrow.svg", "Bars")
+    assert figures.svg_width(out) <= plots.NARROW_MAX_POINTS
+    wide = [label.get_text() for label in drawn[0][0].get_xticklabels()]
+    narrow = [label.get_text() for label in drawn[1][0].get_xticklabels()]
+    assert all(wide) and len(narrow) == len(wide)
+    # Every second year is named, so the names do not run into each other; every bar stays.
+    assert narrow[::2] == wide[::2] and not any(narrow[1::2])
+
+
+def test_ratio_panels_and_line_panels(tmp_path: Path) -> None:
+    years = list(range(2015, 2025))
+    frame = pd.DataFrame(
+        {
+            "measure": ["Count"] * 10 + ["Per tonne"] * 10,
+            "year": years * 2,
+            "ratio": [1.0] * 5
+            + [0.75, 0.85, 0.95, 1.0, 1.0]
+            + [1.0] * 5
+            + [1.0, 1.0, 1.1, 1.2, 1.1],
+        }
+    )
+    frame["range_low"] = 0.9
+    frame["range_high"] = 1.1
+    out = plots.ratio_panels(
+        frame,
+        "measure",
+        "year",
+        "ratio",
+        "range_low",
+        "range_high",
+        tmp_path / "ratio.svg",
+        "Ratio",
+        last_fitted=2019,
+    )
+    _svg_ok(out)
+    text = out.read_text(encoding="utf-8")
+    assert "Count" in text and "Per tonne" in text
+    lines = pd.DataFrame(
+        {
+            "panel": ["A"] * 20 + ["B"] * 20,
+            "series": (["Total"] * 10 + ["Part"] * 10) * 2,
+            "year": years * 4,
+            "index": list(range(100, 90, -1)) * 4,
+        }
+    )
+    _svg_ok(
+        plots.line_panels(
+            lines,
+            "panel",
+            "year",
+            "index",
+            "series",
+            tmp_path / "lines.svg",
+            "Lines",
+            focal="Total",
+        )
+    )
+
+
+# Colour-vision deficiency simulation (Machado, Oliveira and Fernandes 2009, full severity) in
+# linear sRGB; distances in OKLab, times 100.
+_CVD = {
+    "normal": ((1, 0, 0), (0, 1, 0), (0, 0, 1)),
+    "protan": (
+        (0.152286, 1.052583, -0.204868),
+        (0.114503, 0.786281, 0.099216),
+        (-0.003882, -0.048116, 1.051998),
+    ),
+    "deutan": (
+        (0.367322, 0.860646, -0.227968),
+        (0.280085, 0.672501, 0.047413),
+        (-0.011820, 0.042940, 0.968881),
+    ),
+    "tritan": (
+        (1.255528, -0.076749, -0.178779),
+        (-0.078411, 0.930809, 0.147602),
+        (0.004733, 0.691367, 0.303900),
+    ),
+}
+_LMS = (
+    (0.4122214708, 0.5363325363, 0.0514459929),
+    (0.2119034982, 0.6806995451, 0.1073969566),
+    (0.0883024619, 0.2817188376, 0.6299787005),
+)
+_LAB = (
+    (0.2104542553, 0.7936177850, -0.0040720468),
+    (1.9779984951, -2.4285922050, 0.4505937099),
+    (0.0259040371, 0.7827717662, -0.8086757660),
+)
+
+
+def _oklab(colour: str, vision: str):
+    import numpy as np
+    from matplotlib.colors import to_rgb
+
+    srgb = np.array(to_rgb(colour))
+    linear = np.where(srgb <= 0.04045, srgb / 12.92, ((srgb + 0.055) / 1.055) ** 2.4)
+    linear = np.clip(np.array(_CVD[vision]) @ linear, 0, 1)
+    return np.array(_LAB) @ np.cbrt(np.array(_LMS) @ linear)
+
+
+def test_the_season_series_differ_in_colour_and_marker() -> None:
+    import itertools
+
+    import numpy as np
+
+    looks = [{"color": plots.ACCENT, "marker": "o"}, *figures.SEASON_STYLES.values()]
+    assert len({look["marker"] for look in looks}) == len(looks)
+    assert len({look["linestyle"] for look in figures.SEASON_STYLES.values()}) == 3
+    # Every pair, deaths included, at least 15 apart with full colour vision and at least 10
+    # under each colour-vision deficiency; the three greys these replace were 11 apart.
+    for vision, floor in (("normal", 15), ("protan", 10), ("deutan", 10), ("tritan", 10)):
+        for a, b in itertools.combinations([look["color"] for look in looks], 2):
+            distance = 100 * np.linalg.norm(_oklab(a, vision) - _oklab(b, vision))
+            assert distance >= floor, (vision, a, b, distance)
+
+
+@pytest.mark.skipif(not _TABLES_PRESENT, reason="run `python scripts/analyse.py tables` first")
+def test_season_long_run_and_sex_ratio_charts(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    drawn = _capture_axes(monkeypatch)
+    frames = {name: pd.read_csv(TABLES_DIR / f"{name}.csv") for name in summaries.SUMMARIES}
+
+    def summary(name: str) -> pd.DataFrame:
+        return frames[name].copy()
+
+    captions: dict[str, str] = {}
+    figures._season_figures(tmp_path, captions, summary)
+    figures._sex_figures(tmp_path, captions, summary)
+    figures._long_run_figures(tmp_path, captions, summary)
+    season_profile, _, lockdown, sex_ratios, trend = drawn[:5]
+    # The road-use series in both season charts take their own colour and marker.
+    for axes in (season_profile, lockdown):
+        lines = {line.get_label(): line for line in axes[0].get_lines()}
+        for name, look in figures.SEASON_STYLES.items():
+            assert lines[name].get_color() == look["color"], name
+            assert lines[name].get_marker() == look["marker"], name
+    # Ratios of men's to women's rates on a log axis, the same in every panel, and labelled so.
+    assert all(axis.get_xscale() == "log" for axis in sex_ratios)
+    assert "log scale" in sex_ratios[0].figure.get_supxlabel()
+    # Each long-run panel names what it counts and the measure its trend was fitted to.
+    titles = [axis.get_title(loc="left").replace("\n", " ") for axis in trend]
+    assert titles == list(figures.LONG_RUN_PANELS.values())
+    assert all("deaths a year" in title for title in titles)
+    assert "per registered vehicle" in titles[1] and "per tonne of road fuel" in titles[2]
+
+
+@pytest.mark.skipif(not summaries.model_tables_present(), reason="run `python scripts/model.py`")
+def test_the_forest_plot_names_road_types_in_english(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    drawn = _capture_axes(monkeypatch)
+    figures._severity_figures(tmp_path, {})
+    labels = [label.get_text().strip() for label in drawn[0][0].get_yticklabels()]
+    # The page and its tables call DGT's autovía a dual carriageway; so does the chart.
+    assert "dual carriageway" in labels
+    assert not any("autov" in label.lower() for label in labels)
+
+
+def _layered_frame() -> pd.DataFrame:
+    """Rows as Figure 1 of the drivers page draws them: estimates, a reference row, and two
+    conditional rows with hatched parts, a rule above the first and counts under every label."""
+    return pd.DataFrame(
+        {
+            "label": ["young", "middle", "old", "of which older*", "of which oldest*"],
+            "reference_row": [False, True, False, False, False],
+            "conditional": [False, False, False, True, True],
+            "group_start": [False, False, False, True, False],
+            "value": [2.0, None, 1.2, 0.94, 2.06],
+            "low": [1.5, None, 1.0, 0.8, 1.6],
+            "high": [2.5, None, 1.4, 1.1, 2.6],
+            "range_low": [1.4, None, 0.9, 0.66, 0.97],
+            "range_high": [3.0, None, 1.7, 1.63, 3.28],
+            "clear_low": [None, None, None, 0.66, 1.21],
+            "clear_high": [None, None, None, 1.47, 3.28],
+            "count": [100, 200, 300, 150, 150],
+        }
+    )
+
+
+def _contrast(first: str, second: str) -> float:
+    """WCAG contrast ratio of two colours."""
+
+    def luminance(colour: str) -> float:
+        channels = [int(colour.lstrip("#")[i : i + 2], 16) / 255 for i in (0, 2, 4)]
+        linear = [c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4 for c in channels]
+        return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2]
+
+    light, dark = sorted((luminance(first), luminance(second)), reverse=True)
+    return (light + 0.05) / (dark + 0.05)
+
+
+def _legend_labels(axis) -> list[str]:
+    legend = axis.get_legend() or axis.figure.legends[0]
+    return [text.get_text().replace("\n", " ") for text in legend.get_texts()]
+
+
+@pytest.mark.parametrize("narrow", [False, True])
+def test_estimate_and_range_draws_the_layers_of_the_per_km_chart(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, narrow: bool
+) -> None:
+    drawn = _capture_axes(monkeypatch)
+    with plots.narrow() if narrow else contextlib.nullcontext():
+        _svg_ok(
+            plots.estimate_and_range(
+                _layered_frame(),
+                tmp_path / "layers.svg",
+                "Layers",
+                estimate_label="estimate",
+                conditional_label="conditional",
+                range_label="range",
+                hatch_label="hatched",
+            )
+        )
+    axis = drawn[0][0]
+    # Hollow accent diamonds for the conditional rows, filled dots for the others.
+    diamonds = [line for line in axis.get_lines() if line.get_marker() == "D"]
+    assert len(diamonds) == 2
+    assert all(d.get_markerfacecolor() == plots.SURFACE for d in diamonds)
+    # The parts of the ranges reached only by marked combinations are hatched, at both ends
+    # where they lie: 0.97 to 1.21 on the last row and 1.47 to 1.63 on the one above.
+    hatched = sorted(
+        (round(p.get_x(), 2), round(p.get_x() + p.get_width(), 2))
+        for p in axis.patches
+        if p.get_hatch()
+    )
+    assert hatched == [(0.97, 1.21), (1.47, 1.63)]
+    # One rule opens the group of rows that are parts of the row above.
+    rules = [line for line in axis.get_lines() if line.get_linewidth() == 0.6]
+    assert len(rules) == 1
+    # A count under every label, and a legend entry for each element drawn.
+    counts = [text.get_text() for text in axis.texts if text.get_text().endswith("involved")]
+    assert counts == [f"{n:,} involved" for n in (100, 200, 300, 150, 150)]
+    assert _legend_labels(axis) == ["estimate", "conditional", "range", "hatched"]
+    # Every range band has an outline as long as the whole band, in a grey that stands 3:1 or
+    # more against the white chart box (the band's own fill does not).
+    outlines = sorted(
+        (round(p.get_x(), 2), round(p.get_x() + p.get_width(), 2))
+        for p in axis.patches
+        if not p.get_fill()
+    )
+    assert outlines == [(0.66, 1.63), (0.9, 1.7), (0.97, 3.28), (1.4, 3.0)]
+    assert _contrast(plots.RANGE_OUTLINE["color"], plots.SURFACE) >= 3
+    if narrow:
+        assert figures.svg_width(tmp_path / "layers.svg") <= plots.NARROW_MAX_POINTS
+
+
+def test_estimate_and_range_lists_only_what_it_draws(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    drawn = _capture_axes(monkeypatch)
+    frame = _layered_frame().drop(columns=["clear_low", "clear_high"])
+    plots.estimate_and_range(
+        frame,
+        tmp_path / "plain.svg",
+        "Plain",
+        estimate_label="estimate",
+        conditional_label="conditional",
+        range_label="range",
+        hatch_label="hatched",
+    )
+    axis = drawn[0][0]
+    assert not [p for p in axis.patches if p.get_hatch()]
+    assert _legend_labels(axis) == ["estimate", "conditional", "range"]
+    # Bars only, with a labelled line at the estimate: no dots, whiskers or diamonds.
+    bars = pd.DataFrame(
+        {
+            "label": ["all", "a choice"],
+            "range_low": [0.97, 1.36],
+            "range_high": [3.28, 2.24],
+            "clear_low": [1.21, 1.69],
+            "clear_high": [3.28, 2.24],
+            "band_style": ["range", "factor"],
+        }
+    )
+    plots.estimate_and_range(
+        bars,
+        tmp_path / "bars.svg",
+        "Bars",
+        range_label="all combinations",
+        factor_label="one choice",
+        hatch_label="hatched",
+        lines=[(2.06, "estimate 2.06", "estimate")],
+        gap_after=["all"],
+        show_whiskers=False,
+    )
+    axis = drawn[1][0]
+    assert not [line for line in axis.get_lines() if line.get_marker() in ("o", "D")]
+    assert _legend_labels(axis) == ["all combinations", "one choice", "hatched"]
+    assert "estimate 2.06" in [text.get_text() for text in axis.texts]
+    ticks = axis.get_yticks()
+    assert ticks[0] - ticks[1] > 1.4  # the gap under the first bar
+
+
+def test_estimate_and_range_draws_a_frame_without_the_new_columns_as_before(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    drawn = _capture_axes(monkeypatch)
+    frame = _layered_frame()[["label", "reference_row", "value", "low", "high"]]
+    frame = frame.assign(range_low=[1.4, None, 0.9, 0.66, 0.97], range_high=[3, None, 2, 2, 3])
+    frame.loc[3:, ["value", "low", "high"]] = None
+    plots.estimate_and_range(
+        frame, tmp_path / "legacy.svg", "Legacy", estimate_label="e", range_label="r"
+    )
+    axis = drawn[0][0]
+    assert _legend_labels(axis) == ["e", "r"]
+    # No hatching and no texts; the only patches are the bands' outlines.
+    assert not [p for p in axis.patches if p.get_hatch() or p.get_fill()]
+    assert not [t for t in axis.texts if t.get_text()]
+    assert not [line for line in axis.get_lines() if line.get_marker() == "D"]
+    assert [label.get_text() for label in axis.get_yticklabels()][1] == "middle (reference)"

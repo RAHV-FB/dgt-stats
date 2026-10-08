@@ -12,7 +12,7 @@ contract. Two comparisons are legitimate because both sides share a real key:
    Catalan file does not state its death window; DGT publishes deaths within 24 hours and within
    30 days), so the comparison reports both DGT windows and is a reconciliation, not a merge.
 2. **Catalonia per resident, by province and year.** Key: province code and year; denominator:
-   INE residents on 1 January of the year (``io_population``, table 56947). Unit after: province-year. This is
+   INE residents on 1 July of the year (``io_population``, table 56947). Unit after: province-year. This is
    a rate per resident of the province, not a risk per trip or kilometre; it says nothing about
    who travelled where.
 
@@ -81,6 +81,10 @@ def catalonia_vs_dgt() -> pd.DataFrame:
     return merged
 
 
+# Annual rates divide by the mid-year population, as every national per-resident rate does.
+RESIDENTS_REFERENCE = "1 July"
+
+
 def catalonia_per_resident() -> pd.DataFrame:
     cat = catalonia.read()
     counts = (
@@ -94,7 +98,9 @@ def catalonia_per_resident() -> pd.DataFrame:
     )
     population = io_population.read_population()
     population = population[
-        population.all_ages & population.sex.eq("total") & population.reference.eq("1 January")
+        population.all_ages
+        & population.sex.eq("total")
+        & population.reference.eq(RESIDENTS_REFERENCE)
     ].copy()
     population["province_code"] = pd.to_numeric(population.province_code, errors="coerce")
     population = population[population.province_code.isin(PROVINCES.values())]

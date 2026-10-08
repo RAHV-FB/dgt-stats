@@ -18,6 +18,25 @@ JS_FLAG = (
     "(document.documentElement)</script>"
 )
 
+
+# Every page loads only its own files: the one inline script is allowed by its hash, style
+# attributes (the figures' widths) by 'unsafe-inline', and the calculator fetches its model from the
+# same origin. GitHub Pages sets no headers, so the policy travels in a meta element.
+def _inline_hash(element: str) -> str:
+    import base64
+    import hashlib
+
+    code = element.removeprefix("<script>").removesuffix("</script>")
+    return base64.b64encode(hashlib.sha256(code.encode("utf-8")).digest()).decode("ascii")
+
+
+CONTENT_SECURITY_POLICY = (
+    "default-src 'self'; "
+    f"script-src 'self' 'sha256-{_inline_hash(JS_FLAG)}'; "
+    "style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; "
+    "connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'"
+)
+
 SCRIPT = r"""
 (function () {
   "use strict";

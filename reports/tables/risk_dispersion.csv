@@ -1,8 +1,8 @@
-outcome,outcome_label,first_year,last_year,dispersion,mean_count
-deaths_30d,Deaths within 30 days,2013,2019,1.450092008,1751.142857
-hospitalised_30d,Injured and hospitalised,2013,2019,7.700487766,9429.142857
-crashes,Injury crashes,2013,2019,67.71350265,98545.57143
-drivers_deaths_30d,"Drivers of motorcycles, cars, vans, trucks and buses killed within 30 days",2013,2019,1,941.2857143
-drivers_hospitalised_30d,"Drivers of motorcycles, cars, vans, trucks and buses injured and hospitalised",2013,2019,1.756916349,4616.571429
-occupants_deaths_30d,"Occupants of motorcycles, cars, vans, trucks and buses killed within 30 days",2013,2019,2.3502168,1220.428571
-occupants_hospitalised_30d,"Occupants of motorcycles, cars, vans, trucks and buses injured and hospitalised",2013,2019,3.831451046,6066
+outcome,outcome_label,first_year,last_year,dispersion,pearson_dispersion,df_resid,dispersion_low,dispersion_high,t_quantile,mean_count
+deaths_30d,Deaths within 30 days,2013,2019,1.450092008,1.450092008,5,0.5650075131,8.722760752,2.570581836,1751.142857
+hospitalised_30d,Injured and hospitalised,2013,2019,7.700487766,7.700487766,5,3.000384403,46.32086247,2.570581836,9429.142857
+crashes,Injury crashes,2013,2019,67.71350265,67.71350265,5,26.38359327,407.3180737,2.570581836,98545.57143
+drivers_deaths_30d,"Drivers of motorcycles, cars, vans, trucks and buses killed within 30 days",2013,2019,1,0.9203164158,5,0.3585880666,5.535993488,2.570581836,941.2857143
+drivers_hospitalised_30d,"Drivers of motorcycles, cars, vans, trucks and buses injured and hospitalised",2013,2019,1.756916349,1.756916349,5,0.6845572088,10.56840593,2.570581836,4616.571429
+occupants_deaths_30d,"Occupants of motorcycles, cars, vans, trucks and buses killed within 30 days",2013,2019,2.3502168,2.3502168,5,0.9157282037,14.13729526,2.570581836,1220.428571
+occupants_hospitalised_30d,"Occupants of motorcycles, cars, vans, trucks and buses injured and hospitalised",2013,2019,3.831451046,3.831451046,5,1.492869843,23.04738639,2.570581836,6066

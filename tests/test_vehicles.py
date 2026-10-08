@@ -80,15 +80,19 @@ def test_summary_matches_the_yearbook_and_the_long_table() -> None:
     assert summary.loc["bus", "occupant_deaths"] == 13
     assert summary.loc["car", "injury_involvement"] == 98_475 + 131 + 1_634
     assert summary.loc["car", "occupant_deaths"] == 681
-    assert summary.loc["car", "occupant_deaths_per_fatal_involvement"] == pytest.approx(0.524)
+    assert summary.loc["car", "occupant_deaths_per_fatal_involvement"] == pytest.approx(681 / 1299)
     assert summary.loc["heavy_truck", "occupant_deaths_per_fatal_involvement"] < 0.25
     assert summary.loc["motorcycle", "occupant_deaths_per_fatal_involvement"] > 0.9
     assert sorted(summary.rank_fatal_per_bn_km) == list(range(1, len(summary) + 1))
     long = vehicles.rates_2022()
     row = long[(long.group == "bus") & (long.zone == "all") & (long.measure == "fatal_involvement")]
-    assert summary.loc["bus", "fatal_involvement_per_bn_km"] == round(
-        float(row.per_billion_km.iloc[0]), 2
+    # Rates are kept unrounded, so a printed value is rounded once: vans and light trucks were
+    # involved in 278 fatal crashes over 62.54 bn km, 4.445 per bn km, which prints as 4.4.
+    assert summary.loc["bus", "fatal_involvement_per_bn_km"] == pytest.approx(
+        float(row.per_billion_km.iloc[0]), rel=1e-12
     )
+    vans = summary.loc[vehicles.MERGED_GROUP]
+    assert f"{vans.fatal_involvement_per_bn_km:.1f}" == "4.4"
 
 
 def test_van_split_and_vehicle_groups() -> None:

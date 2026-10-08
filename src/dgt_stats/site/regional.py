@@ -3,6 +3,8 @@ and person records."""
 
 from __future__ import annotations
 
+import re
+
 import pandas as pd
 
 from dgt_stats.microdata.charts import ROAD_USER_LABELS
@@ -227,19 +229,34 @@ def page_catalonia(captions: dict[str, str]) -> str:
         "province-year",
     )
 
+    overlap = f"{int(dgt.year.min())}–{int(dgt.year.max())}"
     body = summary(
-        f"The Catalan file holds {_fmt_int(overall.n)} crashes with a death or serious injury "
-        f"recorded between {first} and {last}. It contains only such crashes, so the "
-        "percentages on this page describe severity among crashes that were already serious, "
-        "not the chance that a journey or an ordinary crash ends in a death. Of these crashes, "
-        f"{_fmt_int(overall.events)} ({_fmt_pct(overall.share)}) were fatal, with a death within "
-        f"24 hours. The fatal share was {_fmt_pct(interurban.share)} on interurban roads, almost "
-        f"three times the {_fmt_pct(urban.share)} on urban streets, and it reached "
-        f"{_fmt_pct(heavy.share)} when a heavy vehicle was involved and "
-        f"{_fmt_pct(unlit.share)} at night on roads without street lighting."
+        f"The Servei Català de Trànsit's file holds the {_fmt_int(overall.n)} crashes in "
+        f"Catalonia in {period} in which someone was killed or seriously injured; crashes with "
+        "only slight injuries are not in it. A crash counts as fatal when someone died within "
+        "24 hours: the file's fatal crashes equal DGT's crashes with a death within 24 hours in "
+        f"every province and year both cover ({overlap}). Of these crashes, "
+        f"{_fmt_int(overall.events)} ({_fmt_pct(overall.share)}) were fatal. The fatal share was "
+        f"{_fmt_pct(interurban.share)} on interurban roads, almost three times the "
+        f"{_fmt_pct(urban.share)} on urban streets, and it reached {_fmt_pct(heavy.share)} when a "
+        f"heavy vehicle was involved and {_fmt_pct(unlit.share)} at night on roads without "
+        "street lighting. Every crash here was already serious, so these shares describe "
+        "severity among serious crashes, not the chance that a journey or an ordinary crash ends "
+        'in a death. The pages on <a href="severity.html">crash circumstances in Spain</a> '
+        '(every injury crash, deaths within 30 days) and <a href="barcelona.html">Barcelona</a> '
+        "(every crash the city police attended in one year) cover other crashes with other "
+        "definitions, so their figures differ."
     )
 
     body += "<h2>Fatal share by road, vehicle and circumstance</h2>"
+    body += (
+        "<p>Each share below looks at one circumstance at a time, and the groups overlap: a "
+        "crash on an unlit interurban road involving a heavy vehicle belongs to several at once, "
+        "so a share does not separate the part played by any one circumstance. The "
+        '<a href="severity-models.html#calculator">severity model and calculator</a>, fitted on '
+        "this file, estimates the fatal share for a combination of circumstances, each adjusted "
+        "for the others.</p>"
+    )
     body += (
         "<p>Most fatal crashes were on conventional roads: "
         f"{_fmt_int(conventional.events)} of the file's {_fmt_int(overall.events)}, with "
@@ -284,10 +301,7 @@ def page_catalonia(captions: dict[str, str]) -> str:
         f"{_fmt_pct(unlit.share)} of cases and those under adequate street lighting in "
         f"{_fmt_pct(lit.share)}, the highest and lowest shares of any lighting condition. Away "
         f"from a junction, {_fmt_pct(between.share)} of crashes were fatal; inside a junction, "
-        f"{_fmt_pct(inside.share)}. The groups overlap: a crash on an unlit interurban road "
-        "involving a heavy vehicle belongs to several at once, so each fatal share describes "
-        "the circumstances that go with a fatal outcome without separating the part played by "
-        "any one of them.</p>"
+        f"{_fmt_pct(inside.share)}.</p>"
     )
     body += technical(
         "Fatal share by zone, road type, vehicle, type of crash, lighting and junction",
@@ -318,12 +332,13 @@ def page_catalonia(captions: dict[str, str]) -> str:
             ),
             "Fatal share of crashes with a death or serious injury, Catalonia, "
             f"{period} (groups with at least {MIN_N} crashes; a crash involving several kinds of "
-            "vehicle counts in each).",
+            "vehicle counts in each). Zone and road type are separate fields of the file, so "
+            "their urban-street groups differ slightly.",
             {"Crashes": "int", "Fatal": "int", "Fatal share": "pct"},
         ),
     )
 
-    body += "<h2>Fatal share by posted speed limit</h2>"
+    body += "<h2>The fatal share rises with the posted speed limit</h2>"
     limits_ = shares[shares.dimension == "speed limit"].set_index("level")
     generic = limits_.loc["generic limit for the road (value not recorded)"]
     posted = shares[
@@ -358,11 +373,10 @@ def page_catalonia(captions: dict[str, str]) -> str:
     body += figure(
         "cat2_fatal_by_speed_limit",
         "Dot chart of the fatal share by posted speed limit, with 95% intervals; the share "
-        "rises with the limit",
+        "rises with the limit, and most crashes have no posted limit recorded",
         captions,
     )
 
-    body += "<h2>Crashes by year and province</h2>"
     by_year = frequency.groupby("year")[["crashes", "fatal_crashes", "deaths"]].sum()
     low_year = int(by_year.crashes.idxmin())
     _check(
@@ -370,29 +384,33 @@ def page_catalonia(captions: dict[str, str]) -> str:
         "catalonia",
         "the yearly count falls to its lowest inside the period",
     )
-    latest = per_resident[per_resident.year == per_resident.year.max()].sort_values(
-        "crashes_fatal_or_serious_per_100k_residents", ascending=False
+    # Over the whole file, so that one year's chance variation does not set the order.
+    pooled = per_resident.groupby("demarcation")[["crashes_fatal_or_serious", "population"]].sum()
+    pooled = (pooled.crashes_fatal_or_serious / pooled.population * 1e5).sort_values(
+        ascending=False
     )
-    rates = [
-        f"{esc(row.demarcation)} ({_fmt_dec(row.crashes_fatal_or_serious_per_100k_residents)})"
-        for row in latest.iloc[1:].itertuples()
+    yearly_top = per_resident.loc[
+        per_resident.groupby("year").crashes_fatal_or_serious_per_100k_residents.idxmax(),
+        "demarcation",
     ]
-    top_rate = latest.iloc[0]
+    _check(
+        yearly_top.nunique() == 1 and yearly_top.iloc[0] == pooled.index[0],
+        "catalonia",
+        "the same province has the highest rate per resident in every year",
+    )
+    rates = [f"{esc(name)} ({_fmt_dec(rate)})" for name, rate in pooled.iloc[1:].items()]
+    body += f"<h2>Fewest crashes in {low_year}, most per resident in {esc(pooled.index[0])}</h2>"
     body += (
         "<p>The number of crashes with a death or serious injury fell from "
         f"{_fmt_int(by_year.crashes.loc[first])} in {first} to "
         f"{_fmt_int(by_year.crashes.loc[low_year])} in {low_year}, the lowest of the period, and "
         f"was {_fmt_int(by_year.crashes.loc[last])} in {last}. Relative to population, such "
-        f"crashes in {int(top_rate.year)} were most frequent in the province of "
-        f"{esc(top_rate.demarcation)}, with "
-        f"{_fmt_dec(top_rate.crashes_fatal_or_serious_per_100k_residents)} per 100,000 "
-        f"residents, followed by the provinces of {_join(rates)}. These are rates per resident; "
-        "the file has no measure of how far people travel.</p>"
-    )
-    body += figure(
-        "cat6_crashes_by_year",
-        "Bar chart of crashes with a death or serious injury recorded each year",
-        captions,
+        f"crashes were most frequent in the province of {esc(pooled.index[0])} in every year. "
+        f"Over {period} it recorded {_fmt_dec(pooled.iloc[0])} a year per 100,000 residents, "
+        f"followed by the provinces of {_join(rates)}. The crashes are counted where they "
+        "happened and the residents where they live, so visitors and through traffic count in "
+        "a province's crashes but not in its population. These are rates per resident; the "
+        "file has no measure of how far people travel.</p>"
     )
     body += technical(
         "Crashes, fatal crashes and deaths by year",
@@ -402,32 +420,45 @@ def page_catalonia(captions: dict[str, str]) -> str:
                     "year": "Year",
                     "crashes": "Crashes",
                     "fatal_crashes": "Fatal crashes",
-                    "deaths": "Deaths",
+                    "deaths": "Deaths within 24 hours",
                 }
             ),
-            f"Recorded crashes with a death or serious injury by year, Catalonia, {period}.",
-            {"Year": "year", "Crashes": "int", "Fatal crashes": "int", "Deaths": "int"},
+            f"Recorded crashes with a death or serious injury by year, Catalonia, {period}. A "
+            "fatal crash is one in which someone died within 24 hours; later deaths are recorded "
+            "as serious injuries.",
+            {
+                "Year": "year",
+                "Crashes": "int",
+                "Fatal crashes": "int",
+                "Deaths within 24 hours": "int",
+            },
         ),
     )
-
-    body += '<h2 id="dgt-agreement">Agreement with DGT\'s national records</h2>'
-    overlap = f"{int(dgt.year.min())}–{int(dgt.year.max())}"
-    ratio30 = dgt.ratio_fatal_30d
-    body += (
-        "<p>The Catalan file shares no record identifier with DGT's national crash records, so "
-        "the two are compared by year and province (the file's traffic demarcations). Over "
-        f"{overlap}, the file's count of fatal crashes equals DGT's count of crashes with a "
-        f"death within 24 hours in {equal_fatal_24h} of {len(dgt)} province-years, and its total "
-        "count matches DGT's 24-hour count of crashes with a death or serious injury to within "
-        "one crash in every province-year. Its fatal count is "
-        f"{_fmt_pct(ratio30.min(), 0)}–{_fmt_pct(ratio30.max(), 0)} of DGT's 30-day count. The "
-        "file does not state its definition, but the counts show that it treats a crash as "
-        "fatal when someone died within 24 hours, and every comparison with national figures "
-        "uses that definition.</p>"
+    body += limitation(
+        "The file describes crashes only. It has no records of the people involved and no "
+        "alcohol or drug test results."
     )
 
-    body += "<h2>Fields recorded unevenly</h2>"
+    # Two checks on the file itself, kept as technical notes after the results.
+    ratio30 = dgt.ratio_fatal_30d
+    body += technical(
+        "How the file's counts compare with DGT's national records",
+        "<p>The Catalan file shares no record identifier with DGT's national crash records, so "
+        "the two are compared by year and province (the file's traffic demarcations). Over "
+        f"{overlap}, the file's fatal crashes equal DGT's crashes with a death within 24 hours "
+        f"in all {len(dgt)} province-years, and its total count matches DGT's 24-hour count of "
+        "crashes with a death or serious injury to within one crash in every province-year. "
+        f"Its fatal count is {_fmt_pct(ratio30.min(), 0).removesuffix('%')}–"
+        f"{_fmt_pct(ratio30.max(), 0)} of DGT's count of crashes with a death within 30 days. "
+        "The file does not state its definition; the counts show that it is the 24-hour "
+        "one.</p>",
+    ).replace('<details class="technical">', '<details class="technical" id="dgt-agreement">', 1)
     outcome_dependent = artefacts[artefacts.verdict == "outcome-dependent recording"]
+    # The recording check runs on the training and choice years of the first Catalan model,
+    # never on its test year.
+    design = read_table("ml_split_isolation").set_index("model").design
+    design_years = re.findall(r"\d{4}", design["catalonia_crash_severity"])
+    checked = f"{design_years[0]}–{design_years[3]}"
     _check(
         bool((outcome_dependent.ratio_fatal_to_serious < 1).all()),
         "catalonia",
@@ -447,20 +478,18 @@ def page_catalonia(captions: dict[str, str]) -> str:
         "catalonia",
         "no duplicated rows, and every severity label agrees with the casualty counts",
     )
-    body += (
-        f"<p>{_count_word(len(set(outcome_dependent.column))).capitalize()} fields are left "
-        "blank or marked “not specified” more often in non-fatal crashes than in fatal ones. "
-        f"The {_field_phrase(worst.column)}, for example, is {_blank_label(worst.level)} in "
+    body += technical(
+        "Fields left blank more often in non-fatal crashes",
+        f"<p>The recording check, run on the crashes of {checked}, finds "
+        f"{_count_word(len(set(outcome_dependent.column)))} fields that are left blank or marked "
+        "“not specified” much more often in non-fatal crashes than in fatal ones. The "
+        f"{_field_phrase(worst.column)}, for example, is {_blank_label(worst.level)} in "
         f"{_fmt_pct(worst.rate_serious)} of non-fatal crashes and {_fmt_pct(worst.rate_fatal)} "
         "of fatal ones. The file gives no reason, but the blank itself carries information "
-        'about the outcome, so the <a href="severity-models.html">Catalonia crash-severity '
-        "model</a> leaves these fields out. Otherwise the file is consistent: it has no "
-        "duplicated rows, and every severity label agrees with the deaths and injuries recorded "
-        f"on the same row. The repository's {DATA_QUALITY} documents these checks.</p>"
-    )
-    body += limitation(
-        "The file describes crashes only. It has no records of the people involved and no "
-        "alcohol or drug test results."
+        "about the outcome, and none of these fields is used on this page. Otherwise the file "
+        "is consistent: it has no duplicated rows, and every severity label agrees with the "
+        f"deaths and injuries recorded on the same row. The repository's {DATA_QUALITY} "
+        "documents these checks.</p>",
     )
     body += downloads(
         [
@@ -479,7 +508,6 @@ def page_catalonia(captions: dict[str, str]) -> str:
         "Servei Català de Trànsit's file: how often they were fatal, and in which "
         "circumstances.",
         body,
-        scope=f"Catalonia · serious or fatal crashes · {period}",
     )
 
 
@@ -505,13 +533,35 @@ def _cause_rows(causes: pd.DataFrame) -> pd.DataFrame:
     )
 
 
-def _person_group(dimension: str, label: str) -> str:
+def _person_label(dimension: str, label: str) -> str:
+    """A group of people as its table row names it; the column already names the breakdown."""
     if dimension == "age band":
-        return "Age: " + ("75 and over" if label == "75+" else _dash(label))
-    if dimension == "road user":
+        label = "75 and over" if label == "75+" else _dash(label)
+    elif dimension == "road user":
         # The same names the road-user figure uses.
         label = ROAD_USER_LABELS.get(label, label)
-    return f"{dimension.capitalize()}: {label}"
+    return label[:1].upper() + label[1:]
+
+
+def _person_table(people: pd.DataFrame, dimension: str, column: str, caption: str) -> str:
+    """Serious or fatal injury for one breakdown of the people. Road users are ordered as in
+    their figure, from the highest share; age bands and sexes keep the table's order."""
+    rows = people[(people.dimension == dimension) & (people.n >= MIN_N)]
+    if dimension == "road user":
+        rows = rows.sort_values(["share", "n"], ascending=False, kind="stable")
+    return table(
+        pd.DataFrame(
+            {
+                column: [_person_label(dimension, label) for label in rows.label],
+                "People": rows.n,
+                "Serious or fatal": rows.events,
+                "Share": rows.share,
+                "95% interval": [_interval(lo, hi) for lo, hi in zip(rows.ci_low, rows.ci_high)],
+            }
+        ),
+        caption,
+        {"People": "int", "Serious or fatal": "int", "Share": "pct"},
+    )
 
 
 def page_barcelona(captions: dict[str, str]) -> str:
@@ -595,20 +645,50 @@ def page_barcelona(captions: dict[str, str]) -> str:
     )
     crash_types = _dimension(crashes, "crash type").set_index("level")
     struck = crash_types.loc["pedestrian struck"]
-    catching_up = crash_types.loc["rear collision while catching up"]
     rear_end = crash_types.loc["rear-end collision"]
+    # The codes as recorded: "Encalç", the Catalan file's term for a rear-end collision, against
+    # the Guàrdia Urbana's own rear-end code ("Abast"); together they make the rear-end group.
+    # Multiple rear-end collisions ("Abast multiple") are a crash type of their own.
+    codes = crashes[crashes.dimension == "crash-type code as recorded"].set_index("level")
+    catching_up = codes.loc["Encalç"]
+    own_n, own_events = int(codes.loc["Abast", "n"]), int(codes.loc["Abast", "events"])
+    multiple = codes.loc["Abast multiple"]
     _check(
-        catching_up.share == crash_types.share.max()
-        and catching_up.n < 100
-        and rear_end.ci_high < crash_all.share,
+        catching_up.n + codes.loc["Abast", "n"] == rear_end.n
+        and catching_up.events + codes.loc["Abast", "events"] == rear_end.events
+        and catching_up.share > 10 * crash_all.share
+        and own_events / own_n < crash_all.share
+        and int(multiple.events) == 0,
         "barcelona",
-        "the small catching-up category has the highest share of any crash type, rear-end "
-        "collisions a share below average",
+        "the term for a catching-up rear collision marks mostly serious crashes, the force's own "
+        "rear-end codes almost none, and the two together make the rear-end group",
     )
     _check(
-        struck.ci_low > crash_all.share and struck.share > 2 * crash_all.share,
+        rear_end.ci_high < crash_all.share,
         "barcelona",
-        "crashes in which a pedestrian is struck are more than twice as often serious",
+        "rear-end collisions are less often serious than the average crash",
+    )
+    _check(
+        crash_types.share.idxmax() == "pedestrian struck"
+        and struck.ci_low > crash_all.share
+        and struck.share > 2 * crash_all.share,
+        "barcelona",
+        "among crash types with enough crashes, a pedestrian struck has the highest share, more "
+        "than twice the average",
+    )
+    rule = read_table("ml_rule_comparison").set_index("model").loc["barcelona_crash_severity"]
+    _check(
+        not bool(rule.model_adds_signal_over_table) and rule.rule == "accident_type",
+        "barcelona",
+        "a model of the crashes ranks them no better than the table by accident type",
+    )
+    semantics = read_table("mq_bcn_count_semantics").set_index("check").value
+    no_victim = int(semantics["blank cells in Numero_victimes"])
+    injury_share = crash_all.events / (crash_all.n - no_victim)
+    _check(
+        0 < no_victim < crash_all.n and crash_all.n == n_crashes,
+        "barcelona",
+        "some of the crashes the police attended had no victim",
     )
     alcohol = profiles[(profiles.cause == "alcohol")].set_index(["group", "measure"])
     alc_night = alcohol.loc[("alcohol recorded", "night_shift")]
@@ -618,9 +698,20 @@ def page_barcelona(captions: dict[str, str]) -> str:
         "barcelona",
         "alcohol-recorded crashes are more often at night",
     )
+    # "Not determined" says that no driver cause was established; it is not a cause.
     causes = crashes[
-        (crashes.dimension == "cause recorded") & (crashes.level != "all") & (crashes.n >= MIN_N)
+        (crashes.dimension == "cause recorded")
+        & (crashes.level != "all")
+        & (crashes.n >= MIN_N)
+        & ~crashes.level.str.startswith("not determined")
     ].sort_values("n", ascending=False)
+    driver_status = crashes[crashes.dimension == "driver causes recorded"].set_index("level").n
+    mediate_status = crashes[crashes.dimension == "mediate causes recorded"].set_index("level").n
+    _check(
+        int(driver_status.sum()) == n_crashes and int(mediate_status.sum()) == n_crashes,
+        "barcelona",
+        "every crash has one driver-cause and one contributing-factor status",
+    )
     most_recorded = causes.iloc[0]
     most_serious = causes.sort_values("share").iloc[-1]
     _check(
@@ -629,43 +720,54 @@ def page_barcelona(captions: dict[str, str]) -> str:
         "the most often serious recorded cause is above the all-crash share",
     )
 
-    body = summary(
-        f"The Guàrdia Urbana, Barcelona's city police, recorded {_fmt_int(n_crashes)} crashes "
-        f"in {year}, with every person involved. Among the {_fmt_int(labelled)} people whose "
-        f"outcome was recorded, {_fmt_pct(severe_people / labelled)} were seriously or fatally "
-        "injured. Pedestrians and motorcyclists were much more often seriously or fatally "
-        f"injured than car drivers: {_fmt_pct(pedestrian.share)} of pedestrians and "
-        f"{_fmt_pct(motorcycle.share)} of motorcyclists, against {_fmt_int(car_driver.events)} "
-        f"of {_fmt_int(car_driver.n)} car drivers ({_fmt_pct(car_driver.share, 2)}). These shares "
-        "are conditional on appearing in a recorded crash. The data contain no measure of how "
-        "much each group travels, so they are not rates per journey or per kilometre."
-    )
-    natural_deaths = (
-        f", and {_count_word(natural)} death{'s' if natural > 1 else ''} the police recorded "
-        "as natural,"
-        if natural
-        else ""
-    )
-    body += (
-        "<p>Unlike the Catalan file, the records include crashes without a serious injury and "
-        f"people who were not hurt. People whose outcome was not recorded{natural_deaths} are "
-        "left out of the shares. The crash, person, vehicle and cause tables are linked by a "
-        "crash number but share no identifier with the Catalan file or DGT's records.</p>"
+    _check(
+        int(driver_status.get("blank", 0)) + int(driver_status.get("not_determined", 0))
+        < n_crashes / 2,
+        "barcelona",
+        "most crashes have a driver cause recorded",
     )
 
-    body += "<h2>Serious injury by road user, age and sex</h2>"
+    body = summary(
+        f"The Guàrdia Urbana, Barcelona's city police, recorded {_fmt_int(n_crashes)} crashes "
+        f"in {year}: every crash it attended, including those in which nobody was hurt, with "
+        "every person involved. A person counts as seriously injured after more than 24 hours "
+        "in hospital, and the shares on this page put serious and fatal injuries together. "
+        f"Among the {_fmt_int(labelled)} people whose outcome was recorded, "
+        f"{_fmt_pct(severe_people / labelled)} were seriously or fatally injured. Pedestrians "
+        "and motorcyclists were much more often seriously or fatally injured than car drivers: "
+        f"{_fmt_pct(pedestrian.share)} of pedestrians and {_fmt_pct(motorcycle.share)} of "
+        f"motorcyclists, against {_fmt_int(car_driver.events)} of {_fmt_int(car_driver.n)} car "
+        f"drivers ({_fmt_pct(car_driver.share, 2)}). These shares are among people in recorded "
+        "crashes, not rates per journey or per kilometre. The pages on "
+        '<a href="severity.html">crash circumstances in Spain</a> (every injury crash, deaths '
+        'within 30 days) and <a href="catalonia.html">Catalonia</a> (crashes with a death or '
+        "serious injury, deaths within 24 hours) cover other crashes with other definitions, so "
+        "their figures differ."
+    )
+
+    body += "<h2>Pedestrians and people aged 75 and over were most often seriously hurt</h2>"
     body += figure(
         "bcn1_severity_by_road_user",
         "Dot chart of the share of people seriously or fatally injured, by road user, with 95% "
         "intervals; pedestrians have the highest share",
         captions,
     )
+    not_recorded = int(outcomes.get("not_recorded", 0))
+    left_out = f"the {_fmt_int(not_recorded)} people whose outcome was not recorded" + (
+        f" and {_count_word(natural)} death{'s' if natural > 1 else ''} the police recorded as "
+        "natural"
+        if natural
+        else ""
+    )
     body += (
         f"<p>The shares for {_join(rider_shares)} lie between those of car drivers and "
         "motorcyclists. By age, the share is highest among people aged 75 and over "
         f"({_fmt_pct(oldest.share)}); in every younger age band it lies between "
         f"{_fmt_pct(younger.share.min())} and {_fmt_pct(younger.share.max())}. Women and men "
-        f"differ little ({_fmt_pct(female.share)} and {_fmt_pct(male.share)}).</p>"
+        f"differ little ({_fmt_pct(female.share)} and {_fmt_pct(male.share)}). The shares leave "
+        f"out {left_out}; counted as uninjured, the people without a recorded outcome would "
+        f"lower the overall share from {_fmt_pct(severe_people / labelled)} to "
+        f"{_fmt_pct(severe_people / (labelled + not_recorded))}.</p>"
     )
     body += figure(
         "bcn2_severity_by_age",
@@ -673,53 +775,58 @@ def page_barcelona(captions: dict[str, str]) -> str:
         "intervals; the share is highest at 75 and over",
         captions,
     )
-    rows = people[people.dimension.isin(["road user", "age band", "sex"]) & (people.n >= MIN_N)]
+    note = (
+        f"People with a recorded outcome, Barcelona, {year}, in groups of at least {MIN_N} people."
+    )
     body += technical(
         "Serious or fatal injury by road user, age and sex (counts and intervals)",
-        table(
-            pd.DataFrame(
-                {
-                    "Group": [
-                        _person_group(d, label) for d, label in zip(rows.dimension, rows.label)
-                    ],
-                    "People": rows.n,
-                    "Serious or fatal": rows.events,
-                    "Share": rows.share,
-                    "95% interval": [
-                        _interval(lo, hi) for lo, hi in zip(rows.ci_low, rows.ci_high)
-                    ],
-                }
-            ),
-            f"Serious or fatal injury among people with a recorded outcome, Barcelona, {year} "
-            f"(groups with at least {MIN_N} people).",
-            {"People": "int", "Serious or fatal": "int", "Share": "pct"},
-        ),
+        _person_table(
+            people, "road user", "Road user", f"Serious or fatal injury by road user. {note}"
+        )
+        + _person_table(people, "age band", "Age", f"Serious or fatal injury by age. {note}")
+        + _person_table(people, "sex", "Sex", f"Serious or fatal injury by sex. {note}"),
     )
 
-    body += "<h2>Serious injury by type of crash</h2>"
     body += (
-        f"<p>Of the {_fmt_int(n_crashes)} crashes, {_fmt_pct(crash_all.share)} had at least one "
-        "serious or fatal injury, more than the share of people because one seriously injured "
-        "person is enough to place a crash in that group. When a pedestrian was struck, the "
-        f"share was {_fmt_pct(struck.share)}, more than twice the average. The highest share, "
-        f"{_fmt_pct(catching_up.share)} of {_fmt_int(catching_up.n)} crashes, belongs to a "
-        "category the Guàrdia Urbana codes as a rear collision while catching up; of the "
-        f"{_fmt_int(rear_end.n)} crashes it codes as rear-end collisions, "
-        f"{_fmt_pct(rear_end.share)} had a serious or fatal injury. A model of these crashes "
-        "ranked them no better than this grouping by accident type "
-        '(<a href="severity-models.html">predictive models</a>).</p>'
+        '<h2 id="serious-injury-by-type-of-crash">Crashes in which a pedestrian was struck were '
+        "most often serious</h2>"
+    )
+    body += (
+        f"<p>Of the {_fmt_int(n_crashes)} crashes the police attended, "
+        f"{_fmt_pct(crash_all.share)} had at least one serious or fatal injury, more than the "
+        "share of people because one seriously injured person is enough to place a crash in "
+        f"that group. The police recorded no victim in {_fmt_int(no_victim)} of them; among the "
+        f"crashes with a victim the share is {_fmt_pct(injury_share)}. Among crash types with at "
+        f"least {MIN_N} "
+        "crashes, the share is highest when a pedestrian was struck: "
+        f"{_fmt_pct(struck.share)}, more than twice the average. Rear-end collisions had a "
+        f"serious or fatal injury in {_fmt_pct(rear_end.share)} of {_fmt_int(rear_end.n)} "
+        "crashes. They include the crashes coded with the Catalan file's term for a rear-end "
+        f"collision: {_fmt_int(catching_up.events)} of those {_fmt_int(catching_up.n)} crashes "
+        f"had a serious or fatal injury, against {_fmt_int(own_events)} of the other "
+        f"{_fmt_int(own_n)}, coded with the Guàrdia Urbana's own rear-end code (and none of the "
+        f"{_fmt_int(int(multiple.n))} multiple rear-end collisions, a crash type of their own). "
+        "The term is used "
+        "when a crash is serious, so it records the outcome rather than a kind of crash, and "
+        "this page counts it with the other rear-end collisions. A model of these crashes "
+        "ranked them no better than a table of shares by accident type; both were fitted on the "
+        "crash type as recorded, the term above included "
+        '(<a href="data.html#models">how the models were judged</a>).</p>'
     )
     body += figure(
         "bcn4_crash_severity_by_type",
         "Dot chart of the share of crashes with a serious or fatal injury, by crash type, with "
-        "95% intervals",
+        "95% intervals; crashes in which a pedestrian was struck have the highest share",
         captions,
     )
 
     body += "<h2>Causes recorded by the police</h2>"
     body += (
-        "<p>For each crash the Guàrdia Urbana records one or more causes or contributing "
-        "factors, such as lack of attention, alcohol or the state of the road. They are "
+        "<p>For most crashes the Guàrdia Urbana records one or more causes or contributing "
+        "factors, such as lack of attention, alcohol or the state of the road. No driver cause "
+        f"is recorded for {_fmt_int(driver_status.get('blank', 0))} crashes and only “not "
+        f"determined” for {_fmt_int(driver_status.get('not_determined', 0))}; contributing "
+        f"factors are recorded for {_fmt_int(mediate_status.get('recorded', 0))}. They are "
         "classifications the police make after attending the crash, a crash can have several, "
         "and they are not causal estimates produced by this study. They are also recorded for "
         "the crash as a whole: no key links a cause to the driver or vehicle concerned, so a "
@@ -741,7 +848,11 @@ def page_barcelona(captions: dict[str, str]) -> str:
         f"{year} (causes recorded in at least {MIN_N} crashes; a crash can have several).",
         {"Crashes": "int", "Serious or fatal": "int", "Share": "pct"},
     )
-    body += limitation("The records cover one year in one city, so they show no change over time.")
+    body += limitation(
+        "The records cover one year in one city, so they show no change over time. Their "
+        "crash, person, vehicle and cause tables are linked by a crash number, but they share "
+        "no identifier with the Catalan file or DGT's records."
+    )
     body += downloads(
         [
             ("bcn_person_severity_share", "injury by person group"),
@@ -759,5 +870,4 @@ def page_barcelona(captions: dict[str, str]) -> str:
         f"Every crash Barcelona's city police attended in {year}, with each person involved: "
         "who was seriously hurt, in which kinds of crash, and the causes the police recorded.",
         body,
-        scope=f"Barcelona · police-attended crashes · {year}",
     )

@@ -24,8 +24,8 @@ Road type,TIPO_VIA,999,urban street (the not specified level was merged; no cras
 Road type,TIPO_VIA,998,not applicable (no crash takes this value),False
 Road type,TIPO_VIA,any other value or empty,"urban street (merged: the not specified level's 85 crashes, fewer than 500)",True
 Crash type,TIPO_ACCIDENTE,1,head-on collision,False
-Crash type,TIPO_ACCIDENTE,2,side collision,True
-Crash type,TIPO_ACCIDENTE,3,side collision,True
+Crash type,TIPO_ACCIDENTE,2,side or front-side collision,True
+Crash type,TIPO_ACCIDENTE,3,side or front-side collision,True
 Crash type,TIPO_ACCIDENTE,4,rear-end or chain collision,False
 Crash type,TIPO_ACCIDENTE,5,rear-end or chain collision,False
 Crash type,TIPO_ACCIDENTE,6,object or animal struck,False
@@ -43,14 +43,16 @@ Crash type,TIPO_ACCIDENTE,17,run-off or overturn,False
 Crash type,TIPO_ACCIDENTE,18,run-off or overturn,False
 Crash type,TIPO_ACCIDENTE,19,run-off or overturn,False
 Crash type,TIPO_ACCIDENTE,20,other crash type,False
-Crash type,TIPO_ACCIDENTE,999,side collision (the not specified level was merged; no crash takes this code),True
+Crash type,TIPO_ACCIDENTE,999,side or front-side collision (the not specified level was merged; no crash takes this code),True
 Crash type,TIPO_ACCIDENTE,998,not applicable (no crash takes this value),False
-Crash type,TIPO_ACCIDENTE,any other value or empty,"side collision (merged: the not specified level's 35 crashes, fewer than 500)",True
+Crash type,TIPO_ACCIDENTE,any other value or empty,"side or front-side collision (merged: the not specified level's 35 crashes, fewer than 500)",True
 Junction,NUDO,2,not at a junction,True
 Junction,NUDO,1,at a junction,False
 Junction,NUDO,999,not at a junction (the not specified level was merged; no crash takes this code),True
 Junction,NUDO,998,not applicable (no crash takes this value),False
 Junction,NUDO,any other value or empty,"not at a junction (merged: the not specified level's 356 crashes, fewer than 500)",True
+Junction,NUDO,2 where the flag is inverted,"at a junction (flag read the other way round: Barcelona, Girona, Lleida and Tarragona in 2023–2024)",False
+Junction,NUDO,1 where the flag is inverted,"not at a junction (flag read the other way round: Barcelona, Girona, Lleida and Tarragona in 2023–2024)",True
 Lighting,CONDICION_ILUMINACION,1,daylight,True
 Lighting,CONDICION_ILUMINACION,2,dusk or dawn,False
 Lighting,CONDICION_ILUMINACION,3,dusk or dawn,False

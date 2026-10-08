@@ -1,0 +1,39 @@
+check,subject,value,low,high,mc_se_low,mc_se_high,note
+"B-licence holders per resident, 75 and over over 65-74 (DGT 2024)","province of Madrid, male",0.7150746542,,,,,
+"B-licence holders per resident, 75 and over over 65-74 (DGT 2024)","province of Madrid, female",0.2845420741,,,,,
+"B-licence holders per resident, 75 and over over 65-74 (DGT 2024)","province of Barcelona, male",0.7161300324,,,,,
+"B-licence holders per resident, 75 and over over 65-74 (DGT 2024)","province of Barcelona, female",0.2755763176,,,,,
+"B-licence holders per resident, 75 and over over 65-74 (DGT 2024)","Spain, male",0.7103009522,,,,,
+"B-licence holders per resident, 75 and over over 65-74 (DGT 2024)","Spain, female",0.2622559643,,,,,
+"Madrid 2018 car-driver km per DGT 2024 licence holder, 75 and over over 65-74",male,0.4765773586,0.3637380585,0.6266637229,0.011879491,0.01991246308,EDM2018 ratio per resident over DGT 2024 licence holding in the province of Madrid
+"Madrid 2018 car-driver km per DGT 2024 licence holder, 75 and over over 65-74",female,0.9921932783,0.5594802853,1.582243713,0.02393983761,0.07140654108,EDM2018 ratio per resident over DGT 2024 licence holding in the province of Madrid
+"Implied km per DGT licence holder, 75 and over over 65-74",Madrid survey: km per resident; male,0.4797802803,,,,,
+"Implied km per DGT licence holder, 75 and over over 65-74",Madrid survey: km per resident; female,1.076508342,,,,,
+"Implied km per DGT licence holder, 75 and over over 65-74",Madrid survey: km per resident; both sexes,0.6082247668,,,,,
+"Implied km per DGT licence holder, 75 and over over 65-74","Madrid km per DGT licence holder, Spain's licence holders; male",0.4765773586,,,,,
+"Implied km per DGT licence holder, 75 and over over 65-74","Madrid km per DGT licence holder, Spain's licence holders; female",0.9921932783,,,,,
+"Implied km per DGT licence holder, 75 and over over 65-74","Madrid km per DGT licence holder, Spain's licence holders; both sexes",0.5944097307,,,,,
+"Implied km per DGT licence holder, 75 and over over 65-74","RACC driving-days limit for men, equal km per licence holder for women; male",0.6765655286,,,,,
+"Implied km per DGT licence holder, 75 and over over 65-74","RACC driving-days limit for men, equal km per licence holder for women; female",1,,,,,
+"Implied km per DGT licence holder, 75 and over over 65-74","RACC driving-days limit for men, equal km per licence holder for women; both sexes",0.7876923529,,,,,
+"Implied km per DGT licence holder, 75 and over over 65-74",equal km per licence holder; male,1,,,,,
+"Implied km per DGT licence holder, 75 and over over 65-74",equal km per licence holder; female,1,,,,,
+"Implied km per DGT licence holder, 75 and over over 65-74",equal km per licence holder; both sexes,1.082966751,,,,,
+"Working-day car-driver km per resident in Spain, 65 and over over 45-64","A: EMEF, province of Barcelona",0.4060815171,,,,,
+"Working-day car-driver km per resident in Spain, 65 and over over 45-64",C: Madrid survey 2018,0.277434796,,,,,
+"Working-day car-driver km per resident in the survey's own area, 65 and over over 45-64","A: EMEF, province of Barcelona",0.3988262001,,,,,"the survey's own residents, weighted, both sexes"
+"Working-day car-driver km per resident in the survey's own area, 65 and over over 45-64",C: Madrid survey 2018,0.28830106,,,,,"the survey's own residents, weighted, both sexes"
+"Km of cars registered to private owners, 75 and over over 65-74",per resident,0.451021366,,,,,owner km cannot say who drove
+"Km of cars registered to private owners, 75 and over over 65-74",per car,0.7604211597,,,,,owner km cannot say who drove
+"Km of cars registered to private owners, 75 and over over 65-74",per B-licence holder,0.9231219314,,,,,owner km cannot say who drove
+Cars registered to private owners per B-licence holder,65-74,0.9398885964,,,,,
+Cars registered to private owners per B-licence holder,75+,1.140988471,,,,,
+"Licence holders of any class per resident aged 75 and over, 2024 over 2018 (DGT census, INE)",male,1.082446077,,,,,
+"Licence holders of any class per resident, 75 and over over 65-74, 2024 over 2018 (DGT census, INE)",male,1.074497001,,,,,
+"Licence holders of any class per resident aged 75 and over, 2024 over 2018 (DGT census, INE)",female,1.681550109,,,,,
+"Licence holders of any class per resident, 75 and over over 65-74, 2024 over 2018 (DGT census, INE)",female,1.297251927,,,,,
+"Conditional estimate, 75 and over over 45-64, with the Madrid ratios scaled by that change in licence holding (driving per holder as in 2018; exploratory)",both sexes,1.882738953,,,,,assumes km per licence holder at 65-74 and at 75 and over as in Madrid in 2018
+"Car drivers involved in injury crashes per 1,000 B-licence holders",75+,2.839335666,,,,,
+"Car drivers involved in injury crashes per 1,000 B-licence holders",65-74,2.133194589,,,,,
+"Car drivers involved in injury crashes per 1,000 B-licence holders",45-64,2.983309636,,,,,
+"Car drivers involved per B-licence holder, 75 and over over 45-64",count-only 95% interval,0.9517401853,0.9224892835,0.9814540867,0.0001116975141,0.0001327864791,Poisson error in the two counts only

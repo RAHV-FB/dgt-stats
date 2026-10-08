@@ -1,15 +1,16 @@
-"""Subset the site's two open fonts: web fonts for the pages and static fonts for the charts.
+"""Subset the site's two open fonts: a web font for the pages and static fonts for the charts.
 
-The web fonts go to ``src/dgt_stats/site/fonts`` and the site build copies them. The charts' fonts,
-two static weights of the serif, go to ``src/dgt_stats/fonts``: matplotlib lays chart text out with
-them, and each chart embeds the glyphs it uses, so it reads the same on every system. Not part of
+The web fonts, the sans in two styles, go to ``src/dgt_stats/site/fonts`` and the site build copies
+them. The charts' fonts, two static weights of the serif, go to ``src/dgt_stats/fonts``: matplotlib
+lays chart text out with them, and each chart embeds the glyphs it uses, so it reads the same on
+every system. Not part of
 the pipeline: the subsets are committed. Run it again only to change the character set or update
 a font. It needs ``fonttools`` with Brotli for
 WOFF2 output, and the source fonts from the google/fonts repository (SIL Open Font License):
 
 - ``ofl/nunitosans/NunitoSans[YTLC,opsz,wdth,wght].ttf`` and its italic: the stand-in for Avenir
   Next on systems that do not have it (Avenir Next ships with macOS and iOS only);
-- ``ofl/stixtwotext/STIXTwoText[wght].ttf`` and its italic: the serif of the technical text.
+- ``ofl/stixtwotext/STIXTwoText[wght].ttf``: the serif of the charts.
 
 Usage:
     python scripts/build_fonts.py <directory holding the source fonts>
@@ -67,8 +68,6 @@ FONTS = (
         "NunitoSans-Italic.woff2",
         {"wght": (300, 800), "wdth": 100, "opsz": 12, "YTLC": 500},
     ),
-    ("STIXTwoText[wght].ttf", "STIXTwoText.woff2", {"wght": (400, 700)}),
-    ("STIXTwoText-Italic[wght].ttf", "STIXTwoText-Italic.woff2", {"wght": (400, 700)}),
 )
 
 

@@ -63,8 +63,7 @@ Barcelona 2025,person record with a recorded victimisation,serious or fatal inju
 Barcelona 2025,person record with a recorded victimisation,serious or fatal injury,crash type,other run-off-road,3,2,other run-off-road,0.666667,0.207655,0.93851,True
 Barcelona 2025,person record with a recorded victimisation,serious or fatal injury,crash type,overturn (more than two wheels),13,0,overturn (more than two wheels),0,0,0.228102,True
 Barcelona 2025,person record with a recorded victimisation,serious or fatal injury,crash type,pedestrian struck,1782,68,pedestrian struck,0.0381594,0.0302119,0.0480938,False
-Barcelona 2025,person record with a recorded victimisation,serious or fatal injury,crash type,rear collision while catching up,99,27,rear collision while catching up,0.272727,0.194723,0.367711,False
-Barcelona 2025,person record with a recorded victimisation,serious or fatal injury,crash type,rear-end collision,3793,3,rear-end collision,0.000790931,0.000269019,0.00232303,False
+Barcelona 2025,person record with a recorded victimisation,serious or fatal injury,crash type,rear-end collision,3892,30,rear-end collision,0.00770812,0.00540468,0.0109824,False
 Barcelona 2025,person record with a recorded victimisation,serious or fatal injury,crash type,run-off-road with collision,19,1,run-off-road with collision,0.0526316,0.00935175,0.246392,True
 Barcelona 2025,person record with a recorded victimisation,serious or fatal injury,crash type,run-off-road with overturn,13,0,run-off-road with overturn,0,0,0.228102,True
 Barcelona 2025,person record with a recorded victimisation,serious or fatal injury,crash type,side collision,3783,44,side collision,0.011631,0.0086757,0.0155771,False

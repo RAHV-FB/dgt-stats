@@ -42,6 +42,10 @@ CAR_VEHICLE_TYPES = (
     "Turismo con remolque",
     "Turismo de SP hasta 9 plazas",
 )
+# Private cars only: taxi and ride-hailing drivers ("de SP", public service) drive for a living and
+# are left out of the comparison of men and women, as of the driver-age rates per kilometre. The
+# former owner-age figure kept them (CAR_VEHICLE_TYPES).
+PRIVATE_CAR_TYPES = tuple(t for t in CAR_VEHICLE_TYPES if " SP " not in f" {t} ".upper())
 # Bands compared on the page: everything the kilometre table can carry, 15-17 excepted.
 COMPARED_BANDS = ("18-24", "25-34", "35-54", "55-64", "65-74", "75+")
 # INE publishes residents in five-year groups (15-19, 20-24, ...), so no resident count can be cut
@@ -286,79 +290,6 @@ def owner_age_check(year: int = KM_YEAR) -> pd.DataFrame:
     return out.reset_index()
 
 
-# The comparisons ``breakeven_km`` makes: the comparison band, and which kilometres it is read on.
-BREAKEVEN_COMPARISONS = (
-    (REFERENCE_BAND, "published"),
-    (REFERENCE_BAND, "scenario"),
-    ("65-74", "published"),
-)
-
-
-def breakeven_km(year: int = KM_YEAR) -> pd.DataFrame:
-    """How far each band's licence holders would have to drive for its crash involvement per km
-    to match another band's, set beside the kilometres credited to cars of owners that age.
-
-    The kilometres are counted by the registered owner's age, and no file in the repository says
-    how many of each band's kilometres its own licence holders drive (DGT's driver tables give no
-    infraction by age, and the national crash file has no driver rows), so the per-km rates
-    cannot be corrected for the gap between owner and driver. This table turns the question
-    round. For band ``a`` against comparison band ``r`` it gives the distance a B-permit holder
-    aged ``a`` would have to drive in a year for the band's drivers to be involved in injury
-    crashes no more often per kilometre than band ``r``'s:
-
-        needed km per holder = (drivers involved_a / B-permit holders_a) / (involved_r / km_r)
-
-    ``credited_km_per_b_permit`` is the kilometres per holder credited to cars registered to
-    owners aged ``a`` on the same kilometres, and their ratio equals the per-km involvement ratio
-    of ``a`` to ``r``. What the table adds is the distance itself, which can be compared with what
-    owners of every age are credited (``highest_credited_km``, the most per holder in any band on
-    the published kilometres). Three comparisons (``BREAKEVEN_COMPARISONS``): against 35–54 on
-    the published kilometres, against 35–54 under the ``owner_age_check`` scenario (the young
-    bands' and the reference's kilometres moved, each band read on its own scenario kilometres),
-    and against 65–74 on the published kilometres. Intervals are 95 %, log-normal, from the
-    Poisson counts of drivers involved; holders and kilometres are treated as known.
-    """
-    check = owner_age_check(year).set_index("band")
-    highest_band = str(check.km_per_b_permit.idxmax())
-    highest = float(check.loc[highest_band, "km_per_b_permit"])
-    columns = {"published": "billion_km", "scenario": "billion_km_transfer"}
-    rows = []
-    for reference, kilometres in BREAKEVEN_COMPARISONS:
-        km = columns[kilometres]
-        base = check.loc[reference]
-        for band, row in check.iterrows():
-            if band == reference:
-                continue
-            ratio, low, high = rates.rate_ratio(
-                float(row.drivers_involved),
-                float(row[km]),
-                float(base.drivers_involved),
-                float(base[km]),
-            )
-            credited = float(row[km]) * BILLION / float(row.b_permit_holders)
-            rows.append(
-                {
-                    "band": band,
-                    "band_label": row.band_label,
-                    "reference_band": reference,
-                    "reference_label": base.band_label,
-                    "kilometres": kilometres,
-                    "drivers_involved": int(row.drivers_involved),
-                    "b_permit_holders": int(row.b_permit_holders),
-                    "credited_km_per_b_permit": credited,
-                    "needed_km_per_b_permit": ratio * credited,
-                    "needed_low": low * credited,
-                    "needed_high": high * credited,
-                    "needed_over_credited": ratio,
-                    "needed_over_credited_low": low,
-                    "needed_over_credited_high": high,
-                    "highest_credited_km": highest,
-                    "highest_credited_band": highest_band,
-                }
-            )
-    return pd.DataFrame(rows)
-
-
 COMPANY_ALLOCATION_LABELS = {
     "excluded": "Company kilometres left out (published)",
     "to_working_age": "Scenario: company kilometres spread over 18–64",
@@ -479,7 +410,10 @@ ADULT_BAND = "18+"
 # Three years pooled, so that the rates for women over 65, a few deaths a year, are readable.
 SEX_POOL_YEARS = (2022, 2023, 2024)
 SEX_LABELS = {"male": "Men", "female": "Women"}
-VEHICLE_SCOPES = {"motor": "Drivers of motor vehicles", "car": "Car drivers"}
+VEHICLE_SCOPES = {
+    "motor": "Drivers of motor vehicles",
+    "car": "Drivers of private cars (taxis and ride-hailing cars excluded)",
+}
 # Rows of DGT's driver tables that are not a licensed motor vehicle: cyclists and personal
 # mobility vehicles need no licence, and the rest are not vehicles or not known.
 NOT_MOTOR = frozenset(
@@ -510,7 +444,7 @@ SEX_MEASURE_LABELS = {
 
 def _in_scope(vehicle_type: pd.Series, scope: str) -> pd.Series:
     if scope == "car":
-        return vehicle_type.isin(CAR_VEHICLE_TYPES)
+        return vehicle_type.isin(PRIVATE_CAR_TYPES)
     return ~vehicle_type.str.casefold().isin(NOT_MOTOR)
 
 
@@ -607,3 +541,52 @@ def sex_trend(first: int = 2014, last: int = KM_YEAR) -> pd.DataFrame:
         table = table[table.band == ADULT_BAND].assign(year=year)
         frames.append(table)
     return pd.concat(frames, ignore_index=True)
+
+
+def sex_b_licence(years: tuple[int, ...] = (2023, 2024)) -> pd.DataFrame:
+    """Private-car drivers aged 18 and over killed per million licence holders, men against
+    women, with licence holders of any class (the page's measure) and with B (car) licence
+    holders only, which the census gives by sex and age only for the text-file years."""
+    victims = io_tables.read_table("tables_driver_victims")
+    victims = victims[
+        victims.year.isin(years)
+        & (victims.severity == "deaths_30d")
+        & _in_scope(victims.vehicle_type, "car")
+    ]
+    victims = victims.assign(exposure_band=victims.band.map(_exposure_band_key))
+    deaths = victims[victims.exposure_band.isin(SEX_BANDS)].groupby("sex").value.sum()
+    every = io_exposure.read_exposure("conductores_por_edad")
+    every = every[every.year.isin(years)].assign(
+        exposure_band=lambda f: f.band.map(_exposure_band_key)
+    )
+    every = every[every.exposure_band.isin(SEX_BANDS)].groupby("sex").n_drivers.sum()
+    b_holders = pd.concat([io_exposure.b_permit_holders_by_age(year) for year in years])
+    b_holders = b_holders.assign(exposure_band=b_holders.band.map(_exposure_band_key))
+    b_holders = (
+        b_holders[b_holders.exposure_band.isin(SEX_BANDS)].groupby("sex").n_b_permit_holders.sum()
+    )
+    rows = []
+    for label, holders in (
+        ("licence holders of any class", every),
+        ("B-licence holders", b_holders),
+    ):
+        ratio, low, high = rates.rate_ratio(
+            float(deaths["male"]),
+            float(holders["male"]),
+            float(deaths["female"]),
+            float(holders["female"]),
+        )
+        rows.append(
+            {
+                "years": f"{min(years)}-{max(years)}",
+                "denominator": label,
+                "deaths_men": float(deaths["male"]),
+                "deaths_women": float(deaths["female"]),
+                "holder_years_men": float(holders["male"]),
+                "holder_years_women": float(holders["female"]),
+                "ratio": ratio,
+                "low": low,
+                "high": high,
+            }
+        )
+    return pd.DataFrame(rows)

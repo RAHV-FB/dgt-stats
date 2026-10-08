@@ -163,3 +163,100 @@ def test_network_coverage_reproduces_the_series_and_measures_the_gap() -> None:
     assert ((coverage.outside_share > 0.02) & (coverage.outside_share < 0.25)).all()
     # The per-fuel arm of the kilometre check is labelled as a diagnostic, not a rate.
     assert "diagnostic" in risk_trends.KM_MEASURES["per_fuel"][1]
+
+
+def test_a_refitted_segment_recovers_its_slope_and_widens_with_t() -> None:
+    rng = np.random.default_rng(11)
+    years = np.arange(2011, 2020)
+    counts = rng.poisson(1800 * np.exp(-0.02 * (years - 2011))).astype(float)
+    trend = risk_trends.fit_segment(years, counts, None)
+    change, low, high = trend.slope()
+    assert low < np.exp(-0.02) - 1 < high and low < change < high
+    assert trend.df == len(years) - 2 and trend.dispersion >= 1
+    with_t = risk_trends.project_segment(trend, np.arange(2020, 2025))
+    with_z = risk_trends.project_segment(
+        trend, np.arange(2020, 2025), quantile=risk_trends.NORMAL_QUANTILE
+    )
+    # Same trend, wider interval: the t quantile for seven degrees of freedom exceeds the normal.
+    assert with_t.expected.to_numpy() == pytest.approx(with_z.expected.to_numpy())
+    ratio = (with_t.high - with_t.expected) / (with_z.high - with_z.expected)
+    assert ratio.to_numpy() == pytest.approx(
+        risk_trends.t_quantile(trend.df) / risk_trends.NORMAL_QUANTILE
+    )
+
+
+@pytestmark_data
+def test_ordinary_variation_uses_t_with_the_scatter_fits_degrees_of_freedom() -> None:
+    scatter = risk_trends.year_to_year_dispersion().set_index("outcome")
+    years = risk_trends.SCATTER_YEARS[1] - risk_trends.SCATTER_YEARS[0] + 1
+    assert (scatter.df_resid == years - 2).all()
+    assert (scatter.dispersion_low < scatter.pearson_dispersion).all()
+    assert (scatter.pearson_dispersion < scatter.dispersion_high).all()
+    assert (scatter.dispersion == scatter.pearson_dispersion.clip(lower=1)).all()
+    index = risk_trends.risk_index()
+    row = index[(index.year == index.year.max()) & (index.denominator == "count")].iloc[0]
+    base = index[
+        (index.year == risk_trends.BASE_YEAR)
+        & (index.denominator == "count")
+        & (index.outcome == row.outcome)
+    ].iloc[0]
+    phi = scatter.loc[row.numerator, "dispersion"]
+    spread = risk_trends.t_quantile(years - 2) * np.sqrt(
+        phi * (1 / row["count"] + 1 / base["count"])
+    )
+    assert np.log(row.ratio_high_yty / row.ratio_to_base) == pytest.approx(spread)
+
+
+@pytestmark_data
+def test_both_splits_of_deaths_per_tonne_multiply_to_it() -> None:
+    split = risk_trends.frequency_severity()
+    assert (split.frequency_index * split.severity_index / 100).to_numpy() == pytest.approx(
+        split.deaths_per_fuel_index.to_numpy()
+    )
+    assert (
+        split.hospitalised_per_fuel_index * split.deaths_per_hospitalised_index / 100
+    ).to_numpy() == pytest.approx(split.deaths_per_fuel_index.to_numpy())
+
+
+@pytestmark_data
+def test_the_projection_continues_the_last_segment_refitted_on_its_own_years() -> None:
+    series = risk_trends.long_run_series()
+    segments = risk_trends.long_run_segments()
+    panel = risk_trends.annual_panel().set_index("year")
+    for measure, block in series.groupby("measure"):
+        projected = block[block.period == "projected"]
+        start = int(segments[segments.measure == measure].start.iloc[-1])
+        assert (projected.projection_start == start).all()
+        column, _, _, numerator, _ = risk_trends.LONG_RUN_MEASURES[measure]
+        window = panel.loc[start : risk_trends.BASE_YEAR]
+        offset = None if column is None else np.log(window[column].to_numpy(dtype=float))
+        trend = risk_trends.fit_segment(
+            window.index.to_numpy(), window[numerator].to_numpy(dtype=float), offset
+        )
+        assert projected.projection_dispersion.iloc[0] == pytest.approx(trend.dispersion)
+        # A year lies outside its range exactly when its ratio leaves range_low..range_high.
+        outside = (projected.ratio < projected.range_low) | (projected.ratio > projected.range_high)
+        assert (outside == projected.outside_interval).all()
+    sensitivity = risk_trends.long_run_projection_sensitivity()
+    main = sensitivity[sensitivity.variant == "main"].set_index(["measure", "year"])
+    shown = series[series.period == "projected"].set_index(["measure", "year"])
+    assert main.ratio.to_numpy() == pytest.approx(shown.loc[main.index].ratio.to_numpy())
+    # Occupant deaths are not published within 24 hours, so that variant has no per-vehicle rows.
+    within_day = sensitivity[sensitivity.variant == "deaths_24h"]
+    assert set(within_day.measure) == {"count", "road_fuel"}
+
+
+@pytest.mark.skipif(
+    not io_exposure.staging_path("km_medios_serie_2024").exists(),
+    reason="run `python scripts/ingest.py exposure` first",
+)
+@pytestmark_data
+def test_dgts_kilometre_series_repeats_the_first_release_and_runs_on() -> None:
+    series = io_exposure.read_exposure("km_medios_serie_2024")
+    assert sorted(series.year.unique()) == [2022, 2023, 2024]
+    assert series.vehicle_group.notna().all()
+    check = risk_trends.km_crosscheck().set_index("year")
+    # The car mean of the first year is the 2022 release's fleet-weighted mean, to the kilometre.
+    assert check.loc[2022, "car_mean_km"] == 13_073
+    assert check.billion_km.isna().tolist() == [False, True, False]
+    assert check.loc[2022, "billion_km_ratio"] == 1.0

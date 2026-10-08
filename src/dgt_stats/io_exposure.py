@@ -143,8 +143,9 @@ def read_census_age_all(years: tuple[int, ...] = CENSUS_AGE_YEARS) -> pd.DataFra
     return pd.concat([read_census_age_year(year) for year in years], ignore_index=True)
 
 
-def b_permit_holders_by_age(year: int) -> pd.DataFrame:
-    """Holders of a B (car) permit by sex (male, female, total) and fine age band, national.
+def b_permit_holders_by_age(year: int, province_code: str | None = None) -> pd.DataFrame:
+    """Holders of a B (car) permit by sex (male, female, total) and fine age band, national or for
+    one province (``province_code``, two digits).
 
     Read from ``NUM_PERMISOS_B`` of the census text file, which only the text-file years
     (``CENSUS_AGE_YEARS``) carry. It is the population licensed to drive a car; the census total
@@ -157,6 +158,10 @@ def b_permit_holders_by_age(year: int) -> pd.DataFrame:
         census_age_raw_path(year), sep="|", dtype=str, encoding=CENSUS_AGE_ENCODINGS[year]
     )
     raw.columns = [column.strip() for column in raw.columns]
+    if province_code is not None:
+        raw = raw[raw["COD_PROVINCIA"].str.strip().str.zfill(2) == province_code]
+        if raw.empty:
+            raise ValueError(f"B-permit holders by age {year}: no rows for {province_code}")
     parsed = [agebands.parse_age_label(label.strip()) for label in raw["EDAD"]]
     frame = pd.DataFrame(
         {
@@ -488,7 +493,8 @@ def _owner_label(label: str) -> str:
 
 
 def read_km_means_2024() -> pd.DataFrame:
-    """Vehicles, total and mean annual kilometres by vehicle category, 2024 (release table 6)."""
+    """Vehicles, total and mean annual kilometres by vehicle category, 2024 (the 2024 detail sheet
+    of the workbook that holds the release's table 6)."""
     frame = pd.read_excel(KM_MEAN_BY_TYPE_2024_PATH, sheet_name="Detalle 2024", header=0)
     frame.columns = ["category_es", "n_vehicles", "total_km", "mean_km"]
     unknown = set(frame.category_es.unique()) - set(KM_OWNER_TOTALS)
@@ -507,6 +513,44 @@ def read_km_means_2024() -> pd.DataFrame:
     return out.astype({"year": "int16", "vehicle_group": "string", "category_es": "string"})
 
 
+# The column headings of the 2024 release's table 6, whitespace collapsed, and their groups.
+KM_SERIES_CATEGORIES = {
+    "Ciclomotores": "moped",
+    "Motocicletas": "motorcycle",
+    "Turismos": "car",
+    "Furgonetas": "van",
+    "Camiones (hasta 3.500Kg MMA)": "light_truck",
+    "Camiones (más de 3.500Kg MMA)": "heavy_truck",
+    "Autobuses": "bus",
+    "Tractores Industriales": "tractor_unit",
+}
+
+
+def read_km_mean_series_2024() -> pd.DataFrame:
+    """Mean annual kilometres by vehicle category for each year the 2024 release covers.
+
+    Table 6 of DGT's 2024 release (sheet ``Tabla 6``) sets out mean annual km per vehicle for
+    2022, 2023 and 2024 side by side, as one series. Its 2022 values for mopeds, motorcycles, cars,
+    vans and buses equal the 2022 release's fleet-weighted means (``km_crosscheck`` checks this).
+    The table gives no fleet for 2023, so it yields mean kilometres, not totals, for that year.
+    """
+    frame = pd.read_excel(KM_MEAN_BY_TYPE_2024_PATH, sheet_name="Tabla 6", header=0)
+    frame.columns = [" ".join(str(column).split()) for column in frame.columns]
+    unknown = set(frame.columns) - {"Año", *KM_SERIES_CATEGORIES}
+    if unknown:
+        raise ValueError(f"km table 6: unexpected columns {sorted(unknown)}")
+    long = frame.melt(id_vars="Año", var_name="category_es", value_name="mean_km")
+    out = pd.DataFrame(
+        {
+            "year": pd.to_numeric(long["Año"]).astype("int16"),
+            "vehicle_group": long.category_es.map(KM_SERIES_CATEGORIES),
+            "category_es": long.category_es,
+            "mean_km": pd.to_numeric(long.mean_km).astype("float64"),
+        }
+    )
+    return out.astype({"vehicle_group": "string", "category_es": "string"})
+
+
 EXPOSURE_BUILDERS = {
     "censo_conductores": read_census_all,
     "censo_provincias_2025": read_census_province_totals_2025,
@@ -518,6 +562,7 @@ EXPOSURE_BUILDERS = {
     "km_estimados_2022": read_km_estimated_2022,
     "km_edad_propietario_2024": read_km_by_owner_age_2024,
     "km_medios_tipo_2024": read_km_means_2024,
+    "km_medios_serie_2024": read_km_mean_series_2024,
 }
 
 

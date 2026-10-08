@@ -18,9 +18,10 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from dgt_stats import agebands, driver_risk, factors, plots, policy, summaries
+from dgt_stats import codes, factors, plots, policy, summaries
 from dgt_stats.microdata import charts as microdata_charts
-from dgt_stats.paths import FIGURES_DIR, TABLES_DIR
+from dgt_stats.microdata.validation import dgt_audit
+from dgt_stats.paths import FIGURES_DIR, NARROW_FIGURES_DIR, TABLES_DIR
 
 CAPTIONS_PATH = FIGURES_DIR / "captions.json"
 # The title the page prints above each figure; the SVGs carry none (``plots.TITLES``).
@@ -43,20 +44,15 @@ TRAFFIC_SOURCE = (
 )
 VEHICLE_FLEET_SOURCE = "DGT registered vehicle fleet"
 
-# Panel titles for the four-denominator contrast, short enough to sit over a panel.
-CONTRAST_PANELS = {
-    "residents": "Per resident",
-    "b_permit_holders": "Per B-permit holder",
-    "drivers_involved": "Per driver involved",
-    "kilometres": "Per km, by owner's age",
-}
-
 SPEED_STATUS_LABELS = {
     "speed_infraction": "Speed infraction recorded",
-    "too_slow": "Driving too slowly (too few to show)",
     "none": "No speed infraction recorded",
     "unknown": "No speed status recorded",
 }
+# Drivers recorded as driving too slowly count in each year's total but are not drawn: they are
+# below this share of drivers in every year, too few to see.
+TOO_SLOW = "too_slow"
+TOO_SLOW_MAX_SHARE = 0.001
 
 
 def _caption(shown: str, source: str, n: str | int | None = None) -> str:
@@ -73,11 +69,31 @@ def _ranges(text: str) -> str:
     return re.sub(r"(?<=\d)-(?=\d)", "–", text)
 
 
+def _year_runs(years: list[int]) -> list[str]:
+    """Years as runs of consecutive years: [2005, 2007, 2008, 2009] gives 2005 and 2007–2009."""
+    runs: list[list[int]] = []
+    for year in sorted(years):
+        if runs and year == runs[-1][-1] + 1:
+            runs[-1].append(year)
+        else:
+            runs.append([year])
+    return [str(run[0]) if len(run) == 1 else f"{run[0]}–{run[-1]}" for run in runs]
+
+
+def _join_words(items: list[str]) -> str:
+    """'a', 'a and b', 'a, b and c'."""
+    return items[0] if len(items) == 1 else ", ".join(items[:-1]) + " and " + items[-1]
+
+
 def build_all(
     figures_dir: Path = FIGURES_DIR, frames: dict[str, pd.DataFrame] | None = None
 ) -> dict[str, str]:
     """Write every figure as SVG and return ``{figure name: caption}``; also saves captions.json
     and titles.json, the title the page prints above each figure.
+
+    Every figure is drawn twice from the same data: for a desktop column, and into ``narrow/``
+    for a phone's (``plots.narrow``). The build fails if the two passes disagree on the figures,
+    their captions or their titles, or if a narrow figure comes out too wide for a phone.
 
     ``frames`` are the summaries by registry name; when omitted they are computed here.
     """
@@ -91,10 +107,53 @@ def build_all(
     figures_dir.mkdir(parents=True, exist_ok=True)
     captions: dict[str, str] = {}
     plots.TITLES.clear()
+    _draw_all(figures_dir, captions, summary)
+    titles = dict(plots.TITLES)
+    narrow_dir = figures_dir / NARROW_FIGURES_DIR.name
+    narrow_captions: dict[str, str] = {}
+    with plots.narrow():
+        _draw_all(narrow_dir, narrow_captions, summary)
+    if narrow_captions != captions or plots.TITLES != titles:
+        raise ValueError("the narrow figures differ from the wide ones")
+    widths = {name: svg_width(narrow_dir / f"{name}.svg") for name in captions}
+    too_wide = {name: width for name, width in widths.items() if width > plots.NARROW_MAX_POINTS}
+    if too_wide:
+        raise ValueError(f"narrow figures wider than a phone's column (points): {too_wide}")
+
+    target = figures_dir / CAPTIONS_PATH.name
+    target.write_text(json.dumps(captions, indent=2, ensure_ascii=False), encoding="utf-8")
+    missing = sorted(set(captions) - set(titles))
+    if missing:
+        raise ValueError(f"figures drawn without a title: {missing}")
+    (figures_dir / TITLES_PATH.name).write_text(
+        json.dumps({name: titles[name] for name in captions}, indent=2, ensure_ascii=False),
+        encoding="utf-8",
+    )
+    for directory in (figures_dir, narrow_dir):
+        for path in sorted(directory.glob("*.svg")):
+            if path.stem not in captions:
+                path.unlink()
+                log.info("removed stale figure %s", path.relative_to(figures_dir))
+    return captions
+
+
+_SVG_WIDTH = re.compile(r'<svg[^>]*?\swidth="([\d.]+)pt"')
+
+
+def svg_width(path: Path) -> float:
+    """A chart's width in points, from its SVG."""
+    match = _SVG_WIDTH.search(path.read_text(encoding="utf-8")[:2000])
+    if not match:
+        raise ValueError(f"no width in {path}")
+    return float(match.group(1))
+
+
+def _draw_all(figures_dir: Path, captions: dict[str, str], summary) -> None:
+    """Every figure, into ``figures_dir``, with its caption added to ``captions``."""
+    figures_dir.mkdir(parents=True, exist_ok=True)
     _trend_figures(figures_dir, captions, summary)
     _long_run_figures(figures_dir, captions, summary)
     _season_figures(figures_dir, captions, summary)
-    _forecast_figures(figures_dir, captions, summary)
     _sex_figures(figures_dir, captions, summary)
     _factor_figures(figures_dir, captions, summary)
     _speed_status_figure(figures_dir, captions, summary)
@@ -102,28 +161,14 @@ def build_all(
         _severity_figures(figures_dir, captions)
     else:
         log.warning("model tables missing: run scripts/model.py to get the severity figures")
-    _age_figures(figures_dir, captions, summary)
+    _driver_exposure_figures(figures_dir, captions)
     _vehicle_figures(figures_dir, captions, summary)
     _policy_figures(figures_dir, captions, summary)
     _data_figures(figures_dir, captions)
     # The regional crash-record figures (Catalonia, Barcelona, models, generalisability); skipped
     # when the microdata tables are not built.
     microdata_charts.build(figures_dir, captions)
-
-    target = figures_dir / CAPTIONS_PATH.name
-    target.write_text(json.dumps(captions, indent=2, ensure_ascii=False), encoding="utf-8")
-    missing = sorted(set(captions) - set(plots.TITLES))
-    if missing:
-        raise ValueError(f"figures drawn without a title: {missing}")
-    titles = {name: plots.TITLES[name] for name in captions}
-    (figures_dir / TITLES_PATH.name).write_text(
-        json.dumps(titles, indent=2, ensure_ascii=False), encoding="utf-8"
-    )
-    stale = sorted(path.name for path in figures_dir.glob("*.svg") if path.stem not in captions)
-    for name in stale:
-        (figures_dir / name).unlink()
-        log.info("removed stale figure %s", name)
-    return captions
+    _severity_calculator_figures(figures_dir, captions)
 
 
 # --------------------------------------------------------------------------- context
@@ -132,13 +177,16 @@ def build_all(
 def _speed_status_figure(figures_dir: Path, captions: dict[str, str], summary) -> None:
     shares = summary("q9_infraction_shares")
     block = shares[shares.zone == "all"]
+    too_slow = block[TOO_SLOW] / block[[*SPEED_STATUS_LABELS, TOO_SLOW]].sum(axis=1)
+    if not (too_slow < TOO_SLOW_MAX_SHARE).all():
+        raise ValueError("c3: drivers recorded as too slow are now too many to leave undrawn")
     long = block.melt(
         id_vars="year",
-        value_vars=list(SPEED_STATUS_LABELS),
+        value_vars=[*SPEED_STATUS_LABELS, TOO_SLOW],
         var_name="status",
         value_name="drivers",
     )
-    long["status"] = long.status.map(SPEED_STATUS_LABELS)
+    long["status"] = long.status.map({**SPEED_STATUS_LABELS, TOO_SLOW: TOO_SLOW})
     plots.bar_shares(
         long,
         "year",
@@ -147,12 +195,14 @@ def _speed_status_figure(figures_dir: Path, captions: dict[str, str], summary) -
         figures_dir / "c3_speed_status.svg",
         "Drivers in injury crashes by recorded speed status, all roads",
         order=list(SPEED_STATUS_LABELS.values()),
-        colors=[plots.ACCENT, plots.CATEGORICAL[1], "#d4d4cf", "#8f8f8a"],
+        colors=[plots.ACCENT, "#d4d4cf", "#8f8f8a"],
+        hidden=(TOO_SLOW,),
     )
     captions["c3_speed_status"] = _caption(
         "Drivers involved in injury crashes by the police record of a speed infraction, Spain, "
         f"all roads, {int(block.year.min())}–{int(block.year.max())}; the share with no speed "
-        "status recorded changes in 2016, which shifts every share below it",
+        "status recorded changes in 2016, which shifts every share below it. Drivers recorded "
+        f"as driving too slowly, under {TOO_SLOW_MAX_SHARE:.1%} in every year, are not drawn",
         TABLES_SOURCE,
         f"{int(block.total.sum()):,} drivers",
     )
@@ -201,13 +251,42 @@ def _trend_figures(figures_dir: Path, captions: dict[str, str], summary) -> None
     )
 
 
-# Panel titles short enough to sit on one line over a third of the figure.
-LONG_RUN_PANELS = {"Vehicle occupant deaths per registered vehicle": "Occupant deaths per vehicle"}
+# Panel titles of the trend chart. Every panel plots a count of deaths a year, the middle one only
+# the occupant deaths of the vehicles in the fleet; what differs is the measure the trend was
+# fitted to, so each title names what is counted and that measure.
+LONG_RUN_PANELS = {
+    "Deaths": "All deaths a year; trend fitted to the count",
+    "Vehicle occupant deaths per registered vehicle": (
+        "Vehicle occupant deaths a year; trend fitted per registered vehicle"
+    ),
+    "Deaths per tonne of road fuel": "All deaths a year; trend fitted per tonne of road fuel",
+}
+# The same measures in the ratio chart, where every panel is a ratio.
+LONG_RUN_RATIO_PANELS = {
+    "Deaths": "Deaths",
+    "Vehicle occupant deaths per registered vehicle": "Occupant deaths per vehicle",
+    "Deaths per tonne of road fuel": "Deaths per tonne of fuel",
+}
+# The zoom of the ratio charts: the decade before the pandemic and every year after it.
+RATIO_ZOOM_YEARS = 10
+# Panel titles of the kilometre check, by measure; the caption says why the fuel panel is only a
+# check.
+LONG_RUN_KM_PANELS = {
+    "per_km": "Per measured interurban vehicle-km",
+    "per_fuel": "Over national road fuel (check)",
+}
 
 
 def _long_run_figures(figures_dir: Path, captions: dict[str, str], summary) -> None:
-    series = summary("longrun_series")
-    series = series.assign(measure_label=series.measure_label.replace(LONG_RUN_PANELS))
+    raw = summary("longrun_series")
+    # Each panel title says what the panel counts, so every measure needs one, and each panel
+    # must plot a count of deaths (the rates' trends converted back into deaths).
+    untitled = set(raw.measure_label) - set(LONG_RUN_PANELS)
+    if untitled or not set(raw.numerator) <= {"deaths_30d", "occupants_deaths_30d"}:
+        raise ValueError(f"l1 panel titles: untitled {untitled} or a panel that is not a count")
+    fit_end = int(raw[raw.period == "fitted"].year.max())
+    first_projected = fit_end + 1
+    series = raw.assign(measure_label=raw.measure_label.replace(LONG_RUN_PANELS))
     order = list(dict.fromkeys(series.measure_label))
     plots.trend_projection(
         series,
@@ -219,40 +298,45 @@ def _long_run_figures(figures_dir: Path, captions: dict[str, str], summary) -> N
         "high",
         figures_dir / "l1_trend_projection.svg",
         "Road deaths against the pre-pandemic trend, under three measures",
-        last_fitted=2019,
+        last_fitted=fit_end,
         order=order,
-        ylabel="Deaths (30 days)",
+        ylabel="Deaths within 30 days, a year",
     )
-    zoom = series[series.year >= 2010].assign(
-        ratio_low=lambda f: f.observed / f.high, ratio_high=lambda f: f.observed / f.low
+    zoom_first = fit_end - RATIO_ZOOM_YEARS + 1
+    zoom = raw[raw.year >= zoom_first].assign(
+        measure_label=lambda f: f.measure_label.replace(LONG_RUN_RATIO_PANELS)
     )
-    plots.line_series(
+    plots.ratio_panels(
         zoom,
+        "measure_label",
         "year",
         "ratio",
+        "range_low",
+        "range_high",
         figures_dir / "l2_observed_over_trend.svg",
-        "Observed deaths as a share of the pre-pandemic trend, 2010–2024",
-        series="measure_label",
+        f"Observed deaths as a share of the pre-pandemic trend, {zoom_first}–{int(zoom.year.max())}",
+        last_fitted=fit_end,
+        order=list(dict.fromkeys(zoom.measure_label)),
         ylabel="Observed ÷ trend",
-        zero_based=False,
-        reference=1.0,
-        band=("ratio_low", "ratio_high"),
     )
     sources = f"{SERIES_SOURCE}; {VEHICLE_FLEET_SOURCE}; {FUEL_SOURCE}"
     captions["l2_observed_over_trend"] = _caption(
         "Observed deaths within 30 days as a ratio to the pre-pandemic trend of each measure "
-        "(fitted to 2019, projected from 2020), with the range allowed by the trend's 95% "
-        f"prediction intervals as dotted lines, Spain, {int(zoom.year.min())}–{int(zoom.year.max())}; "
-        "1 means on trend",
+        f"(up to {fit_end} the fitted segmented trend; from {first_projected} its last segment, "
+        f"refitted on that segment's years and projected), with the trend's 95% "
+        f"prediction range shaded from {first_projected}, Spain, "
+        f"{zoom_first}–{int(zoom.year.max())}; a year outside the shading is outside the "
+        "trend's range",
         sources,
     )
-    fuel = series[series.measure == "road_fuel"]
+    fuel = raw[raw.measure == "road_fuel"]
     fuel_note = f" (road fuel from {int(fuel.year.min())})" if not fuel.empty else ""
     captions["l1_trend_projection"] = _caption(
-        f"Deaths within 30 days, Spain, {int(series.year.min())}–{int(series.year.max())}"
-        f"{fuel_note}, against segmented trends fitted up to 2019 and projected from 2020 under "
-        "three measures, with 95% prediction intervals; the trends of the two rates are "
-        "converted back into deaths",
+        f"Deaths within 30 days, Spain, {int(raw.year.min())}–{int(raw.year.max())}"
+        f"{fuel_note}, against segmented trends fitted up to {fit_end} and projected from "
+        f"{first_projected} with 95% prediction intervals; the middle panel counts the "
+        "occupant deaths of motorcycles, cars, vans, trucks and buses, and the trends of the "
+        "two rates are converted back into deaths",
         sources,
     )
 
@@ -263,26 +347,30 @@ def _long_run_figures(figures_dir: Path, captions: dict[str, str], summary) -> N
         f"{coverage.outside_share.min() * 100:.1f}% to {coverage.outside_share.max() * 100:.1f}%"
     )
     covered = f"{int(coverage.year.min())}–{int(coverage.year.max())}"
-    check = check[check.year >= 2010].assign(
-        ratio_low=lambda f: f.observed / f.high, ratio_high=lambda f: f.observed / f.low
-    )
-    plots.line_series(
+    check = check[check.year >= zoom_first]
+    untitled = set(check.measure) - set(LONG_RUN_KM_PANELS)
+    if untitled:
+        raise ValueError(f"l4 panel titles: no title for {sorted(untitled)}")
+    check = check.assign(measure_label=check.measure.map(LONG_RUN_KM_PANELS))
+    plots.ratio_panels(
         check,
+        "measure_label",
         "year",
         "ratio",
+        "range_low",
+        "range_high",
         figures_dir / "l4_km_against_fuel.svg",
         "Interurban deaths against the pre-pandemic trend: per measured kilometre, and over "
         "national road fuel as a check",
-        series="measure_label",
+        last_fitted=fit_end,
+        order=list(dict.fromkeys(check.measure_label)),
         ylabel="Observed ÷ trend",
-        zero_based=False,
-        reference=1.0,
-        band=("ratio_low", "ratio_high"),
     )
     captions["l4_km_against_fuel"] = _caption(
-        f"Interurban deaths within 30 days as a ratio to a trend fitted to {fit_first}–2019 and "
-        "projected from 2020, per measured vehicle-kilometre and, as a check, over national "
-        "road fuel sold, with 95% prediction intervals as dotted lines, Spain, "
+        f"Interurban deaths within 30 days as a ratio to a trend fitted to {fit_first}–{fit_end} "
+        f"and projected from {first_projected}, per measured vehicle-kilometre and, as a check "
+        "on fuel as a measure of traffic, over the road fuel sold for every road in Spain, towns "
+        "included, with the trend's 95% prediction range shaded, Spain, "
         f"{int(check.year.min())}–{int(check.year.max())}; the kilometres leave out roads run "
         f"by municipalities and other bodies, which account for {outside} of interurban deaths "
         f"({covered})",
@@ -290,31 +378,48 @@ def _long_run_figures(figures_dir: Path, captions: dict[str, str], summary) -> N
     )
 
     split = summary("risk_frequency_severity")
-    labels = {
-        "deaths_per_fuel_index": "Deaths per tonne of fuel",
-        "frequency_index": "Injury crashes per tonne of fuel (how often)",
-        "severity_index": "Deaths per injury crash (how deadly)",
+    per_fuel = "Deaths per tonne of fuel"
+    panels = {
+        "Split by injury crashes": {
+            "deaths_per_fuel_index": per_fuel,
+            "frequency_index": "Injury crashes per tonne",
+            "severity_index": "Deaths per injury crash",
+        },
+        "Split by people admitted to hospital": {
+            "deaths_per_fuel_index": per_fuel,
+            "hospitalised_per_fuel_index": "Admissions per tonne",
+            "deaths_per_hospitalised_index": "Deaths per admission",
+        },
     }
-    long = split.melt(
-        id_vars="year", value_vars=list(labels), var_name="measure", value_name="index"
-    ).assign(measure_label=lambda f: f.measure.map(labels))
+    long = pd.concat(
+        [
+            split.melt(
+                id_vars="year", value_vars=list(labels), var_name="measure", value_name="index"
+            ).assign(measure_label=lambda f, labels=labels: f.measure.map(labels), panel=panel)
+            for panel, labels in panels.items()
+        ],
+        ignore_index=True,
+    )
     base = int(split.year.min())
-    plots.line_series(
+    plots.line_panels(
         long,
+        "panel",
         "year",
         "index",
+        "measure_label",
         figures_dir / "l3_frequency_severity.svg",
-        f"Deaths per unit of traffic, split into how often and how deadly ({base} = 100)",
-        series="measure_label",
-        ylabel=f"Index, {base} = 100",
+        f"Deaths per tonne of road fuel, split two ways into how often and how deadly ({base} = 100)",
+        order=list(panels),
+        focal=per_fuel,
         reference=100,
-        focal=labels["deaths_per_fuel_index"],
+        ylabel=f"Index, {base} = 100",
     )
     captions["l3_frequency_severity"] = _caption(
-        "Deaths within 30 days per tonne of road fuel sold (petrol plus diesel) and its two "
-        "factors, injury crashes per tonne and deaths per injury crash, indexed to "
-        f"{base} = 100, Spain, all roads, {base}–{int(split.year.max())}; how completely slight "
-        "injuries are recorded moves the split between the two factors but not their product",
+        "Deaths within 30 days per tonne of road fuel sold (petrol plus diesel), split into "
+        "injury crashes per tonne and deaths per injury crash (top) and into people admitted to "
+        "hospital per tonne and deaths per admission (bottom), indexed to "
+        f"{base} = 100, Spain, all roads, {base}–{int(split.year.max())}; each pair multiplies "
+        "to deaths per tonne, and the two pairs divide its fall differently",
         f"{SERIES_SOURCE}; {FUEL_SOURCE}",
     )
 
@@ -322,61 +427,40 @@ def _long_run_figures(figures_dir: Path, captions: dict[str, str], summary) -> N
 # --------------------------------------------------------------------------- forecasts
 
 
-def _forecast_figures(figures_dir: Path, captions: dict[str, str], summary) -> None:
-    backtest = summary("forecast_backtest")
-    national = backtest[backtest.outcome == "deaths_all"]
-    labels = {
-        "observed": "Deaths",
-        "model": "Model forecast",
-        "naive_last_year": "Last year's count",
-    }
-    long = national.melt(
-        id_vars="year", value_vars=list(labels), var_name="series", value_name="deaths"
-    ).assign(series_label=lambda f: f.series.map(labels))
-    first, last = int(national.year.min()), int(national.year.max())
-    plots.line_series(
-        long,
-        "year",
-        "deaths",
-        figures_dir / "k1_forecast_check.svg",
-        "Each year's deaths against two forecasts made before it",
-        series="series_label",
-        ylabel="Deaths (30 days), all roads",
-        zero_based=True,
-        end_labels=False,
-        colors={
-            labels["observed"]: plots.TEXT_PRIMARY,
-            labels["model"]: plots.ACCENT,
-            labels["naive_last_year"]: plots.NEUTRAL,
-        },
-        linestyles={labels["naive_last_year"]: (0, (5, 2))},
-    )
-    captions["k1_forecast_check"] = _caption(
-        f"Road deaths within 30 days in each year, Spain, {first}–{last}, against two "
-        "forecasts made from the four years before it: a regression of monthly deaths on "
-        "season, trend, road fuel and weekend days, and the previous year's count; the model "
-        "was chosen on the forecasts of 2006–2015 alone",
-        f"{SERIES_SOURCE}; {FUEL_SOURCE}",
-    )
-    detect = summary("forecast_detectability")
-    plots.line_series(
-        detect.assign(mde_pct=lambda f: f.mde),
-        "horizon",
-        "mde_pct",
-        figures_dir / "k2_detectability.svg",
-        "The fall in deaths a comparison detects four times in five, by years summed",
-        series="outcome_label",
-        ylabel="Fall detected 4 times in 5",
-        percent=True,
-        end_labels=True,
-    )
-    captions["k2_detectability"] = _caption(
-        "The fall in deaths, summed over the years after a change (horizontal axis), that a "
-        "comparison with the model's forecast detects four times in five (80% power at the 5% "
-        "level), Spain, by zone; it allows for chance and for the forecast's own error, "
-        "measured on 2006–2024 without the pandemic years",
-        f"{SERIES_SOURCE}; {FUEL_SOURCE}",
-    )
+# The three measures of road use drawn beside deaths on the seasons page, the same in both of its
+# line charts. Greys alone left them hard to tell apart, so each has its own colour (near-black,
+# orange, purple: every pair, and each with the accent of deaths, stays apart under red-green and
+# blue-yellow colour-vision deficiency on the charts' white ground), its own marker shape and its
+# own dash.
+SEASON_STYLES = {
+    "Road fuel sold (petrol + diesel)": {
+        "color": "#2b2b2b",
+        "linestyle": (0, (5, 2)),
+        "marker": "s",
+        "markersize": 3.2,
+    },
+    "Petrol sold only": {
+        "color": plots.CATEGORICAL[1],
+        "linestyle": (0, (5, 2, 1, 2)),
+        "marker": "^",
+        "markersize": 3.8,
+    },
+    "Toll-motorway traffic per km": {
+        "color": plots.CATEGORICAL[2],
+        "linestyle": (0, (1, 1.6)),
+        "marker": "D",
+        "markersize": 3.2,
+    },
+}
+
+
+def _season_styles(frame: pd.DataFrame) -> dict[str, dict[str, object]]:
+    """The fixed look of each road-use series; the build fails on a series without one."""
+    names = list(dict.fromkeys(frame.series_label))[1:]
+    unstyled = set(names) - set(SEASON_STYLES)
+    if unstyled:
+        raise ValueError(f"season charts: no style for {sorted(unstyled)}")
+    return {name: SEASON_STYLES[name] for name in names}
 
 
 def _season_figures(figures_dir: Path, captions: dict[str, str], summary) -> None:
@@ -390,6 +474,7 @@ def _season_figures(figures_dir: Path, captions: dict[str, str], summary) -> Non
         order=list(dict.fromkeys(profile.series_label)),
         reference=100,
         focal=profile.series_label.iloc[0],
+        styles=_season_styles(profile),
     )
     effects = summary("season_month_effects")
     pooled = [int(year) for year in str(effects.years.iloc[0]).split()]
@@ -399,7 +484,7 @@ def _season_figures(figures_dir: Path, captions: dict[str, str], summary) -> Non
         "Deaths within 30 days, road fuel sold (petrol plus diesel), petrol sold and "
         "toll-motorway traffic per kilometre by month, each divided by its year's mean month "
         f"and averaged over {years}, Spain; petrol and toll motorways cover only part of all "
-        "traffic",
+        "traffic, and toll traffic is a daily average where the other series are monthly totals",
         f"{SERIES_SOURCE}; {TRAFFIC_SOURCE}",
     )
 
@@ -423,7 +508,8 @@ def _season_figures(figures_dir: Path, captions: dict[str, str], summary) -> Non
     )
     captions["m2_month_effects"] = _caption(
         "Deaths within 30 days in each month against the average month of the same year, raw "
-        f"and per tonne of road fuel sold, Spain, {years}, with 95% intervals",
+        f"and per tonne of road fuel sold, Spain, {years}, with 95% intervals; the raw panel "
+        "compares monthly totals, not adjusted for the number of days in a month",
         f"{SERIES_SOURCE}; {FUEL_SOURCE}",
     )
 
@@ -438,6 +524,7 @@ def _season_figures(figures_dir: Path, captions: dict[str, str], summary) -> Non
         reference=0,
         percent=True,
         focal=lockdown.series_label.iloc[0],
+        styles=_season_styles(lockdown),
     )
     captions["m3_lockdown"] = _caption(
         "Change in deaths within 30 days and in three measures of road use (road fuel sold, petrol "
@@ -463,18 +550,23 @@ def _sex_figures(figures_dir: Path, captions: dict[str, str], summary) -> None:
         "low",
         "high",
         figures_dir / "a3_sex_ratios.svg",
-        "Men against women, car drivers: crashing, and dying (2022–2024)",
+        "Men against women, private-car drivers: crashing, and dying (2022–2024)",
         order=list(dict.fromkeys(cars.band_label)),
         panel_order=list(short.values()),
-        xlabel="Ratio, men to women (dotted line: the same rate)",
+        # Ratios on a log scale, where a ratio of 2 and one of 1/2 are the same distance from 1.
+        xlabel="Ratio, men to women, log scale (dotted line: the same rate)",
         reference=1.0,
+        from_zero=False,
+        shared=True,
+        log=True,
     )
     rates_table = summary("drivers_sex_rates")
     adults = rates_table[(rates_table.scope == "car") & (rates_table.band == "18+")]
     captions["a3_sex_ratios"] = _caption(
-        "Men's rates divided by women's among car drivers, by age: involvement in injury "
-        "crashes and death within 30 days per licence holder, and death per driver involved, "
-        "Spain, 2022–2024 pooled, with 95% intervals; no source records kilometres by sex",
+        "Men's rates divided by women's among private-car drivers (taxis and ride-hailing cars "
+        "excluded), by age: involvement in injury crashes and death within 30 days per licence "
+        "holder, and death per driver involved, Spain, 2022–2024 pooled, with 95% intervals. "
+        "The estimates per kilometre are given in the text",
         f"{TABLES_SOURCE}; {CENSUS_SOURCE}",
         f"{int(adults.drivers_involved.sum()):,} drivers involved",
     )
@@ -497,22 +589,33 @@ def _factor_figures(figures_dir: Path, captions: dict[str, str], summary) -> Non
         "ratio_high",
         figures_dir / "f1_speed_severity.svg",
         "Deaths per crash when speed is recorded, against other crashes",
-        xlabel="Ratio of deaths per 100 crashes (dotted line: the same)",
+        xlabel="Ratio of deaths per 100 crashes, log scale (dotted line: the same)",
         reference=1.0,
         style="kind",
         group="block",
+        log=True,
     )
     captions["f1_speed_severity"] = _caption(
         "Deaths within 30 days per 100 injury crashes in which the police recorded "
         "inappropriate speed, as a ratio to the same rate in the other injury crashes on the "
         "same type of road, Spain outside Catalonia and the Basque Country, 2016–2023 pooled, "
-        "with 95% intervals",
+        "with 95% intervals that allow for year-to-year variation (for the adjusted ratio, also "
+        "for the differences between road types)",
         f"{SPEED_REPORT_SOURCE}; {MICRODATA_SOURCE}",
-        f"{int(pooled.speed_crashes.sum()):,} speed-related crashes",
+        f"{int(pooled.speed_crashes.sum()):,} crashes with inappropriate speed recorded",
     )
 
     shares = summary("factor_shares")
     shares = shares[shares.zone != "all"]
+    # A series that breaks at every year is drawn as unjoined points; the caption names the
+    # factors whose series do so on both kinds of road, and the build stops on any other.
+    runs = shares.groupby(["factor", "zone"]).agg(
+        years=("year", "size"), runs=("segment", "nunique")
+    )
+    every_year = (runs.years == runs.runs).groupby(level="factor").agg(["all", "any"])
+    unjoined = list(every_year.index[every_year["all"]])
+    if len(unjoined) != 1 or every_year["any"].sum() != len(unjoined):
+        raise ValueError(f"f2 caption: series that break at every year: {every_year}")
     plots.segmented_small_multiples(
         shares,
         "factor",
@@ -534,14 +637,22 @@ def _factor_figures(figures_dir: Path, captions: dict[str, str], summary) -> Non
     captions["f2_factor_shares"] = _caption(
         "Injury crashes in which the police recorded each factor, as a share of all "
         "injury crashes on interurban roads and on urban streets, Spain outside Catalonia and "
-        "the Basque Country, 2014–2023; a line breaks where the share rises by more than "
-        f"{factors.BREAK_RATIO - 1:.0%} or falls by more than {1 - 1 / factors.BREAK_RATIO:.0%} "
-        f"in a year, or a year has fewer than {factors.MIN_CRASHES} crashes",
+        "the Basque Country, 2014–2023; a line breaks, at a short vertical mark, where the share "
+        f"rises by more than {factors.BREAK_RATIO - 1:.0%} or falls by more than "
+        f"{1 - 1 / factors.BREAK_RATIO:.0%} in a year, or a year has fewer than "
+        f"{factors.MIN_CRASHES} crashes. The {unjoined[0].lower()} series breaks at every year "
+        "on both kinds of road, so its points are not joined and are not comparable from year "
+        "to year",
         SPEED_REPORT_SOURCE,
     )
 
 
 # --------------------------------------------------------------------------- severity
+
+
+# The model table keeps DGT's Spanish name for a road type; the figure uses the English one that
+# the crash-circumstances page and its tables use.
+FOREST_LEVELS = {"autovía": "dual carriageway"}
 
 
 def _severity_figures(figures_dir: Path, captions: dict[str, str]) -> None:
@@ -554,8 +665,11 @@ def _severity_figures(figures_dir: Path, captions: dict[str, str]) -> None:
     # happened (``is_nuisance``); they stay in the table and are left out of the figure.
     nuisance = fatal_rows[fatal_rows.is_nuisance.astype(bool)]
     table = fatal_rows[~fatal_rows.is_nuisance.astype(bool)].assign(
-        level=lambda f: f.level.astype(str).map(_ranges)
+        level=lambda f: f.level.astype(str).replace(FOREST_LEVELS).map(_ranges)
     )
+    spanish = sorted(set(table.level[table.level.str.contains("[áéíóúñ]")]))
+    if spanish:
+        raise ValueError(f"s1 forest plot: levels without an English label: {spanish}")
     plots.forest(
         table,
         "predictor_label",
@@ -586,7 +700,8 @@ def _severity_figures(figures_dir: Path, captions: dict[str, str]) -> None:
     captions["s1_forest_fatal"] = _caption(
         "Odds ratios for at least one death in an injury crash, by crash circumstance, from a "
         "logistic regression that also includes the year, against reference levels (hollow "
-        f"markers), with 95% intervals, Spain, {years.min()}–{years.max()}"
+        f"markers), with 95% intervals, Spain, {years.min()}–{years.max()}; zone and road "
+        "type describe one location between them and are read together"
         + note
         + (
             "; levels that record a missing value are in the model but not drawn"
@@ -615,10 +730,11 @@ def _severity_figures(figures_dir: Path, captions: dict[str, str]) -> None:
             for level in ("wet", "rain", "hail or snow", "at a junction")
             if level.capitalize() in set(fatal.level.map(str.capitalize))
         ],
-        xlabel="Odds ratio against the reference level (dotted line: no difference)",
+        xlabel="Odds ratio against the reference level, log scale (dotted line: no difference)",
         reference=1.0,
         from_zero=False,
         shared=True,
+        log=True,
     )
     captions["s2_adverse_conditions"] = _caption(
         "Odds ratios for at least one death in an injury crash under each adverse condition "
@@ -634,92 +750,199 @@ def _severity_figures(figures_dir: Path, captions: dict[str, str]) -> None:
 # --------------------------------------------------------------------------- older drivers
 
 
-def _age_figures(figures_dir: Path, captions: dict[str, str], summary) -> None:
-    rates = summary("q7_km_rates")
-    reference = rates[rates.band == driver_risk.REFERENCE_BAND].iloc[0]
-    # Deaths per driver involved need no measure of distance, so they are drawn as points with
-    # their intervals; the per-km ratios depend on the owner-age kilometres and are given on the
-    # page as ranges rather than drawn as points.
+# --------------------------------------------------------------------------- driver age per km
+
+EMEF_SOURCE = "ATM, Idescat and Institut Metròpoli, Enquesta de mobilitat en dia feiner 2022–2024"
+EDM_SOURCE = "CRTM, Encuesta Domiciliaria de Movilidad 2018 (Powered by CRTM)"
+# The sources of the age mixes and the split behind the sensitivity bands of the per-km figures.
+MOVILIA_SOURCE = "Ministerio de Transportes, Encuesta de movilidad MOVILIA 2006 and 2007"
+RACC_SOURCE = "Fundació RACC, Mayores al volante (2013)"
+GROUP_LABELS = {
+    "18-29": "18–29",
+    "30-44": "30–44",
+    "45-64": "45–64",
+    "65+": "65 and over",
+    "65-74": "65–74",
+    "75+": "75 and over",
+}
+
+
+# Figure 3 of the drivers page shows the six choices that move the 75+ figure most; the caption
+# names the rest. Its labels wrap shorter on a phone than other charts' labels.
+DR3_FACTORS = 6
+DR3_LABEL_CHARS = 15
+
+
+def _driver_exposure_figures(figures_dir: Path, captions: dict[str, str]) -> None:
+    """Involvement per kilometre by driver age, what moves the figure for 75 and over, and deaths
+    once involved, from the committed ``risk_*`` tables (``scripts/exposure_risk.py``)."""
+    from dgt_stats import edm2018
+    from dgt_stats.exposure_risk import national
+
+    path = TABLES_DIR / "risk_national_rates.csv"
+    if not path.exists():
+        log.warning("risk_national_rates.csv missing: run scripts/exposure_risk.py national")
+        return
+    rates = pd.read_csv(path)
+    rates = rates[rates.km_total == "less taxi and ride-hailing"]
+    central = rates[rates.method.str.startswith("A:")].set_index("group")
+    sensitivity = pd.read_csv(TABLES_DIR / "risk_national_sensitivity.csv")
+    spread = sensitivity.groupby("group").involved_ratio.agg(["min", "max"])
+    older = pd.read_csv(TABLES_DIR / "risk_older_sensitivity.csv")
+    unmarked = older[~older.at_odds_with_mens_driving]
+    split = pd.read_csv(TABLES_DIR / "risk_older_split.csv")
+    split = split[split.assumption == national.REFERENCE_SPLIT].set_index("group")
+    counts = pd.read_csv(TABLES_DIR / "risk_severity_and_licences.csv").set_index("group").involved
+    madrid = edm2018.SURVEY_YEAR
+    rows = []
+    for group in ("18-29", "30-44", "45-64", "65+"):
+        rows.append(
+            {
+                "label": GROUP_LABELS[group],
+                "reference_row": group == "45-64",
+                "value": float(central.loc[group, "involved_ratio"]),
+                "low": float(central.loc[group, "involved_ratio_low"]),
+                "high": float(central.loc[group, "involved_ratio_high"]),
+                "range_low": float(spread.loc[group, "min"]),
+                "range_high": float(spread.loc[group, "max"]),
+                "count": int(counts[group]),
+            }
+        )
+    for group, column in (("65-74", "ratio_65_74"), ("75+", "ratio_75_plus")):
+        rows.append(
+            {
+                "label": f"of which {GROUP_LABELS[group]}*",
+                "reference_row": False,
+                "conditional": True,
+                "group_start": group == "65-74",
+                "value": float(split.loc[group, "ratio_to_45_64"]),
+                "low": float(split.loc[group, "ratio_low"]),
+                "high": float(split.loc[group, "ratio_high"]),
+                "range_low": float(older[column].min()),
+                "range_high": float(older[column].max()),
+                "clear_low": float(unmarked[column].min()),
+                "clear_high": float(unmarked[column].max()),
+                "count": int(counts[group]),
+            }
+        )
+    plots.estimate_and_range(
+        pd.DataFrame(rows),
+        figures_dir / "dr1_involved_per_km.svg",
+        "Car drivers involved in injury crashes per kilometre driven, against drivers aged "
+        "45–64 (2024)",
+        xlabel="Rate ratio per km against drivers aged 45–64 (log scale)",
+        reference_label="45–64 rate",
+        estimate_label="Estimate and 95% sampling interval",
+        conditional_label="* Also assumes people aged 75 and over drive as much less than those "
+        f"aged 65–74 as in Madrid in {madrid}",
+        range_label="Sensitivity range: span of the assumptions tested",
+        hatch_label="Reached only with equal km per licence holder at 65–74 and 75 and over (at "
+        "odds with surveys of men's driving)",
+    )
+    captions["dr1_involved_per_km"] = _caption(
+        "Car drivers involved in injury crashes in Spain in 2024 per kilometre driven, as ratios "
+        "to drivers aged 45–64 (log scale). Under each label, DGT's count of drivers involved; "
+        "counts are not rates and cannot be compared between rows, because age bands differ in "
+        "width, population and driving. Dots: estimates with 95% sampling intervals. Hollow "
+        f"diamonds: also assume the Madrid {madrid} pattern; their intervals include that "
+        "survey's sampling error and hold the assumption fixed. Grey bands: sensitivity ranges "
+        "(for their sources, open “Sources of the sensitivity range” further down), spans "
+        "of the assumptions tested with no probability attached; each end is itself an "
+        "estimate with sampling error. Hatched: "
+        "reached only with equal km per licence holder at 65–74 and 75 and over",
+        f"{TABLES_SOURCE}; {EMEF_SOURCE}; {EDM_SOURCE}; {MOVILIA_SOURCE}; {RACC_SOURCE}; "
+        f"{KM_2024_SOURCE}; {POPULATION_SOURCE}",
+        f"{int(central.involved.sum()):,} drivers involved",
+    )
+
+    decomposition = pd.read_csv(TABLES_DIR / "risk_older_decomposition.csv")
+    whole = decomposition[decomposition.kind == "all"].iloc[0]
+    factors = decomposition[decomposition.kind == "factor"].sort_values(
+        "log_width", ascending=False
+    )
+    shown, rest = factors.head(DR3_FACTORS), factors.iloc[DR3_FACTORS:]
+    estimate = float(whole.estimate)
+    bars = [
+        {
+            "label": str(whole.short_label),
+            "range_low": float(whole.low),
+            "range_high": float(whole.high),
+            "clear_low": float(whole.clear_low),
+            "clear_high": float(whole.clear_high),
+            "band_style": "range",
+        }
+    ]
+    for factor in shown.itertuples():
+        bars.append(
+            {
+                "label": str(factor.short_label),
+                "range_low": float(factor.low),
+                "range_high": float(factor.high),
+                "clear_low": float(factor.clear_low),
+                "clear_high": float(factor.clear_high),
+                "band_style": "factor",
+            }
+        )
+    plots.estimate_and_range(
+        pd.DataFrame(bars),
+        figures_dir / "dr3_older_range_sources.svg",
+        "Car drivers aged 75 and over: how the estimate of involvement per kilometre against "
+        "45–64 changes with each assumption about kilometres (2024)",
+        xlabel="Rate ratio per km against drivers aged 45–64 (log scale)",
+        reference_label="45–64 rate",
+        range_label="Sensitivity range: all combinations tested",
+        factor_label="One choice changed, the others as in the Madrid-pattern estimate",
+        hatch_label="Reached only with equal km per licence holder at 65–74 and 75 and over",
+        ticks=(0.75, 1, 1.5, 2, 3, 4),
+        lines=[(estimate, f"Madrid pattern {estimate:.2f}", "estimate")],
+        gap_after=[str(whole.short_label)],
+        show_whiskers=False,
+        label_width=DR3_LABEL_CHARS,
+    )
+    others = [
+        f"{factor.short_label[:1].lower()}{factor.short_label[1:]} "
+        f"({factor.low:.2f}–{factor.high:.2f})"
+        for factor in rest.itertuples()
+    ]
+    captions["dr3_older_range_sources"] = _caption(
+        "Car drivers aged 75 and over involved in injury crashes in Spain in 2024 per kilometre "
+        "driven, as ratios to drivers aged 45–64 (log scale). Each bar below the top changes one "
+        "assumption about the kilometres and keeps the others as in the Madrid-pattern estimate "
+        f"({estimate:.2f}); the bars show how the estimate moves, not what changes crash "
+        "involvement. The top bar spans every combination tested (not every possible "
+        "combination of the choices) and is the whole sensitivity range "
+        f"({float(whole.low):.2f}–{float(whole.high):.2f}). Bar lengths depend on which "
+        "alternatives were tried, not on how likely they are, and bars carry no sampling error. "
+        "Hatched: reached only with equal kilometres per licence holder at 65–74 and 75 and "
+        "over. Not shown, each moving the figure less from the Madrid-pattern estimate: "
+        f"{_join_words(others)}",
+        f"{TABLES_SOURCE}; {EMEF_SOURCE}; {EDM_SOURCE}; {MOVILIA_SOURCE}; {RACC_SOURCE}; "
+        f"{KM_2024_SOURCE}; {POPULATION_SOURCE}",
+        f"{int(counts['75+']):,} drivers aged 75 and over involved",
+    )
+
+    severity = pd.read_csv(TABLES_DIR / "risk_severity_and_licences.csv")
+    severity = severity[severity.group != "65+"].assign(label=lambda f: f.group.map(GROUP_LABELS))
     plots.dot_interval(
-        rates.assign(label=[agebands.band_label(band) for band in rates.band]),
+        severity,
         "label",
-        "deaths_per_1000_involved",
-        "deaths_per_1000_involved_low",
-        "deaths_per_1000_involved_high",
-        figures_dir / "a1_killed_per_involved.svg",
+        "killed_per_1000_involved",
+        "killed_per_1000_involved_low",
+        "killed_per_1000_involved_high",
+        figures_dir / "dr2_killed_per_involved.svg",
         "Car drivers killed per 1,000 involved in an injury crash, by age (2024)",
         xlabel="Drivers killed within 30 days per 1,000 drivers involved",
-        reference=float(reference.deaths_per_1000_involved),
-        reference_label=f"{agebands.band_label(driver_risk.REFERENCE_BAND)} rate",
+        reference=float(severity.set_index("group").loc["45-64", "killed_per_1000_involved"]),
+        reference_label="45–64 rate",
         keep_order=True,
-        reference_row=agebands.band_label(driver_risk.REFERENCE_BAND),
+        reference_row="45–64",
+        integer_ticks=True,
     )
-    captions["a1_killed_per_involved"] = _caption(
-        "Car drivers who died within 30 days per 1,000 car drivers involved in an injury crash, "
-        "by age band, Spain, 2024, with 95% intervals; the dotted line is the rate at 35–54, and "
-        "no estimate of distance driven enters the rate",
+    captions["dr2_killed_per_involved"] = _caption(
+        "Private-car drivers who died within 30 days per 1,000 involved in an injury crash, by "
+        "age, Spain, 2024, with 95% intervals; no measure of driving enters the rate",
         TABLES_SOURCE,
-        f"{int(rates.drivers_involved.sum()):,} drivers involved",
-    )
-
-    check = summary("q7_owner_age_check")
-    involved = rates.set_index("band")
-    per_km = check.assign(
-        label=[agebands.band_label(band) for band in check.band],
-        published=lambda f: f.band.map(involved.involved_per_bn_km),
-        low=lambda f: f.band.map(involved.involved_per_bn_km_low),
-        high=lambda f: f.band.map(involved.involved_per_bn_km_high),
-        scenario=lambda f: f.drivers_involved / f.billion_km_transfer,
-    )
-    plots.dot_range(
-        per_km,
-        "label",
-        "published",
-        "low",
-        "high",
-        "scenario",
-        figures_dir / "a4_involved_per_km.svg",
-        "Car drivers involved in injury crashes per billion km, by age (2024)",
-        xlabel="Drivers involved per billion km of cars registered to owners of each age "
-        "(log scale)",
-        value_label="On the published kilometres, by owner age (with 95% interval)",
-        alternative_label="With kilometres moved from 35–54 to the two young bands (scenario)",
-        log=True,
-        reference=float(involved.loc[driver_risk.REFERENCE_BAND, "involved_per_bn_km"]),
-        reference_label=f"{agebands.band_label(driver_risk.REFERENCE_BAND)} rate",
-    )
-    captions["a4_involved_per_km"] = _caption(
-        "Car drivers involved in injury crashes per billion kilometres driven by cars registered "
-        "to owners of the same age band, Spain, 2024, with 95% intervals that treat the "
-        "kilometres as known; the grey band runs to the rate under a scenario that moves "
-        "kilometres from the 35–54 band to 18–24 and 25–34 until all three have the same "
-        "kilometres per licence holder, a sensitivity range rather than an interval",
-        f"{TABLES_SOURCE}; {KM_2024_SOURCE}; {CENSUS_SOURCE}",
-        f"{int(check.drivers_involved.sum()):,} drivers involved",
-    )
-
-    contrast = summary("q7_denominator_contrast")
-    plots.dot_interval_panels(
-        contrast.assign(panel=contrast.denominator.map(CONTRAST_PANELS)),
-        "panel",
-        "band_label",
-        "ratio",
-        "low",
-        "high",
-        figures_dir / "a2_denominator_contrast.svg",
-        "The same car-driver deaths, four denominators: each band against 35–54 (2024)",
-        order=[agebands.band_label(band) for band in dict.fromkeys(contrast.band)],
-        panel_order=[CONTRAST_PANELS[key] for key in dict.fromkeys(contrast.denominator)],
-        xlabel="Rate ratio against drivers aged 35–54 (dotted line: the same rate)",
-        reference=1.0,
-    )
-    captions["a2_denominator_contrast"] = _caption(
-        "Car-driver deaths within 30 days by age band, per resident, per holder of a B (car) "
-        "permit, per car driver involved in an injury crash and per kilometre driven by cars "
-        "registered to owners of the band, as ratios to drivers aged 35–54, Spain, 2024, with "
-        "95% intervals; the numerator is the same in every panel, and 18–24 is left out because "
-        "INE groups residents as 15–19 and 20–24",
-        f"{TABLES_SOURCE}; {KM_2024_SOURCE}; {POPULATION_SOURCE}; {CENSUS_SOURCE}",
+        f"{int(severity.involved.sum()):,} drivers involved",
     )
 
 
@@ -745,11 +968,25 @@ def _vehicle_figures(figures_dir: Path, captions: dict[str, str], summary) -> No
         "per billion km",
         highlight=["Motorcycles", "Trucks over 3,500 kg"],
     )
+    # The caption says that only the top rank per kilometre is clear of the intervals below it.
+    per_km = rates[rates.measure == "fatal_involvement"].sort_values(
+        "per_billion_km", ascending=False
+    )
+    top, rest = per_km.iloc[0], per_km.iloc[1:]
+    neighbours_overlap = (
+        rest.per_billion_km_high.to_numpy()[1:] >= rest.per_billion_km_low.to_numpy()[:-1]
+    )
+    if not (top.per_billion_km_low > rest.per_billion_km_high.max() and neighbours_overlap.any()):
+        raise ValueError("v1 caption: the per-km ranking no longer has one clear leader")
     captions["v1_per_vehicle_vs_per_km"] = _caption(
         "Vehicles of each type involved in fatal crashes (deaths within 30 days) per 100,000 "
-        "circulating vehicles (left) and per billion vehicle-kilometres (right), Spain, 2022; "
-        "the lines show how each type's rank changes with the denominator",
+        "circulating vehicles (left) and per billion vehicle-kilometres (right), Spain, 2022. "
+        "The vertical position shows the rank only; each rate is printed beside its point. Per "
+        f"kilometre only the lead of {str(top.label).lower()} is clear of the 95% intervals of "
+        "the types below, some of which overlap (intervals and counts by type in the rates "
+        "table)",
         f"{TABLES_SOURCE}; {KM_SOURCE}",
+        f"{int(per_km['count'].sum()):,} vehicles in fatal crashes",
     )
 
 
@@ -760,6 +997,12 @@ def _policy_figures(figures_dir: Path, captions: dict[str, str], summary) -> Non
     points = policy.INTERVENTIONS["points_licence"]
     series = summary("q8_points_series")
     series["period"] = pd.to_datetime(series.period)
+    # The lower panel enlarges the months around the change, from the January of the year before.
+    zoom_from = pd.Timestamp(year=points.date.year - 1, month=1, day=1)
+    after = series[series.period >= points.date]
+    if not (after.counterfactual_linear > after.counterfactual_main).all():
+        raise ValueError("p1 caption: the straight-line projection no longer gives the larger drop")
+    break_label = f"{points.date.day} {points.date:%B %Y}"
     plots.intervention(
         series,
         "period",
@@ -767,24 +1010,65 @@ def _policy_figures(figures_dir: Path, captions: dict[str, str], summary) -> Non
         "fitted_main",
         "counterfactual_main",
         figures_dir / "p1_points_series.svg",
-        "Monthly road deaths around the points-based licence, 2000–2007",
+        "Monthly road deaths around the points-based licence, "
+        f"{series.period.min().year}–{series.period.max().year}",
         points.date,
-        "1 July 2006",
+        break_label,
         ylabel="Deaths (30 days)",
-        alternative=("counterfactual_linear", "Counterfactual, one straight pre-trend"),
+        # One name for each line, the same in the legend, the caption and the page.
+        names={
+            "observed": "Observed deaths",
+            "fitted": "Fitted model",
+            "counterfactual": "Projection without the change, preferred pre-trend",
+        },
+        alternative=(
+            "counterfactual_linear",
+            "Projection without the change, straight-line pre-trend",
+        ),
+        zero_based=False,
+        zoom_from=zoom_from,
     )
     captions["p1_points_series"] = _caption(
         "Monthly road deaths within 30 days, Spain, "
-        f"{series.period.min():%B %Y} to {series.period.max():%B %Y}, with a fitted segmented "
-        "regression and two counterfactuals without the points-based licence of 1 July 2006: "
-        "the fitted model with its change set to zero, and the same with one straight "
-        "pre-trend, which gives the larger drop",
+        f"{series.period.min():%B %Y} to {series.period.max():%B %Y} (top) and enlarged from "
+        f"{zoom_from:%B %Y} (bottom), with the fitted model, a segmented regression, and from "
+        f"{break_label} two projections without the change: the preferred pre-trend (dashed) "
+        "and a straight-line pre-trend (dotted), which gives the larger drop. The value axes do "
+        "not start at zero. The projections are drawn without intervals; the intervals of the "
+        "step and of the average change are given in the text and in the table of every "
+        "specification",
         SERIES_SOURCE,
         f"{int(series.deaths.sum()):,} deaths",
     )
 
     placebo = summary("q8_points_calendar_placebo")
     placebo["label"] = pd.to_datetime(placebo.break_date).dt.strftime("%Y")
+    # The Julys whose windows hold the change are left out of the placebos; a note row stands in
+    # each run of them, so the axis does not read as consecutive years.
+    years = pd.to_datetime(placebo.break_date).dt.year
+    pre, post = policy.CALENDAR_PRE_MONTHS, points.post_months
+    missing = sorted(set(range(years.min(), years.max() + 1)) - set(years))
+    holds_change = [
+        pd.Timestamp(year=year, month=7, day=1) - pd.DateOffset(months=pre)
+        <= points.date
+        < pd.Timestamp(year=year, month=7, day=1) + pd.DateOffset(months=post)
+        for year in missing
+    ]
+    if not missing or not all(holds_change):
+        raise ValueError("p2: the Julys left out are no longer those whose window holds the change")
+    left_out = _year_runs(missing)
+    notes = pd.DataFrame(
+        {
+            "label": [f"{run}: left out" for run in left_out],
+            "year": [int(run[:4]) for run in left_out],
+            "is_true": False,
+        }
+    )
+    placebo = (
+        pd.concat([placebo.assign(year=years), notes], ignore_index=True)
+        .sort_values("year", kind="stable")
+        .reset_index(drop=True)
+    )
     plots.dot_interval(
         placebo,
         "label",
@@ -799,33 +1083,235 @@ def _policy_figures(figures_dir: Path, captions: dict[str, str], summary) -> Non
         highlight="is_true",
         keep_order=True,
     )
-    july = pd.to_datetime(placebo.break_date).dt.year
     captions["p2_july_placebos"] = _caption(
         "Estimated change in the level of monthly deaths at 1 July 2006 and at every other "
-        f"July of {july.min()}–{july.max()} whose window avoids July 2006 and the pandemic, "
-        "each from the same segmented regression on 60 months before and 17 after, Spain, "
-        "with 95% intervals; the filled marker is July 2006",
+        f"July of {years.min()}–{years.max()} whose window avoids July 2006 and the pandemic, "
+        f"each from the same segmented regression on {pre} months before and {post} after, Spain, "
+        "with model-based 95% intervals, which these placebos show to be too narrow; the "
+        f"filled marker is July 2006. The Julys of {_join_words(left_out)} are left out because "
+        "their windows include July 2006",
         SERIES_SOURCE,
-        f"{int(placebo.n_fits.iloc[0])} fits",
+        f"{int(placebo.n_fits.dropna().iloc[0])} fits",
     )
 
 
 # --------------------------------------------------------------------------- data
 
 
+# The fields of DGT's crash records in the missing-values chart, in English; the table of missing
+# values keeps DGT's field names. The right-of-way flags (``codes.PRIORI_COLUMNS``) share one row.
+MISSINGNESS_FIELDS = {
+    "DIA_SEMANA": "Day of the week",
+    "COD_PROVINCIA": "Province",
+    "COD_MUNICIPIO": "Municipality",
+    "ISLA": "Island",
+    "ZONA": "Zone",
+    "ZONA_AGRUPADA": "Interurban or urban",
+    "CARRETERA": "Road number",
+    "KM": "Kilometre post",
+    "CARRETERA_CRUCE": "Crossing road",
+    "SENTIDO_1F": "Direction of travel",
+    "TITULARIDAD_VIA": "Road owner",
+    "TIPO_VIA": "Road type",
+    "TIPO_ACCIDENTE": "Crash type",
+    "NUDO": "At a junction or not",
+    "NUDO_INFO": "Junction type",
+    "CONDICION_NIVEL_CIRCULA": "Traffic level",
+    "CONDICION_FIRME": "Road surface",
+    "CONDICION_ILUMINACION": "Lighting",
+    "CONDICION_METEO": "Weather",
+    "CONDICION_NIEBLA": "Fog",
+    "CONDICION_VIENTO": "Strong wind",
+    "VISIB_RESTRINGIDA_POR": "Restricted visibility",
+    "ACERA": "Pavement",
+    "TRAZADO_PLANTA": "Road alignment",
+}
+# The right-of-way flags are drawn as one row only while their shares stay this close together.
+PRIORITY_SPREAD = 0.01
+# Optional fields whose empty cells DGT's dictionary does not define, named in the caption as
+# fields where an empty cell may also mean there was nothing to record; each is empty in most
+# crashes. The crossing road applies only at a junction (``dgt_audit.CROSSING_ROAD``), and even
+# there names a road only where the junction is with a numbered one.
+OPTIONAL_FIELDS = ("KM", "CARRETERA_CRUCE")
+
+
+def empty_means(column: str) -> str | None:
+    """What DGT's dictionary says an empty cell of ``column`` means: ``"not applicable"`` where
+    it labels an empty cell "No aplica" (the island field), ``"no"`` where it codes absence as
+    '.' (the strong-wind field, whose files leave that cell empty), otherwise None."""
+    labels = codes.load_dictionary().get(column, {})
+    if labels.get("", "").strip().lower() == "no aplica":
+        return "not applicable"
+    if "." in labels:
+        return "no"
+    return None
+
+
+def priority_row(count: int) -> str:
+    return f"Right of way, {count} flags"
+
+
+def recorded_where_applicable(profile: pd.DataFrame, applicability: pd.DataFrame) -> pd.DataFrame:
+    """Field × year share of crashes with a value recorded, among the crashes the field applies
+    to, as the chart draws it.
+
+    The fields the DGT microdata audit examines, and the crossing road, take their shares from
+    ``applicability`` (``missingness_where_applicable``, from :func:`dgt_audit.recording_by_year`),
+    so they follow the audit's rule (:func:`dgt_audit.statuses`): a 998 code does not apply, an
+    empty fog or strong-wind cell is the recorded "no", and an empty or 999 junction type,
+    right-of-way flag or crossing road does not apply to a crash recorded away from a junction
+    (whether it is at one read as the association analysis reads it, the other way round where
+    the flag is inverted: ``summaries._recording_by_year``). The other fields take theirs from the
+    missing-values table (``missingness_by_year``): a value is not applicable when it is coded 998,
+    when it is a non-coded field's own "not applicable" placeholder (both in
+    ``share_not_applicable``) or when the cell is empty in a field whose dictionary defines an
+    empty cell as not applicable (the island field); every other empty cell, 999, an explicit
+    unknown code and the placeholders count as missing. The right-of-way flags are one row, their
+    mean, and the rows run from the most completely recorded down.
+    """
+    if set(applicability.year) != set(profile.year):
+        raise ValueError("d1: the two missing-values tables cover different years")
+    audited = applicability.assign(
+        share=applicability.recorded / applicability.applies.where(applicability.applies > 0)
+    )
+    rest = profile[~profile.column.isin(set(audited.column))]
+    meaning = rest.column.map(empty_means)
+    not_applicable = rest.share_not_applicable + rest.share_empty.where(
+        meaning.eq("not applicable"), 0.0
+    )
+    recorded = rest.share_observed + rest.share_empty.where(meaning.eq("no"), 0.0)
+    applies = 1 - not_applicable
+    shares = pd.concat(
+        [
+            rest.assign(share=(recorded / applies).where(applies > 0)),
+            audited,
+        ],
+        ignore_index=True,
+    )
+    matrix = shares.pivot(index="column", columns="year", values="share")
+    priority = matrix[matrix.index.isin(codes.PRIORI_COLUMNS)]
+    unnamed = set(matrix.index) - set(MISSINGNESS_FIELDS) - set(priority.index)
+    if unnamed:
+        raise ValueError(f"d1: no English name for the fields {sorted(unnamed)}")
+    if len(priority):
+        if ((priority.max() - priority.min()) >= PRIORITY_SPREAD).any():
+            raise ValueError("d1: the right-of-way flags are no longer recorded together")
+        matrix = matrix.drop(index=priority.index)
+        matrix.loc[priority_row(len(priority))] = priority.mean()
+    matrix = matrix.rename(index=MISSINGNESS_FIELDS)
+    means = matrix.mean(axis=1).round(6)
+    return matrix.loc[sorted(matrix.index, key=lambda row: (-means[row], row))]
+
+
+def inverted_junction_years(shown: pd.DataFrame, junctions: pd.DataFrame) -> list[int]:
+    """The years whose Catalan junction flag is inverted (``dgt_audit_junction_coding``), checked
+    to be the Catalan provinces', and, with the flag read the other way round there, to be years
+    in which the junction type and right-of-way flags are recorded where they apply no less often
+    than in the least complete other year."""
+    inverted = junctions[junctions.junction_flag_inverted.astype(bool)]
+    if set(inverted.province) != set(junctions[junctions.catalan.astype(bool)].province):
+        raise ValueError("d1: the inverted junction flag is no longer the Catalan provinces'")
+    years = sorted({int(year) for year in inverted.year})
+    junction_type = shown.loc[MISSINGNESS_FIELDS["NUDO_INFO"]]
+    priority = shown.loc[shown.index.str.startswith("Right of way")].iloc[0]
+    others = [year for year in shown.columns if year not in years]
+    if not (
+        years
+        and float(junction_type[years].min()) >= float(junction_type[others].min())
+        and float(priority[years].min()) >= float(priority[others].min())
+    ):
+        raise ValueError("d1: the junction fields drop in the inverted years once read corrected")
+    return years
+
+
 def _data_figures(figures_dir: Path, captions: dict[str, str]) -> None:
     profile = pd.read_csv(TABLES_DIR / "missingness_by_year.csv")
+    applicability = pd.read_csv(TABLES_DIR / "missingness_where_applicable.csv")
+    matrix = recorded_where_applicable(profile, applicability)
     plots.missingness_heatmap(
-        profile,
+        matrix,
         figures_dir / "d1_missingness.svg",
-        "Share of crashes with a value recorded, by field and year",
+        "Share of crashes with a value recorded where the field applies, by field and year",
     )
+    audited = set(applicability.column)
+    columns = sorted(set(profile.column) - audited)
+    meaning = {column: empty_means(column) for column in columns}
+    empty_na = [MISSINGNESS_FIELDS[c].lower() for c in columns if meaning[c] == "not applicable"]
+    presence = [
+        MISSINGNESS_FIELDS[c].lower()
+        for c in dgt_audit.CANDIDATES
+        if c in audited and dgt_audit.presence_field(c)
+    ]
+    optional = profile[profile.column.isin(OPTIONAL_FIELDS)].groupby("column").share_empty.mean()
+    junction_only = set(dgt_audit.AT_JUNCTION_ONLY)
+    if (
+        len(empty_na) != 1
+        or any(meaning[c] == "no" for c in columns)
+        or presence != ["fog", "strong wind"]
+        or set(dgt_audit.JUNCTION_FIELDS) != {"NUDO_INFO", *codes.PRIORI_COLUMNS}
+        or junction_only != {*dgt_audit.JUNCTION_FIELDS, "CARRETERA_CRUCE"}
+        or not junction_only <= audited
+        or len(optional) != len(OPTIONAL_FIELDS)
+        or not (optional > 0.5).all()
+        or any(empty_means(c) for c in OPTIONAL_FIELDS)
+        or any(c in audited and c not in junction_only for c in OPTIONAL_FIELDS)
+    ):
+        raise ValueError("d1 caption: the fields whose empty cells it describes have changed")
+    junctions = pd.read_csv(TABLES_DIR / "dgt_audit_junction_coding.csv")
+    years = inverted_junction_years(matrix, junctions)
+    priority = profile[profile.column.isin(codes.PRIORI_COLUMNS)].column.nunique()
+    optional_names = _join_words([MISSINGNESS_FIELDS[c].lower() for c in OPTIONAL_FIELDS])
     captions["d1_missingness"] = _caption(
-        "Share of crashes with a value recorded in each field of the DGT crash records, by "
-        f"year, Spain, {int(profile.year.min())}–{int(profile.year.max())}; a value counts as "
-        "missing when it is empty, 999 (not specified), 998 (not applicable), an explicit "
-        "unknown code or a placeholder (KM 9999, and 1000 in 2019; CARRETERA 'No "
-        "inventariada'; COD_MUNICIPIO 00000)",
+        "Share of crashes with a value recorded in each field of the DGT crash records, among "
+        f"the crashes the field applies to, by year, Spain, {int(profile.year.min())}–"
+        f"{int(profile.year.max())}. A value is not applicable, and is left out, when it is 998 "
+        "(not applicable), when the road is 'No inventariada' (no road number), when the "
+        f"{empty_na[0]} field is empty, which DGT's dictionary defines as not applicable, and, "
+        f"for the junction type, the {priority} right-of-way flags and the crossing road, when "
+        "the cell is empty or 999 in a crash recorded away from a junction; a value recorded there "
+        "still counts. In the records for the four Catalan provinces, whose junction flag is "
+        f"the wrong way round in {_join_words([str(y) for y in years])}, the flag is read the "
+        "other way round, as in the association analysis. An empty cell in the "
+        f"{' or '.join(presence)} field counts as recorded, as the 'no' of a field filled in "
+        "only when the condition was present. A value is missing when it is 999 (not "
+        "specified), an explicit unknown code, a placeholder (kilometre post 9999, and 1000 in "
+        "2019; municipality 00000) or any other empty cell, although in the "
+        f"{optional_names} fields an empty cell may also mean there was nothing to record. The "
+        "right-of-way flags, recorded together, share one row",
         MICRODATA_SOURCE,
         f"{int(profile.groupby('year').rows.first().sum()):,} crashes",
+    )
+
+
+# --------------------------------------------------------------------------- severity calculator
+
+
+def _severity_calculator_figures(figures_dir: Path, captions: dict[str, str]) -> None:
+    """Predicted against observed for the Catalan severity model, the published model behind the
+    calculator, on years it was not fitted on."""
+    path = TABLES_DIR / "sev_calibration.csv"
+    if not path.exists():
+        log.warning("sev_calibration.csv missing: run scripts/severity_calculator.py calculator")
+        return
+    groups = pd.read_csv(path)
+    groups = groups[groups.estimator.isin(["calculator", "road_x_crash_table"])]
+    plots.calibration_comparison(
+        groups,
+        figures_dir / "sev1_predicted_observed.svg",
+        "Predicted and observed: the share of severe crashes that were fatal",
+        {"calculator": "the model", "road_x_crash_table": "a table by road and crash type"},
+        xlabel="Predicted chance that the crash was fatal (average in the group)",
+        ylabel="Share of the crashes that were fatal",
+    )
+    model = groups[groups.estimator == "calculator"]
+    captions["sev1_predicted_observed"] = _caption(
+        "Crashes in Catalonia in which someone was killed or seriously injured, 2016–2023, on "
+        "the roads the calculator offers. Each year was predicted by a model fitted only on the "
+        "years before it, with its penalty, form, roads-through-towns rule and whether each "
+        "province has a starting level of its own also chosen on those years alone. The crashes are split into ten equal groups by the model's prediction "
+        f"(about {int(model.n.median()):,} crashes each), and separately by the table's. Each dot "
+        "is the share of a group's crashes that were fatal (someone died within 24 hours), with "
+        "its 95% interval, against the group's average prediction",
+        "Servei Català de Trànsit, crashes with a death or serious injury",
+        int(model.n.sum()),
     )

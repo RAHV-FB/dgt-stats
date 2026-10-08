@@ -1,117 +1,117 @@
 outcome,predictor,predictor_label,level,is_reference,probability,effect,is_nuisance
-fatal,zone,Zone,street,True,0.00835972,0,False
-fatal,zone,Zone,interurban road,False,0.0256572,0.0172975,False
-fatal,zone,Zone,urban crossing,False,0.0329654,0.0246057,False
-fatal,zone,Zone,urban motorway or dual carriageway,False,0.0114844,0.00312465,False
-fatal,road,Road type,urban street,True,0.0102096,0,False
-fatal,road,Road type,conventional,False,0.0207327,0.0105231,False
-fatal,road,Road type,autovía,False,0.0211307,0.0109211,False
-fatal,road,Road type,motorway,False,0.0226595,0.0124499,False
-fatal,road,Road type,other road,False,0.0178643,0.0076547,False
-fatal,crash_type,Crash type,side collision,True,0.00978981,0,False
-fatal,crash_type,Crash type,rear-end or chain collision,False,0.00506269,-0.00472712,False
-fatal,crash_type,Crash type,pedestrian struck,False,0.0562944,0.0465046,False
-fatal,crash_type,Crash type,run-off or overturn,False,0.0201498,0.0103599,False
-fatal,crash_type,Crash type,head-on collision,False,0.0502498,0.04046,False
-fatal,crash_type,Crash type,fall,False,0.00728326,-0.00250656,False
-fatal,crash_type,Crash type,object or animal struck,False,0.0136623,0.00387248,False
-fatal,crash_type,Crash type,other crash type,False,0.0146484,0.0048586,False
-fatal,junction,Junction,not at a junction,True,0.0175907,0,False
-fatal,junction,Junction,at a junction,False,0.0133661,-0.0042246,False
-fatal,lighting,Lighting,daylight,True,0.015181,0,False
-fatal,lighting,Lighting,dusk or dawn,False,0.0174948,0.00231384,False
-fatal,lighting,Lighting,"dark, street lighting",False,0.0168183,0.00163735,False
-fatal,lighting,Lighting,"dark, no lighting",False,0.0205606,0.00537965,False
-fatal,lighting,Lighting,not specified,False,0.00670763,-0.00847337,True
-fatal,weather,Weather,clear,True,0.0166925,0,False
-fatal,weather,Weather,cloudy,False,0.0161375,-0.000555035,False
-fatal,weather,Weather,rain,False,0.0145504,-0.0021421,False
-fatal,weather,Weather,hail or snow,False,0.0106906,-0.00600189,False
-fatal,weather,Weather,unknown,False,0.0141432,-0.00254933,True
-fatal,weather,Weather,not specified,False,0.012577,-0.00411554,True
-fatal,surface,Road surface,dry,True,0.0172602,0,False
-fatal,surface,Road surface,wet,False,0.0109191,-0.00634109,False
-fatal,surface,Road surface,other surface,False,0.0155829,-0.00167727,False
-fatal,surface,Road surface,unknown,False,0.0201093,0.00284915,True
+fatal,zone,Zone,street,True,0.00830507,0,False
+fatal,zone,Zone,interurban road,False,0.0258438,0.0175388,False
+fatal,zone,Zone,urban crossing,False,0.0334899,0.0251848,False
+fatal,zone,Zone,urban motorway or dual carriageway,False,0.0114645,0.00315939,False
+fatal,road,Road type,urban street,True,0.0103521,0,False
+fatal,road,Road type,conventional,False,0.0205671,0.0102149,False
+fatal,road,Road type,autovía,False,0.0209008,0.0105487,False
+fatal,road,Road type,motorway,False,0.0223211,0.011969,False
+fatal,road,Road type,other road,False,0.0176909,0.00733879,False
+fatal,crash_type,Crash type,side or front-side collision,True,0.0100066,0,False
+fatal,crash_type,Crash type,rear-end or chain collision,False,0.00504522,-0.00496137,False
+fatal,crash_type,Crash type,pedestrian struck,False,0.0560475,0.046041,False
+fatal,crash_type,Crash type,run-off or overturn,False,0.020006,0.0099994,False
+fatal,crash_type,Crash type,head-on collision,False,0.049756,0.0397494,False
+fatal,crash_type,Crash type,fall,False,0.00729048,-0.00271611,False
+fatal,crash_type,Crash type,object or animal struck,False,0.0134767,0.00347015,False
+fatal,crash_type,Crash type,other crash type,False,0.0143611,0.00435451,False
+fatal,junction,Junction,not at a junction,True,0.0178556,0,False
+fatal,junction,Junction,at a junction,False,0.0125555,-0.00530013,False
+fatal,lighting,Lighting,daylight,True,0.0151701,0,False
+fatal,lighting,Lighting,dusk or dawn,False,0.0175218,0.00235167,False
+fatal,lighting,Lighting,"dark, street lighting",False,0.0169247,0.00175463,False
+fatal,lighting,Lighting,"dark, no lighting",False,0.0205212,0.00535111,False
+fatal,lighting,Lighting,not specified,False,0.00663735,-0.00853277,True
+fatal,weather,Weather,clear,True,0.0166944,0,False
+fatal,weather,Weather,cloudy,False,0.016167,-0.000527356,False
+fatal,weather,Weather,rain,False,0.0145282,-0.00216618,False
+fatal,weather,Weather,hail or snow,False,0.0106122,-0.00608214,False
+fatal,weather,Weather,unknown,False,0.0141011,-0.00259329,True
+fatal,weather,Weather,not specified,False,0.0125379,-0.00415642,True
+fatal,surface,Road surface,dry,True,0.0172564,0,False
+fatal,surface,Road surface,wet,False,0.010932,-0.00632437,False
+fatal,surface,Road surface,other surface,False,0.0156383,-0.00161803,False
+fatal,surface,Road surface,unknown,False,0.019964,0.0027076,True
 fatal,surface,Road surface,not specified,False,,,True
-fatal,alignment,Alignment,straight,True,0.0188681,0,False
-fatal,alignment,Alignment,curve,False,0.0207701,0.00190194,False
-fatal,alignment,Alignment,unknown,False,0.00236088,-0.0165073,True
-fatal,hour_band,Time of day,10-13,True,0.0157391,0,False
-fatal,hour_band,Time of day,00-06,False,0.0229709,0.00723179,False
-fatal,hour_band,Time of day,07-09,False,0.0158435,0.000104366,False
-fatal,hour_band,Time of day,14-16,False,0.0144575,-0.00128162,False
-fatal,hour_band,Time of day,17-19,False,0.0156612,-7.79514e-05,False
-fatal,hour_band,Time of day,20-23,False,0.0161328,0.000393691,False
-fatal,weekend,Weekend,weekday,True,0.0155168,0,False
-fatal,weekend,Weekend,weekend,False,0.0181897,0.00267292,False
-fatal,vehicles,Vehicles involved,2 vehicles,True,0.0173668,0,False
-fatal,vehicles,Vehicles involved,1 vehicle,False,0.0148936,-0.00247312,False
-fatal,vehicles,Vehicles involved,3 or more vehicles,False,0.0258651,0.00849836,False
-fatal,year,Year,2019,True,0.015971,0,False
-fatal,year,Year,2016,False,0.0165196,0.000548583,False
-fatal,year,Year,2017,False,0.0162026,0.000231617,False
-fatal,year,Year,2018,False,0.0165478,0.00057682,False
-fatal,year,Year,2020,False,0.01698,0.00100906,False
-fatal,year,Year,2021,False,0.0159651,-5.92007e-06,False
-fatal,year,Year,2022,False,0.0167107,0.000739672,False
-fatal,year,Year,2023,False,0.0168556,0.000884632,False
-fatal,year,Year,2024,False,0.0158323,-0.000138718,False
-serious,zone,Zone,street,True,0.0711754,0,False
-serious,zone,Zone,interurban road,False,0.13847,0.0672944,False
-serious,zone,Zone,urban crossing,False,0.193409,0.122234,False
-serious,zone,Zone,urban motorway or dual carriageway,False,0.0628258,-0.0083496,False
-serious,road,Road type,urban street,True,0.0856405,0,False
-serious,road,Road type,conventional,False,0.109401,0.0237602,False
-serious,road,Road type,autovía,False,0.0888812,0.00324069,False
-serious,road,Road type,motorway,False,0.102336,0.0166955,False
-serious,road,Road type,other road,False,0.107299,0.0216589,False
-serious,crash_type,Crash type,side collision,True,0.0862741,0,False
-serious,crash_type,Crash type,rear-end or chain collision,False,0.0415977,-0.0446764,False
-serious,crash_type,Crash type,pedestrian struck,False,0.181299,0.0950246,False
-serious,crash_type,Crash type,run-off or overturn,False,0.0964538,0.0101797,False
-serious,crash_type,Crash type,head-on collision,False,0.21158,0.125306,False
-serious,crash_type,Crash type,fall,False,0.086955,0.000680916,False
-serious,crash_type,Crash type,object or animal struck,False,0.0866583,0.00038418,False
-serious,crash_type,Crash type,other crash type,False,0.0898202,0.00354604,False
-serious,junction,Junction,not at a junction,True,0.0976781,0,False
-serious,junction,Junction,at a junction,False,0.0896912,-0.0079869,False
-serious,lighting,Lighting,daylight,True,0.0937473,0,False
-serious,lighting,Lighting,dusk or dawn,False,0.0985107,0.0047634,False
-serious,lighting,Lighting,"dark, street lighting",False,0.0998584,0.00611114,False
-serious,lighting,Lighting,"dark, no lighting",False,0.0941188,0.000371525,False
-serious,lighting,Lighting,not specified,False,0.0178708,-0.0758765,True
-serious,weather,Weather,clear,True,0.0944382,0,False
-serious,weather,Weather,cloudy,False,0.0951188,0.000680616,False
-serious,weather,Weather,rain,False,0.0888955,-0.00554268,False
-serious,weather,Weather,hail or snow,False,0.0718212,-0.022617,False
-serious,weather,Weather,unknown,False,0.0824853,-0.0119529,True
-serious,weather,Weather,not specified,False,0.131277,0.0368389,True
-serious,surface,Road surface,dry,True,0.0994388,0,False
-serious,surface,Road surface,wet,False,0.0657174,-0.0337214,False
-serious,surface,Road surface,other surface,False,0.0883204,-0.0111184,False
-serious,surface,Road surface,unknown,False,0.0816859,-0.0177528,True
-serious,surface,Road surface,not specified,False,0.200987,0.101548,True
-serious,alignment,Alignment,straight,True,0.104048,0,False
-serious,alignment,Alignment,curve,False,0.115839,0.0117907,False
-serious,alignment,Alignment,unknown,False,0.0196867,-0.0843612,True
-serious,hour_band,Time of day,10-13,True,0.0934286,0,False
-serious,hour_band,Time of day,00-06,False,0.12221,0.0287811,False
-serious,hour_band,Time of day,07-09,False,0.0916148,-0.00181373,False
-serious,hour_band,Time of day,14-16,False,0.0860025,-0.00742608,False
-serious,hour_band,Time of day,17-19,False,0.0946373,0.00120874,False
-serious,hour_band,Time of day,20-23,False,0.0951368,0.00170823,False
-serious,weekend,Weekend,weekday,True,0.0898625,0,False
-serious,weekend,Weekend,weekend,False,0.106536,0.0166738,False
-serious,vehicles,Vehicles involved,2 vehicles,True,0.0885496,0,False
-serious,vehicles,Vehicles involved,1 vehicle,False,0.0990792,0.0105296,False
-serious,vehicles,Vehicles involved,3 or more vehicles,False,0.106614,0.0180647,False
-serious,year,Year,2019,True,0.0894217,0,False
-serious,year,Year,2016,False,0.0994262,0.0100045,False
-serious,year,Year,2017,False,0.0955956,0.00617396,False
-serious,year,Year,2018,False,0.0914894,0.00206769,False
-serious,year,Year,2020,False,0.0967955,0.00737387,False
-serious,year,Year,2021,False,0.0934371,0.00401547,False
-serious,year,Year,2022,False,0.0930112,0.00358954,False
-serious,year,Year,2023,False,0.0973098,0.00788817,False
-serious,year,Year,2024,False,0.0969001,0.00747846,False
+fatal,alignment,Alignment,straight,True,0.0189722,0,False
+fatal,alignment,Alignment,curve,False,0.0208414,0.00186913,False
+fatal,alignment,Alignment,unknown,False,0.00230615,-0.0166661,True
+fatal,hour_band,Time of day,10-13,True,0.0157491,0,False
+fatal,hour_band,Time of day,00-06,False,0.0229704,0.00722129,False
+fatal,hour_band,Time of day,07-09,False,0.0158601,0.000111032,False
+fatal,hour_band,Time of day,14-16,False,0.0144496,-0.00129946,False
+fatal,hour_band,Time of day,17-19,False,0.0156497,-9.93119e-05,False
+fatal,hour_band,Time of day,20-23,False,0.0161283,0.000379196,False
+fatal,weekend,Weekend,weekday,True,0.0155265,0,False
+fatal,weekend,Weekend,weekend,False,0.0181663,0.00263977,False
+fatal,vehicles,Vehicles involved,2 vehicles,True,0.0174436,0,False
+fatal,vehicles,Vehicles involved,1 vehicle,False,0.0148643,-0.00257928,False
+fatal,vehicles,Vehicles involved,3 or more vehicles,False,0.0257204,0.00827677,False
+fatal,year,Year,2019,True,0.0160204,0,False
+fatal,year,Year,2016,False,0.0165713,0.000550936,False
+fatal,year,Year,2017,False,0.016245,0.000224613,False
+fatal,year,Year,2018,False,0.0166021,0.000581697,False
+fatal,year,Year,2020,False,0.0170292,0.00100879,False
+fatal,year,Year,2021,False,0.0160011,-1.93304e-05,False
+fatal,year,Year,2022,False,0.0167411,0.000720692,False
+fatal,year,Year,2023,False,0.0167087,0.000688286,False
+fatal,year,Year,2024,False,0.0156892,-0.000331172,False
+serious,zone,Zone,street,True,0.0711389,0,False
+serious,zone,Zone,interurban road,False,0.138583,0.0674444,False
+serious,zone,Zone,urban crossing,False,0.194525,0.123386,False
+serious,zone,Zone,urban motorway or dual carriageway,False,0.0624289,-0.00870994,False
+serious,road,Road type,urban street,True,0.085912,0,False
+serious,road,Road type,conventional,False,0.109133,0.0232207,False
+serious,road,Road type,autovía,False,0.0884328,0.00252074,False
+serious,road,Road type,motorway,False,0.101605,0.0156935,False
+serious,road,Road type,other road,False,0.106913,0.0210015,False
+serious,crash_type,Crash type,side or front-side collision,True,0.087227,0,False
+serious,crash_type,Crash type,rear-end or chain collision,False,0.0414718,-0.0457552,False
+serious,crash_type,Crash type,pedestrian struck,False,0.181084,0.093857,False
+serious,crash_type,Crash type,run-off or overturn,False,0.0960005,0.00877355,False
+serious,crash_type,Crash type,head-on collision,False,0.21063,0.123403,False
+serious,crash_type,Crash type,fall,False,0.0869283,-0.000298714,False
+serious,crash_type,Crash type,object or animal struck,False,0.085981,-0.00124599,False
+serious,crash_type,Crash type,other crash type,False,0.088911,0.00168401,False
+serious,junction,Junction,not at a junction,True,0.0989886,0,False
+serious,junction,Junction,at a junction,False,0.0871363,-0.0118523,False
+serious,lighting,Lighting,daylight,True,0.0937119,0,False
+serious,lighting,Lighting,dusk or dawn,False,0.0985717,0.00485973,False
+serious,lighting,Lighting,"dark, street lighting",False,0.100114,0.00640247,False
+serious,lighting,Lighting,"dark, no lighting",False,0.0940217,0.000309725,False
+serious,lighting,Lighting,not specified,False,0.0176869,-0.0760251,True
+serious,weather,Weather,clear,True,0.0944465,0,False
+serious,weather,Weather,cloudy,False,0.0952024,0.000755964,False
+serious,weather,Weather,rain,False,0.0888611,-0.00558539,False
+serious,weather,Weather,hail or snow,False,0.0714354,-0.023011,False
+serious,weather,Weather,unknown,False,0.0822656,-0.0121809,True
+serious,weather,Weather,not specified,False,0.131088,0.0366414,True
+serious,surface,Road surface,dry,True,0.0994349,0,False
+serious,surface,Road surface,wet,False,0.0657463,-0.0336886,False
+serious,surface,Road surface,other surface,False,0.0885333,-0.0109016,False
+serious,surface,Road surface,unknown,False,0.0812117,-0.0182232,True
+serious,surface,Road surface,not specified,False,0.200661,0.101226,True
+serious,alignment,Alignment,straight,True,0.10418,0,False
+serious,alignment,Alignment,curve,False,0.115917,0.0117366,False
+serious,alignment,Alignment,unknown,False,0.0195122,-0.0846682,True
+serious,hour_band,Time of day,10-13,True,0.0934506,0,False
+serious,hour_band,Time of day,00-06,False,0.122232,0.0287812,False
+serious,hour_band,Time of day,07-09,False,0.0916699,-0.00178062,False
+serious,hour_band,Time of day,14-16,False,0.0859912,-0.00745939,False
+serious,hour_band,Time of day,17-19,False,0.0945922,0.00114166,False
+serious,hour_band,Time of day,20-23,False,0.0951123,0.00166175,False
+serious,weekend,Weekend,weekday,True,0.0898854,0,False
+serious,weekend,Weekend,weekend,False,0.106474,0.0165889,False
+serious,vehicles,Vehicles involved,2 vehicles,True,0.0887997,0,False
+serious,vehicles,Vehicles involved,1 vehicle,False,0.0988621,0.0100624,False
+serious,vehicles,Vehicles involved,3 or more vehicles,False,0.106275,0.0174756,False
+serious,year,Year,2019,True,0.0895158,0,False
+serious,year,Year,2016,False,0.0995688,0.010053,False
+serious,year,Year,2017,False,0.0956531,0.00613726,False
+serious,year,Year,2018,False,0.0916056,0.00208979,False
+serious,year,Year,2020,False,0.0968868,0.00737096,False
+serious,year,Year,2021,False,0.0934805,0.00396468,False
+serious,year,Year,2022,False,0.0930325,0.00351663,False
+serious,year,Year,2023,False,0.0970148,0.00749896,False
+serious,year,Year,2024,False,0.0966473,0.00713149,False

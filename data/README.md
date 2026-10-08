@@ -22,13 +22,19 @@ The raw sources:
 | `raw/dgt/census/` | DGT | driver census by class and by age (text extracts 2023–2025) and published census tables 2014–2025 |
 | `raw/dgt/km_itv_2022/`, `raw/dgt/km_itv_2024/` | DGT | kilometre estimates from ITV inspections |
 | `raw/dgt/reports/` | DGT | thematic reports and yearbook errata (PDF) |
-| `raw/ine/` | INE | residents by province, age and sex 2002–2025 (extract written by `scripts/fetch_ine.py`); ECEPOV and EHMA survey tables |
+| `raw/ine/` | INE | residents by province, age and sex, and of Spain by single year of age and sex, 2002–2025 (extracts written by `scripts/fetch_ine.py`); ECEPOV and EHMA survey tables |
+| `raw/crtm/edm2018/` | Consorcio Regional de Transportes de Madrid (CRTM) | Madrid household travel survey 2018: respondents, car-driver trips and codebook (extracts written by `scripts/fetch_edm.py`; CRTM open-data licence, "Powered by CRTM") |
 | `raw/transportes/` | Ministerio de Transportes (and former Fomento) | yearbook roads chapter 2023 (vehicle-km by road type), toll-motorway traffic, MOVILIA 2006–2007 |
 | `raw/comunidad_madrid/` | Comunidad de Madrid | MOVILIA 2006 extract for Madrid (files named `movilia07t0N`); read by no code |
 | `raw/cores/` | CORES | monthly road fuel by product |
 | `raw/catalonia/` | Servei Català de Trànsit | crashes with a death or serious injury, 2010–2023 (downloaded as `export.csv`) |
 | `raw/barcelona/2025/` | Ajuntament de Barcelona, Guàrdia Urbana | six crash tables for 2025 sharing `Numero_expedient` (downloaded as `download.csv` … `download(5).csv`) |
+| `raw/emef/<year>/` | Autoritat del Transport Metropolità (ATM), Idescat and Institut Metròpoli, published on the Observatori de la Mobilitat de Catalunya (omc.cat) | EMEF working-day mobility survey, public-use microdata 2014–2024: one trip file, one respondent file (published as `Individus` or, in 2018–2020 and 2023, `Opinió`) and one dictionary per year; the 2022 dictionary in its first and revised releases |
 | `raw/compiled/` | typed by hand from publications | values from external studies and travel surveys: not data; no analysis reads them (see the data contract) |
+
+The EMEF files were downloaded from the survey's page on omc.cat and renamed `emef_<year>_trips.csv`,
+`emef_<year>_persons.csv` and `emef_<year>_dictionary.xlsx`; every one is byte-identical to the file
+the page served on 7 October 2026, and its original name is in `downloaded_as`.
 
 The regional files were renamed from their browser download names to names that say what they
 hold; the original names are kept in the manifest's `downloaded_as` column. The pipeline never

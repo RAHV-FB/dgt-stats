@@ -1,0 +1,155 @@
+year,check,passed,detail
+2014,sample size,True,"9,461 respondents, published 9,461"
+2014,weighted population,True,"4,644,923.0 against the published 4,644,923"
+2014,unique respondents,True,ID unique in the respondent file
+2014,unique trips,True,"(ID, ORDRE) unique in the trip file"
+2014,trips have a respondent,True,0 trips without one
+2014,weight agrees,True,trip file against respondent file
+2014,sex agrees,True,trip file against respondent file
+2014,age_group agrees,True,trip file against respondent file
+2014,zone_code agrees,True,trip file against respondent file
+2014,trip order starts at 1,True,0 respondents with a gap in ORDRE
+2014,trips match reported count,True,0 respondents whose trip rows differ from V02C_2
+2014,professional status agrees,True,0 respondents whose first trip's TIPOL disagrees with the respondent file
+2014,positive weights,True,PESAIX > 0
+2014,first mode recorded,True,0 trips without V03G
+2015,sample size,True,"9,490 respondents, published 9,490"
+2015,weighted population,True,"4,692,583.5 against the published 4,692,584"
+2015,unique respondents,True,ID unique in the respondent file
+2015,unique trips,True,"(ID, ORDRE) unique in the trip file"
+2015,trips have a respondent,True,0 trips without one
+2015,weight agrees,True,trip file against respondent file
+2015,sex agrees,True,trip file against respondent file
+2015,age_group agrees,True,trip file against respondent file
+2015,zone_code agrees,True,trip file against respondent file
+2015,trip order starts at 1,True,0 respondents with a gap in ORDRE
+2015,trips match reported count,True,0 respondents whose trip rows differ from V02C_2
+2015,professional status agrees,True,5 respondents whose first trip's TIPOL disagrees with the respondent file
+2015,positive weights,True,PESAIX > 0
+2015,first mode recorded,True,0 trips without V03G
+2016,sample size,True,"9,601 respondents, published 9,601"
+2016,weighted population,True,"4,713,222.0 against the published 4,713,222"
+2016,unique respondents,True,ID unique in the respondent file
+2016,unique trips,True,"(ID, ORDRE) unique in the trip file"
+2016,trips have a respondent,True,0 trips without one
+2016,weight agrees,True,trip file against respondent file
+2016,sex agrees,True,trip file against respondent file
+2016,age_group agrees,True,trip file against respondent file
+2016,zone_code agrees,True,trip file against respondent file
+2016,trip order starts at 1,True,0 respondents with a gap in ORDRE
+2016,trips match reported count,True,0 respondents whose trip rows differ from V02C_2
+2016,professional status agrees,True,504 respondents whose first trip's TIPOL disagrees with the respondent file (known in 2016; the respondent file is used)
+2016,positive weights,True,PESAIX > 0
+2016,first mode recorded,True,0 trips without V03G
+2017,sample size,True,"10,010 respondents, published 10,010"
+2017,weighted population,True,"4,780,181.0 against the published 4,780,181"
+2017,unique respondents,True,ID unique in the respondent file
+2017,unique trips,True,"(ID, ORDRE) unique in the trip file"
+2017,trips have a respondent,True,0 trips without one
+2017,weight agrees,True,trip file against respondent file
+2017,sex agrees,True,trip file against respondent file
+2017,age_group agrees,True,trip file against respondent file
+2017,zone_code agrees,True,trip file against respondent file
+2017,trip order starts at 1,True,0 respondents with a gap in ORDRE
+2017,trips match reported count,True,0 respondents whose trip rows differ from V02C
+2017,professional status agrees,True,2 respondents whose first trip's TIPOL disagrees with the respondent file
+2017,positive weights,True,PESAIX > 0
+2017,first mode recorded,True,0 trips without V03G
+2018,sample size,True,"10,117 respondents, published 10,117"
+2018,weighted population,True,"4,815,772.0 against the published 4,815,772"
+2018,unique respondents,True,ID unique in the respondent file
+2018,unique trips,True,"(ID, ORDRE) unique in the trip file"
+2018,trips have a respondent,True,0 trips without one
+2018,weight agrees,True,trip file against respondent file
+2018,sex agrees,True,trip file against respondent file
+2018,age_group agrees,True,trip file against respondent file
+2018,zone_code agrees,True,trip file against respondent file
+2018,trip order starts at 1,True,0 respondents with a gap in ORDRE
+2018,trips match reported count,True,0 respondents whose trip rows differ from V02C_2
+2018,professional status agrees,True,0 respondents whose first trip's TIPOL disagrees with the respondent file
+2018,positive weights,True,PESAIX > 0
+2018,first mode recorded,True,0 trips without V03G
+2019,sample size,True,"10,106 respondents, published 10,106"
+2019,weighted population,True,"4,749,821.0 against the published 4,749,821"
+2019,unique respondents,True,ID unique in the respondent file
+2019,unique trips,True,"(ID, ORDRE) unique in the trip file"
+2019,trips have a respondent,True,0 trips without one
+2019,weight agrees,True,trip file against respondent file
+2019,sex agrees,True,trip file against respondent file
+2019,age_group agrees,True,trip file against respondent file
+2019,zone_code agrees,True,trip file against respondent file
+2019,trip order starts at 1,True,0 respondents with a gap in ORDRE
+2019,trips match reported count,True,0 respondents whose trip rows differ from V02C_2
+2019,professional status agrees,True,1 respondents whose first trip's TIPOL disagrees with the respondent file
+2019,positive weights,True,PESAIX > 0
+2019,first mode recorded,True,0 trips without V03G
+2020,sample size,True,"10,145 respondents, published 10,145"
+2020,weighted population,True,"4,833,042.0 against the published 4,833,042"
+2020,unique respondents,True,ID unique in the respondent file
+2020,unique trips,True,"(ID, ORDRE) unique in the trip file"
+2020,trips have a respondent,True,0 trips without one
+2020,weight agrees,True,trip file against respondent file
+2020,sex agrees,True,trip file against respondent file
+2020,age_group agrees,True,trip file against respondent file
+2020,zone_code agrees,True,trip file against respondent file
+2020,trip order starts at 1,True,3 respondents with a gap in ORDRE
+2020,trips match reported count,True,0 respondents whose trip rows differ from V02C_2
+2020,professional status agrees,True,2 respondents whose first trip's TIPOL disagrees with the respondent file
+2020,positive weights,True,PESAIX > 0
+2020,first mode recorded,True,0 trips without V03G
+2021,sample size,True,"10,164 respondents, published 10,164"
+2021,weighted population,True,"4,826,057.0 against the published 4,826,057"
+2021,unique respondents,True,ID unique in the respondent file
+2021,unique trips,True,"(ID, ORDRE) unique in the trip file"
+2021,trips have a respondent,True,0 trips without one
+2021,weight agrees,True,trip file against respondent file
+2021,sex agrees,True,trip file against respondent file
+2021,age_group agrees,True,trip file against respondent file
+2021,zone_code agrees,True,trip file against respondent file
+2021,trip order starts at 1,True,0 respondents with a gap in ORDRE
+2021,trips match reported count,True,0 respondents whose trip rows differ from V02C_2
+2021,professional status agrees,True,2 respondents whose first trip's TIPOL disagrees with the respondent file
+2021,positive weights,True,PESAIX > 0
+2021,first mode recorded,True,0 trips without V03G
+2022,sample size,True,"10,151 respondents, published 10,151"
+2022,weighted population,True,"4,853,758.0 against the published 4,853,758"
+2022,unique respondents,True,ID unique in the respondent file
+2022,unique trips,True,"(ID, ORDRE) unique in the trip file"
+2022,trips have a respondent,True,0 trips without one
+2022,weight agrees,True,trip file against respondent file
+2022,sex agrees,True,trip file against respondent file
+2022,age_group agrees,True,trip file against respondent file
+2022,zone_code agrees,True,trip file against respondent file
+2022,trip order starts at 1,True,0 respondents with a gap in ORDRE
+2022,trips match reported count,True,0 respondents whose trip rows differ from V02C_2
+2022,professional status agrees,True,1 respondents whose first trip's TIPOL disagrees with the respondent file
+2022,positive weights,True,PESAIX > 0
+2022,first mode recorded,True,0 trips without V03G
+2023,sample size,True,"10,154 respondents, published 10,154"
+2023,weighted population,True,"4,927,771.0 against the published 4,927,771"
+2023,unique respondents,True,ID unique in the respondent file
+2023,unique trips,True,"(ID, ORDRE) unique in the trip file"
+2023,trips have a respondent,True,0 trips without one
+2023,weight agrees,True,trip file against respondent file
+2023,sex agrees,True,trip file against respondent file
+2023,age_group agrees,True,trip file against respondent file
+2023,zone_code agrees,True,trip file against respondent file
+2023,trip order starts at 1,True,0 respondents with a gap in ORDRE
+2023,trips match reported count,True,0 respondents whose trip rows differ from V02C_2
+2023,professional status agrees,True,1 respondents whose first trip's TIPOL disagrees with the respondent file
+2023,positive weights,True,PESAIX > 0
+2023,first mode recorded,True,0 trips without V03G
+2024,sample size,True,"11,420 respondents, published 11,420"
+2024,weighted population,True,"5,019,771.0 against the published 5,019,771"
+2024,unique respondents,True,ID unique in the respondent file
+2024,unique trips,True,"(ID, ORDRE) unique in the trip file"
+2024,trips have a respondent,True,0 trips without one
+2024,weight agrees,True,trip file against respondent file
+2024,sex agrees,True,trip file against respondent file
+2024,age_group agrees,True,trip file against respondent file
+2024,zone_code agrees,True,trip file against respondent file
+2024,trip order starts at 1,True,0 respondents with a gap in ORDRE
+2024,trips match reported count,True,0 respondents whose trip rows differ from V02C_2
+2024,professional status agrees,True,5 respondents whose first trip's TIPOL disagrees with the respondent file
+2024,positive weights,True,PESAIX > 0
+2024,first mode recorded,True,0 trips without V03G

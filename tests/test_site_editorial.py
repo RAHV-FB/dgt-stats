@@ -72,33 +72,26 @@ def _main(text: str) -> str:
 def test_navigation_follows_the_argument(built: dict[str, str]) -> None:
     assert [group for group, _ in site.NAV_GROUPS] == [
         "Overview",
-        "Spain",
-        "Supporting analyses",
-        "Regional data",
-        "Models",
-        "Methods",
+        "Over time",
+        "Drivers, vehicles and factors",
+        "Crash severity",
+        "Data and methods",
     ]
     groups = dict(site.NAV_GROUPS)
-    assert [slug for slug, _ in groups["Models"]] == ["severity-models", "validation"]
-    assert [slug for slug, _ in groups["Regional data"]] == ["catalonia", "barcelona"]
-    assert [slug for slug, _ in groups["Methods"]] == ["sources", "data"]
-    assert dict(groups["Methods"])["sources"] == "Data sources and scope"
-    # The supporting analyses are a section of their own, straight after the Spain pages.
+    assert [slug for slug, _ in groups["Crash severity"]][-2:] == ["severity-models", "validation"]
+    assert [slug for slug, _ in groups["Crash severity"]][1:3] == ["catalonia", "barcelona"]
+    assert [slug for slug, _ in groups["Data and methods"]] == ["sources", "data"]
+    assert dict(groups["Data and methods"])["sources"] == "Data sources and scope"
     nav = re.search(r'<nav aria-label="Sections">(.*?)</nav>', built["speed"], re.S).group(1)
     links = re.findall(r'href="([a-z-]+)\.html"', nav)
     assert links == list(components.READING_ORDER)
-    supporting = nav[
-        nav.find('id="menu-supporting-analyses"') : nav.find('id="menu-regional-data"')
-    ]
-    assert [slug for slug, _ in groups["Supporting analyses"]] == re.findall(
-        r'href="([a-z-]+)\.html"', supporting
-    )
-    # Each page names its section above the title and links to its neighbours in reading order.
-    assert '<p class="eyebrow">Spain</p>' in built["speed"]
+    # Each page names its group above the title and links to its neighbours in reading order.
+    assert '<p class="eyebrow">Drivers, vehicles and factors</p>' in built["speed"]
     assert 'href="vehicles.html" rel="prev"' in built["speed"]
     assert 'href="factors.html" rel="next"' in built["speed"]
-    assert '<p class="eyebrow">Spain · supporting analysis</p>' in built["forecast"]
-    assert '<p class="eyebrow">Models</p>' in built["validation"]
+    assert '<p class="eyebrow">Over time</p>' in built["policy"]
+    assert '<p class="eyebrow">Withdrawn analysis</p>' in built["forecast"]
+    assert '<p class="eyebrow">Crash severity</p>' in built["validation"]
     assert '<p class="eyebrow">' not in built["index"]
 
 
@@ -159,10 +152,9 @@ def test_no_raw_field_names_outside_the_methodology(built: dict[str, str]) -> No
 
 
 def test_no_figure_shows_a_raw_field_name() -> None:
-    allowed = {"d1_missingness"}  # the methodology figure documents the source fields
-    for path in sorted(FIGURES_DIR.glob("*.svg")):
-        if path.stem in allowed:
-            continue
+    # Every figure, and its drawing for a phone's column in narrow/; the missing-values figure
+    # names DGT's fields in English too.
+    for path in sorted(FIGURES_DIR.rglob("*.svg")):
         labels = re.findall(r"<text[^>]*>([^<]+)</text>", path.read_text(encoding="utf-8"))
         found = sorted({m for label in labels for m in RAW_FIELD.findall(label)})
         assert not found, (path.name, found)
@@ -174,8 +166,11 @@ def test_headings_and_leads_are_statements(built: dict[str, str]) -> None:
         text = built[slug]
         for heading in re.findall(r"<h[1-3][^>]*>(.*?)</h[1-3]>", text, re.S):
             assert "?" not in re.sub(r"<[^>]+>", "", heading), (slug, heading)
-        lead = re.search(r'<p class="lead">(.*?)</p>', text, re.S).group(1)
+        # The page's one-sentence description: its search description, shown under the title
+        # only on the home page (a page with a summary does not open twice).
+        lead = re.search(r'<meta name="description" content="([^"]*)">', text).group(1)
         assert "?" not in lead, slug
+        assert ('<p class="lead">' in text) == (slug == "index"), slug
         for opening in re.findall(r'<p class="summary">(.*?)</p>', text, re.S):
             assert "?" not in re.sub(r"<[^>]+>", "", opening), slug
 
@@ -210,48 +205,40 @@ def test_the_front_page_is_a_research_overview(built: dict[str, str]) -> None:
     # The modelling is described in plain words, with the model that lost to its table named as
     # such, and the supporting association analysis is not presented as a model.
     visible = _visible(built["index"])
-    assert "did no better than a table" in visible
+    assert "tested only within Catalonia" in visible
     assert "Association analysis of DGT crash records" not in visible
 
 
-def test_the_models_page_presents_two_models_and_one_table(built: dict[str, str]) -> None:
-    import pandas as pd
-
-    from dgt_stats.microdata.validation import decisions as rules
-
+def test_the_models_page_leads_with_predicted_against_observed(built: dict[str, str]) -> None:
     visible = _visible(built["severity-models"])
-    decisions = pd.read_csv(TABLES_DIR / "ml_model_decisions.csv")
-    context = decisions[decisions.variant.eq("context")].set_index("model").decision
-    featured = [model for model, decision in context.items() if decision in rules.FEATURED]
-    assert featured == ["catalonia_crash_severity", "barcelona_person_severity"]
-    assert context["barcelona_crash_severity"] == rules.REPLACE
-    # The DGT regression and the forecast are supporting analyses, linked rather than tabled
-    # beside the models.
     main = _main(built["severity-models"])
-    assert 'href="severity.html"' in main and 'href="forecast.html"' in main
-    for table_html in re.findall(r"<table>.*?</table>", main, re.S):
-        assert "DGT crash records" not in table_html
-        assert "monthly deaths" not in table_html.lower()
-    assert "ROC-AUC" in visible
-    # The three decisions are in the section headings, where a reader scanning the page sees them.
-    # Each is labelled in words, not by colour, and the label is read out as the decision.
+    # Predicted against observed, then the calculator, then what the model shows and a short
+    # method; scores tables stay in the research documents. The headings say what each finds.
     headings = re.findall(r"<h2[^>]*>(.*?)</h2>", main, re.S)
-    for name, decision in (
-        ("Catalonia crash-severity model", "Kept"),
-        ("Barcelona person-severity model", "Ranking only"),
-        ("Barcelona crash-severity model", "Replaced by table"),
-    ):
-        label = (
-            '<span class="decision-label"><span class="visually-hidden">Decision: </span>'
-            f"<span>{decision}</span></span>"
-        )
-        assert f"{name} {label}" in headings, (name, decision)
-    # Each model's section opens on the same short definition table.
-    for term in ("Unit", "Outcome", "Simple benchmark ROC-AUC", "Model ROC-AUC", "Decision"):
-        assert main.count(f"<dt>{term}</dt>") == 3, term
-    # ROC-AUC is explained once, after the first comparison it is used for, not before it.
-    explained = visible.find("ROC-AUC measures ranking")
-    assert visible.find("ROC-AUC") < explained and visible.count("ROC-AUC measures ranking") == 1
+    assert headings[:4] == [
+        "The estimates matched later years overall, but not in every province",
+        "Try the model",
+        "Crashes involving a heavy vehicle: about twice the fatal share",
+        "How the model was built",
+    ]
+    assert main.find("sev1_predicted_observed") < main.find('id="calculator"')
+    # One name for the published model, and one scale for ranking skill, shared with the
+    # External validation page: ROC-AUC to two decimals, explained once in plain words.
+    assert "the Catalan severity model" in visible
+    assert "times in 100" not in visible
+    gloss = "given one fatal and one non-fatal crash, the share of pairs in which the fatal one"
+    assert visible.count(gloss) == 1
+    assert not re.search(r"ROC-AUC[^.]*\b0\.\d{3}\b", visible)
+    # The calculator's result and comparison share a panel that sits beside the form when there
+    # is room; the interval's scope is said beside the interval, not only in the limitations.
+    assert '<div class="calc-layout"><form>' in main and '<div class="calc-panel">' in main
+    assert "uncertainty of its coefficients" not in visible
+    # What the calculator answers, and what its inputs are not, are said in plain words.
+    assert "a posted limit is not a speed" in visible.lower()
+    assert "cannot say whether a crash will happen" in visible
+    assert "died within 24 hours" in visible
+    # No withdrawn page is linked.
+    assert 'href="forecast.html"' not in main
 
 
 def test_the_validation_page_does_not_claim_national_transferability(
@@ -264,9 +251,17 @@ def test_the_validation_page_does_not_claim_national_transferability(
     if not path.verdict.eq("potentially nationally transferable").any():
         assert "nationally transferable" not in visible
         assert "national use of the models is not established" in visible
-    # The two scores of a validation are named in plain words.
-    assert "Catalonia-trained model" in visible
-    assert re.search(r"trained (in|within) the test population", visible)
+    # The two scores of a validation are named in plain words, the published and the retired
+    # model each by one name, and ranking skill on the models page's scale.
+    assert "fitted on the Catalan file alone" in visible
+    assert re.search(r"fitted (in|within) the test population", visible)
+    assert "the Catalan severity model" in visible and "original Catalan model (retired)" in visible
+    # The figure titles and captions, written with the charts, use the same names.
+    for old in ("calculator's model", "Catalonia model", "Catalonia crash-severity", "trained"):
+        assert old not in visible, old
+    assert visible.count("the share of pairs in which the fatal one gets the higher") == 1
+    # No pair of headline numbers without intervals.
+    assert 'class="compare"' not in built["validation"]
 
 
 def test_pages_carry_no_template_furniture(built: dict[str, str]) -> None:
@@ -281,3 +276,88 @@ def test_pages_carry_no_template_furniture(built: dict[str, str]) -> None:
         prose = main.replace('<p class="eyebrow">Spain · supporting analysis</p>', "")
         assert "upporting analysis" not in prose, slug
         assert main.count('<p class="summary">') == 1, slug
+
+
+# The pages that quote the figures for drivers aged 75 and over.
+OLDER_PAGES = ("drivers", "index", "data")
+
+
+def _blocks(text: str, tag: str) -> list[str]:
+    """The plain text of every ``tag`` element in a page's <main>."""
+    found = re.findall(rf"<{tag}\b[^>]*>(.*?)</{tag}>", _main(text), re.S)
+    return [" ".join(components.html.unescape(re.sub(r"<[^>]+>", " ", f)).split()) for f in found]
+
+
+def test_the_conditional_75_plus_estimate_is_never_read_alone(built: dict[str, str]) -> None:
+    import pandas as pd
+
+    from dgt_stats.exposure_risk import national
+
+    split = pd.read_csv(TABLES_DIR / "risk_older_split.csv")
+    madrid = split[(split.assumption == national.REFERENCE_SPLIT) & (split.group == "75+")].iloc[0]
+    older = pd.read_csv(TABLES_DIR / "risk_older_sensitivity.csv").ratio_75_plus
+    low, high = float(older.min()), float(older.max())
+    ranges = (f"{low:.2f}–{high:.2f}", f"{low:.2f} to {high:.2f}")
+    values = [f"{madrid.ratio_to_45_64:.2f}", f"{madrid.ratio_to_45_64:.1f}"]
+    # The value as a quoted figure, not as one end of another interval or range printed at one
+    # decimal ("2.1–3.4"); the conditional estimate's own interval is checked under (b).
+    value = re.compile(
+        r"(?<![\d.–])(" + "|".join(re.escape(v) for v in values) + r")(?![\d–]| to \d)"
+    )
+    intervals = [
+        f"{madrid.ratio_low:.2f}–{madrid.ratio_high:.2f}",
+        f"{madrid.ratio_low:.1f}–{madrid.ratio_high:.1f}",
+    ]
+    for slug in OLDER_PAGES:
+        prose = _blocks(built[slug], "p") + _blocks(built[slug], "li")
+        prose += _blocks(built[slug], "figcaption")
+        for block in prose:
+            for sentence in re.split(r"(?<=[.;:])\s+(?=[A-Z])", block):
+                if value.search(sentence):
+                    # (a) in a sentence naming Madrid, in a block with the full range.
+                    assert "Madrid" in sentence, (slug, sentence)
+                    assert any(r in block for r in ranges), (slug, block[:120])
+            for match in value.finditer(block):
+                # (e) the word "reference" never stands near the conditional value.
+                near = block[max(0, match.start() - 40) : match.end() + 40]
+                assert "reference" not in near, (slug, near)
+            for interval in intervals:
+                # (b) every printed interval of the conditional value is called a sampling one.
+                for match in re.finditer(re.escape(interval), block):
+                    before = block[max(0, match.start() - 60) : match.start()]
+                    assert "sampling" in before, (slug, before)
+        for row in re.findall(r"<tr>(.*?)</tr>", _main(built[slug]), re.S):
+            plain = " ".join(re.sub(r"<[^>]+>", " ", row).split())
+            if value.search(plain) and "75" in plain:
+                table = _main(built[slug])
+                caption = table[: table.find(row)].rsplit("<caption", 1)[-1]
+                assert "Madrid" in plain, (slug, plain)
+                assert any(r in plain or r in caption for r in ranges), (slug, plain)
+
+
+def test_older_driver_wording_carries_no_probability_or_ranking(built: dict[str, str]) -> None:
+    banned = (
+        r"\b\d+ of (the )?\d+ combinations",
+        r"most combinations",
+        r"best estimate",
+        r"most likely",
+        r"can only be estimated by borrowing",
+        r"the rate for 75 and over",
+    )
+    for slug in OLDER_PAGES:
+        visible = " ".join(_visible(built[slug]).split())
+        for pattern in banned:
+            assert not re.search(pattern, visible, re.I), (slug, pattern)
+        # (c) no loaded comparison near the oldest drivers.
+        for match in re.finditer(r"75", visible):
+            near = visible[max(0, match.start() - 80) : match.end() + 80].lower()
+            for word in ("twice", "double", "riskier", "more dangerous drivers"):
+                assert word not in near, (slug, word, near)
+        # (d) a range or a count of combinations is never a probability; (g) nor a percentage.
+        for match in re.finditer(r"combination|range|scenario", visible):
+            near = visible[max(0, match.start() - 80) : match.end() + 80]
+            near = near.replace("probably too narrow", "").replace("no probability", "")
+            assert "probab" not in near.lower(), (slug, near)
+        for match in re.finditer(r"combinations", visible):
+            near = visible[max(0, match.start() - 60) : match.end() + 60]
+            assert "%" not in near, (slug, near)

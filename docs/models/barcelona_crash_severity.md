@@ -11,7 +11,7 @@ Which recorded crash circumstances distinguish Barcelona crashes with a serious 
 - **Feature table:** `data/features/barcelona_crash_severity.parquet` (7,741 rows, id `Numero_expedient`).
 - **Source files:** `data/raw/barcelona/2025/accidents_gu_bcn_2025.csv` (SHA-256 `2bd4dc9f35e1…`); `data/raw/barcelona/2025/accidents_tipus_gu_bcn_2025.csv` (SHA-256 `be50665fef12…`); `data/raw/barcelona/2025/accidents_causes_mediates_gu_bcn_2025.csv` (SHA-256 `17d6df8b5dd5…`); `data/raw/barcelona/2025/accidents_causa_conductor_gu_bcn_2025.csv` (SHA-256 `2d0f89d743d1…`); `data/raw/barcelona/2025/accidents_persones_gu_bcn_2025.csv` (SHA-256 `a851a51b2478…`); `data/raw/barcelona/2025/accidents_vehicles_gu_bcn_2025.csv` (SHA-256 `6f50be9587d4…`).
 - **Layer:** Rich microdata: Barcelona.
-- **Decision:** REPLACE with descriptive table (gain +0.003 (-0.039 to +0.051) over the table: no measurable gain).
+- **Status:** removed, after the model review ([`ML_MODEL_REVIEW.md`](../research/ML_MODEL_REVIEW.md)). The decision rules gave: REPLACE with descriptive table (gain +0.003 (-0.039 to +0.051) over the table: no measurable gain).
 - **What it does:** ranks recorded crashes by how likely they involved a serious or fatal injury.
 - **Not answered:** anyone's risk per trip; the behaviour of a person; other cities or years.
 
@@ -127,7 +127,7 @@ Highest validated level on the outward path ([`GENERALISABILITY.md`](../GENERALI
 | 2 | later months of the same year | passed | train months 1-9 with 5-fold cross-validation grouped by crash; test months 10-12: ROC-AUC 0.737 (0.686-0.782); n=1,994, positives=58 |
 | 3 | another district of the same city | passed | leave one district out (pooled out-of-district scores): ROC-AUC 0.767 (0.741-0.792), in-domain 0.775, gap -0.008 |
 | 4 | another independently recorded Spanish dataset | not run | the Catalan file holds only serious or fatal crashes, so it cannot test a model of serious-or-fatal against lower severity |
-| 5 | national aggregates: does the training population resemble Spain? | failed | Barcelona city vs Spain outside Catalonia (injury crashes): differs on alignment_recorded (JSD 0.233), crash_type (JSD 0.207), road_class (JSD 0.131), zone (JSD 0.092), weather (JSD 0.046), vehicles (JSD 0.032), surface (JSD 0.023); fatal share of severe crashes 9.1% against 15.4% |
+| 5 | national aggregates: does the training population resemble Spain? | failed | Barcelona city vs Spain outside Catalonia (injury crashes): differs on alignment_recorded (JSD 0.233), crash_type (JSD 0.207), road_class (JSD 0.127), zone (JSD 0.092), weather (JSD 0.046), vehicles (JSD 0.032), surface (JSD 0.023); fatal share of severe crashes 9.1% against 15.4% |
 
 ## Valid interpretation
 

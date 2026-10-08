@@ -1,7 +1,8 @@
+import numpy as np
 import pandas as pd
 import pytest
 
-from dgt_stats import factors, io_reports
+from dgt_stats import factors, io_reports, rates
 from dgt_stats.paths import DGT_PROCESSED_CRASHES
 
 
@@ -71,6 +72,21 @@ def test_speed_severity_is_higher_everywhere_and_adjustment_shrinks_it() -> None
     # Speed crashes concentrate on deadlier roads, so allowing for road type lowers the ratio.
     assert adjusted.rate_ratio < adjusted.crude_ratio
     assert adjusted.ratio_low > 1
+    # The road-type intervals allow for year-to-year variation: the Poisson interval widened by
+    # the square root of each road type's dispersion, around the same pooled ratio.
+    for road_type, row in detail.iterrows():
+        poisson = rates.rate_ratio(
+            row.speed_deaths, row.speed_crashes, row.other_deaths, row.other_crashes
+        )
+        assert row.rate_ratio == pytest.approx(poisson[0])
+        assert row.dispersion >= 1
+        widening = np.log(row.ratio_high / row.rate_ratio) / np.log(poisson[2] / poisson[0])
+        assert widening == pytest.approx(np.sqrt(row.dispersion)), road_type
+    # One ratio for every road type does not fit: the ratios differ by more than chance, and
+    # letting them differ removes most of the extra variation.
+    assert adjusted.heterogeneity_df == 3 and adjusted.heterogeneity_p < 0.001
+    assert adjusted.dispersion_by_road_type < adjusted.dispersion / 2
+    assert detail.rate_ratio.min() < adjusted.rate_ratio < detail.rate_ratio.max()
 
 
 @pytestmark_data

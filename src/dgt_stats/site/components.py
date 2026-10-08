@@ -5,11 +5,13 @@ from __future__ import annotations
 import html
 import json
 import re
+from pathlib import Path
 
 import pandas as pd
 
-from dgt_stats.paths import FIGURES_DIR, TABLES_DIR
-from dgt_stats.site.script import JS_FLAG
+from dgt_stats.paths import FIGURES_DIR, NARROW_FIGURES_DIR, TABLES_DIR
+from dgt_stats.risk_trends import BASE_YEAR
+from dgt_stats.site.script import CONTENT_SECURITY_POLICY, JS_FLAG
 
 REPO_URL = "https://github.com/RAHV-FB/dgt-stats"
 
@@ -20,23 +22,29 @@ PROFILE_URL = "https://github.com/RAHV-FB"
 DOCS_URL = f"{REPO_URL}/blob/main/docs"
 
 
-# The navigation follows the argument rather than the repository: the national picture from DGT
-# and INE (with three supporting analyses), the regional crash records, the two severity models and
-# their external validation, and the sources and methods.
+# The navigation follows the questions a reader brings: how deaths have changed over time, which
+# drivers, vehicles and recorded circumstances go with crashes and deaths, how deadly a crash is
+# once it has happened (in Spain's records, in Catalonia's and Barcelona's, and in the model built
+# on Catalonia's), and where the data and methods come from. The home page lists the same groups.
 OVERVIEW = "Overview"
-SPAIN = "Spain"
-SUPPORTING = "Supporting analyses"
-REGIONAL = "Regional data"
-MODELS = "Models"
-METHODS = "Methods"
+OVER_TIME = "Over time"
+WHO = "Drivers, vehicles and factors"
+SEVERITY = "Crash severity"
+METHODS = "Data and methods"
 NAV_GROUPS: tuple[tuple[str, tuple[tuple[str, str], ...]], ...] = (
     (OVERVIEW, (("index", "Overview"),)),
     (
-        SPAIN,
+        OVER_TIME,
         (
-            ("trends", "Trends since 2019"),
             ("long-run", "Long-run trends"),
+            ("trends", f"Since {BASE_YEAR}"),
             ("seasons", "Seasons"),
+            ("policy", "The 2006 points licence"),
+        ),
+    ),
+    (
+        WHO,
+        (
             ("drivers", "Drivers"),
             ("vehicles", "Vehicles"),
             ("speed", "Speed"),
@@ -44,33 +52,57 @@ NAV_GROUPS: tuple[tuple[str, tuple[tuple[str, str], ...]], ...] = (
         ),
     ),
     (
-        SUPPORTING,
+        SEVERITY,
         (
-            ("severity", "Crash circumstances"),
-            ("forecast", "Monthly deaths forecast"),
-            ("policy", "The 2006 points licence"),
+            ("severity", "Crash circumstances in Spain"),
+            ("catalonia", "Catalonia"),
+            ("barcelona", "Barcelona"),
+            ("severity-models", "Severity model and calculator"),
+            ("validation", "External validation"),
         ),
     ),
-    (REGIONAL, (("catalonia", "Catalonia"), ("barcelona", "Barcelona"))),
-    (MODELS, (("severity-models", "Severity models"), ("validation", "External validation"))),
     (METHODS, (("sources", "Data sources and scope"), ("data", "Methodology"))),
 )
-# The line above a page's title: the part of the argument the page belongs to.
-EYEBROWS = {
-    SPAIN: "Spain",
-    SUPPORTING: "Spain · supporting analysis",
-    REGIONAL: "Regional data",
-    MODELS: "Models",
-    METHODS: "Methods",
+# The line above a page's title: the group it belongs to.
+EYEBROWS = {group: group for group, _ in NAV_GROUPS}
+# What each page answers, one line each, for the home page's list of pages.
+PAGE_QUESTIONS = {
+    "long-run": "How road deaths have changed since 1993, against vehicles, fuel sold and "
+    "kilometres driven.",
+    "trends": f"Deaths, hospital admissions and injury crashes in 2024 against {BASE_YEAR}.",
+    "seasons": "Which months are deadliest, and how the 2020 lockdown changed them.",
+    "policy": "Whether the points-based licence of July 2006 changed monthly deaths.",
+    "drivers": "How often drivers of each age and sex are in crashes per kilometre, and how "
+    "often a crash kills them.",
+    "vehicles": "Crashes and deaths by type of vehicle, per vehicle and per kilometre.",
+    "speed": "Crashes in which the police recorded inappropriate speed, and their deaths.",
+    "factors": "The other circumstances the police record, and how their shares have moved.",
+    "severity": "Which recorded circumstances go with a death in Spain's injury crashes.",
+    "catalonia": "Crashes with a death or serious injury in Catalonia, 2010–2023.",
+    "barcelona": "Every crash the Guàrdia Urbana attended in Barcelona in 2025.",
+    "severity-models": "A model of which severe crashes in Catalonia were fatal, and a "
+    "calculator to try it.",
+    "validation": "How the Catalan models held up on other years, places and records.",
+    "sources": "Where every figure comes from, what it covers and what it cannot show.",
+    "data": "How the results are produced, the checks they pass and the assumptions tested.",
 }
 
 
-# The main pages, and the supporting analyses outside the central argument.
+# The two analyses that support the national argument rather than answer one of its questions.
+SUPPORTING_SLUGS = ("severity", "policy")
 PAGES: tuple[tuple[str, str], ...] = tuple(
-    page for group, pages in NAV_GROUPS if group != SUPPORTING for page in pages
+    page for _, pages in NAV_GROUPS for page in pages if page[0] not in SUPPORTING_SLUGS
 )
-SUPPORTING_PAGES: tuple[tuple[str, str], ...] = dict(NAV_GROUPS)[SUPPORTING]
-SPAIN_PAGES: tuple[tuple[str, str], ...] = dict(NAV_GROUPS)[SPAIN]
+SUPPORTING_PAGES: tuple[tuple[str, str], ...] = tuple(
+    page for _, pages in NAV_GROUPS for page in pages if page[0] in SUPPORTING_SLUGS
+)
+SPAIN_PAGES: tuple[tuple[str, str], ...] = tuple(
+    page
+    for group, pages in NAV_GROUPS
+    if group in (OVER_TIME, WHO)
+    for page in pages
+    if page[0] not in SUPPORTING_SLUGS
+)
 
 
 ALL_PAGES = PAGES + SUPPORTING_PAGES
@@ -89,39 +121,75 @@ WITHDRAWN_REASON = (
     "This analysis was withdrawn because its results came from coefficients published in "
     "external studies rather than from data in this repository."
 )
+# A withdrawn page whose reason differs from ``WITHDRAWN_REASON``. The lead states the reason; the
+# notice's body says only what the page published and where the data-only work is.
+WITHDRAWN_LEADS = {
+    "forecast": (
+        "This analysis was withdrawn because the model forecast a year's deaths less accurately "
+        "than last year's count."
+    ),
+}
 # What each withdrawn page was, as its notice names it.
 WITHDRAWN_TITLES = {
+    "forecast": "Monthly deaths forecast",
     "simulator": "Speed-limit simulator",
     "distraction": "Deaths attributed to distraction",
     "alcohol-drugs": "Deaths attributed to alcohol and drugs",
     "enforcement": "Ranking of enforcement measures",
 }
+# What each withdrawn page published. The reason is in its lead and is not repeated here.
 WITHDRAWN_PAGES = {
+    "forecast": (
+        "This page published a model of Spain's monthly road deaths and, from its forecast "
+        "errors, the smallest change in a year's deaths that the counts could reveal. Both are "
+        "withdrawn."
+    ),
     "simulator": (
         "This page simulated what new speed limits, and drivers keeping to them, would do to "
-        "deaths and injuries. Its results came from speeds measured in other countries and from "
-        "published estimates of how casualties respond to speed. The Spanish crash records carry "
-        "no speeds, so none of those links could be estimated or checked here."
+        "deaths and injuries. It started from free-flow speeds measured in Spain for the EU "
+        "Baseline project, and took from studies in other countries both how speeds follow a "
+        "new limit and how casualties respond to speed."
     ),
     "distraction": (
         "This page estimated how many deaths a year distraction causes, by combining the share "
         "of fatal crashes in which the police recorded distraction with a crash risk measured "
-        "in a driving study in the United States. The repository holds no Spanish data on how "
-        "much distraction raises the risk of a crash."
+        "in a driving study in the United States."
     ),
     "alcohol-drugs": (
         "This page estimated how many deaths a year alcohol and drugs cause, by applying "
         "relative risks from a European study to the share of fatal crashes in which the police "
-        "recorded alcohol. The repository holds no Spanish data on how much alcohol or drugs "
-        "raise the risk of a crash."
+        "recorded alcohol."
     ),
     "enforcement": (
         "This page ranked enforcement against speeding, drink- and drug-driving and distraction "
-        "by the deaths each would avoid, combining the three withdrawn models with evaluations "
-        "from other countries. The repository holds no data on the effect of enforcement in "
-        "Spain."
+        "by the deaths each would avoid, combining the three withdrawn models with published "
+        "evaluations of enforcement, all from other countries but one study of Barcelona's "
+        "fixed speed cameras."
     ),
 }
+
+
+def withdrawn_detail(slug: str) -> str:
+    """A further paragraph for a withdrawn page whose reason rests on a result table (HTML)."""
+    if slug != "forecast":
+        return ""
+    review = read_table("review_forecast")
+    held_out = review[review.set.eq("holdout")]
+    model = held_out[held_out.method.str.contains("published model")].sort_values("window")
+    naive = held_out[held_out.method.str.startswith("naive")]
+    model_error, naive_error = float(model.rmse.iloc[0]), float(naive.rmse.iloc[0])
+    if not (len(naive) == 1 and model_error > naive_error):
+        raise ValueError("forecast notice: the model no longer loses to last year's count")
+    return (
+        "<p>The model predicted each month's deaths from the month of the year, a linear trend, "
+        "the number of Fridays, Saturdays and Sundays, and the road fuel sold in that same "
+        "month. Fuel sales are known only once the month is over, so the model could not "
+        "forecast ahead: it estimated the deaths that a month's traffic would have brought. "
+        "Even so, in the ordinary years held back from its choice its error in a year's deaths "
+        f"was {_fmt_pct(model_error)}, against {_fmt_pct(naive_error)} for repeating the same "
+        "months of the year before. The re-evaluation is in the "
+        f'<a href="{DOCS_URL}/research/ML_MODEL_REVIEW.md">model review</a>.</p>'
+    )
 
 
 # House style for numbers: a typographic minus rather than a hyphen, so a negative figure in a
@@ -164,10 +232,6 @@ def _join(items: list[str]) -> str:
     return ", ".join(items[:-1]) + " and " + items[-1]
 
 
-def _times(value: float) -> str:
-    return f"{value:.2f}×"
-
-
 def esc(text: object) -> str:
     return html.escape(str(text))
 
@@ -200,9 +264,9 @@ _SVG_SIZE = re.compile(r'<svg[^>]*?\swidth="([\d.]+)pt"[^>]*?\sheight="([\d.]+)p
 _SVG_VIEWBOX = re.compile(r'<svg[^>]*?\sviewBox="[\d.\-]+ [\d.\-]+ ([\d.]+) ([\d.]+)"')
 
 
-def _svg_size(name: str) -> tuple[float, float] | None:
-    """A chart's own width and height, in points, from its SVG."""
-    path = FIGURES_DIR / f"{name}.svg"
+def _svg_size(name: str, directory: Path = FIGURES_DIR) -> tuple[float, float] | None:
+    """A chart's own width and height, in points, from its SVG in ``directory``."""
+    path = directory / f"{name}.svg"
     if not path.exists():
         return None
     head = path.read_text(encoding="utf-8")[:2000]
@@ -237,9 +301,12 @@ def mark_spanish(text: str) -> str:
 # Charts are shown at one fixed multiple of their own size, so that their text is the same size on
 # every chart, and never wider than the column. They shrink with the column down to a smaller
 # multiple that keeps their text near 11px, and below that scroll sideways inside the figure
-# rather than shrinking further; a phone shows them at that multiple.
+# rather than shrinking further. A phone (``NARROW_MEDIA``, the stylesheet's phone width) is
+# served instead the chart drawn for its column (``figures/narrow/``), at most at the same
+# multiple and otherwise the column's width, so that nothing scrolls sideways.
 FIGURE_SCALE = 1.45
 SMALL_SCALE = 1.2
+NARROW_MEDIA = "(max-width: 40rem)"
 
 
 def _split_source(caption: str) -> tuple[str, str]:
@@ -253,16 +320,23 @@ def _split_source(caption: str) -> tuple[str, str]:
 
 def figure(name: str, alt: str, captions: dict[str, str], title: str | None = None) -> str:
     """A figure in three parts: a title stating what is shown, the chart, and a caption giving
-    the denominator, period, interval and source. The chart links to its SVG at full size."""
+    the denominator, period, interval and source. The chart links to its SVG at full size; a
+    phone loads the same chart drawn for its column, when there is one."""
     heading = title or read_titles().get(name, "")
     shown, source = _split_source(captions.get(name, ""))
     size = _svg_size(name)
-    dims = ""
+    narrow = _svg_size(name, NARROW_FIGURES_DIR)
+    dims = source_tag = ""
     if size:
         width, height = size
-        dims = (
-            f' width="{width:.0f}" height="{height:.0f}"'
-            f' style="--w: {width * FIGURE_SCALE:.0f}px; --w-small: {width * SMALL_SCALE:.0f}px"'
+        sizes = f"--w: {width * FIGURE_SCALE:.0f}px; --w-small: {width * SMALL_SCALE:.0f}px"
+        if narrow:
+            sizes += f"; --w-narrow: {narrow[0] * FIGURE_SCALE:.0f}px"
+        dims = f' width="{width:.0f}" height="{height:.0f}" style="{sizes}"'
+    if narrow:
+        source_tag = (
+            f'<source media="{NARROW_MEDIA}" srcset="figures/narrow/{name}.svg"'
+            f' width="{narrow[0]:.0f}" height="{narrow[1]:.0f}">'
         )
     title_html = (
         f'<p class="figure-title" id="figure-{name}">{mark_spanish(esc(heading))}</p>'
@@ -276,8 +350,9 @@ def figure(name: str, alt: str, captions: dict[str, str], title: str | None = No
         '<p class="figure-tools">Scroll sideways to see the whole chart, or '
         f'<a href="figures/{name}.svg">open it at full size</a>.</p>'
         f'<div class="figure-media" role="region" tabindex="0" aria-label="Chart: {esc(heading or alt)}">'
-        f'<a href="figures/{name}.svg"><img src="figures/{name}.svg" alt="{esc(alt)}"{dims}'
-        ' loading="lazy" decoding="async"></a></div>'
+        f'<a href="figures/{name}.svg"><picture>{source_tag}'
+        f'<img src="figures/{name}.svg" alt="{esc(alt)}"{dims}'
+        ' loading="lazy" decoding="async"></picture></a></div>'
         f"<figcaption><p>{mark_spanish(esc(shown))}</p>{source_html}</figcaption></figure>"
     )
 
@@ -322,6 +397,10 @@ def table(
     """
     formats = formats or {}
     assert not frame.columns.duplicated().any(), list(frame.columns)
+    # A format keyed by a column the table does not have would leave that column unformatted.
+    unknown = sorted(set(formats) - set(frame.columns))
+    if unknown:
+        raise ValueError(f"table formats name columns the table does not have: {unknown}")
     formatters = {
         "year": lambda v: "" if pd.isna(v) else str(int(v)),
         "int": _fmt_int,
@@ -438,38 +517,33 @@ def summary(text: str) -> str:
     return f'<p class="summary">{text}</p>'
 
 
-def key_result(value: str, text: str) -> str:
-    """One headline number with a sentence saying exactly what it measures. Used sparingly."""
-    return (
-        f'<div class="key-result"><p class="key-value">{value}</p>'
-        f'<p class="key-text">{text}</p></div>'
+# Terms of the methodology page's definitions that other pages link to at their first use, and
+# their anchors there.
+DEFINITION_IDS = {
+    "Sampling interval": "sampling-interval",
+    "Sensitivity range": "sensitivity-range",
+    "Conditional estimate": "conditional-estimate",
+}
+
+
+def definition_link(term: str, text: str | None = None) -> str:
+    """A link to ``term`` in the methodology page's definitions, reading ``text`` (by default the
+    term in lower case)."""
+    return f'<a href="data.html#{DEFINITION_IDS[term]}">{text or term.lower()}</a>'
+
+
+def facts(rows: list[tuple[str, str]], label: str, anchors: dict[str, str] | None = None) -> str:
+    """A short definition list: terms and what they mean. ``anchors`` gives some terms an id,
+    so that other pages can link to their definition."""
+    anchors = anchors or {}
+
+    def term_tag(term: str) -> str:
+        return f'<dt id="{anchors[term]}">' if term in anchors else "<dt>"
+
+    items = "".join(
+        f"<div>{term_tag(term)}{esc(term)}</dt><dd>{value}</dd></div>" for term, value in rows
     )
-
-
-def compare(items: list[tuple[str, str]], note: str = "") -> str:
-    """Two numbers side by side, each with what it measures, and a sentence reading them."""
-    cells = "".join(
-        f'<div class="compare-item"><p class="compare-value">{value}</p>'
-        f'<p class="compare-label">{label}</p></div>'
-        for value, label in items
-    )
-    note_html = f'<p class="compare-note">{note}</p>' if note else ""
-    return f'<div class="compare"><div class="compare-items">{cells}</div>{note_html}</div>'
-
-
-def facts(rows: list[tuple[str, str]], label: str) -> str:
-    """A short definition list that can be read in a few seconds (a model's unit, outcome,
-    benchmark, score and decision)."""
-    items = "".join(f"<div><dt>{esc(term)}</dt><dd>{value}</dd></div>" for term, value in rows)
     return f'<dl class="facts" aria-label="{esc(label)}">{items}</dl>'
-
-
-def decision_label(text: str) -> str:
-    """A model's decision, set after its section heading as a quiet label."""
-    return (
-        '<span class="decision-label"><span class="visually-hidden">Decision: </span>'
-        f"<span>{esc(text)}</span></span>"
-    )
 
 
 def evidence_note(text: str) -> str:
@@ -481,15 +555,16 @@ def limitation(text: str) -> str:
     """A short methodological limitation, kept next to the results it qualifies."""
     return (
         '<aside class="limit" aria-label="Limitations">'
-        f'<p><span class="limit-label">Limitations</span>{text}</p></aside>'
+        f'<p><span class="limit-label">Limitations.</span> {text}</p></aside>'
     )
 
 
-def technical(label: str, body: str) -> str:
+def technical(label: str, body: str, anchor: str | None = None) -> str:
     """Secondary detail a reader can open: full counts, specifications, diagnostics. The label
-    says exactly what is inside."""
+    says exactly what is inside. ``anchor`` gives it an id, so the text can send readers to it."""
+    attribute = f' id="{anchor}"' if anchor else ""
     return (
-        f'<details class="technical"><summary>{esc(label)}</summary>'
+        f'<details class="technical"{attribute}><summary>{esc(label)}</summary>'
         f'<div class="technical-body">{body}</div></details>'
     )
 
@@ -506,10 +581,6 @@ TOC_MIN_SECTIONS = 3
 TOC_MIN_CHARS = 6000
 
 
-# A model's decision set after its section heading; the contents list leaves it out.
-DECISION_LABEL = re.compile(r'<span class="decision-label">.*?</span></span>', re.S)
-
-
 def _sections(body: str) -> tuple[str, list[tuple[str, str]]]:
     """Give every section heading of a page an id, and list the headings for its contents.
 
@@ -520,7 +591,7 @@ def _sections(body: str) -> tuple[str, list[tuple[str, str]]]:
 
     def name(match: re.Match[str]) -> str:
         attributes, text = match.group(1), match.group(2)
-        plain = DECISION_LABEL.sub("", text).strip()
+        plain = text.strip()
         found = re.search(r'id="([^"]+)"', attributes)
         anchor = found.group(1) if found else _slug(plain)
         base, number = anchor, 2
@@ -548,16 +619,31 @@ THEME_TOGGLE = (
 )
 
 
+# A reference in a page's prose to one of its figures, replaced by the figure's number when the
+# page is numbered (``_number``), so that no figure number is typed.
+FIGURE_REF = re.compile(r"\[\[figure:([a-z0-9_]+)\]\]")
+
+
+def figure_ref(name: str) -> str:
+    """The number of figure ``name`` of the same page, as it will be numbered."""
+    return f"[[figure:{name}]]"
+
+
 def _number(body: str) -> str:
     """Number a page's figures and tables in reading order, as a printed paper does.
 
     The number goes before each title; a table's hidden caption, which is what a screen reader
-    announces for it, carries the same number.
+    announces for it, carries the same number. References to figures in the prose
+    (:func:`figure_ref`) get the same numbers.
     """
     counts = {"figure": 0, "table": 0}
+    numbers: dict[str, int] = {}
 
     def figure_title(match: re.Match[str]) -> str:
         counts["figure"] += 1
+        found = re.search(r'id="figure-([^"]+)"', match.group(0))
+        if found:
+            numbers[found.group(1)] = counts["figure"]
         return f'{match.group(0)}<span class="figure-label">Figure {counts["figure"]}.</span> '
 
     def table_block(match: re.Match[str]) -> str:
@@ -576,19 +662,16 @@ def _number(body: str) -> str:
         r'<p class="figure-title" id="[^"]+">|<div class="table-block">.*?</table></div></div>',
         re.S,
     )
-    return pattern.sub(
+    body = pattern.sub(
         lambda m: figure_title(m) if m.group(0).startswith("<p") else table_block(m), body
     )
 
+    def reference(match: re.Match[str]) -> str:
+        if match.group(1) not in numbers:
+            raise ValueError(f"the prose refers to figure {match.group(1)}, not on the page")
+        return str(numbers[match.group(1)])
 
-def _block_end(html_text: str, start: int) -> int:
-    """The position just after the <div> that opens at ``start`` and everything nested in it."""
-    depth = 0
-    for match in re.finditer(r"<(/?)div\b", html_text[start:]):
-        depth += -1 if match.group(1) else 1
-        if depth == 0:
-            return html_text.index(">", start + match.start()) + 1
-    raise ValueError("unclosed <div>")
+    return FIGURE_REF.sub(reference, body)
 
 
 def _toc_lists(entries: list[tuple[str, str]]) -> tuple[str, str]:
@@ -666,12 +749,13 @@ def _place(slug: str) -> tuple[str, str]:
 SITE_TITLE = "Road safety in Spain"
 
 
-def render_page(
-    slug: str, title: str, lead: str, body: str, head: str = "", scope: str = ""
-) -> str:
-    """A whole page: the site header and navigation, the page's opening (section, title, one
-    sentence and, for a regional page, its source and scope), its argument with a contents list
-    when it is long, the reading-order links and the footer."""
+def render_page(slug: str, title: str, lead: str, body: str, head: str = "") -> str:
+    """A whole page: the site header and navigation, the page's opening (section and title), its
+    argument with a contents list when it is long, the reading-order links and the footer.
+
+    ``lead`` is one sentence on what the page covers. It is the page's search description, and it
+    is shown under the title only where no summary follows to state the result: on the home page,
+    which it introduces, and on the withdrawn and moved notices, where it gives the reason."""
     eyebrow, pager = _place(slug)
     page_title = SITE_TITLE if slug == "index" else esc(title) + " · " + SITE_TITLE
     body, entries = _sections(_number(body))
@@ -681,11 +765,12 @@ def render_page(
         rail, inline = _toc_lists(entries)
         opening = re.search(r'<p class="summary">.*?</p>', body, re.S)
         cut = opening.end() if opening else 0
-        # A headline number that follows the summary stays with it, before the contents.
-        if re.match(r'<div class="(compare|key-result)">', body[cut:]):
-            cut = _block_end(body, cut)
         body = body[:cut] + inline + body[cut:]
-    scope_html = f'<p class="scope">{scope}</p>' if scope else ""
+    shown_lead = (
+        f'\n<p class="lead">{esc(lead)}</p>'
+        if slug == "index" or '<p class="summary">' not in body
+        else ""
+    )
     body_class = ' class="home"' if slug == "index" else ""
     page_class = "page has-toc" if rail else "page"
     return f"""<!DOCTYPE html>
@@ -694,9 +779,12 @@ def render_page(
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
+<meta http-equiv="Content-Security-Policy" content="{CONTENT_SECURITY_POLICY}">
+<meta name="referrer" content="strict-origin-when-cross-origin">
 <title>{page_title}</title>
 <meta name="description" content="{esc(lead)}">
 <link rel="preload" href="fonts/NunitoSans.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="icon" href="data:,">
 <link rel="stylesheet" href="style.css">
 {JS_FLAG}
 <script src="site.js" defer></script>{head}
@@ -716,8 +804,7 @@ def render_page(
 <div class="{page_class}">
 <main>
 <header class="page-header" id="content">
-{eyebrow}<h1>{esc(title)}</h1>
-<p class="lead">{esc(lead)}</p>{scope_html}
+{eyebrow}<h1>{esc(title)}</h1>{shown_lead}
 </header>
 {body}
 {pager}</main>{rail}
@@ -726,10 +813,15 @@ def render_page(
 <div class="site-footer-inner">
 <p>{SITE_TITLE}, an independent analysis by <a href="{PROFILE_URL}">Russell Howard (RAHV-FB)</a>.
 Data from the Dirección General de Tráfico, INE, the Ministerio de Transportes, CORES, the Servei
-Català de Trànsit and the Ajuntament de Barcelona. All results are computed from the published
-files by the code in the repository.</p>
+Català de Trànsit, the Ajuntament de Barcelona, the Autoritat del Transport Metropolità, Idescat and
+Institut Metròpoli (EMEF), Idescat (population census) and the Consorcio Regional de Transportes de
+Madrid (<a href="https://www.crtm.es">Powered by CRTM</a>).
+All results are computed by the code in the repository from the published files and the cited
+<a href="data.html#reproduce">values it holds</a>.</p>
 <p><a href="sources.html">Data sources</a> · <a href="data.html">Methodology</a> ·
-<a href="{REPO_URL}">Repository</a></p>
+<a href="data.html#reuse">Reuse and licences</a> ·
+<a href="{REPO_URL}">Repository</a> ·
+<a href="{REPO_URL}/commits/main/site">Change history</a></p>
 </div>
 </footer>
 </body>
@@ -738,7 +830,7 @@ files by the code in the repository.</p>
 
 
 def _ratio_ci(ratio: float, low: float, high: float) -> str:
-    return f"{ratio:.2f}× ({low:.2f}–{high:.2f})"
+    return f"{ratio:.2f} ({low:.2f}–{high:.2f})"
 
 
 def _change(ratio: float, decimals: int = 1) -> str:

@@ -68,10 +68,120 @@ def test_holdout_and_stability_on_synthetic_years(monkeypatch: pytest.MonkeyPatc
     assert summary.brier_skill.iloc[0] == pytest.approx(
         1 - summary.brier.iloc[0] / summary.brier_train_rate.iloc[0]
     )
+    # With no missing-value level, folding them away changes nothing and they alone rank nothing.
+    assert summary.auc_recorded_only.iloc[0] == pytest.approx(summary.auc.iloc[0])
+    assert summary.auc_missing_only.iloc[0] == pytest.approx(0.5)
     full = models.fit_severity(frame, "fatal", ("x1", "x2"), cluster=None)
     stability = models.year_stability(frame, full, terms=3)
     assert set(stability.year.unique()) == {2016, 2017, 2023, 2024}
     assert stability.within_full_interval.mean() > 0.5
+    # One term followed beyond the largest, and a heterogeneity test that a constant effect
+    # passes: the synthetic effects do not change between years.
+    stability = models.year_stability(frame, full, terms=1, extra=(("x2", "q"), ("x9", "z")))
+    followed = set(zip(stability.predictor, stability.level))
+    assert len(followed) == 2 and ("x2", "q") in followed  # the unknown extra term is skipped
+    assert stability[stability.level == "q"].is_largest.eq(False).all()
+    assert stability[stability.predictor == "x1"].is_largest.all()
+    assert (stability.heterogeneity_p > 0.01).all()
+    rows = stability[stability.level == "q"]
+    weights = 1 / rows.se**2
+    mean = (weights * rows.log_odds).sum() / weights.sum()
+    expected = (weights * (rows.log_odds - mean) ** 2).sum()
+    assert rows.heterogeneity_q.iloc[0] == pytest.approx(expected)
+
+
+def test_holdout_measures_what_the_missing_levels_rank(monkeypatch: pytest.MonkeyPatch) -> None:
+    frame = _synthetic(30_000)
+    # A field left unrecorded far more often in fatal crashes: the missing-value level alone
+    # ranks crashes, and folding it into the reference loses that.
+    rng = np.random.default_rng(3)
+    blank = rng.random(len(frame)) < np.where(frame.fatal, 0.5, 0.05)
+    frame["x2"] = pd.Categorical(
+        np.where(blank, features.UNKNOWN, frame.x2.astype(str)),
+        categories=["p", "q", features.UNKNOWN],
+        ordered=True,
+    )
+    monkeypatch.setattr(
+        features,
+        "PREDICTORS",
+        {"x1": {"source": "x1"}, "x2": {"source": "x2"}, "year": {"source": "crash_year"}},
+    )
+    monkeypatch.setattr(features, "PREDICTOR_LABELS", {"x1": "X1", "x2": "X2", "year": "Year"})
+    _, summary = models.holdout_check(frame, "fatal", (2023, 2024))
+    row = summary.iloc[0]
+    assert row.auc_missing_only > 0.6
+    assert row.auc_recorded_only < row.auc
+
+
+def test_period_refits_fit_the_two_coding_regimes_apart(monkeypatch: pytest.MonkeyPatch) -> None:
+    frame = _synthetic(40_000)
+    # Level b doubles the odds before the break year and does nothing from it, and only in
+    # provinces 1 and 2, which stand for the region whose coding changed.
+    rng = np.random.default_rng(9)
+    late = (frame.crash_year >= 2023) & frame.province.isin(["1", "2"])
+    log_odds = -2.5 + np.log(2) * ((frame.x1 == "b") & ~late) + 0.4 * (frame.x2 == "q")
+    frame["fatal"] = rng.random(len(frame)) < 1 / (1 + np.exp(-log_odds))
+    monkeypatch.setattr(features, "PREDICTORS", {"x1": {}, "x2": {}})
+    monkeypatch.setattr(features, "PREDICTOR_LABELS", {"x1": "X1", "x2": "X2"})
+    out = models.period_refits(
+        frame, "fatal", break_year=2023, terms=(("x1", "b"),), provinces=("1", "2")
+    ).set_index(["period", "scope"])
+    assert set(out.index) == {
+        ("before", "all provinces"),
+        ("before", "outside Catalonia"),
+        ("from", "all provinces"),
+        ("from", "outside Catalonia"),
+    }
+    assert out.loc[("before", "all provinces"), "last_year"] == 2017
+    assert out.loc[("from", "all provinces"), "first_year"] == 2023
+    assert out.loc[("before", "all provinces"), "odds_ratio"] == pytest.approx(2.0, rel=0.2)
+    assert out.loc[("from", "outside Catalonia"), "odds_ratio"] == pytest.approx(2.0, rel=0.25)
+    assert (
+        out.loc[("from", "all provinces"), "odds_ratio"]
+        < out.loc[("from", "outside Catalonia"), "odds_ratio"]
+    )
+    assert out.loc[("from", "outside Catalonia"), "n"] == int(
+        ((frame.crash_year >= 2023) & ~frame.province.isin(["1", "2"])).sum()
+    )
+    inside_late = frame[(frame.crash_year >= 2023) & frame.province.isin(["1", "2"])]
+    assert out.loc[("from", "all provinces"), "share_at_level_inside"] == pytest.approx(
+        (inside_late.x1 == "b").mean()
+    )
+
+
+def test_location_contrasts_add_zone_and_road_with_their_covariance() -> None:
+    rng = np.random.default_rng(4)
+    n = 40_000
+    zone = rng.choice(["street", "interurban road"], size=n, p=[0.6, 0.4])
+    road = np.where(
+        zone == "street",
+        rng.choice(["urban street", "other road"], size=n, p=[0.9, 0.1]),
+        rng.choice(["conventional", "other road"], size=n, p=[0.8, 0.2]),
+    )
+    log_odds = -3.5 + 1.0 * (zone == "interurban road") + 0.8 * (road == "conventional")
+    frame = pd.DataFrame(
+        {
+            "province": rng.choice([str(i) for i in range(1, 21)], size=n),
+            "fatal": rng.random(n) < 1 / (1 + np.exp(-log_odds)),
+            "zone": pd.Categorical(zone, categories=["street", "interurban road"], ordered=True),
+            "road": pd.Categorical(
+                road, categories=["urban street", "conventional", "other road"], ordered=True
+            ),
+        }
+    )
+    fit = models.fit_severity(frame, "fatal", ("zone", "road"))
+    out = models.location_contrasts(frame, fit, min_crashes=500).set_index(["zone", "road"])
+    assert bool(out.loc[("street", "urban street"), "is_reference"])
+    assert out.loc[("street", "urban street"), "odds_ratio"] == 1.0
+    assert ("interurban road", "urban street") not in out.index  # no such crash
+    row = out.loc[("interurban road", "conventional")]
+    columns = ["zone=interurban road", "road=conventional"]
+    assert row.log_odds == pytest.approx(fit.params[columns].sum())
+    assert row.se == pytest.approx(np.sqrt(fit.cov.loc[columns, columns].to_numpy().sum()))
+    assert row.odds_ratio == pytest.approx(np.exp(1.8), rel=0.15)
+    # A contrast on the reference zone is the road term alone.
+    alone = out.loc[("street", "other road")]
+    assert alone.log_odds == pytest.approx(fit.params["road=other road"])
 
 
 def test_model_frame_levels_and_groupings() -> None:
@@ -85,6 +195,7 @@ def test_model_frame_levels_and_groupings() -> None:
             "TIPO_VIA": [9, 5, 999],
             "TIPO_ACCIDENTE": [2, 13, 7],
             "NUDO": [2, 1, pd.NA],
+            "NUDO_INFO": [pd.NA, 2, pd.NA],
             "CONDICION_ILUMINACION": [1, 6, 999],
             "CONDICION_METEO": [1, 4, 7],
             "CONDICION_FIRME": [1, 3, 9],
@@ -100,7 +211,11 @@ def test_model_frame_levels_and_groupings() -> None:
     # of its crashes as code 6 in 2021, and one level keeps that recoding inside it.
     assert list(frame.road) == ["urban street", "conventional", "not specified"]
     assert features.PREDICTORS["road"]["map"][5] == features.PREDICTORS["road"]["map"][6]
-    assert list(frame.crash_type) == ["side collision", "run-off or overturn", "pedestrian struck"]
+    assert list(frame.crash_type) == [
+        "side or front-side collision",
+        "run-off or overturn",
+        "pedestrian struck",
+    ]
     assert list(frame.junction) == ["not at a junction", "at a junction", "not specified"]
     assert list(frame.lighting) == ["daylight", "dark, no lighting", "not specified"]
     # Each field's explicit unknown code (7, 9, 4) is a level of its own, apart from 999.
@@ -167,6 +282,7 @@ def test_small_levels_merge_into_the_reference() -> None:
             "TIPO_VIA": [9] * n,
             "TIPO_ACCIDENTE": [2] * (n - 10) + [999] * 10,
             "NUDO": [2] * n,
+            "NUDO_INFO": [pd.NA] * n,
             "CONDICION_ILUMINACION": [1] * n,
             "CONDICION_METEO": [1] * n,
             "CONDICION_FIRME": [1] * n,
@@ -177,24 +293,24 @@ def test_small_levels_merge_into_the_reference() -> None:
         }
     )
     frame = features.model_frame(raw)
-    assert list(frame.crash_type.cat.categories) == ["side collision"]
+    assert list(frame.crash_type.cat.categories) == ["side or front-side collision"]
     assert list(frame.alignment.cat.categories) == ["straight"]
     assert frame.attrs["merged_levels"] == {"crash_type": {"not specified": 10}}
     groupings = features.grouping_table(frame).set_index(["predictor", "code"])
     merged = groupings.loc[("Crash type", "999")]
     assert (
         merged.level
-        == "side collision (merged: the not specified level's 10 crashes, fewer than 500)"
+        == "side or front-side collision (merged: the not specified level's 10 crashes, fewer than 500)"
         and merged.reference
     )
     # No crash reaches the fallback row, so it says so instead of repeating the merged count.
     fallback = groupings.loc[("Crash type", features.FALLBACK_CODE)]
     assert fallback.level == (
-        "side collision (the not specified level was merged; no crash takes this code)"
+        "side or front-side collision (the not specified level was merged; no crash takes this code)"
     )
     absent = groupings.loc[("Crash type", "1")]
     assert absent.level == "head-on collision (no crash takes this value)" and not absent.reference
-    assert groupings.loc[("Crash type", "2")].level == "side collision"
+    assert groupings.loc[("Crash type", "2")].level == "side or front-side collision"
 
 
 def test_profiles(monkeypatch: pytest.MonkeyPatch) -> None:

@@ -1,0 +1,176 @@
+0,1,2,3,workbook
+,VARIABLE,ESPECIFICACIÓN,VALORES,EDM2018INDIVIDUOS.xlsx
+,,,,EDM2018INDIVIDUOS.xlsx
+,,,,EDM2018INDIVIDUOS.xlsx
+,ID_HOGAR,Identificador del hogar,,EDM2018INDIVIDUOS.xlsx
+,ID_IND,Identificador del individuo,,EDM2018INDIVIDUOS.xlsx
+,C2SEXO,Sexo,1. Hombre,EDM2018INDIVIDUOS.xlsx
+,,,2. Mujer,EDM2018INDIVIDUOS.xlsx
+,EDAD_FIN,Edad en 2018,,EDM2018INDIVIDUOS.xlsx
+,ELE_G_POND,Elevador de individuos,,EDM2018INDIVIDUOS.xlsx
+,C4NAC,¿Tiene usted la nacionalidad española?,1. Si,EDM2018INDIVIDUOS.xlsx
+,,,2. No,EDM2018INDIVIDUOS.xlsx
+,C5CAM,¿Está usted empadronado en la Comunidad de Madrid?,1. Si,EDM2018INDIVIDUOS.xlsx
+,,,2. No,EDM2018INDIVIDUOS.xlsx
+,,,3. Ns/Nc,EDM2018INDIVIDUOS.xlsx
+,C6CARNE,"¿Tiene usted carné de conducir?, ¿de qué tipo?",1. No tiene,EDM2018INDIVIDUOS.xlsx
+,,,2. Sólo licencia de ciclomotor,EDM2018INDIVIDUOS.xlsx
+,,,3. Carné de moto A1/A2,EDM2018INDIVIDUOS.xlsx
+,,,"4. Carné de coche (B) o superior  (C, D ó E)",EDM2018INDIVIDUOS.xlsx
+,,,5. Carné de moto y coche,EDM2018INDIVIDUOS.xlsx
+,C7ESTUD,¿Cuál es su nivel de estudios?,1. Menos que Primaria,EDM2018INDIVIDUOS.xlsx
+,,,2. Educación Primaria,EDM2018INDIVIDUOS.xlsx
+,,,3. Primera etapa de Educación Secundaria y similar,EDM2018INDIVIDUOS.xlsx
+,,,4. Segunda etapa de Educación Secundaria y similar,EDM2018INDIVIDUOS.xlsx
+,,,5. Educación postsecundaria no superior,EDM2018INDIVIDUOS.xlsx
+,,,6. Enseñanzas de Formación Profesional de grado superior y equivalentes,EDM2018INDIVIDUOS.xlsx
+,,,7. Grados universitarios/licenciaturas/másteres y enseñanzas de doctorado,EDM2018INDIVIDUOS.xlsx
+,C8ACTIV,¿Qué actividad principal desarrolla?,1. Trabaja,EDM2018INDIVIDUOS.xlsx
+,,,2. Trabaja y estudia,EDM2018INDIVIDUOS.xlsx
+,,,3. Jubilado / Retirado/ Pensionista,EDM2018INDIVIDUOS.xlsx
+,,,"4. Parado, ha trabajado antes",EDM2018INDIVIDUOS.xlsx
+,,,"5. Parado, busca primer trabajo",EDM2018INDIVIDUOS.xlsx
+,,,6. Estudiante,EDM2018INDIVIDUOS.xlsx
+,,,7. Cuidado de familiares,EDM2018INDIVIDUOS.xlsx
+,,,8. Trabajo doméstico no remunerado,EDM2018INDIVIDUOS.xlsx
+,,,9. Otra situación,EDM2018INDIVIDUOS.xlsx
+,C9PROF,¿Cuál es su actividad profesional?,1. Asalariado sector público,EDM2018INDIVIDUOS.xlsx
+,,,2. Asalariado sector privado,EDM2018INDIVIDUOS.xlsx
+,,,3. Empresario y/o trabajador por cuenta propia,EDM2018INDIVIDUOS.xlsx
+,,,4. Ayuda en la empresa o negocio familiar,EDM2018INDIVIDUOS.xlsx
+,,,5. Otra situación laboral,EDM2018INDIVIDUOS.xlsx
+,C10SECTOR,¿En qué sector trabaja?,1. Educación pública y privada,EDM2018INDIVIDUOS.xlsx
+,,,2. Salud privada o pública y servicios sociales,EDM2018INDIVIDUOS.xlsx
+,,,3. Administración pública,EDM2018INDIVIDUOS.xlsx
+,,,4. Otros Servicios,EDM2018INDIVIDUOS.xlsx
+,,,5. Industria,EDM2018INDIVIDUOS.xlsx
+,,,6. Construcción,EDM2018INDIVIDUOS.xlsx
+,,,7. Agricultura ,EDM2018INDIVIDUOS.xlsx
+,C13TARJETA,¿Dispone usted de....?,1.   Tarjeta de Transporte Público TTP,EDM2018INDIVIDUOS.xlsx
+,,,2.   Tarjeta MULTI,EDM2018INDIVIDUOS.xlsx
+,,,3.   Ambas tarjetas,EDM2018INDIVIDUOS.xlsx
+,,,4.   Ninguna,EDM2018INDIVIDUOS.xlsx
+,C14ABONO,¿Tiene cargado el Abono actualmente?,1. Si,EDM2018INDIVIDUOS.xlsx
+,,,2. No,EDM2018INDIVIDUOS.xlsx
+,DDIA,Día de referencia,,EDM2018INDIVIDUOS.xlsx
+,DMES,Mes del día de referencia,,EDM2018INDIVIDUOS.xlsx
+,DANNO,Año del día de referencia,,EDM2018INDIVIDUOS.xlsx
+,DIASEM,Día de la semana de referencia,1. Lunes,EDM2018INDIVIDUOS.xlsx
+,,,2. Martes,EDM2018INDIVIDUOS.xlsx
+,,,3. Miércoles,EDM2018INDIVIDUOS.xlsx
+,,,4. Jueves,EDM2018INDIVIDUOS.xlsx
+,DNOVIAJO,No realizó desplazamiento debido a:,1. Incapacidad física/psíquica permanente,EDM2018INDIVIDUOS.xlsx
+,,,2. Incapacidad física/psíquica provisional,EDM2018INDIVIDUOS.xlsx
+,,,3. Mal tiempo,EDM2018INDIVIDUOS.xlsx
+,,,4. Por edad,EDM2018INDIVIDUOS.xlsx
+,,,5. Necesidad cuidar otra persona,EDM2018INDIVIDUOS.xlsx
+,,,6. Ausencia de Madrid,EDM2018INDIVIDUOS.xlsx
+,,,7. Trabaja en casa,EDM2018INDIVIDUOS.xlsx
+,,,8. Vacaciones /día libre,EDM2018INDIVIDUOS.xlsx
+,,,9. Otros motivos,EDM2018INDIVIDUOS.xlsx
+,C11ZT1259,Centro de trabajo. Zona 1259,,EDM2018INDIVIDUOS.xlsx
+,C12ZT1259,Centro de estudios. Zona 1259,,EDM2018INDIVIDUOS.xlsx
+,CPMR,¿Tiene algún tipo de movilidad reducida?,1. Si,EDM2018INDIVIDUOS.xlsx
+,,,2. No,EDM2018INDIVIDUOS.xlsx
+,TIPO_ENCUESTA,,,EDM2018INDIVIDUOS.xlsx
+,VARIABLE,ESPECIFICACIÓN,VALORES,EDM2018VIAJES.xlsx
+,,,,EDM2018VIAJES.xlsx
+,,,,EDM2018VIAJES.xlsx
+,ID_HOGAR,Identificador del hogar,,EDM2018VIAJES.xlsx
+,ID_IND,Identificador del individuo,,EDM2018VIAJES.xlsx
+,ID_VIAJE,Identificador del viaje,,EDM2018VIAJES.xlsx
+,VORI,Origen. Motivo de origen,1. Casa,EDM2018VIAJES.xlsx
+,,,2. Trabajo,EDM2018VIAJES.xlsx
+,,,3. Gestión de trabajo,EDM2018VIAJES.xlsx
+,,,4. Estudio,EDM2018VIAJES.xlsx
+,,,5. Compras,EDM2018VIAJES.xlsx
+,,,6. Médico,EDM2018VIAJES.xlsx
+,,,7. Acompañamiento a otra persona,EDM2018VIAJES.xlsx
+,,,8. Ocio,EDM2018VIAJES.xlsx
+,,,9. Deporte/ dar un paseo,EDM2018VIAJES.xlsx
+,,,10. Asunto personal,EDM2018VIAJES.xlsx
+,,,11. Otro domicilio,EDM2018VIAJES.xlsx
+,,,12. Otros,EDM2018VIAJES.xlsx
+,VORIHORAINI,Origen. Hora de inicio,,EDM2018VIAJES.xlsx
+,VDES,Destino. Motivo de destino,1. Casa,EDM2018VIAJES.xlsx
+,,,2. Trabajo,EDM2018VIAJES.xlsx
+,,,3. Gestión de trabajo,EDM2018VIAJES.xlsx
+,,,4. Estudio,EDM2018VIAJES.xlsx
+,,,5. Compras,EDM2018VIAJES.xlsx
+,,,6. Médico,EDM2018VIAJES.xlsx
+,,,7. Acompañamiento a otra persona,EDM2018VIAJES.xlsx
+,,,8. Ocio,EDM2018VIAJES.xlsx
+,,,9. Deporte/ dar un paseo,EDM2018VIAJES.xlsx
+,,,10. Asunto personal,EDM2018VIAJES.xlsx
+,,,11. Otro domicilio,EDM2018VIAJES.xlsx
+,,,12. Otros,EDM2018VIAJES.xlsx
+,VDESHORAFIN,Destino. Hora llegada,,EDM2018VIAJES.xlsx
+,VFRECUENCIA,Frecuencia del viaje,"1. A diario, de lunes a viernes",EDM2018VIAJES.xlsx
+,,,2. Entre 2 y 4 días laborables por semana,EDM2018VIAJES.xlsx
+,,,3. Menos de dos días laborables por semana,EDM2018VIAJES.xlsx
+,,,4. Alguna vez,EDM2018VIAJES.xlsx
+,,,5. Es la primera vez que hago el viaje,EDM2018VIAJES.xlsx
+,VVEHICULO,¿Dispone de vehículo particular para hacer este viaje?,1. Si,EDM2018VIAJES.xlsx
+,,,2. No,EDM2018VIAJES.xlsx
+,VNOPRIVADO,¿Por qué no ha utilizado el coche conductor en todo su viaje?,1.    Es más caro,EDM2018VIAJES.xlsx
+,,,2.    Dificultad de aparcamiento,EDM2018VIAJES.xlsx
+,,,3.    Tardo más,EDM2018VIAJES.xlsx
+,,,4.    Evitar el atasco,EDM2018VIAJES.xlsx
+,,,5.    Más incómodo,EDM2018VIAJES.xlsx
+,,,6.    No me gusta el coche,EDM2018VIAJES.xlsx
+,,,7.    Contamino menos,EDM2018VIAJES.xlsx
+,,,8.    Otros,EDM2018VIAJES.xlsx
+,VNOPUBLICO,¿Por qué no ha utilizado el transporte público en este viaje (cualquiera de sus etapas)?,1.    Mala combinación del tte.público,EDM2018VIAJES.xlsx
+,,,2.    No hay servicio público,EDM2018VIAJES.xlsx
+,,,3.    Por desconocimiento/falta de información,EDM2018VIAJES.xlsx
+,,,4.    Necesito mi vehículo para trabajar o gestión personal,EDM2018VIAJES.xlsx
+,,,5.    Tardo más,EDM2018VIAJES.xlsx
+,,,6.    Es más caro,EDM2018VIAJES.xlsx
+,,,7.    Más incómodo ,EDM2018VIAJES.xlsx
+,,,8.    No me gusta el tte. público,EDM2018VIAJES.xlsx
+,,,9.    Mi situación personal condiciona esta elección modal,EDM2018VIAJES.xlsx
+,,,10. El destino está muy cerca,EDM2018VIAJES.xlsx
+,,,11. Prefiero ir andando / en bicicleta,EDM2018VIAJES.xlsx
+,,,12. Otros,EDM2018VIAJES.xlsx
+,VORIZT1259,Origen. Zona 1259,,EDM2018VIAJES.xlsx
+,VDESZT1259,Destino. Zona 1259,,EDM2018VIAJES.xlsx
+,TIPO_ENCUESTA,Tipo de encuesta,,EDM2018VIAJES.xlsx
+,N_ETAPAS_POR_VIAJE,Nº de etapas por viaje,,EDM2018VIAJES.xlsx
+,MOTIVO_PRIORITARIO,Motivo prioritario del viaje,1. Casa,EDM2018VIAJES.xlsx
+,,,2. Trabajo,EDM2018VIAJES.xlsx
+,,,3. Gestión de trabajo,EDM2018VIAJES.xlsx
+,,,4. Estudio,EDM2018VIAJES.xlsx
+,,,5. Compras,EDM2018VIAJES.xlsx
+,,,6. Médico,EDM2018VIAJES.xlsx
+,,,7. Acompañamiento a otra persona,EDM2018VIAJES.xlsx
+,,,8. Ocio,EDM2018VIAJES.xlsx
+,,,9. Deporte/ dar un paseo,EDM2018VIAJES.xlsx
+,,,10. Asunto personal,EDM2018VIAJES.xlsx
+,,,11. Otro domicilio,EDM2018VIAJES.xlsx
+,,,12. Otros,EDM2018VIAJES.xlsx
+,DISTANCIA_VIAJE,"Distancia, en kilometros, del origen al destino del viaje",,EDM2018VIAJES.xlsx
+,MODO_PRIORITARIO,,1 '1. Renfe Cercanías ',EDM2018VIAJES.xlsx
+,,,2 '2. Autobus interurbano ',EDM2018VIAJES.xlsx
+,,,3 '3. Autobus urbano otro municipio ',EDM2018VIAJES.xlsx
+,,,4 '4. Metro ',EDM2018VIAJES.xlsx
+,,,5 '5. Metro ligero/tranvía ',EDM2018VIAJES.xlsx
+,,,6 '6. Autobus urbano Madrid EMT ',EDM2018VIAJES.xlsx
+,,,7 '7. Resto renfe ',EDM2018VIAJES.xlsx
+,,,8 '8. Autobus discrecional ',EDM2018VIAJES.xlsx
+,,,9 '9. Autobus de largo recorrido ',EDM2018VIAJES.xlsx
+,,,10 '10. Taxi ',EDM2018VIAJES.xlsx
+,,,11 '11. Coche conductor particular',EDM2018VIAJES.xlsx
+,,Modo prioritario del viaje,12 '12. Coche conductor empresa',EDM2018VIAJES.xlsx
+,,,13 '13. Coche conductor alquiler sin conductor',EDM2018VIAJES.xlsx
+,,,14 '14. Coche pasajero particular',EDM2018VIAJES.xlsx
+,,,15 '15. Coche pasajero empresa',EDM2018VIAJES.xlsx
+,,,16 '16. Coche pasajero alquiler con conductor',EDM2018VIAJES.xlsx
+,,,17 '17. Moto/ciclomotor particular',EDM2018VIAJES.xlsx
+,,,18 '18. Moto/ciclomotor publica',EDM2018VIAJES.xlsx
+,,,19 '19. Moto/ciclomotor empresa',EDM2018VIAJES.xlsx
+,,,20 '20. Bicicleta particular',EDM2018VIAJES.xlsx
+,,,21 '21. Bicicleta publica',EDM2018VIAJES.xlsx
+,,,22 '22. Bicicleta empresa',EDM2018VIAJES.xlsx
+,,,23 '23. Otros ',EDM2018VIAJES.xlsx
+,,,24 '24. Andando/pie ',EDM2018VIAJES.xlsx
+,ELE_G_POND_ESC2,Elevador de viajes,,EDM2018VIAJES.xlsx

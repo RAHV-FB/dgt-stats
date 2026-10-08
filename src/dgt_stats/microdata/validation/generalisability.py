@@ -35,7 +35,8 @@ import pandas as pd
 from dgt_stats import derive, io_population
 from dgt_stats.microdata import catalonia
 from dgt_stats.microdata.common import wilson
-from dgt_stats.microdata.validation import harmonise
+from dgt_stats.microdata.crosssource import RESIDENTS_REFERENCE
+from dgt_stats.microdata.validation import harmonise, transport
 from dgt_stats.paths import DGT_PROCESSED_CRASHES, DOCS_DIR, REPORTS_DIR, TABLES_DIR
 
 DOC = DOCS_DIR / "GENERALISABILITY.md"
@@ -54,6 +55,7 @@ DGT_COLUMNS = [
     "CONDICION_METEO",
     "CONDICION_FIRME",
     "NUDO",
+    "NUDO_INFO",
     "TRAZADO_PLANTA",
     "HORA",
     "DIA_SEMANA",
@@ -64,6 +66,15 @@ DGT_COLUMNS = [
     "TOTAL_HG30DF",
     "TOTAL_VICTIMAS_30DF",
 ]
+
+
+# Road type for comparing populations: every conventional road (codes 4-6) in one level, as in
+# ``features.PREDICTORS["road"]``. DGT's records for the four Catalan provinces code almost every
+# conventional-road crash as 5 (a conventional road with a dual carriageway) until 2020 and as 6
+# from 2021, while elsewhere code 5 keeps a small, steady share (``coding_by_region``); splitting 5
+# from 6 would read that recoding as a difference between the populations. The minor codes (7, 8,
+# 10-14) stay one group, "other": the Catalan records use only code 14 among them.
+ROAD_CLASS: dict[int, str] = {**derive.ROAD_GROUP_BY_TYPE, 5: "conventional"}
 
 
 def dgt_frame() -> pd.DataFrame:
@@ -82,12 +93,14 @@ def dgt_frame() -> pd.DataFrame:
             "barcelona_province": province.eq(8),
             "barcelona_city": dgt.COD_MUNICIPIO.astype(str).eq(BARCELONA_CITY),
             "zone": code("ZONA_AGRUPADA").map({1: "interurban", 2: "urban"}).fillna(ns),
-            "road_class": derive.road_group(dgt.TIPO_VIA).fillna(ns).astype(str),
+            "road_class": code("TIPO_VIA").map(ROAD_CLASS).fillna(ns),
             "crash_type": code("TIPO_ACCIDENTE").map(harmonise.DGT_CRASH).fillna(ns),
             "lighting": code("CONDICION_ILUMINACION").map(harmonise.DGT_LIGHT).fillna(ns),
             "weather": code("CONDICION_METEO").map(harmonise.DGT_WEATHER).fillna(ns),
             "surface": code("CONDICION_FIRME").map(harmonise.DGT_SURFACE).fillna(ns),
-            "junction": code("NUDO").map({1: "junction", 2: "section"}).fillna(ns),
+            # Read the other way round where DGT's flag is inverted, as in the cross-source
+            # tests and the national association model.
+            "junction": harmonise.dgt_junction_codes(dgt).map(harmonise.DGT_JUNCTION).fillna(ns),
             "alignment_recorded": code("TRAZADO_PLANTA")
             .map(
                 {
@@ -218,17 +231,27 @@ def representativeness() -> tuple[pd.DataFrame, pd.DataFrame]:
 
 
 def province_rates() -> pd.DataFrame:
-    """Severe (24 h) crashes per 100,000 residents by province and year: DGT counts over INE."""
+    """Severe (24 h) crashes per 100,000 residents by province and year: DGT counts over INE.
+
+    The injury crashes of the same province-years are counted too, so that the severe share of
+    injury crashes can be split into its two parts: injury crashes per resident, which depends on
+    how completely slight-injury crashes are recorded, and severe crashes per resident."""
     dgt = dgt_frame()
     counts = (
-        dgt[dgt.severe_24h]
-        .groupby(["year", "province_code"])
-        .agg(severe_crashes=("fatal_24h", "size"), fatal_crashes=("fatal_24h", "sum"))
+        dgt.groupby(["year", "province_code"])
+        .agg(
+            injury_crashes=("severe_24h", "size"),
+            severe_crashes=("severe_24h", "sum"),
+            fatal_crashes=("fatal_24h", "sum"),
+        )
         .reset_index()
     )
+    counts = counts[counts.severe_crashes > 0]
     population = io_population.read_population()
     population = population[
-        population.all_ages & population.sex.eq("total") & population.reference.eq("1 January")
+        population.all_ages
+        & population.sex.eq("total")
+        & population.reference.eq(RESIDENTS_REFERENCE)
     ].copy()
     population["province_code"] = pd.to_numeric(population.province_code, errors="coerce")
     population = population.dropna(subset=["province_code"])[
@@ -252,7 +275,66 @@ def province_rates() -> pd.DataFrame:
     return out.sort_values(["year", "province_code"])
 
 
+def coding_by_region() -> pd.DataFrame:
+    """Codes whose use changes in DGT's records, by year, for Catalonia and the rest of Spain.
+
+    Road-type code 5 (a conventional road with a dual carriageway) against code 6 (single
+    carriageway), code 14 ("other"), and the junction-type field left blank or marked "not
+    specified" (999). Each count is of injury crashes, so a change confined to one region shows as
+    a jump in that region's row only.
+    """
+    dgt = pd.read_parquet(
+        DGT_PROCESSED_CRASHES, columns=["ANYO", "COD_PROVINCIA", "TIPO_VIA", "NUDO_INFO"]
+    )
+    road = pd.to_numeric(dgt.TIPO_VIA, errors="coerce")
+    junction = pd.to_numeric(dgt.NUDO_INFO, errors="coerce")
+    frame = pd.DataFrame(
+        {
+            "year": pd.to_numeric(dgt.ANYO, errors="coerce").astype(int),
+            "region": np.where(
+                pd.to_numeric(dgt.COD_PROVINCIA, errors="coerce").isin(CATALAN),
+                "Catalonia",
+                "Spain outside Catalonia",
+            ),
+            "road_type_5_dual_carriageway": road.eq(5),
+            "road_type_6_single_carriageway": road.eq(6),
+            "road_type_14_other": road.eq(14),
+            "junction_type_blank": dgt.NUDO_INFO.isna(),
+            "junction_type_not_specified": junction.eq(999),
+        }
+    )
+    out = frame.groupby(["year", "region"]).agg(
+        crashes=("year", "size"),
+        **{
+            column: (column, "sum")
+            for column in frame.columns
+            if column.startswith(("road_type", "junction_type"))
+        },
+    )
+    return out.reset_index().astype({c: int for c in out.columns})
+
+
+def cross_source_register(validation: pd.DataFrame) -> pd.DataFrame:
+    """:data:`CROSS_SOURCE_REGISTER` with the DGT row's variables counted and named from the
+    overlap validation (``ml_common_feature_validation``)."""
+    used = validation[validation.enters_cross_source_tests.astype(bool)]
+    failed = validation[
+        validation.a_priori_status.isin(harmonise.USABLE) & ~validation.validated.astype(bool)
+    ]
+    names = [str(field).replace("_", " ") for field in failed.field]
+    failed_text = names[0] if len(names) == 1 else ", ".join(names[:-1]) + " and " + names[-1]
+    out = CROSS_SOURCE_REGISTER.copy()
+    for column in ("transformation", "exclusions"):
+        out[column] = [
+            text.replace("{used}", str(len(used))).replace("{failed}", failed_text)
+            for text in out[column]
+        ]
+    return out
+
+
 def population_context() -> pd.DataFrame:
+    """The age structure on the latest date INE has published (1 January of the latest year): a
+    snapshot of who lives where, not the denominator of a rate."""
     population = io_population.read_population()
     year = int(population.year.max())
     frame = population[
@@ -312,7 +394,7 @@ CROSS_SOURCE_REGISTER = pd.DataFrame(
             "unit_before": "one crash; one INE population row",
             "unit_after": "one province-year",
             "dgt_definition": "-",
-            "other_definition": "INE table 56947, residents on 1 January, all ages, both sexes",
+            "other_definition": "INE table 56947, residents on 1 July, all ages, both sexes",
             "transformation": "crashes / residents x 100,000",
             "denominator": "residents of the province (not exposure: no trips or kilometres)",
             "exclusions": "none",
@@ -325,7 +407,7 @@ CROSS_SOURCE_REGISTER = pd.DataFrame(
             "unit_before": "one DGT crash; one INE population row",
             "unit_after": "one province-year",
             "dgt_definition": "crashes with a death or serious injury within 24 h",
-            "other_definition": "INE residents on 1 January",
+            "other_definition": "INE residents on 1 July",
             "transformation": "crashes / residents x 100,000",
             "denominator": "residents of the province where the crash happened (residents and "
             "crash-involved people are different populations)",
@@ -341,11 +423,13 @@ CROSS_SOURCE_REGISTER = pd.DataFrame(
             "dgt_definition": "crashes with a death or serious injury within 24 h; target death within "
             "24 h",
             "other_definition": "Catalan file inclusion rule (24 h, validated)",
-            "transformation": "ten harmonised variables (harmonise.DGT_FIELDS), each validated on the "
-            "2016-2023 crashes both sources hold",
+            # Counted and named from the overlap validation (:func:`cross_source_register`).
+            "transformation": "{used} harmonised variables (harmonise.DGT_FIELDS), each validated "
+            "on the 2016-2023 crashes both sources hold; DGT's junction flag read the other way "
+            "round where it is inverted (harmonise.dgt_junction_codes)",
             "denominator": "-",
-            "exclusions": "road class and junction (failed the overlap check), "
-            "speed limit and unit types (absent or outcome counts in DGT)",
+            "exclusions": "{failed} (failed the overlap check), speed limit and unit types (absent "
+            "or outcome counts in DGT)",
             "definition_compatibility": "validated field by field (ml_common_feature_validation.csv)",
         },
         {
@@ -355,14 +439,61 @@ CROSS_SOURCE_REGISTER = pd.DataFrame(
             "unit_before": "one crash",
             "unit_after": "one crash",
             "dgt_definition": "-",
-            "other_definition": "Barcelona crashes with Numero_morts (24 h) or "
-            "Numero_lesionats_greus (hospitalised over 24 h) "
-            "> 0, both checked against the person table",
+            "other_definition": "Barcelona crashes with Numero_morts (deaths within 24 h) or "
+            "Numero_lesionats_greus (hospitalised over 24 h, or died after 24 h) > 0, both "
+            "checked against the person table",
             "transformation": "eight harmonised variables (harmonise.BCN_FIELDS)",
             "denominator": "-",
             "exclusions": "crashes with only minor injuries or none",
             "definition_compatibility": "inclusion rule consistent with the 24 h definitions; too few "
             "fatal crashes for a discrimination test",
+        },
+        {
+            "comparison": "Car drivers involved per km by age, Spain (exposure_risk.national)",
+            "key": "age group (16-29 survey residents against drivers aged 18-29; 30-44; 45-64; "
+            "65+), no record matched",
+            "cardinality": "four age groups",
+            "unit_before": "one driver involved (DGT table 4.2); one surveyed resident's working-day "
+            "trips (EMEF); one INE resident aged x on 1 July; DGT's car-km total",
+            "unit_after": "one age group",
+            "dgt_definition": "car drivers involved in injury crashes in 2024, all of Spain, "
+            "residents or not, injured or not; taxi and ride-hailing drivers left out",
+            "other_definition": "EMEF 2022-2024 working-day car-driver km per resident by age "
+            "and sex (residents aged 16 and over of the province of Barcelona), applied to INE "
+            "table 56934 (single ages, 1 July 2024) and scaled to DGT's 2024 car-km total less "
+            "taxi and ride-hailing km; the Madrid survey of 2018 (Monday to Thursday) and the "
+            "parts of the province as sensitivity profiles",
+            "transformation": "drivers involved / estimated km by age; ratio to 45-64",
+            "denominator": "a working-day survey profile of residents of one region, transferred "
+            "to Spain's population and to a full year's km",
+            "exclusions": "drivers aged under 18; drivers of unrecorded age allocated in "
+            "proportion for absolute rates only",
+            "definition_compatibility": "numerator counts every driver on a full year's roads, "
+            "denominator a resident survey's working days: the ratios between ages, not the "
+            "levels, are the result, with a sensitivity range across profiles",
+        },
+        {
+            "comparison": "Car drivers involved per km by age, Barcelona city working days "
+            "(exposure_risk.barcelona)",
+            "key": "age group x working day, no record matched",
+            "cardinality": "four age groups",
+            "unit_before": "one car driver in a Guàrdia Urbana person record (2025); one surveyed "
+            "resident's working-day car trips inside the city (EMEF 2022-2024)",
+            "unit_after": "one age group",
+            "dgt_definition": "-",
+            "other_definition": "Guàrdia Urbana 2025: car drivers of crashes with at least one "
+            "victim on the 248 working days of 2025 (people who refused medical care count as "
+            "victims); EMEF: car-driver km inside Barcelona on a working day by residents aged "
+            "16 and over of the province, times the working days",
+            "transformation": "drivers / km, three denominators for trips crossing the city "
+            "boundary; ratio to 45-64",
+            "denominator": "km driven inside the city by residents of the province; drivers "
+            "from elsewhere are in the numerator only",
+            "exclusions": "weekends and holidays; taxis; drivers of unrecorded age (left out of "
+            "the rates)",
+            "definition_compatibility": "matched in place and day type, not in year (survey "
+            "2022-2024, crashes 2025) or population (all drivers against resident km): read "
+            "as a range of ratios between ages",
         },
     ]
 )
@@ -401,9 +532,32 @@ PATH: dict[str, dict[int, tuple]] = {
                 "leave out Lleida demarcation",
                 "leave out Tarragona demarcation",
                 "rest of Catalonia -> Barcelona municipality",
+                "rest of Catalonia to ",
             ),
         ),
         4: ("none", "no other source records the full Catalan feature set"),
+        5: ("resemblance", "Catalonia vs Spain outside Catalonia"),
+    },
+    # The published calculator's model (``transport.calculator_tests``).
+    transport.CALCULATOR: {
+        1: ("transport", ("random 5-fold cross-validation",)),
+        2: ("transport", ("rolling origin", "temporal holdout")),
+        3: (
+            "transport",
+            (
+                "leave out Barcelona demarcation",
+                "leave out Girona demarcation",
+                "leave out Lleida demarcation",
+                "leave out Tarragona demarcation",
+                "rest of Catalonia -> Barcelona municipality",
+            ),
+        ),
+        4: (
+            "none",
+            "no other source records the calculator's inputs: DGT's records lack the road's "
+            "owning network and the posted limit, and their road-type coding disagrees with the "
+            "Catalan file's on the same crashes",
+        ),
         5: ("resemblance", "Catalonia vs Spain outside Catalonia"),
     },
     "catalonia_common_dgt": {
@@ -505,7 +659,13 @@ def outward_path(tables: dict[str, pd.DataFrame]) -> pd.DataFrame:
     """For each model, each stage of the outward path: tested or not, passed or not, evidence."""
     selected = tables["ml_selected"]
     stability = tables["ml_stability"]
-    moved = tables["ml_transport_validation"]
+    # The reverse Barcelona test ("Barcelona municipality -> rest of Catalonia") trains the same
+    # specification on Barcelona city's crashes alone: it tests a model of the city, not the
+    # Catalonia model, so no stage counts it.
+    moved = pd.concat(
+        [tables["ml_transport_validation"], tables.get("gen_calculator_transfer")],
+        ignore_index=True,
+    )
     rows = []
     for model, stages in PATH.items():
         primary = selected[selected.model.eq(model) & selected.primary]
@@ -611,6 +771,10 @@ def outward_path(tables: dict[str, pd.DataFrame]) -> pd.DataFrame:
 # ----------------------------------------------------------------------------- document
 def _md(frame: pd.DataFrame, pct: tuple[str, ...] = (), dec: tuple[str, ...] = ()) -> str:
     def fmt(value, column):
+        if isinstance(value, float) and math.isnan(value):
+            return ""
+        if isinstance(value, float) and column.endswith("_n") and value.is_integer():
+            return f"{int(value):,}"
         if column in pct and isinstance(value, float):
             return f"{value:.1%}"
         if column in dec and isinstance(value, float):
@@ -832,6 +996,17 @@ def document(tables: dict[str, pd.DataFrame]) -> str:
             "unrecorded are measured in [`DGT_MICRODATA_AUDIT.md`](DGT_MICRODATA_AUDIT.md).",
             "",
         ]
+    coding = tables["gen_coding_by_region"]
+    cat_coding = coding[coding.region.eq("Catalonia")].set_index("year")
+    switch = cat_coding[cat_coding.road_type_5_dual_carriageway.eq(0)].index.min()
+    lines += [
+        "Road type groups every conventional road (codes 4-6) together. DGT's records for the "
+        "four Catalan provinces code almost every conventional-road crash as 5 (dual carriageway) "
+        f"up to {switch - 1} and as 6 (single carriageway) from {switch}, while outside Catalonia "
+        "code 5 keeps a small, steady share (`gen_coding_by_region`); with 5 read as a dual "
+        "carriageway, that recoding would show as a difference between the populations.",
+        "",
+    ]
     lines += [
         f"Residents ({int(pop.year.iloc[0])}, INE):",
         "",
@@ -868,6 +1043,59 @@ def document(tables: dict[str, pd.DataFrame]) -> str:
         "A positive gap means the larger foreign training set outweighed the change of domain, so",
         "read it with the training sizes. A transferred score is never read without its native",
         "reference.",
+        "",
+        "The Catalan model in the table above (`catalonia_crash_severity`) is the project's",
+        "original model, gradient-boosted trees whose features include the road's owner",
+        "(`D_TITULARITAT_VIA`). That field was later found to record how a crash was documented",
+        "(a blank owner is far commoner on fatal records), and the model was retired; its results",
+        "are kept as a record. The published model is the calculator's",
+        "(`dgt_stats.severity_model`).",
+        "",
+        "### The published calculator's model",
+        "",
+        "The calculator's model on every road a reader can choose (the road-owner artefact",
+        "roads left out). In every test but the random cross-validation, its penalty, its",
+        "specification, its rule for roads through towns and its province intercepts are chosen",
+        "on the test's training crashes alone (fit on all but their last two years, score those",
+        "two), so the rolling and temporal tests are the nested evaluation of",
+        "`sev_rolling_scores`; the temporal test is its last year, 2023, not a separate holdout.",
+        "Their ROC-AUC intervals come from this document's own bootstrap and can differ in the",
+        "third decimal from those of `sev_comparison` quoted in `SEVERITY_CALCULATOR.md`. Each test sits",
+        "beside the same choices fitted and cross-validated inside the test population and",
+        "beside the table of fatal shares by road and crash type fitted on the same training",
+        "crashes (`table_roc_auc`). A province left out is scored without province intercepts.",
+        "The random cross-validation uses the published model's choices and is not nested. No",
+        "other source records its inputs.",
+        "",
+        _md(
+            tables["gen_calculator_transfer"][
+                [
+                    "experiment",
+                    "train_n",
+                    "test_n",
+                    "test_positives",
+                    "roc_auc",
+                    "roc_auc_low",
+                    "roc_auc_high",
+                    "in_domain_cv_roc_auc",
+                    "transfer_gap",
+                    "table_roc_auc",
+                    "mean_predicted",
+                    "test_prevalence",
+                    "calibration_slope",
+                ]
+            ],
+            pct=("mean_predicted", "test_prevalence"),
+            dec=(
+                "roc_auc",
+                "roc_auc_low",
+                "roc_auc_high",
+                "in_domain_cv_roc_auc",
+                "transfer_gap",
+                "table_roc_auc",
+                "calibration_slope",
+            ),
+        ),
         "",
         "### Why the Catalan model ranks Barcelona's crashes less well",
         "",
@@ -979,13 +1207,14 @@ def document(tables: dict[str, pd.DataFrame]) -> str:
         "",
         "Every place two sources meet, with the key, definitions and what was validated:",
         "",
-        _md(CROSS_SOURCE_REGISTER),
+        _md(tables["gen_cross_source_register"]),
         "",
         "## What this does not establish",
         "",
         "- That Catalonia or Barcelona is representative of Spain: part A shows where they differ.",
-        "- National validity of the full Catalan model, of either Barcelona model, or of any",
-        "  person-level result: no other source in the repository carries those variables.",
+        "- National validity of the calculator's model, of the original Catalan model, of either",
+        "  Barcelona model, or of any person-level result: no other source in the repository",
+        "  carries those variables.",
         "- Any causal effect: every transfer result is predictive.",
         "- Barcelona 2025 as an external benchmark for fatal against serious crashes: too few",
         "  fatal crashes (see the transfer table).",
@@ -1000,7 +1229,9 @@ def run(tables: dict[str, pd.DataFrame]) -> dict[str, pd.DataFrame]:
         "gen_outcomes": outcome_rows,
         "gen_province_rates": province_rates(),
         "gen_population_context": population_context(),
-        "gen_cross_source_register": CROSS_SOURCE_REGISTER,
+        "gen_cross_source_register": cross_source_register(tables["ml_common_feature_validation"]),
+        "gen_coding_by_region": coding_by_region(),
+        "gen_calculator_transfer": transport.calculator_tests(),
     }
     merged = {**tables, **out}
     out["ml_outward_path"] = outward_path(merged)

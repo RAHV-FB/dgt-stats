@@ -45,6 +45,8 @@ DGT_PROCESSED_CRASHES = PROCESSED_DATA_DIR / "dgt_accidentes.parquet"
 
 REPORTS_DIR = PROJECT_ROOT / "reports"
 FIGURES_DIR = REPORTS_DIR / "figures"
+# The same figures drawn for a phone's column (``plots.narrow``), which the site serves to phones.
+NARROW_FIGURES_DIR = FIGURES_DIR / "narrow"
 TABLES_DIR = REPORTS_DIR / "tables"
 DOCS_DIR = PROJECT_ROOT / "docs"
 

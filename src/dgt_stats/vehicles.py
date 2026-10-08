@@ -390,7 +390,11 @@ def rates_2022() -> pd.DataFrame:
 
 def summary_2022() -> pd.DataFrame:
     """Wide table for the page: one row per group, all roads, with both rankings and the
-    occupant-death share of fatal-crash involvements."""
+    occupant-death share of fatal-crash involvements.
+
+    Rates are kept unrounded and rounded only where they are printed, so that a value is never
+    rounded twice (4.445 printed as 4.5).
+    """
     long = rates_2022()
     wide = long[long.zone == "all"].pivot(index="group", columns="measure", values="count")
     km = vehicle_km(by_rate_group=True).set_index("group")
@@ -401,17 +405,15 @@ def summary_2022() -> pd.DataFrame:
             "label": [label(g) for g in groups],
             "n_vehicles": km.n_vehicles.reindex(groups).values,
             "km_per_vehicle": km.km_per_vehicle.reindex(groups).values,
-            "vehicle_km_bn": (km.vehicle_km.reindex(groups) / BILLION).round(2).values,
+            "vehicle_km_bn": (km.vehicle_km.reindex(groups) / BILLION).values,
         }
     )
     for measure in MEASURES:
         out[measure] = wide[measure].reindex(groups).astype("int64").values
         rows = long[(long.zone == "all") & (long.measure == measure)].set_index("group")
-        out[f"{measure}_per_bn_km"] = rows.per_billion_km.reindex(groups).round(2).values
-        out[f"{measure}_per_100k_vehicles"] = rows.per_100k_vehicles.reindex(groups).round(2).values
-    out["occupant_deaths_per_fatal_involvement"] = (
-        out.occupant_deaths / out.fatal_involvement
-    ).round(3)
+        out[f"{measure}_per_bn_km"] = rows.per_billion_km.reindex(groups).values
+        out[f"{measure}_per_100k_vehicles"] = rows.per_100k_vehicles.reindex(groups).values
+    out["occupant_deaths_per_fatal_involvement"] = out.occupant_deaths / out.fatal_involvement
     out["rank_fatal_per_100k_vehicles"] = out.fatal_involvement_per_100k_vehicles.rank(
         ascending=False, method="first"
     ).astype(int)

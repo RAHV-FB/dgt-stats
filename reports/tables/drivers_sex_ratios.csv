@@ -20,24 +20,24 @@ motor,Drivers of motor vehicles,75+,75 and over,deaths_per_1000_involved,"Killed
 motor,Drivers of motor vehicles,18+,18 and over,involved_per_1000_licences,"Involved in an injury crash, per 1,000 licence holders",1.986142554,1.973144543,1.99922619
 motor,Drivers of motor vehicles,18+,18 and over,deaths_per_million_licences,"Killed, per million licence holders",6.422628915,5.735700078,7.191826911
 motor,Drivers of motor vehicles,18+,18 and over,deaths_per_1000_involved,"Killed, per 1,000 drivers involved",3.233720007,2.887859215,3.621002377
-car,Car drivers,18-24,18–24,involved_per_1000_licences,"Involved in an injury crash, per 1,000 licence holders",1.472982648,1.441091954,1.505579069
-car,Car drivers,18-24,18–24,deaths_per_million_licences,"Killed, per million licence holders",4.523049585,2.934094174,6.972502018
-car,Car drivers,18-24,18–24,deaths_per_1000_involved,"Killed, per 1,000 drivers involved",3.070674044,1.991940759,4.733594131
-car,Car drivers,25-34,25–34,involved_per_1000_licences,"Involved in an injury crash, per 1,000 licence holders",1.40863971,1.385017376,1.432664937
-car,Car drivers,25-34,25–34,deaths_per_million_licences,"Killed, per million licence holders",4.19613208,2.980932966,5.906715996
-car,Car drivers,25-34,25–34,deaths_per_1000_involved,"Killed, per 1,000 drivers involved",2.978854033,2.116178427,4.193205654
-car,Car drivers,35-54,35–54,involved_per_1000_licences,"Involved in an injury crash, per 1,000 licence holders",1.425416994,1.409281816,1.441736906
-car,Car drivers,35-54,35–54,deaths_per_million_licences,"Killed, per million licence holders",3.47671613,2.784903693,4.340385299
-car,Car drivers,35-54,35–54,deaths_per_1000_involved,"Killed, per 1,000 drivers involved",2.43908705,1.953746662,3.044993372
-car,Car drivers,55-64,55–64,involved_per_1000_licences,"Involved in an injury crash, per 1,000 licence holders",1.674201363,1.639589514,1.709543871
-car,Car drivers,55-64,55–64,deaths_per_million_licences,"Killed, per million licence holders",2.934952092,2.135822022,4.033081265
-car,Car drivers,55-64,55–64,deaths_per_1000_involved,"Killed, per 1,000 drivers involved",1.753046053,1.275725889,2.408958297
-car,Car drivers,65-74,65–74,involved_per_1000_licences,"Involved in an injury crash, per 1,000 licence holders",1.85351799,1.79492894,1.91401947
-car,Car drivers,65-74,65–74,deaths_per_million_licences,"Killed, per million licence holders",2.849598616,1.897303718,4.279869477
-car,Car drivers,65-74,65–74,deaths_per_1000_involved,"Killed, per 1,000 drivers involved",1.537400031,1.023623039,2.30905203
-car,Car drivers,75+,75 and over,involved_per_1000_licences,"Involved in an injury crash, per 1,000 licence holders",1.43003182,1.361274083,1.5022625
-car,Car drivers,75+,75 and over,deaths_per_million_licences,"Killed, per million licence holders",3.039532859,1.761853954,5.243771756
-car,Car drivers,75+,75 and over,deaths_per_1000_involved,"Killed, per 1,000 drivers involved",2.125500157,1.232038287,3.66689166
-car,Car drivers,18+,18 and over,involved_per_1000_licences,"Involved in an injury crash, per 1,000 licence holders",1.413859914,1.403133241,1.424668591
-car,Car drivers,18+,18 and over,deaths_per_million_licences,"Killed, per million licence holders",3.62711076,3.166302328,4.154983038
-car,Car drivers,18+,18 and over,deaths_per_1000_involved,"Killed, per 1,000 drivers involved",2.565396135,2.239473865,2.938751566
+car,Drivers of private cars (taxis and ride-hailing cars excluded),18-24,18–24,involved_per_1000_licences,"Involved in an injury crash, per 1,000 licence holders",1.461932601,1.4301994,1.494369898
+car,Drivers of private cars (taxis and ride-hailing cars excluded),18-24,18–24,deaths_per_million_licences,"Killed, per million licence holders",4.523049585,2.934094174,6.972502018
+car,Drivers of private cars (taxis and ride-hailing cars excluded),18-24,18–24,deaths_per_1000_involved,"Killed, per 1,000 drivers involved",3.093883795,2.006996883,4.769373097
+car,Drivers of private cars (taxis and ride-hailing cars excluded),25-34,25–34,involved_per_1000_licences,"Involved in an injury crash, per 1,000 licence holders",1.384924861,1.361559425,1.408691267
+car,Drivers of private cars (taxis and ride-hailing cars excluded),25-34,25–34,deaths_per_million_licences,"Killed, per million licence holders",4.19613208,2.980932966,5.906715996
+car,Drivers of private cars (taxis and ride-hailing cars excluded),25-34,25–34,deaths_per_1000_involved,"Killed, per 1,000 drivers involved",3.029862628,2.152414943,4.265008277
+car,Drivers of private cars (taxis and ride-hailing cars excluded),35-54,35–54,involved_per_1000_licences,"Involved in an injury crash, per 1,000 licence holders",1.390198649,1.374333308,1.406247139
+car,Drivers of private cars (taxis and ride-hailing cars excluded),35-54,35–54,deaths_per_million_licences,"Killed, per million licence holders",3.47671613,2.784903693,4.340385299
+car,Drivers of private cars (taxis and ride-hailing cars excluded),35-54,35–54,deaths_per_1000_involved,"Killed, per 1,000 drivers involved",2.500877218,2.003241548,3.122133159
+car,Drivers of private cars (taxis and ride-hailing cars excluded),55-64,55–64,involved_per_1000_licences,"Involved in an injury crash, per 1,000 licence holders",1.614564735,1.580866813,1.648980965
+car,Drivers of private cars (taxis and ride-hailing cars excluded),55-64,55–64,deaths_per_million_licences,"Killed, per million licence holders",2.934952092,2.135822022,4.033081265
+car,Drivers of private cars (taxis and ride-hailing cars excluded),55-64,55–64,deaths_per_1000_involved,"Killed, per 1,000 drivers involved",1.817797719,1.322846942,2.497937171
+car,Drivers of private cars (taxis and ride-hailing cars excluded),65-74,65–74,involved_per_1000_licences,"Involved in an injury crash, per 1,000 licence holders",1.838997293,1.780783748,1.89911383
+car,Drivers of private cars (taxis and ride-hailing cars excluded),65-74,65–74,deaths_per_million_licences,"Killed, per million licence holders",2.849598616,1.897303718,4.279869477
+car,Drivers of private cars (taxis and ride-hailing cars excluded),65-74,65–74,deaths_per_1000_involved,"Killed, per 1,000 drivers involved",1.549539321,1.031705553,2.327284272
+car,Drivers of private cars (taxis and ride-hailing cars excluded),75+,75 and over,involved_per_1000_licences,"Involved in an injury crash, per 1,000 licence holders",1.429074912,1.36035979,1.501261003
+car,Drivers of private cars (taxis and ride-hailing cars excluded),75+,75 and over,deaths_per_million_licences,"Killed, per million licence holders",3.039532859,1.761853954,5.243771756
+car,Drivers of private cars (taxis and ride-hailing cars excluded),75+,75 and over,deaths_per_1000_involved,"Killed, per 1,000 drivers involved",2.126923392,1.23286326,3.669347011
+car,Drivers of private cars (taxis and ride-hailing cars excluded),18+,18 and over,involved_per_1000_licences,"Involved in an injury crash, per 1,000 licence holders",1.386098305,1.375515583,1.396762446
+car,Drivers of private cars (taxis and ride-hailing cars excluded),18+,18 and over,deaths_per_million_licences,"Killed, per million licence holders",3.62711076,3.166302328,4.154983038
+car,Drivers of private cars (taxis and ride-hailing cars excluded),18+,18 and over,deaths_per_1000_involved,"Killed, per 1,000 drivers involved",2.61677743,2.284327393,2.997610648

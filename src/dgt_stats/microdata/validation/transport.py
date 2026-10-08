@@ -810,6 +810,180 @@ def leave_one_district_out(task: modelling.TaskResult) -> list[dict]:
     return rows
 
 
+# ----------------------------------------------------------------------------- calculator
+CALCULATOR = "calculator"
+
+
+def calculator_tests() -> pd.DataFrame:
+    """The published calculator's model (:mod:`dgt_stats.severity_model`) on crashes it was not
+    fitted on, with the same rule as every other test here.
+
+    The crashes are the calculator's own (every road a reader can choose; the road-owner artefact
+    roads are left out). The penalty, the specification and the rule for roads through towns
+    are chosen by :func:`severity_model.select` on each test's training crashes alone. Whether
+    the model has province intercepts, the fourth choice of the nested rolling-origin
+    evaluation, is chosen there too, and the rolling and temporal tests are that evaluation's
+    years; in the geographic tests it is fixed, as below. Each held-out test sits beside the same choices fitted
+    and cross-validated inside the test population (5 folds), and beside the table of fatal
+    shares by road and crash type fitted on the same training crashes. A province left out has
+    no intercept of its own to learn, so those tests use the specification without province
+    intercepts. The test of Barcelona city from the rest of Catalonia keeps the published
+    design with province intercepts, a choice made on the last two years of all the crashes,
+    the city's included. The random cross-validation, the one
+    internal check, uses the published model's choices, made on the last two years of all the
+    crashes, so it is not nested. No test uses another source: no other file records the
+    calculator's inputs (DGT's records lack the road's owning network and the posted limit, and
+    their road-type coding disagrees with the Catalan file's on the same crashes).
+    """
+    from dgt_stats import severity_model as sev
+
+    rec = sev.records()
+    y, years, frame = rec.y, rec.years, rec.frame
+    city = (frame.municipality == "Barcelona").to_numpy()
+    first, last = int(years.min()), int(years.max())
+    rolling = sev.ROLLING_TEST_YEARS
+
+    def cross_validated(domain: np.ndarray, choice) -> np.ndarray:
+        index = np.flatnonzero(domain)
+        folds = StratifiedKFold(modelling.N_FOLDS, shuffle=True, random_state=modelling.SEED)
+        out = np.zeros(len(index))
+        for a, b in folds.split(index, y[index]):
+            train = np.zeros(len(y), dtype=bool)
+            test = np.zeros(len(y), dtype=bool)
+            train[index[a]], test[index[b]] = True, True
+            out[b] = sev.predict_chosen(rec, choice, train, test)
+        return out
+
+    rows = []
+
+    def row(experiment, kind, train_desc, test_desc, train, test, p, table, reference=None):
+        yt = y[test]
+        low, high = wilson(np.array([yt.sum()]), np.array([len(yt)]))
+        out = {
+            "experiment": experiment,
+            "evidence_level": kind,
+            "model": CALCULATOR,
+            "feature_set": "calculator inputs",
+            "estimator": "logistic",
+            "train_domain": train_desc,
+            "test_domain": test_desc,
+            "train_n": int(train.sum()) if train is not None else math.nan,
+            "train_positives": int(y[train].sum()) if train is not None else math.nan,
+            "test_n": int(test.sum()),
+            "test_positives": int(yt.sum()),
+            "test_prevalence": float(yt.mean()),
+            "mean_predicted": float(p.mean()),
+            "observed_low": float(low[0]),
+            "observed_high": float(high[0]),
+            "status": "reported",
+            "roc_auc": float(roc_auc_score(yt, p)),
+            **modelling.bootstrap_ci(yt, p, None, n=N_BOOT_TRANSPORT),
+            **modelling.calibration_fit(yt, p),
+            "table_roc_auc": float(roc_auc_score(yt, table)) if table is not None else math.nan,
+            "in_domain_cv_estimator": "logistic" if reference is not None else None,
+            "in_domain_cv_roc_auc": float(roc_auc_score(yt, reference))
+            if reference is not None
+            else math.nan,
+        }
+        rows.append(out)
+
+    everything = np.ones(len(y), dtype=bool)
+    log.info("calculator: random cross-validation")
+    published, _ = sev.final_choice(rec)
+    row(
+        f"random 5-fold cross-validation {first}-{last}",
+        "1 internal",
+        f"four fifths of {first}-{last}",
+        "one fifth",
+        None,
+        everything,
+        cross_validated(everything, published),
+        None,
+    )
+    log.info("calculator: nested rolling origin")
+    nested = sev.nested_rolling(rec, comparators=False)
+    predictions = nested.predictions.set_index("cat_crash_id")
+    tested = np.isin(years, rolling)
+    ids = frame.cat_crash_id.to_numpy()
+    row(
+        f"rolling origin: each year {rolling[0]}-{rolling[-1]} from the years before it, every "
+        "choice nested",
+        "2 temporal",
+        f"{first} to the year before each test year",
+        f"{rolling[0]}-{rolling[-1]}",
+        None,
+        tested,
+        predictions.calculator.loc[ids[tested]].to_numpy(),
+        predictions.road_x_crash_table.loc[ids[tested]].to_numpy(),
+    )
+    choices = nested.choices.set_index("test_year")
+
+    def chosen(test_year: int):
+        """The nested choice of a rolling test year, as a :class:`severity_model.Choice`."""
+        part = choices.loc[test_year]
+        return sev.Choice(
+            specification=str(part.specification),
+            c=float(part.c),
+            through_town=str(part.through_town),
+            provinces=bool(part.provinces),
+            train_years=tuple(int(v) for v in str(part.train_years).split("-")),
+            validation_years=tuple(int(v) for v in str(part.validation_years).split("-")),
+            c_bracketed=bool(part.c_bracketed),
+        )
+
+    def held_out(experiment, kind, train_desc, test_desc, train, test, provinces, choice=None):
+        log.info("calculator: %s", experiment)
+        if choice is None:
+            choice, _ = sev.select(rec, train, provinces=provinces, label=experiment)
+        row(
+            experiment,
+            kind,
+            train_desc,
+            test_desc,
+            train,
+            test,
+            sev.predict_chosen(rec, choice, train, test),
+            sev._table(rec.scenarios[train], y[train], rec.scenarios[test]),
+            cross_validated(test, choice),
+        )
+
+    held_out(
+        f"temporal holdout: train {first}-{last - 1}, test {last}",
+        "2 temporal",
+        f"{first}-{last - 1}",
+        str(last),
+        years < last,
+        years == last,
+        True,
+        chosen(last),
+    )
+    for name in sorted(frame.demarcation.astype(str).unique()):
+        test = (frame.demarcation.astype(str) == name).to_numpy()
+        held_out(
+            f"leave out {name} demarcation",
+            "3 geographic",
+            "the other three demarcations",
+            f"{name} demarcation",
+            ~test,
+            test,
+            False,
+        )
+    held_out(
+        "rest of Catalonia -> Barcelona municipality",
+        "3 geographic",
+        REST,
+        BARCELONA,
+        ~city,
+        city,
+        True,
+    )
+    out = pd.DataFrame(rows)
+    out["in_domain_train_n"] = (out.test_n * (modelling.N_FOLDS - 1)) // modelling.N_FOLDS
+    out.loc[out.in_domain_cv_roc_auc.isna(), "in_domain_train_n"] = np.nan
+    out["transfer_gap"] = out.roc_auc - out.in_domain_cv_roc_auc
+    return out
+
+
 # ----------------------------------------------------------------------------- driver
 def run(results: dict[str, modelling.TaskResult]) -> dict[str, pd.DataFrame]:
     cat_task = results["catalonia_crash_severity"]

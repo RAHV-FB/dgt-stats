@@ -1,0 +1,101 @@
+variant,choice,age4,km_per_resident,share_of_km
+central,"2022-2024, unbanded bounded at 80 km/h, multimodal half",16-29,9.086072289,0.1182107211
+central,"2022-2024, unbanded bounded at 80 km/h, multimodal half",30-44,17.3302438,0.2999602049
+central,"2022-2024, unbanded bounded at 80 km/h, multimodal half",45-64,18.84718229,0.4600977596
+central,"2022-2024, unbanded bounded at 80 km/h, multimodal half",65+,7.518671829,0.1217313143
+years,2021-2022-2023-2024,16-29,9.021198936,0.1186940601
+years,2021-2022-2023-2024,30-44,17.4871991,0.3129534197
+years,2021-2022-2023-2024,45-64,18.23019516,0.4511424378
+years,2021-2022-2023-2024,65+,7.139858868,0.1172100824
+years,2023-2024,16-29,8.904506268,0.1169482089
+years,2023-2024,30-44,16.95136574,0.2897289936
+years,2023-2024,45-64,19.27165979,0.4703391514
+years,2023-2024,65+,7.599400546,0.122983646
+years,2024,16-29,8.340963525,0.1123332525
+years,2024,30-44,16.29207003,0.2799833667
+years,2024,45-64,19.48051091,0.4821788479
+years,2024,65+,7.631118915,0.1255045329
+years,2019-2021-2022-2023-2024,16-29,9.089303582,0.1156512016
+years,2019-2021-2022-2023-2024,30-44,18.48197868,0.3275523227
+years,2019-2021-2022-2023-2024,45-64,18.32612235,0.4393032716
+years,2019-2021-2022-2023-2024,65+,7.37284471,0.1174932041
+area,RMB only,16-29,7.964192058,0.1110398746
+area,RMB only,30-44,16.03272619,0.2983155982
+area,RMB only,45-64,17.92861374,0.4673257056
+area,RMB only,65+,7.139771608,0.1233188217
+distance,unbanded trips bounded at 100 km/h,16-29,9.168066092,0.1169353589
+distance,unbanded trips bounded at 100 km/h,30-44,17.55786835,0.2979557342
+distance,unbanded trips bounded at 100 km/h,45-64,19.26754174,0.4612114974
+distance,unbanded trips bounded at 100 km/h,65+,7.803835581,0.1238974095
+distance,unbanded trips bounded at 60 km/h,16-29,9.0018455,0.1196546878
+distance,unbanded trips bounded at 60 km/h,30-44,17.09405705,0.3022624204
+distance,unbanded trips bounded at 60 km/h,45-64,18.40898199,0.4590647075
+distance,unbanded trips bounded at 60 km/h,65+,7.19681668,0.1190181844
+distance,unbanded trips' durations capped at 4 hours,16-29,9.065871097,0.1203584479
+distance,unbanded trips' durations capped at 4 hours,30-44,17.13391773,0.302653264
+distance,unbanded trips' durations capped at 4 hours,45-64,18.47578536,0.4601898515
+distance,unbanded trips' durations capped at 4 hours,65+,7.070610168,0.1167984367
+distance,"unbanded trips at the model's mean, unbounded",16-29,9.263537844,0.1132932727
+distance,"unbanded trips at the model's mean, unbounded",30-44,18.03350698,0.293363152
+distance,"unbanded trips at the model's mean, unbounded",45-64,20.20957509,0.4639837662
+distance,"unbanded trips at the model's mean, unbounded",65+,8.491243637,0.1293598091
+distance,unbanded trips left out,16-29,8.647519542,0.1246929673
+distance,unbanded trips left out,30-44,16.1441309,0.3096200391
+distance,unbanded trips left out,45-64,16.91447352,0.457486216
+distance,unbanded trips left out,65+,6.035005373,0.1082007776
+distance,multimodal trips: car leg counted as nothing,16-29,8.699684469,0.1179373268
+distance,multimodal trips: car leg counted as nothing,30-44,16.84670222,0.3037777918
+distance,multimodal trips: car leg counted as nothing,45-64,17.89241696,0.455299395
+distance,multimodal trips: car leg counted as nothing,65+,7.285996224,0.1229854863
+distance,multimodal trips: car leg counted in full,16-29,9.472460108,0.1184780857
+distance,multimodal trips: car leg counted in full,30-44,17.81378539,0.2964671451
+distance,multimodal trips: car leg counted in full,45-64,19.80194762,0.4644706399
+distance,multimodal trips: car leg counted in full,65+,7.751347433,0.1205841294
+distance,geometric midpoints within bands,16-29,9.57532617,0.1197595273
+distance,geometric midpoints within bands,30-44,18.05531472,0.3004516407
+distance,geometric midpoints within bands,45-64,19.62675103,0.4607827517
+distance,geometric midpoints within bands,65+,7.642239422,0.1190060803
+distance,"geometric midpoints, unbanded trips left out",16-29,9.136773424,0.1261084274
+distance,"geometric midpoints, unbanded trips left out",30-44,16.86920183,0.3097592269
+distance,"geometric midpoints, unbanded trips left out",45-64,17.69404226,0.4583611928
+distance,"geometric midpoints, unbanded trips left out",65+,6.158572966,0.1057711529
+distance,arithmetic midpoints within bands,16-29,11.76572971,0.1214150391
+distance,arithmetic midpoints within bands,30-44,22.09784652,0.3033683216
+distance,arithmetic midpoints within bands,45-64,23.81595832,0.4612508083
+distance,arithmetic midpoints within bands,65+,8.872474394,0.113965831
+distance,"arithmetic midpoints, unbanded trips left out",16-29,11.32717697,0.1266882413
+distance,"arithmetic midpoints, unbanded trips left out",30-44,20.91173362,0.3111512735
+distance,"arithmetic midpoints, unbanded trips left out",45-64,21.88324955,0.4593291192
+distance,"arithmetic midpoints, unbanded trips left out",65+,7.388807938,0.1028313661
+distance,"road distance bounded at 80 km/h, ratio recalibrated",16-29,9.050853362,0.1181330897
+distance,"road distance bounded at 80 km/h, ratio recalibrated",30-44,17.35136119,0.3012316933
+distance,"road distance bounded at 80 km/h, ratio recalibrated",45-64,18.84842666,0.4614415011
+distance,"road distance bounded at 80 km/h, ratio recalibrated",65+,7.340829134,0.1191937158
+distance,"road distance bounded at 100 km/h, ratio recalibrated",16-29,9.057905593,0.1183437203
+distance,"road distance bounded at 100 km/h, ratio recalibrated",30-44,17.29592026,0.300606062
+distance,"road distance bounded at 100 km/h, ratio recalibrated",45-64,18.81588544,0.4611695901
+distance,"road distance bounded at 100 km/h, ratio recalibrated",65+,7.374609884,0.1198806276
+band edges,10-50 km band at 10 km,16-29,6.51653695,0.1129350733
+band edges,10-50 km band at 10 km,30-44,12.6224789,0.2911602798
+band edges,10-50 km band at 10 km,45-64,14.08648711,0.4586372543
+band edges,10-50 km band at 10 km,65+,6.356075654,0.1372673926
+band edges,10-50 km band at 50 km,16-29,16.62736925,0.1240181985
+band edges,10-50 km band at 50 km,30-44,31.05810201,0.3081293232
+band edges,10-50 km band at 50 km,45-64,33.05805457,0.4626610086
+band edges,10-50 km band at 50 km,65+,11.33374427,0.1051914697
+band edges,over-100 km band at 100 km,16-29,8.940598362,0.1194212818
+band edges,over-100 km band at 100 km,30-44,16.97037409,0.3015487349
+band edges,over-100 km band at 100 km,45-64,18.40815268,0.4612643888
+band edges,over-100 km band at 100 km,65+,7.084716642,0.1177655945
+professionals' work driving,25% of work trips by car,16-29,9.939964379,0.1214027732
+professionals' work driving,25% of work trips by car,30-44,18.46362531,0.3000909207
+professionals' work driving,25% of work trips by car,45-64,20.1852542,0.4628290566
+professionals' work driving,25% of work trips by car,65+,7.606519283,0.1156772495
+professionals' work driving,50% of work trips by car,16-29,10.79385647,0.1242190009
+professionals' work driving,50% of work trips by car,30-44,19.59700682,0.3001989207
+professionals' work driving,50% of work trips by car,45-64,21.52332611,0.4652604491
+professionals' work driving,50% of work trips by car,65+,7.694366737,0.1103216293
+older sample,65+ employed share set to the census,16-29,9.086072289,0.1186809682
+older sample,65+ employed share set to the census,30-44,17.3302438,0.3011406095
+older sample,65+ employed share set to the census,45-64,18.84718229,0.4619520777
+older sample,65+ employed share set to the census,65+,7.272902417,0.1182263446

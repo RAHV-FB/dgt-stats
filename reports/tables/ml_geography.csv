@@ -11,9 +11,9 @@ catalonia_crash_severity,retrospective_administrative,none,logistic,0.764292,0.7
 catalonia_crash_severity,retrospective_administrative,none,boosted_trees,0.853017,0.793512,0.796321,0.0566958
 catalonia_crash_severity,retrospective_administrative,broad,logistic,0.766921,0.78085,0.786631,-0.0197093
 catalonia_crash_severity,retrospective_administrative,broad,boosted_trees,0.930415,0.796212,0.795898,0.134516
-catalonia_crash_severity,retrospective_administrative,comarca,logistic,0.773584,0.78342,0.790768,-0.017184
+catalonia_crash_severity,retrospective_administrative,comarca,logistic,0.773584,0.78342,0.790768,-0.0171838
 catalonia_crash_severity,retrospective_administrative,comarca,boosted_trees,0.873621,0.803677,0.805499,0.0681222
-catalonia_crash_severity,retrospective_administrative,granular,logistic,0.772351,0.784749,0.789401,-0.0170505
+catalonia_crash_severity,retrospective_administrative,granular,logistic,0.772351,0.784747,0.789395,-0.0170442
 catalonia_crash_severity,retrospective_administrative,granular,boosted_trees,0.896026,0.790352,0.798605,0.0974209
 barcelona_person_severity,context,none,logistic,0.874129,0.839135,0.845484,0.0286446
 barcelona_person_severity,context,none,boosted_trees,0.988482,0.861223,0.847629,0.140852
@@ -39,7 +39,7 @@ barcelona_crash_severity,retrospective,broad,logistic,0.839455,0.778891,0.73682,
 barcelona_crash_severity,retrospective,broad,boosted_trees,0.988168,0.766636,0.751327,0.236841
 barcelona_crash_severity,retrospective,granular,logistic,0.857393,0.771663,0.707217,0.150176
 barcelona_crash_severity,retrospective,granular,boosted_trees,0.998463,0.719162,0.700716,0.297747
-catalonia_common_dgt,common,none,logistic,0.696407,0.715184,0.704609,-0.00820251
-catalonia_common_dgt,common,none,boosted_trees,0.785672,0.712947,0.70225,0.083422
+catalonia_common_dgt,common,none,logistic,0.698501,0.714292,0.709688,-0.011186
+catalonia_common_dgt,common,none,boosted_trees,0.792554,0.71637,0.705896,0.0866585
 catalonia_common_bcn,common,none,logistic,0.67299,0.667456,0.678545,-0.00555418
 catalonia_common_bcn,common,none,boosted_trees,0.713355,0.669291,0.680615,0.0327404

@@ -9,7 +9,7 @@ crash_type,defensible,3.87292e-05,True,True
 lighting,defensible,8.61709e-10,True,True
 weather,defensible,4.00469e-05,True,True
 surface,defensible,7.15379e-10,True,True
-junction,defensible,0.00866726,False,False
+junction,defensible,2.98474e-05,True,True
 vehicles,defensible,0.000322143,True,True
 speed_limit,unusable,,False,False
 unit_types,unusable,,False,False

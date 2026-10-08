@@ -1,909 +1,822 @@
-"""The predictive models: what each one predicts, whether it beats a simple table of the same
-records, and whether its probabilities can be read as estimates.
+"""Crash severity: whether the Catalan severity model can tell which serious crashes were fatal,
+and a calculator to try it.
 
-Each model is presented in the same order: what it predicts, what one row is, the outcome, the
-information it uses, what it cannot predict, how it compares with its table, and its calibration.
-The page follows the decisions declared before the test (two models kept, one replaced by its
-table); every number is read from the ``ml_*`` and ``bcn_*`` tables and every qualitative sentence
-is checked against them.
+The page answers its question in the order a reader asks it: does the model's estimate match what
+happened on years that played no part in fitting or tuning it (predicted against observed,
+with a simple table beside it, and where it misses),
+the calculator, what the model shows about circumstances, and a short account of how it was
+built. Ranking skill is given as ROC-AUC to two decimals, defined once in plain words, as on the
+External validation page. Scores tables and the inventory of every model the project fitted are in
+the research documents, not here.
+
+On a wide screen the calculator's result and comparison sit in a column beside the form that stays
+in view while the form scrolls; on a phone they follow the form, and every change is announced.
+
+Every number is read from the ``sev_*`` tables and the exported model
+(``reports/models/severity_model.json``), and every qualitative sentence is checked against them.
+The model is ``docs/research/SEVERITY_CALCULATOR.md``; the re-evaluation of every model is
+``docs/research/ML_MODEL_REVIEW.md``.
 """
 
 from __future__ import annotations
 
-import calendar
-import re
+import json
 
 import pandas as pd
 
-from dgt_stats.microdata.barcelona import ACCIDENT_TYPES
-from dgt_stats.microdata.ml.modelling import CALIBRATION_LARGE_TOLERANCE, CALIBRATION_SLOPE_RANGE
-from dgt_stats.microdata.ml.rules import MIN_GAIN
-from dgt_stats.microdata.validation import decisions as decision_rules
-from dgt_stats.microdata.validation.transport import MIN_SUBGROUP_POSITIVES
+from dgt_stats.microdata.validation import decisions as rules
+from dgt_stats.paths import REPORTS_DIR
+from dgt_stats.severity_model import PREVIOUS_VALIDATION_YEARS
 from dgt_stats.site.components import (
     DOCS_URL,
     _fmt_dec,
-    _fmt_int,
     _fmt_pct,
     _join,
-    decision_label,
     downloads,
     esc,
-    facts,
+    evidence_note,
     figure,
+    limitation,
     read_table,
     render_page,
     summary,
     table,
     technical,
 )
-from dgt_stats.site.regional_common import CARDS, MIN_N, MODEL_NAMES, _check, _year_label
 
-PAGE = "severity models"
-CATALONIA, PERSON, CRASH = (
-    "catalonia_crash_severity",
-    "barcelona_person_severity",
-    "barcelona_crash_severity",
+MODEL_PATH = REPORTS_DIR / "models" / "severity_model.json"
+REVIEW_DOC = f"{DOCS_URL}/research/ML_MODEL_REVIEW.md"
+CALCULATOR_DOC = f"{DOCS_URL}/research/SEVERITY_CALCULATOR.md"
+# The inputs in the order the form asks for them, in two groups.
+ROAD_INPUTS = (
+    "province",
+    "road",
+    "speed_limit",
+    "junction",
+    "lighting",
+    "weather",
+    "surface",
+    "hour",
 )
-MODELS = (CATALONIA, PERSON, CRASH)
-KEPT = [CATALONIA, PERSON]
-REPLACED = [CRASH]
-NAMES = {model: MODEL_NAMES[model] for model in MODELS}
-# Shorter labels for the technical tables, where the column already says "Model".
-SHORT = {CATALONIA: "Catalonia crash", PERSON: "Barcelona person", CRASH: "Barcelona crash"}
-# The two fitting methods, in the words the rest of the site uses.
-METHODS = {"logistic": "logistic regression", "boosted_trees": "gradient-boosted trees"}
-# The grouping of each descriptive table, as the result table names it, in words.
-RULE_LABELS = {
-    "D_SUBTIPUS_ACCIDENT x D_SUBZONA": (
-        "crash subtype × zone",
-        "crash type and zone (urban street, interurban road or road through a town)",
-    ),
-    "person_role x associated_vehicle_group": (
-        "road-user role × vehicle group",
-        "road-user role (driver, passenger or pedestrian) and the vehicle on the person's record",
-    ),
-    "accident_type": ("accident type", "accident type"),
-}
-# What each model may use, in words: every variable of the model's main feature set must fall in
-# one of these groups, so a change to the features stops the build until the words follow it.
-INPUT_GROUPS: dict[str, tuple[tuple[str, tuple[str, ...]], ...]] = {
-    CATALONIA: (
-        ("the date and time", ("year", "month", "weekday", "hour_band")),
-        (
-            "the road (its type, owner, zone, junction, priority rules and posted speed limit)",
-            (
-                "D_TIPUS_VIA",
-                "D_TITULARITAT_VIA",
-                "D_SUBZONA",
-                "D_FUNC_ESP_VIA",
-                "D_INTER_SECCIO",
-                "D_SUBTIPUS_TRAM",
-                "D_REGULACIO_PRIORITAT",
-                "speed_limit_category",
-            ),
-        ),
-        (
-            "the conditions (road surface, light, weather, wind, fog and any special traffic "
-            "measures)",
-            (
-                "D_SUPERFICIE",
-                "D_LLUMINOSITAT",
-                "D_CLIMATOLOGIA",
-                "D_VENT",
-                "D_BOIRA",
-                "D_CIRCULACIO_MESURES_ESP",
-            ),
-        ),
-        ("the type of crash", ("D_SUBTIPUS_ACCIDENT",)),
-        (
-            "the number and kinds of vehicles and pedestrians involved",
-            ("n_units", "single_unit", "involves_"),
-        ),
-        ("the province", ("demarcation",)),
-    ),
-    PERSON: (
-        (
-            "the person's age, sex and role, the vehicle on their record and, for a pedestrian, "
-            "where they were struck",
-            ("age", "sex", "person_role", "associated_vehicle_group", "pedestrian_location"),
-        ),
-        (
-            "the type of crash and the vehicles involved",
-            ("accident_type", "n_vehicles", "vehicle_records_include_"),
-        ),
-        ("the hour and day of the week", ("hour", "weekday")),
-        ("the district", ("district",)),
-    ),
-    CRASH: (
-        (
-            "the type of crash and the vehicles involved",
-            ("accident_type", "n_vehicles", "vehicle_records_include_"),
-        ),
-        ("the hour and day of the week", ("hour", "weekday")),
-        ("the district", ("district",)),
-    ),
-}
-# What the version with information recorded after the crash adds to each model.
-RETROSPECTIVE = {
-    CATALONIA: "police judgements of which conditions influenced the crash, and fields whose "
-    "completeness follows the outcome",
-    PERSON: "causes recorded by the police",
-    CRASH: "causes recorded by the police",
-}
-# The variables the importance figures rank highest, in words.
-FEATURES = {
-    "D_TITULARITAT_VIA": "the road's owner",
-    "D_SUBZONA": "the zone",
-    "D_SUBTIPUS_ACCIDENT": "the crash type",
-    "associated_vehicle_group": "the vehicle on the person's record",
-    "accident_type": "the accident type",
-    "person_role": "the road-user role",
-    "pedestrian_location": "where a pedestrian was struck",
-}
-# The Catalan model's three leading variables, as the importance table names them.
-OWNER, ZONE, SUBTYPE = "D_TITULARITAT_VIA", "D_SUBZONA", "D_SUBTIPUS_ACCIDENT"
-# The two Barcelona accident types a reader may take for one: the Guàrdia Urbana's own categories.
-CATCHING_UP, REAR_END = "rear collision while catching up", "rear-end collision"
-SOURCE_TYPE = {label: code for code, label in ACCIDENT_TYPES.items()}
-SUBGROUP_DIMENSIONS = ("all", "role", "associated vehicle", "age band", "sex")
-WORDS = {1: "one", 2: "two", 3: "three", 4: "four", 5: "five", 9: "nine", 10: "ten"}
-FRACTIONS = {5: "fifth", 10: "tenth"}
-# The decision on each model, as its section heading labels it.
-DECISIONS = {CATALONIA: "Kept", PERSON: "Ranking only", CRASH: "Replaced by table"}
-CATALAN_DESIGN = re.compile(r"train (\d{4})-(\d{4}), choose on (\d{4})-(\d{4}), test (\d{4})")
-BARCELONA_DESIGN = re.compile(
-    r"train months (\d+)-(\d+) with \d+-fold cross-validation grouped by crash; "
-    r"test months (\d+)-(\d+)"
+CRASH_INPUTS = ("crash_type", "units")
+# The contrasts quoted as worked examples, each a change of one input from the reference crash.
+EXAMPLES = (
+    ("users", "heavy_vehicle", "A heavy vehicle (lorry or bus) involved as well as the car"),
+    ("crash_type", "run_off_road", "The car ran off the road"),
+    ("crash_type", "pedestrian_struck", "A pedestrian struck"),
+    ("crash_type", "head_on", "A head-on collision"),
+    ("hour", "22-23", "Between 22:00 and 23:59"),
+    ("hour", "00-05", "Between 00:00 and 05:59"),
+    ("lighting", "night_unlit", "At night on an unlit road"),
+    ("junction", "junction", "Within a junction"),
+    ("speed_limit", "40_50", "A posted limit of 40–50 km/h"),
+    ("weather", "heavy_rain_snow", "In heavy rain, hail or snow"),
+    ("road", "urban_street", "On an urban street"),
 )
+ZONE_SUBSETS = {
+    "interurban": "zone: interurban",
+    "urban": "zone: urban",
+    "through_town": "zone: through_town",
+}
+ZONE_WORDS = {
+    "urban": "urban streets",
+    "through_town": "roads through towns",
+    "interurban": "interurban roads",
+}
+SPECIFICATION_WORDS = {
+    "common": "model whose terms are the same on every kind of road",
+    "by_zone": "model whose terms may differ between urban streets and interurban roads",
+}
+# The rows of sev_population the page quotes.
+FITTED = "fitted (named owner network or not a conventional road)"
+EXCLUDED = "excluded: both"
+EVERYTHING = "all crashes in the file"
+# The years the penalty was chosen on before the evaluation was nested.
+PREVIOUS_YEARS = f"{PREVIOUS_VALIDATION_YEARS[0]}–{PREVIOUS_VALIDATION_YEARS[-1]}"
 
 
-def _brief(
-    unit: str, outcome: str, tested: str, benchmark: str, model: str, decision: str, name: str
-) -> str:
-    """The definition table that opens each model's section."""
-    return facts(
-        [
-            ("Unit", unit),
-            ("Outcome", outcome),
-            ("Test records", tested),
-            ("Simple benchmark ROC-AUC", benchmark),
-            ("Model ROC-AUC", model),
-            ("Decision", decision),
-        ],
-        f"{name}: summary",
+def _check(holds: bool, claim: str) -> None:
+    if not holds:
+        raise ValueError(f"models page: the tables no longer support: {claim}")
+
+
+def _model() -> dict:
+    with MODEL_PATH.open(encoding="utf-8") as handle:
+        return json.load(handle)
+
+
+def _auc(value: float) -> str:
+    """A ROC-AUC, or a difference of two, to two decimals: the one scale on this page and the
+    External validation page."""
+    return _fmt_dec(value, 2)
+
+
+def _range(low: float, high: float) -> str:
+    """A percentage interval with the unit once, as 'low–high%'."""
+    return f"{_fmt_dec(100 * float(low), 1)}–{_fmt_pct(high)}"
+
+
+def _fmt_c(value: float) -> str:
+    """A penalty setting C to two significant figures: 0.1, 0.032, 32."""
+    return f"{float(value):,.0f}" if float(value) >= 100 else f"{float(value):.2g}"
+
+
+def _other(specification: str) -> str:
+    return next(key for key in SPECIFICATION_WORDS if key != specification)
+
+
+def _through_town_text(yearly: pd.DataFrame, published: pd.Series, scores: pd.Series) -> str:
+    """How roads through towns were treated in the test and by the calculator."""
+    average = int((yearly.through_town == "average").sum())
+    lead = (
+        "On roads through towns the calculator shows the average fatal share of such roads in "
+        "the province instead of an estimate"
+        if published.through_town == "average"
+        else "On roads through towns the calculator gives the model's estimate"
+    )
+    return (
+        f"{lead}. That rule was chosen like the other settings: in {_words(average)} of the "
+        f"{_words(len(yearly))} test years the average had predicted the two years before "
+        "better than the model, and the test scores whichever was chosen (ROC-AUC "
+        f"{_auc(scores.roc_auc)} on those roads)."
     )
 
 
-def _title(name: str) -> str:
-    return name[:1].upper() + name[1:]
+def _words(value: int) -> str:
+    """Small counts in words, as in running prose."""
+    words = ("no", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten")
+    words += ("eleven", "twelve")
+    return words[value] if 0 <= value < len(words) else f"{value:,}"
 
 
-def _word(value: int) -> str:
-    return WORDS.get(value, str(value))
+def _select(name: str, spec: dict) -> str:
+    options = "".join(
+        f'<option value="{esc(level["value"])}"'
+        f"{' selected' if level['value'] == spec['default'] else ''}>{esc(level['label'])}</option>"
+        for level in spec["levels"]
+    )
+    return (
+        f'<div class="calc-field"><label for="calc-{name}">{esc(spec["label"])}</label>'
+        f'<select id="calc-{name}" name="{name}">{options}</select></div>'
+    )
 
 
-def _signed(value: float, decimals: int = 2) -> str:
-    """A difference with its sign, for the tables: +0.09, −0.04, and 0.00 without one."""
-    if round(value, decimals) == 0:
-        return f"{0:.{decimals}f}"
-    return ("+" if value > 0 else "") + _fmt_dec(value, decimals)
+def _form(model: dict) -> str:
+    inputs = model["inputs"]
+    road = "".join(_select(name, inputs[name]) for name in ROAD_INPUTS)
+    crash = "".join(_select(name, inputs[name]) for name in CRASH_INPUTS)
+    users = inputs["users"]
+    boxes = "".join(
+        f'<li><label><input type="checkbox" name="users" value="{esc(level["value"])}"'
+        f"{' checked' if level['value'] in users['default'] else ''}> {esc(level['label'])}"
+        "</label></li>"
+        for level in users["levels"]
+    )
+    # The form, then the panel with the result and the comparison: beside the form on a wide
+    # screen (it stays in view while the form scrolls), after it on a phone.
+    return (
+        '<section class="calculator" id="calculator" data-model="models/severity_model.json" '
+        f'data-model-id="{esc(model["model_id"])}" aria-labelledby="calculator-title" hidden>'
+        '<h3 id="calculator-title">Describe a crash</h3>'
+        '<div class="calc-layout">'
+        "<form>"
+        f'<fieldset><legend>The road and the conditions</legend><div class="calc-fields">{road}'
+        "</div></fieldset>"
+        f'<fieldset><legend>The crash</legend><div class="calc-fields">{crash}</div></fieldset>'
+        f'<fieldset><legend>{esc(users["label"])}</legend><ul class="calc-users">{boxes}</ul>'
+        "</fieldset>"
+        '<div class="calc-actions">'
+        '<button type="button" data-keep>Keep this crash for comparison</button>'
+        '<button type="button" data-clear hidden>Clear the comparison</button>'
+        '<button type="reset">Reset the inputs</button></div>'
+        "</form>"
+        # On a narrow screen the full result follows the form; this line keeps the estimate in
+        # view while the form scrolls (the status line below announces it to screen readers).
+        '<p class="calc-sticky" aria-hidden="true" data-sticky></p>'
+        '<div class="calc-panel">'
+        '<div class="calc-result" data-output></div>'
+        '<div class="calc-baseline" data-baseline></div>'
+        "</div></div>"
+        '<p class="visually-hidden" role="status" aria-live="polite" data-status></p>'
+        "</section>"
+        '<p id="calculator-fallback">The calculator needs JavaScript. Without it, the worked '
+        "examples below give the model's estimates for typical crashes.</p>"
+    )
 
 
-def _range(low: float, high: float, decimals: int = 2) -> str:
-    """An interval in prose: 0.07–0.12 when both ends are unsigned, −0.04 to 0.05 otherwise."""
-    if round(low, decimals) < 0 or round(high, decimals) < 0:
-        return f"{_fmt_dec(low, decimals)} to {_fmt_dec(high, decimals)}"
-    return f"{_fmt_dec(low, decimals)}–{_fmt_dec(high, decimals)}"
+def _pooled(scores: pd.DataFrame) -> str:
+    """The subset that pools every evaluation year (written ``first-last`` in the table)."""
+    return str(scores.subset[scores.subset.str.fullmatch(r"\d{4}-\d{4}")].iloc[0])
 
 
-def _pair(a: float, b: float) -> str:
-    """Two figures that may round alike: 'about 0.15 each' rather than '0.15 and 0.15'."""
-    return f"about {a:.2f} each" if f"{a:.2f}" == f"{b:.2f}" else f"{a:.2f} and {b:.2f}"
-
-
-def _feature(name: str) -> str:
-    _check(name in FEATURES, PAGE, f"the variable {name} has a label")
-    return FEATURES[name]
-
-
-def _age_band(level: str) -> str:
-    return f"{level[:-1]} and over" if level.endswith("+") else level.replace("-", "–")
-
-
-def _subgroup_label(row) -> str:
-    level = str(row.level).replace("_", " ")
-    if row.dimension == "all":
-        return "Everyone"
-    if row.dimension == "role":
-        return f"{level.capitalize()}s"
-    if row.dimension == "associated vehicle":
-        return f"Vehicle on record: {level}"
-    if row.dimension == "age band":
-        return f"Aged {_age_band(level)}"
-    return level.capitalize()
-
-
-def _subgroup_prose(row) -> str:
-    level = str(row.level).replace("_", " ")
-    if row.dimension == "role":
-        return f"{level}s"
-    if row.dimension == "associated vehicle":
-        article = "an" if level[0] in "aeiou" else "a"
-        return f"people whose record names {article} {level}"
-    if row.dimension == "age band":
-        return f"people aged {_age_band(level)}"
-    return f"{level} road users"
-
-
-def _inputs(model: str, catalogue: pd.DataFrame, feature_set: str) -> str:
-    """The information a model uses, as groups in words, checked against its feature catalogue."""
-    rows = catalogue[
-        catalogue.feature_table.eq(model)
-        & catalogue.feature_sets.fillna("").str.contains(rf"\b{feature_set}\b")
-        & catalogue.geography_variant.isin(["all", "broad"])
+def _examples_table(contrasts: pd.DataFrame, base: float) -> str:
+    interurban = contrasts[contrasts.base == "interurban"].set_index(["input", "level"])
+    rows = [
+        {
+            "The reference crash, changed in one respect": "(the reference crash)",
+            "Estimated fatal share (95% confidence interval)": f"{_fmt_pct(base)}",
+            "Times the reference (95% confidence interval)": "1",
+        }
     ]
-    groups = INPUT_GROUPS[model]
+    for name, level, label in EXAMPLES:
+        row = interurban.loc[(name, level)]
+        rows.append(
+            {
+                "The reference crash, changed in one respect": label,
+                "Estimated fatal share (95% confidence interval)": (
+                    f"{_fmt_pct(row.probability)} "
+                    f"({_range(row.probability_low, row.probability_high)})"
+                ),
+                "Times the reference (95% confidence interval)": (
+                    f"{row.ratio:.2f} ({row.ratio_low:.2f}–{row.ratio_high:.2f})"
+                ),
+            }
+        )
+    return table(
+        pd.DataFrame(rows),
+        "Estimated share of crashes that were fatal, among crashes with a death or serious "
+        "injury. The reference crash is a side or angle collision between two cars or "
+        "vans on a conventional regional road in the province of Barcelona, between junctions, "
+        "in daylight, fine weather and "
+        "on a dry surface, between 10:00 and 13:59, with no posted limit recorded; each row "
+        "changes one input. The calculator gives the same numbers. The intervals cover the "
+        "uncertainty of the model's coefficients only.",
+    )
 
-    def group_of(column: str) -> str | None:
-        for words, prefixes in groups:
-            if any(column == p or (p.endswith("_") and column.startswith(p)) for p in prefixes):
-                return words
-        return None
 
-    found = {column: group_of(column) for column in rows.column}
-    unplaced = sorted(column for column, words in found.items() if words is None)
-    _check(not unplaced, PAGE, f"{model}: every input variable is described ({unplaced})")
-    used = [words for words, _ in groups if words in found.values()]
-    _check(len(used) == len(groups), PAGE, f"{model}: every described group has a variable")
-    return _join(used)
+def _fifth(groups: pd.DataFrame, top: bool) -> float:
+    """Observed fatal share in the fifth of crashes rated most (or least) likely to be fatal."""
+    ordered = groups.sort_values("group")
+    part = ordered.tail(2) if top else ordered.head(2)
+    return float(part.positives.sum() / part.n.sum())
+
+
+def _outside(row: pd.Series) -> bool:
+    """The mean estimate lies outside the 95% interval of the observed share."""
+    return not float(row.observed_low) <= float(row.mean_predicted) <= float(row.observed_high)
+
+
+def _misses(scores: pd.DataFrame) -> pd.DataFrame:
+    """The zones of provinces in which the nested test's mean estimate lies outside the 95%
+    interval of the observed share, with the province and zone as columns."""
+    cells = scores[
+        scores.subset.str.startswith("province and zone: ") & (scores.estimator == "calculator")
+    ].copy()
+    keys = cells.subset.str.removeprefix("province and zone: ").str.split("|", expand=True)
+    cells["province"], cells["zone"] = keys[0], keys[1]
+    return cells[cells.apply(_outside, axis=1)]
+
+
+def _coarse_misses(scores: pd.DataFrame) -> list[str]:
+    """The years, zones and provinces in which the nested test's mean estimate lies outside the
+    95% interval of the observed share, each as 'in 2016, x% estimated and y% observed (interval)'.
+    """
+    out = []
+    for row in scores[scores.estimator == "calculator"].itertuples():
+        subset = str(row.subset)
+        if subset.isdigit():
+            place = f"in {subset}"
+        elif subset.startswith("zone: "):
+            place = f"on {ZONE_WORDS[subset.removeprefix('zone: ')]} as a whole"
+        elif subset.startswith("province: "):
+            place = f"in the province of {subset.removeprefix('province: ')} as a whole"
+        else:
+            continue
+        if _outside(row):
+            out.append(_miss_text(row, place))
+    return out
+
+
+def _miss_text(row: pd.Series, place: str | None = None) -> str:
+    """'on interurban roads in the province of Girona, x% estimated and y% observed (interval)',
+    with a second decimal where one decimal would print the estimate at an end of the interval
+    it falls outside."""
+    digits = 1
+    if round(100 * float(row.mean_predicted), 1) in (
+        round(100 * float(row.observed_low), 1),
+        round(100 * float(row.observed_high), 1),
+    ):
+        digits = 2
+    place = place or f"on {ZONE_WORDS[row.zone]} in the province of {row.province}"
+    return (
+        f"{place}, "
+        f"{_fmt_pct(row.mean_predicted, digits)} "
+        f"estimated and {_fmt_pct(row.prevalence, digits)} observed "
+        f"({_fmt_dec(100 * float(row.observed_low), digits)}–"
+        f"{_fmt_pct(row.observed_high, digits)})"
+    )
+
+
+def _stability_lists(stability: pd.DataFrame, periods: list[str]) -> tuple[list[str], list[str]]:
+    """The worked examples whose 95% interval excludes 1 on the same side in models fitted
+    separately on each period (held), and the others."""
+    held, unsettled = [], []
+    for name, level, label in EXAMPLES:
+        rows = [stability.loc[(period, name, level)] for period in periods]
+        above = all(float(r.ratio_low) > 1 for r in rows)
+        below = all(float(r.ratio_high) < 1 for r in rows)
+        ratios = " and ".join(f"{float(r.ratio):.2f}" for r in rows)
+        entry = f"{label[:1].lower()}{label[1:]} ({ratios})"
+        (held if above or below else unsettled).append(entry)
+    return held, unsettled
 
 
 def page_severity_models(captions: dict[str, str]) -> str:
-    selected = read_table("ml_selected")
-    places = read_table("ml_geography")
-    rules = read_table("ml_rule_comparison").set_index("model")
+    model = _model()
+    scores = read_table("sev_rolling_scores")
+    comparison = read_table("sev_comparison").set_index(["estimator", "metric"])
+    calibration = read_table("sev_calibration")
+    contrasts = read_table("sev_contrasts")
+    geography = read_table("sev_geography").set_index(["test", "estimator"])
+    penalty = read_table("sev_penalty")
+    choices = read_table("sev_choices")
+    steps = read_table("sev_nested_steps")
+    population = read_table("sev_population").set_index(["population", "zone"])
+    stability = read_table("sev_stability")
+    stability = stability[stability.base == "interurban"].set_index(["subset", "input", "level"])
+
+    span = _pooled(scores)
+    first_test, last_test = span.split("-")
+    pooled = scores[scores.subset == span].set_index("estimator")
+    calc, trees, tab = (
+        pooled.loc[n] for n in ("calculator", "boosted_trees", "road_x_crash_table")
+    )
+    model_groups = calibration[calibration.estimator == "calculator"].sort_values("group")
+    table_groups = calibration[calibration.estimator == "road_x_crash_table"]
+    by_subset = scores.set_index(["subset", "estimator"])
+    years = scores[scores.subset.str.fullmatch(r"\d{4}") & (scores.estimator == "calculator")]
+    table_years = scores[
+        scores.subset.str.fullmatch(r"\d{4}") & (scores.estimator == "road_x_crash_table")
+    ].set_index("subset")
+    base = float(contrasts[contrasts.base == "interurban"].base_probability.iloc[0])
+    interurban = contrasts[contrasts.base == "interurban"].set_index(["input", "level"])
+    heavy = interurban.loc[("users", "heavy_vehicle")]
+    junction = interurban.loc[("junction", "junction")]
+    gap = comparison.loc[("road_x_crash_table", "roc_auc_minus_calculator")]
+    tree_gap = comparison.loc[("boosted_trees", "roc_auc_minus_calculator")]
+    evaluation = model["evaluation"]
+    zone = {key: by_subset.loc[(subset, "calculator")] for key, subset in ZONE_SUBSETS.items()}
+    city = by_subset.loc[("Barcelona city, urban streets", "calculator")]
+    outside = by_subset.loc[("urban streets outside Barcelona city", "calculator")]
+    inside = ~model_groups.apply(_outside, axis=1)
+    group_misses = model_groups[~inside]
+    misses = _misses(scores)
+    tests = geography.index.get_level_values(0)
+    estimators = geography.index.get_level_values(1)
+    left_out = (
+        geography[tests.str.endswith("from the other demarcations") & (estimators == "calculator")]
+        .reset_index()
+        .assign(name=lambda d: d.test.str.extract(r"^(\w+) from")[0])
+        .set_index("name")
+    )
+    left_out_misses = left_out[left_out.apply(_outside, axis=1)]
+    left_out_fits = left_out[~left_out.apply(_outside, axis=1)]
+    training = model["training"]
+    published = choices[choices.fit == "published model"].iloc[0]
+    yearly = choices[choices.fit != "published model"]
+    final_grid = penalty[(penalty.fit == "published model")]
+    chosen_grid = final_grid[final_grid.specification == published.specification]
+    pooled_steps = steps[steps.subset == span].set_index("estimator")
+    previous = pooled_steps.loc["previous_design"]
+    nested = pooled_steps.loc["calculator"]
+    fitted_all = population.loc[(FITTED, "all zones")]
+    fitted_interurban = population.loc[(FITTED, "interurban roads")]
+    everything = population.loc[(EVERYTHING, "all zones")]
+    everything_interurban = population.loc[(EVERYTHING, "interurban roads")]
+    excluded = population.loc[(EXCLUDED, "all zones")]
+
     decisions = read_table("ml_model_decisions")
-    calibration = read_table("ml_calibration")
-    importance = read_table("ml_importance")
-    artefacts = read_table("ml_recording_artefacts")
-    subgroups = read_table("ml_subgroup_validation")
-    crashes = read_table("bcn_crash_severity_share")
-    rare = read_table("ml_rare_causes").set_index("label")
-    transport = read_table("ml_transport_validation")
-    catalogue = read_table("ml_feature_catalogue")
-    primary = selected[selected.primary].set_index("model")
-    retro = selected[~selected.primary].set_index("model")
-    year = _year_label(crashes)
+    decisions = decisions[decisions.variant == "context"].set_index("model").decision
+    stability_periods = [s for s in stability.index.get_level_values(0).unique() if s[:1].isdigit()]
 
-    # The page is written around the declared decisions: two models kept, the third replaced by
-    # its descriptive table. Each kept model beats chance and its table; the replaced one does not.
-    models = [m for m in MODELS if m in rules.index]
-    context = decisions[decisions.model.isin(models) & decisions.variant.eq("context")]
-    context = context.set_index("model").decision
-    kept = [m for m in models if context[m] in decision_rules.FEATURED]
-    replaced = [m for m in models if context[m] == decision_rules.REPLACE]
-    _check(kept == KEPT and replaced == REPLACED, PAGE, "two models kept, one replaced")
-    for name in models:
-        row, rule = primary.loc[name], rules.loc[name]
-        _check(row.roc_auc_low > 0.5, PAGE, f"{name} beats chance")
-        _check(
-            bool(rule.model_adds_signal_over_table) == (name in kept),
-            PAGE,
-            f"{name}: the decision follows the table comparison",
-        )
-        _check(rule.rule in RULE_LABELS, PAGE, f"{name}: the table's grouping has a label")
-        _check(row.estimator in METHODS, PAGE, f"{name}: the method has a name")
-        # The method kept for each model is the one that ranked the validation records better.
-        options = places[
-            places.model.eq(name)
-            & places.feature_set.eq(row.feature_set)
-            & places.geography.eq(row.geography)
-        ]
-        best = options.loc[options.validation_roc_auc.idxmax()].estimator
-        _check(best == row.estimator, PAGE, f"{name}: the method was chosen on validation")
-    cat, person, crash = (primary.loc[m] for m in models)
-    low, high = CALIBRATION_SLOPE_RANGE
-    _check(bool(cat.probabilities_shown_as_estimates), PAGE, "Catalan probabilities calibrated")
+    slope = float(calc.calibration_slope)
     _check(
-        not person.probabilities_shown_as_estimates, PAGE, "Barcelona probabilities not calibrated"
+        0.8 < slope < 1.25 and abs(float(calc.mean_predicted) - float(calc.prevalence)) < 0.005,
+        "the pooled estimates are calibrated on the nested test, within the project's rule",
     )
-    catalan = CATALAN_DESIGN.fullmatch(cat.design)
-    barcelona = BARCELONA_DESIGN.fullmatch(person.design)
-    _check(catalan is not None and barcelona is not None, PAGE, "the split designs are read")
-    _check(person.design == crash.design, PAGE, "both Barcelona models share one split")
-    train_years = f"{catalan.group(1)}–{catalan.group(2)}"
-    choice_years = f"{catalan.group(3)}–{catalan.group(4)}"
-    test_year = catalan.group(5)
-    train_months = int(barcelona.group(2)) - int(barcelona.group(1)) + 1
-    test_months = int(barcelona.group(4)) - int(barcelona.group(3)) + 1
-    _check("–" not in year, PAGE, "Barcelona's records cover a single year")
+    _check(
+        int(evaluation["crashes"]) == int(calc.n)
+        and evaluation["design"].startswith("nested rolling origin"),
+        "the exported model's evaluation is the nested test",
+    )
+    _check(float(gap.high) < 0, "the model ranks crashes better than the table")
+    _check(float(tree_gap.high) < 0.03, "the trees rank no more than slightly better")
+    trees_compared = "a little better" if float(tree_gap.low) > 0 else "about as well"
+    ahead = years.set_index("subset").roc_auc > table_years.roc_auc
+    ahead_text = (
+        f"and it is ahead in every year from {first_test} to {last_test}"
+        if bool(ahead.all())
+        else f"and it is ahead in {_words(int(ahead.sum()))} of the {_words(len(ahead))} years"
+    )
+    _check(
+        float(zone["interurban"].roc_auc) > float(zone["urban"].roc_auc) > 0.6,
+        "the model ranks interurban crashes best, urban ones less well",
+    )
+    _check(
+        float(calc.roc_auc) > max(float(z.roc_auc) for z in zone.values())
+        and float(zone["interurban"].prevalence) > 2 * float(zone["urban"].prevalence),
+        "the pooled score is above every zone's, and the zones' fatal shares differ widely",
+    )
+    _check(
+        1.75 <= float(heavy.ratio) <= 2.25 and float(heavy.ratio_low) > 1.5,
+        "a heavy vehicle goes with about twice the estimated share",
+    )
+    others = contrasts[(contrasts.base == "interurban") & (contrasts.input != "province")]
+    _check(
+        float(heavy.ratio) == float(others.ratio.max()),
+        "a heavy vehicle brings the largest increase of any one input",
+    )
+    _check(float(junction.ratio_high) < 1, "a junction goes with a lower share")
 
-    def bins(model: str) -> pd.DataFrame:
-        frame = calibration[
-            calibration.model.eq(model) & calibration.feature_set.eq(primary.loc[model].feature_set)
-        ].sort_values("bin")
-        _check(len(frame) in FRACTIONS, PAGE, f"{model}: calibration bins are tenths or fifths")
-        _check(
-            int(frame.n.sum()) == int(primary.loc[model].n)
-            and int(frame.positives.sum()) == int(primary.loc[model].positives),
-            PAGE,
-            f"{model}: the calibration bins cover the test records",
-        )
-        return frame
+    held, unsettled = _stability_lists(stability, stability_periods[:2])
+    _check(
+        bool(held) and bool(unsettled),
+        "some worked examples hold in both periods and some do not",
+    )
+    heavy_label = EXAMPLES[0][2]
+    _check(
+        any(entry.startswith(heavy_label[:1].lower() + heavy_label[1:]) for entry in held),
+        "the heavy-vehicle association holds in both periods",
+    )
+    _check(
+        float(outside.mean_predicted) > float(outside.prevalence),
+        "estimates on urban streets outside Barcelona city run high",
+    )
+    _check(
+        not left_out_misses.empty and not left_out_fits.empty,
+        "with a province left out, the estimates miss in some provinces and not in others",
+    )
+    with_terms = by_subset.xs("calculator", level="estimator")
+    _check(
+        all(
+            abs(
+                float(with_terms.loc[f"province: {name}"].mean_predicted)
+                - float(with_terms.loc[f"province: {name}"].prevalence)
+            )
+            < abs(float(row.mean_predicted) - float(row.prevalence))
+            for name, row in left_out.iterrows()
+        ),
+        "with province terms, every province's estimate in the nested test is closer to its "
+        "observed share than with the province left out",
+    )
+    _check(
+        bool(published.c_bracketed)
+        and float(chosen_grid.c.min()) < float(published.c) < float(chosen_grid.c.max()),
+        "the published penalty lies inside the grid it was chosen from",
+    )
+    at_limit = yearly[yearly.c_at_weak_limit.astype(bool)]
+    _check(
+        bool((yearly.c_bracketed.astype(bool) | yearly.c_at_weak_limit.astype(bool)).all()),
+        "every test year's chosen penalty lies inside its grid, or at its weak end where the "
+        "validation loss had stopped changing",
+    )
+    _check(
+        model["choice"]["specification"] == published.specification
+        and float(model["penalty"]["C"]) == float(published.c)
+        and model["through_town"] == published.through_town,
+        "the exported model is the published choice",
+    )
+    _check(
+        float(excluded.fatal_share) > float(fitted_all.fatal_share)
+        and float(everything_interurban.fatal_share) < float(fitted_interurban.fatal_share),
+        "the left-out crashes raise the overall fatal share and lower the interurban one",
+    )
+    _check(
+        decisions["barcelona_crash_severity"] == rules.REPLACE
+        and decisions["barcelona_person_severity"] == rules.KEEP_RANKING,
+        "the Barcelona crash model gave way to its table, and the person model only ranks",
+    )
 
-    def reliance(model: str) -> pd.DataFrame:
-        row = primary.loc[model]
-        return importance[
-            importance.model.eq(model)
-            & importance.feature_set.eq(row.feature_set)
-            & importance.estimator.eq(row.estimator)
-        ].sort_values("auc_drop_mean", ascending=False)
+    top, bottom = _fifth(model_groups, True), _fifth(model_groups, False)
+    top_table, bottom_table = _fifth(table_groups, True), _fifth(table_groups, False)
+    _check(top > top_table and bottom < bottom_table, "the model separates the extremes better")
 
+    miss_provinces = sorted(set(misses.province))
+    yearly_scores = scores[(scores.estimator == "calculator") & scores.subset.str.isdigit()]
+    miss_years = [str(row.subset) for row in yearly_scores.itertuples() if _outside(row)]
     body = summary(
-        "The project fitted three predictive models to individual crash records and kept only "
-        "those that ranked later, unseen records better than a simple table of the same data. "
-        f"The {NAMES[CATALONIA]} ranks crashes with a death or serious injury by how likely "
-        "they were to be fatal. It is kept: it clearly beats its table, and on the held-out "
-        f"crashes of {test_year} its probabilities matched the observed fatal shares well "
-        f"overall. The {NAMES[PERSON]} orders people involved in crashes from lower to higher "
-        "predicted severity. It is kept for ranking only: it beats its table, but its scores are "
-        "too extreme to read as probabilities, and it ranks pedestrians little better than "
-        "chance. The "
-        f"{NAMES[CRASH]} ranked crashes no better than a table of accident types, so it was "
-        "dropped and the table is reported instead. None of the models predicts whether a crash "
-        "will happen; they work only on crashes that happened and were recorded."
+        "Of the crashes in Catalonia in which someone was killed or seriously injured, the "
+        "Catalan severity model estimates which were fatal (someone died within 24 hours) from "
+        "the road, the conditions, the type of crash and who was involved. Each year from "
+        f"{first_test} to {last_test} was predicted by a model whose settings and coefficients "
+        "came only from earlier years. Over those years together its estimates matched the "
+        "overall fatal share"
+        + (f" (though not in {_join(miss_years)})" if miss_years else "")
+        + ", and it sorted crashes into more and less deadly groups somewhat better "
+        "than a table of fatal shares by road and crash type"
+        + (
+            f"; in the provinces of {_join(miss_provinces)} some of its estimates by kind of "
+            "road missed. "
+            if miss_provinces
+            else ". "
+        )
+        + "It cannot say whether a crash will happen, only how often crashes like a given one, "
+        "already recorded with a death or serious injury, were fatal."
     )
 
-    # ------------------------------------------------------------------------------ Catalonia
-    rule = rules.loc[CATALONIA]
-    deciles = bins(CATALONIA)
-    top, bottom = deciles.iloc[-1], deciles.iloc[0]
-    part = FRACTIONS[len(deciles)]
-    _check(low <= cat.calibration_slope <= high, PAGE, "the Catalan calibration slope is near 1")
-    city = transport[
-        transport.experiment.eq("rest of Catalonia -> Barcelona municipality")
-        & transport.model.eq(CATALONIA)
-        & transport.estimator.eq(cat.estimator)
-        & transport.status.eq("reported")
-    ].iloc[0]
+    # ------------------------------------------------------------------- predicted and observed
     _check(
-        not low <= city.calibration_slope <= high,
-        PAGE,
-        "the Catalan model's calibration does not carry over to Barcelona city",
+        not misses.empty,
+        "the heading says that the estimates miss in some provinces",
     )
-    body += f"<h2>{_title(NAMES[CATALONIA])} {decision_label(DECISIONS[CATALONIA])}</h2>"
-    body += _brief(
-        "One crash in Catalonia in which someone was killed or seriously injured",
-        "Anyone killed within 24 hours",
-        f"{_fmt_int(cat.n)} crashes of {test_year}, {_fmt_int(cat.positives)} fatal",
-        f"{rule.rule_roc_auc:.2f}, a table of fatal shares by {RULE_LABELS[rule.rule][0]}",
-        f"{cat.roc_auc:.2f} (95% interval {cat.roc_auc_low:.2f}–{cat.roc_auc_high:.2f})",
-        "Kept: it ranks crashes better than its table, and its probabilities can be read as "
-        f"estimates for Catalan crashes like those of {test_year}",
-        NAMES[CATALONIA],
-    )
-    body += (
-        "<p>The model estimates the probability that a crash in the Servei Català de Trànsit's "
-        "file was fatal from what the police recorded about "
-        f"{_inputs(CATALONIA, catalogue, cat.feature_set)}. It cannot predict whether a crash "
-        "will happen: the file contains only crashes in which someone was killed or seriously "
-        "injured, so the model says nothing about how likely a journey, or an ordinary crash, "
-        "is to end in a death.</p>"
-    )
-    body += (
-        f"<p>It was fitted to the crashes of {train_years}, tuned on {choice_years} and tested "
-        f"once on the {_fmt_int(cat.n)} crashes of {test_year}, of which "
-        f"{_fmt_int(cat.positives)} ({_fmt_pct(cat.prevalence)}) were fatal. On those crashes, a "
-        f"simple table of fatal shares by {RULE_LABELS[rule.rule][1]} reaches a ROC-AUC of "
-        f"{rule.rule_roc_auc:.2f}. The model reaches {cat.roc_auc:.2f} (95% interval "
-        f"{cat.roc_auc_low:.2f}–{cat.roc_auc_high:.2f}), a gain of {rule.roc_auc_gain:.2f} "
-        f"({_range(rule.roc_auc_gain_low, rule.roc_auc_gain_high)}). It therefore separates "
-        "fatal from non-fatal serious crashes clearly better than the simple grouping does. "
-        "ROC-AUC measures ranking: 0.5 is no better than chance and 1 is a perfect ranking. A "
-        f"score of {cat.roc_auc:.2f} means that if one fatal and one non-fatal crash are picked "
-        "at random, the model gives the fatal crash the higher score "
-        f"{_fmt_pct(cat.roc_auc, 0)} of the time. In the {part} of {test_year} crashes it "
-        f"ranked highest ({_fmt_int(top.n)}), {_fmt_pct(top.observed)} were fatal, "
-        f"{int(top.positives)} of the {_fmt_int(cat.positives)}; in the lowest {part}, "
-        f"{_fmt_pct(bottom.observed)} were.</p>"
-    )
-    body += (
-        f"<p>On the held-out Catalan crashes of {test_year}, the predicted probabilities "
-        "matched the observed fatal shares reasonably well overall: "
-        f"{_fmt_pct(cat.mean_predicted)} predicted on average against "
-        f"{_fmt_pct(cat.prevalence)} observed, and {_fmt_pct(top.mean_predicted)} against "
-        f"{_fmt_pct(top.observed)} in the highest {part}. The calibration slope is "
-        f"{cat.calibration_slope:.2f}, close to the value of 1 at which predictions are neither "
-        "too spread out nor too compressed. That calibration should not be assumed for every "
-        "place or subgroup. In Barcelona city it did not carry over: trained on the rest of "
-        "Catalonia and applied there, the same model has a slope of "
-        f"{city.calibration_slope:.2f}.</p>"
-    )
-    ranked = reliance(CATALONIA)
-    first = ranked.head(3)
-    table_columns = set(rule.rule.split(" x "))
-    _check(
-        set(first.feature.iloc[:2]) == {OWNER, ZONE}
-        and first.feature.iloc[2] == SUBTYPE
-        and table_columns == {ZONE, SUBTYPE},
-        PAGE,
-        "the road's owner and the zone lead, then the crash subtype; the table uses the last two",
-    )
-    spread = first.set_index("feature")
-    _check(
-        abs(spread.auc_drop_mean[OWNER] - spread.auc_drop_mean[ZONE])
-        <= max(spread.auc_drop_std[OWNER], spread.auc_drop_std[ZONE]),
-        PAGE,
-        "the road's owner and the zone are close given the variation between shuffles",
-    )
-    blank_owner = artefacts[
-        artefacts.column.eq(OWNER)
-        & artefacts.structural_explanation.fillna("").str.startswith("urban street")
-    ]
-    _check(
-        len(blank_owner) == 1 and blank_owner.structural_coverage.iloc[0] >= 0.9,
-        PAGE,
-        "the road's owner is left blank for urban streets",
-    )
-    labels = [_feature(f) for f in first.feature]
-    drops = [f"{d:.2f}" for d in first.auc_drop_mean]
-    body += (
-        "<p>To see what the model relies on, each variable was shuffled at random in the test "
-        "crashes and the fall in ROC-AUC measured. Shuffling "
-        f"{labels[0]} lowered it by {drops[0]}, {labels[1]} by {drops[1]} and {labels[2]} by "
-        f"{drops[2]}; no other variable lowered it as much. The road's owner and the zone "
-        "overlap: the owner is left blank for urban streets, so it also carries the "
-        "urban–interurban distinction "
-        "that the zone records. A variable the model relies on is not necessarily a cause of "
-        "severe crashes: the road's owner stands in for differences between roads that the "
-        "file does not measure.</p>"
-    )
+    body += "<h2>The estimates matched later years overall, but not in every province</h2>"
     body += figure(
-        f"ml3_importance_{CATALONIA}",
-        f"Chart of the variables the {NAMES[CATALONIA]} relies on most, measured by the fall in "
-        f"its test ROC-AUC when each is shuffled; {labels[0]}, {labels[1]} and {labels[2]} lead.",
+        "sev1_predicted_observed",
+        "Dot chart of the observed share of fatal crashes against the predicted chance, in ten "
+        "equal groups for the model (filled dots) and for a table by road and crash type (hollow "
+        f"dots). The model's groups run from about {_fmt_pct(model_groups.observed.min(), 0)} "
+        f"to {_fmt_pct(model_groups.observed.max(), 0)} fatal, the table's from about "
+        f"{_fmt_pct(table_groups.observed.min(), 0)} to "
+        f"{_fmt_pct(table_groups.observed.max(), 0)}; both follow the diagonal on which "
+        "prediction equals observation.",
         captions,
     )
+    group_text = (
+        (
+            f"In all {_words(len(inside))} groups"
+            if bool(inside.all())
+            else f"In {_words(int(inside.sum()))} of the {_words(len(inside))} groups"
+        )
+        + ", from the crashes it rated least "
+        "likely to be fatal to those it rated most likely, its mean estimate lies inside the "
+        "95% interval of the share observed"
+    )
+    if len(group_misses):
+        group_text += "; " + _join(
+            [
+                f"in group {int(g.group)} it said {_fmt_pct(g.mean_predicted)} and "
+                f"{_fmt_pct(g.observed)} were fatal ({_range(g.observed_low, g.observed_high)})"
+                for g in group_misses.itertuples()
+            ]
+        )
     body += (
-        "<p>The model was also tested on a province left out of training, on Barcelona city, "
-        "and, in a version restricted to the variables DGT records in the same way, on DGT's "
-        'records of serious crashes in the rest of Spain (<a href="validation.html">External '
-        "validation</a>).</p>"
+        f"<p>The test covers the {int(calc.n):,} crashes of {first_test}–{last_test} on the roads "
+        "the calculator offers. For each year, the model's settings (the strength of its "
+        "penalty, whether each circumstance may count differently on urban streets and "
+        "interurban roads, whether roads through towns get an estimate or the average, and "
+        "whether each province has a starting level of its own) were chosen on the two years "
+        "before it, and the model was then fitted on all earlier "
+        "years: no choice saw the year it predicts. Over all the years the model estimated "
+        f"{_fmt_pct(calc.mean_predicted)} fatal, and {_fmt_pct(calc.prevalence)} were "
+        f"({_range(calc.observed_low, calc.observed_high)}). {group_text}. Its calibration "
+        f"slope, 1 when the estimates spread as widely as the outcomes, is "
+        f"{_fmt_dec(slope, 2)}"
+        + (
+            ": the crashes it rated most and least likely to be fatal turned out somewhat more "
+            "extreme than it said."
+            if slope > 1.05
+            else (
+                ": its estimates were somewhat more extreme than the outcomes."
+                if slope < 0.95
+                else "."
+            )
+        )
+        + "</p>"
+    )
+    coarse = _coarse_misses(scores)
+    if coarse:
+        body += (
+            "<p>By year, kind of road and province the mean estimate fell outside the 95% "
+            f"interval of the observed share {_join(coarse)}.</p>"
+        )
+    if len(misses):
+        body += (
+            "<p>By province and kind of road the estimates were less close. The mean estimate "
+            "fell outside the 95% interval of the observed share "
+            + _join([_miss_text(row) for row in misses.itertuples()])
+            + ". A reader should not take an estimate for those roads at face value.</p>"
+        )
+    body += (
+        "<p>Of the fifth of crashes the model rated most likely to have been fatal, "
+        f"{_fmt_pct(top, 0)} were; of the fifth it rated least likely, {_fmt_pct(bottom, 0)}. "
+        f"The table separates them less ({_fmt_pct(top_table, 0)} and "
+        f"{_fmt_pct(bottom_table, 0)}). Ranking is measured by the ROC-AUC: given one fatal and "
+        "one non-fatal crash, the share of pairs in which the fatal one gets the higher "
+        "estimate, from 0.5 for chance to 1 for a perfect ranking. The model's ROC-AUC is "
+        f"{_auc(calc.roc_auc)} and the table's {_auc(tab.roc_auc)}; the model's lead is "
+        f"{_auc(-gap.high)}–{_auc(-gap.low)} (95% interval), {ahead_text}. The gain is real but "
+        "modest: most of what these records can tell is in the road and the type of crash.</p>"
+        "<p>Within one kind of road the ranking is harder, because the kind of road alone "
+        "separates many fatal crashes from the rest. The model ranks interurban crashes best "
+        f"(ROC-AUC {_auc(zone['interurban'].roc_auc)}) and urban ones less well "
+        f"({_auc(zone['urban'].roc_auc)}). "
+        + _through_town_text(yearly, published, zone["through_town"])
+        + (
+            " "
+            + _miss_text(outside, "On urban streets outside Barcelona city its estimates ran high")
+            + ", outside the interval of the observed share"
+            if _outside(outside)
+            else " On urban streets outside Barcelona city its estimates ran somewhat high "
+            f"({_fmt_pct(outside.mean_predicted)} against {_fmt_pct(outside.prevalence)} fatal)"
+        )
+        + "; in Barcelona city they were "
+        + (
+            "close"
+            if not _outside(city)
+            else ("low" if float(city.mean_predicted) < float(city.prevalence) else "high")
+        )
+        + f" ({_fmt_pct(city.mean_predicted)} against {_fmt_pct(city.prevalence)}).</p>"
     )
 
-    # ------------------------------------------------------------------- Barcelona person model
-    rule = rules.loc[PERSON]
-    fifths = bins(PERSON)
-    top, lowest = fifths.iloc[-1], fifths.iloc[:2]
-    part = FRACTIONS[len(fifths)]
-    _check(
-        abs(person.mean_predicted - person.prevalence)
-        <= CALIBRATION_LARGE_TOLERANCE * person.prevalence,
-        PAGE,
-        "the Barcelona predictions are right on average",
-    )
-    _check(person.calibration_slope < low, PAGE, "the Barcelona predictions are too spread out")
-    _check(
-        top.mean_predicted > top.observed
-        and (fifths.observed > fifths.mean_predicted).iloc[:-1].any(),
-        PAGE,
-        "the highest Barcelona scores overstate the outcome and a lower group understates it",
-    )
-    missed = int(lowest.positives.sum())
-    _check(
-        rule.roc_auc_gain_high - rule.roc_auc_gain_low
-        > rules.loc[CATALONIA].roc_auc_gain_high - rules.loc[CATALONIA].roc_auc_gain_low,
-        PAGE,
-        "the Barcelona gain is less precisely estimated than the Catalan one",
-    )
-    predicted, observed = _fmt_pct(person.mean_predicted), _fmt_pct(person.prevalence)
-    average = (
-        f"{predicted} predicted and observed"
-        if predicted == observed
-        else f"{predicted} predicted against {observed} observed"
-    )
-    test_span = (
-        f"{calendar.month_name[int(barcelona.group(3))]}–"
-        f"{calendar.month_name[int(barcelona.group(4))]} {year}"
-    )
-    body += f"<h2>{_title(NAMES[PERSON])} {decision_label(DECISIONS[PERSON])}</h2>"
-    body += _brief(
-        f"One person involved in a crash attended by Barcelona's police in {year}",
-        "Seriously injured (more than 24 hours in hospital) or killed",
-        f"{_fmt_int(person.n)} people, {test_span}; {_fmt_int(person.positives)} seriously or "
-        "fatally injured",
-        f"{rule.rule_roc_auc:.2f}, a table of shares by {RULE_LABELS[rule.rule][0]}",
-        f"{person.roc_auc:.2f} (95% interval {person.roc_auc_low:.2f}–{person.roc_auc_high:.2f})",
-        "Ranking only: it orders people better than its table, but its scores are too extreme "
-        "to read as probabilities",
-        NAMES[PERSON],
-    )
+    # ------------------------------------------------------------------- calculator
+    few = next(rule["threshold"] for rule in model["rules"] if rule["id"] == "few_similar")
+    body += "<h2>Try the model</h2>"
     body += (
-        "<p>Each person in the Guàrdia Urbana's records is a driver, a passenger or a "
-        "pedestrian. The model uses "
-        f"{_inputs(PERSON, catalogue, person.feature_set)}. It cannot predict who will be in a "
-        "crash: everyone in the data was in one, and the records hold no measure of how much "
-        "each group travels.</p>"
+        "<p>Describe a crash in which someone was killed or seriously injured, and the "
+        "calculator gives the model's estimate of the share of such crashes that were fatal, "
+        "with a 95% confidence interval, and the share that were fatal among the crashes the "
+        "model was fitted on, on the same kind of road in the same province. Those crashes "
+        f"leave out the {training['excluded_owner_not_recorded']:,} on conventional roads whose "
+        "owning network is not named (below). The estimate is a share among crashes already "
+        "recorded with a death or serious injury, not the chance that a crash happens or that "
+        "someone dies on a journey. "
+        "Three impossible combinations, such as a pedestrian struck with no pedestrian "
+        f"involved, are refused; combinations with fewer than {few} similar recorded crashes, "
+        "including none, still get an estimate, with a warning that it rests on the model's "
+        "assumptions.</p>"
     )
-    body += (
-        f"<p>It was fitted to the first {_word(train_months)} months of {year} and tested on "
-        f"the last {_word(test_months)}, in which {_fmt_int(person.positives)} of "
-        f"{_fmt_int(person.n)} people ({_fmt_pct(person.prevalence)}) were seriously or fatally "
-        f"injured. A table of shares by {RULE_LABELS[rule.rule][1]} reaches a ROC-AUC of "
-        f"{rule.rule_roc_auc:.2f}; the model reaches {person.roc_auc:.2f} (95% interval "
-        f"{person.roc_auc_low:.2f}–{person.roc_auc_high:.2f}), a gain of "
-        f"{rule.roc_auc_gain:.2f} ({_range(rule.roc_auc_gain_low, rule.roc_auc_gain_high)}). It "
-        f"ranks people better than the table, although with only {_fmt_int(person.positives)} "
-        "serious or fatal cases the gain is less precisely estimated than in Catalonia, and a "
-        "single year of records allows no test on a later year. The "
-        f"{part} of people it ranked highest ({_fmt_int(top.n)}) held {int(top.positives)} of "
-        f"the {_fmt_int(person.positives)} serious or fatal injuries; the two {part}s it ranked "
-        f"lowest ({_fmt_int(lowest.n.sum())} people) held "
-        f"{'none' if missed == 0 else _fmt_int(missed)}.</p>"
-    )
-    shown = subgroups[subgroups.dimension.isin(SUBGROUP_DIMENSIONS)]
-    enough = (shown.positives >= MIN_SUBGROUP_POSITIVES) & (
-        shown.n - shown.positives >= MIN_SUBGROUP_POSITIVES
-    )
-    _check(bool((shown.auc_reported == enough).all()), PAGE, "group scores need enough cases")
-    shown = shown[shown.auc_reported]
-    everyone = shown[shown.dimension.eq("all")].iloc[0]
-    groups = shown[shown.dimension.ne("all")]
-    roles = groups[groups.dimension.eq("role")].set_index("level")
-    pedestrians = roles.loc["pedestrian"]
-    best = groups.loc[groups.roc_auc.idxmax()]
-    _check(
-        pedestrians.roc_auc == groups.roc_auc.min() and pedestrians.roc_auc - 0.5 < 0.1,
-        PAGE,
-        "pedestrians are ranked worst, little better than chance",
-    )
-    _check(
-        pedestrians.observed == roles.observed.max() and pedestrians.observed > everyone.observed,
-        PAGE,
-        "pedestrians are the road users most often seriously hurt",
-    )
-    body += (
-        "<p>Its probabilities cannot be read literally. They are right on average "
-        f"({average}) but too extreme: in the highest {part} of scores the model predicted "
-        f"{_fmt_pct(top.mean_predicted)} against {_fmt_pct(top.observed)} observed, and lower "
-        "scores understated the observed share. The calibration slope is "
-        f"{person.calibration_slope:.2f}, well below 1. The model is therefore used only to "
-        "order records from lower to higher predicted severity.</p>"
-    )
-    body += (
-        "<p>It should not be used to rank pedestrians. Because the test months hold too few "
-        f"serious cases to score groups, every person recorded in {year} was scored by a "
-        "version of the model fitted without their crash. The ROC-AUC is then "
-        f"{pedestrians.roc_auc:.2f} for pedestrians, little better than chance, although "
-        "pedestrians are the road users most often seriously hurt "
-        f"({_fmt_pct(pedestrians.observed)}, against {_fmt_pct(everyone.observed)} for "
-        f"everyone); for {_subgroup_prose(best)} it is {best.roc_auc:.2f}. Its ranking has been "
-        f"shown only for people in crashes recorded by Barcelona's police in {year}.</p>"
-    )
+    body += _form(model)
     body += technical(
-        "Scores by group of road users",
-        table(
-            pd.DataFrame(
-                {
-                    "Group": [_subgroup_label(r) for r in shown.itertuples()],
-                    "People": shown.n,
-                    "Serious or fatal": shown.positives,
-                    "Observed share": shown.observed,
-                    "Average prediction": shown.mean_predicted,
-                    "ROC-AUC": shown.roc_auc,
-                }
-            ),
-            f"{NAMES[PERSON]} by group of road users, {year}: each person scored by a version "
-            f"fitted without their crash; groups with at least {MIN_SUBGROUP_POSITIVES} serious "
-            "or fatal cases.",
-            {
-                "People": "int",
-                "Serious or fatal": "int",
-                "Observed share": "pct",
-                "Average prediction": "pct",
-                "ROC-AUC": "dec2",
-            },
-        ),
-    )
-    ranked = reliance(PERSON)
-    first = ranked.head(4)
-    person_drops = list(first.auc_drop_mean)
-    _check(min(person_drops[:2]) >= 3 * person_drops[2], PAGE, "two variables dominate the model")
-    labels = [_feature(f) for f in first.feature]
-    body += (
-        f"<p>Shuffling {labels[0]} or {labels[1]} lowered the test ROC-AUC by "
-        f"{_pair(person_drops[0], person_drops[1])}; shuffling {labels[2]} or {labels[3]} "
-        f"lowered it by {_pair(person_drops[2], person_drops[3])}. The model relies mostly on "
-        f"{labels[0]} and {labels[1]}.</p>"
-    )
-    body += figure(
-        f"ml3_importance_{PERSON}",
-        f"Chart of the variables the {NAMES[PERSON]} relies on most, measured by the fall in "
-        f"its test ROC-AUC when each is shuffled; {labels[0]} and {labels[1]} stand far above "
-        "the rest.",
-        captions,
+        "What the inputs mean and what is left out",
+        "<p>Every input is something the police record about the road, the conditions or the "
+        "crash. The road is the zone and type of road and, for conventional roads, the network "
+        "that owns it. The posted limit is the signposted limit where the record gives one, "
+        "never a vehicle's speed; most records give none, and the road's generic limit "
+        "applies. “Vehicles and pedestrians involved” counts every vehicle and every "
+        "pedestrian. Information recorded only after the crash, such as the police's judgement "
+        "of which factors influenced it, is left out: it is written once the outcome is known, "
+        "so it would flatter the model without helping anyone predict.</p>",
     )
 
-    # ------------------------------------------------------------------- Barcelona crash table
-    rule = rules.loc[CRASH]
-    _check(
-        rule.roc_auc_gain_low < 0 < rule.roc_auc_gain_high,
-        PAGE,
-        "the Barcelona crash model ranks no better than its table",
-    )
-    types = crashes[crashes.dimension.eq("crash type") & crashes.n.ge(MIN_N)].sort_values(
-        "share", ascending=False
-    )
-    _check(not types.empty, PAGE, "the accident-type table exists")
-    coded = types.set_index("level")
-    _check(
-        {CATCHING_UP, REAR_END} <= set(coded.index)
-        and CATCHING_UP in SOURCE_TYPE
-        and REAR_END in SOURCE_TYPE,
-        PAGE,
-        "the two rear collision types are in the table, with their source categories",
-    )
-    body += f"<h2>{_title(NAMES[CRASH])} {decision_label(DECISIONS[CRASH])}</h2>"
-    body += _brief(
-        f"One crash attended by Barcelona's police in {year}",
-        "Anyone seriously or fatally injured",
-        f"{_fmt_int(crash.n)} crashes, {test_span}; {_fmt_int(crash.positives)} with a serious "
-        "or fatal injury",
-        f"{rule.rule_roc_auc:.2f}, a table of shares by {RULE_LABELS[rule.rule][0]}",
-        f"{crash.roc_auc:.2f} (95% interval {crash.roc_auc_low:.2f}–{crash.roc_auc_high:.2f})",
-        "Replaced by table: the model ranks crashes no better than the table, which is shown "
-        "below instead",
-        NAMES[CRASH],
-    )
+    # ------------------------------------------------------------------- what it shows
+    first_period, second_period = (p.replace("-", "–") for p in stability_periods[:2])
+    body += "<h2>Crashes involving a heavy vehicle: about twice the fatal share</h2>"
     body += (
-        "<p>The model used "
-        f"{_inputs(CRASH, catalogue, crash.feature_set)}. On the {_fmt_int(crash.n)} crashes of "
-        f"the test months ({_fmt_int(crash.positives)} with a serious or fatal injury) it "
-        f"reached a ROC-AUC of {crash.roc_auc:.2f}, against {rule.rule_roc_auc:.2f} for a table "
-        f"of shares by {RULE_LABELS[rule.rule][1]}: a difference of {_signed(rule.roc_auc_gain)} "
-        f"(95% interval {_range(rule.roc_auc_gain_low, rule.roc_auc_gain_high)}). A ROC-AUC of "
-        f"{crash.roc_auc:.2f} is well above chance, but the one-column table ranks crashes as "
-        "well, so the table is used in place of the model. The table below is computed over all "
-        "crashes of the year.</p>"
+        "<p>Starting from a typical crash on a regional road and changing one thing at a time "
+        "shows which circumstances the records associate with a fatal outcome. The largest "
+        "increase comes with a heavy vehicle: with a lorry or bus involved, the estimated fatal "
+        f"share is {float(heavy.ratio):.2f} times that of the same crash between cars (95% "
+        f"confidence interval {float(heavy.ratio_low):.2f}–{float(heavy.ratio_high):.2f}). A "
+        f"crash within a junction carries {float(junction.ratio):.2f} times the share of one "
+        f"between junctions ({float(junction.ratio_low):.2f}–{float(junction.ratio_high):.2f}). "
+        f"Refitted separately on {first_period} and on {second_period}, "
+        f"{_words(len(held))} of the {_words(len(EXAMPLES))} changes in the table below have "
+        "95% intervals on the same side of 1 in both periods (the two ratios in brackets): "
+        f"{_join(held)}. For the other {_words(len(unsettled))} the interval "
+        f"includes 1 in at least one period, so they should not be read as settled: "
+        f"{_join(unsettled)}.</p>"
     )
-    body += table(
-        pd.DataFrame(
-            {
-                "Accident type": types.label.str[:1].str.upper() + types.label.str[1:],
-                "Crashes": types.n,
-                "Serious or fatal": types.events,
-                "Share": types.share,
-                "95% interval": [
-                    f"{_fmt_pct(lo)[:-1]}–{_fmt_pct(hi)}"
-                    for lo, hi in zip(types.ci_low, types.ci_high)
-                ],
-            }
-        ),
-        f"Barcelona, {year}: share of crashes with a serious or fatal injury, by accident type as "
-        f"coded by the Guàrdia Urbana (types with at least {MIN_N} crashes).",
-        {"Crashes": "int", "Serious or fatal": "int", "Share": "pct"},
-    )
-    body += (
-        "<p>The Guàrdia Urbana codes a rear collision while catching up "
-        f'(<i lang="ca">{esc(SOURCE_TYPE[CATCHING_UP].lower())}</i>, '
-        f"{_fmt_int(coded.n[CATCHING_UP])} crashes) separately from a rear-end collision "
-        f'(<i lang="ca">{esc(SOURCE_TYPE[REAR_END].lower())}</i>, '
-        f"{_fmt_int(coded.n[REAR_END])}).</p>"
+    body += _examples_table(contrasts, base)
+    body += evidence_note(
+        "These compare crashes that had already killed or seriously injured someone. A smaller "
+        "fatal share in heavy rain or at a junction does not mean that rain or junctions are "
+        "safer: they may bring more crashes, slower and less often fatal. A posted limit is not "
+        "a speed. Each figure is an association in police records, adjusted for the other "
+        "inputs, not the effect of changing a road or a vehicle. The same circumstances among "
+        "all injury crashes in Spain, with deaths counted within 30 days, are on "
+        '<a href="severity.html">Crash circumstances in Spain</a>; Catalonia\'s unadjusted '
+        'fatal shares are on <a href="catalonia.html">Catalonia</a>.'
     )
 
-    # ------------------------------------------------------------------- how they were judged
-    body += "<h2>How the models were judged</h2>"
-    body += figure(
-        "ml1_test_auc",
-        "Dot chart of the ROC-AUC on the test records for each of the three models, the "
-        "descriptive table it was compared with and a baseline that gives every case the same "
-        "probability, with 95% intervals for the models. The Catalonia and Barcelona person "
-        "models score above their tables; the Barcelona crash model scores level with its table.",
-        captions,
+    # ------------------------------------------------------------------- method
+    specification = (
+        "one term for each other input, the same on every kind of road"
+        if published.specification == "common"
+        else "one term for each other input, which may differ between urban streets and "
+        "interurban roads"
     )
+    body += "<h2>How the model was built</h2>"
     body += (
-        "<p>Each model's benchmark was a table of the share of severe outcomes in each group "
-        "of the training "
-        "records, using the grouping a descriptive analysis would lead with, fixed before the "
-        f"test. A model was kept only if it beat its table by at least {MIN_GAIN:.2f} of "
-        "ROC-AUC, with a 95% interval for the difference above zero, and its probabilities were "
-        "read as estimates only if their average was within "
-        f"{_fmt_pct(CALIBRATION_LARGE_TOLERANCE, 0)} of the observed share and the calibration "
-        f"slope lay between {low:g} and {high:g}. Both rules were set before any test result "
-        "was read.</p>"
-    )
-    body += figure(
-        "ml2_calibration",
-        f"Calibration chart for the {NAMES[CATALONIA]} and the {NAMES[PERSON]}: the observed "
-        "share of cases with the outcome against the average predicted probability, in "
-        f"equal-sized groups of test records. The {NAMES[CATALONIA]}'s points lie close to the "
-        "diagonal, where predicted and observed shares are equal; the "
-        f"{NAMES[PERSON]}'s points are bunched at low probabilities.",
-        captions,
-    )
-
-    # ---------------------------------------------------------------- prediction, not causes
-    gains = {m: retro.loc[m].roc_auc - primary.loc[m].roc_auc for m in models}
-    _check(
-        all(0 < gains[m] < 0.01 for m in kept),
-        PAGE,
-        "information recorded after the crash improves the kept models by less than 0.01",
-    )
-    insufficient = rare.verdict.str.startswith("insufficient")
-    speed, drugs = rare.loc["excessive or inappropriate speed"], rare.loc["drugs or medication"]
-    _check(
-        bool(insufficient["excessive or inappropriate speed"])
-        and bool(insufficient["drugs or medication"]),
-        PAGE,
-        "speed and drugs are too rare to model",
-    )
-    body += "<h2>What the models do not show</h2>"
-    body += (
-        "<p>The models rank recorded crashes and people by how severe the outcome was, using "
-        "associations in the records. They do not explain why outcomes were severe, and the "
-        "records contain no measure of how much anyone travels. Information recorded after the "
-        "outcome was known, such as the causes the Barcelona police record, is left out of the "
-        "models used for prediction.</p>"
-    )
-
-    # -------------------------------------------------------------------------------- technical
-    forecast = decisions[decisions.model.eq("dgt_monthly_deaths_forecast")].decision.iloc[0]
-    _check(forecast not in decision_rules.FEATURED, PAGE, "the forecast is not a featured model")
-    performance = pd.DataFrame(
-        {
-            "Model": [SHORT[m] for m in models],
-            "Test records": [primary.loc[m].n for m in models],
-            "With outcome": [
-                f"{_fmt_int(primary.loc[m].positives)} ({_fmt_pct(primary.loc[m].prevalence)})"
-                for m in models
-            ],
-            "ROC-AUC": [
-                f"{primary.loc[m].roc_auc:.2f} ({primary.loc[m].roc_auc_low:.2f}–"
-                f"{primary.loc[m].roc_auc_high:.2f})"
-                for m in models
-            ],
-            "PR-AUC": [primary.loc[m].pr_auc for m in models],
-            "Brier": [_fmt_dec(primary.loc[m].brier, 3) for m in models],
-            "Calibration slope": [
-                f"{primary.loc[m].calibration_slope:.2f} "
-                f"({primary.loc[m].calibration_slope_low:.2f}–"
-                f"{primary.loc[m].calibration_slope_high:.2f})"
-                for m in models
-            ],
-        }
-    )
-    comparison = pd.DataFrame(
-        {
-            "Model": [SHORT[m] for m in models],
-            "Table grouping": [RULE_LABELS[rules.loc[m].rule][0] for m in models],
-            "Groups": [rules.loc[m].rule_groups_in_training for m in models],
-            "Table ROC-AUC": [rules.loc[m].rule_roc_auc for m in models],
-            "Model ROC-AUC": [rules.loc[m].model_roc_auc for m in models],
-            "Difference": [
-                f"{_signed(rules.loc[m].roc_auc_gain)} ({_signed(rules.loc[m].roc_auc_gain_low)} "
-                f"to {_signed(rules.loc[m].roc_auc_gain_high)})"
-                for m in models
-            ],
-            "Beats the table": ["yes" if m in kept else "no" for m in models],
-        }
-    )
-    later = pd.DataFrame(
-        {
-            "Model": [SHORT[m] for m in models],
-            "Information added": [RETROSPECTIVE[m] for m in models],
-            "ROC-AUC": [f"{retro.loc[m].roc_auc:.3f}" for m in models],
-            "Main model": [f"{primary.loc[m].roc_auc:.3f}" for m in models],
-            "Difference": [_signed(gains[m], 3) for m in models],
-        }
-    )
-    geography = []
-    for name, broad_place, fine_place in (
-        (CATALONIA, "province", "municipality"),
-        (PERSON, "district", "neighbourhood"),
-    ):
-        row = primary.loc[name]
-        geo = places[
-            places.model.eq(name)
-            & places.feature_set.eq(row.feature_set)
-            & places.estimator.eq(row.estimator)
-        ].set_index("geography")
-        fine, broad = geo.loc["granular"], geo.loc["broad"]
-        _check(
-            row.geography == "broad"
-            and fine.test_roc_auc < broad.test_roc_auc
-            and fine.training_fit_roc_auc > fine.test_roc_auc,
-            PAGE,
-            f"{name}: the finest geography fits training better and tests worse",
+        f"<p>The model is a logistic regression fitted to the {training['crashes']:,} crashes "
+        f"of {training['years'][0]}–{training['years'][1]} in the Servei Català de Trànsit's "
+        "file. It has a starting level for each zone (urban street, road through a town, "
+        f"interurban road) in each province, and {specification}. Its settings were chosen "
+        "by the rule used for every test year: fitted on "
+        f"{published.train_years.replace('-', '–')} and scored on "
+        f"{published.validation_years.replace('-', '–')}, the "
+        f"{SPECIFICATION_WORDS[published.specification]} predicted better than the "
+        f"{SPECIFICATION_WORDS[_other(published.specification)]}, with a penalty setting C "
+        f"of {_fmt_c(published.c)} (a smaller C penalises the terms more strongly), chosen "
+        f"from values between {_fmt_c(chosen_grid.c.min())} and {_fmt_c(chosen_grid.c.max())} "
+        "(the grid is extended while its best value lies at an end) and better than its "
+        "neighbours on both sides; "
+        + (
+            "roads through towns get the average because it predicted those years better than "
+            "the model; "
+            if published.through_town == "average"
+            else "roads through towns get the model's estimate because it predicted those "
+            "years better than the average; "
         )
-        geography.append(
-            f"With {fine_place} in place of {broad_place}, the {NAMES[name]} reaches a ROC-AUC of "
-            f"{fine.training_fit_roc_auc:.2f} on its training records but "
-            f"{fine.test_roc_auc:.2f} on the test records, against {broad.test_roc_auc:.2f} with "
-            f"{broad_place}."
+        + (
+            "and each province has a starting level of its own because that predicted those "
+            "years better than one level per zone for all of Catalonia. "
+            if bool(published.provinces)
+            else "and the provinces share one starting level per zone because that predicted "
+            "those years better than a level for each. "
         )
-    methods: dict[str, list[str]] = {}
-    for name in models:
-        methods.setdefault(METHODS[primary.loc[name].estimator], []).append(name)
-    chosen = "; ".join(
-        f"{method} for the {_join([SHORT[m] for m in names])} model{'s' if len(names) > 1 else ''}"
-        for method, names in methods.items()
+        + "In the test years the same rule chose the model whose terms may differ by kind of "
+        f"road in {_words(int((yearly.specification == 'by_zone').sum()))} of the "
+        f"{_words(len(yearly))} years, with C from {_fmt_c(yearly.c.min())} to "
+        f"{_fmt_c(yearly.c.max())}, and a starting level for each province in "
+        f"{_words(int(yearly.provinces.astype(bool).sum()))}"
+        + (
+            f"; in {_join([str(int(y)) for y in at_limit.test_year])} the best penalty was the "
+            "weakest the grid allows, where the validation loss had stopped changing, so that "
+            "year's model is in effect unpenalised"
+            if len(at_limit)
+            else ""
+        )
+        + ". Its intervals come from refitting it on resampled crashes, and the calculator and "
+        "the table above use the same arithmetic.</p>"
+        "<p>Left out are "
+        f"{training['excluded_owner_not_recorded']:,} crashes on conventional roads whose owner "
+        "is recorded as “other” or left blank: a blank owner is far commoner on fatal records "
+        "and “other” on non-fatal ones, so the field records how a crash was documented, not "
+        "the road. The estimates, the averages and the tests therefore describe crashes on "
+        "roads with a named owning network or of another type. The crashes left out were "
+        f"fatal in {_fmt_pct(excluded.fatal_share)} of cases. With them, "
+        f"{_fmt_pct(everything.fatal_share)} of all crashes would count as fatal instead of "
+        f"{_fmt_pct(fitted_all.fatal_share)}, and {_fmt_pct(everything_interurban.fatal_share)} "
+        f"of interurban crashes instead of {_fmt_pct(fitted_interurban.fatal_share)}.</p>"
+        "<p>Before this test was nested, the penalty had been chosen on "
+        f"{PREVIOUS_YEARS}, which are also test years, and the form of the model, the rule "
+        "for roads through towns and the starting level for each province had been settled on "
+        "the test scores themselves, so its score "
+        f"was not a test on untouched years: a ROC-AUC of {_auc(previous.roc_auc)}, against "
+        f"{_auc(previous.table_roc_auc)} for the table. With every choice nested it is "
+        f"{_auc(nested.roc_auc)}"
+        + (
+            ": the earlier choices had not flattered it."
+            if float(nested.roc_auc) >= float(previous.roc_auc) - 0.005
+            else ": part of the earlier score came from choices made on the test years."
+        )
+        + " A more flexible method, "
+        f"gradient-boosted trees, ranked crashes {trees_compared} ({_auc(trees.roc_auc)}) but "
+        "gives no interval for an estimate and cannot be read term by term, so the logistic "
+        "model is the one published.</p>"
+        "<p>The model has been tested only within Catalonia. Fitted on three of the four "
+        "provinces without province terms, with its settings chosen on those three, it ranked "
+        f"the fourth's crashes with a ROC-AUC of {_auc(left_out.roc_auc.min())} to "
+        f"{_auc(left_out.roc_auc.max())}. Its estimates of the fatal share missed in "
+        f"{_words(len(left_out_misses))} of the four: "
+        + _join(
+            [
+                f"{name} {_fmt_pct(row.mean_predicted)} estimated against "
+                f"{_fmt_pct(row.prevalence)} observed "
+                f"({_range(row.observed_low, row.observed_high)})"
+                for name, row in left_out_misses.iterrows()
+            ]
+        )
+        + "; it lay inside the observed interval only in "
+        + _join(
+            [
+                f"{name} ({_fmt_pct(row.mean_predicted)} against {_fmt_pct(row.prevalence)})"
+                for name, row in left_out_fits.iterrows()
+            ]
+        )
+        + ". With a term for each province, the published model came closer to each "
+        "province's observed share in the test on later years, though not in every zone "
+        "(above); it should not be used for a place it was not fitted on. These and the other "
+        'tests are on <a href="validation.html">External '
+        "validation</a>. The project's Barcelona models are not used as predictors: the crash "
+        "model ranked crashes no better than a table of shares by type of accident, and the "
+        "person model can only rank people, not give probabilities. Every model the project "
+        f'fitted is re-evaluated in <a href="{REVIEW_DOC}">the model review</a>, and this one '
+        f'is documented in <a href="{CALCULATOR_DOC}">its own report</a>.</p>'
     )
-    cards = ", ".join(
-        f'<a href="{DOCS_URL}/{CARDS[m]}">{esc(NAMES[m])}</a>' for m in models if m in CARDS
+
+    body += limitation(
+        f"The model describes crashes recorded in Catalonia in {training['years'][0]}–"
+        f"{training['years'][1]} on roads with a named owning network or of another type. "
+        "“Fatal” means a death within 24 hours, the Servei Català de "
+        "Trànsit's definition; Spain's official figures count deaths within 30 days, so the "
+        "shares here are lower than a 30-day share would be. The inputs are police records, "
+        "coded as recorded."
     )
-    details = (
-        "<p>For each model a logistic regression and gradient-boosted trees were fitted, and the "
-        f"method that ranked the validation records better was used: {chosen}. The Barcelona "
-        "models' settings were chosen by cross-validation within the training months that keeps "
-        "all the records of one crash together. PR-AUC is the average precision over all "
-        "thresholds; its chance level is the share of test records with the outcome. The Brier "
-        "score is the mean squared error of the predicted probabilities (lower is better). "
-        "Intervals are 95% bootstrap intervals that resample crashes.</p>"
-    )
-    details += table(
-        performance,
-        "Results on the test records, with 95% intervals. Outcome: a fatal crash (Catalonia); a "
-        "serious or fatal injury (Barcelona).",
-        {"Test records": "int", "PR-AUC": "dec2"},
-    )
-    details += table(
-        comparison,
-        "Each model against its table, on the same test records: ROC-AUC, and the difference "
-        "with its 95% interval.",
-        {"Groups": "int", "Table ROC-AUC": "dec2", "Model ROC-AUC": "dec2"},
-    )
-    details += (
-        "<p>A second version of each model adds information recorded after the crash. Because "
-        "that information is known only once the crash has been investigated, these versions are "
-        "not used for prediction; they measure how much the information changes the ranking. "
-        "It improves the kept models' ranking by less than 0.01.</p>"
-    )
-    details += table(
-        later,
-        "Versions with information recorded after the crash, on the same test records (ROC-AUC "
-        "to three decimals).",
-    )
-    details += (
-        "<p>Some causes recorded by the Barcelona police are too rare to model at all, among "
-        f"them excessive or inappropriate speed ({_fmt_int(speed.crashes_recorded)} crashes in "
-        f"{year}) and drugs or medication ({_fmt_int(drugs.crashes_recorded)}).</p>"
-    )
-    details += (
-        "<p>Replacing the broad place variable with the most detailed one raises the fit on the "
-        "training records and lowers the test score, the pattern of a model that memorises "
-        "places. " + " ".join(geography) + " The broad variables are used.</p>"
-    )
-    details += (
-        f'<p>Model cards: {cards}. The <a href="{DOCS_URL}/MODEL_DECISIONS.md">model decision '
-        "record</a> lists every model considered and the rule applied to each, including the "
-        "versions built only for validation, the association analysis of DGT's crash records "
-        '(<a href="severity.html">crash circumstances</a>) and the <a href="forecast.html">'
-        f'monthly deaths forecast</a>. The <a href="{DOCS_URL}/ML_LEAKAGE_AUDIT.md">audit of '
-        "variables recorded after the crash</a> sets out which were excluded.</p>"
-    )
-    body += technical("Detailed model diagnostics", details)
     body += downloads(
         [
-            ("ml_rule_comparison", "models against tables"),
-            ("ml_selected", "selected models"),
-            ("ml_variants", "all versions"),
-            ("ml_calibration", "calibration groups"),
-            ("ml_importance", "variable importance"),
-            ("ml_subgroup_validation", "scores by group"),
-            ("ml_geography", "geography check"),
-            ("ml_feature_catalogue", "variables"),
-            ("ml_split_isolation", "split checks"),
-            ("ml_rare_causes", "recorded causes"),
-            ("ml_model_decisions", "model decisions"),
+            ("sev_calibration", "predicted against observed, by tenth"),
+            ("sev_rolling_scores", "scores by year, zone, province and Barcelona city"),
+            ("sev_comparison", "differences between the model, the trees and the table"),
+            ("sev_choices", "the settings chosen for each test year and for the model"),
+            ("sev_penalty", "every setting tried, with its validation score"),
+            ("sev_nested_steps", "from the earlier design to the nested test, step by step"),
+            ("sev_geography", "provinces and Barcelona city left out"),
+            ("sev_population", "the crashes left out and the fatal share"),
+            ("sev_contrasts", "one input changed at a time"),
+            ("sev_marginal_adjusted", "raw and standardised shares"),
+            ("sev_stability", "the contrasts on earlier and later years"),
+            ("sev_coefficients", "coefficients and bootstrap standard errors"),
         ],
-        method=("data.html#models", "how the models were built and judged"),
+        method=(CALCULATOR_DOC, "how the model was built and checked"),
     )
     return render_page(
         "severity-models",
-        "Models of crash and injury severity",
-        "Three models trained on Catalan and Barcelona crash records, each judged on later "
-        "records it had not seen and against a simple table of the same records: two are kept, "
-        "one is replaced by its table.",
+        "Crash severity model and calculator",
+        "How well the Catalan severity model tells which crashes with a death or serious injury "
+        "in Catalonia were fatal, tested by predicting each year from a model fitted and tuned "
+        "on the years before it, and a calculator to try it.",
         body,
+        head='\n<script src="models/severity-engine.js" defer></script>'
+        '\n<script src="models/severity-calculator.js" defer></script>',
     )

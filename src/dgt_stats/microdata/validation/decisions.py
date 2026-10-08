@@ -44,6 +44,51 @@ REPLACE = "REPLACE with descriptive table"
 DROP = "DROP"
 OUTCOMES = (KEEP_PREDICTIVE, KEEP_RANKING, KEEP_RESEARCH, REPLACE, DROP)
 FEATURED = (KEEP_PREDICTIVE, KEEP_RANKING)
+# What the independent re-evaluation (docs/research/ML_MODEL_REVIEW.md) did with a model after
+# the rules above had decided it. The rules' decision is kept as the record; the site follows this,
+# and every document names a model by its status here.
+AFTER_REVIEW = {
+    "catalonia_crash_severity": (
+        "retired: its strongest predictor, the road's owner, records how a crash was documented "
+        "(a blank owner on a conventional road is far commoner on fatal records). The published "
+        "Catalan model is the crash-severity calculator's (`severity_model.py`), tested in "
+        "[`GENERALISABILITY.md`](GENERALISABILITY.md)"
+    ),
+    "barcelona_crash_severity": "removed; the site reports its table of shares by accident type",
+    "barcelona_person_severity": "kept for research only; the site shows no probability from it",
+    "dgt_monthly_deaths_forecast": (
+        "withdrawn: it forecast the held-out ordinary years less accurately than last year's "
+        "count, and the detectable change computed from its errors was withdrawn with it; its "
+        "page is a withdrawal notice and its tables are kept as the record"
+    ),
+}
+# The same status in a word or two, as the site gives it.
+STATUS = {
+    "catalonia_crash_severity": "retired",
+    "barcelona_crash_severity": "removed",
+    "barcelona_person_severity": "research only",
+    "dgt_monthly_deaths_forecast": "withdrawn",
+}
+# The model the site publishes, the crash-severity calculator's, was built by the re-evaluation
+# (``severity_model.py``) and decided there, not by the rules above; its scores are in
+# docs/research/SEVERITY_CALCULATOR.md, and the decision document points to them.
+CALCULATOR = {
+    "model": "catalonia_severity_calculator",
+    "variant": "penalised logistic regression",
+    "unit": "one Catalan crash with a death or serious injury, on a road a reader can choose",
+    "target": "fatal (a death within 24 hours) rather than serious",
+    "source": "Servei Català de Trànsit, 2010-2023",
+    "baseline": "road x crash type table, scored on the same years "
+    "([`SEVERITY_CALCULATOR.md`](research/SEVERITY_CALCULATOR.md))",
+    "ml": "nested rolling origin, 2016-2023; 2023 is the file's last year, so no later year is "
+    "left for a separate holdout ([`SEVERITY_CALCULATOR.md`](research/SEVERITY_CALCULATOR.md))",
+    "transfer_evidence": "[`GENERALISABILITY.md`](GENERALISABILITY.md)",
+    "usefulness": "decided by the model review ([`ML_MODEL_REVIEW.md`](research/ML_MODEL_REVIEW.md))",
+    "decision": "not run through these rules",
+    "status": "the published model, behind the calculator",
+}
+# Its name in the outward-path table.
+CALCULATOR_PATH_NAME = "calculator"
 
 LEVELS = {
     0: "none",
@@ -268,7 +313,7 @@ def national_rows(tables: dict[str, pd.DataFrame]) -> list[dict]:
     # its model from the decision table silently.
     for name, script in (
         ("q3_holdout_summary", "scripts/model.py"),
-        ("forecast_validation", "scripts/analyse.py tables"),
+        ("forecast_validation", "scripts/analyse.py withdrawn"),
     ):
         if not (TABLES_DIR / f"{name}.csv").exists():
             raise FileNotFoundError(f"{name}.csv is missing: run {script} before the validation")
@@ -420,8 +465,19 @@ def _md(frame: pd.DataFrame) -> str:
     return "\n".join([head, sep, *body])
 
 
-def document(frame: pd.DataFrame) -> str:
-    summary = frame[list(COLUMNS)].rename(
+def document(frame: pd.DataFrame, path: pd.DataFrame | None = None) -> str:
+    """``docs/MODEL_DECISIONS.md`` from the decision table and, for the calculator's row, the
+    outward path (``ml_outward_path``)."""
+    level = "see [`GENERALISABILITY.md`](GENERALISABILITY.md)"
+    if path is not None and path.model.eq(CALCULATOR_PATH_NAME).any():
+        level = _level(path, CALCULATOR_PATH_NAME)[1]
+    calculator = {**CALCULATOR, "highest_validated_level_name": level}
+    table = pd.concat([frame, pd.DataFrame([calculator])], ignore_index=True)
+    table["status"] = [
+        calculator["status"] if model == CALCULATOR["model"] else STATUS.get(model, "as decided")
+        for model in table.model
+    ]
+    summary = table[[*COLUMNS, "status"]].rename(
         columns={
             "model": "Model",
             "variant": "Variant",
@@ -433,7 +489,8 @@ def document(frame: pd.DataFrame) -> str:
             "transfer_evidence": "Transfer evidence",
             "highest_validated_level_name": "Highest validated level",
             "usefulness": "Usefulness",
-            "decision": "Decision",
+            "decision": "Decision by the rules",
+            "status": "Status after the review",
         }
     )
     lines = [
@@ -445,19 +502,35 @@ def document(frame: pd.DataFrame) -> str:
         "For every model: does it provide useful information beyond a simple descriptive table,",
         "how far its evidence reaches, and what it does not answer. Possible decisions: "
         + "; ".join(OUTCOMES)
-        + ". Only the first two are featured on the site as models.",
+        + ". Only the first two could be featured on the site as models; the model the site "
+        "features was decided by the review instead (below).",
         "",
         "Levels: 1 same source, 2 later time, 3 another region, 4 another recording source, 5",
         "Spain nationally ([`GENERALISABILITY.md`](GENERALISABILITY.md)).",
+        "",
+        "The decisions are those the rules gave the original models. An independent",
+        "re-evaluation ([`research/ML_MODEL_REVIEW.md`](research/ML_MODEL_REVIEW.md)) then",
+        "changed what the site does with some of them. Its status is the one every page and",
+        "document gives; the decision by the rules is kept as the record:",
+        "",
+        *[f"- `{model}`: {status}." for model, status in AFTER_REVIEW.items()],
+        "",
+        "The re-evaluation also built the model the site publishes, the crash-severity",
+        "calculator's (`catalonia_severity_calculator`, `severity_model.py`), and decided it",
+        "itself. Its benchmark, scores and calibration are in",
+        "[`research/SEVERITY_CALCULATOR.md`](research/SEVERITY_CALCULATOR.md), and its card is",
+        "[`models/catalonia_severity_calculator.md`](models/catalonia_severity_calculator.md).",
         "",
         _md(summary),
         "",
     ]
     for row in frame.itertuples():
+        after = AFTER_REVIEW.get(row.model)
         lines += [
             f"## {row.model} ({row.variant})",
             "",
-            f"- **Decision:** {row.decision}.",
+            f"- **Decision by the rules:** {row.decision}.",
+            *([f"- **Status after the review:** {after}."] if after else []),
             f"- **Unit / target / source:** {row.unit}; {row.target}; {row.source} ({row.layer}).",
             f"- **What it does:** {row.question_answered}.",
             f"- **Not answered:** {row.question_not_answered}.",
@@ -477,5 +550,5 @@ def run(tables: dict[str, pd.DataFrame]) -> dict[str, pd.DataFrame]:
     if unknown:
         raise ValueError(f"decisions outside the declared outcomes: {unknown}")
     frame.to_csv(TABLES_DIR / "ml_model_decisions.csv", index=False)
-    DOC.write_text(document(frame), encoding="utf-8")
+    DOC.write_text(document(frame, tables.get("ml_outward_path")), encoding="utf-8")
     return {"ml_model_decisions": frame}

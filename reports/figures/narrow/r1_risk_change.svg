@@ -1,0 +1,514 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+  "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="264.71952pt" height="591.59952pt" viewBox="0 0 264.71952 591.59952" xmlns="http://www.w3.org/2000/svg" version="1.1">
+ <metadata>
+  <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+   <cc:Work>
+    <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
+    <dc:format>image/svg+xml</dc:format>
+    <dc:creator>
+     <cc:Agent>
+      <dc:title>Matplotlib v3.11.2, https://matplotlib.org/</dc:title>
+     </cc:Agent>
+    </dc:creator>
+   </cc:Work>
+  </rdf:RDF>
+ </metadata>
+ <defs>
+  <style type="text/css">text{white-space:pre}@font-face{font-family:'STIX Two Text';font-weight:400;src:url(data:font/woff;base64,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) format('woff')}*{stroke-linejoin: round; stroke-linecap: butt}</style>
+ </defs>
+ <g id="figure_1">
+  <g id="patch_1">
+   <path d="M 0 591.59952 
+L 264.71952 591.59952 
+L 264.71952 0 
+L 0 0 
+z
+" style="fill: #ffffff"/>
+  </g>
+  <g id="axes_1">
+   <g id="patch_2">
+    <path d="M 91.712656 174.61936 
+L 258.95952 174.61936 
+L 258.95952 20.999 
+L 91.712656 20.999 
+z
+" style="fill: #ffffff"/>
+   </g>
+   <g id="matplotlib.axis_1">
+    <g id="xtick_1">
+     <g id="line2d_1">
+      <path d="M 114.301333 174.61936 
+L 114.301333 20.999 
+" clip-path="url(#p21a54795dc)" style="fill: none; stroke: #ebebe8; stroke-width: 0.8; stroke-linecap: round"/>
+     </g>
+     <g id="line2d_2">
+      <defs>
+       <path id="md614d822b1" d="M 0 0 
+L 0 3 
+" style="stroke: #b5b5b0; stroke-width: 0.8"/>
+      </defs>
+      <g>
+       <use xlink:href="#md614d822b1" x="114.301333" y="174.61936" style="fill: #b5b5b0; stroke: #b5b5b0; stroke-width: 0.8"/>
+      </g>
+     </g>
+     <g id="text_1">
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: middle; fill: #555555" x="114.301333" y="187.97736" transform="rotate(-0 114.301333 187.97736)">0.9</text>
+     </g>
+    </g>
+    <g id="xtick_2">
+     <g id="line2d_3">
+      <path d="M 152.787926 174.61936 
+L 152.787926 20.999 
+" clip-path="url(#p21a54795dc)" style="fill: none; stroke: #ebebe8; stroke-width: 0.8; stroke-linecap: round"/>
+     </g>
+     <g id="line2d_4">
+      <g>
+       <use xlink:href="#md614d822b1" x="152.787926" y="174.61936" style="fill: #b5b5b0; stroke: #b5b5b0; stroke-width: 0.8"/>
+      </g>
+     </g>
+     <g id="text_2">
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: middle; fill: #555555" x="152.787926" y="187.97736" transform="rotate(-0 152.787926 187.97736)">1</text>
+     </g>
+    </g>
+    <g id="xtick_3">
+     <g id="line2d_5">
+      <path d="M 191.274518 174.61936 
+L 191.274518 20.999 
+" clip-path="url(#p21a54795dc)" style="fill: none; stroke: #ebebe8; stroke-width: 0.8; stroke-linecap: round"/>
+     </g>
+     <g id="line2d_6">
+      <g>
+       <use xlink:href="#md614d822b1" x="191.274518" y="174.61936" style="fill: #b5b5b0; stroke: #b5b5b0; stroke-width: 0.8"/>
+      </g>
+     </g>
+     <g id="text_3">
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: middle; fill: #555555" x="191.274518" y="187.97736" transform="rotate(-0 191.274518 187.97736)">1.1</text>
+     </g>
+    </g>
+    <g id="xtick_4">
+     <g id="line2d_7">
+      <path d="M 229.761111 174.61936 
+L 229.761111 20.999 
+" clip-path="url(#p21a54795dc)" style="fill: none; stroke: #ebebe8; stroke-width: 0.8; stroke-linecap: round"/>
+     </g>
+     <g id="line2d_8">
+      <g>
+       <use xlink:href="#md614d822b1" x="229.761111" y="174.61936" style="fill: #b5b5b0; stroke: #b5b5b0; stroke-width: 0.8"/>
+      </g>
+     </g>
+     <g id="text_4">
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: middle; fill: #555555" x="229.761111" y="187.97736" transform="rotate(-0 229.761111 187.97736)">1.2</text>
+     </g>
+    </g>
+   </g>
+   <g id="matplotlib.axis_2">
+    <g id="ytick_1">
+     <g id="line2d_9"/>
+     <g id="text_5">
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="88.212656" y="40.971731" transform="rotate(-0 88.212656 40.971731)">Count</text>
+     </g>
+    </g>
+    <g id="ytick_2">
+     <g id="line2d_10"/>
+     <g id="text_6">
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="88.212656" y="64.605633" transform="rotate(-0 88.212656 64.605633)">Per resident</text>
+     </g>
+    </g>
+    <g id="ytick_3">
+     <g id="line2d_11"/>
+     <g id="text_7">
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #555555" transform="translate(16.887656 89.676357)">Drivers per licence</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #555555" transform="translate(63.397969 100.926357)">holder</text>
+     </g>
+    </g>
+    <g id="ytick_4">
+     <g id="line2d_12"/>
+     <g id="text_8">
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #555555" transform="translate(33.150938 126.308904)">Occupants per</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #555555" transform="translate(21.834844 137.558904)">registered vehicle</text>
+     </g>
+    </g>
+    <g id="ytick_5">
+     <g id="line2d_13"/>
+     <g id="text_9">
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="88.212656" y="161.504629" transform="rotate(-0 88.212656 161.504629)">Per tonne of road fuel</text>
+     </g>
+    </g>
+   </g>
+   <g id="line2d_14">
+    <path d="M 152.787926 174.61936 
+L 152.787926 20.999 
+" clip-path="url(#p21a54795dc)" style="fill: none; stroke-dasharray: 1.1,1.815; stroke-dashoffset: 0; stroke: #4f4f4f; stroke-width: 1.1"/>
+   </g>
+   <g id="LineCollection_1">
+    <path d="M 120.681717 37.542731 
+L 202.294315 37.542731 
+" clip-path="url(#p21a54795dc)" style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
+    <path d="M 108.151672 61.176633 
+L 186.865386 61.176633 
+" clip-path="url(#p21a54795dc)" style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
+    <path d="M 113.339939 91.309857 
+L 203.07538 91.309857 
+" clip-path="url(#p21a54795dc)" style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
+    <path d="M 101.940823 127.942404 
+L 226.165964 127.942404 
+" clip-path="url(#p21a54795dc)" style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
+    <path d="M 126.956748 158.075629 
+L 210.021104 158.075629 
+" clip-path="url(#p21a54795dc)" style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
+   </g>
+   <g id="patch_3">
+    <path d="M 91.712656 174.61936 
+L 258.95952 174.61936 
+" style="fill: none; stroke: #b5b5b0; stroke-width: 0.8; stroke-linejoin: miter; stroke-linecap: square"/>
+   </g>
+   <g id="line2d_15">
+    <defs>
+     <path id="m6d4e557dfc" d="M 0 3.25 
+C 0.86191 3.25 1.688635 2.907559 2.298097 2.298097 
+C 2.907559 1.688635 3.25 0.86191 3.25 0 
+C 3.25 -0.86191 2.907559 -1.688635 2.298097 -2.298097 
+C 1.688635 -2.907559 0.86191 -3.25 0 -3.25 
+C -0.86191 -3.25 -1.688635 -2.907559 -2.298097 -2.298097 
+C -2.907559 -1.688635 -3.25 -0.86191 -3.25 0 
+C -3.25 0.86191 -2.907559 1.688635 -2.298097 2.298097 
+C -1.688635 2.907559 -0.86191 3.25 0 3.25 
+z
+" style="stroke: #ffffff"/>
+    </defs>
+    <g clip-path="url(#p21a54795dc)">
+     <use xlink:href="#m6d4e557dfc" x="159.36683" y="37.542731" style="fill: #1a8eab; stroke: #ffffff"/>
+     <use xlink:href="#m6d4e557dfc" x="145.462687" y="61.176633" style="fill: #1a8eab; stroke: #ffffff"/>
+     <use xlink:href="#m6d4e557dfc" x="155.620057" y="91.309857" style="fill: #1a8eab; stroke: #ffffff"/>
+     <use xlink:href="#m6d4e557dfc" x="159.153529" y="127.942404" style="fill: #1a8eab; stroke: #ffffff"/>
+     <use xlink:href="#m6d4e557dfc" x="166.330007" y="158.075629" style="fill: #1a8eab; stroke: #ffffff"/>
+    </g>
+   </g>
+   <g id="text_10">
+    <text style="font-size: 9.5px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: start; fill: #1b1b1b" x="91.712656" y="12.999" transform="rotate(-0 91.712656 12.999)">Deaths within 30 days</text>
+   </g>
+  </g>
+  <g id="axes_2">
+   <g id="patch_4">
+    <path d="M 91.712656 364.9792 
+L 258.95952 364.9792 
+L 258.95952 211.35884 
+L 91.712656 211.35884 
+z
+" style="fill: #ffffff"/>
+   </g>
+   <g id="matplotlib.axis_3">
+    <g id="xtick_5">
+     <g id="line2d_16">
+      <path d="M 114.301333 364.9792 
+L 114.301333 211.35884 
+" clip-path="url(#p20473bce05)" style="fill: none; stroke: #ebebe8; stroke-width: 0.8; stroke-linecap: round"/>
+     </g>
+     <g id="line2d_17">
+      <g>
+       <use xlink:href="#md614d822b1" x="114.301333" y="364.9792" style="fill: #b5b5b0; stroke: #b5b5b0; stroke-width: 0.8"/>
+      </g>
+     </g>
+     <g id="text_11">
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: middle; fill: #555555" x="114.301333" y="378.3372" transform="rotate(-0 114.301333 378.3372)">0.9</text>
+     </g>
+    </g>
+    <g id="xtick_6">
+     <g id="line2d_18">
+      <path d="M 152.787926 364.9792 
+L 152.787926 211.35884 
+" clip-path="url(#p20473bce05)" style="fill: none; stroke: #ebebe8; stroke-width: 0.8; stroke-linecap: round"/>
+     </g>
+     <g id="line2d_19">
+      <g>
+       <use xlink:href="#md614d822b1" x="152.787926" y="364.9792" style="fill: #b5b5b0; stroke: #b5b5b0; stroke-width: 0.8"/>
+      </g>
+     </g>
+     <g id="text_12">
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: middle; fill: #555555" x="152.787926" y="378.3372" transform="rotate(-0 152.787926 378.3372)">1</text>
+     </g>
+    </g>
+    <g id="xtick_7">
+     <g id="line2d_20">
+      <path d="M 191.274518 364.9792 
+L 191.274518 211.35884 
+" clip-path="url(#p20473bce05)" style="fill: none; stroke: #ebebe8; stroke-width: 0.8; stroke-linecap: round"/>
+     </g>
+     <g id="line2d_21">
+      <g>
+       <use xlink:href="#md614d822b1" x="191.274518" y="364.9792" style="fill: #b5b5b0; stroke: #b5b5b0; stroke-width: 0.8"/>
+      </g>
+     </g>
+     <g id="text_13">
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: middle; fill: #555555" x="191.274518" y="378.3372" transform="rotate(-0 191.274518 378.3372)">1.1</text>
+     </g>
+    </g>
+    <g id="xtick_8">
+     <g id="line2d_22">
+      <path d="M 229.761111 364.9792 
+L 229.761111 211.35884 
+" clip-path="url(#p20473bce05)" style="fill: none; stroke: #ebebe8; stroke-width: 0.8; stroke-linecap: round"/>
+     </g>
+     <g id="line2d_23">
+      <g>
+       <use xlink:href="#md614d822b1" x="229.761111" y="364.9792" style="fill: #b5b5b0; stroke: #b5b5b0; stroke-width: 0.8"/>
+      </g>
+     </g>
+     <g id="text_14">
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: middle; fill: #555555" x="229.761111" y="378.3372" transform="rotate(-0 229.761111 378.3372)">1.2</text>
+     </g>
+    </g>
+   </g>
+   <g id="matplotlib.axis_4">
+    <g id="ytick_6">
+     <g id="line2d_24"/>
+     <g id="text_15">
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="88.212656" y="231.331571" transform="rotate(-0 88.212656 231.331571)">Count</text>
+     </g>
+    </g>
+    <g id="ytick_7">
+     <g id="line2d_25"/>
+     <g id="text_16">
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="88.212656" y="254.965473" transform="rotate(-0 88.212656 254.965473)">Per resident</text>
+     </g>
+    </g>
+    <g id="ytick_8">
+     <g id="line2d_26"/>
+     <g id="text_17">
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #555555" transform="translate(16.887656 280.036197)">Drivers per licence</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #555555" transform="translate(63.397969 291.286197)">holder</text>
+     </g>
+    </g>
+    <g id="ytick_9">
+     <g id="line2d_27"/>
+     <g id="text_18">
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #555555" transform="translate(33.150938 316.668744)">Occupants per</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #555555" transform="translate(21.834844 327.918744)">registered vehicle</text>
+     </g>
+    </g>
+    <g id="ytick_10">
+     <g id="line2d_28"/>
+     <g id="text_19">
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="88.212656" y="351.864469" transform="rotate(-0 88.212656 351.864469)">Per tonne of road fuel</text>
+     </g>
+    </g>
+   </g>
+   <g id="line2d_29">
+    <path d="M 152.787926 364.9792 
+L 152.787926 211.35884 
+" clip-path="url(#p20473bce05)" style="fill: none; stroke-dasharray: 1.1,1.815; stroke-dashoffset: 0; stroke: #4f4f4f; stroke-width: 1.1"/>
+   </g>
+   <g id="LineCollection_2">
+    <path d="M 152.19133 227.902571 
+L 242.908147 227.902571 
+" clip-path="url(#p20473bce05)" style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
+    <path d="M 138.542061 251.536473 
+L 226.036611 251.536473 
+" clip-path="url(#p20473bce05)" style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
+    <path d="M 142.325457 281.669697 
+L 199.896364 281.669697 
+" clip-path="url(#p20473bce05)" style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
+    <path d="M 130.615862 318.302244 
+L 204.960908 318.302244 
+" clip-path="url(#p20473bce05)" style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
+    <path d="M 159.026867 348.435469 
+L 251.35739 348.435469 
+" clip-path="url(#p20473bce05)" style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
+   </g>
+   <g id="patch_5">
+    <path d="M 91.712656 364.9792 
+L 258.95952 364.9792 
+" style="fill: none; stroke: #b5b5b0; stroke-width: 0.8; stroke-linejoin: miter; stroke-linecap: square"/>
+   </g>
+   <g id="line2d_30">
+    <g clip-path="url(#p20473bce05)">
+     <use xlink:href="#m6d4e557dfc" x="195.148648" y="227.902571" style="fill: #1a8eab; stroke: #ffffff"/>
+     <use xlink:href="#m6d4e557dfc" x="179.973532" y="251.536473" style="fill: #1a8eab; stroke: #ffffff"/>
+     <use xlink:href="#m6d4e557dfc" x="170.082037" y="281.669697" style="fill: #1a8eab; stroke: #ffffff"/>
+     <use xlink:href="#m6d4e557dfc" x="166.056813" y="318.302244" style="fill: #1a8eab; stroke: #ffffff"/>
+     <use xlink:href="#m6d4e557dfc" x="202.748326" y="348.435469" style="fill: #1a8eab; stroke: #ffffff"/>
+    </g>
+   </g>
+   <g id="text_20">
+    <text style="font-size: 9.5px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: start; fill: #1b1b1b" x="91.712656" y="203.35884" transform="rotate(-0 91.712656 203.35884)">Injured and hospitalised</text>
+   </g>
+  </g>
+  <g id="axes_3">
+   <g id="patch_6">
+    <path d="M 91.712656 555.33904 
+L 258.95952 555.33904 
+L 258.95952 401.71868 
+L 91.712656 401.71868 
+z
+" style="fill: #ffffff"/>
+   </g>
+   <g id="matplotlib.axis_5">
+    <g id="xtick_9">
+     <g id="line2d_31">
+      <path d="M 114.301333 555.33904 
+L 114.301333 401.71868 
+" clip-path="url(#pd098270562)" style="fill: none; stroke: #ebebe8; stroke-width: 0.8; stroke-linecap: round"/>
+     </g>
+     <g id="line2d_32">
+      <g>
+       <use xlink:href="#md614d822b1" x="114.301333" y="555.33904" style="fill: #b5b5b0; stroke: #b5b5b0; stroke-width: 0.8"/>
+      </g>
+     </g>
+     <g id="text_21">
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: middle; fill: #555555" x="114.301333" y="568.69704" transform="rotate(-0 114.301333 568.69704)">0.9</text>
+     </g>
+    </g>
+    <g id="xtick_10">
+     <g id="line2d_33">
+      <path d="M 152.787926 555.33904 
+L 152.787926 401.71868 
+" clip-path="url(#pd098270562)" style="fill: none; stroke: #ebebe8; stroke-width: 0.8; stroke-linecap: round"/>
+     </g>
+     <g id="line2d_34">
+      <g>
+       <use xlink:href="#md614d822b1" x="152.787926" y="555.33904" style="fill: #b5b5b0; stroke: #b5b5b0; stroke-width: 0.8"/>
+      </g>
+     </g>
+     <g id="text_22">
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: middle; fill: #555555" x="152.787926" y="568.69704" transform="rotate(-0 152.787926 568.69704)">1</text>
+     </g>
+    </g>
+    <g id="xtick_11">
+     <g id="line2d_35">
+      <path d="M 191.274518 555.33904 
+L 191.274518 401.71868 
+" clip-path="url(#pd098270562)" style="fill: none; stroke: #ebebe8; stroke-width: 0.8; stroke-linecap: round"/>
+     </g>
+     <g id="line2d_36">
+      <g>
+       <use xlink:href="#md614d822b1" x="191.274518" y="555.33904" style="fill: #b5b5b0; stroke: #b5b5b0; stroke-width: 0.8"/>
+      </g>
+     </g>
+     <g id="text_23">
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: middle; fill: #555555" x="191.274518" y="568.69704" transform="rotate(-0 191.274518 568.69704)">1.1</text>
+     </g>
+    </g>
+    <g id="xtick_12">
+     <g id="line2d_37">
+      <path d="M 229.761111 555.33904 
+L 229.761111 401.71868 
+" clip-path="url(#pd098270562)" style="fill: none; stroke: #ebebe8; stroke-width: 0.8; stroke-linecap: round"/>
+     </g>
+     <g id="line2d_38">
+      <g>
+       <use xlink:href="#md614d822b1" x="229.761111" y="555.33904" style="fill: #b5b5b0; stroke: #b5b5b0; stroke-width: 0.8"/>
+      </g>
+     </g>
+     <g id="text_24">
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: middle; fill: #555555" x="229.761111" y="568.69704" transform="rotate(-0 229.761111 568.69704)">1.2</text>
+     </g>
+    </g>
+   </g>
+   <g id="matplotlib.axis_6">
+    <g id="ytick_11">
+     <g id="line2d_39"/>
+     <g id="text_25">
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="88.212656" y="421.691411" transform="rotate(-0 88.212656 421.691411)">Count</text>
+     </g>
+    </g>
+    <g id="ytick_12">
+     <g id="line2d_40"/>
+     <g id="text_26">
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="88.212656" y="445.325313" transform="rotate(-0 88.212656 445.325313)">Per resident</text>
+     </g>
+    </g>
+    <g id="ytick_13">
+     <g id="line2d_41"/>
+     <g id="text_27">
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #555555" transform="translate(16.887656 470.396037)">Drivers per licence</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #555555" transform="translate(63.397969 481.646037)">holder</text>
+     </g>
+    </g>
+    <g id="ytick_14">
+     <g id="line2d_42"/>
+     <g id="text_28">
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #555555" transform="translate(33.150938 507.028584)">Occupants per</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #555555" transform="translate(21.834844 518.278584)">registered vehicle</text>
+     </g>
+    </g>
+    <g id="ytick_15">
+     <g id="line2d_43"/>
+     <g id="text_29">
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="88.212656" y="542.224309" transform="rotate(-0 88.212656 542.224309)">Per tonne of road fuel</text>
+     </g>
+    </g>
+   </g>
+   <g id="line2d_44">
+    <path d="M 152.787926 555.33904 
+L 152.787926 401.71868 
+" clip-path="url(#pd098270562)" style="fill: none; stroke-dasharray: 1.1,1.815; stroke-dashoffset: 0; stroke: #4f4f4f; stroke-width: 1.1"/>
+   </g>
+   <g id="LineCollection_3">
+    <path d="M 111.519386 418.262411 
+L 181.922425 418.262411 
+" clip-path="url(#pd098270562)" style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
+    <path d="M 99.314786 441.896313 
+L 167.217106 441.896313 
+" clip-path="url(#pd098270562)" style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
+    <path clip-path="url(#pd098270562)" style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
+    <path clip-path="url(#pd098270562)" style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
+    <path d="M 117.631433 538.795309 
+L 189.28683 538.795309 
+" clip-path="url(#pd098270562)" style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
+   </g>
+   <g id="patch_7">
+    <path d="M 91.712656 555.33904 
+L 258.95952 555.33904 
+" style="fill: none; stroke: #b5b5b0; stroke-width: 0.8; stroke-linejoin: miter; stroke-linecap: square"/>
+   </g>
+   <g id="line2d_45">
+    <g clip-path="url(#pd098270562)">
+     <use xlink:href="#m6d4e557dfc" x="145.081732" y="418.262411" style="fill: #1a8eab; stroke: #ffffff"/>
+     <use xlink:href="#m6d4e557dfc" x="131.684997" y="441.896313" style="fill: #1a8eab; stroke: #ffffff"/>
+     <use xlink:href="#m6d4e557dfc" x="151.7908" y="538.795309" style="fill: #1a8eab; stroke: #ffffff"/>
+    </g>
+   </g>
+   <g id="text_30">
+    <g id="patch_8">
+     <path d="M 96.100062 477.159537 
+L 145.581781 477.159537 
+L 145.581781 466.899537 
+L 96.100062 466.899537 
+z
+" style="fill: #ffffff"/>
+    </g>
+    <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: start; fill: #555555" x="96.730062" y="474.387537" transform="rotate(-0 96.730062 474.387537)">not available</text>
+   </g>
+   <g id="text_31">
+    <g id="patch_9">
+     <path d="M 96.100062 513.792084 
+L 145.581781 513.792084 
+L 145.581781 503.532084 
+L 96.100062 503.532084 
+z
+" style="fill: #ffffff"/>
+    </g>
+    <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: start; fill: #555555" x="96.730062" y="511.020084" transform="rotate(-0 96.730062 511.020084)">not available</text>
+   </g>
+   <g id="text_32">
+    <text style="font-size: 9.5px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: start; fill: #1b1b1b" x="91.712656" y="393.71868" transform="rotate(-0 91.712656 393.71868)">Injury crashes</text>
+   </g>
+  </g>
+  <g id="text_33">
+   <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: middle; fill: #555555" x="132.35976" y="583.69752" transform="rotate(-0 132.35976 583.69752)">Ratio, 2024 to 2019 (dotted line: no change)</text>
+  </g>
+ </g>
+ <defs>
+  <clipPath id="p21a54795dc">
+   <rect x="91.712656" y="20.999" width="167.246864" height="153.62036"/>
+  </clipPath>
+  <clipPath id="p20473bce05">
+   <rect x="91.712656" y="211.35884" width="167.246864" height="153.62036"/>
+  </clipPath>
+  <clipPath id="pd098270562">
+   <rect x="91.712656" y="401.71868" width="167.246864" height="153.62036"/>
+  </clipPath>
+ </defs>
+</svg>

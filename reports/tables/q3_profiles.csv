@@ -1,7 +1,7 @@
 profile,fatal,serious
-"Urban street, side collision, daylight, two vehicles",0.00356654,0.0583529
-"Urban street, pedestrian struck, dark with lighting",0.0250372,0.140327
-"Conventional road, head-on collision, daylight, two vehicles",0.119356,0.34937
-"Conventional road, run-off in a curve, dark without lighting, one vehicle, 00:00–06:59",0.0893182,0.267036
-"Motorway, rear-end collision, daylight, two vehicles",0.0132627,0.0692962
-"Autovía, run-off, dark without lighting, one vehicle, weekend, 00:00–06:59",0.096609,0.235074
+"Urban street, side or front-side collision, daylight, two vehicles",0.0037278,0.060126
+"Urban street, pedestrian struck, dark with lighting",0.0256629,0.14297
+"Conventional road, head-on collision, daylight, two vehicles",0.119765,0.351457
+"Conventional road, run-off in a curve, dark without lighting, one vehicle, 00:00–06:59",0.0890075,0.26746
+"Motorway, rear-end collision, daylight, two vehicles",0.013304,0.0696666
+"Autovía, run-off, dark without lighting, one vehicle, weekend, 00:00–06:59",0.096023,0.234867

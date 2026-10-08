@@ -1,0 +1,21 @@
+non_working_age_mix,non_working_share_of_km,group,weekend_weight,share_of_km,involved_per_bn_km,ratio_to_45_64
+same age mix as working days,,18-29,1,0.1139076658,643.29135,2.534097832
+same age mix as working days,,30-44,1,0.2786972876,356.2964059,1.403547475
+same age mix as working days,,45-64,1,0.4770376287,253.854189,1
+same age mix as working days,,65+,1,0.1303574179,302.4470206,1.191420247
+"overnight weekend stays away, driving (EMEF 2023, proxy)",0.2220828105,18-29,1.150407425,0.1177592697,622.2509389,2.423031336
+"overnight weekend stays away, driving (EMEF 2023, proxy)",0.2220828105,30-44,0.904215829,0.2728587521,363.9203109,1.417097608
+"overnight weekend stays away, driving (EMEF 2023, proxy)",0.2220828105,45-64,0.9467080532,0.4715529239,256.8068062,1
+"overnight weekend stays away, driving (EMEF 2023, proxy)",0.2220828105,65+,1.256068258,0.1378290543,286.0515357,1.113878327
+"overnight weekend stays away, driving (EMEF 2023, proxy)",0.3224043716,18-29,1.150407425,0.1194991563,613.191075,2.375206827
+"overnight weekend stays away, driving (EMEF 2023, proxy)",0.3224043716,30-44,0.904215829,0.2702213081,367.4722864,1.423410612
+"overnight weekend stays away, driving (EMEF 2023, proxy)",0.3224043716,45-64,0.9467080532,0.4690753159,258.1632336,1
+"overnight weekend stays away, driving (EMEF 2023, proxy)",0.3224043716,65+,1.256068258,0.1412042197,279.2141249,1.081541012
+"car trips on an average weekend day (MOVILIA 2006, Spain)",0.2220828105,18-29,1.108237043,0.115849088,632.5109451,2.468834035
+"car trips on an average weekend day (MOVILIA 2006, Spain)",0.2220828105,30-44,0.8840180771,0.2699639253,367.8226334,1.435695371
+"car trips on an average weekend day (MOVILIA 2006, Spain)",0.2220828105,45-64,0.9868441283,0.4726730298,256.1982443,1
+"car trips on an average weekend day (MOVILIA 2006, Spain)",0.2220828105,65+,1.425888886,0.1415139569,278.6029979,1.087450848
+"car trips on an average weekend day (MOVILIA 2006, Spain)",0.3224043716,18-29,1.108237043,0.1167260874,627.7586935,2.440064245
+"car trips on an average weekend day (MOVILIA 2006, Spain)",0.3224043716,30-44,0.8840180771,0.2660187998,373.2775352,1.450909683
+"car trips on an average weekend day (MOVILIA 2006, Spain)",0.3224043716,45-64,0.9868441283,0.4707014078,257.2713792,1
+"car trips on an average weekend day (MOVILIA 2006, Spain)",0.3224043716,65+,1.425888886,0.146553705,269.0222854,1.04567514

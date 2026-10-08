@@ -1,5 +1,13 @@
 """Predicting a year's road deaths, and how large a change in them the counts can detect.
 
+**Status: withdrawn, kept as the record of the analysis; the site reads nothing from it.** Two
+findings retired it. It is not a forecast in the ordinary sense: it conditions on each month's own
+road-fuel sales, which are known only once the month is over, so it estimates the deaths a month's
+traffic would have brought rather than predicting them ahead. And on the ordinary held-out years it
+lost to repeating last year's count (an error of 6.6% of a year's deaths against 5.9%;
+``reports/tables/review_forecast.csv``, ``docs/research/ML_MODEL_REVIEW.md``). The description
+below is of the model as it was built.
+
 Any before-and-after reading of the death counts compares the deaths after a change with the
 deaths there would have been without it. The second number is a forecast, and its error decides
 how large a change the comparison can see. This module builds that forecast as a small model of
@@ -35,10 +43,13 @@ the last three years) and gradient-boosted trees with the same inputs are scored
 trees' leaf size, the one setting that matters on 48 monthly rows, is chosen on the same
 selection years from ``TREE_LEAF_CANDIDATES``.
 
-The result is a split verdict, and the page reports it as one. In the years when the trend moved
-(the selection years) or traffic collapsed (the lockdowns) the model beats last year's count by a
-wide margin; in the flat held-back years last year's count does slightly better. A
-counterfactual has to survive both kinds of year, so the model is the one used. The trees, tuned
+The result is a split verdict. In the years when the trend moved (the selection years) or traffic
+collapsed (the lockdowns) the model beats last year's count by a wide margin; in the flat
+held-back years, the only ones that played no part in choosing it, last year's count does better
+(an error of 5.9% of the year's deaths against 6.6%). The independent review of every model
+(``docs/research/ML_MODEL_REVIEW.md``) therefore removed the model as a published forecast, and
+with it the minimum detectable change derived from its errors: the module is kept as the record
+of the analysis and is no longer read by the site. The trees, tuned
 the same way, do worse than the model in every zone and every kind of year: a tree cannot extend
 a trend beyond the years it has seen, and with 48 rows a small leaf fits the noise. Looking at
 the held-back years afterwards, trees with larger leaves, worse on the selection years, would

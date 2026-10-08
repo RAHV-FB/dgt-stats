@@ -67,7 +67,7 @@ def test_internal_links_and_anchors_resolve(built: Path, pages: dict[str, str]) 
     ids = {slug: set(re.findall(r'\bid="([^"]+)"', text)) for slug, text in pages.items()}
     for slug, text in pages.items():
         for href in re.findall(r'href="([^"]+)"', text):
-            if href.startswith(("http://", "https://", "mailto:")):
+            if href.startswith(("http://", "https://", "mailto:", "data:")):
                 continue
             path, _, anchor = href.partition("#")
             target = path[: -len(".html")] if path.endswith(".html") else slug
@@ -146,6 +146,19 @@ def test_every_figure_has_a_title_alt_text_caption_and_source(
             assert len(alt) > 30, (slug, name)
             assert re.search(r'width="\d+" height="\d+"', html), (slug, name)
             assert '<p class="figure-source">Source: ' in html, (slug, name)
+            # A phone loads the chart drawn for its column; the chart still links to its full
+            # size and is loaded lazily.
+            source = (
+                f'<source media="{re.escape(components.NARROW_MEDIA)}" '
+                f'srcset="figures/narrow/{name}.svg" width="\\d+" height="\\d+">'
+            )
+            assert re.search(
+                f'<a href="figures/{name}.svg"><picture>{source}<img src="figures/{name}.svg" '
+                r'alt="[^"]+" width="\d+" height="\d+" style="[^"]+" loading="lazy" '
+                r'decoding="async"></picture></a>',
+                html,
+            ), (slug, name)
+            assert (built / "figures" / "narrow" / f"{name}.svg").exists(), (slug, name)
             caption = re.search(r"<figcaption><p>(.*?)</p>", html, re.S).group(1)
             assert len(_plain(caption)) > 40, (slug, name)
 
@@ -165,7 +178,7 @@ def test_long_pages_have_contents_and_short_pages_do_not(pages: dict[str, str]) 
         assert listed == [anchor for anchor in sections if anchor != "data-and-method"], slug
         assert re.findall(r'href="#([^"]+)"', inline.group(1)) == listed, slug
     assert '<aside class="toc-rail">' not in pages["index"]
-    # The inline contents follow the opening summary, and any headline number set right after it.
+    # The inline contents follow the opening summary directly.
     for slug in LIVE:
         main = _main(pages[slug])
         if '<details class="toc-inline">' not in main:
@@ -173,23 +186,23 @@ def test_long_pages_have_contents_and_short_pages_do_not(pages: dict[str, str]) 
         before = main[: main.index('<details class="toc-inline">')]
         between = before[before.index('<p class="summary">') :].split("</p>", 1)[1]
         assert "<h2" not in between and "<p>" not in between, slug
-        assert between == "" or re.fullmatch(
-            r'<div class="(compare|key-result)">.*</div>', between, re.S
-        ), slug
+        assert between == "", slug
 
 
 def test_technical_details_and_limitations_use_one_form(pages: dict[str, str]) -> None:
     for slug in LIVE:
         main = _main(pages[slug])
         # Every disclosure is either the contents list or a technical block with a specific label.
-        details = re.findall(r'<details class="([^"]+)">', main)
+        # A disclosure may carry an id, which a link in the text opens.
+        details = re.findall(r'<details class="([^"]+)"[^>]*>', main)
         assert set(details) <= {"toc-inline", "technical"}, slug
-        labels = re.findall(r'<details class="technical"><summary>([^<]+)</summary>', main)
+        assert len(details) == main.count("<details"), slug
+        labels = re.findall(r'<details class="technical"[^>]*><summary>([^<]+)</summary>', main)
         assert len(labels) == len(set(labels)), slug
         for label in labels:
             assert len(label) > 10 and label.lower() not in {"details", "more", "technical"}
         for note in re.findall(r'<aside class="limit"[^>]*>(.*?)</aside>', main, re.S):
-            assert '<span class="limit-label">Limitation' in note, slug
+            assert '<span class="limit-label">Limitations.</span> ' in note, slug
         # Every page closes on the same block: its tables, its method (the methodology page is
         # its own) and its sources.
         if slug != "index":
@@ -204,8 +217,25 @@ def test_technical_details_and_limitations_use_one_form(pages: dict[str, str]) -
 def test_only_figure_sizes_are_set_inline(pages: dict[str, str]) -> None:
     for slug, text in pages.items():
         for style in re.findall(r'style="([^"]*)"', text):
-            assert re.fullmatch(r"--w: \d+px; --w-small: \d+px", style), (slug, style)
+            assert re.fullmatch(r"--w: \d+px; --w-small: \d+px; --w-narrow: \d+px", style), (
+                slug,
+                style,
+            )
         assert "<style" not in text, slug
+
+
+def test_phones_get_the_narrow_charts_without_a_forced_width() -> None:
+    # The page's <source media> and the stylesheet's phone rules use the same width.
+    width = re.fullmatch(r"\(max-width: (\d+rem)\)", components.NARROW_MEDIA).group(1)
+    phone = re.findall(rf"@media \(max-width: {width}\) \{{(.*?)\n\}}", STYLE, re.S)
+    rules = "".join(phone)
+    assert ".figure-media img { width: var(--w-narrow, var(--w)); min-width: 0; }" in rules
+    assert ".figure-tools { display: none; }" in rules
+    # Wider screens keep the full chart at its own scale, legible down to --w-small.
+    assert (
+        ".figure-media img { display: block; width: var(--w); max-width: 100%; "
+        "min-width: var(--w-small); height: auto; }" in STYLE
+    )
 
 
 def test_the_stylesheet_is_one_token_system() -> None:
@@ -220,7 +250,6 @@ def test_the_stylesheet_is_one_token_system() -> None:
         "--mark",
         "--accent",
         "--font",
-        "--font-serif",
         "--measure",
         "--wide",
         "--radius",
@@ -245,12 +274,12 @@ def test_the_stylesheet_is_one_token_system() -> None:
     assert "@import" not in STYLE and "http" not in STYLE
     stack = re.search(r"--font: ([^;]*);", STYLE).group(1)
     assert stack.index('"Avenir Next"') < stack.index('"Nunito Sans"') < stack.index("sans-serif")
-    assert re.search(r'--font-serif: "STIX Two Text"', STYLE)
-    # The technical text is set in the serif: tables, captions, technical details, definitions
-    # and notes.
-    serif_rule = re.search(r"([^{}]*)\{\s*font-family: var\(--font-serif\);\s*\}", STYLE)
-    for selector in ("figcaption", ".table-note", "table", ".technical-body", ".facts", ".limit"):
-        assert selector in serif_rule.group(1), selector
+    # One family for every HTML text; the charts embed their own serif.
+    assert "--font-serif" not in STYLE and "STIX" not in STYLE
+    families = set(re.findall(r"font-family: ([^;]+);", STYLE))
+    assert families <= {"var(--font)", '"Nunito Sans"'}, families
+    # No uppercase, letter-spaced labels: section names and signposts are set in sentence case.
+    assert "text-transform: uppercase" not in STYLE
     assert "gradient" not in STYLE and "@keyframes" not in STYLE
     for media in ("prefers-reduced-motion", "@media print"):
         assert media in STYLE, media
@@ -262,8 +291,8 @@ def test_fonts_are_shipped_with_their_licences(built: Path) -> None:
     shipped = {path.name for path in (built / "fonts").iterdir()}
     for name in (
         "NunitoSans.woff2",
-        "STIXTwoText.woff2",
         "OFL-NunitoSans.txt",
+        # The charts embed subsets of STIX Two Text, so its licence ships with them.
         "OFL-STIXTwoText.txt",
     ):
         assert name in shipped, name

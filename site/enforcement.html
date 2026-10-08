@@ -4,9 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-obt9E6kr4GpWGO8U4U/O1F2Ek2VTTWyy/bPSJ32jH1g='; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta name="referrer" content="strict-origin-when-cross-origin">
 <title>Ranking of enforcement measures · Road safety in Spain</title>
 <meta name="description" content="This analysis was withdrawn because its results came from coefficients published in external studies rather than from data in this repository.">
 <link rel="preload" href="fonts/NunitoSans.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="icon" href="data:,">
 <link rel="stylesheet" href="style.css">
 <script>(function(r){r.classList.add('js');try{var t=localStorage.getItem('theme');if(t==='dark'||t==='light')r.setAttribute('data-theme',t)}catch(e){}})(document.documentElement)</script>
 <script src="site.js" defer></script>
@@ -19,7 +22,7 @@
 <a class="site-title" href="index.html">Road safety in Spain</a>
 <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="site-nav" hidden>Menu</button>
 <div class="site-nav" id="site-nav">
-<nav aria-label="Sections"><ul class="nav-groups"><li class="nav-group"><a class="nav-top" href="index.html">Overview</a></li><li class="nav-group"><button class="nav-trigger" type="button" aria-expanded="false" aria-controls="menu-spain">Spain</button><span class="nav-label" id="label-spain">Spain</span><ul class="nav-menu" id="menu-spain" aria-labelledby="label-spain"><li><a href="trends.html">Trends since 2019</a></li><li><a href="long-run.html">Long-run trends</a></li><li><a href="seasons.html">Seasons</a></li><li><a href="drivers.html">Drivers</a></li><li><a href="vehicles.html">Vehicles</a></li><li><a href="speed.html">Speed</a></li><li><a href="factors.html">Recorded factors</a></li></ul></li><li class="nav-group"><button class="nav-trigger" type="button" aria-expanded="false" aria-controls="menu-supporting-analyses">Supporting analyses</button><span class="nav-label" id="label-supporting-analyses">Supporting analyses</span><ul class="nav-menu" id="menu-supporting-analyses" aria-labelledby="label-supporting-analyses"><li><a href="severity.html">Crash circumstances</a></li><li><a href="forecast.html">Monthly deaths forecast</a></li><li><a href="policy.html">The 2006 points licence</a></li></ul></li><li class="nav-group"><button class="nav-trigger" type="button" aria-expanded="false" aria-controls="menu-regional-data">Regional data</button><span class="nav-label" id="label-regional-data">Regional data</span><ul class="nav-menu" id="menu-regional-data" aria-labelledby="label-regional-data"><li><a href="catalonia.html">Catalonia</a></li><li><a href="barcelona.html">Barcelona</a></li></ul></li><li class="nav-group"><button class="nav-trigger" type="button" aria-expanded="false" aria-controls="menu-models">Models</button><span class="nav-label" id="label-models">Models</span><ul class="nav-menu" id="menu-models" aria-labelledby="label-models"><li><a href="severity-models.html">Severity models</a></li><li><a href="validation.html">External validation</a></li></ul></li><li class="nav-group"><button class="nav-trigger" type="button" aria-expanded="false" aria-controls="menu-methods">Methods</button><span class="nav-label" id="label-methods">Methods</span><ul class="nav-menu" id="menu-methods" aria-labelledby="label-methods"><li><a href="sources.html">Data sources and scope</a></li><li><a href="data.html">Methodology</a></li></ul></li></ul></nav>
+<nav aria-label="Sections"><ul class="nav-groups"><li class="nav-group"><a class="nav-top" href="index.html">Overview</a></li><li class="nav-group"><button class="nav-trigger" type="button" aria-expanded="false" aria-controls="menu-over-time">Over time</button><span class="nav-label" id="label-over-time">Over time</span><ul class="nav-menu" id="menu-over-time" aria-labelledby="label-over-time"><li><a href="long-run.html">Long-run trends</a></li><li><a href="trends.html">Since 2019</a></li><li><a href="seasons.html">Seasons</a></li><li><a href="policy.html">The 2006 points licence</a></li></ul></li><li class="nav-group"><button class="nav-trigger" type="button" aria-expanded="false" aria-controls="menu-drivers-vehicles-and-factors">Drivers, vehicles and factors</button><span class="nav-label" id="label-drivers-vehicles-and-factors">Drivers, vehicles and factors</span><ul class="nav-menu" id="menu-drivers-vehicles-and-factors" aria-labelledby="label-drivers-vehicles-and-factors"><li><a href="drivers.html">Drivers</a></li><li><a href="vehicles.html">Vehicles</a></li><li><a href="speed.html">Speed</a></li><li><a href="factors.html">Recorded factors</a></li></ul></li><li class="nav-group"><button class="nav-trigger" type="button" aria-expanded="false" aria-controls="menu-crash-severity">Crash severity</button><span class="nav-label" id="label-crash-severity">Crash severity</span><ul class="nav-menu" id="menu-crash-severity" aria-labelledby="label-crash-severity"><li><a href="severity.html">Crash circumstances in Spain</a></li><li><a href="catalonia.html">Catalonia</a></li><li><a href="barcelona.html">Barcelona</a></li><li><a href="severity-models.html">Severity model and calculator</a></li><li><a href="validation.html">External validation</a></li></ul></li><li class="nav-group"><button class="nav-trigger" type="button" aria-expanded="false" aria-controls="menu-data-and-methods">Data and methods</button><span class="nav-label" id="label-data-and-methods">Data and methods</span><ul class="nav-menu" id="menu-data-and-methods" aria-labelledby="label-data-and-methods"><li><a href="sources.html">Data sources and scope</a></li><li><a href="data.html">Methodology</a></li></ul></li></ul></nav>
 </div>
 <button class="theme-toggle" type="button" aria-pressed="false" title="Dark mode" hidden><span class="visually-hidden">Dark mode</span><svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.25" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 1.75a6.25 6.25 0 0 1 0 12.5z" fill="currentColor"/></svg></button>
 </div>
@@ -30,17 +33,22 @@
 <p class="eyebrow">Withdrawn analysis</p><h1>Ranking of enforcement measures</h1>
 <p class="lead">This analysis was withdrawn because its results came from coefficients published in external studies rather than from data in this repository.</p>
 </header>
-<p>This page ranked enforcement against speeding, drink- and drug-driving and distraction by the deaths each would avoid, combining the three withdrawn models with evaluations from other countries. The repository holds no data on the effect of enforcement in Spain.</p><p>What the repository's own data show on this subject is on these pages: <a href="speed.html">Speed</a>, deaths per crash where the police recorded speed, and the speed record itself; <a href="factors.html">Recorded factors</a>, how often the police record alcohol, distraction and other factors in crashes. The <a href="data.html">methodology</a> explains how the results on the site are produced.</p>
+<p>This page ranked enforcement against speeding, drink- and drug-driving and distraction by the deaths each would avoid, combining the three withdrawn models with published evaluations of enforcement, all from other countries but one study of Barcelona&#x27;s fixed speed cameras.</p><p>What the repository's own data show on this subject is on these pages: <a href="speed.html">Speed</a>, deaths per crash where the police recorded speed, and the speed record itself; <a href="factors.html">Recorded factors</a>, how often the police record alcohol, distraction and other factors in crashes. The <a href="data.html">methodology</a> explains how the results on the site are produced.</p>
 </main>
 </div>
 <footer class="site-footer">
 <div class="site-footer-inner">
 <p>Road safety in Spain, an independent analysis by <a href="https://github.com/RAHV-FB">Russell Howard (RAHV-FB)</a>.
 Data from the Dirección General de Tráfico, INE, the Ministerio de Transportes, CORES, the Servei
-Català de Trànsit and the Ajuntament de Barcelona. All results are computed from the published
-files by the code in the repository.</p>
+Català de Trànsit, the Ajuntament de Barcelona, the Autoritat del Transport Metropolità, Idescat and
+Institut Metròpoli (EMEF), Idescat (population census) and the Consorcio Regional de Transportes de
+Madrid (<a href="https://www.crtm.es">Powered by CRTM</a>).
+All results are computed by the code in the repository from the published files and the cited
+<a href="data.html#reproduce">values it holds</a>.</p>
 <p><a href="sources.html">Data sources</a> · <a href="data.html">Methodology</a> ·
-<a href="https://github.com/RAHV-FB/dgt-stats">Repository</a></p>
+<a href="data.html#reuse">Reuse and licences</a> ·
+<a href="https://github.com/RAHV-FB/dgt-stats">Repository</a> ·
+<a href="https://github.com/RAHV-FB/dgt-stats/commits/main/site">Change history</a></p>
 </div>
 </footer>
 </body>

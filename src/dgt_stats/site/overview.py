@@ -1,27 +1,41 @@
-"""The front page: what the study is, its main findings, where to read on and what data it uses.
+"""The front page: the study's answer in two sentences, its main findings, and its pages.
 
-Each finding is one number with a sentence or two saying what it measures, and a link to the page
-that sets it out; the methods are left to the pages behind them. Every number is read from a
-committed result table, and every qualitative sentence is checked against the tables before the
-page is written.
+Each finding leads with its answer in one sentence, then the numbers behind it and a link to the
+page that sets it out; the methods are left to the pages behind them. The list of pages follows
+the navigation's groups. Every number is read from a committed result table, and every
+qualitative sentence is checked against the tables before the page is written.
 """
 
 from __future__ import annotations
 
 import math
 
-from dgt_stats import driver_risk
-from dgt_stats.microdata.validation import decisions as decision_rules
+from dgt_stats import edm2018
+from dgt_stats.exposure_risk import national as national_rates
 from dgt_stats.site.components import (
-    ALL_PAGES,
+    NAV_GROUPS,
+    PAGE_QUESTIONS,
     _fmt_int,
     _fmt_pct,
+    definition_link,
     esc,
     read_table,
     render_page,
     summary,
 )
-from dgt_stats.site.numbers import _age_numbers, _long_run_numbers, _risk_numbers, _speed_numbers
+from dgt_stats.site.numbers import (
+    FAIL,
+    INTERMEDIATE,
+    OLDER_CONCLUSION,
+    PASS,
+    _driver_numbers,
+    _long_run_numbers,
+    _older_numbers,
+    _risk_numbers,
+    _speed_numbers,
+    joint_interval,
+    rate_interval,
+)
 from dgt_stats.site.regional_common import _year_label
 
 NUMBER_WORDS = {0: "none", 1: "one", 2: "two", 3: "all three"}
@@ -47,69 +61,54 @@ def _link(href: str, text: str) -> str:
 def page_index(captions: dict[str, str]) -> str:
     national_years = read_table("longrun_series").year
     first, last = int(national_years.min()), int(national_years.max())
-    body = _introduction()
+    headline = read_table("q1_annual_headline").set_index("year").deaths_30d
+    segments = _long_run_numbers()["segments"]
+    count = segments[segments.measure == "count"].sort_values("start")
+    steep_end = int(count.loc[count.annual_change.idxmin()].end)
+    fall = 1 - float(headline.loc[steep_end]) / float(headline.loc[first])
+    _require(
+        "opening",
+        {
+            "deaths fell by about three quarters to the end of the steep decline": 0.7 < fall < 0.8,
+            "the latest count is above the end of the steep decline": float(headline.loc[last])
+            > float(headline.loc[steep_end]),
+        },
+    )
+    body = summary(
+        f"Road deaths in Spain fell by about three quarters between {first} and {steep_end} and "
+        f"have not fallen since: {_fmt_int(headline.loc[last])} people died in {last}. The "
+        "findings below come from official statistics and police crash records. Every "
+        "comparison between an outcome and a circumstance is an association in those records, "
+        "not an estimate of what caused it."
+    )
     body += "<h2>Main findings</h2>"
-    body += '<ol class="findings">'
+    body += '<ul class="findings">'
     body += _long_run()
     body += _drivers()
     body += _speed()
     body += _models()
-    body += "</ol>"
+    body += "</ul>"
     body += _explore()
-    body += _data(first, last)
+    barcelona_year = _year_label(read_table("bcn_person_severity_share"))
     lead = (
         f"An independent statistical study of road deaths and injuries in Spain from {first} to "
         f"{last}, built from official statistics and from police crash records for Catalonia and "
-        "Barcelona."
+        f"for Barcelona ({barcelona_year})."
     )
     return render_page("index", "Road safety in Spain", lead, body)
 
 
-def _finding(value: str, text: str, links: list[tuple[str, str]]) -> str:
-    """One main finding: its number, what the number measures, and the pages that set it out.
-
-    Each link is ``(target, label)``, the target a page slug with an optional ``#section``.
-    """
+def _finding(lead: str, text: str, links: list[tuple[str, str]]) -> str:
+    """One main finding: its answer in one sentence, what supports it, and the pages that set
+    it out. Each link is ``(target, label)``, the target a page slug with an optional
+    ``#section``."""
 
     def href(target: str) -> str:
         page, _, anchor = target.partition("#")
         return f"{page}.html" + (f"#{anchor}" if anchor else "")
 
     more = " · ".join(_link(href(target), label) for target, label in links)
-    return (
-        f'<li><p class="finding-value">{value}</p><div class="finding-body"><p>{text}</p>'
-        f'<p class="finding-more">{more}</p></div></li>'
-    )
-
-
-def _introduction() -> str:
-    return summary(
-        "Most of this study is ordinary statistical analysis of published data: deaths and "
-        "crashes counted over time and divided by residents, licence holders, vehicles, fuel "
-        "sold or kilometres driven, and, where the data allow, split into how often crashes "
-        "happen and how deadly a crash is once it has happened. A smaller part fits predictive "
-        "models to individual crash records from Catalonia and Barcelona, and keeps a model only "
-        "if it beats a simple table of the same records. Every comparison between an outcome "
-        "and a circumstance is an association, not an estimate of a causal effect."
-    )
-
-
-def _data(first: int, last: int) -> str:
-    """The quiet closing line: where the data come from."""
-    records_first = int(read_table("missingness_by_year").year.min())
-    cat_years = read_table("cat_frequency").year
-    bcn_year = _year_label(read_table("bcn_person_severity_share"))
-    return (
-        '<div class="provenance"><p>'
-        f"Data: the Dirección General de Tráfico (DGT) yearbook series {first}–{last}, its "
-        f"tables of drivers and vehicles involved in crashes, its file of injury crashes since "
-        f"{records_first} and its estimates of kilometres driven; INE population figures, "
-        "road-fuel sales and traffic counts; Catalonia's crashes with a death or serious injury, "
-        f"{int(cat_years.min())}–{int(cat_years.max())}; and Barcelona's police-attended "
-        f"crashes, {bcn_year}. The sources share no record identifier and are analysed "
-        f"separately. {_link('sources.html', 'Data sources and scope')}."
-        "</p></div>"
-    )
+    return f'<li><p><strong>{lead}</strong> {text}</p><p class="finding-more">{more}</p></li>'
 
 
 def _long_run() -> str:
@@ -125,9 +124,12 @@ def _long_run() -> str:
     deaths = latest.xs("deaths_30d", level="outcome")
     split = read_table("risk_frequency_severity").set_index("year")
     split_first, split_last = int(split.index.min()), int(split.index.max())
-    per_fuel = float(split.loc[split_last, "deaths_per_fuel_index"]) / 100
-    severity = float(split.loc[split_last, "severity_index"]) / 100
-    frequency = float(split.loc[split_last, "frequency_index"]) / 100
+    end = split.loc[split_last]
+    per_fuel = float(end.deaths_per_fuel_index) / 100
+    severity = float(end.severity_index) / 100
+    frequency = float(end.frequency_index) / 100
+    admitted = float(end.hospitalised_per_fuel_index) / 100
+    per_admission = float(end.deaths_per_hospitalised_index) / 100
     _require(
         "long run",
         {
@@ -143,94 +145,185 @@ def _long_run() -> str:
                 deaths.loc["count", "count"]
             )
             > float(headline.loc[int(steep.end)]),
-            "no denominator shows a change in deaths beyond an ordinary year since the base year": all(
+            "no denominator shows a change in deaths beyond an ordinary year in the last year": all(
                 float(row.ratio_low_yty) <= 1 <= float(row.ratio_high_yty)
                 for _, row in deaths.iterrows()
             ),
-            "deaths per crash fell much more than crashes per tonne of fuel": severity
-            < frequency
-            < 1
-            and math.log(severity) < 2 * math.log(frequency),
+            "each split multiplies to deaths per tonne of fuel": math.isclose(
+                frequency * severity, per_fuel, rel_tol=1e-6
+            )
+            and math.isclose(admitted * per_admission, per_fuel, rel_tol=1e-6),
+            "the two splits disagree: by crashes mostly severity, by admissions all frequency": (
+                severity < frequency < 1 and admitted < per_fuel < 1 < per_admission
+            ),
+            "deaths per tonne of fuel fell by about three quarters": 0.7 < 1 - per_fuel < 0.8,
         },
     )
-    fall = 1 - float(headline.loc[int(steep.end)]) / float(headline.loc[first])
+    projections = read_table("longrun_projection_sensitivity")
+    other_start = f"start_{int(flat.start)}"
+    per_fuel_recent = projections[
+        (projections.measure == "road_fuel")
+        & projections.variant.isin(["main", other_start])
+        & projections.year.isin([last - 1, last])
+    ].ratio
+    _require(
+        "recent years",
+        {
+            "per tonne of fuel, the last two years are above the projected trend on both starts": bool(
+                (per_fuel_recent > 1).all()
+            ),
+            "both trend starts are present": len(per_fuel_recent) == 4,
+            "with the later start, neither year is outside the trend's range": not bool(
+                projections[
+                    (projections.measure == "road_fuel")
+                    & (projections.variant == other_start)
+                    & projections.year.isin([last - 1, last])
+                ].outside_interval.any()
+            ),
+            "deaths per measured interurban kilometre stayed within their range": not bool(
+                read_table("longrun_km_check").query("measure == 'per_km'").outside_interval.any()
+            ),
+        },
+    )
     trend = _finding(
-        f"−{_fmt_pct(fall, 0)}",
-        f"Road deaths in Spain fell from {_fmt_int(headline.loc[first])} in {first} to "
+        f"Deaths fell steeply until {int(steep.end)} and have levelled off since.",
+        f"Road deaths fell from {_fmt_int(headline.loc[first])} in {first} to "
         f"{_fmt_int(headline.loc[int(steep.end)])} in {int(steep.end)}, most of the fall coming "
-        f"between {int(steep.start)} and {int(steep.end)}. That steep decline then ended: the "
-        f"trend since {int(flat.start)} shows no clear rise or fall, and the "
-        f"{_fmt_int(deaths.loc['count', 'count'])} deaths of {last} were more than in "
-        f"{int(steep.end)}. Since {base}, no measure of deaths, whether counted or divided by "
-        "residents, licence holders, vehicles or fuel sold, has changed by more than ordinary "
-        "year-to-year variation.",
-        [("long-run", "Long-run trends"), ("trends", f"Trends since {base}")],
+        f"between {int(steep.start)} and {int(steep.end)}; since {int(flat.start)} the trend "
+        f"shows no clear rise or fall, and {_fmt_int(deaths.loc['count', 'count'])} people died "
+        f"in {last}. Against {base}, the count of deaths and every death rate changed by no more "
+        "than ordinary year-to-year variation. Against the falling trend of the 2010s, deaths "
+        "per tonne of "
+        f"road fuel in {last - 1} and {last} were higher than projected, by "
+        f"{_fmt_pct(float(per_fuel_recent.min()) - 1, 0)} to "
+        f"{_fmt_pct(float(per_fuel_recent.max()) - 1, 0)} depending on where that trend is "
+        f"taken to start; with the trend started in {int(flat.start)}, neither year lies "
+        "outside the trend's range, and on interurban roads deaths per measured kilometre "
+        "stayed within theirs.",
+        [
+            ("long-run", "Long-run trends"),
+            ("long-run#recent-years", "Recent years against the trend"),
+            ("trends", f"Since {base}"),
+        ],
     )
     severity_finding = _finding(
-        f"−{_fmt_pct(1 - severity, 0)}",
-        f"Deaths per injury crash fell {_fmt_pct(1 - severity, 0)} between {split_first} and "
-        f"{split_last}, while injury crashes per tonne of road fuel sold fell "
-        f"{_fmt_pct(1 - frequency, 0)}. Deaths relative to traffic fell "
-        f"{_fmt_pct(1 - per_fuel, 0)} over the period, mostly because crashes became less "
-        "deadly rather than less frequent. How the fall divides between the two depends on how "
-        "completely crashes with only slight injuries are recorded.",
-        [
-            (
-                f"long-run#crash-frequency-and-severity-{split_first}-{split_last}",
-                "Crash frequency and severity",
-            )
-        ],
+        "Deaths relative to traffic fell by three quarters, but the records cannot say how "
+        "much of that came from fewer crashes and how much from less deadly ones.",
+        f"Deaths per tonne of road fuel sold, which stands in for traffic, fell "
+        f"{_fmt_pct(1 - per_fuel, 0)} between {split_first} and {split_last}. Counted by injury "
+        f"crashes, deaths per crash fell {_fmt_pct(1 - severity, 0)} and crashes per tonne "
+        f"{_fmt_pct(1 - frequency, 0)}; counted by people admitted to hospital, deaths per "
+        f"admission rose {_fmt_pct(per_admission - 1, 0)} and admissions per tonne fell "
+        f"{_fmt_pct(1 - admitted, 0)}.",
+        [("long-run#frequency-and-severity", "Crash frequency and severity")],
     )
     return trend + severity_finding
 
 
 def _drivers() -> str:
-    age = _age_numbers()
-    ratios, rates, owner = age["ratios"], age["rates"], age["owner"]
-    oldest = ratios.loc[("deaths_per_1000_involved", "75+")]
-    young = driver_risk.TRANSFER_BANDS[0]
-    young_low = float(owner.loc[young, "involved_per_bn_km_range_low"])
-    young_high = float(owner.loc[young, "involved_per_bn_km_range_high"])
-    young_fatality = ratios.loc[("deaths_per_1000_involved", young)]
+    numbers = _driver_numbers()
+    central, ranges = numbers["central"], numbers["ranges"]
+    severity = numbers["severity"]
+    young, older = central.loc["18-29"], central.loc["65+"]
+    oldest, reference = severity.loc["75+"], severity.loc["45-64"]
+    ratio = float(oldest.killed_per_1000_involved) / float(reference.killed_per_1000_involved)
+    covered = read_table("risk_coverage").set_index("component")
+    oldest_numbers = _older_numbers()
+    tier = oldest_numbers["tier"]
+    estimate = oldest_numbers["conditional"].loc["75+"]
+    full, clear = oldest_numbers["range"]["75+"], oldest_numbers["clear"]["75+"]
+    lowest_clear = oldest_numbers["lowest_clear"]
+    oldest_rows = oldest_numbers["older"]
     _require(
         "drivers",
         {
-            "drivers aged 75 and over die more once involved": float(oldest.low) > 1,
-            "the youngest drivers do not die more once involved": float(young_fatality.low)
-            <= 1
-            <= float(young_fatality.high),
-            "the youngest drivers are involved more per km at both ends of the range": young_low
+            "the conditional 75+ estimate's sampling interval is above the 45-64 rate": float(
+                estimate.ratio_low
+            )
             > 1,
+            "the lowest combination tested for 75+ is marked as at odds with men's driving": bool(
+                oldest_rows.loc[oldest_rows.ratio_75_plus.idxmin(), "at_odds_with_mens_driving"]
+            ),
+            "the lowest unmarked 75+ combination is above the 45-64 rate": clear[0] > 1,
+            "the wording printed for 75+ matches the tables": (
+                tier == INTERMEDIATE and float(lowest_clear.ratio_low) <= 1 < clear[0]
+            )
+            or (tier == PASS and float(lowest_clear.ratio_low) > 1)
+            or (tier == FAIL and clear[0] <= 1),
+            "the 75+ sensitivity range reaches the 45-64 rate": full[0] <= 1 < full[1],
+            "the survey's working days cover about half of DGT's car km": 0.45
+            < float(covered.loc["working days", "share_least_explained"])
+            < 0.55,
+            "drivers aged 75 and over die more once involved": float(
+                oldest.killed_per_1000_involved_low
+            )
+            > float(reference.killed_per_1000_involved_high),
+            "the youngest drivers are involved more per km on every assumption": float(
+                ranges.loc["18-29", "min"]
+            )
+            > 1.2
+            and float(young.involved_ratio_low) > 2,
+            "drivers aged 65 and over above 45-64 per km centrally, on either side of it under "
+            "the other assumptions": 1 < float(older.involved_ratio) < 1.35
+            and float(ranges.loc["65+", "min"]) < 1 < float(ranges.loc["65+", "max"]),
         },
     )
-    km_year = driver_risk.KM_YEAR
-    older = _finding(
-        f"{float(oldest.ratio):.1f}×",
-        f"In {km_year}, car drivers aged 75 and over who were involved in an injury crash died "
-        f"{float(oldest.ratio):.1f} times as often as drivers aged 35–54 "
-        f"({float(rates.loc['75+', 'deaths_per_1000_involved']):.1f} against "
-        f"{float(rates.loc[driver_risk.REFERENCE_BAND, 'deaths_per_1000_involved']):.1f} per "
-        "1,000 involved), a result that needs no estimate of kilometres.",
+    deaths = _finding(
+        "Older drivers are far more likely to die once a crash has happened.",
+        f"In {national_rates.YEAR}, car drivers aged 75 and over who were involved in an injury "
+        f"crash died {ratio:.1f} times as often as drivers aged 45–64 "
+        f"({float(oldest.killed_per_1000_involved):.1f} against "
+        f"{float(reference.killed_per_1000_involved):.1f} per 1,000 involved), a count that "
+        "needs no estimate of kilometres. It measures how often a crash kills the driver, not "
+        "how often older drivers are in crashes or who caused them.",
         [("drivers#deaths-once-a-crash-has-happened", "Drivers: deaths once a crash has happened")],
     )
-    younger = _finding(
-        f"{young_low:.1f}–{young_high:.1f}×",
-        "On DGT's kilometre estimates, which are published by the age of a car's registered "
-        f"owner and not its driver, drivers aged 18–24 were involved in {young_high:.1f} times "
-        "as many injury crashes per kilometre as drivers aged 35–54. Under a deliberately "
-        f"extreme reassignment of kilometres to young owners, the ratio falls to "
-        f"{young_low:.1f}, still above 1. Once involved, they died about as often as drivers "
-        "aged 35–54.",
-        [("drivers#crashes-relative-to-kilometres-by-owner-age", "Drivers: crashes per kilometre")],
+    direction = OLDER_CONCLUSION[tier]
+    per_km = _finding(
+        "Young drivers are in more crashes for the distance they drive.",
+        "Per kilometre driven, car drivers aged 18–29 were involved in injury crashes "
+        f"{float(young.involved_ratio):.2f} times as often as drivers aged 45–64 in "
+        f"{national_rates.YEAR} (95% {definition_link('Sampling interval')} "
+        f"{rate_interval(young, 'involved_ratio')}; {definition_link('Sensitivity range')} "
+        f"{float(ranges.loc['18-29', 'min']):.2f}–{float(ranges.loc['18-29', 'max']):.2f}). "
+        f"For drivers aged 65 and over the central estimate is {float(older.involved_ratio):.2f} "
+        f"times (95% sampling interval {rate_interval(older, 'involved_ratio')}), but the "
+        "sensitivity range is "
+        f"{float(ranges.loc['65+', 'min']):.2f}–{float(ranges.loc['65+', 'max']):.2f}, so "
+        "whether they are involved more or less often per kilometre is not established. For "
+        "drivers aged 75 and over no source measures their kilometres apart from those at "
+        "65–74; depending on how the 65-and-over kilometres are divided and carried to Spain, "
+        f"the sensitivity range is {full[0]:.2f} to {full[1]:.2f} times the 45–64 rate"
+        f"{direction}. If people aged 75 and over drive as much less than those aged 65–74 as "
+        f"in Madrid in {edm2018.SURVEY_YEAR}, they were involved about "
+        f"{float(estimate.ratio_to_45_64):.1f} times as often (95% sampling interval "
+        f"{joint_interval(estimate, 1)}), a {definition_link('Conditional estimate')} that holds "
+        "only on that assumption. The "
+        "kilometres by driver age come from a Barcelona-area survey of working days. Carried to "
+        "Spain's population, the survey's working-day driving adds up to about half of DGT's car "
+        "kilometres; the central estimate gives the rest the same age mix, and the sensitivity "
+        "range tests other mixes. Involvement counts every driver in a crash, whoever caused it.",
+        [
+            (
+                "drivers#involvement-in-crashes-per-kilometre-driven",
+                "Drivers: crashes per kilometre",
+            ),
+            ("drivers#ages-75-and-over", "Drivers: ages 75 and over"),
+        ],
     )
-    return older + younger
+    return deaths + per_km
 
 
 def _speed() -> str:
     numbers = _speed_numbers()
-    adjusted = numbers["pooled"].loc["adjusted"]
+    pooled = numbers["pooled"]
+    adjusted = pooled.loc["adjusted"]
+    types = pooled.drop(index="adjusted")
+    lowest, highest = types.loc[types.rate_ratio.idxmin()], types.loc[types.rate_ratio.idxmax()]
     all_roads = numbers["all_roads"]
     last = int(all_roads.index.max())
+    # The pooled rows carry their period as "first-last".
+    first_year, last_year = (int(year) for year in str(adjusted.year).split("-"))
     _require(
         "speed",
         {
@@ -238,110 +331,90 @@ def _speed() -> str:
             <= float(adjusted.rate_ratio)
             <= 2.2
             and float(adjusted.ratio_low) > 1,
+            "the pooled ratios and the adjusted one cover the same years": set(
+                pooled.year.astype(str)
+            )
+            == {str(adjusted.year)},
+            "every road type has more deaths per crash where speed is recorded": bool(
+                (types.ratio_low > 1).all()
+            ),
+            "the lowest ratio is on dual carriageways and the highest on urban streets": (
+                lowest.name == "dual_carriageway" and highest.name == "urban"
+            ),
+            "the adjusted ratio lies between the road-type ratios": float(lowest.rate_ratio)
+            < float(adjusted.rate_ratio)
+            < float(highest.rate_ratio),
         },
     )
     return _finding(
-        f"{float(adjusted.rate_ratio):.1f}×",
+        "Crashes in which the police recorded inappropriate speed are deadlier, most of all on "
+        "urban streets.",
         "In Spain outside Catalonia and the Basque Country, police recorded inappropriate speed "
         f"in {_fmt_pct(float(all_roads.loc[last, 'share_of_crashes']))} of injury crashes in "
-        f"{last}. Those crashes had about twice the deaths per crash of other crashes on the "
-        "same kind of road in the same year. This is an association in police records, not an "
-        "estimate of how many crashes or deaths speeding caused.",
+        f"{last}. Over {first_year}–{last_year}, those crashes had more deaths per crash than "
+        "other crashes on the same kind of road, from "
+        f"{float(lowest.rate_ratio):.1f} times on dual carriageways to "
+        f"{float(highest.rate_ratio):.1f} times on urban streets, and about twice as many "
+        f"({float(adjusted.rate_ratio):.1f} times) with the road types taken together.",
         [("speed", "Speed"), ("factors", "Recorded factors")],
     )
 
 
 def _models() -> str:
-    rules = read_table("ml_rule_comparison").set_index("model")
-    decisions = read_table("ml_model_decisions")
-    context = decisions[decisions.variant.eq("context")].set_index("model").decision
-    selected = read_table("ml_selected")
-    primary = selected[selected.primary].set_index("model")
-    transport = read_table("ml_transport_validation")
-    path = read_table("ml_outward_path")
-    national = transport[
-        transport.experiment.eq("Catalonia -> Spain outside Catalonia")
-        & transport.model.eq("catalonia_common_dgt")
-        & transport.estimator.eq(primary.loc["catalonia_common_dgt", "estimator"])
-        & transport.status.eq("reported")
-    ].iloc[0]
-    beat = [m for m in REGIONAL_MODELS if bool(rules.loc[m, "model_adds_signal_over_table"])]
+    contrasts = read_table("sev_contrasts")
+    interurban = contrasts[contrasts.base == "interurban"].set_index(["input", "level"])
+    heavy = interurban.loc[("users", "heavy_vehicle")]
+    urban = interurban.loc[("road", "urban_street")]
+    scores = read_table("sev_rolling_scores")
+    span = str(scores.subset[scores.subset.str.fullmatch(r"\d{4}-\d{4}")].iloc[0])
+    pooled = scores[scores.subset == span].set_index("estimator")
+    calc, table_score = pooled.loc["calculator"], pooled.loc["road_x_crash_table"]
+    training = read_table("sev_coefficients")
     _require(
         "models",
         {
-            "the Catalonia and Barcelona person models beat their tables, the crash model does "
-            "not": beat == list(REGIONAL_MODELS[:2]),
-            "the decision record keeps the first two and replaces the third with its table": all(
-                context[m] in decision_rules.FEATURED for m in REGIONAL_MODELS[:2]
+            "a heavy vehicle about doubles the fatal share, clearly": 1.7 < float(heavy.ratio) < 2.3
+            and float(heavy.ratio_low) > 1.5,
+            "an urban street clearly lowers it": float(urban.ratio_high) < 0.7,
+            "the model ranks better than the road and crash-type table": float(calc.roc_auc)
+            > float(table_score.roc_auc),
+            "its estimates match the observed share overall": abs(
+                float(calc.mean_predicted) - float(calc.prevalence)
             )
-            and context[REGIONAL_MODELS[2]] == decision_rules.REPLACE,
-            "the Catalonia-trained model ranks Spanish crashes almost as well as one trained "
-            "on them": abs(float(national.transfer_gap)) <= 0.01,
-            "no model is called fit for national use": not path.verdict.eq(
-                "potentially nationally transferable"
-            ).any(),
+            < 0.005,
+            "the coefficients are published": not training.empty,
         },
     )
-    kept = len(beat)
     return _finding(
-        f"{kept} of {len(REGIONAL_MODELS)}",
-        "Of the three models that rank recorded crashes, or the people in them, by severity in "
-        f"Catalonia and Barcelona, {NUMBER_WORDS[kept]} did better on later records than a "
-        "simple table of the same records. The third did no better than a table, and the table "
-        "is reported instead. A version of the Catalan model ranked serious crashes in the rest "
-        "of Spain almost as well as a model trained on them, which does not make it fit for "
-        "national use. None of the models predicts whether a crash will happen.",
-        [("severity-models", "Severity models"), ("validation", "External validation")],
+        "In Catalonia, severe crashes with a heavy vehicle involved were fatal about twice as "
+        "often.",
+        "Among crashes in Catalonia in which someone was killed or seriously injured, the same "
+        "crash on a regional road was fatal "
+        f"{float(heavy.ratio):.1f} times as often with a lorry or bus involved (95% interval "
+        f"{float(heavy.ratio_low):.1f}–{float(heavy.ratio_high):.1f}), and on an urban street "
+        f"rather than a regional road {float(urban.ratio):.2f} times as often (95% interval "
+        f"{float(urban.ratio_low):.2f}–{float(urban.ratio_high):.2f}), other recorded "
+        "circumstances held equal. A calculator gives the model's estimate for a crash "
+        "a reader describes. The way the model is fitted and tuned has been tested only within "
+        "Catalonia, by predicting each year from the years before it; the published model, "
+        "fitted on every year, has no later year left to test.",
+        [
+            ("severity-models", "Severity model and calculator"),
+            ("validation", "External validation"),
+        ],
     )
-
-
-# The front page's index of the study: each group of pages, what it covers, and its pages.
-EXPLORE = (
-    (
-        "National trends and exposure",
-        "Deaths and crashes over time, against residents, licence holders, vehicles, fuel and "
-        "kilometres.",
-        ("trends", "long-run", "seasons", "forecast", "policy"),
-    ),
-    (
-        "Drivers and vehicles",
-        "Rates by driver age and sex, and by type of vehicle, per vehicle and per kilometre.",
-        ("drivers", "vehicles"),
-    ),
-    (
-        "Recorded crash factors",
-        "What the police recorded about each crash, and how it relates to severity.",
-        ("speed", "factors", "severity"),
-    ),
-    (
-        "Catalonia and Barcelona",
-        "Severity among recorded crashes in two detailed regional files.",
-        ("catalonia", "barcelona"),
-    ),
-    (
-        "Predictive severity models",
-        "Models that rank recorded crashes by severity, and how they held up on other records.",
-        ("severity-models", "validation"),
-    ),
-    (
-        "Sources and methodology",
-        "Where the data come from, what they cover and how the results are produced.",
-        ("sources", "data"),
-    ),
-)
 
 
 def _explore() -> str:
-    titles = dict(ALL_PAGES)
-    if sorted(slug for *_, slugs in EXPLORE for slug in slugs) != sorted(
-        slug for slug in titles if slug != "index"
-    ):
-        raise ValueError("overview: the study index must list every page once")
-    groups = "".join(
-        f'<section aria-labelledby="explore-{index}"><h3 id="explore-{index}">{esc(name)}</h3>'
-        f"<p>{esc(text)}</p><ul>"
-        + "".join(f"<li>{_link(f'{slug}.html', esc(titles[slug]))}</li>" for slug in slugs)
-        + "</ul></section>"
-        for index, (name, text, slugs) in enumerate(EXPLORE, 1)
-    )
-    return f'<h2>Explore the study</h2><div class="explore">{groups}</div>'
+    """The pages, in the navigation's groups and order, each with the question it answers."""
+    groups = []
+    for index, (group, pages) in enumerate(NAV_GROUPS):
+        if group == "Overview":
+            continue
+        items = "".join(
+            f"<li>{_link(f'{slug}.html', esc(title))}: "
+            f"{esc(PAGE_QUESTIONS[slug][:1].lower() + PAGE_QUESTIONS[slug][1:])}</li>"
+            for slug, title in pages
+        )
+        groups.append(f'<h3 id="pages-{index}">{esc(group)}</h3><ul class="page-list">{items}</ul>')
+    return "<h2>The pages</h2>" + "".join(groups)

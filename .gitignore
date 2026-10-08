@@ -31,6 +31,8 @@ data/features/**
 reports/figures/**
 !reports/figures/.gitkeep
 !reports/figures/*.svg
+!reports/figures/narrow/
+!reports/figures/narrow/*.svg
 !reports/figures/captions.json
 !reports/figures/titles.json
 reports/tables/**
@@ -40,6 +42,8 @@ reports/tables/**
 # The site's figures and downloadable tables are copied from reports/ at build time
 site/figures/
 site/tables/
+# and the calculator's engine, page script and exported model from src/ and reports/models/
+site/models/
 
 # Build and coverage outputs
 build/

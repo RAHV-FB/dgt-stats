@@ -188,7 +188,10 @@ def lockdown_months(
     ``<series>_change`` is the proportional change in deaths or in each traffic series.
     ``deaths_per_<exposure>_change`` is the change in deaths per unit of each exposure in
     ``EXPOSURES`` (road fuel only); petrol and toll-motorway traffic are changes in traffic, shown
-    beside deaths, and are not used as denominators.
+    beside deaths, and are not used as denominators. ``toll_network_km`` and
+    ``toll_network_km_baseline`` give the length of the toll network the intensity is measured on,
+    in the month and on average in the baseline months: it shrank as concessions expired, so the
+    toll comparison is between different networks.
     """
     panel = monthly_panel()
     base = panel[panel.year.isin(baseline)].groupby("month").mean(numeric_only=True)
@@ -208,6 +211,8 @@ def lockdown_months(
             record[f"{key}_change"] = change - 1
             if key in EXPOSURES:
                 record[f"deaths_per_{key}_change"] = (deaths / reference) / change - 1
+        record["toll_network_km"] = float(current.loc[month, "toll_network_km"])
+        record["toll_network_km_baseline"] = float(base.loc[month, "toll_network_km"])
         records.append(record)
     return pd.DataFrame.from_records(records)
 

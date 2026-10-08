@@ -1,0 +1,20 @@
+evidence,measure,value,used_as_regional_factor
+regional level,"car or motorcycle trips per resident, working day, Spain over the province of Barcelona (MOVILIA 2006; drivers and passengers)",1.071086099,False
+regional level,"car or motorcycle trips per resident, weekend day, Spain over the province of Barcelona (MOVILIA 2006; drivers and passengers)",0.9867383542,False
+regional level,"car or motorcycle trips per resident, week (five working days, two weekend days), Spain over the province of Barcelona (MOVILIA 2006; drivers and passengers)",1.048826228,True
+regional level,"car km per resident aged 15 and over, Spain over Catalonia (DGT 2024, by the owner's autonomous community)",1.246873923,True
+regional level,"car km per resident aged 15 and over, Spain without Madrid over Catalonia (DGT 2024, by the owner's autonomous community)",1.177827455,True
+regional level,"cars per resident aged 15 and over, Spain over Catalonia (DGT 2024, by the owner's autonomous community)",1.202880545,False
+regional level,"mean km per car, Spain without Madrid over Catalonia (DGT 2024, by the owner's autonomous community)",0.9983797132,False
+months outside the fieldwork,petrol sales (CORES): mean day of 2024 over mean fieldwork day,1.001023951,False
+months outside the fieldwork,petrol and diesel sales (CORES): mean day of 2024 over mean fieldwork day,0.9872821973,False
+months outside the fieldwork,vehicle-km on the state toll motorways: mean day of 2024 over mean fieldwork day,1.020161783,False
+non-working days,"car or motorcycle trips on an average weekend day over a working day (MOVILIA 2006, Spain; drivers and passengers)",0.825721282,False
+non-working days,"mean trip duration on a weekend day over a working day, all modes (MOVILIA 2006, Spain)",1.243012575,False
+months outside the fieldwork,"share of car journeys over 50 km starting in July or August (MOVILIA 2007, Spain; drivers and passengers)",0.2067388295,False
+calendar,working days of 2024 (weekdays less 14 public holidays),248,False
+calendar,non-working days of 2024,118,False
+fleet,cars registered to companies,40.42682704,False
+fleet,car hire without driver,11.05397424,False
+fleet,driving schools,0.657539796,False
+fleet,cars registered to private owners,252.1864139,False

@@ -1,0 +1,21 @@
+outcome,zone,road,is_reference,crashes,observed_share,log_odds,se,odds_ratio,or_low,or_high
+fatal,street,urban street,True,517410,0.00681278,0,0,1,1,1
+fatal,urban crossing,conventional,False,11168,0.0271311,2.16931,0.15022,8.75223,6.52006,11.7486
+fatal,urban crossing,other road,False,1210,0.0107438,2.01071,0.152888,7.46859,5.53478,10.0781
+fatal,interurban road,motorway,False,30791,0.0218895,1.97881,0.26133,7.23412,4.33452,12.0734
+fatal,interurban road,autovía,False,72359,0.0267417,1.90916,0.156439,6.74739,4.96563,9.16846
+fatal,interurban road,conventional,False,189921,0.0360782,1.89214,0.149562,6.63352,4.94808,8.89306
+fatal,interurban road,other road,False,19167,0.0329733,1.73353,0.1555,5.66062,4.17352,7.6776
+fatal,urban crossing,urban street,False,952,0.00840336,1.45424,0.293828,4.28123,2.40692,7.61509
+fatal,urban motorway or dual carriageway,autovía,False,2593,0.00925569,1.06208,0.485911,2.89239,1.11596,7.49662
+fatal,street,other road,False,29209,0.0124961,0.556466,0.177958,1.7445,1.23081,2.47257
+serious,street,urban street,True,517410,0.0729982,0,0,1,1,1
+serious,urban crossing,conventional,False,11168,0.119448,1.48958,0.275231,4.43522,2.58606,7.60663
+serious,urban crossing,other road,False,1210,0.114876,1.46522,0.260208,4.32849,2.59924,7.20818
+serious,urban crossing,urban street,False,952,0.101891,1.2106,0.323022,3.35549,1.78155,6.31994
+serious,interurban road,conventional,False,189921,0.149752,1.05543,0.166524,2.87322,2.07312,3.98212
+serious,interurban road,other road,False,19167,0.154797,1.03107,0.163719,2.80408,2.03438,3.86499
+serious,interurban road,motorway,False,30791,0.0829138,0.971043,0.301934,2.6407,1.46121,4.77227
+serious,interurban road,autovía,False,72359,0.0922346,0.809669,0.190193,2.24716,1.5479,3.26233
+serious,street,other road,False,29209,0.0958951,0.254621,0.0852058,1.28997,1.09157,1.52443
+serious,urban motorway or dual carriageway,autovía,False,2593,0.0536059,-0.111212,0.245264,0.894749,0.553263,1.44701

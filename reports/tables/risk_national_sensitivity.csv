@@ -1,0 +1,465 @@
+source,variant,group,share_of_km,involved_ratio,killed_ratio
+central,Method A,18-29,0.1139076658,2.534097832,2.260969755
+central,Method A,30-44,0.2786972876,1.403547475,1.186617461
+central,Method A,45-64,0.4770376287,1,1
+central,Method A,65+,0.1303574179,1.191420247,2.918586949
+licence-calibrated transfer,"EMEF, province of Barcelona, per licence holder",18-29,0.1241105495,2.23621373,1.995191955
+licence-calibrated transfer,"EMEF, province of Barcelona, per licence holder",30-44,0.2961182461,1.270107144,1.07380145
+licence-calibrated transfer,"EMEF, province of Barcelona, per licence holder",45-64,0.4586678669,1,1
+licence-calibrated transfer,"EMEF, province of Barcelona, per licence holder",65+,0.1211033375,1.233077268,3.020632922
+regional profile,"EMEF, Barcelona city",18-29,0.0835175728,3.634109834,3.242421156
+regional profile,"EMEF, Barcelona city",30-44,0.2500452125,1.644905258,1.390671378
+regional profile,"EMEF, Barcelona city",45-64,0.5015938707,1,1
+regional profile,"EMEF, Barcelona city",65+,0.1648433439,0.9906697297,2.426814343
+regional profile,"EMEF, rest of the metropolitan area (AMB)",18-29,0.1045760954,2.885221055,2.574248499
+regional profile,"EMEF, rest of the metropolitan area (AMB)",30-44,0.2625741229,1.557195396,1.31651781
+regional profile,"EMEF, rest of the metropolitan area (AMB)",45-64,0.4986408141,1,1
+regional profile,"EMEF, rest of the metropolitan area (AMB)",65+,0.1342089676,1.209635087,2.963207303
+regional profile,"EMEF, rest of the metropolitan region (RMB)",18-29,0.1167845755,2.36226628,2.107658412
+regional profile,"EMEF, rest of the metropolitan region (RMB)",30-44,0.3047829897,1.226611782,1.037028661
+regional profile,"EMEF, rest of the metropolitan region (RMB)",45-64,0.4559221007,1,1
+regional profile,"EMEF, rest of the metropolitan region (RMB)",65+,0.122510334,1.211618816,2.968066786
+regional profile,"EMEF, rest of the province",18-29,0.1566307337,1.639587828,1.462871102
+regional profile,"EMEF, rest of the province",30-44,0.3037437451,1.145744665,0.9686602339
+regional profile,"EMEF, rest of the province",45-64,0.4244123134,1,1
+regional profile,"EMEF, rest of the province",65+,0.1152132078,1.199316462,2.937930074
+regional profile,Madrid survey 2018,18-29,0.09991796898,2.837289113,2.531482719
+regional profile,Madrid survey 2018,30-44,0.3440980032,1.116473851,0.9439134696
+regional profile,Madrid survey 2018,45-64,0.4685149968,1,1
+regional profile,Madrid survey 2018,65+,0.087469031,1.743882701,4.271937886
+distance,unbanded trips bounded at 100 km/h,18-29,0.112645009,2.56749508,2.290767408
+distance,unbanded trips bounded at 100 km/h,30-44,0.2767386288,1.416234953,1.197343984
+distance,unbanded trips bounded at 100 km/h,45-64,0.477966966,1,1
+distance,unbanded trips bounded at 100 km/h,65+,0.1326493961,1.173115283,2.873745821
+distance,unbanded trips bounded at 60 km/h,18-29,0.1153424765,2.498285998,2.229017763
+distance,unbanded trips bounded at 60 km/h,30-44,0.2809577199,1.389869342,1.175053398
+distance,unbanded trips bounded at 60 km/h,45-64,0.4762201128,1,1
+distance,unbanded trips bounded at 60 km/h,65+,0.1274796907,1.216227504,2.979356552
+distance,unbanded trips' durations capped at 4 hours,18-29,0.1160448519,2.489915573,2.221549513
+distance,unbanded trips' durations capped at 4 hours,30-44,0.2813273879,1.39181658,1.176699674
+distance,unbanded trips' durations capped at 4 hours,45-64,0.4775147686,1,1
+distance,unbanded trips' durations capped at 4 hours,65+,0.1251129916,1.242603256,3.043968452
+distance,"unbanded trips at the model's mean, unbounded",18-29,0.1090474332,2.664852322,2.37763137
+distance,"unbanded trips at the model's mean, unbounded",30-44,0.272340611,1.44597141,1.222484422
+distance,"unbanded trips at the model's mean, unbounded",45-64,0.4802472668,1,1
+distance,"unbanded trips at the model's mean, unbounded",65+,0.1383646891,1.130024133,2.768186704
+distance,unbanded trips left out,18-29,0.1203710491,2.389714346,2.132148092
+distance,unbanded trips left out,30-44,0.2882872137,1.352154055,1.143167324
+distance,unbanded trips left out,45-64,0.4753837629,1,1
+distance,unbanded trips left out,65+,0.1159579742,1.334725053,3.269636495
+distance,multimodal trips: car leg counted as nothing,18-29,0.1137193516,2.511783189,2.241060211
+distance,multimodal trips: car leg counted as nothing,30-44,0.2824670817,1.370352197,1.158552791
+distance,multimodal trips: car leg counted as nothing,45-64,0.4720552498,1,1
+distance,multimodal trips: car leg counted as nothing,65+,0.1317583169,1.166441281,2.857396716
+distance,multimodal trips: car leg counted in full,18-29,0.1140811886,2.554594509,2.279257276
+distance,multimodal trips: car leg counted in full,30-44,0.2752235995,1.434940392,1.21315834
+distance,multimodal trips: car leg counted in full,45-64,0.4816286567,1,1
+distance,multimodal trips: car leg counted in full,65+,0.1290665552,1.214917222,2.976146795
+distance,geometric midpoints within bands,18-29,0.1154262315,2.50463174,2.234679553
+distance,geometric midpoints within bands,30-44,0.2792789692,1.4027933,1.18597985
+distance,geometric midpoints within bands,45-64,0.4777764114,1,1
+distance,geometric midpoints within bands,65+,0.1275183879,1.219831877,2.98818608
+distance,"geometric midpoints, unbanded trips left out",18-29,0.1217774391,2.366521902,2.111455357
+distance,"geometric midpoints, unbanded trips left out",30-44,0.288525667,1.353556631,1.14435312
+distance,"geometric midpoints, unbanded trips left out",45-64,0.4762704895,1,1
+distance,"geometric midpoints, unbanded trips left out",65+,0.1134264044,1.367060061,3.348846607
+distance,arithmetic midpoints within bands,18-29,0.1170893161,2.473171824,2.206610424
+distance,arithmetic midpoints within bands,30-44,0.2821555248,1.390805887,1.175845192
+distance,arithmetic midpoints within bands,45-64,0.4785726408,1,1
+distance,arithmetic midpoints within bands,65+,0.1221825183,1.27522519,3.12388144
+distance,"arithmetic midpoints, unbanded trips left out",18-29,0.1223795226,2.360564473,2.106140028
+distance,"arithmetic midpoints, unbanded trips left out",30-44,0.2898965444,1.350408312,1.1416914
+distance,"arithmetic midpoints, unbanded trips left out",45-64,0.4774203526,1,1
+distance,"arithmetic midpoints, unbanded trips left out",65+,0.1103035804,1.409157082,3.451970436
+distance,"road distance bounded at 80 km/h, ratio recalibrated",18-29,0.1138587913,2.543134915,2.26903281
+distance,"road distance bounded at 80 km/h, ratio recalibrated",30-44,0.279898067,1.401908244,1.185231587
+distance,"road distance bounded at 80 km/h, ratio recalibrated",45-64,0.4785334239,1,1
+distance,"road distance bounded at 80 km/h, ratio recalibrated",65+,0.1277097178,1.219934237,2.988436827
+distance,"road distance bounded at 100 km/h, ratio recalibrated",18-29,0.1140489999,2.537261992,2.263792878
+distance,"road distance bounded at 100 km/h, ratio recalibrated",30-44,0.2793021305,1.403996632,1.186997197
+distance,"road distance bounded at 100 km/h, ratio recalibrated",45-64,0.4782259108,1,1
+distance,"road distance bounded at 100 km/h, ratio recalibrated",65+,0.1284229588,1.212379318,2.969929766
+survey years,2024,18-29,0.1055836822,2.84737675,2.540483099
+survey years,2024,30-44,0.2641262558,1.542459191,1.304059209
+survey years,2024,45-64,0.496841708,1,1
+survey years,2024,65+,0.133448354,1.212140362,2.969344401
+survey years,2023-2024,18-29,0.1112702166,2.642039811,2.357277618
+survey years,2023-2024,30-44,0.2716027018,1.46678927,1.240084707
+survey years,2023-2024,45-64,0.4858414882,1,1
+survey years,2023-2024,65+,0.1312855934,1.204829562,2.951435352
+survey years,2021-2022-2023-2024,18-29,0.1154397226,2.469467277,2.203305157
+survey years,2021-2022-2023-2024,30-44,0.2868854043,1.346584515,1.138458603
+survey years,2021-2022-2023-2024,45-64,0.4711235977,1,1
+survey years,2021-2022-2023-2024,65+,0.1265512753,1.212038513,2.969094904
+survey years,2019-2021-2022-2023-2024,18-29,0.1135392466,2.463681415,2.198142903
+survey years,2019-2021-2022-2023-2024,30-44,0.2967268762,1.277489061,1.08004243
+survey years,2019-2021-2022-2023-2024,45-64,0.4622818716,1,1
+survey years,2019-2021-2022-2023-2024,65+,0.1274520056,1.180886825,2.892783536
+professionals' work driving,25% of work trips by car,18-29,0.1170853653,2.480796325,2.213413148
+professionals' work driving,25% of work trips by car,30-44,0.2789679274,1.410986858,1.192907025
+professionals' work driving,25% of work trips by car,45-64,0.4800318271,1,1
+professionals' work driving,25% of work trips by car,65+,0.1239148802,1.261231067,3.089600449
+professionals' work driving,50% of work trips by car,18-29,0.1199006559,2.435934052,2.173386183
+professionals' work driving,50% of work trips by car,30-44,0.2792077013,1.417565749,1.198469094
+professionals' work driving,50% of work trips by car,45-64,0.4826845445,1,1
+professionals' work driving,50% of work trips by car,65+,0.1182070983,1.329437498,3.256683727
+older sample,65+ employed share set to the census,18-29,0.1143283651,2.534097832,2.260969755
+older sample,65+ employed share set to the census,30-44,0.2797266103,1.403547475,1.186617461
+older sample,65+ employed share set to the census,45-64,0.4787994888,1,1
+older sample,65+ employed share set to the census,65+,0.1271455358,1.226028737,3.003366344
+older sample,share aged 75+ in the 65+ sample at the routing-identified share (bound),18-29,0.1153829957,2.534097832,2.260969755
+older sample,share aged 75+ in the 65+ sample at the routing-identified share (bound),30-44,0.2823069693,1.403547475,1.186617461
+older sample,share aged 75+ in the 65+ sample at the routing-identified share (bound),45-64,0.4832162105,1,1
+older sample,share aged 75+ in the 65+ sample at the routing-identified share (bound),65+,0.1190938245,1.320992467,3.235996186
+non-working days,"car trips on an average weekend day (MOVILIA 2006, Spain), 22% of km",18-29,0.115849088,2.468834035,2.202740167
+non-working days,"car trips on an average weekend day (MOVILIA 2006, Spain), 22% of km",30-44,0.2699639253,1.435695371,1.213796631
+non-working days,"car trips on an average weekend day (MOVILIA 2006, Spain), 22% of km",45-64,0.4726730298,1,1
+non-working days,"car trips on an average weekend day (MOVILIA 2006, Spain), 22% of km",65+,0.1415139569,1.087450848,2.663896186
+non-working days,"car trips on an average weekend day (MOVILIA 2006, Spain), 32% of km",18-29,0.1167260874,2.440064245,2.177071219
+non-working days,"car trips on an average weekend day (MOVILIA 2006, Spain), 32% of km",30-44,0.2660187998,1.450909683,1.226659443
+non-working days,"car trips on an average weekend day (MOVILIA 2006, Spain), 32% of km",45-64,0.4707014078,1,1
+non-working days,"car trips on an average weekend day (MOVILIA 2006, Spain), 32% of km",65+,0.146553705,1.04567514,2.561559469
+non-working days,"overnight weekend stays away, driving (EMEF 2023, proxy), 22% of km",18-29,0.1177592697,2.423031336,2.161874138
+non-working days,"overnight weekend stays away, driving (EMEF 2023, proxy), 22% of km",30-44,0.2728587521,1.417097608,1.198073308
+non-working days,"overnight weekend stays away, driving (EMEF 2023, proxy), 22% of km",45-64,0.4715529239,1,1
+non-working days,"overnight weekend stays away, driving (EMEF 2023, proxy), 22% of km",65+,0.1378290543,1.113878327,2.728634801
+non-working days,"overnight weekend stays away, driving (EMEF 2023, proxy), 32% of km",18-29,0.1194991563,2.375206827,2.119204211
+non-working days,"overnight weekend stays away, driving (EMEF 2023, proxy), 32% of km",30-44,0.2702213081,1.423410612,1.203410584
+non-working days,"overnight weekend stays away, driving (EMEF 2023, proxy), 32% of km",45-64,0.4690753159,1,1
+non-working days,"overnight weekend stays away, driving (EMEF 2023, proxy), 32% of km",65+,0.1412042197,1.081541012,2.649419036
+uncovered kilometres,remainder: working-day mix (EMEF); non-working days: working-day mix (EMEF),18-29,0.1156786318,2.504031092,2.234143644
+uncovered kilometres,remainder: working-day mix (EMEF); non-working days: working-day mix (EMEF),30-44,0.278848118,1.407695304,1.190124208
+uncovered kilometres,remainder: working-day mix (EMEF); non-working days: working-day mix (EMEF),45-64,0.4787063275,1,1
+uncovered kilometres,remainder: working-day mix (EMEF); non-working days: working-day mix (EMEF),65+,0.1267669227,1.229451237,3.01175034
+uncovered kilometres,"remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: working-day mix (EMEF)",18-29,0.1402827891,2.001804418,1.786047557
+uncovered kilometres,"remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: working-day mix (EMEF)",30-44,0.2848118146,1.336138733,1.129627304
+uncovered kilometres,"remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: working-day mix (EMEF)",45-64,0.4640901415,1,1
+uncovered kilometres,"remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: working-day mix (EMEF)",65+,0.1108152547,1.363486624,3.340092865
+uncovered kilometres,"remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: working-day mix (EMEF)",18-29,0.1207637563,2.362308501,2.107696082
+uncovered kilometres,"remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: working-day mix (EMEF)",30-44,0.271139724,1.425816367,1.205444509
+uncovered kilometres,"remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: working-day mix (EMEF)",45-64,0.4714650825,1,1
+uncovered kilometres,"remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: working-day mix (EMEF)",65+,0.1366314372,1.123432505,2.752039387
+uncovered kilometres,"remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: working-day mix (EMEF)",18-29,0.1182418168,2.420261212,2.159402581
+uncovered kilometres,"remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: working-day mix (EMEF)",30-44,0.2673177953,1.450737988,1.226514285
+uncovered kilometres,"remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: working-day mix (EMEF)",45-64,0.4729439154,1,1
+uncovered kilometres,"remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: working-day mix (EMEF)",65+,0.1414964725,1.088208509,2.665752206
+uncovered kilometres,"remainder: working-day mix (EMEF); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",18-29,0.118271111,2.430255839,2.168319975
+uncovered kilometres,"remainder: working-day mix (EMEF); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",30-44,0.2749182534,1.416806742,1.197827398
+uncovered kilometres,"remainder: working-day mix (EMEF); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",45-64,0.475014623,1,1
+uncovered kilometres,"remainder: working-day mix (EMEF); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",65+,0.1317960126,1.173418135,2.874487708
+uncovered kilometres,"remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",18-29,0.1428752683,1.949846727,1.739689929
+uncovered kilometres,"remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",30-44,0.28088195,1.344055557,1.136320517
+uncovered kilometres,"remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",45-64,0.460398437,1,1
+uncovered kilometres,"remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",65+,0.1158443447,1.293919004,3.169675123
+uncovered kilometres,"remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",18-29,0.1233562356,2.294552961,2.047243315
+uncovered kilometres,"remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",30-44,0.2672098593,1.435457156,1.213595234
+uncovered kilometres,"remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",45-64,0.467773378,1,1
+uncovered kilometres,"remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",65+,0.1416605271,1.075065032,2.63355502
+uncovered kilometres,"remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",18-29,0.120834296,2.349848177,2.096578746
+uncovered kilometres,"remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",30-44,0.2633879306,1.460890513,1.235097653
+uncovered kilometres,"remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",45-64,0.4692522109,1,1
+uncovered kilometres,"remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",65+,0.1465255625,1.042655932,2.554163405
+uncovered kilometres,"remainder: working-day mix (EMEF); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",18-29,0.1169853852,2.460865166,2.195630192
+uncovered kilometres,"remainder: working-day mix (EMEF); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",30-44,0.2729697719,1.429184806,1.208292328
+uncovered kilometres,"remainder: working-day mix (EMEF); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",45-64,0.475768556,1,1
+uncovered kilometres,"remainder: working-day mix (EMEF); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",65+,0.1342762868,1.153571454,2.825869881
+uncovered kilometres,"remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",18-29,0.1415895425,1.970774611,1.75836218
+uncovered kilometres,"remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",30-44,0.2789334685,1.355660772,1.146132049
+uncovered kilometres,"remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",45-64,0.46115237,1,1
+uncovered kilometres,"remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",65+,0.1183246189,1.268870845,3.10831539
+uncovered kilometres,"remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",18-29,0.1220705098,2.322457876,2.072140605
+uncovered kilometres,"remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",30-44,0.2652613779,1.448331919,1.224480094
+uncovered kilometres,"remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",45-64,0.4685273111,1,1
+uncovered kilometres,"remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",65+,0.1441408013,1.058268983,2.592410236
+uncovered kilometres,"remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",18-29,0.1195485702,2.378936452,2.122531852
+uncovered kilometres,"remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",30-44,0.2614394492,1.474143041,1.246301892
+uncovered kilometres,"remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",45-64,0.4700061439,1,1
+uncovered kilometres,"remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",65+,0.1490058366,1.026947738,2.515683508
+regional profile with the uncovered kilometres,"EMEF, province of Barcelona, per licence holder; remainder: working-day mix (EMEF); non-working days: working-day mix (EMEF)",18-29,0.1255376601,2.221819704,1.982349334
+regional profile with the uncovered kilometres,"EMEF, province of Barcelona, per licence holder; remainder: working-day mix (EMEF); non-working days: working-day mix (EMEF)",30-44,0.2956819594,1.278325744,1.080749797
+regional profile with the uncovered kilometres,"EMEF, province of Barcelona, per licence holder; remainder: working-day mix (EMEF); non-working days: working-day mix (EMEF)",45-64,0.4609556592,1,1
+regional profile with the uncovered kilometres,"EMEF, province of Barcelona, per licence holder; remainder: working-day mix (EMEF); non-working days: working-day mix (EMEF)",65+,0.1178247212,1.273710762,3.120171591
+regional profile with the uncovered kilometres,"EMEF, province of Barcelona, per licence holder; remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: working-day mix (EMEF)",18-29,0.1471502565,1.857536664,1.657329154
+regional profile with the uncovered kilometres,"EMEF, province of Barcelona, per licence holder; remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: working-day mix (EMEF)",30-44,0.2965377021,1.249113838,1.056052836
+regional profile with the uncovered kilometres,"EMEF, province of Barcelona, per licence holder; remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: working-day mix (EMEF)",45-64,0.4517256233,1,1
+regional profile with the uncovered kilometres,"EMEF, province of Barcelona, per licence holder; remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: working-day mix (EMEF)",65+,0.1045864181,1.406201395,3.444729975
+regional profile with the uncovered kilometres,"EMEF, province of Barcelona, per licence holder; remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: working-day mix (EMEF)",18-29,0.1311424028,2.095639189,1.869768706
+regional profile with the uncovered kilometres,"EMEF, province of Barcelona, per licence holder; remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: working-day mix (EMEF)",30-44,0.2876120005,1.294899802,1.094762196
+regional profile with the uncovered kilometres,"EMEF, province of Barcelona, per licence holder; remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: working-day mix (EMEF)",45-64,0.4541883138,1,1
+regional profile with the uncovered kilometres,"EMEF, province of Barcelona, per licence holder; remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: working-day mix (EMEF)",65+,0.1270572829,1.163816419,2.850966668
+regional profile with the uncovered kilometres,"EMEF, province of Barcelona, per licence holder; remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: working-day mix (EMEF)",18-29,0.1285069435,2.147129016,1.915708898
+regional profile with the uncovered kilometres,"EMEF, province of Barcelona, per licence holder; remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: working-day mix (EMEF)",30-44,0.2837668272,1.317669914,1.114012996
+regional profile with the uncovered kilometres,"EMEF, province of Barcelona, per licence holder; remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: working-day mix (EMEF)",45-64,0.4559960101,1,1
+regional profile with the uncovered kilometres,"EMEF, province of Barcelona, per licence holder; remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: working-day mix (EMEF)",65+,0.1317302193,1.126999481,2.760777302
+regional profile with the uncovered kilometres,"EMEF, province of Barcelona, per licence holder; remainder: working-day mix (EMEF); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",18-29,0.1283950491,2.156114337,1.92372577
+regional profile with the uncovered kilometres,"EMEF, province of Barcelona, per licence holder; remainder: working-day mix (EMEF); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",30-44,0.2915677631,1.286660829,1.087796625
+regional profile with the uncovered kilometres,"EMEF, province of Barcelona, per licence holder; remainder: working-day mix (EMEF); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",45-64,0.4575055564,1,1
+regional profile with the uncovered kilometres,"EMEF, province of Barcelona, per licence holder; remainder: working-day mix (EMEF); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",65+,0.1225316314,1.215615546,2.977857457
+regional profile with the uncovered kilometres,"EMEF, province of Barcelona, per licence holder; remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",18-29,0.1500076455,1.808236874,1.613342954
+regional profile with the uncovered kilometres,"EMEF, province of Barcelona, per licence holder; remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",30-44,0.2924235057,1.25701354,1.062731573
+regional profile with the uncovered kilometres,"EMEF, province of Barcelona, per licence holder; remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",45-64,0.4482755205,1,1
+regional profile with the uncovered kilometres,"EMEF, province of Barcelona, per licence holder; remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",65+,0.1092933283,1.335363373,3.271200168
+regional profile with the uncovered kilometres,"EMEF, province of Barcelona, per licence holder; remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",18-29,0.1339997919,2.0353727,1.815997811
+regional profile with the uncovered kilometres,"EMEF, province of Barcelona, per licence holder; remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",30-44,0.2834978041,1.303712678,1.102212968
+regional profile with the uncovered kilometres,"EMEF, province of Barcelona, per licence holder; remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",45-64,0.450738211,1,1
+regional profile with the uncovered kilometres,"EMEF, province of Barcelona, per licence holder; remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",65+,0.131764193,1.113717536,2.728240916
+regional profile with the uncovered kilometres,"EMEF, province of Barcelona, per licence holder; remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",18-29,0.1313643325,2.08453346,1.859859965
+regional profile with the uncovered kilometres,"EMEF, province of Barcelona, per licence holder; remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",30-44,0.2796526308,1.326938955,1.121849429
+regional profile with the uncovered kilometres,"EMEF, province of Barcelona, per licence holder; remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",45-64,0.4525459073,1,1
+regional profile with the uncovered kilometres,"EMEF, province of Barcelona, per licence holder; remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",65+,0.1364371294,1.07988661,2.645366296
+regional profile with the uncovered kilometres,"EMEF, province of Barcelona, per licence holder; remainder: working-day mix (EMEF); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",18-29,0.1270514491,2.183304951,1.947985747
+regional profile with the uncovered kilometres,"EMEF, province of Barcelona, per licence holder; remainder: working-day mix (EMEF); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",30-44,0.2896074312,1.29797952,1.097365918
+regional profile with the uncovered kilometres,"EMEF, province of Barcelona, per licence holder; remainder: working-day mix (EMEF); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",45-64,0.4584271494,1,1
+regional profile with the uncovered kilometres,"EMEF, province of Barcelona, per licence holder; remainder: working-day mix (EMEF); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",65+,0.1249139704,1.194833541,2.926948394
+regional profile with the uncovered kilometres,"EMEF, province of Barcelona, per licence holder; remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",18-29,0.1486640454,1.828330493,1.631270859
+regional profile with the uncovered kilometres,"EMEF, province of Barcelona, per licence holder; remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",30-44,0.2904631738,1.268098796,1.072103509
+regional profile with the uncovered kilometres,"EMEF, province of Barcelona, per licence holder; remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",45-64,0.4491971135,1,1
+regional profile with the uncovered kilometres,"EMEF, province of Barcelona, per licence holder; remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",65+,0.1116756673,1.30956328,3.207998442
+regional profile with the uncovered kilometres,"EMEF, province of Barcelona, per licence holder; remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",18-29,0.1326561918,2.060191582,1.838141684
+regional profile with the uncovered kilometres,"EMEF, province of Barcelona, per licence holder; remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",30-44,0.2815374722,1.315474538,1.112156934
+regional profile with the uncovered kilometres,"EMEF, province of Barcelona, per licence holder; remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",45-64,0.451659804,1,1
+regional profile with the uncovered kilometres,"EMEF, province of Barcelona, per licence holder; remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",65+,0.134146532,1.096175472,2.685268639
+regional profile with the uncovered kilometres,"EMEF, province of Barcelona, per licence holder; remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",18-29,0.1300207324,2.110363424,1.882905945
+regional profile with the uncovered kilometres,"EMEF, province of Barcelona, per licence holder; remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",30-44,0.2776922989,1.339027643,1.132069709
+regional profile with the uncovered kilometres,"EMEF, province of Barcelona, per licence holder; remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",45-64,0.4534675003,1,1
+regional profile with the uncovered kilometres,"EMEF, province of Barcelona, per licence holder; remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",65+,0.1388194684,1.063515632,2.605262796
+regional profile with the uncovered kilometres,"EMEF, Barcelona city; remainder: working-day mix (EMEF); non-working days: working-day mix (EMEF)",18-29,0.08631273867,3.522318825,3.142679114
+regional profile with the uncovered kilometres,"EMEF, Barcelona city; remainder: working-day mix (EMEF); non-working days: working-day mix (EMEF)",30-44,0.2511616686,1.640339414,1.386811223
+regional profile with the uncovered kilometres,"EMEF, Barcelona city; remainder: working-day mix (EMEF); non-working days: working-day mix (EMEF)",45-64,0.5024349807,1,1
+regional profile with the uncovered kilometres,"EMEF, Barcelona city; remainder: working-day mix (EMEF); non-working days: working-day mix (EMEF)",65+,0.160090612,1.021791043,2.503051305
+regional profile with the uncovered kilometres,"EMEF, Barcelona city; remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: working-day mix (EMEF)",18-29,0.1198274962,2.426989472,2.165405661
+regional profile with the uncovered kilometres,"EMEF, Barcelona city; remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: working-day mix (EMEF)",30-44,0.2655263657,1.484226719,1.254827052
+regional profile with the uncovered kilometres,"EMEF, Barcelona city; remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: working-day mix (EMEF)",45-64,0.4806187228,1,1
+regional profile with the uncovered kilometres,"EMEF, Barcelona city; remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: working-day mix (EMEF)",65+,0.1340274153,1.167495273,2.859978646
+regional profile with the uncovered kilometres,"EMEF, Barcelona city; remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: working-day mix (EMEF)",18-29,0.08988111802,3.325894598,2.967425724
+regional profile with the uncovered kilometres,"EMEF, Barcelona city; remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: working-day mix (EMEF)",30-44,0.2438691091,1.661130205,1.404388623
+regional profile with the uncovered kilometres,"EMEF, Barcelona city; remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: working-day mix (EMEF)",45-64,0.4940299238,1,1
+regional profile with the uncovered kilometres,"EMEF, Barcelona city; remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: working-day mix (EMEF)",65+,0.1722198491,0.9339381992,2.28784079
+regional profile with the uncovered kilometres,"EMEF, Barcelona city; remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: working-day mix (EMEF)",18-29,0.08782831884,3.406390523,3.039245702
+regional profile with the uncovered kilometres,"EMEF, Barcelona city; remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: working-day mix (EMEF)",30-44,0.2399480224,1.689644543,1.428495831
+regional profile with the uncovered kilometres,"EMEF, Barcelona city; remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: working-day mix (EMEF)",45-64,0.4944305683,1,1
+regional profile with the uncovered kilometres,"EMEF, Barcelona city; remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: working-day mix (EMEF)",65+,0.1777930904,0.9053958978,2.217921558
+regional profile with the uncovered kilometres,"EMEF, Barcelona city; remainder: working-day mix (EMEF); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",18-29,0.08813195651,3.420191067,3.051558807
+regional profile with the uncovered kilometres,"EMEF, Barcelona city; remainder: working-day mix (EMEF); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",30-44,0.2474438031,1.650785772,1.395643009
+regional profile with the uncovered kilometres,"EMEF, Barcelona city; remainder: working-day mix (EMEF); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",45-64,0.4981499459,1,1
+regional profile with the uncovered kilometres,"EMEF, Barcelona city; remainder: working-day mix (EMEF); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",65+,0.1662742944,0.9754006979,2.389410247
+regional profile with the uncovered kilometres,"EMEF, Barcelona city; remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",18-29,0.1216467141,2.369379396,2.114004868
+regional profile with the uncovered kilometres,"EMEF, Barcelona city; remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",30-44,0.2618085002,1.491883004,1.261299994
+regional profile with the uncovered kilometres,"EMEF, Barcelona city; remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",45-64,0.476333688,1,1
+regional profile with the uncovered kilometres,"EMEF, Barcelona city; remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",65+,0.1402110977,1.106055695,2.709471929
+regional profile with the uncovered kilometres,"EMEF, Barcelona city; remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",18-29,0.09170033586,3.231637793,2.883328029
+regional profile with the uncovered kilometres,"EMEF, Barcelona city; remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",30-44,0.2401512436,1.672215652,1.413760722
+regional profile with the uncovered kilometres,"EMEF, Barcelona city; remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",45-64,0.489744889,1,1
+regional profile with the uncovered kilometres,"EMEF, Barcelona city; remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",65+,0.1784035315,0.8937469103,2.189385378
+regional profile with the uncovered kilometres,"EMEF, Barcelona city; remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",18-29,0.08964753668,3.308341869,2.951764849
+regional profile with the uncovered kilometres,"EMEF, Barcelona city; remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",30-44,0.2362301569,1.70136276,1.4384029
+regional profile with the uncovered kilometres,"EMEF, Barcelona city; remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",45-64,0.4901455336,1,1
+regional profile with the uncovered kilometres,"EMEF, Barcelona city; remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",65+,0.1839767728,0.8673814721,2.124798744
+regional profile with the uncovered kilometres,"EMEF, Barcelona city; remainder: working-day mix (EMEF); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",18-29,0.0870854061,3.462712499,3.089497229
+regional profile with the uncovered kilometres,"EMEF, Barcelona city; remainder: working-day mix (EMEF); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",30-44,0.2454447694,1.664913036,1.407586787
+regional profile with the uncovered kilometres,"EMEF, Barcelona city; remainder: working-day mix (EMEF); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",45-64,0.498354201,1,1
+regional profile with the uncovered kilometres,"EMEF, Barcelona city; remainder: working-day mix (EMEF); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",65+,0.1691156235,0.9594061115,2.350228782
+regional profile with the uncovered kilometres,"EMEF, Barcelona city; remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",18-29,0.1206001636,2.390965344,2.133264256
+regional profile with the uncovered kilometres,"EMEF, Barcelona city; remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",30-44,0.2598094664,1.504006546,1.271549742
+regional profile with the uncovered kilometres,"EMEF, Barcelona city; remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",45-64,0.4765379431,1,1
+regional profile with the uncovered kilometres,"EMEF, Barcelona city; remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",65+,0.1430524268,1.084551912,2.656794749
+regional profile with the uncovered kilometres,"EMEF, Barcelona city; remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",18-29,0.09065378545,3.270308717,2.917830955
+regional profile with the uncovered kilometres,"EMEF, Barcelona city; remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",30-44,0.2381522098,1.686955394,1.426222313
+regional profile with the uncovered kilometres,"EMEF, Barcelona city; remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",45-64,0.4899491441,1,1
+regional profile with the uncovered kilometres,"EMEF, Barcelona city; remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",65+,0.1812448606,0.8801027762,2.155961746
+regional profile with the uncovered kilometres,"EMEF, Barcelona city; remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",18-29,0.08860098627,3.348814786,2.987875547
+regional profile with the uncovered kilometres,"EMEF, Barcelona city; remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",30-44,0.2342311232,1.716598004,1.45128341
+regional profile with the uncovered kilometres,"EMEF, Barcelona city; remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",45-64,0.4903497887,1,1
+regional profile with the uncovered kilometres,"EMEF, Barcelona city; remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",65+,0.1868181019,0.8545453697,2.093354523
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan area (AMB); remainder: working-day mix (EMEF); non-working days: working-day mix (EMEF)",18-29,0.1066615518,2.834145199,2.52867766
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan area (AMB); remainder: working-day mix (EMEF); non-working days: working-day mix (EMEF)",30-44,0.2632683325,1.556018982,1.31552322
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan area (AMB); remainder: working-day mix (EMEF); non-working days: working-day mix (EMEF)",45-64,0.4995814473,1,1
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan area (AMB); remainder: working-day mix (EMEF); non-working days: working-day mix (EMEF)",65+,0.1304886684,1.246469312,3.053439015
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan area (AMB); remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: working-day mix (EMEF)",18-29,0.1340017947,2.16129448,1.928347591
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan area (AMB); remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: working-day mix (EMEF)",30-44,0.2739594604,1.432589541,1.211170833
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan area (AMB); remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: working-day mix (EMEF)",45-64,0.4786310474,1,1
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan area (AMB); remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: working-day mix (EMEF)",65+,0.1134076975,1.374062292,3.365999765
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan area (AMB); remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: working-day mix (EMEF)",18-29,0.1113309484,2.674155691,2.385932011
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan area (AMB); remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: working-day mix (EMEF)",30-44,0.2560075745,1.575916859,1.332345713
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan area (AMB); remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: working-day mix (EMEF)",45-64,0.4920156362,1,1
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan area (AMB); remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: working-day mix (EMEF)",65+,0.140645841,1.13893804,2.790022839
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan area (AMB); remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: working-day mix (EMEF)",18-29,0.1089438208,2.739644782,2.44436261
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan area (AMB); remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: working-day mix (EMEF)",30-44,0.2522629904,1.603344472,1.355534159
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan area (AMB); remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: working-day mix (EMEF)",45-64,0.4932568974,1,1
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan area (AMB); remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: working-day mix (EMEF)",65+,0.1455362914,1.10344312,2.703071982
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan area (AMB); remainder: working-day mix (EMEF); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",18-29,0.1090420861,2.750867839,2.454376033
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan area (AMB); remainder: working-day mix (EMEF); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",30-44,0.2595666799,1.566024148,1.323982004
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan area (AMB); remainder: working-day mix (EMEF); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",45-64,0.4957242737,1,1
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan area (AMB); remainder: working-day mix (EMEF); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",65+,0.1356669602,1.189636222,2.914216675
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan area (AMB); remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",18-29,0.136382329,2.106456049,1.879419712
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan area (AMB); remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",30-44,0.2702578078,1.440508331,1.217865707
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan area (AMB); remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",45-64,0.4747738739,1,1
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan area (AMB); remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",65+,0.1185859894,1.303471437,3.193075437
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan area (AMB); remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",18-29,0.1137114827,2.597647353,2.317669833
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan area (AMB); remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",30-44,0.2523059219,1.586501877,1.341294728
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan area (AMB); remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",45-64,0.4881584626,1,1
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan area (AMB); remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",65+,0.1458241328,1.08988207,2.66985188
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan area (AMB); remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",18-29,0.1113243552,2.660095473,2.37338722
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan area (AMB); remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",30-44,0.2485613378,1.614497414,1.364963321
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan area (AMB); remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",45-64,0.4893997238,1,1
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan area (AMB); remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",65+,0.1507145832,1.057198482,2.589787861
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan area (AMB); remainder: working-day mix (EMEF); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",18-29,0.1078250897,2.785467484,2.485246486
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan area (AMB); remainder: working-day mix (EMEF); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",30-44,0.2576576301,1.579641127,1.335494365
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan area (AMB); remainder: working-day mix (EMEF); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",45-64,0.4963570888,1,1
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan area (AMB); remainder: working-day mix (EMEF); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",65+,0.1381601914,1.169659333,2.865279882
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan area (AMB); remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",18-29,0.1351653325,2.128255004,1.898869149
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan area (AMB); remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",30-44,0.2683487579,1.452689877,1.228164493
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan area (AMB); remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",45-64,0.475406689,1,1
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan area (AMB); remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",65+,0.1210792205,1.278332291,3.131492814
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan area (AMB); remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",18-29,0.1124944862,2.629153262,2.345779997
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan area (AMB); remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",30-44,0.250396872,1.600669832,1.353272907
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan area (AMB); remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",45-64,0.4887912777,1,1
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan area (AMB); remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",65+,0.148317364,1.072950131,2.62837421
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan area (AMB); remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",18-29,0.1101073587,2.692974657,2.402722647
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan area (AMB); remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",30-44,0.246652288,1.629097143,1.377306539
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan area (AMB); remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",45-64,0.4900325389,1,1
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan area (AMB); remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",65+,0.1532078144,1.041338894,2.550937097
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan region (RMB); remainder: working-day mix (EMEF); non-working days: working-day mix (EMEF)",18-29,0.1184585845,2.341042584,2.088722231
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan region (RMB); remainder: working-day mix (EMEF); non-working days: working-day mix (EMEF)",30-44,0.3040546858,1.235969265,1.044939866
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan region (RMB); remainder: working-day mix (EMEF); non-working days: working-day mix (EMEF)",45-64,0.4583024302,1,1
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan region (RMB); remainder: working-day mix (EMEF); non-working days: working-day mix (EMEF)",65+,0.1191842995,1.251933325,3.066824047
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan region (RMB); remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: working-day mix (EMEF)",18-29,0.1422192107,1.914078195,1.707776571
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan region (RMB); remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: working-day mix (EMEF)",30-44,0.3023698615,1.220008785,1.031446212
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan region (RMB); remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: working-day mix (EMEF)",45-64,0.4498774733,1,1
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan region (RMB); remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: working-day mix (EMEF)",65+,0.1055334546,1.387880841,3.399850656
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan region (RMB); remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: working-day mix (EMEF)",18-29,0.1237890679,2.208241847,1.970234915
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan region (RMB); remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: working-day mix (EMEF)",30-44,0.2958646451,1.25204338,1.058529592
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan region (RMB); remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: working-day mix (EMEF)",45-64,0.4517573593,1,1
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan region (RMB); remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: working-day mix (EMEF)",65+,0.1285889277,1.143799097,2.801930826
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan region (RMB); remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: working-day mix (EMEF)",18-29,0.1212946665,2.26244069,2.018592143
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan region (RMB); remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: working-day mix (EMEF)",30-44,0.2918784818,1.274090708,1.077169321
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan region (RMB); remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: working-day mix (EMEF)",45-64,0.4535187171,1,1
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan region (RMB); remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: working-day mix (EMEF)",65+,0.1333081346,1.10760945,2.713278117
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan region (RMB); remainder: working-day mix (EMEF); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",18-29,0.1211761516,2.27187871,2.027012921
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan region (RMB); remainder: working-day mix (EMEF); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",30-44,0.2998792698,1.244054402,1.051775378
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan region (RMB); remainder: working-day mix (EMEF); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",45-64,0.4549656466,1,1
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan region (RMB); remainder: working-day mix (EMEF); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",65+,0.123978932,1.194754851,2.92675563
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan region (RMB); remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",18-29,0.1449367778,1.864258488,1.663326492
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan region (RMB); remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",30-44,0.2981944455,1.22791612,1.038131403
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan region (RMB); remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",45-64,0.4465406897,1,1
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan region (RMB); remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",65+,0.1103280871,1.3177197,3.227978984
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan region (RMB); remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",18-29,0.126506635,2.144845037,1.913671089
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan region (RMB); remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",30-44,0.2916892291,1.260585626,1.065751563
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan region (RMB); remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",45-64,0.4484205757,1,1
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan region (RMB); remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",65+,0.1333835602,1.094539187,2.68126028
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan region (RMB); remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",18-29,0.1240122336,2.196581009,1.959830896
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan region (RMB); remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",30-44,0.2877030658,1.28307128,1.08476187
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan region (RMB); remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",45-64,0.4501819335,1,1
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan region (RMB); remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",65+,0.138102767,1.061289261,2.599808921
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan region (RMB); remainder: working-day mix (EMEF); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",18-29,0.1199044653,2.300505449,2.052554237
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan region (RMB); remainder: working-day mix (EMEF); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",30-44,0.2978470589,1.255014739,1.061041703
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan region (RMB); remainder: working-day mix (EMEF); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",45-64,0.4558636155,1,1
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan region (RMB); remainder: working-day mix (EMEF); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",65+,0.1263848604,1.174324078,2.876706969
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan region (RMB); remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",18-29,0.1436650914,1.884542531,1.681424296
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan region (RMB); remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",30-44,0.2961622346,1.238828071,1.04735682
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan region (RMB); remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",45-64,0.4474386585,1,1
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan region (RMB); remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",65+,0.1127340155,1.292190714,3.165441383
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan region (RMB); remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",18-29,0.1252349486,2.17096336,1.936974348
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan region (RMB); remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",30-44,0.2896570182,1.271971848,1.075377949
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan region (RMB); remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",45-64,0.4493185445,1,1
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan region (RMB); remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",65+,0.1357894886,1.077299055,2.639027638
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan region (RMB); remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",18-29,0.1227405472,2.223766148,1.984085989
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan region (RMB); remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",30-44,0.2856708549,1.29477634,1.094657816
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan region (RMB); remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",45-64,0.4510799023,1,1
+regional profile with the uncovered kilometres,"EMEF, rest of the metropolitan region (RMB); remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",65+,0.1405086955,1.045197504,2.56038942
+regional profile with the uncovered kilometres,"EMEF, rest of the province; remainder: working-day mix (EMEF); non-working days: working-day mix (EMEF)",18-29,0.1569618566,1.649399084,1.471624889
+regional profile with the uncovered kilometres,"EMEF, rest of the province; remainder: working-day mix (EMEF); non-working days: working-day mix (EMEF)",30-44,0.3030504656,1.157679758,0.9787506586
+regional profile with the uncovered kilometres,"EMEF, rest of the province; remainder: working-day mix (EMEF); non-working days: working-day mix (EMEF)",45-64,0.4278545785,1,1
+regional profile with the uncovered kilometres,"EMEF, rest of the province; remainder: working-day mix (EMEF); non-working days: working-day mix (EMEF)",65+,0.1121330993,1.24225412,3.043113184
+regional profile with the uncovered kilometres,"EMEF, rest of the province; remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: working-day mix (EMEF)",18-29,0.1690392943,1.534467228,1.369080525
+regional profile with the uncovered kilometres,"EMEF, rest of the province; remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: working-day mix (EMEF)",30-44,0.3016703555,1.165188454,0.9850988227
+regional profile with the uncovered kilometres,"EMEF, rest of the province; remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: working-day mix (EMEF)",45-64,0.4286685244,1,1
+regional profile with the uncovered kilometres,"EMEF, rest of the province; remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: working-day mix (EMEF)",65+,0.1006218259,1.387003287,3.397700939
+regional profile with the uncovered kilometres,"EMEF, rest of the province; remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: working-day mix (EMEF)",18-29,0.1637981716,1.555474519,1.387823626
+regional profile with the uncovered kilometres,"EMEF, rest of the province; remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: working-day mix (EMEF)",30-44,0.2944114261,1.172737491,0.9914810926
+regional profile with the uncovered kilometres,"EMEF, rest of the province; remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: working-day mix (EMEF)",45-64,0.4210641422,1,1
+regional profile with the uncovered kilometres,"EMEF, rest of the province; remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: working-day mix (EMEF)",65+,0.12072626,1.135519508,2.781648562
+regional profile with the uncovered kilometres,"EMEF, rest of the province; remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: working-day mix (EMEF)",18-29,0.1606811843,1.593683541,1.421914434
+regional profile with the uncovered kilometres,"EMEF, rest of the province; remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: working-day mix (EMEF)",30-44,0.2907852109,1.193378793,1.008932109
+regional profile with the uncovered kilometres,"EMEF, rest of the province; remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: working-day mix (EMEF)",45-64,0.4231978173,1,1
+regional profile with the uncovered kilometres,"EMEF, rest of the province; remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: working-day mix (EMEF)",65+,0.1253357875,1.099300468,2.692923851
+regional profile with the uncovered kilometres,"EMEF, rest of the province; remainder: working-day mix (EMEF); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",18-29,0.1604471212,1.600514716,1.428009337
+regional profile with the uncovered kilometres,"EMEF, rest of the province; remainder: working-day mix (EMEF); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",30-44,0.2986461427,1.165247582,0.985148812
+regional profile with the uncovered kilometres,"EMEF, rest of the province; remainder: working-day mix (EMEF); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",45-64,0.4243927036,1,1
+regional profile with the uncovered kilometres,"EMEF, rest of the province; remainder: working-day mix (EMEF); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",65+,0.1165140324,1.18587186,2.904995229
+regional profile with the uncovered kilometres,"EMEF, rest of the province; remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",18-29,0.1725245589,1.491326772,1.330589799
+regional profile with the uncovered kilometres,"EMEF, rest of the province; remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",30-44,0.2972660326,1.172902663,0.9916207357
+regional profile with the uncovered kilometres,"EMEF, rest of the province; remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",45-64,0.4252066495,1,1
+regional profile with the uncovered kilometres,"EMEF, rest of the province; remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",65+,0.105002759,1.318400701,3.229647212
+regional profile with the uncovered kilometres,"EMEF, rest of the province; remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",18-29,0.1672834363,1.510544762,1.347736452
+regional profile with the uncovered kilometres,"EMEF, rest of the province; remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",30-44,0.2900071032,1.180759434,0.9982631774
+regional profile with the uncovered kilometres,"EMEF, rest of the province; remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",45-64,0.4176022674,1,1
+regional profile with the uncovered kilometres,"EMEF, rest of the province; remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",65+,0.1251071931,1.086747515,2.662173251
+regional profile with the uncovered kilometres,"EMEF, rest of the province; remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",18-29,0.1641664489,1.547089534,1.380342385
+regional profile with the uncovered kilometres,"EMEF, rest of the province; remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",30-44,0.286380888,1.20181976,1.016068453
+regional profile with the uncovered kilometres,"EMEF, rest of the province; remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",45-64,0.4197359424,1,1
+regional profile with the uncovered kilometres,"EMEF, rest of the province; remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",65+,0.1297167206,1.053484832,2.580690643
+regional profile with the uncovered kilometres,"EMEF, rest of the province; remainder: working-day mix (EMEF); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",18-29,0.1588580304,1.620668404,1.445990836
+regional profile with the uncovered kilometres,"EMEF, rest of the province; remainder: working-day mix (EMEF); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",30-44,0.2967974392,1.17551103,0.9938259583
+regional profile with the uncovered kilometres,"EMEF, rest of the province; remainder: working-day mix (EMEF); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",45-64,0.4254804859,1,1
+regional profile with the uncovered kilometres,"EMEF, rest of the province; remainder: working-day mix (EMEF); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",65+,0.1188640446,1.165405949,2.854860493
+regional profile with the uncovered kilometres,"EMEF, rest of the province; remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",18-29,0.170935468,1.509041442,1.346395162
+regional profile with the uncovered kilometres,"EMEF, rest of the province; remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",30-44,0.2954173291,1.183261964,1.00037892
+regional profile with the uncovered kilometres,"EMEF, rest of the province; remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",45-64,0.4262944318,1,1
+regional profile with the uncovered kilometres,"EMEF, rest of the province; remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",65+,0.1073527711,1.292839131,3.167029791
+regional profile with the uncovered kilometres,"EMEF, rest of the province; remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",18-29,0.1656943454,1.529004081,1.364206203
+regional profile with the uncovered kilometres,"EMEF, rest of the province; remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",30-44,0.2881583997,1.1914301,1.007284602
+regional profile with the uncovered kilometres,"EMEF, rest of the province; remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",45-64,0.4186900496,1,1
+regional profile with the uncovered kilometres,"EMEF, rest of the province; remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",65+,0.1274572052,1.069489035,2.619895665
+regional profile with the uncovered kilometres,"EMEF, rest of the province; remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",18-29,0.1625773581,1.566259962,1.397446601
+regional profile with the uncovered kilometres,"EMEF, rest of the province; remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",30-44,0.2845321845,1.212763253,1.025320538
+regional profile with the uncovered kilometres,"EMEF, rest of the province; remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",45-64,0.4208237247,1,1
+regional profile with the uncovered kilometres,"EMEF, rest of the province; remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",65+,0.1320667327,1.037420607,2.541338583
+regional profile with the uncovered kilometres,Madrid survey 2018; remainder: working-day mix (EMEF); non-working days: working-day mix (EMEF),18-29,0.1021604125,2.786594929,2.486252415
+regional profile with the uncovered kilometres,Madrid survey 2018; remainder: working-day mix (EMEF); non-working days: working-day mix (EMEF),30-44,0.3420447137,1.127864992,0.9535440138
+regional profile with the uncovered kilometres,Madrid survey 2018; remainder: working-day mix (EMEF); non-working days: working-day mix (EMEF),45-64,0.4704709234,1,1
+regional profile with the uncovered kilometres,Madrid survey 2018; remainder: working-day mix (EMEF); non-working days: working-day mix (EMEF),65+,0.08532395042,1.795187937,4.397618805
+regional profile with the uncovered kilometres,"Madrid survey 2018; remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: working-day mix (EMEF)",18-29,0.1308664525,2.119317594,1.890895024
+regional profile with the uncovered kilometres,"Madrid survey 2018; remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: working-day mix (EMEF)",30-44,0.3288324365,1.142965817,0.9663108805
+regional profile with the uncovered kilometres,"Madrid survey 2018; remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: working-day mix (EMEF)",45-64,0.4583536361,1,1
+regional profile with the uncovered kilometres,"Madrid survey 2018; remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: working-day mix (EMEF)",65+,0.08194747491,1.821013616,4.460883208
+regional profile with the uncovered kilometres,"Madrid survey 2018; remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: working-day mix (EMEF)",18-29,0.1072722532,2.62786437,2.344630024
+regional profile with the uncovered kilometres,"Madrid survey 2018; remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: working-day mix (EMEF)",30-44,0.3342902422,1.142747208,0.9661260589
+regional profile with the uncovered kilometres,"Madrid survey 2018; remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: working-day mix (EMEF)",45-64,0.4658720515,1,1
+regional profile with the uncovered kilometres,"Madrid survey 2018; remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: working-day mix (EMEF)",65+,0.09256545301,1.638573075,4.01396401
+regional profile with the uncovered kilometres,"Madrid survey 2018; remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: working-day mix (EMEF)",18-29,0.1052667862,2.692424597,2.402231872
+regional profile with the uncovered kilometres,"Madrid survey 2018; remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: working-day mix (EMEF)",30-44,0.3301655606,1.163286432,0.983490774
+regional profile with the uncovered kilometres,"Madrid survey 2018; remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: working-day mix (EMEF)",45-64,0.4683938901,1,1
+regional profile with the uncovered kilometres,"Madrid survey 2018; remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: working-day mix (EMEF)",65+,0.09617376304,1.585633089,3.884278492
+regional profile with the uncovered kilometres,"Madrid survey 2018; remainder: working-day mix (EMEF); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",18-29,0.104766512,2.703736031,2.412324147
+regional profile with the uncovered kilometres,"Madrid survey 2018; remainder: working-day mix (EMEF); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",30-44,0.338091358,1.135366886,0.9598864274
+regional profile with the uncovered kilometres,"Madrid survey 2018; remainder: working-day mix (EMEF); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",45-64,0.4681263437,1,1
+regional profile with the uncovered kilometres,"Madrid survey 2018; remainder: working-day mix (EMEF); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",65+,0.08901578625,1.712159175,4.194225703
+regional profile with the uncovered kilometres,"Madrid survey 2018; remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",18-29,0.1334725521,2.06730805,1.844491131
+regional profile with the uncovered kilometres,"Madrid survey 2018; remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",30-44,0.3248790808,1.150956558,0.9730665854
+regional profile with the uncovered kilometres,"Madrid survey 2018; remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",45-64,0.4560090564,1,1
+regional profile with the uncovered kilometres,"Madrid survey 2018; remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",65+,0.08563931073,1.733597982,4.246743714
+regional profile with the uncovered kilometres,"Madrid survey 2018; remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",18-29,0.1098783528,2.552625072,2.277500107
+regional profile with the uncovered kilometres,"Madrid survey 2018; remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",30-44,0.3303368865,1.15060331,0.9727679345
+regional profile with the uncovered kilometres,"Madrid survey 2018; remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",45-64,0.4635274718,1,1
+regional profile with the uncovered kilometres,"Madrid survey 2018; remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",65+,0.09625728884,1.567797405,3.840586944
+regional profile with the uncovered kilometres,"Madrid survey 2018; remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",18-29,0.1078728858,2.614226814,2.33246234
+regional profile with the uncovered kilometres,"Madrid survey 2018; remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",30-44,0.3262122049,1.171490782,0.990427073
+regional profile with the uncovered kilometres,"Madrid survey 2018; remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",45-64,0.4660493104,1,1
+regional profile with the uncovered kilometres,"Madrid survey 2018; remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: overnight weekend stays away, driving (EMEF 2023, proxy)",65+,0.09986559887,1.51937175,3.721960047
+regional profile with the uncovered kilometres,"Madrid survey 2018; remainder: working-day mix (EMEF); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",18-29,0.1037440923,2.737880706,2.442788668
+regional profile with the uncovered kilometres,"Madrid survey 2018; remainder: working-day mix (EMEF); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",30-44,0.3359885282,1.14561045,0.9685467632
+regional profile with the uncovered kilometres,"Madrid survey 2018; remainder: working-day mix (EMEF); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",45-64,0.469412018,1,1
+regional profile with the uncovered kilometres,"Madrid survey 2018; remainder: working-day mix (EMEF); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",65+,0.0908553614,1.682099695,4.120589884
+regional profile with the uncovered kilometres,"Madrid survey 2018; remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",18-29,0.1324501324,2.089139752,1.863969786
+regional profile with the uncovered kilometres,"Madrid survey 2018; remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",30-44,0.322776251,1.161720989,0.9821672832
+regional profile with the uncovered kilometres,"Madrid survey 2018; remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",45-64,0.4572947308,1,1
+regional profile with the uncovered kilometres,"Madrid survey 2018; remainder: car journeys over 50 km per resident (MOVILIA 2007, Spain); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",65+,0.08747888589,1.701927446,4.169161339
+regional profile with the uncovered kilometres,"Madrid survey 2018; remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",18-29,0.1088559331,2.583747027,2.305267701
+regional profile with the uncovered kilometres,"Madrid survey 2018; remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",30-44,0.3282340567,1.161186489,0.9817153946
+regional profile with the uncovered kilometres,"Madrid survey 2018; remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",45-64,0.4648131462,1,1
+regional profile with the uncovered kilometres,"Madrid survey 2018; remainder: overnight weekend stays away, driving (EMEF 2023, proxy); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",65+,0.09809686399,1.542664078,3.779018575
+regional profile with the uncovered kilometres,"Madrid survey 2018; remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",18-29,0.1068504661,2.646522343,2.361277018
+regional profile with the uncovered kilometres,"Madrid survey 2018; remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",30-44,0.3241093751,1.182344163,0.9996029732
+regional profile with the uncovered kilometres,"Madrid survey 2018; remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",45-64,0.4673349848,1,1
+regional profile with the uncovered kilometres,"Madrid survey 2018; remainder: car trips on an average weekend day (MOVILIA 2006, Spain); non-working days: car trips on an average weekend day (MOVILIA 2006, Spain)",65+,0.101705174,1.496005997,3.664721653

@@ -5,8 +5,10 @@ Usage:
     python scripts/analyse.py figures    # reports/figures/*.svg and captions.json
     python scripts/analyse.py cards      # docs/models/dgt_*.md (needs model.py and the DGT audit)
     python scripts/analyse.py all
+    python scripts/analyse.py withdrawn  # the withdrawn forecast's tables (slow; nothing reads them
+                                         # but its model card and the model review)
 
-Run ``tables`` before ``scripts/microdata.py validate``, which decides the forecast from them, and
+Run ``tables`` before ``scripts/microdata.py validate``, which decides the models from them, and
 ``figures`` and ``cards`` after it: the figures include the regional ones, and the card of the DGT
 association analysis quotes the DGT microdata audit.
 """
@@ -29,10 +31,10 @@ from dgt_stats.paths import TABLES_DIR  # noqa: E402
 log = logging.getLogger("analyse")
 
 
-def run_tables() -> dict[str, pd.DataFrame]:
+def run_tables(registry: dict | None = None) -> dict[str, pd.DataFrame]:
     TABLES_DIR.mkdir(parents=True, exist_ok=True)
     frames = {}
-    for name, builder in summaries.SUMMARIES.items():
+    for name, builder in (summaries.SUMMARIES if registry is None else registry).items():
         frame = builder()
         target = TABLES_DIR / f"{name}.csv"
         # Ten significant digits: enough for every number the pages print, and stable across
@@ -52,7 +54,7 @@ def run_figures(frames: dict[str, pd.DataFrame] | None = None) -> None:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("step", choices=("tables", "figures", "cards", "all"))
+    parser.add_argument("step", choices=("tables", "figures", "cards", "all", "withdrawn"))
     args = parser.parse_args(argv)
     logging.basicConfig(
         level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s", datefmt="%H:%M:%S"
@@ -61,6 +63,8 @@ def main(argv: list[str] | None = None) -> int:
     frames = None
     if args.step in ("tables", "all"):
         frames = run_tables()
+    if args.step == "withdrawn":
+        run_tables(summaries.WITHDRAWN_SUMMARIES)
     if args.step in ("figures", "all"):
         run_figures(frames)
     if args.step in ("cards", "all"):

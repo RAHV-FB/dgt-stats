@@ -33,9 +33,10 @@ linked across sources and there is no merged crash database.
 
 | Data | Sources | Used for |
 |---|---|---|
-| **National** | DGT crash microdata, yearbook series and tables, driver census, kilometre estimates; INE residents; traffic and fuel series | trends, denominators and rates, province and year comparisons, the supporting association analysis and monthly deaths forecast, and an external test of the Catalan model |
+| **National** | DGT crash microdata, yearbook series and tables, driver census, kilometre estimates; INE residents; traffic and fuel series | trends, denominators and rates, province and year comparisons, the supporting association analysis, and an external test of the Catalan model |
 | **Catalonia** | Servei Català de Trànsit, crashes with a death or serious injury | the crash-severity model and its temporal and geographic validation |
-| **Barcelona** | Guàrdia Urbana crash, person, vehicle and cause tables | person and crash analysis, the person-severity model, checks of the Catalan model |
+| **Barcelona** | Guàrdia Urbana crash, person, vehicle and cause tables | person and crash analysis, the working-day check of involvement per kilometre by age, checks of the Catalan model |
+| **Travel surveys** | EMEF working-day mobility survey of the Barcelona area, 2014–2024 (ATM, Idescat, Institut Metròpoli); Madrid household travel survey 2018 (CRTM, Powered by CRTM); MOVILIA 2006 and 2007 (Ministry of Transport) and the Fundació RACC 2013 survey of older drivers, for the sensitivity ranges only | car-driving kilometres by driver age, the denominator of involvement per kilometre ([`docs/research/DRIVER_AGE_EXPOSURE.md`](docs/research/DRIVER_AGE_EXPOSURE.md)) |
 
 Whether the DGT crash microdata may train a model is tested by seven checks declared in advance
 ([`docs/DGT_MICRODATA_AUDIT.md`](docs/DGT_MICRODATA_AUDIT.md)); the audit's decision, regenerated
@@ -45,21 +46,31 @@ on every run, sets their role.
 
 | Section | Pages |
 |---|---|
-| **Spain** | [trends since 2019](https://rahv-fb.github.io/dgt-stats/trends.html), [long-run trends](https://rahv-fb.github.io/dgt-stats/long-run.html), [seasons](https://rahv-fb.github.io/dgt-stats/seasons.html), [drivers](https://rahv-fb.github.io/dgt-stats/drivers.html), [vehicles](https://rahv-fb.github.io/dgt-stats/vehicles.html), [speed](https://rahv-fb.github.io/dgt-stats/speed.html), [recorded factors](https://rahv-fb.github.io/dgt-stats/factors.html); supporting analyses: [crash circumstances](https://rahv-fb.github.io/dgt-stats/severity.html), [monthly deaths forecast](https://rahv-fb.github.io/dgt-stats/forecast.html), [the 2006 points licence](https://rahv-fb.github.io/dgt-stats/policy.html) |
-| **Regional data** | [Catalonia](https://rahv-fb.github.io/dgt-stats/catalonia.html), [Barcelona](https://rahv-fb.github.io/dgt-stats/barcelona.html) |
-| **Models** | [severity models](https://rahv-fb.github.io/dgt-stats/severity-models.html), [external validation](https://rahv-fb.github.io/dgt-stats/validation.html) |
-| **Methods** | [data sources and scope](https://rahv-fb.github.io/dgt-stats/sources.html), [methodology](https://rahv-fb.github.io/dgt-stats/data.html) |
+| **Over time** | [long-run trends](https://rahv-fb.github.io/dgt-stats/long-run.html), [since 2019](https://rahv-fb.github.io/dgt-stats/trends.html), [seasons](https://rahv-fb.github.io/dgt-stats/seasons.html), [the 2006 points licence](https://rahv-fb.github.io/dgt-stats/policy.html) |
+| **Drivers, vehicles and factors** | [drivers](https://rahv-fb.github.io/dgt-stats/drivers.html), [vehicles](https://rahv-fb.github.io/dgt-stats/vehicles.html), [speed](https://rahv-fb.github.io/dgt-stats/speed.html), [recorded factors](https://rahv-fb.github.io/dgt-stats/factors.html) |
+| **Crash severity** | [crash circumstances in Spain](https://rahv-fb.github.io/dgt-stats/severity.html), [Catalonia](https://rahv-fb.github.io/dgt-stats/catalonia.html), [Barcelona](https://rahv-fb.github.io/dgt-stats/barcelona.html), [severity model and calculator](https://rahv-fb.github.io/dgt-stats/severity-models.html), [external validation](https://rahv-fb.github.io/dgt-stats/validation.html) |
+| **Data and methods** | [data sources and scope](https://rahv-fb.github.io/dgt-stats/sources.html), [methodology](https://rahv-fb.github.io/dgt-stats/data.html) |
+
+The research behind the rebuilt drivers and models pages, and the audit of every published
+claim, is in [`docs/research/`](docs/research/): the model review, the calculator, the EMEF
+inventory and data request, the driver-age exposure study, the statistical audit and the final
+report.
 
 The generated documents behind the regional, model and validation pages:
 
 - [`docs/MODEL_DECISIONS.md`](docs/MODEL_DECISIONS.md): for every model, its baseline table, its
   score on unseen records, its validation evidence and the decision (keep as a predictive model,
   keep for ranking only, keep for research, replace with the descriptive table, or drop), by rules
-  declared before the results were read.
+  declared before the results were read, beside its status after the independent model review
+  (retired, removed, research only or withdrawn), which is the one the site gives.
 - [`docs/GENERALISABILITY.md`](docs/GENERALISABILITY.md): how the regional populations differ from
   Spain's, every external test beside a model trained in the test population, the Barcelona
   diagnosis, separate against pooled models, and the staged evidence toward Spain.
-- [`docs/models/`](docs/models/): one card per model; [`docs/ML_LEAKAGE_AUDIT.md`](docs/ML_LEAKAGE_AUDIT.md).
+- [`docs/models/`](docs/models/): one card for each model fitted to the crash records or
+  the death series, the retired, removed and withdrawn ones included, and one for the
+  calculator's model, the one the site publishes; the two validation instruments
+  (`catalonia_common_*`) are described in `docs/GENERALISABILITY.md`. Which variables each model
+  may use is in [`docs/ML_LEAKAGE_AUDIT.md`](docs/ML_LEAKAGE_AUDIT.md).
 
 ## Methodological rules
 
@@ -68,8 +79,11 @@ The generated documents behind the regional, model and validation pages:
   (`src/dgt_stats/validate.py`). The Catalan file's fatal crashes equal DGT's 24-hour counts
   province by province, and the rules that interpret regional values are checked on every build
   ([`docs/DATA_QUALITY_MICRODATA.md`](docs/DATA_QUALITY_MICRODATA.md)).
-- Every rate names its denominator, which matches its numerator in population, geography and
-  period; no denominator is attached to an individual crash.
+- Every rate names its denominator, chosen to contain its numerator in population, geography and
+  period. Where it cannot, the page says so: visitors in rates per resident, foreign and unlicensed
+  drivers in rates per licence holder, foreign vehicles in rates per vehicle, and kilometres by
+  driver age estimated from a regional travel survey. No denominator is attached to an individual
+  crash.
 - A predictive model is compared with a simple descriptive table on later records it never saw,
   and is kept only if it beats the table by a margin set in advance. Its probabilities are read as
   estimates only if they pass a calibration rule; otherwise it is used for ranking only. A model
@@ -82,17 +96,35 @@ The generated documents behind the regional, model and validation pages:
   qualitative claims stop the build if the tables no longer support them.
 - Published studies may define a variable or a method, but never supply an observation or a
   coefficient. Analyses whose results came from coefficients in published studies (a speed-law
-  simulator, distraction and drink-driving models, an enforcement comparison) were withdrawn; their
-  old addresses say so.
+  simulator, distraction and drink-driving models, an enforcement comparison) were withdrawn; so
+  was the monthly deaths forecast, which did worse than last year's count on the years it had not
+  seen. Their old addresses say so. Two exceptions remain. The first is the ratio of road to
+  straight-line distance for driving trips (1.45) and the 2021 distance benchmarks in
+  `src/dgt_stats/emef/distance.py` are typed from the EMEF 2021 distance report (Institut
+  Metròpoli for the ATM, October 2022, Table 1), which measured them on the same survey's 2021
+  trips. The report is not archived here and could not be found again, so they rest on the
+  transcription ([`docs/research/DRIVER_AGE_EXPOSURE.md`](docs/research/DRIVER_AGE_EXPOSURE.md),
+  [`docs/research/EMEF_INVENTORY.md`](docs/research/EMEF_INVENTORY.md)). The ratio scales every
+  age group's kilometres alike, so it moves the rates per kilometre but hardly the ratios between
+  ages. The second is the Fundació RACC 2013 survey of licence holders aged 65 and over: the
+  shares who do not drive and the days a week the others drive (slides 5, 11 and 19 of its
+  published dossier) are typed into `src/dgt_stats/exposure_risk/national.py` and not archived,
+  because RACC grants no licence to reuse its documents. They set the upper limit on men's
+  kilometres at 75 and over in one of the four splits of the 65-and-over kilometres, and so the
+  lowest 75+ combination not marked as at odds with men's driving
+  ([`docs/data_sources.md`](docs/data_sources.md)).
 
 ## What the data cannot do
 
-- The regional records have no measure of travel (trips or kilometres), so the Catalan and
-  Barcelona analyses describe severity among recorded crashes, not rates per journey or kilometre.
+- The regional crash records carry no measure of travel (trips or kilometres), so the Catalan and
+  Barcelona crash analyses describe severity among recorded crashes, not rates per journey or
+  kilometre. The one exception is the working-day check of involvement per kilometre in
+  Barcelona, whose kilometres come from the EMEF travel survey.
 - No crash file records vehicle speeds: the Catalan speed field is the road's posted limit.
-- DGT's kilometres by age are those of cars registered to owners of each age, not kilometres driven
-  by drivers of that age, so per-kilometre comparisons by age are published as sensitivity ranges,
-  not confidence intervals.
+- No national source measures kilometres by the driver's age. They are estimated from one
+  region's working-day survey applied to Spain, so per-kilometre comparisons by age carry
+  sensitivity ranges beside their confidence intervals, and at 75 and over a conditional
+  estimate (Madrid's 2018 age pattern) is shown beside the sensitivity range.
 - There are no person records nationally or in Catalonia, and in Barcelona no key links a recorded
   cause to the driver or vehicle concerned.
 - No record is linked between sources: they share no identifier, and matching on date or place is
@@ -111,20 +143,31 @@ python -m pip install -r requirements.lock          # pinned and hashed
 python scripts/ingest.py all          # data/raw -> data/staging/dgt, 482 reconciliation checks (~5 min)
 python scripts/build_tables.py        # data/processed/dgt_accidentes.parquet
 python scripts/model.py               # supporting association analysis of DGT records (~2 min)
-python scripts/analyse.py tables      # national result tables, the forecast among them (~1 min)
+python scripts/analyse.py tables      # national result tables (~1 min)
+python scripts/analyse.py withdrawn   # optional, slow: the withdrawn forecast's tables
+                                      # (forecast_*.csv), committed and built only by this
+                                      # step; read by its card and the model decisions,
+                                      # never published on the site
 python scripts/microdata.py all       # Catalonia and Barcelona: inventory, staging, processed tables,
                                       # features, descriptive tables, source models, validation, model
                                       # decisions and the generated documents (~30 min; set
                                       # OMP_NUM_THREADS=1 if other heavy jobs share the machine)
-python scripts/analyse.py figures     # reports/figures/*.svg and captions.json, regional ones included
+python scripts/severity_calculator.py all  # model review and the calculator's model (~12 min)
+python scripts/emef.py all            # EMEF microdata checks and driving exposure by age (~3 min)
+python scripts/exposure_risk.py all   # involvement per km by driver age (~10 min)
+python scripts/analyse.py figures     # reports/figures/*.svg (and narrow/*.svg for phones) and
+                                      # captions.json, regional ones included
 python scripts/analyse.py cards       # docs/models/dgt_*.md, which quote the DGT microdata audit
 python scripts/build_site.py          # site/
 pytest                                # the test suite, the reconciliation checks among them
+                                      # (pip install -e .[browser] adds the browser tests)
 pytest -m slow                        # SHA-256 of every raw file against data/raw/manifest.csv
 ```
 
-Raw files are tracked under `data/raw/<source>/` with their size, SHA-256, source URL and the name
-they were downloaded as in `data/raw/manifest.csv`; the staging, processed and feature layers are
+Raw files are tracked under `data/raw/<source>/` with their size, SHA-256, source URL, a
+description and the date added in `data/raw/manifest.csv`, which also gives the name a file was
+downloaded as where it was filed under a new one (the regional crash files, the EMEF files and a
+few others); the staging, processed and feature layers are
 rebuilt by the scripts and not committed. Result tables, figures, generated documents and the
 site's HTML are committed, so the pages can be read and reviewed without rebuilding.
 
@@ -143,8 +186,8 @@ data/processed/        validated tables at one documented unit (not committed)
 data/features/         model matrices with provenance (not committed)
 docs/                  data contract, source comparison, audits, methodology, model cards,
                        model decisions, generalisability
-reports/tables/        result tables (CSV), committed; the site links them for download
-reports/figures/       figures (SVG) and their captions
+reports/tables/        result tables (CSV), committed; the site publishes those a page links
+reports/figures/       figures (SVG) and their captions; narrow/ holds the same figures for phones
 scripts/               ingest · build_tables · model · microdata · analyse · build_site
                        (build_fonts: the font subsets, run by hand)
 src/dgt_stats/         national layer: readers (io_*), codes, validation, analyses, forecast
@@ -166,20 +209,30 @@ the choice of sources, the statistical design, the interpretation, the review an
 publish each result are the author's, and so is responsibility for them. AI coding assistants,
 including Claude Code, ChatGPT Work and GitHub Copilot, were used during implementation, debugging,
 data-processing work and review. All published results are generated from the recorded source data
-and can be independently reproduced and checked through this repository.
+and can be reproduced from this repository, except two transcribed inputs (the EMEF 2021 distance
+figures and the RACC 2013 survey figures, above), which can be checked only against their
+published reports.
 
 ## Licence and data reuse
 
 The code is released under the [MIT licence](LICENSE), which allows commercial use. The data files
 under `data/raw/` are not covered by it: each keeps the terms of the body that publishes it, listed
-file by file with its URL in [`docs/data_sources.md`](docs/data_sources.md). DGT's crash microdata
+by provider in [`docs/data_sources.md`](docs/data_sources.md), and each file's source URL is in
+`data/raw/manifest.csv`. DGT's crash microdata
 are catalogued on datos.gob.es under its legal notice; DGT's other statistics carry no reuse licence
 of their own and are redistributed here as public-sector information under Ley 37/2007 with the
-datos.gob.es conditions applied. INE population is CC BY 4.0; the Ministerio de Transportes and
-CORES series are public-sector information on the same terms. The Catalan file is published by
-the Servei Català de Trànsit and the Barcelona files by the Ajuntament de Barcelona on their open
-data portals, each under its own terms. Every published figure is an aggregate and nothing on the
-site identifies a person.
+datos.gob.es conditions applied. INE population is CC BY 4.0. The Ministerio de Transportes'
+files are reused under its legal notice, and the CORES series as public-sector information on the
+datos.gob.es conditions. The Catalan file is published on
+the Generalitat's open-data portal under the Llicència oberta d'ús d'informació - Catalunya, and
+the Barcelona files on Open Data BCN under CC BY 4.0. The EMEF microdata are reused under the
+open-data clause of the Observatori de la Mobilitat de Catalunya, and no estimate resting on fewer
+than 20 sample observations is published, as the survey requires; the EMEF 2024 executive summary
+is kept unchanged under its CC BY-NC-ND 4.0 licence, and Idescat's census release under Idescat's
+legal notice. The EDM2018 extracts are reused under the CRTM's licence, which asks that derived
+data be distributed under the same licence. Where a provider's terms ask for the date of last
+update, the register and the methodology page give it. Every published figure is an aggregate and
+nothing on the site identifies a person.
 
 The fonts are not covered by the MIT licence either. Nunito Sans and STIX Two Text, in
 `src/dgt_stats/site/fonts` and `src/dgt_stats/fonts`, and the subsets of STIX Two Text embedded in

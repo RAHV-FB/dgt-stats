@@ -13,6 +13,21 @@ generated in [`DATA_QUALITY_MICRODATA.md`](DATA_QUALITY_MICRODATA.md),
 1. **The data define the analysis.** Every result comes from rows and columns of files under
    `data/raw`. External publications may define a variable or a method; they never supply an
    observation, a coefficient, a relative risk, a missing variable, a join or a confirmation.
+   Two exceptions remain. The first is the EMEF's road-to-straight-line distance ratio for
+   driving trips (1.45) and the 2021 distance benchmarks, typed into
+   `src/dgt_stats/emef/distance.py` from the EMEF 2021 distance report, the survey producer's
+   measurement on the same survey's 2021 trips. The report is not archived and could not be
+   found again, so these values rest on the transcription
+   ([`research/DRIVER_AGE_EXPOSURE.md`](research/DRIVER_AGE_EXPOSURE.md)). The second is the
+   Fundació RACC 2013 survey of licence holders aged 65 and over: the shares who do not drive
+   and the days a week the others drive, typed into `src/dgt_stats/exposure_risk/national.py`
+   from the published slide dossier and not archived, because RACC grants no reuse licence.
+   They set the upper limit on men's kilometres at 75 and over in one split of the 65-and-over
+   kilometres ([`data_sources.md`](data_sources.md)). Definitions taken from documents are not
+   observations and are cited where the code holds them: the 2025 public holidays of Catalonia
+   and Barcelona (`src/dgt_stats/exposure_risk/calendar.py`, from Ordre EMT/85/2024 and the
+   city's decree) and the fourteen public holidays a year of the Estatuto de los Trabajadores
+   (`src/dgt_stats/exposure_risk/national.py`), which separate working days from the rest.
 2. **Raw files are immutable.** `data/raw/<source>/` holds files byte for byte, each listed in
    `data/raw/manifest.csv` with its SHA-256 (checked by `tests/test_paths.py`). Cleaning writes
    new files in `data/staging`, `data/processed` and `data/features`; nothing is edited by hand.
@@ -108,15 +123,40 @@ hand from publications: not source data, see below).
 
 - **Census unit**: licence holders by province, sex, licence class or age band, year. Denominator
   for driver outcomes of the same sex, age band and year; not for passengers or pedestrians.
-- **Kilometres**: vehicle-kilometres by vehicle type (2022) and by the **owner's** age band
-  (2024), from ITV odometer readings. Owner age is not driver age: per-km rates by age are "per km
-  driven by cars registered to owners of this age" and are reported as ranges.
+- **Kilometres**: vehicle-kilometres by vehicle type (2022), by the **owner's** age band (2024)
+  and by class of service (2024), from ITV odometer readings. Owner age is not driver age, so the
+  owner-age kilometres are never the denominator of a per-km rate by driver age: they are the
+  comparison Method D, a bound for the age mix of the kilometres the travel survey does not
+  cover (reported with its values and left out of the sensitivity ranges) and diagnostics of the
+  75-and-over checks; since October 2026 no split of the 65-and-over kilometres takes its 75+
+  share from them. The car total by class of service, less taxis and ride-hailing cars, sets the
+  level of the driver-age rates (Method B).
 
-### INE population (`ine/ine_poblacion_provincias_edad_sexo.csv`)
+### INE population (`ine/ine_poblacion_provincias_edad_sexo.csv`, `ine/ine_poblacion_edad_simple_sexo.csv`)
 
-- **Unit**: residents by province, five-year age group, sex and reference date, 2002-2025.
+- **Unit**: residents by province, five-year age group, sex and reference date, 2002-2025; and
+  residents of Spain by single year of age and sex, read from single years and "105 y más" only
+  (the file's overlapping aggregates "85 y más" and "100 y más" are never summed). Annual rates
+  divide by the 1 July population.
 - **Allowed**: rates per resident at province-year or Spain-year, labelled as per resident (not
   per trip or kilometre). **Forbidden**: attaching residents to crashes or people.
+
+### Travel surveys (`emef/`, `crtm/edm2018/`)
+
+- **Unit**: a respondent and the trips they made on one reference day (EMEF: a working day in the
+  Barcelona area, 2014–2024; EDM2018: a weekday in the Community of Madrid, 2018), with the
+  survey's expansion weight. Car-driver trips are those with a stage coded as car driver; a
+  passenger stage never makes a driving trip.
+- **Allowed**: weighted kilometres, trips and shares of residents by sex and age group, as the
+  denominator of car drivers' crash involvement by age once transferred to a population by
+  Methods A to C ([`research/DRIVER_AGE_EXPOSURE.md`](research/DRIVER_AGE_EXPOSURE.md)).
+  Estimates carry bootstrap intervals from the respondents (EMEF, within year and comarca) or
+  households (EDM2018).
+- **Forbidden**: attaching respondents to crashes or people; publishing an EMEF estimate that
+  rests on fewer than 20 sample observations (the data holders' rule); splitting the EMEF's 65+
+  group, which no public file allows, except under a stated assumption (the conditional estimate
+  beside its sensitivity range) or, for one bound and one validation, through the questionnaire's
+  P1b routing, as aggregates under the 20-observation rule (`emef/older_routing.py`).
 
 ### Traffic and fuel (`transportes/`, `cores/`) and surveys (`ine/` EHMA, ECEPOV; MOVILIA)
 
@@ -124,7 +164,9 @@ hand from publications: not source data, see below).
   municipal roads), toll-motorway traffic, monthly road fuel by product, and survey tables.
 - A traffic series is a denominator only for deaths on the network it measures; national fuel is
   not a denominator for interurban deaths, and toll-motorway traffic is not one for all roads.
-  Survey tables are context and cannot stand in for missing variables.
+  Survey tables are context and cannot stand in for missing variables. MOVILIA 2006 and 2007
+  tables, and the fuel and toll-motorway series, enter the driver-age rates only as alternative
+  age mixes and coverage settings in the sensitivity analysis, never as a denominator.
 
 ### Compiled registers (`compiled/`)
 
@@ -185,8 +227,10 @@ column name is normalised). Each table holds exactly the same set of crash ids (
 - **Crash table**: date, hour, shift, district, neighbourhood, street, coordinates, victims by
   severity, vehicles involved, pedestrian cause. Count cells leave zero blank: no count cell holds
   "0" and victims = deaths + serious + minor on every row only with blank read as zero; deaths
-  match persons who died within 24 hours and serious injuries persons hospitalised over 24
-  hours. The crash file's UTM labels are exchanged (its `X` column holds northings); corrected
+  match persons who died within 24 hours, and serious injuries persons hospitalised over 24
+  hours plus persons who died after 24 hours (the 24-hour classification of the Catalan file).
+  Minor injuries include people who refused medical care, whom DGT's definition of a slight
+  injury, which requires medical care, would not count. The crash file's UTM labels are exchanged (its `X` column holds northings); corrected
   columns sit beside the source columns, and maps use WGS84.
 - **People**: age, sex, role (driver, passenger, pedestrian), vehicle type on the record,
   pedestrian location and trip purpose, victimisation. `person_record_id` is a surrogate
@@ -204,9 +248,15 @@ column name is normalised). Each table holds exactly the same set of crash ids (
   out of scope. Presence of a vehicle type in a crash is allowed (the set of types agrees with
   the person records for every crash). See [`BARCELONA_VEHICLE_AUDIT.md`](BARCELONA_VEHICLE_AUDIT.md).
 - **Allowed joins**: within the six tables on `Numero_expedient`, as above.
+- **Allowed with stated limits**: car drivers involved in crashes with a victim per kilometre
+  driven inside the city on working days, by age group, as ratios to the 45-64 group
+  (`exposure_risk.barcelona`): aggregate matching to the EMEF 2022-2024 working-day car-driver
+  kilometres of residents of the province, never record linkage. The numerator counts every
+  driver, residents of the province or not, in 2025; the denominator counts residents' kilometres
+  in other years, and trips crossing the city boundary are bracketed by three denominators.
 - **Forbidden**: any record-level link to Catalonia or the DGT microdata; any rate per resident
-  or per km (no municipal denominator in the repository); any person-level use of the cause
-  tables.
+  (no municipal population denominator in the repository); any per-km rate other than the one
+  above; any person-level use of the cause tables.
 
 ## Where sources meet
 
@@ -218,8 +268,10 @@ definitions on each side and what was validated in `reports/tables/gen_cross_sou
 |---|---|---|
 | Catalan file vs DGT microdata | province x year, 2016-2023 | counts compared; 24-hour definition validated |
 | Catalan file per resident | province x year | rate per resident, not risk |
-| Catalan model applied to DGT crashes | none (model applied to rows) | ten fields harmonised and validated on the shared crashes |
+| Catalan model applied to DGT crashes | none (model applied to rows) | eleven fields harmonised and validated on the shared crashes (DGT's inverted Catalan junction flag of 2023 read the other way round) |
 | Catalan model applied to Barcelona 2025 | none (model applied to rows) | eight fields harmonised; too few fatal crashes to benchmark |
+| Car drivers involved per km by age, Spain | age group, no record matched | DGT drivers of 2024 against a regional working-day survey profile transferred to Spain's population and DGT's car-km total: ratios between ages, with a sensitivity range |
+| Car drivers involved per km by age, Barcelona city working days | age group x working day, no record matched | Guàrdia Urbana drivers of 2025 against EMEF 2022-2024 residents' km inside the city: a range of ratios between ages |
 
 The harmonised fields, with exact, defensible, approximate and unusable mappings, are in
 `reports/tables/ml_common_features.csv`; only exact and defensible fields that pass the overlap

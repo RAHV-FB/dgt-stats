@@ -1,0 +1,41 @@
+outcome,period,first_year,last_year,scope,predictor,predictor_label,level,n,n_level,share_at_level,share_at_level_inside,odds_ratio,or_low,or_high
+fatal,before,2016,2022,all provinces,junction,Junction,at a junction,671711,261015,0.388582,0.395886,0.685443,0.649672,0.723184
+fatal,before,2016,2022,all provinces,surface,Road surface,wet,671711,75388,0.112233,0.0920117,0.613346,0.507672,0.741016
+fatal,before,2016,2022,all provinces,weather,Weather,rain,671711,50545,0.0752481,0.0720658,0.906315,0.749515,1.09592
+fatal,before,2016,2022,all provinces,crash_type,Crash type,head-on collision,671711,21489,0.0319914,0.0303651,5.41056,4.83664,6.05258
+fatal,before,2016,2022,all provinces,crash_type,Crash type,pedestrian struck,671711,84535,0.12585,0.115987,6.3592,5.29752,7.63366
+fatal,before,2016,2022,outside Catalonia,junction,Junction,at a junction,501450,193611,0.386102,0.395886,0.693219,0.653162,0.735733
+fatal,before,2016,2022,outside Catalonia,surface,Road surface,wet,501450,59722,0.119099,0.0920117,0.722083,0.662182,0.787404
+fatal,before,2016,2022,outside Catalonia,weather,Weather,rain,501450,38275,0.0763286,0.0720658,0.798684,0.68259,0.934525
+fatal,before,2016,2022,outside Catalonia,crash_type,Crash type,head-on collision,501450,16319,0.0325436,0.0303651,5.47184,4.8508,6.17238
+fatal,before,2016,2022,outside Catalonia,crash_type,Crash type,pedestrian struck,501450,64787,0.129199,0.115987,6.73223,5.51253,8.2218
+fatal,from,2023,2024,all provinces,junction,Junction,at a junction,203302,76462,0.376101,0.372204,0.717817,0.649818,0.792932
+fatal,from,2023,2024,all provinces,surface,Road surface,wet,203302,18828,0.092611,0.0710198,0.640583,0.512899,0.800055
+fatal,from,2023,2024,all provinces,weather,Weather,rain,203302,13311,0.065474,0.0553191,0.713098,0.572655,0.887986
+fatal,from,2023,2024,all provinces,crash_type,Crash type,head-on collision,203302,6610,0.0325132,0.0300388,5.68036,4.82229,6.69111
+fatal,from,2023,2024,all provinces,crash_type,Crash type,pedestrian struck,203302,25032,0.123127,0.108207,5.92416,4.6317,7.5773
+fatal,from,2023,2024,outside Catalonia,junction,Junction,at a junction,155597,58706,0.377295,0.372204,0.742542,0.662277,0.832533
+fatal,from,2023,2024,outside Catalonia,surface,Road surface,wet,155597,15440,0.0992307,0.0710198,0.707988,0.582904,0.859913
+fatal,from,2023,2024,outside Catalonia,weather,Weather,rain,155597,10672,0.0685874,0.0553191,0.65707,0.530193,0.814308
+fatal,from,2023,2024,outside Catalonia,crash_type,Crash type,head-on collision,155597,5177,0.0332718,0.0300388,6.08548,5.3236,6.9564
+fatal,from,2023,2024,outside Catalonia,crash_type,Crash type,pedestrian struck,155597,19870,0.127702,0.108207,6.68406,5.31341,8.40828
+serious,before,2016,2022,all provinces,junction,Junction,at a junction,671711,261015,0.388582,0.395886,0.855374,0.800885,0.91357
+serious,before,2016,2022,all provinces,surface,Road surface,wet,671711,75388,0.112233,0.0920117,0.625231,0.484191,0.807354
+serious,before,2016,2022,all provinces,weather,Weather,rain,671711,50545,0.0752481,0.0720658,0.93451,0.762829,1.14483
+serious,before,2016,2022,all provinces,crash_type,Crash type,head-on collision,671711,21489,0.0319914,0.0303651,2.98599,2.79482,3.19024
+serious,before,2016,2022,all provinces,crash_type,Crash type,pedestrian struck,671711,84535,0.12585,0.115987,2.45138,2.09531,2.86797
+serious,before,2016,2022,outside Catalonia,junction,Junction,at a junction,501450,193611,0.386102,0.395886,0.875867,0.815853,0.940297
+serious,before,2016,2022,outside Catalonia,surface,Road surface,wet,501450,59722,0.119099,0.0920117,0.765977,0.727727,0.806237
+serious,before,2016,2022,outside Catalonia,weather,Weather,rain,501450,38275,0.0763286,0.0720658,0.805995,0.755747,0.859585
+serious,before,2016,2022,outside Catalonia,crash_type,Crash type,head-on collision,501450,16319,0.0325436,0.0303651,2.9104,2.69471,3.14336
+serious,before,2016,2022,outside Catalonia,crash_type,Crash type,pedestrian struck,501450,64787,0.129199,0.115987,2.74108,2.48163,3.02767
+serious,from,2023,2024,all provinces,junction,Junction,at a junction,203302,76462,0.376101,0.372204,0.889646,0.841176,0.940908
+serious,from,2023,2024,all provinces,surface,Road surface,wet,203302,18828,0.092611,0.0710198,0.614526,0.491842,0.767811
+serious,from,2023,2024,all provinces,weather,Weather,rain,203302,13311,0.065474,0.0553191,0.912971,0.759177,1.09792
+serious,from,2023,2024,all provinces,crash_type,Crash type,head-on collision,203302,6610,0.0325132,0.0300388,2.80693,2.51649,3.13089
+serious,from,2023,2024,all provinces,crash_type,Crash type,pedestrian struck,203302,25032,0.123127,0.108207,2.30682,1.86487,2.85349
+serious,from,2023,2024,outside Catalonia,junction,Junction,at a junction,155597,58706,0.377295,0.372204,0.914826,0.859798,0.973375
+serious,from,2023,2024,outside Catalonia,surface,Road surface,wet,155597,15440,0.0992307,0.0710198,0.737216,0.667883,0.813746
+serious,from,2023,2024,outside Catalonia,weather,Weather,rain,155597,10672,0.0685874,0.0553191,0.79317,0.71776,0.876502
+serious,from,2023,2024,outside Catalonia,crash_type,Crash type,head-on collision,155597,5177,0.0332718,0.0300388,2.82257,2.4847,3.20639
+serious,from,2023,2024,outside Catalonia,crash_type,Crash type,pedestrian struck,155597,19870,0.127702,0.108207,2.61272,2.29858,2.96979

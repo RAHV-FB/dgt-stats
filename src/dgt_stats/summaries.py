@@ -172,7 +172,7 @@ def licence_share_by_age(years: tuple[int, ...] = (2014, 2019, 2024)) -> pd.Data
     return out.astype({"sex": "string"})
 
 
-# Written by scripts/model.py (the fits take a minute and a half); analyse.py and the site only
+# Written by scripts/model.py (the fits take about fifteen minutes); analyse.py and the site only
 # read them.
 MODEL_TABLES = (
     "q3_model_coefficients",
@@ -180,6 +180,8 @@ MODEL_TABLES = (
     "q3_calibration",
     "q3_holdout_summary",
     "q3_year_stability",
+    "q3_period_refits",
+    "q3_location_contrasts",
     "q3_profiles",
     "q3_adverse_conditions",
     "q3_adverse_composition",
@@ -187,6 +189,8 @@ MODEL_TABLES = (
     "q3_recording_regime",
     "q3_regime_sensitivity",
     "q3_groupings",
+    "q3_junction_coding",
+    "q3_junction_sensitivity",
 )
 
 
@@ -215,6 +219,25 @@ def _policy_table(name: str):
     return lambda: source()[name].copy()
 
 
+def _recording_by_year() -> pd.DataFrame:
+    """The DGT microdata audit's fields and the crossing road per year: crashes, crashes each
+    applies to and those with a value recorded (``dgt_audit.recording_by_year``), for the data
+    page's missing-values chart.
+
+    Whether a crash is at a junction, which decides where the junction fields and the crossing
+    road apply, is read as the association analysis reads it (``features.junction_codes``): the
+    other way round in the province-years whose flag is inverted, so that the chart shows how
+    often those fields are recorded rather than the inversion. Imported here so that reading the
+    other summaries does not load the audit's model stack."""
+    from dgt_stats import features
+    from dgt_stats.microdata.validation import dgt_audit
+
+    columns = (*dgt_audit.CANDIDATES, dgt_audit.CROSSING_ROAD)
+    frame = pd.read_parquet(DGT_PROCESSED_CRASHES, columns=["ANYO", "COD_PROVINCIA", *columns])
+    frame["NUDO"] = features.junction_codes(frame)
+    return dgt_audit.recording_by_year(frame, columns=columns)
+
+
 # --------------------------------------------------------------------------- registry
 
 SUMMARIES = {
@@ -229,18 +252,12 @@ SUMMARIES = {
     "longrun_series": risk_trends.long_run_series,
     "longrun_segments": risk_trends.long_run_segments,
     "longrun_model_choice": risk_trends.long_run_model_choice,
+    "longrun_projection_sensitivity": risk_trends.long_run_projection_sensitivity,
     "longrun_efficiency": risk_trends.long_run_efficiency_sensitivity,
     "longrun_km_panel": risk_trends.interurban_km_panel,
     "longrun_km_check": risk_trends.km_trend_check,
     "longrun_km_coverage": risk_trends.interurban_network_coverage,
     "longrun_fuel_bio": risk_trends.fuel_bio_share,
-    # The monthly deaths forecast, and the change a year of counts can detect
-    "forecast_selection": forecast.model_selection,
-    "forecast_validation": forecast.validation,
-    "forecast_backtest": forecast.backtest,
-    "forecast_horizons": forecast.horizon_errors,
-    "forecast_detectability": forecast.detectability,
-    "forecast_coefficients": forecast.coefficients,
     # Casualties by road class, and deaths per measured vehicle-km on interurban roads
     "road_class_baseline": road_class.baseline,
     "road_class_risk": road_class.class_risk,
@@ -254,6 +271,7 @@ SUMMARIES = {
     "drivers_sex_rates": driver_risk.sex_age_rates,
     "drivers_sex_ratios": driver_risk.sex_ratios,
     "drivers_sex_trend": driver_risk.sex_trend,
+    "drivers_sex_b_licence": driver_risk.sex_b_licence,
     # Speed as a severity factor, and the other concurrent factors
     "speed_severity": factors.speed_severity,
     "speed_severity_pooled": factors.speed_severity_pooled,
@@ -265,6 +283,8 @@ SUMMARIES = {
     "q2_night_share": night_share_by_year_zone,
     "q2_other_road_by_period": other_road_by_period,
     "q9_infraction_shares": speed.infraction_shares,
+    # The data page's missing-values chart: the audited fields by the audit's applicability rule
+    "missingness_where_applicable": _recording_by_year,
     # Age and driving exposure
     "q7_km_by_owner_age": driver_risk.car_kilometres,
     "q7_km_rates": driver_risk.km_rates,
@@ -272,7 +292,6 @@ SUMMARIES = {
     "q7_km_ratio_65_74": lambda: driver_risk.km_rate_ratios(reference_band="65-74"),
     "q7_company_km": driver_risk.company_km_sensitivity,
     "q7_owner_age_check": driver_risk.owner_age_check,
-    "q7_breakeven_km": driver_risk.breakeven_km,
     "q7_denominator_contrast": driver_risk.denominator_contrast,
     "q7_licence_share": licence_share_by_age,
     # Vehicles per kilometre
@@ -291,10 +310,26 @@ SUMMARIES = {
             "q8_points_trend_choice",
             "q8_points_placebo",
             "q8_points_calendar_placebo",
+            "q8_points_calibration",
+            "q8_points_death_definitions",
             "q8_points_transitions",
             "q8_points_forecast",
             "q8_speed_placebo",
             "q8_speed_sensitivity",
         )
     },
+}
+
+
+# The withdrawn monthly deaths forecast: its tables are the record behind its model card and the
+# model review, and no page or figure reads them. They take longer to fit than every other table
+# together, so `analyse.py tables` leaves them as committed and `analyse.py withdrawn` rebuilds
+# them.
+WITHDRAWN_SUMMARIES = {
+    "forecast_selection": forecast.model_selection,
+    "forecast_validation": forecast.validation,
+    "forecast_backtest": forecast.backtest,
+    "forecast_horizons": forecast.horizon_errors,
+    "forecast_detectability": forecast.detectability,
+    "forecast_coefficients": forecast.coefficients,
 }

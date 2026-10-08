@@ -1,7 +1,7 @@
 """Figures for the regional pages, drawn from the committed result tables with the site's plots.
 
-Every figure is a single-series dot-and-interval or bar chart in the project's fixed palette (or
-a calibration chart with one line per model), with its N in the caption, and the same numbers
+Every figure is a single-series dot-and-interval chart in the project's fixed palette (or a
+calibration chart with one line per model), with its N in the caption, and the same numbers
 in a table on the page. Nothing is recomputed here: the tables in ``reports/tables`` are the
 input, so a figure cannot disagree with the table beside it. The labels a reader sees are
 translated from the source field names and pipeline codes by the maps below.
@@ -14,8 +14,6 @@ import math
 import re
 from pathlib import Path
 
-import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
 
 from dgt_stats import plots
@@ -28,17 +26,21 @@ BCN_SOURCE = "Ajuntament de Barcelona, Guàrdia Urbana crash records"
 DGT_SOURCE = "DGT, Ficheros de microdatos de accidentes con víctimas 2016–2024"
 REGIONAL_SOURCES = f"{CAT_SOURCE}; {BCN_SOURCE}"
 
-# The three models trained on regional records, in the order the figures show them.
+# The three models fitted on regional records, in the order the figures show them, named as the
+# site names them.
 REGIONAL_MODELS = {
-    "catalonia_crash_severity": "Catalonia crash-severity model",
+    "catalonia_crash_severity": "Original Catalan model (retired)",
     "barcelona_person_severity": "Barcelona person-severity model",
     "barcelona_crash_severity": "Barcelona crash-severity model",
 }
-# The two validation instruments: the Catalan model restricted to variables recorded alike.
+# The two validation instruments: the original Catalan model restricted to variables recorded
+# alike.
 VALIDATION_MODELS = {
-    "catalonia_common_dgt": "Harmonised Catalonia model",
-    "catalonia_common_bcn": "Catalonia model restricted to Barcelona's variables",
+    "catalonia_common_dgt": "Original model, harmonised with DGT's records",
+    "catalonia_common_bcn": "Original model, restricted to Barcelona's variables",
 }
+# The published model behind the calculator, as the site names it.
+CALCULATOR_MODEL = "Catalan severity model"
 MODEL_LABELS = {**REGIONAL_MODELS, **VALIDATION_MODELS}
 # Barcelona road users as the person table names them (role and vehicle type), where English has
 # a natural word; the other labels are shown as recorded. The regional page uses the same map.
@@ -167,7 +169,6 @@ CAUSES = {
 # Catalan category labels shortened for the charts, so the label column leaves room for the data.
 CAT_SHORT_LABELS = {
     "other unit": "other",
-    "generic limit for the road (value not recorded)": "generic limit (not recorded)",
     "hit an object without leaving the road": "hit an object on the road",
 }
 
@@ -185,10 +186,10 @@ EXPERIMENT_LABELS = {
     ),
     "Catalonia -> Spain outside Catalonia": "Spain outside Catalonia (DGT records)",
     "Catalonia early years -> Spain outside Catalonia later": (
-        "Spain outside Catalonia, trained on early years (DGT records)"
+        "Spain outside Catalonia, fitted on early years (DGT records)"
     ),
     "Catalonia reweighted to the national zone x crash-type mix -> Spain outside Catalonia": (
-        "Spain outside Catalonia, reweighted training (DGT records)"
+        "Spain outside Catalonia, fitting reweighted (DGT records)"
     ),
 }
 
@@ -214,6 +215,11 @@ def _lower_first(text: str) -> str:
     return text[:1].lower() + text[1:]
 
 
+def _in_sentence(name: str) -> str:
+    """A model's name inside a sentence: 'Original …' lowered, place names kept."""
+    return re.sub(r"^Original\b", "original", name)
+
+
 def rule_label(rule: str) -> str:
     """A descriptive table's grouping, e.g. ``D_SUBTIPUS_ACCIDENT x D_SUBZONA`` -> 'crash
     subtype × zone'."""
@@ -225,6 +231,8 @@ def experiment_label(experiment: str) -> str:
     text = re.sub(r"\s*\((?:DGT|Barcelona)-common features\)$", "", experiment)
     if text.startswith("temporal holdout"):
         return "Later year"
+    if text.startswith("rolling origin"):
+        return "Each year from the years before it"
     if match := re.fullmatch(r"leave out (\w+) demarcation", text):
         return f"{match.group(1)} province left out"
     if text in EXPERIMENT_LABELS:
@@ -278,12 +286,17 @@ def _shares(
     keep_order: bool = False,
     order: list[str] | None = None,
     xlim: tuple[float, float] | None = None,
+    groups: dict[str, str] | None = None,
 ) -> Path:
+    """One chart of fatal or severe shares by the levels of ``dimension``. ``order`` fixes the
+    rows (first at the top) and ``groups`` heads blocks of them, by level."""
     # The overall share is the dotted reference line, not a row of its own.
     block = _labelled(frame[(frame.dimension == dimension) & (frame.level != "all")])
     if order:
         block = block.set_index("level").reindex([o for o in order if o in set(block.level)])
         block = block.reset_index()
+    if groups:
+        block["block"] = block.level.map(groups)
     return plots.dot_interval(
         block,
         "row",
@@ -298,20 +311,30 @@ def _shares(
         percent=True,
         keep_order=keep_order,
         xlim=xlim,
+        group="block" if groups else None,
     )
 
 
-def _bars(values: pd.Series, path: Path, title: str, ylabel: str) -> Path:
-    plots.apply_style()
-    fig, axis = plt.subplots(figsize=(plots.FIGURE_WIDTH, 3.6))
-    positions = np.arange(len(values))
-    axis.bar(positions, values.to_numpy(), width=0.68, color=plots.ACCENT, linewidth=0)
-    axis.set_xticks(positions, [str(v) for v in values.index], fontsize=plots.NOTE_SIZE)
-    axis.tick_params(axis="x", length=0)
-    axis.set_ylabel(ylabel)
-    plots._thousands(axis)
-    plots._title(path, title)
-    return plots.save(fig, path)
+# The speed-limit chart: the posted limits in order, then the crashes with no limit recorded.
+POSTED_LIMIT = "Posted limit"
+NO_POSTED_LIMIT = "No posted limit recorded"
+GENERIC_LIMIT = "generic limit for the road (value not recorded)"
+IMPLAUSIBLE_LIMIT = "posted, implausible value"
+
+
+def _speed_limit_rows(shares: pd.DataFrame) -> tuple[list[str], dict[str, str], dict[str, str]]:
+    """The speed-limit levels in chart order (posted limits from the lowest, the generic limit
+    last), the heading of each, and each level's row label."""
+    levels = set(shares[(shares.dimension == "speed limit") & (shares.level != "all")].level)
+    posted = [level for level in levels if re.fullmatch(r"posted \d+-\d+ km/h", level)]
+    others = levels - set(posted) - {GENERIC_LIMIT, IMPLAUSIBLE_LIMIT}
+    if others or GENERIC_LIMIT not in levels:
+        raise ValueError(f"cat2: unexpected speed-limit levels {sorted(others)}")
+    order = sorted(posted, key=lambda level: int(re.search(r"\d+", level).group()))
+    groups = {level: POSTED_LIMIT for level in order} | {GENERIC_LIMIT: NO_POSTED_LIMIT}
+    labels = {level: level.removeprefix("posted ") for level in order}
+    labels[GENERIC_LIMIT] = "generic limit for the road"
+    return [*order, GENERIC_LIMIT], groups, labels
 
 
 def catalonia_figures(figures_dir: Path, captions: dict[str, str]) -> None:
@@ -342,7 +365,23 @@ def catalonia_figures(figures_dir: Path, captions: dict[str, str]) -> None:
     # The four charts share one scale, so the overall line and the axis line up down the page.
     shown = _labelled(shares[shares.dimension.isin([c[1] for c in charts])])
     top = math.ceil(float(shown.ci_high.max()) * 20) / 20
+    # Speed limits are ordered: the posted ones run from the lowest, and the crashes with no
+    # posted limit recorded, most of the file, come last under a heading of their own.
+    limit_order, limit_groups, limit_labels = _speed_limit_rows(shares)
+    is_limit = (shares.dimension == "speed limit") & shares.level.isin(limit_labels)
+    shares.loc[is_limit, "label"] = shares.loc[is_limit, "level"].map(limit_labels)
+    generic = shares[(shares.dimension == "speed limit") & (shares.level == GENERIC_LIMIT)]
+    no_limit = float(generic.n.iloc[0] / overall.n.iloc[0])
+    if not no_limit > 0.5:
+        raise ValueError("cat2 caption: most crashes no longer lack a posted limit")
+    notes = {
+        "cat2_fatal_by_speed_limit": (
+            f"; {no_limit:.0%} of the crashes have no posted limit recorded, and the generic "
+            "limit for the type of road applied"
+        )
+    }
     for name, dimension, title, by in charts:
+        limits = dimension == "speed limit"
         _shares(
             shares,
             dimension,
@@ -351,27 +390,17 @@ def catalonia_figures(figures_dir: Path, captions: dict[str, str]) -> None:
             "Fatal crashes among serious and fatal crashes",
             base,
             xlim=(0, top),
+            order=limit_order if limits else None,
+            keep_order=limits,
+            groups=limit_groups if limits else None,
         )
         captions[name] = _caption(
             f"Fatal crashes as a share of crashes with a death or serious injury, by {by}, "
             f"Catalonia, {period}, with 95% intervals; groups of fewer than {MIN_N} crashes "
-            "are left out",
+            f"are left out{notes.get(name, '')}",
             CAT_SOURCE,
             n,
         )
-    frequency = table("cat_frequency").groupby("year").crashes.sum()
-    _bars(
-        frequency,
-        figures_dir / "cat6_crashes_by_year.svg",
-        "Crashes with a death or serious injury, by year",
-        "Crashes",
-    )
-    captions["cat6_crashes_by_year"] = _caption(
-        f"Recorded crashes with at least one death or serious injury, Catalonia, {period}; "
-        "counts of recorded crashes, not rates",
-        CAT_SOURCE,
-        f"{int(frequency.sum()):,} crashes",
-    )
 
 
 def barcelona_figures(figures_dir: Path, captions: dict[str, str]) -> None:
@@ -471,7 +500,7 @@ def model_figures(figures_dir: Path, captions: dict[str, str]) -> None:
     primary = selected[selected.primary].set_index("model")
     regional = [model for model in REGIONAL_MODELS if model in primary.index]
     tests = {model: _test_records(primary.loc[model, "design"], bcn_year) for model in regional}
-    # Each model trained on regional records (its selected estimator, with the bootstrap
+    # Each model fitted on regional records (its selected estimator, with the bootstrap
     # interval), the descriptive table it was compared with, and the baseline.
     rows = []
     for model in regional:
@@ -523,7 +552,7 @@ def model_figures(figures_dir: Path, captions: dict[str, str]) -> None:
         "high",
         figures_dir / "ml1_test_auc.svg",
         "Test ROC-AUC: each model against its descriptive table and the baseline",
-        xlabel="ROC-AUC on the test records (0.5 = chance)",
+        xlabel="Test ROC-AUC (0.5 = chance)",
         reference=0.5,
         style="kind",
         group="model",
@@ -586,7 +615,8 @@ def model_figures(figures_dir: Path, captions: dict[str, str]) -> None:
             reference=0.0,
         )
         captions[f"ml3_importance_{model}"] = _caption(
-            f"The {len(part)} variables the {name} relies on most: the mean fall in its ROC-AUC "
+            f"The {len(part)} variables the {_in_sentence(name)} relies on most: the mean fall in "
+            "its ROC-AUC "
             f"on the test records ({tests[model]}) when each variable is randomly shuffled, "
             "over 30 shuffles, with one standard deviation either side",
             MODEL_SOURCES[model],
@@ -603,33 +633,93 @@ def transport_figures(figures_dir: Path, captions: dict[str, str]) -> None:
     selected = table("ml_selected")
     chosen = selected[selected.primary].set_index("model").estimator
     reported = reported[reported.estimator.eq(reported.model.map(chosen))]
+    # The reverse Barcelona test fits the specification on Barcelona city's crashes alone: a
+    # model of the city, not the Catalan model, so it is not drawn with the model's tests.
     best = reported.drop_duplicates(["experiment", "model"])
-    best["row"] = best.experiment.map(experiment_label)
-    best["low"] = best.roc_auc_low.fillna(best.roc_auc)
-    best["high"] = best.roc_auc_high.fillna(best.roc_auc)
+    best = best[~best.experiment.str.startswith("Barcelona municipality -> rest")]
+    calculator = table("gen_calculator_transfer")
+    calculator = calculator[~calculator.experiment.str.startswith("random")]
+    best = pd.concat([best, calculator], ignore_index=True)
+    best["test"] = best.experiment.map(experiment_label)
+    # The calculator's later year is the last year of its rolling test, drawn alone beside a
+    # model fitted in that year.
+    best.loc[
+        best.model.eq("calculator") & best.experiment.str.startswith("temporal holdout"), "test"
+    ] = "The last of those years alone"
+    # Only the later-year tests of the original model and its versions lack an interval: they
+    # come from each model's own test on that year, which recorded none. The captions say so.
+    no_interval = best[best.roc_auc_low.isna() | best.roc_auc_high.isna()]
+    if not (
+        no_interval.experiment.str.startswith("temporal holdout").all()
+        and not no_interval.model.eq("calculator").any()
+    ):
+        raise ValueError("transfer figures: a test other than a later year has no interval")
+    # Each test is drawn beside its reference: the same kind of model fitted and cross-validated
+    # inside the test population, where one exists.
+    # The tested model's row carries the number of test records.
+    tested = best.assign(
+        row="Model tested, n=" + best.test_n.map("{:,.0f}".format),
+        kind="focal",
+        low=best.roc_auc_low.fillna(best.roc_auc),
+        high=best.roc_auc_high.fillna(best.roc_auc),
+    )
+    references = best[best.in_domain_cv_roc_auc.notna()].assign(
+        row="Fitted in the test population",
+        kind="reference",
+        roc_auc=lambda d: d.in_domain_cv_roc_auc,
+        low=lambda d: d.in_domain_cv_roc_auc,
+        high=lambda d: d.in_domain_cv_roc_auc,
+    )
+    drawn = pd.concat([tested, references]).sort_index(kind="stable")
+    provinces = table("ml_transport_provinces")
+    provinces = provinces[provinces.reported].copy()
+    # The four validation charts sit on one page and share one ROC-AUC scale.
+    models = ("calculator", "catalonia_crash_severity", "catalonia_common_dgt")
+    limits = _roc_limits(pd.concat([drawn[drawn.model.isin(models)].high, provinces.roc_auc]))
+    later_year = (
+        "The later-year score comes from the model's own test on that year, which recorded no "
+        "interval. The n beside each tested model is its number of test records"
+    )
     for model, name, title, shown, source in (
+        (
+            "calculator",
+            "tr0_calculator_transfer",
+            f"The {CALCULATOR_MODEL} on held-out years and places",
+            f"ROC-AUC of the {CALCULATOR_MODEL}, the model behind the calculator, refitted "
+            "without the crashes it is tested on (each year from the years before it, the last "
+            "of those years alone, each province of Catalonia in turn, Barcelona city from the "
+            "rest of Catalonia), with 95% intervals, beside the same model fitted and "
+            "cross-validated in the test population (hollow). The n beside each tested model is "
+            "its number of test records",
+            CAT_SOURCE,
+        ),
         (
             "catalonia_crash_severity",
             "tr1_catalonia_transfer",
-            "Catalonia crash-severity model on held-out places and years",
-            "ROC-AUC of the Catalonia crash-severity model on records held out of its training: a "
-            "later year, each province of Catalonia in turn, and Barcelona city against the rest "
-            "of Catalonia, with 95% intervals where computed",
+            f"{REGIONAL_MODELS['catalonia_crash_severity']} on held-out places and years",
+            "ROC-AUC of the original Catalan model, retired because it relied on a recording "
+            "artefact, on records held out of its fitting (a later year, each province of "
+            "Catalonia in turn, Barcelona city from the rest of Catalonia), with 95% intervals, "
+            "beside a model of the same kind fitted and cross-validated in the test population "
+            f"(hollow). {later_year}",
             CAT_SOURCE,
         ),
         (
             "catalonia_common_dgt",
             "tr2_dgt_transfer",
-            "Harmonised Catalonia model on other sources, years and Spain",
-            "ROC-AUC of the harmonised Catalonia model (restricted to the variables DGT records "
-            "in the same way) on records held out of its training: later years and each province "
-            "in the Catalan file, the same crashes in DGT records, and DGT records from Spain "
-            "outside Catalonia, with 95% intervals where computed",
+            "Harmonised version of the original model on other sources, years and Spain",
+            "ROC-AUC of a harmonised version of the original Catalan model, restricted to the "
+            "variables DGT records in the same way, on records held out of its fitting: a later "
+            "year and each province in the Catalan file, the "
+            "same crashes in DGT records, and DGT records from Spain outside Catalonia, with 95% "
+            "intervals, beside a model of the same kind fitted and cross-validated in the test "
+            f"population (hollow). {later_year}",
             f"{CAT_SOURCE}; {DGT_SOURCE}",
         ),
     ):
+        part = drawn[drawn.model == model]
         plots.dot_interval(
-            best[best.model == model],
+            part,
             "row",
             "roc_auc",
             "low",
@@ -639,11 +729,11 @@ def transport_figures(figures_dir: Path, captions: dict[str, str]) -> None:
             xlabel="ROC-AUC on the held-out records",
             reference=0.5,
             reference_label="chance",
-            xlim=_roc_limits(best[best.model == model].high),
+            style="kind",
+            group="test",
+            xlim=limits,
         )
         captions[name] = _caption(shown, source)
-    provinces = table("ml_transport_provinces")
-    provinces = provinces[provinces.reported].copy()
     rates = table("gen_province_rates")
     dgt_period = f"{int(rates.year.min())}–{int(rates.year.max())}"
     names = rates.drop_duplicates("province_code").set_index("province_code").province
@@ -664,18 +754,17 @@ def transport_figures(figures_dir: Path, captions: dict[str, str]) -> None:
         "low",
         "high",
         figures_dir / "tr3_province_auc.svg",
-        "Harmonised Catalonia model, province by province outside Catalonia",
+        "Harmonised version of the original model, province by province outside Catalonia",
         xlabel="ROC-AUC on the province's DGT records",
         reference=0.5,
         reference_label="chance",
-        xlim=_roc_limits(provinces.high),
+        xlim=limits,
     )
     captions["tr3_province_auc"] = _caption(
-        "ROC-AUC of the harmonised Catalonia model, trained on the Catalan file, on DGT records "
-        "of crashes with a death or serious injury within 24 hours in each province outside "
-        f"Catalonia, {dgt_period}; provinces with at least {MIN_POSITIVES} fatal and "
-        f"{MIN_POSITIVES} non-fatal "
-        "crashes, fatal crashes in brackets",
+        "ROC-AUC of a harmonised version of the original Catalan model, fitted on the Catalan "
+        "file, on DGT records of crashes with a death or serious injury within 24 hours in each "
+        f"province outside Catalonia, {dgt_period}; provinces with at least {MIN_POSITIVES} "
+        f"fatal and {MIN_POSITIVES} non-fatal crashes, fatal crashes in brackets",
         DGT_SOURCE,
         f"{int(provinces.n.sum()):,} crashes",
     )
@@ -688,7 +777,6 @@ def build(figures_dir: Path, captions: dict[str, str]) -> None:
         "bcn_frequency",
         "bcn_person_severity_share",
         "cat_fatal_share",
-        "cat_frequency",
         "gen_province_rates",
         "ml_calibration",
         "ml_importance",
