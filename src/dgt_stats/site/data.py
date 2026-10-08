@@ -789,6 +789,10 @@ def _assumption_rows() -> list[tuple[str, str, str]]:
     scatter = read_table("risk_dispersion").set_index("outcome")
     dispersion = {key: float(scatter.loc[key, "dispersion"]) for key in scatter.index}
     scatter_df = int(scatter.loc["deaths_30d", "df_resid"])
+
+    def spread(outcome: str, bound: str = "") -> float:
+        return float(scatter.loc[outcome, f"dispersion_{bound}" if bound else "dispersion"])
+
     panel = read_table("risk_annual_panel").set_index("year")
     km = read_table("longrun_km_panel").set_index("year")
     km_check = read_table("longrun_km_check").set_index(["measure", "year"])
@@ -838,6 +842,12 @@ def _assumption_rows() -> list[tuple[str, str, str]]:
     model_error, naive_error = float(model.rmse.iloc[0]), float(naive.rmse.iloc[0])
     counted_from = risk_trends.DEATHS_30D_COUNTED_FROM
     ratio_30_24 = panel.deaths_30d / panel.deaths_24h
+    # The ratio while DGT estimated 30-day deaths, the years after the change below the last
+    # estimated year's ratio, and the years from the first one back at it.
+    estimated = ratio_30_24.loc[: counted_from - 1]
+    counted = ratio_30_24.loc[counted_from:]
+    recovered = int(counted[counted >= float(estimated.iloc[-1])].index.min())
+    dip, since = ratio_30_24.loc[counted_from : recovered - 1], ratio_30_24.loc[recovered:]
     reference = risk_trends.BASE_YEAR
     per_km_last = km_check.loc[("per_km", km_last)]
     scatter_first, scatter_last = risk_trends.SCATTER_YEARS
@@ -906,10 +916,15 @@ def _assumption_rows() -> list[tuple[str, str, str]]:
             and float(ranges.loc["18-29", "min"]) <= float(weekend_young.min()),
             "by injury crashes most of the fall is severity": severity < frequency < 1,
             "by admissions all of the fall is frequency": admitted < per_fuel and per_admission > 1,
-            "the 30-day count changed method with a step in its ratio to 24-hour deaths": float(
-                ratio_30_24.loc[counted_from]
-            )
-            < float(ratio_30_24.loc[counted_from - 1]),
+            "admissions and injury crashes scatter beyond Poisson chance; for deaths it is not "
+            "established": spread("hospitalised_30d", "low") > 1
+            and spread("crashes", "low") > 1
+            and spread("deaths_30d", "low") < 1 < spread("deaths_30d", "high"),
+            "the ratio of 30-day to 24-hour deaths dips to its lowest when the method changes, "
+            "stays below the last estimated year until it recovers, and stays inside its earlier "
+            "range from then on": float(ratio_30_24.loc[counted_from]) == float(ratio_30_24.min())
+            and float(dip.max()) < float(ratio_30_24.loc[counted_from - 1])
+            and bool(since.between(estimated.min(), estimated.max()).all()),
             "on 24-hour deaths the trends turn in the same years": all(
                 str(at(measure, "deaths_24h", last).breaks) == str(at(measure, "main", last).breaks)
                 for measure in ("count", "road_fuel")
@@ -946,8 +961,11 @@ def _assumption_rows() -> list[tuple[str, str, str]]:
             f"A year's count varies around its trend only by chance ({TITLES['trends']})",
             f"The scatter of each annual count around its {scatter_first}–{scatter_last} trend, "
             "against the Poisson variance.",
-            "Does not hold for any of the three counts: deaths scatter least beyond Poisson "
-            "chance and injury crashes most. Intervals for changes against "
+            "Does not hold for hospital admissions or injury crashes: the 95% interval of each "
+            "one's scatter, as a multiple of the Poisson variance, lies above 1. Not established "
+            "for deaths: their scatter is the smallest of the three and its interval includes 1, "
+            "so the data cannot tell whether deaths vary beyond chance. Intervals for changes "
+            "against "
             f"{reference} are widened to match, with Student's t for the trend's "
             f"{_words(scatter_df)} residual degrees of freedom; {TITLES['trends']} gives the "
             "factors. The crash factor also carries a step in recorded urban crashes between "
@@ -1039,9 +1057,14 @@ def _assumption_rows() -> list[tuple[str, str, str]]:
             f"DGT estimated 30-day deaths from 24-hour deaths until {counted_from - 1} and has "
             f"counted them since {counted_from}. The trends were refitted on 24-hour deaths, "
             "which the police count directly throughout.",
-            "The change shows as a step in the ratio of 30-day to 24-hour deaths, from "
-            f"{float(ratio_30_24.loc[counted_from - 1]):.3f} in {counted_from - 1} to "
-            f"{float(ratio_30_24.loc[counted_from]):.3f} in {counted_from}. Refitted on 24-hour "
+            "The change shows as a temporary dip in the ratio of 30-day to 24-hour deaths, not "
+            f"a lasting step. The ratio fell from {float(estimated.iloc[-1]):.3f} in "
+            f"{counted_from - 1} to {float(ratio_30_24.loc[counted_from]):.3f} in {counted_from}, "
+            f"the lowest in the series, and stayed between {float(dip.min()):.3f} and "
+            f"{float(dip.max()):.3f} until {recovered - 1}; from {recovered} it has been "
+            f"{float(since.min()):.3f}–{float(since.max()):.3f}, inside its "
+            f"{int(estimated.index.min())}–{counted_from - 1} range of "
+            f"{float(estimated.min()):.3f}–{float(estimated.max()):.3f}. Refitted on 24-hour "
             "deaths, the trends turn in the same years, and deaths per tonne of fuel in "
             f"{recent[0]} and {recent[1]} still lie above their range, so the long-run results "
             "do not rest on the change.",
@@ -1094,9 +1117,11 @@ def _reproduce() -> str:
         "tests rerun the checks on every change.</p>"
         f'<p>The repository also holds the <a href="{DOCS_URL}/methodology.md">implementation '
         "notes</a>, with the module behind each method, the "
-        f'<a href="{DOCS_URL}/data_sources.md">source register</a>, with each file\'s address, '
-        f'terms and checksum, and the <a href="{DOCS_URL}/data_inventory.md">data '
-        "inventory</a>.</p>"
+        f'<a href="{DOCS_URL}/data_sources.md">source register</a>, with what each source is '
+        "and its terms of use, the manifest of the "
+        f'<a href="{REPO_URL}/tree/main/data/raw">raw files</a>, with each file\'s checksum '
+        "and, where recorded, its download address, and the "
+        f'<a href="{DOCS_URL}/data_inventory.md">data inventory</a>.</p>'
         "<p>The project was developed through a reproducible, source-driven workflow. The "
         "research questions, the choice of sources, the statistical design, the interpretation "
         "and the decision to publish each result are the author's, and so is responsibility for "

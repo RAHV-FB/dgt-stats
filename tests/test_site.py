@@ -759,6 +759,16 @@ def test_methodology_lists_every_assumption_the_methods_document_tests(built: Pa
     ratio = panel.deaths_30d / panel.deaths_24h
     for year in (2010, 2011):
         assert f"{ratio.loc[year]:.3f} in {year}" in row("The 30-day death series")
+    # The 2011 fall in the ratio is a dip that recovers, not a lasting step.
+    assert "temporary dip" in row("The 30-day death series")
+    assert "a step in the ratio" not in row("The 30-day death series")
+    # Poisson variation is rejected for admissions and crashes only; for deaths the interval
+    # of the dispersion includes 1.
+    scatter_rows = pd.read_csv(TABLES_DIR / "risk_dispersion.csv").set_index("outcome")
+    chance = row("A year's count varies")
+    assert scatter_rows.loc["deaths_30d", "dispersion_low"] < 1
+    assert "Not established for deaths" in chance
+    assert "any of the three counts" not in chance
     projection = pd.read_csv(TABLES_DIR / "longrun_projection_sensitivity.csv")
     later = projection[
         (projection.measure == "road_fuel")
