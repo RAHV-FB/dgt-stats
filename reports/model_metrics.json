@@ -3855,7 +3855,7 @@
    "stage_name": "another region inside the training source",
    "status": "passed",
    "value": 0.641638,
-   "evidence": "rest of Catalonia -> Barcelona municipality: ROC-AUC 0.642 (0.609-0.677), in-domain 0.656, gap -0.015; leave out Barcelona demarcation: ROC-AUC 0.689 (0.676-0.703), in-domain 0.724, gap -0.034; leave out Girona demarcation: ROC-AUC 0.737 (0.714-0.756), in-domain 0.688, gap +0.049; leave out Lleida demarcation: ROC-AUC 0.731 (0.705-0.754), in-domain 0.690, gap +0.040; leave out Tarragona demarcation: ROC-AUC 0.788 (0.767-0.808), in-domain 0.753, gap +0.034",
+   "evidence": "rest of Catalonia -> Barcelona municipality: ROC-AUC 0.642 (0.609-0.677), in-domain 0.656, gap -0.015; leave out Barcelona demarcation: ROC-AUC 0.689 (0.676-0.703), in-domain 0.724, gap -0.034; leave out Girona demarcation: ROC-AUC 0.737 (0.714-0.756), in-domain 0.688, gap +0.049; leave out Lleida demarcation: ROC-AUC 0.731 (0.705-0.754), in-domain 0.690, gap +0.040; leave out Tarragona demarcation: ROC-AUC 0.788 (0.767-0.808), in-domain 0.753, gap +0.034; rest of Catalonia to 2019 -> Barcelona municipality after 2019: ROC-AUC 0.669 (0.598-0.736), in-domain 0.486, gap +0.183",
    "highest_consecutive_stage": 3,
    "verdict": "supported up to stage 3 (another region inside the training source)"
   },
@@ -3875,7 +3875,57 @@
    "stage_name": "national aggregates: does the training population resemble Spain?",
    "status": "failed",
    "value": 0.069631,
-   "evidence": "Catalonia vs Spain outside Catalonia (crashes with a death or serious injury (24 h)): differs on alignment_recorded (JSD 0.070), road_class (JSD 0.063), crash_type (JSD 0.033), weather (JSD 0.032), surface (JSD 0.028); fatal share of severe crashes 12.2% against 15.4%",
+   "evidence": "Catalonia vs Spain outside Catalonia (crashes with a death or serious injury (24 h)): differs on alignment_recorded (JSD 0.070), crash_type (JSD 0.033), weather (JSD 0.032), surface (JSD 0.028); fatal share of severe crashes 12.2% against 15.4%",
+   "highest_consecutive_stage": 3,
+   "verdict": "supported up to stage 3 (another region inside the training source)"
+  },
+  {
+   "model": "calculator",
+   "stage": 1,
+   "stage_name": "internal: held-out rows of the same source and domain",
+   "status": "passed",
+   "value": 0.732326,
+   "evidence": "random 5-fold cross-validation 2010-2023: ROC-AUC 0.732 (0.723-0.742)",
+   "highest_consecutive_stage": 3,
+   "verdict": "supported up to stage 3 (another region inside the training source)"
+  },
+  {
+   "model": "calculator",
+   "stage": 2,
+   "stage_name": "later years (or months) of the same source",
+   "status": "passed",
+   "value": 0.742546,
+   "evidence": "rolling origin: each year 2016-2023 from the years before it: ROC-AUC 0.743 (0.730-0.755); temporal holdout: train 2010-2022, test 2023: ROC-AUC 0.755 (0.718-0.789), in-domain 0.732, gap +0.023",
+   "highest_consecutive_stage": 3,
+   "verdict": "supported up to stage 3 (another region inside the training source)"
+  },
+  {
+   "model": "calculator",
+   "stage": 3,
+   "stage_name": "another region inside the training source",
+   "status": "passed",
+   "value": 0.646432,
+   "evidence": "leave out Barcelona demarcation: ROC-AUC 0.665 (0.651-0.680), in-domain 0.695, gap -0.030; leave out Girona demarcation: ROC-AUC 0.728 (0.704-0.749), in-domain 0.717, gap +0.011; leave out Lleida demarcation: ROC-AUC 0.703 (0.672-0.728), in-domain 0.701, gap +0.002; leave out Tarragona demarcation: ROC-AUC 0.774 (0.755-0.794), in-domain 0.771, gap +0.004; rest of Catalonia -> Barcelona municipality: ROC-AUC 0.646 (0.618-0.675), in-domain 0.677, gap -0.031",
+   "highest_consecutive_stage": 3,
+   "verdict": "supported up to stage 3 (another region inside the training source)"
+  },
+  {
+   "model": "calculator",
+   "stage": 4,
+   "stage_name": "another independently recorded Spanish dataset",
+   "status": "not run",
+   "value": null,
+   "evidence": "no other source records the calculator's inputs: DGT's records lack the road's owning network and the posted limit, and their road-type and junction codings disagree with the Catalan file's on the same crashes",
+   "highest_consecutive_stage": 3,
+   "verdict": "supported up to stage 3 (another region inside the training source)"
+  },
+  {
+   "model": "calculator",
+   "stage": 5,
+   "stage_name": "national aggregates: does the training population resemble Spain?",
+   "status": "failed",
+   "value": 0.069631,
+   "evidence": "Catalonia vs Spain outside Catalonia (crashes with a death or serious injury (24 h)): differs on alignment_recorded (JSD 0.070), crash_type (JSD 0.033), weather (JSD 0.032), surface (JSD 0.028); fatal share of severe crashes 12.2% against 15.4%",
    "highest_consecutive_stage": 3,
    "verdict": "supported up to stage 3 (another region inside the training source)"
   },
@@ -3925,7 +3975,7 @@
    "stage_name": "national aggregates: does the training population resemble Spain?",
    "status": "failed",
    "value": 0.069631,
-   "evidence": "Catalonia vs Spain outside Catalonia (crashes with a death or serious injury (24 h)): differs on alignment_recorded (JSD 0.070), road_class (JSD 0.063), crash_type (JSD 0.033), weather (JSD 0.032), surface (JSD 0.028); fatal share of severe crashes 12.2% against 15.4%",
+   "evidence": "Catalonia vs Spain outside Catalonia (crashes with a death or serious injury (24 h)): differs on alignment_recorded (JSD 0.070), crash_type (JSD 0.033), weather (JSD 0.032), surface (JSD 0.028); fatal share of severe crashes 12.2% against 15.4%",
    "highest_consecutive_stage": 4,
    "verdict": "keeps its ranking on independently recorded Spanish crashes, but the training population differs from Spain's: national use not established"
   },
@@ -3975,7 +4025,7 @@
    "stage_name": "national aggregates: does the training population resemble Spain?",
    "status": "failed",
    "value": 0.069631,
-   "evidence": "Catalonia vs Spain outside Catalonia (crashes with a death or serious injury (24 h)): differs on alignment_recorded (JSD 0.070), road_class (JSD 0.063), crash_type (JSD 0.033), weather (JSD 0.032), surface (JSD 0.028); fatal share of severe crashes 12.2% against 15.4%",
+   "evidence": "Catalonia vs Spain outside Catalonia (crashes with a death or serious injury (24 h)): differs on alignment_recorded (JSD 0.070), crash_type (JSD 0.033), weather (JSD 0.032), surface (JSD 0.028); fatal share of severe crashes 12.2% against 15.4%",
    "highest_consecutive_stage": 3,
    "verdict": "supported up to stage 3 (another region inside the training source)"
   },
@@ -4025,7 +4075,7 @@
    "stage_name": "national aggregates: does the training population resemble Spain?",
    "status": "failed",
    "value": 0.233359,
-   "evidence": "Barcelona city vs Spain outside Catalonia (injury crashes): differs on alignment_recorded (JSD 0.233), crash_type (JSD 0.207), road_class (JSD 0.131), zone (JSD 0.092), weather (JSD 0.046), vehicles (JSD 0.032), surface (JSD 0.023); fatal share of severe crashes 9.1% against 15.4%",
+   "evidence": "Barcelona city vs Spain outside Catalonia (injury crashes): differs on alignment_recorded (JSD 0.233), crash_type (JSD 0.207), road_class (JSD 0.127), zone (JSD 0.092), weather (JSD 0.046), vehicles (JSD 0.032), surface (JSD 0.023); fatal share of severe crashes 9.1% against 15.4%",
    "highest_consecutive_stage": 3,
    "verdict": "supported up to stage 3 (another district of the same city)"
   },
@@ -4075,7 +4125,7 @@
    "stage_name": "national aggregates: does the training population resemble Spain?",
    "status": "failed",
    "value": 0.233359,
-   "evidence": "Barcelona city vs Spain outside Catalonia (injury crashes): differs on alignment_recorded (JSD 0.233), crash_type (JSD 0.207), road_class (JSD 0.131), zone (JSD 0.092), weather (JSD 0.046), vehicles (JSD 0.032), surface (JSD 0.023); fatal share of severe crashes 9.1% against 15.4%",
+   "evidence": "Barcelona city vs Spain outside Catalonia (injury crashes): differs on alignment_recorded (JSD 0.233), crash_type (JSD 0.207), road_class (JSD 0.127), zone (JSD 0.092), weather (JSD 0.046), vehicles (JSD 0.032), surface (JSD 0.023); fatal share of severe crashes 9.1% against 15.4%",
    "highest_consecutive_stage": 3,
    "verdict": "supported up to stage 3 (another district of the same city)"
   }

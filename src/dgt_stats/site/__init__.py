@@ -49,6 +49,7 @@ from dgt_stats.site.components import (
     read_captions,
     render_page,
     table,
+    withdrawn_detail,
 )
 from dgt_stats.site.data import page_data
 from dgt_stats.site.drivers import page_drivers
@@ -119,15 +120,18 @@ PAGE_BUILDERS = {
 
 
 def page_moved(old: str, new: str) -> str:
-    """A pointer page for a slug that was renamed, refreshing to its successor."""
+    """A pointer page for a slug that was renamed, refreshing to its successor.
+
+    It is kept out of search indexes; it carries no canonical link, which would contradict that.
+    """
     title = dict(ALL_PAGES)[new]
     return render_page(
         old,
         "This page has moved",
-        f"What was on this page is now on the page {title}.",
+        f"What was on this page is now on the {title} page.",
         f'<p><a href="{new}.html">Continue to {esc(title)}</a>.</p>',
-        head=f'\n<meta http-equiv="refresh" content="0; url={new}.html">'
-        f'\n<link rel="canonical" href="{new}.html">',
+        head='\n<meta name="robots" content="noindex">'
+        f'\n<meta http-equiv="refresh" content="0; url={new}.html">',
     )
 
 
@@ -162,6 +166,7 @@ def page_withdrawn(slug: str) -> str:
     )
     body = (
         f"<p>{esc(WITHDRAWN_PAGES[slug])}</p>"
+        f"{withdrawn_detail(slug)}"
         f"<p>What the repository's own data show on this subject is on these pages: {links}. "
         'The <a href="data.html">methodology</a> explains how the results on the site are '
         "produced.</p>"

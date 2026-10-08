@@ -908,7 +908,9 @@ def _data_figures(figures_dir: Path, captions: dict[str, str]) -> None:
         f"year, Spain, {int(profile.year.min())}–{int(profile.year.max())}; a value counts as "
         "missing when it is empty, 999 (not specified), 998 (not applicable), an explicit "
         "unknown code or a placeholder (KM 9999, and 1000 in 2019; CARRETERA 'No "
-        "inventariada'; COD_MUNICIPIO 00000)",
+        "inventariada'; COD_MUNICIPIO 00000). CONDICION_VIENTO is a presence flag: DGT's "
+        "dictionary codes its absence as an empty cell, so its low share recorded means no "
+        "strong wind, not missing data",
         MICRODATA_SOURCE,
         f"{int(profile.groupby('year').rows.first().sum()):,} crashes",
     )

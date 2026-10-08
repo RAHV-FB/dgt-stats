@@ -1,19 +1,19 @@
-"""The front page: what the study is, its main findings, where to read on and what data it uses.
+"""The front page: the study's answer in two sentences, its main findings, and its pages.
 
-Each finding is one number with a sentence or two saying what it measures, and a link to the page
-that sets it out; the methods are left to the pages behind them. Every number is read from a
-committed result table, and every qualitative sentence is checked against the tables before the
-page is written.
+Each finding leads with its answer in one sentence, then the numbers behind it and a link to the
+page that sets it out; the methods are left to the pages behind them. The list of pages follows
+the navigation's groups. Every number is read from a committed result table, and every
+qualitative sentence is checked against the tables before the page is written.
 """
 
 from __future__ import annotations
 
 import math
 
-from dgt_stats import edm2018
 from dgt_stats.exposure_risk import national as national_rates
 from dgt_stats.site.components import (
-    ALL_PAGES,
+    NAV_GROUPS,
+    PAGE_QUESTIONS,
     _fmt_int,
     _fmt_pct,
     esc,
@@ -27,7 +27,6 @@ from dgt_stats.site.numbers import (
     _risk_numbers,
     _speed_numbers,
 )
-from dgt_stats.site.regional_common import _year_label
 
 NUMBER_WORDS = {0: "none", 1: "one", 2: "two", 3: "all three"}
 
@@ -52,16 +51,34 @@ def _link(href: str, text: str) -> str:
 def page_index(captions: dict[str, str]) -> str:
     national_years = read_table("longrun_series").year
     first, last = int(national_years.min()), int(national_years.max())
-    body = _introduction()
+    headline = read_table("q1_annual_headline").set_index("year").deaths_30d
+    segments = _long_run_numbers()["segments"]
+    count = segments[segments.measure == "count"].sort_values("start")
+    steep_end = int(count.loc[count.annual_change.idxmin()].end)
+    fall = 1 - float(headline.loc[steep_end]) / float(headline.loc[first])
+    _require(
+        "opening",
+        {
+            "deaths fell by about three quarters to the end of the steep decline": 0.7 < fall < 0.8,
+            "the latest count is above the end of the steep decline": float(headline.loc[last])
+            > float(headline.loc[steep_end]),
+        },
+    )
+    body = summary(
+        f"Road deaths in Spain fell by about three quarters between {first} and {steep_end} and "
+        f"have not fallen since: {_fmt_int(headline.loc[last])} people died in {last}. The "
+        "findings below come from official statistics and police crash records. Every "
+        "comparison between an outcome and a circumstance is an association in those records, "
+        "not an estimate of what caused it."
+    )
     body += "<h2>Main findings</h2>"
-    body += '<ol class="findings">'
+    body += '<ul class="findings">'
     body += _long_run()
     body += _drivers()
     body += _speed()
     body += _models()
-    body += "</ol>"
+    body += "</ul>"
     body += _explore()
-    body += _data(first, last)
     lead = (
         f"An independent statistical study of road deaths and injuries in Spain from {first} to "
         f"{last}, built from official statistics and from police crash records for Catalonia and "
@@ -70,53 +87,17 @@ def page_index(captions: dict[str, str]) -> str:
     return render_page("index", "Road safety in Spain", lead, body)
 
 
-def _finding(value: str, text: str, links: list[tuple[str, str]]) -> str:
-    """One main finding: its number, what the number measures, and the pages that set it out.
-
-    Each link is ``(target, label)``, the target a page slug with an optional ``#section``.
-    """
+def _finding(lead: str, text: str, links: list[tuple[str, str]]) -> str:
+    """One main finding: its answer in one sentence, what supports it, and the pages that set
+    it out. Each link is ``(target, label)``, the target a page slug with an optional
+    ``#section``."""
 
     def href(target: str) -> str:
         page, _, anchor = target.partition("#")
         return f"{page}.html" + (f"#{anchor}" if anchor else "")
 
     more = " · ".join(_link(href(target), label) for target, label in links)
-    return (
-        f'<li><p class="finding-value">{value}</p><div class="finding-body"><p>{text}</p>'
-        f'<p class="finding-more">{more}</p></div></li>'
-    )
-
-
-def _introduction() -> str:
-    return summary(
-        "Most of this study is ordinary statistical analysis of published data: deaths and "
-        "crashes counted over time and divided by residents, licence holders, vehicles, fuel "
-        "sold or kilometres driven, and, where the data allow, split into how often crashes "
-        "happen and how deadly a crash is once it has happened. A smaller part fits predictive "
-        "models to individual crash records from Catalonia and Barcelona, and keeps a model only "
-        "if it beats a simple table of the same records. Every comparison between an outcome "
-        "and a circumstance is an association, not an estimate of a causal effect."
-    )
-
-
-def _data(first: int, last: int) -> str:
-    """The quiet closing line: where the data come from."""
-    records_first = int(read_table("missingness_by_year").year.min())
-    cat_years = read_table("cat_frequency").year
-    bcn_year = _year_label(read_table("bcn_person_severity_share"))
-    return (
-        '<div class="provenance"><p>'
-        f"Data: the Dirección General de Tráfico (DGT) yearbook series {first}–{last}, its "
-        f"tables of drivers and vehicles involved in crashes, its file of injury crashes since "
-        f"{records_first} and its estimates of kilometres driven; INE population figures, "
-        "road-fuel sales and traffic counts; Catalonia's crashes with a death or serious injury, "
-        f"{int(cat_years.min())}–{int(cat_years.max())}; and Barcelona's police-attended "
-        f"crashes, {bcn_year}; and two travel surveys for kilometres by driver age, the "
-        "Barcelona area's working-day mobility survey (EMEF) and Madrid's household travel "
-        f"survey of {edm2018.SURVEY_YEAR}. The sources share no record identifier and are analysed "
-        f"separately. {_link('sources.html', 'Data sources and scope')}."
-        "</p></div>"
-    )
+    return f'<li><p><strong>{lead}</strong> {text}</p><p class="finding-more">{more}</p></li>'
 
 
 def _long_run() -> str:
@@ -164,37 +145,54 @@ def _long_run() -> str:
             "the two splits disagree: by crashes mostly severity, by admissions all frequency": (
                 severity < frequency < 1 and admitted < per_fuel < 1 < per_admission
             ),
+            "deaths per tonne of fuel fell by about three quarters": 0.7 < 1 - per_fuel < 0.8,
         },
     )
-    fall = 1 - float(headline.loc[int(steep.end)]) / float(headline.loc[first])
+    projections = read_table("longrun_projection_sensitivity")
+    other_start = f"start_{int(flat.start)}"
+    per_fuel_recent = projections[
+        (projections.measure == "road_fuel")
+        & projections.variant.isin(["main", other_start])
+        & projections.year.isin([last - 1, last])
+    ].ratio
+    _require(
+        "recent years",
+        {
+            "per tonne of fuel, the last two years are above the projected trend on both starts": bool(
+                (per_fuel_recent > 1).all()
+            ),
+            "both trend starts are present": len(per_fuel_recent) == 4,
+        },
+    )
     trend = _finding(
-        f"−{_fmt_pct(fall, 0)}",
-        f"Road deaths in Spain fell from {_fmt_int(headline.loc[first])} in {first} to "
+        f"Deaths fell steeply until {int(steep.end)} and have levelled off since.",
+        f"Road deaths fell from {_fmt_int(headline.loc[first])} in {first} to "
         f"{_fmt_int(headline.loc[int(steep.end)])} in {int(steep.end)}, most of the fall coming "
-        f"between {int(steep.start)} and {int(steep.end)}. That steep decline then ended: the "
-        f"trend since {int(flat.start)} shows no clear rise or fall, and the "
-        f"{_fmt_int(deaths.loc['count', 'count'])} deaths of {last} were more than in "
-        f"{int(steep.end)}. Between {base} and {last}, no measure of deaths, whether counted or "
-        "divided by residents, licence holders, vehicles or fuel sold, changed by more than "
-        "ordinary year-to-year variation.",
-        [("long-run", "Long-run trends"), ("trends", f"Trends since {base}")],
+        f"between {int(steep.start)} and {int(steep.end)}; since {int(flat.start)} the trend "
+        f"shows no clear rise or fall, and {_fmt_int(deaths.loc['count', 'count'])} people died "
+        f"in {last}. Against {base}, the count of deaths and every death rate changed by no more "
+        "than ordinary year-to-year variation. Against the falling trend of the 2010s, deaths "
+        "per tonne of "
+        f"road fuel in {last - 1} and {last} were higher than projected, by "
+        f"{_fmt_pct(float(per_fuel_recent.min()) - 1, 0)} to "
+        f"{_fmt_pct(float(per_fuel_recent.max()) - 1, 0)} depending on where that trend is "
+        "taken to start.",
+        [
+            ("long-run", "Long-run trends"),
+            ("long-run#recent-years", "Recent years against the trend"),
+            ("trends", f"Since {base}"),
+        ],
     )
     severity_finding = _finding(
-        f"−{_fmt_pct(1 - per_fuel, 0)}",
+        "Deaths relative to traffic fell by three quarters, but the records cannot say how "
+        "much of that came from fewer crashes and how much from less deadly ones.",
         f"Deaths per tonne of road fuel sold, which stands in for traffic, fell "
-        f"{_fmt_pct(1 - per_fuel, 0)} between {split_first} and {split_last}. How the fall "
-        "divides between fewer crashes and less deadly ones cannot be told from the published "
-        f"series. Counted by injury crashes, deaths per crash fell {_fmt_pct(1 - severity, 0)} "
-        f"and crashes per tonne {_fmt_pct(1 - frequency, 0)}; counted by people admitted to "
-        f"hospital, deaths per admission rose {_fmt_pct(per_admission - 1, 0)} and admissions "
-        f"per tonne fell {_fmt_pct(1 - admitted, 0)}. Each split depends on how completely the "
-        "less serious casualties were recorded.",
-        [
-            (
-                f"long-run#crash-frequency-and-severity-{split_first}-{split_last}",
-                "Crash frequency and severity",
-            )
-        ],
+        f"{_fmt_pct(1 - per_fuel, 0)} between {split_first} and {split_last}. Counted by injury "
+        f"crashes, deaths per crash fell {_fmt_pct(1 - severity, 0)} and crashes per tonne "
+        f"{_fmt_pct(1 - frequency, 0)}; counted by people admitted to hospital, deaths per "
+        f"admission rose {_fmt_pct(per_admission - 1, 0)} and admissions per tonne fell "
+        f"{_fmt_pct(1 - admitted, 0)}.",
+        [("long-run#frequency-and-severity", "Crash frequency and severity")],
     )
     return trend + severity_finding
 
@@ -225,25 +223,27 @@ def _drivers() -> str:
         },
     )
     deaths = _finding(
-        f"{ratio:.1f}×",
-        f"In {national_rates.YEAR}, car drivers aged 75 and over who were involved in an injury crash died "
-        f"{ratio:.1f} times as often as drivers aged 45–64 "
+        "Older drivers are far more likely to die once a crash has happened.",
+        f"In {national_rates.YEAR}, car drivers aged 75 and over who were involved in an injury "
+        f"crash died {ratio:.1f} times as often as drivers aged 45–64 "
         f"({float(oldest.killed_per_1000_involved):.1f} against "
         f"{float(reference.killed_per_1000_involved):.1f} per 1,000 involved), a result that "
-        "needs no estimate of kilometres.",
+        "needs no estimate of kilometres. Involvement counts every driver in the crash, so "
+        "neither this nor the rate per kilometre says who caused it.",
         [("drivers#deaths-once-a-crash-has-happened", "Drivers: deaths once a crash has happened")],
     )
     per_km = _finding(
-        f"{float(young.involved_ratio):.1f}×",
+        "Young drivers are in more crashes for the distance they drive.",
         "Per kilometre driven, car drivers aged 18–29 were involved in injury crashes about "
         f"{float(young.involved_ratio):.1f} times as often as drivers aged 45–64 in "
         f"{national_rates.YEAR} (95% interval {float(young.involved_ratio_low):.1f}–"
         f"{float(young.involved_ratio_high):.1f}; {float(ranges.loc['18-29', 'min']):.1f}–"
         f"{float(ranges.loc['18-29', 'max']):.1f} under other assumptions about the kilometres), "
-        f"and drivers aged 65 and over {float(older.involved_ratio):.2f} times as often "
-        f"({float(ranges.loc['65+', 'min']):.2f}–{float(ranges.loc['65+', 'max']):.2f}). The "
-        "kilometres by driver age are estimated from the Barcelona-area working-day travel "
-        "survey applied to Spain's population.",
+        f"and drivers aged 65 and over {float(older.involved_ratio):.2f} times as often (95% "
+        f"interval {float(older.involved_ratio_low):.2f}–{float(older.involved_ratio_high):.2f}; "
+        f"{float(ranges.loc['65+', 'min']):.2f}–{float(ranges.loc['65+', 'max']):.2f} under "
+        "the other assumptions). The kilometres by driver age are estimated from the "
+        "Barcelona-area working-day travel survey applied to Spain's population.",
         [("drivers#involvement-in-crashes-per-kilometre-driven", "Drivers: crashes per kilometre")],
     )
     return deaths + per_km
@@ -282,59 +282,55 @@ def _speed() -> str:
         },
     )
     return _finding(
-        f"{float(adjusted.rate_ratio):.1f}×",
+        "Crashes in which the police recorded inappropriate speed are deadlier, most of all on "
+        "urban streets.",
         "In Spain outside Catalonia and the Basque Country, police recorded inappropriate speed "
         f"in {_fmt_pct(float(all_roads.loc[last, 'share_of_crashes']))} of injury crashes in "
         f"{last}. Over {first_year}–{last_year}, those crashes had more deaths per crash than "
         "other crashes on the same kind of road, from "
         f"{float(lowest.rate_ratio):.1f} times on dual carriageways to "
         f"{float(highest.rate_ratio):.1f} times on urban streets, and about twice as many "
-        f"({float(adjusted.rate_ratio):.1f} times) with the road types taken together. This is "
-        "an association in police records, not an estimate of how many crashes or deaths "
-        "speeding caused.",
+        f"({float(adjusted.rate_ratio):.1f} times) with the road types taken together.",
         [("speed", "Speed"), ("factors", "Recorded factors")],
     )
 
 
 def _models() -> str:
+    contrasts = read_table("sev_contrasts")
+    interurban = contrasts[contrasts.base == "interurban"].set_index(["input", "level"])
+    heavy = interurban.loc[("users", "heavy_vehicle")]
+    urban = interurban.loc[("road", "urban_street")]
     scores = read_table("sev_rolling_scores")
     span = str(scores.subset[scores.subset.str.fullmatch(r"\d{4}-\d{4}")].iloc[0])
-    first_test, last_test = span.split("-")
     pooled = scores[scores.subset == span].set_index("estimator")
-    calibration = read_table("sev_calibration")
     calc, table_score = pooled.loc["calculator"], pooled.loc["road_x_crash_table"]
-
-    def fifth(estimator: str, top: bool) -> float:
-        groups = calibration[calibration.estimator == estimator].sort_values("group")
-        part = groups.tail(2) if top else groups.head(2)
-        return float(part.positives.sum() / part.n.sum())
-
-    top, bottom = fifth("calculator", True), fifth("calculator", False)
-    top_table, bottom_table = fifth("road_x_crash_table", True), fifth("road_x_crash_table", False)
+    training = read_table("sev_coefficients")
     _require(
         "models",
         {
-            "the model ranks better than the table": float(calc.roc_auc)
+            "a heavy vehicle about doubles the fatal share, clearly": 1.7 < float(heavy.ratio) < 2.3
+            and float(heavy.ratio_low) > 1.5,
+            "an urban street about halves it, clearly": 0.4 < float(urban.ratio) < 0.65
+            and float(urban.ratio_high) < 0.7,
+            "the model ranks better than the road and crash-type table": float(calc.roc_auc)
             > float(table_score.roc_auc),
-            "the model separates the extremes better than the table": top > top_table
-            and bottom < bottom_table,
             "its estimates match the observed share overall": abs(
                 float(calc.mean_predicted) - float(calc.prevalence)
             )
             < 0.005,
+            "the coefficients are published": not training.empty,
         },
     )
     return _finding(
-        f"{_fmt_pct(top, 0)} / {_fmt_pct(bottom, 0)}",
-        "Among crashes in Catalonia in which someone was killed or seriously injured, a model of "
-        "the recorded road, conditions and crash sorted the crashes of "
-        f"{first_test}–{last_test}, each year predicted from earlier years only, into more and "
-        f"less deadly groups: of the fifth it rated most likely to be fatal, {_fmt_pct(top, 0)} "
-        f"were; of the fifth it rated least likely, {_fmt_pct(bottom, 0)}. A table of fatal "
-        f"shares by road and crash type separates them less ({_fmt_pct(top_table, 0)} and "
-        f"{_fmt_pct(bottom_table, 0)}). A calculator applies the model to a crash a reader "
-        "describes. It cannot say whether a crash will happen, and it has been tested only "
-        "within Catalonia.",
+        "In Catalonia, severe crashes with a heavy vehicle involved were fatal about twice as "
+        "often.",
+        "Among crashes in Catalonia in which someone was killed or seriously injured, the same "
+        "crash on a regional road was fatal "
+        f"{float(heavy.ratio):.1f} times as often with a lorry or bus involved (95% interval "
+        f"{float(heavy.ratio_low):.1f}–{float(heavy.ratio_high):.1f}), and about half as often "
+        f"({float(urban.ratio):.2f} times) on an urban street, other recorded circumstances "
+        "held equal. A calculator gives the model's estimate for a crash a reader "
+        "describes; it has been tested only within Catalonia, on years it had not seen.",
         [
             ("severity-models", "Severity model and calculator"),
             ("validation", "External validation"),
@@ -342,54 +338,16 @@ def _models() -> str:
     )
 
 
-# The front page's index of the study: each group of pages, what it covers, and its pages.
-EXPLORE = (
-    (
-        "National trends and exposure",
-        "Deaths and crashes over time, against residents, licence holders, vehicles, fuel and "
-        "kilometres.",
-        ("trends", "long-run", "seasons", "policy"),
-    ),
-    (
-        "Drivers and vehicles",
-        "Rates by driver age and sex, and by type of vehicle, per vehicle and per kilometre.",
-        ("drivers", "vehicles"),
-    ),
-    (
-        "Recorded crash factors",
-        "What the police recorded about each crash, and how it relates to severity.",
-        ("speed", "factors", "severity"),
-    ),
-    (
-        "Catalonia and Barcelona",
-        "Severity among recorded crashes in two detailed regional files.",
-        ("catalonia", "barcelona"),
-    ),
-    (
-        "Predictive severity models",
-        "A model of which severe crashes were fatal, its calculator, and how every model held up "
-        "on other records.",
-        ("severity-models", "validation"),
-    ),
-    (
-        "Sources and methodology",
-        "Where the data come from, what they cover and how the results are produced.",
-        ("sources", "data"),
-    ),
-)
-
-
 def _explore() -> str:
-    titles = dict(ALL_PAGES)
-    if sorted(slug for *_, slugs in EXPLORE for slug in slugs) != sorted(
-        slug for slug in titles if slug != "index"
-    ):
-        raise ValueError("overview: the study index must list every page once")
-    groups = "".join(
-        f'<section aria-labelledby="explore-{index}"><h3 id="explore-{index}">{esc(name)}</h3>'
-        f"<p>{esc(text)}</p><ul>"
-        + "".join(f"<li>{_link(f'{slug}.html', esc(titles[slug]))}</li>" for slug in slugs)
-        + "</ul></section>"
-        for index, (name, text, slugs) in enumerate(EXPLORE, 1)
-    )
-    return f'<h2>Explore the study</h2><div class="explore">{groups}</div>'
+    """The pages, in the navigation's groups and order, each with the question it answers."""
+    groups = []
+    for index, (group, pages) in enumerate(NAV_GROUPS):
+        if group == "Overview":
+            continue
+        items = "".join(
+            f"<li>{_link(f'{slug}.html', esc(title))}: "
+            f"{esc(PAGE_QUESTIONS[slug][:1].lower() + PAGE_QUESTIONS[slug][1:])}</li>"
+            for slug, title in pages
+        )
+        groups.append(f'<h3 id="pages-{index}">{esc(group)}</h3><ul class="page-list">{items}</ul>')
+    return "<h2>The pages</h2>" + "".join(groups)

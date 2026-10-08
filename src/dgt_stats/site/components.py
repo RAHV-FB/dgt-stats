@@ -22,23 +22,29 @@ PROFILE_URL = "https://github.com/RAHV-FB"
 DOCS_URL = f"{REPO_URL}/blob/main/docs"
 
 
-# The navigation follows the argument rather than the repository: the national picture from DGT
-# and INE (with three supporting analyses), the regional crash records, the two severity models and
-# their external validation, and the sources and methods.
+# The navigation follows the questions a reader brings: how deaths have changed over time, which
+# drivers, vehicles and recorded circumstances go with crashes and deaths, how deadly a crash is
+# once it has happened (in Spain's records, in Catalonia's and Barcelona's, and in the model built
+# on Catalonia's), and where the data and methods come from. The home page lists the same groups.
 OVERVIEW = "Overview"
-SPAIN = "Spain"
-SUPPORTING = "Supporting analyses"
-REGIONAL = "Regional data"
-MODELS = "Models"
-METHODS = "Methods"
+OVER_TIME = "Over time"
+WHO = "Drivers, vehicles and factors"
+SEVERITY = "Crash severity"
+METHODS = "Data and methods"
 NAV_GROUPS: tuple[tuple[str, tuple[tuple[str, str], ...]], ...] = (
     (OVERVIEW, (("index", "Overview"),)),
     (
-        SPAIN,
+        OVER_TIME,
         (
-            ("trends", f"Trends since {BASE_YEAR}"),
             ("long-run", "Long-run trends"),
+            ("trends", f"Since {BASE_YEAR}"),
             ("seasons", "Seasons"),
+            ("policy", "The 2006 points licence"),
+        ),
+    ),
+    (
+        WHO,
+        (
             ("drivers", "Drivers"),
             ("vehicles", "Vehicles"),
             ("speed", "Speed"),
@@ -46,38 +52,57 @@ NAV_GROUPS: tuple[tuple[str, tuple[tuple[str, str], ...]], ...] = (
         ),
     ),
     (
-        SUPPORTING,
+        SEVERITY,
         (
-            ("severity", "Crash circumstances"),
-            ("policy", "The 2006 points licence"),
-        ),
-    ),
-    (REGIONAL, (("catalonia", "Catalonia"), ("barcelona", "Barcelona"))),
-    (
-        MODELS,
-        (
+            ("severity", "Crash circumstances in Spain"),
+            ("catalonia", "Catalonia"),
+            ("barcelona", "Barcelona"),
             ("severity-models", "Severity model and calculator"),
             ("validation", "External validation"),
         ),
     ),
     (METHODS, (("sources", "Data sources and scope"), ("data", "Methodology"))),
 )
-# The line above a page's title: the part of the argument the page belongs to.
-EYEBROWS = {
-    SPAIN: "Spain",
-    SUPPORTING: "Spain · supporting analysis",
-    REGIONAL: "Regional data",
-    MODELS: "Models",
-    METHODS: "Methods",
+# The line above a page's title: the group it belongs to.
+EYEBROWS = {group: group for group, _ in NAV_GROUPS}
+# What each page answers, one line each, for the home page's list of pages.
+PAGE_QUESTIONS = {
+    "long-run": "How road deaths have changed since 1993, against vehicles, fuel sold and "
+    "kilometres driven.",
+    "trends": f"Deaths, hospital admissions and injury crashes in 2024 against {BASE_YEAR}.",
+    "seasons": "Which months are deadliest, and how the 2020 lockdown changed them.",
+    "policy": "Whether the points-based licence of July 2006 changed monthly deaths.",
+    "drivers": "How often drivers of each age and sex are in crashes per kilometre, and how "
+    "often a crash kills them.",
+    "vehicles": "Crashes and deaths by type of vehicle, per vehicle and per kilometre.",
+    "speed": "Crashes in which the police recorded inappropriate speed, and their deaths.",
+    "factors": "The other circumstances the police record, and how their shares have moved.",
+    "severity": "Which recorded circumstances go with a death in Spain's injury crashes.",
+    "catalonia": "Crashes with a death or serious injury in Catalonia, 2010–2023.",
+    "barcelona": "Every crash the Guàrdia Urbana attended in Barcelona in 2025.",
+    "severity-models": "A model of which severe crashes in Catalonia were fatal, and a "
+    "calculator to try it.",
+    "validation": "How the Catalan models held up on other years, places and records.",
+    "sources": "Where every figure comes from, what it covers and what it cannot show.",
+    "data": "How the results are produced, the checks they pass and the assumptions tested.",
 }
 
 
-# The main pages, and the supporting analyses outside the central argument.
+# The two analyses that support the national argument rather than answer one of its questions.
+SUPPORTING_SLUGS = ("severity", "policy")
 PAGES: tuple[tuple[str, str], ...] = tuple(
-    page for group, pages in NAV_GROUPS if group != SUPPORTING for page in pages
+    page for _, pages in NAV_GROUPS for page in pages if page[0] not in SUPPORTING_SLUGS
 )
-SUPPORTING_PAGES: tuple[tuple[str, str], ...] = dict(NAV_GROUPS)[SUPPORTING]
-SPAIN_PAGES: tuple[tuple[str, str], ...] = dict(NAV_GROUPS)[SPAIN]
+SUPPORTING_PAGES: tuple[tuple[str, str], ...] = tuple(
+    page for _, pages in NAV_GROUPS for page in pages if page[0] in SUPPORTING_SLUGS
+)
+SPAIN_PAGES: tuple[tuple[str, str], ...] = tuple(
+    page
+    for group, pages in NAV_GROUPS
+    if group in (OVER_TIME, WHO)
+    for page in pages
+    if page[0] not in SUPPORTING_SLUGS
+)
 
 
 ALL_PAGES = PAGES + SUPPORTING_PAGES
@@ -96,11 +121,12 @@ WITHDRAWN_REASON = (
     "This analysis was withdrawn because its results came from coefficients published in "
     "external studies rather than from data in this repository."
 )
-# A withdrawn page whose reason differs from ``WITHDRAWN_REASON``.
+# A withdrawn page whose reason differs from ``WITHDRAWN_REASON``. The lead states the reason; the
+# notice's body says only what the page published and where the data-only work is.
 WITHDRAWN_LEADS = {
     "forecast": (
-        "This analysis was withdrawn because, re-evaluated on years it had not been fitted on, "
-        "the model forecast ordinary years less accurately than last year's count."
+        "This analysis was withdrawn because the model forecast a year's deaths less accurately "
+        "than last year's count."
     ),
 }
 # What each withdrawn page was, as its notice names it.
@@ -111,40 +137,59 @@ WITHDRAWN_TITLES = {
     "alcohol-drugs": "Deaths attributed to alcohol and drugs",
     "enforcement": "Ranking of enforcement measures",
 }
+# What each withdrawn page published. The reason is in its lead and is not repeated here.
 WITHDRAWN_PAGES = {
     "forecast": (
         "This page published a model of Spain's monthly road deaths and, from its forecast "
-        "errors, the smallest change in a year's deaths that the counts could reveal. Scored on "
-        "the ordinary years that played no part in choosing it, the model forecast less "
-        "accurately than simply repeating last year's count, so it was withdrawn, and with it "
-        "the detectable change computed from its errors. The re-evaluation is in the repository's "
-        "model review."
+        "errors, the smallest change in a year's deaths that the counts could reveal. Both are "
+        "withdrawn."
     ),
     "simulator": (
         "This page simulated what new speed limits, and drivers keeping to them, would do to "
-        "deaths and injuries. Its results came from speeds measured in other countries and from "
-        "published estimates of how casualties respond to speed. The Spanish crash records carry "
-        "no speeds, so none of those links could be estimated or checked here."
+        "deaths and injuries. It started from free-flow speeds measured in Spain for the EU "
+        "Baseline project, and took from studies in other countries both how speeds follow a "
+        "new limit and how casualties respond to speed."
     ),
     "distraction": (
         "This page estimated how many deaths a year distraction causes, by combining the share "
         "of fatal crashes in which the police recorded distraction with a crash risk measured "
-        "in a driving study in the United States. The repository holds no Spanish data on how "
-        "much distraction raises the risk of a crash."
+        "in a driving study in the United States."
     ),
     "alcohol-drugs": (
         "This page estimated how many deaths a year alcohol and drugs cause, by applying "
         "relative risks from a European study to the share of fatal crashes in which the police "
-        "recorded alcohol. The repository holds no Spanish data on how much alcohol or drugs "
-        "raise the risk of a crash."
+        "recorded alcohol."
     ),
     "enforcement": (
         "This page ranked enforcement against speeding, drink- and drug-driving and distraction "
-        "by the deaths each would avoid, combining the three withdrawn models with evaluations "
-        "from other countries. The repository holds no data on the effect of enforcement in "
-        "Spain."
+        "by the deaths each would avoid, combining the three withdrawn models with published "
+        "evaluations of enforcement, all from other countries but one study of Barcelona's "
+        "fixed speed cameras."
     ),
 }
+
+
+def withdrawn_detail(slug: str) -> str:
+    """A further paragraph for a withdrawn page whose reason rests on a result table (HTML)."""
+    if slug != "forecast":
+        return ""
+    review = read_table("review_forecast")
+    held_out = review[review.set.eq("holdout")]
+    model = held_out[held_out.method.str.contains("published model")].sort_values("window")
+    naive = held_out[held_out.method.str.startswith("naive")]
+    model_error, naive_error = float(model.rmse.iloc[0]), float(naive.rmse.iloc[0])
+    if not (len(naive) == 1 and model_error > naive_error):
+        raise ValueError("forecast notice: the model no longer loses to last year's count")
+    return (
+        "<p>The model predicted each month's deaths from the month of the year, a linear trend, "
+        "the number of Fridays, Saturdays and Sundays, and the road fuel sold in that same "
+        "month. Fuel sales are known only once the month is over, so the model could not "
+        "forecast ahead: it estimated the deaths that a month's traffic would have brought. "
+        "Even so, in the ordinary years held back from its choice its error in a year's deaths "
+        f"was {_fmt_pct(model_error)}, against {_fmt_pct(naive_error)} for repeating the same "
+        "months of the year before. The re-evaluation is in the "
+        f'<a href="{DOCS_URL}/research/ML_MODEL_REVIEW.md">model review</a>.</p>'
+    )
 
 
 # House style for numbers: a typographic minus rather than a hyphen, so a negative figure in a
@@ -766,6 +811,7 @@ Català de Trànsit, the Ajuntament de Barcelona, the Autoritat del Transport Me
 the Consorcio Regional de Transportes de Madrid (<a href="https://www.crtm.es">Powered by CRTM</a>).
 All results are computed from the published files by the code in the repository.</p>
 <p><a href="sources.html">Data sources</a> · <a href="data.html">Methodology</a> ·
+<a href="data.html#reuse">Reuse and licences</a> ·
 <a href="{REPO_URL}">Repository</a></p>
 </div>
 </footer>

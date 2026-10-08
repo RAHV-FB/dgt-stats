@@ -84,10 +84,29 @@ def test_organise_files_a_new_download_and_leaves_a_duplicate_in_place(tmp_path)
     assert result.moved == [(new, target)] and target.exists()
     listed = pd.read_csv(manifest, dtype=str)
     assert listed.downloaded_as.tolist() == ["download.csv"]
+    # A new file is registered with the portal it is published on and its licence.
+    assert listed.source_url.tolist() == [
+        "https://opendata-ajuntament.barcelona.cat/data/ca/dataset/accidents-gu-bcn"
+    ]
+    assert "Creative Commons Attribution 4.0" in listed.description.iloc[0]
     copy = _write(tmp_path / "data" / "download(1).csv", CRASH_HEADER, rows)
     again = sources.organise(raw_dir=raw, manifest=manifest, today=dt.date(2026, 1, 1))
     assert again.duplicates == [(copy, "barcelona/2025/accidents_gu_bcn_2025.csv")]
     assert copy.exists() and len(pd.read_csv(manifest)) == 1
+
+
+def test_every_regional_source_names_its_portal_and_licence() -> None:
+    for role in sources.ROLES:
+        assert role.portal.startswith("https://"), role.name
+        assert "licence" in role.licence.lower() or "llicència" in role.licence.lower(), role.name
+
+
+def test_the_manifest_records_a_source_url_for_every_regional_file() -> None:
+    listed = pd.read_csv(sources.MANIFEST, dtype=str)
+    regional = listed[listed.path.str.startswith(("barcelona/", "catalonia/"))]
+    assert not regional.empty
+    assert regional.source_url.str.startswith("https://").all()
+    assert not regional.source_url.str.contains("not recorded").any()
 
 
 def test_every_registered_raw_microdata_file_is_readable_and_recognised() -> None:

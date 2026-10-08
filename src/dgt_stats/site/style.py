@@ -178,11 +178,11 @@ h3 { font-size: var(--text-md); margin: var(--space-6) 0 var(--space-3); }
 /* The technical text: a modern Times. Its prose is set a step below the body and on a shorter
    measure (the serif is narrower); tables and captions are smaller still, as small print. Titles
    and the notes about scrolling inside a technical disclosure stay in the sans. */
-figcaption, .table-note, table, .technical-body, .facts, .limit, .evidence-note, .provenance {
+figcaption, .table-note, table, .technical-body, .facts, .limit, .evidence-note {
   font-family: var(--font-serif);
 }
 .technical-body :is(.figure-title, .table-title, .figure-tools, .table-tools) { font-family: var(--font); }
-figcaption, .table-note, .technical-body > p, .limit, .evidence-note, .provenance p { max-width: 36rem; }
+figcaption, .table-note, .technical-body > p, .limit, .evidence-note { max-width: 36rem; }
 .visually-hidden {
   position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px;
   overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
@@ -566,31 +566,15 @@ nav.pager a[rel="next"] .pager-title::after { transform: rotate(-45deg); margin-
 .home .page-header { margin-bottom: var(--space-6); }
 .home h1 { font-size: 2.5rem; }
 .home h2 { margin-top: var(--space-7); }
-.findings { list-style: none; padding: 0; margin: var(--space-4) 0 0; max-width: var(--wide); }
-.findings > li {
-  display: grid; grid-template-columns: 8.5rem minmax(0, var(--measure)); gap: var(--space-5);
-  margin: 0; padding: var(--space-5) 0; border-top: 1px solid var(--rule); max-width: none;
-}
+.findings { list-style: none; padding: 0; margin: var(--space-4) 0 0; max-width: var(--measure); }
+.findings > li { margin: 0; padding: var(--space-4) 0; border-top: 1px solid var(--rule); }
 .findings > li:last-child { border-bottom: 1px solid var(--rule); }
-.finding-value {
-  margin: 0; font-size: 2rem; font-weight: 500; line-height: 1.1; letter-spacing: -0.015em;
-  font-variant-numeric: tabular-nums lining-nums;
-}
-.finding-body p { margin: 0 0 var(--space-2); }
+.findings p { margin: 0 0 var(--space-2); }
+.findings strong { font-weight: 600; }
 .finding-more { font-size: var(--text-sm); }
-.explore {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
-  gap: var(--space-6) var(--space-7); max-width: var(--wide); margin-top: var(--space-5);
-}
-.explore section { border-top: 1px solid var(--rule-strong); padding-top: var(--space-3); }
-.explore h3 { font-size: var(--text-base); margin: 0 0 var(--space-2); }
-.explore p { font-size: var(--text-sm); color: var(--text-muted); margin-bottom: var(--space-3); }
-.explore ul { list-style: none; padding: 0; margin: 0; font-size: var(--text-sm); }
-.explore li + li { margin-top: var(--space-1); }
-.provenance {
-  margin: var(--space-8) 0 0; padding-top: var(--space-4); border-top: 1px solid var(--rule);
-  font-size: var(--text-serif); color: var(--text-muted); max-width: var(--wide);
-}
+.home h3 { font-size: var(--text-base); margin: var(--space-5) 0 var(--space-2); }
+.page-list { margin: 0; padding-left: 1.2em; max-width: var(--measure); }
+.page-list li { margin: 0 0 var(--space-1); }
 
 /* ------------------------------------------------------------------ small screens */
 @media (max-width: 40rem) {
@@ -604,7 +588,6 @@ nav.pager a[rel="next"] .pager-title::after { transform: rotate(-45deg); margin-
   .key-result { grid-template-columns: 1fr; gap: var(--space-2); }
   .compare-items { grid-template-columns: 1fr; gap: var(--space-4); }
   .compare-item + .compare-item { border-left: 0; padding-left: 0; border-top: 1px solid var(--rule); padding-top: var(--space-4); }
-  .findings > li { grid-template-columns: 1fr; gap: var(--space-2); }
   .facts { grid-template-columns: 1fr; }
   .facts dt { border-bottom: 0; padding-bottom: 0; padding-right: 0; }
   .decision-label { display: block; margin: var(--space-2) 0 0; padding-left: 0; border-left: 0; }

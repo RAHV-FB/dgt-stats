@@ -31,7 +31,8 @@
   "ml2_calibration": "Calibration on the test records: observed share against predicted probability",
   "ml3_importance_catalonia_crash_severity": "Catalonia crash-severity model: the variables it relies on most",
   "ml3_importance_barcelona_person_severity": "Barcelona person-severity model: the variables it relies on most",
-  "tr1_catalonia_transfer": "Catalonia crash-severity model on held-out places and years",
+  "tr0_calculator_transfer": "The calculator's model on held-out years and places",
+  "tr1_catalonia_transfer": "Original Catalonia model (retired) on held-out places and years",
   "tr2_dgt_transfer": "Harmonised Catalonia model on other sources, years and Spain",
   "tr3_province_auc": "Harmonised Catalonia model, province by province outside Catalonia",
   "sev1_predicted_observed": "Predicted and observed: the share of severe crashes that were fatal"

@@ -96,6 +96,21 @@ CAT_UNIT_FLAGS = {
     flag: flag.replace("involves_", "").replace("_", " ") for flag in catalonia.UNIT_FLAGS.values()
 }
 
+# "Encalç" is the Servei Català de Trànsit's term for a rear-end collision, not one of the Guàrdia
+# Urbana's own codes ("Abast", "Abast multiple"). In the 2025 records it marks 43 crashes, 26 of
+# them serious or fatal, against 2 of the 1,865 crashes under the force's own rear-end codes, with
+# the same mix of vehicles: the term is used when a crash is serious, so it records the outcome
+# rather than a kind of crash. The descriptive tables count it with rear-end collisions; the code
+# as recorded stays visible (dimension "crash-type code as recorded"). The source models, fitted
+# earlier, used the field as recorded.
+BCN_OUTCOME_DEPENDENT_TYPES = {"rear collision while catching up": "rear-end collision"}
+
+
+def _bcn_crash_type(accident_type: pd.Series) -> pd.Series:
+    """The crash type of the descriptive tables: as recorded, outcome-dependent terms merged."""
+    return accident_type.astype("string").replace(BCN_OUTCOME_DEPENDENT_TYPES)
+
+
 BCN_PERSON_DIMENSIONS = {
     "road user": "road_user",
     "age band": "age_band",
@@ -108,6 +123,9 @@ BCN_PERSON_DIMENSIONS = {
 }
 BCN_CRASH_DIMENSIONS = {
     "crash type": "accident_type",
+    # The code as the Guàrdia Urbana recorded it, so that a term read into another group (the
+    # outcome-dependent "Encalç", read as a rear-end collision) can still be counted.
+    "crash-type code as recorded": "Descripcio_tipus_accident",
     "district": "district",
     "shift": "shift",
     "weekday": "weekday",
@@ -232,6 +250,7 @@ def road_user(people: pd.DataFrame) -> pd.Series:
 def barcelona_person_severity() -> pd.DataFrame:
     people = barcelona.read_people()
     crashes = barcelona.read_crashes()[[barcelona.KEY, "accident_type", "shift", "district"]]
+    crashes = crashes.assign(accident_type=_bcn_crash_type(crashes.accident_type))
     labelled = (
         people[people.serious_or_fatal.notna()]
         .drop(columns=["shift", "district"], errors="ignore")
@@ -251,6 +270,7 @@ def barcelona_person_severity() -> pd.DataFrame:
 
 def barcelona_crash_severity() -> pd.DataFrame:
     crashes = barcelona.read_crashes().copy()
+    crashes["accident_type"] = _bcn_crash_type(crashes.accident_type)
     crashes["n_vehicles_band"] = pd.cut(
         crashes.n_vehicles, [0, 1, 2, 3, 100], labels=["1", "2", "3", "4 or more"]
     ).astype(str)
@@ -342,6 +362,7 @@ def cause_profiles() -> pd.DataFrame:
     crashes; it does not say the cause made them happen at night or be of a given type.
     """
     crashes = barcelona.read_crashes().copy()
+    crashes["accident_type"] = _bcn_crash_type(crashes.accident_type)
     crashes["weekend"] = crashes.weekday.isin(["Saturday", "Sunday"])
     crashes["night_shift"] = crashes["shift"].eq("night")
     crashes["single_vehicle"] = crashes.n_vehicles.eq(1)

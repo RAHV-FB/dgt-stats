@@ -104,6 +104,12 @@ RULES: tuple[Rule, ...] = (
     ),
     Rule(r"dgt/reports/", "DGT published report (PDF)", "document", "see file name"),
     Rule(
+        r"ine/ine_poblacion_edad_simple",
+        "INE Estadística Continua de Población, table 56934",
+        "residents of Spain per single year of age x sex x date",
+        "2002-2025, Spain",
+    ),
+    Rule(
         r"ine/ine_poblacion",
         "INE Estadística Continua de Población, table 56947",
         "residents per province x age group x sex x date",
@@ -151,6 +157,36 @@ RULES: tuple[Rule, ...] = (
     Rule(
         r"emef/(\d{4})/emef_\d{4}_dictionary",
         "EMEF dictionary of variables and value labels (ATM)",
+        "one variable or value label",
+        "{year}",
+    ),
+    Rule(
+        r"emef/(\d{4})/emef_\d{4}_executive_summary",
+        "EMEF executive summary (ATM, Idescat and Institut Metròpoli)",
+        "document",
+        "{year}, ATM Barcelona area",
+    ),
+    Rule(
+        r"idescat/idescat_census_(\d{4})",
+        "Idescat, Population and Housing Census release",
+        "document (published shares of the population in employment)",
+        "{year}, Catalonia",
+    ),
+    Rule(
+        r"crtm/edm(\d{4})/edm\d{4}_individuos",
+        "CRTM Encuesta Domiciliaria de Movilidad, public microdata (extract)",
+        "one respondent",
+        "{year}, Comunidad de Madrid residents (Monday to Thursday)",
+    ),
+    Rule(
+        r"crtm/edm(\d{4})/edm\d{4}_viajes",
+        "CRTM Encuesta Domiciliaria de Movilidad, public microdata (extract)",
+        "one trip with car driver as main mode",
+        "{year}, Comunidad de Madrid residents (Monday to Thursday)",
+    ),
+    Rule(
+        r"crtm/edm(\d{4})/edm\d{4}_codebook",
+        "CRTM Encuesta Domiciliaria de Movilidad, codebook",
         "one variable or value label",
         "{year}",
     ),

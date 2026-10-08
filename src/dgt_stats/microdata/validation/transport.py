@@ -810,6 +810,170 @@ def leave_one_district_out(task: modelling.TaskResult) -> list[dict]:
     return rows
 
 
+# ----------------------------------------------------------------------------- calculator
+CALCULATOR = "calculator"
+
+
+def calculator_tests() -> pd.DataFrame:
+    """The published calculator's model (:mod:`dgt_stats.severity_model`) on crashes it was not
+    fitted on, with the same rule as every other test here.
+
+    The specification, the crashes (every road a reader can choose; the road-owner artefact
+    roads are left out) and the penalty are the calculator's own. Each held-out test sits beside
+    the same specification fitted and cross-validated inside the test population (5 folds), and
+    beside the table of fatal shares by road and crash type fitted on the same training crashes.
+    A province left out has no intercept of its own to learn, so those tests use the
+    specification without province intercepts; the other tests use the published one. No test
+    uses another source: no other file records the calculator's inputs (DGT's records lack the
+    road's owning network and the posted limit, and their road-type and junction codings
+    disagree with the Catalan file's on the same crashes).
+    """
+    from dgt_stats import severity_model as sev
+
+    frame, years, y = sev.load()
+    scenarios = sev.scenarios_from_records(frame)
+    c = sev.chosen_penalty()
+    designs = {
+        True: (sev.design_columns(), None),
+        False: (sev.design_columns(provinces=False), None),
+    }
+    designs = {
+        key: (columns, sev.design_matrix(scenarios, columns))
+        for key, (columns, _) in designs.items()
+    }
+    city = (frame.municipality == "Barcelona").to_numpy()
+    first, last = int(years.min()), int(years.max())
+    rolling = sev.ROLLING_TEST_YEARS
+
+    def fitted(train: np.ndarray, test: np.ndarray, provinces: bool) -> np.ndarray:
+        columns, x = designs[provinces]
+        model = sev.fit_logistic(x[train], y[train], c, columns)
+        return sev.expit(x[test] @ model.coef)
+
+    def cross_validated(domain: np.ndarray, provinces: bool) -> np.ndarray:
+        index = np.flatnonzero(domain)
+        folds = StratifiedKFold(modelling.N_FOLDS, shuffle=True, random_state=modelling.SEED)
+        out = np.zeros(len(index))
+        for a, b in folds.split(index, y[index]):
+            train = np.zeros(len(y), dtype=bool)
+            test = np.zeros(len(y), dtype=bool)
+            train[index[a]], test[index[b]] = True, True
+            out[b] = fitted(train, test, provinces)
+        return out
+
+    rows = []
+
+    def row(experiment, kind, train_desc, test_desc, train, test, p, table, reference=None):
+        yt = y[test]
+        low, high = wilson(np.array([yt.sum()]), np.array([len(yt)]))
+        out = {
+            "experiment": experiment,
+            "evidence_level": kind,
+            "model": CALCULATOR,
+            "feature_set": "calculator inputs",
+            "estimator": "logistic",
+            "train_domain": train_desc,
+            "test_domain": test_desc,
+            "train_n": int(train.sum()) if train is not None else math.nan,
+            "train_positives": int(y[train].sum()) if train is not None else math.nan,
+            "test_n": int(test.sum()),
+            "test_positives": int(yt.sum()),
+            "test_prevalence": float(yt.mean()),
+            "mean_predicted": float(p.mean()),
+            "observed_low": float(low[0]),
+            "observed_high": float(high[0]),
+            "status": "reported",
+            "roc_auc": float(roc_auc_score(yt, p)),
+            **modelling.bootstrap_ci(yt, p, None, n=N_BOOT_TRANSPORT),
+            **modelling.calibration_fit(yt, p),
+            "table_roc_auc": float(roc_auc_score(yt, table)) if table is not None else math.nan,
+            "in_domain_cv_estimator": "logistic" if reference is not None else None,
+            "in_domain_cv_roc_auc": float(roc_auc_score(yt, reference))
+            if reference is not None
+            else math.nan,
+        }
+        rows.append(out)
+
+    everything = np.ones(len(y), dtype=bool)
+    log.info("calculator: random cross-validation")
+    row(
+        f"random 5-fold cross-validation {first}-{last}",
+        "1 internal",
+        f"four fifths of {first}-{last}",
+        "one fifth",
+        None,
+        everything,
+        cross_validated(everything, True),
+        None,
+    )
+    log.info("calculator: rolling origin")
+    tested = np.isin(years, rolling)
+    p_rolling, t_rolling = np.zeros(len(y)), np.zeros(len(y))
+    for year in rolling:
+        train, test = years < year, years == year
+        p_rolling[test] = fitted(train, test, True)
+        t_rolling[test] = sev._table(scenarios[train], y[train], scenarios[test])
+    row(
+        f"rolling origin: each year {rolling[0]}-{rolling[-1]} from the years before it",
+        "2 temporal",
+        f"{first} to the year before each test year",
+        f"{rolling[0]}-{rolling[-1]}",
+        None,
+        tested,
+        p_rolling[tested],
+        t_rolling[tested],
+    )
+
+    def held_out(experiment, kind, train_desc, test_desc, train, test, provinces):
+        log.info("calculator: %s", experiment)
+        row(
+            experiment,
+            kind,
+            train_desc,
+            test_desc,
+            train,
+            test,
+            fitted(train, test, provinces),
+            sev._table(scenarios[train], y[train], scenarios[test]),
+            cross_validated(test, provinces),
+        )
+
+    held_out(
+        f"temporal holdout: train {first}-{last - 1}, test {last}",
+        "2 temporal",
+        f"{first}-{last - 1}",
+        str(last),
+        years < last,
+        years == last,
+        True,
+    )
+    for name in sorted(frame.demarcation.astype(str).unique()):
+        test = (frame.demarcation.astype(str) == name).to_numpy()
+        held_out(
+            f"leave out {name} demarcation",
+            "3 geographic",
+            "the other three demarcations",
+            f"{name} demarcation",
+            ~test,
+            test,
+            False,
+        )
+    held_out(
+        "rest of Catalonia -> Barcelona municipality",
+        "3 geographic",
+        REST,
+        BARCELONA,
+        ~city,
+        city,
+        True,
+    )
+    out = pd.DataFrame(rows)
+    out["in_domain_train_n"] = (out.test_n * (modelling.N_FOLDS - 1)) // modelling.N_FOLDS
+    out.loc[out.in_domain_cv_roc_auc.isna(), "in_domain_train_n"] = np.nan
+    out["transfer_gap"] = out.roc_auc - out.in_domain_cv_roc_auc
+    return out
+
+
 # ----------------------------------------------------------------------------- driver
 def run(results: dict[str, modelling.TaskResult]) -> dict[str, pd.DataFrame]:
     cat_task = results["catalonia_crash_severity"]

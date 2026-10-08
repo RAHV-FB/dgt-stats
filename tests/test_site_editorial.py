@@ -72,34 +72,26 @@ def _main(text: str) -> str:
 def test_navigation_follows_the_argument(built: dict[str, str]) -> None:
     assert [group for group, _ in site.NAV_GROUPS] == [
         "Overview",
-        "Spain",
-        "Supporting analyses",
-        "Regional data",
-        "Models",
-        "Methods",
+        "Over time",
+        "Drivers, vehicles and factors",
+        "Crash severity",
+        "Data and methods",
     ]
     groups = dict(site.NAV_GROUPS)
-    assert [slug for slug, _ in groups["Models"]] == ["severity-models", "validation"]
-    assert [slug for slug, _ in groups["Regional data"]] == ["catalonia", "barcelona"]
-    assert [slug for slug, _ in groups["Methods"]] == ["sources", "data"]
-    assert dict(groups["Methods"])["sources"] == "Data sources and scope"
-    # The supporting analyses are a section of their own, straight after the Spain pages.
+    assert [slug for slug, _ in groups["Crash severity"]][-2:] == ["severity-models", "validation"]
+    assert [slug for slug, _ in groups["Crash severity"]][1:3] == ["catalonia", "barcelona"]
+    assert [slug for slug, _ in groups["Data and methods"]] == ["sources", "data"]
+    assert dict(groups["Data and methods"])["sources"] == "Data sources and scope"
     nav = re.search(r'<nav aria-label="Sections">(.*?)</nav>', built["speed"], re.S).group(1)
     links = re.findall(r'href="([a-z-]+)\.html"', nav)
     assert links == list(components.READING_ORDER)
-    supporting = nav[
-        nav.find('id="menu-supporting-analyses"') : nav.find('id="menu-regional-data"')
-    ]
-    assert [slug for slug, _ in groups["Supporting analyses"]] == re.findall(
-        r'href="([a-z-]+)\.html"', supporting
-    )
-    # Each page names its section above the title and links to its neighbours in reading order.
-    assert '<p class="eyebrow">Spain</p>' in built["speed"]
+    # Each page names its group above the title and links to its neighbours in reading order.
+    assert '<p class="eyebrow">Drivers, vehicles and factors</p>' in built["speed"]
     assert 'href="vehicles.html" rel="prev"' in built["speed"]
     assert 'href="factors.html" rel="next"' in built["speed"]
-    assert '<p class="eyebrow">Spain · supporting analysis</p>' in built["policy"]
+    assert '<p class="eyebrow">Over time</p>' in built["policy"]
     assert '<p class="eyebrow">Withdrawn analysis</p>' in built["forecast"]
-    assert '<p class="eyebrow">Models</p>' in built["validation"]
+    assert '<p class="eyebrow">Crash severity</p>' in built["validation"]
     assert '<p class="eyebrow">' not in built["index"]
 
 
@@ -212,7 +204,7 @@ def test_the_front_page_is_a_research_overview(built: dict[str, str]) -> None:
     # The modelling is described in plain words, with the model that lost to its table named as
     # such, and the supporting association analysis is not presented as a model.
     visible = _visible(built["index"])
-    assert "cannot say whether a crash will happen" in visible
+    assert "tested only within Catalonia" in visible
     assert "Association analysis of DGT crash records" not in visible
 
 

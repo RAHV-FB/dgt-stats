@@ -146,7 +146,10 @@ def run_calculator() -> None:
     }
     scenarios = severity_model.scenarios_from_records(frame)
     excluded = len(severity_model.load_all()) - len(frame)
-    exported = severity_model.export(fitted, covariance, scenarios, y_all, evaluation, excluded)
+    years = (int(frame.year.min()), int(frame.year.max()))
+    exported = severity_model.export(
+        fitted, covariance, scenarios, y_all, evaluation, excluded, years
+    )
     MODELS_DIR.mkdir(parents=True, exist_ok=True)
     MODEL_PATH.write_text(json.dumps(exported, ensure_ascii=False, separators=(",", ":")) + "\n")
     log.info("model: %s (%.0f kB)", MODEL_PATH, MODEL_PATH.stat().st_size / 1024)

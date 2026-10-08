@@ -41,7 +41,7 @@ Divergence of each variable's mix (Jensen-Shannon, 0 = identical), larger of the
 | hour_band | 0.004 | 0.009 | 0.001 |
 | junction | 0.034 | 0.015 | 0.006 |
 | lighting | 0.014 | 0.026 | 0.006 |
-| road_class | 0.208 | 0.204 | 0.063 |
+| road_class | 0.195 | 0.231 | 0.010 |
 | surface | 0.023 | 0.004 | 0.028 |
 | vehicles | 0.032 | 0.039 | 0.004 |
 | weather | 0.046 | 0.002 | 0.043 |
@@ -60,18 +60,20 @@ Largest differences among crashes with a death or serious injury:
 | Barcelona city vs rest of Catalonia | zone | interurban | 9.2% | 48.7% | -39.6% |
 | Barcelona city vs rest of Catalonia | zone | urban | 90.8% | 51.3% | 39.6% |
 | Barcelona city vs rest of Catalonia | alignment_recorded | recorded | 1.3% | 40.4% | -39.2% |
+| Barcelona city vs rest of Catalonia | road_class | conventional | 1.1% | 40.0% | -38.9% |
 | Barcelona city vs rest of Catalonia | road_class | urban_street | 78.1% | 39.3% | 38.8% |
-| Barcelona city vs Spain outside Catalonia | road_class | conventional | 0.2% | 34.0% | -33.8% |
+| Barcelona city vs Spain outside Catalonia | road_class | conventional | 1.1% | 36.1% | -35.0% |
 | Barcelona city vs Spain outside Catalonia | road_class | urban_street | 78.1% | 45.9% | 32.2% |
-| Barcelona city vs rest of Catalonia | road_class | dual_carriageway | 5.4% | 30.4% | -25.0% |
-| Catalonia vs Spain outside Catalonia | road_class | conventional | 14.1% | 34.0% | -20.0% |
-| Catalonia vs Spain outside Catalonia | road_class | dual_carriageway | 27.2% | 10.7% | 16.5% |
 | Catalonia vs Spain outside Catalonia | alignment_recorded | recorded | 35.4% | 51.1% | -15.7% |
 | Catalonia vs Spain outside Catalonia | alignment_recorded | unknown | 14.0% | 0.4% | 13.6% |
 | Catalonia vs Spain outside Catalonia | crash_type | run-off-road | 13.4% | 25.8% | -12.4% |
 | Catalonia vs Spain outside Catalonia | surface | dry | 96.0% | 85.5% | 10.5% |
+| Catalonia vs Spain outside Catalonia | junction | junction | 40.8% | 31.9% | 8.9% |
+| Catalonia vs Spain outside Catalonia | junction | section | 59.2% | 68.1% | -8.9% |
 
 DGT's 'alignment unknown' code covers 14.0% of these crashes in Catalonia and 0.4% elsewhere. 'Unknown' describes the record, not the road; the data do not show whether the roads differ. Differences in how often a field is left unrecorded are measured in [`DGT_MICRODATA_AUDIT.md`](DGT_MICRODATA_AUDIT.md).
+
+Road type groups every conventional road (codes 4-6) together. DGT's records for the four Catalan provinces code almost every conventional-road crash as 5 (dual carriageway) up to 2020 and as 6 (single carriageway) from 2021, while outside Catalonia code 5 keeps a small, steady share (`gen_coding_by_region`); with 5 read as a dual carriageway, that recoding would show as a difference between the populations.
 
 Residents (2025, INE):
 
@@ -96,44 +98,44 @@ Severe crashes per resident, 2024 (DGT counts, INE residents): across the 52 pro
 
 | experiment | estimator | train_n | test_n | test_positives | test_prevalence | roc_auc | roc_auc_low | roc_auc_high | in_domain_cv_roc_auc | in_domain_train_n | transfer_gap | calibration_slope | status |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| temporal holdout (train 2010-2020, choose on 2021-2022, test 2023) | logistic | 22,746.00 | 1,732 | 209 | 12.1% | 0.769 | nan | nan | 0.703 | 1,385.00 | 0.066 | nan | reported |
-| temporal holdout (train 2010-2020, choose on 2021-2022, test 2023) | boosted_trees | 22,746.00 | 1,732 | 209 | 12.1% | 0.793 | nan | nan | 0.703 | 1,385.00 | 0.090 | nan | reported |
-| rest of Catalonia -> Barcelona municipality | logistic | 21,299.00 | 3,179 | 335 | 10.5% | 0.624 | 0.591 | 0.655 | 0.656 | 2,543.00 | -0.033 | 0.596 | reported |
-| rest of Catalonia -> Barcelona municipality | boosted_trees | 21,299.00 | 3,179 | 335 | 10.5% | 0.642 | 0.609 | 0.677 | 0.656 | 2,543.00 | -0.015 | 0.435 | reported |
-| Barcelona municipality -> rest of Catalonia | logistic | 3,179.00 | 21,299 | 2,758 | 12.9% | 0.577 | 0.566 | 0.590 | 0.764 | 17,039.00 | -0.186 | 0.271 | reported |
-| Barcelona municipality -> rest of Catalonia | boosted_trees | 3,179.00 | 21,299 | 2,758 | 12.9% | 0.581 | 0.569 | 0.592 | 0.764 | 17,039.00 | -0.183 | 0.181 | reported |
-| leave out Barcelona demarcation | logistic | 9,435.00 | 15,043 | 1,554 | 10.3% | 0.685 | 0.670 | 0.699 | 0.724 | 12,034.00 | -0.038 | 0.685 | reported |
-| leave out Barcelona demarcation | boosted_trees | 9,435.00 | 15,043 | 1,554 | 10.3% | 0.689 | 0.676 | 0.703 | 0.724 | 12,034.00 | -0.034 | 0.493 | reported |
-| leave out Girona demarcation | logistic | 21,025.00 | 3,453 | 561 | 16.2% | 0.724 | 0.700 | 0.745 | 0.688 | 2,762.00 | 0.035 | 0.802 | reported |
-| leave out Girona demarcation | boosted_trees | 21,025.00 | 3,453 | 561 | 16.2% | 0.737 | 0.714 | 0.756 | 0.688 | 2,762.00 | 0.049 | 0.718 | reported |
-| leave out Lleida demarcation | logistic | 21,885.00 | 2,593 | 431 | 16.6% | 0.715 | 0.686 | 0.739 | 0.690 | 2,074.00 | 0.024 | 0.888 | reported |
-| leave out Lleida demarcation | boosted_trees | 21,885.00 | 2,593 | 431 | 16.6% | 0.731 | 0.705 | 0.754 | 0.690 | 2,074.00 | 0.040 | 0.791 | reported |
-| leave out Tarragona demarcation | logistic | 21,089.00 | 3,389 | 547 | 16.1% | 0.784 | 0.764 | 0.804 | 0.753 | 2,711.00 | 0.031 | 1.174 | reported |
-| leave out Tarragona demarcation | boosted_trees | 21,089.00 | 3,389 | 547 | 16.1% | 0.788 | 0.767 | 0.808 | 0.753 | 2,711.00 | 0.034 | 0.970 | reported |
-| rest of Catalonia to 2019 -> Barcelona municipality after 2019 | logistic | 16,067.00 | 740 | 70 | 9.5% | 0.658 | 0.589 | 0.719 | 0.486 | 592.00 | 0.172 | 0.674 | reported |
-| rest of Catalonia to 2019 -> Barcelona municipality after 2019 | boosted_trees | 16,067.00 | 740 | 70 | 9.5% | 0.669 | 0.598 | 0.736 | 0.486 | 592.00 | 0.183 | 0.392 | reported |
-| temporal holdout (train 2010-2020, choose on 2021-2022, test 2023) | logistic | 22,746.00 | 1,732 | 209 | 12.1% | 0.705 | nan | nan | 0.670 | 1,385.00 | 0.034 | nan | reported |
-| temporal holdout (train 2010-2020, choose on 2021-2022, test 2023) | boosted_trees | 22,746.00 | 1,732 | 209 | 12.1% | 0.702 | nan | nan | 0.670 | 1,385.00 | 0.032 | nan | reported |
-| temporal holdout (train 2010-2020, choose on 2021-2022, test 2023) | logistic | 22,746.00 | 1,732 | 209 | 12.1% | 0.679 | nan | nan | 0.620 | 1,385.00 | 0.059 | nan | reported |
-| temporal holdout (train 2010-2020, choose on 2021-2022, test 2023) | boosted_trees | 22,746.00 | 1,732 | 209 | 12.1% | 0.681 | nan | nan | 0.620 | 1,385.00 | 0.061 | nan | reported |
-| leave out Barcelona demarcation (DGT-common features) | logistic | 9,435.00 | 15,043 | 1,554 | 10.3% | 0.653 | 0.639 | 0.668 | 0.668 | 12,034.00 | -0.015 | 0.769 | reported |
-| leave out Girona demarcation (DGT-common features) | logistic | 21,025.00 | 3,453 | 561 | 16.2% | 0.688 | 0.663 | 0.712 | 0.682 | 2,762.00 | 0.006 | 0.987 | reported |
-| leave out Lleida demarcation (DGT-common features) | logistic | 21,885.00 | 2,593 | 431 | 16.6% | 0.670 | 0.642 | 0.695 | 0.677 | 2,074.00 | -0.007 | 1.025 | reported |
-| leave out Tarragona demarcation (DGT-common features) | logistic | 21,089.00 | 3,389 | 547 | 16.1% | 0.724 | 0.702 | 0.745 | 0.723 | 2,711.00 | 0.001 | 1.290 | reported |
-| same crashes, two sources: Catalan file | logistic | 11,517.00 | 12,961 | 1,627 | 12.6% | 0.697 | 0.683 | 0.711 | 0.701 | 10,368.00 | -0.004 | 1.094 | reported |
-| same crashes, two sources: DGT records | logistic | 11,517.00 | 12,957 | 1,627 | 12.6% | 0.696 | 0.683 | 0.710 | 0.700 | 10,365.00 | -0.004 | 1.097 | reported |
-| Catalonia, a year the Catalan file does not have (DGT records) | logistic | 24,478.00 | 1,855 | 176 | 9.5% | 0.711 | 0.671 | 0.754 | 0.693 | 1,484.00 | 0.017 | 1.062 | reported |
-| Catalonia -> Spain outside Catalonia | logistic | 24,478.00 | 67,971 | 10,457 | 15.4% | 0.708 | 0.702 | 0.712 | 0.712 | 54,376.00 | -0.004 | 1.101 | reported |
-| Catalonia early years -> Spain outside Catalonia later | logistic | 11,517.00 | 67,971 | 10,457 | 15.4% | 0.701 | 0.695 | 0.706 | 0.712 | 54,376.00 | -0.011 | 1.145 | reported |
-| Catalonia reweighted to the national zone x crash-type mix -> Spain outside Catalonia | logistic | 24,478.00 | 67,971 | 10,457 | 15.4% | 0.706 | 0.701 | 0.711 | 0.712 | 54,376.00 | -0.006 | 1.076 | reported |
-| rest of Catalonia -> Barcelona municipality (Barcelona-common features) | logistic | 21,299.00 | 3,179 | 335 | 10.5% | 0.555 | 0.523 | 0.585 | 0.612 | 2,543.00 | -0.057 | 0.483 | reported |
-| rest of Catalonia -> Barcelona municipality (Barcelona-common features) | boosted_trees | 21,299.00 | 3,179 | 335 | 10.5% | 0.569 | 0.534 | 0.601 | 0.612 | 2,543.00 | -0.043 | 0.405 | reported |
-| Catalonia -> Barcelona 2025 (Guàrdia Urbana, serious or fatal crashes) | logistic | 24,478.00 | 252 | 11 | 4.4% | nan | nan | nan | nan | nan | nan | nan | insufficient positives (11); no discrimination metric reported |
-| Catalonia -> Barcelona 2025 (Guàrdia Urbana, serious or fatal crashes) | boosted_trees | 24,478.00 | 252 | 11 | 4.4% | nan | nan | nan | nan | nan | nan | nan | insufficient positives (11); no discrimination metric reported |
-| leave one district out (pooled out-of-district scores) | boosted_trees | nan | 15,848 | 260 | 1.6% | 0.864 | 0.843 | 0.883 | 0.855 | 12,678.00 | 0.009 | 0.752 | reported |
-| grouped 5-fold cross-validation, same rows (reference) | boosted_trees | nan | 15,848 | 260 | 1.6% | 0.855 | 0.835 | 0.876 | nan | nan | nan | 0.700 | reported |
-| leave one district out (pooled out-of-district scores) | logistic | nan | 7,741 | 252 | 3.3% | 0.767 | 0.741 | 0.792 | 0.775 | 6,192.00 | -0.008 | 1.080 | reported |
-| grouped 5-fold cross-validation, same rows (reference) | logistic | nan | 7,741 | 252 | 3.3% | 0.775 | 0.751 | 0.798 | nan | nan | nan | 1.108 | reported |
+| temporal holdout (train 2010-2020, choose on 2021-2022, test 2023) | logistic | 22,746 | 1,732 | 209 | 12.1% | 0.769 |  |  | 0.703 | 1,385 | 0.066 |  | reported |
+| temporal holdout (train 2010-2020, choose on 2021-2022, test 2023) | boosted_trees | 22,746 | 1,732 | 209 | 12.1% | 0.793 |  |  | 0.703 | 1,385 | 0.090 |  | reported |
+| rest of Catalonia -> Barcelona municipality | logistic | 21,299 | 3,179 | 335 | 10.5% | 0.624 | 0.591 | 0.655 | 0.656 | 2,543 | -0.033 | 0.596 | reported |
+| rest of Catalonia -> Barcelona municipality | boosted_trees | 21,299 | 3,179 | 335 | 10.5% | 0.642 | 0.609 | 0.677 | 0.656 | 2,543 | -0.015 | 0.435 | reported |
+| Barcelona municipality -> rest of Catalonia | logistic | 3,179 | 21,299 | 2,758 | 12.9% | 0.577 | 0.566 | 0.590 | 0.764 | 17,039 | -0.186 | 0.271 | reported |
+| Barcelona municipality -> rest of Catalonia | boosted_trees | 3,179 | 21,299 | 2,758 | 12.9% | 0.581 | 0.569 | 0.592 | 0.764 | 17,039 | -0.183 | 0.181 | reported |
+| leave out Barcelona demarcation | logistic | 9,435 | 15,043 | 1,554 | 10.3% | 0.685 | 0.670 | 0.699 | 0.724 | 12,034 | -0.038 | 0.685 | reported |
+| leave out Barcelona demarcation | boosted_trees | 9,435 | 15,043 | 1,554 | 10.3% | 0.689 | 0.676 | 0.703 | 0.724 | 12,034 | -0.034 | 0.493 | reported |
+| leave out Girona demarcation | logistic | 21,025 | 3,453 | 561 | 16.2% | 0.724 | 0.700 | 0.745 | 0.688 | 2,762 | 0.035 | 0.802 | reported |
+| leave out Girona demarcation | boosted_trees | 21,025 | 3,453 | 561 | 16.2% | 0.737 | 0.714 | 0.756 | 0.688 | 2,762 | 0.049 | 0.718 | reported |
+| leave out Lleida demarcation | logistic | 21,885 | 2,593 | 431 | 16.6% | 0.715 | 0.686 | 0.739 | 0.690 | 2,074 | 0.024 | 0.888 | reported |
+| leave out Lleida demarcation | boosted_trees | 21,885 | 2,593 | 431 | 16.6% | 0.731 | 0.705 | 0.754 | 0.690 | 2,074 | 0.040 | 0.791 | reported |
+| leave out Tarragona demarcation | logistic | 21,089 | 3,389 | 547 | 16.1% | 0.784 | 0.764 | 0.804 | 0.753 | 2,711 | 0.031 | 1.174 | reported |
+| leave out Tarragona demarcation | boosted_trees | 21,089 | 3,389 | 547 | 16.1% | 0.788 | 0.767 | 0.808 | 0.753 | 2,711 | 0.034 | 0.970 | reported |
+| rest of Catalonia to 2019 -> Barcelona municipality after 2019 | logistic | 16,067 | 740 | 70 | 9.5% | 0.658 | 0.589 | 0.719 | 0.486 | 592 | 0.172 | 0.674 | reported |
+| rest of Catalonia to 2019 -> Barcelona municipality after 2019 | boosted_trees | 16,067 | 740 | 70 | 9.5% | 0.669 | 0.598 | 0.736 | 0.486 | 592 | 0.183 | 0.392 | reported |
+| temporal holdout (train 2010-2020, choose on 2021-2022, test 2023) | logistic | 22,746 | 1,732 | 209 | 12.1% | 0.705 |  |  | 0.670 | 1,385 | 0.034 |  | reported |
+| temporal holdout (train 2010-2020, choose on 2021-2022, test 2023) | boosted_trees | 22,746 | 1,732 | 209 | 12.1% | 0.702 |  |  | 0.670 | 1,385 | 0.032 |  | reported |
+| temporal holdout (train 2010-2020, choose on 2021-2022, test 2023) | logistic | 22,746 | 1,732 | 209 | 12.1% | 0.679 |  |  | 0.620 | 1,385 | 0.059 |  | reported |
+| temporal holdout (train 2010-2020, choose on 2021-2022, test 2023) | boosted_trees | 22,746 | 1,732 | 209 | 12.1% | 0.681 |  |  | 0.620 | 1,385 | 0.061 |  | reported |
+| leave out Barcelona demarcation (DGT-common features) | logistic | 9,435 | 15,043 | 1,554 | 10.3% | 0.653 | 0.639 | 0.668 | 0.668 | 12,034 | -0.015 | 0.769 | reported |
+| leave out Girona demarcation (DGT-common features) | logistic | 21,025 | 3,453 | 561 | 16.2% | 0.688 | 0.663 | 0.712 | 0.682 | 2,762 | 0.006 | 0.987 | reported |
+| leave out Lleida demarcation (DGT-common features) | logistic | 21,885 | 2,593 | 431 | 16.6% | 0.670 | 0.642 | 0.695 | 0.677 | 2,074 | -0.007 | 1.025 | reported |
+| leave out Tarragona demarcation (DGT-common features) | logistic | 21,089 | 3,389 | 547 | 16.1% | 0.724 | 0.702 | 0.745 | 0.723 | 2,711 | 0.001 | 1.290 | reported |
+| same crashes, two sources: Catalan file | logistic | 11,517 | 12,961 | 1,627 | 12.6% | 0.697 | 0.683 | 0.711 | 0.701 | 10,368 | -0.004 | 1.094 | reported |
+| same crashes, two sources: DGT records | logistic | 11,517 | 12,957 | 1,627 | 12.6% | 0.696 | 0.683 | 0.710 | 0.700 | 10,365 | -0.004 | 1.097 | reported |
+| Catalonia, a year the Catalan file does not have (DGT records) | logistic | 24,478 | 1,855 | 176 | 9.5% | 0.711 | 0.671 | 0.754 | 0.693 | 1,484 | 0.017 | 1.062 | reported |
+| Catalonia -> Spain outside Catalonia | logistic | 24,478 | 67,971 | 10,457 | 15.4% | 0.708 | 0.702 | 0.712 | 0.712 | 54,376 | -0.004 | 1.101 | reported |
+| Catalonia early years -> Spain outside Catalonia later | logistic | 11,517 | 67,971 | 10,457 | 15.4% | 0.701 | 0.695 | 0.706 | 0.712 | 54,376 | -0.011 | 1.145 | reported |
+| Catalonia reweighted to the national zone x crash-type mix -> Spain outside Catalonia | logistic | 24,478 | 67,971 | 10,457 | 15.4% | 0.706 | 0.701 | 0.711 | 0.712 | 54,376 | -0.006 | 1.076 | reported |
+| rest of Catalonia -> Barcelona municipality (Barcelona-common features) | logistic | 21,299 | 3,179 | 335 | 10.5% | 0.555 | 0.523 | 0.585 | 0.612 | 2,543 | -0.057 | 0.483 | reported |
+| rest of Catalonia -> Barcelona municipality (Barcelona-common features) | boosted_trees | 21,299 | 3,179 | 335 | 10.5% | 0.569 | 0.534 | 0.601 | 0.612 | 2,543 | -0.043 | 0.405 | reported |
+| Catalonia -> Barcelona 2025 (Guàrdia Urbana, serious or fatal crashes) | logistic | 24,478 | 252 | 11 | 4.4% |  |  |  |  |  |  |  | insufficient positives (11); no discrimination metric reported |
+| Catalonia -> Barcelona 2025 (Guàrdia Urbana, serious or fatal crashes) | boosted_trees | 24,478 | 252 | 11 | 4.4% |  |  |  |  |  |  |  | insufficient positives (11); no discrimination metric reported |
+| leave one district out (pooled out-of-district scores) | boosted_trees |  | 15,848 | 260 | 1.6% | 0.864 | 0.843 | 0.883 | 0.855 | 12,678 | 0.009 | 0.752 | reported |
+| grouped 5-fold cross-validation, same rows (reference) | boosted_trees |  | 15,848 | 260 | 1.6% | 0.855 | 0.835 | 0.876 |  |  |  | 0.700 | reported |
+| leave one district out (pooled out-of-district scores) | logistic |  | 7,741 | 252 | 3.3% | 0.767 | 0.741 | 0.792 | 0.775 | 6,192 | -0.008 | 1.080 | reported |
+| grouped 5-fold cross-validation, same rows (reference) | logistic |  | 7,741 | 252 | 3.3% | 0.775 | 0.751 | 0.798 |  |  |  | 1.108 | reported |
 
 `in_domain_cv_roc_auc`: the same kind of model trained and cross-validated inside the
 test domain (on `in_domain_train_n` rows per fold): the target domain's native score.
@@ -141,6 +143,32 @@ test domain (on `in_domain_train_n` rows per fold): the target domain's native s
 A positive gap means the larger foreign training set outweighed the change of domain, so
 read it with the training sizes. A transferred score is never read without its native
 reference.
+
+The Catalan model in the table above (`catalonia_crash_severity`) is the project's
+original model, gradient-boosted trees whose features include the road's owner
+(`D_TITULARITAT_VIA`). That field was later found to record how a crash was documented
+(a blank owner is far commoner on fatal records), and the model was retired; its results
+are kept as a record. The published model is the calculator's
+(`dgt_stats.severity_model`).
+
+### The published calculator's model
+
+The calculator's specification and penalty, on every road a reader can choose (the
+road-owner artefact roads left out), each test beside the same specification fitted and
+cross-validated inside the test population and beside the table of fatal shares by road
+and crash type fitted on the same training crashes (`table_roc_auc`). A province left
+out is scored without province intercepts. No other source records its inputs.
+
+| experiment | train_n | test_n | test_positives | roc_auc | roc_auc_low | roc_auc_high | in_domain_cv_roc_auc | transfer_gap | table_roc_auc | mean_predicted | test_prevalence | calibration_slope |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| random 5-fold cross-validation 2010-2023 |  | 22,638 | 2,822 | 0.732 | 0.723 | 0.742 |  |  |  | 12.5% | 12.5% | 1.001 |
+| rolling origin: each year 2016-2023 from the years before it |  | 11,611 | 1,429 | 0.743 | 0.730 | 0.755 |  |  | 0.709 | 12.2% | 12.3% | 1.103 |
+| temporal holdout: train 2010-2022, test 2023 | 21,111 | 1,527 | 182 | 0.755 | 0.718 | 0.789 | 0.732 | 0.023 | 0.708 | 11.4% | 11.9% | 1.251 |
+| leave out Barcelona demarcation | 8,645 | 13,993 | 1,334 | 0.665 | 0.651 | 0.680 | 0.695 | -0.030 | 0.650 | 11.7% | 9.5% | 0.713 |
+| leave out Girona demarcation | 19,453 | 3,185 | 547 | 0.728 | 0.704 | 0.749 | 0.717 | 0.011 | 0.700 | 14.1% | 17.2% | 0.950 |
+| leave out Lleida demarcation | 20,290 | 2,348 | 413 | 0.703 | 0.672 | 0.728 | 0.701 | 0.002 | 0.681 | 16.3% | 17.6% | 0.974 |
+| leave out Tarragona demarcation | 19,526 | 3,112 | 528 | 0.774 | 0.755 | 0.794 | 0.771 | 0.004 | 0.746 | 13.9% | 17.0% | 1.255 |
+| rest of Catalonia -> Barcelona municipality | 19,540 | 3,098 | 317 | 0.646 | 0.618 | 0.675 | 0.677 | -0.031 | 0.617 | 5.9% | 10.2% | 0.938 |
 
 ### Why the Catalan model ranks Barcelona's crashes less well
 
@@ -184,25 +212,25 @@ transport cost):
 | full Catalan context features | logistic | intrinsic difference against urban crashes | Gu - C: same features, same training size, the rest of Catalonia's urban crashes against Barcelona | -0.003 | -0.041 | 0.030 |
 | full Catalan context features | logistic | transport cost | C - E: Barcelona trained inside it against trained on the rest of Catalonia (negative: the larger foreign training set more than makes up for the change of domain) | 0.045 | 0.014 | 0.077 |
 | full Catalan context features | logistic | urban-only training | Eu - E: transfer from the rest of Catalonia's urban crashes against from all of its crashes | 0.003 | -0.017 | 0.022 |
-| full Catalan context features | logistic | total drop | A - E: = training-size cost + intrinsic difference + transport cost | 0.126 | nan | nan |
+| full Catalan context features | logistic | total drop | A - E: = training-size cost + intrinsic difference + transport cost | 0.126 |  |  |
 | full Catalan context features | boosted_trees | training-size cost | A - G: the rest of Catalonia in-domain, full training folds against Barcelona-sized ones | 0.054 | 0.048 | 0.060 |
 | full Catalan context features | boosted_trees | intrinsic difference | G - C: same features, same training size, rest of Catalonia against Barcelona | 0.053 | 0.023 | 0.086 |
 | full Catalan context features | boosted_trees | intrinsic difference against urban crashes | Gu - C: same features, same training size, the rest of Catalonia's urban crashes against Barcelona | -0.039 | -0.077 | -0.003 |
 | full Catalan context features | boosted_trees | transport cost | C - E: Barcelona trained inside it against trained on the rest of Catalonia (negative: the larger foreign training set more than makes up for the change of domain) | 0.015 | -0.021 | 0.054 |
 | full Catalan context features | boosted_trees | urban-only training | Eu - E: transfer from the rest of Catalonia's urban crashes against from all of its crashes | -0.036 | -0.055 | -0.015 |
-| full Catalan context features | boosted_trees | total drop | A - E: = training-size cost + intrinsic difference + transport cost | 0.122 | nan | nan |
+| full Catalan context features | boosted_trees | total drop | A - E: = training-size cost + intrinsic difference + transport cost | 0.122 |  |  |
 | Barcelona-common features | logistic | training-size cost | B - H: the rest of Catalonia in-domain, full training folds against Barcelona-sized ones | 0.013 | 0.010 | 0.015 |
 | Barcelona-common features | logistic | intrinsic difference | H - D: same features, same training size, rest of Catalonia against Barcelona | 0.066 | 0.032 | 0.099 |
 | Barcelona-common features | logistic | intrinsic difference against urban crashes | Hu - D: same features, same training size, the rest of Catalonia's urban crashes against Barcelona | 0.001 | -0.036 | 0.040 |
 | Barcelona-common features | logistic | transport cost | D - F: Barcelona trained inside it against trained on the rest of Catalonia (negative: the larger foreign training set more than makes up for the change of domain) | 0.046 | 0.010 | 0.085 |
 | Barcelona-common features | logistic | urban-only training | Fu - F: transfer from the rest of Catalonia's urban crashes against from all of its crashes | 0.060 | 0.030 | 0.088 |
-| Barcelona-common features | logistic | total drop | B - F: = training-size cost + intrinsic difference + transport cost | 0.124 | nan | nan |
+| Barcelona-common features | logistic | total drop | B - F: = training-size cost + intrinsic difference + transport cost | 0.124 |  |  |
 | Barcelona-common features | boosted_trees | training-size cost | B - H: the rest of Catalonia in-domain, full training folds against Barcelona-sized ones | 0.042 | 0.036 | 0.047 |
 | Barcelona-common features | boosted_trees | intrinsic difference | H - D: same features, same training size, rest of Catalonia against Barcelona | 0.027 | -0.006 | 0.062 |
 | Barcelona-common features | boosted_trees | intrinsic difference against urban crashes | Hu - D: same features, same training size, the rest of Catalonia's urban crashes against Barcelona | -0.041 | -0.076 | -0.007 |
 | Barcelona-common features | boosted_trees | transport cost | D - F: Barcelona trained inside it against trained on the rest of Catalonia (negative: the larger foreign training set more than makes up for the change of domain) | 0.043 | -0.005 | 0.089 |
 | Barcelona-common features | boosted_trees | urban-only training | Fu - F: transfer from the rest of Catalonia's urban crashes against from all of its crashes | 0.031 | 0.007 | 0.055 |
-| Barcelona-common features | boosted_trees | total drop | B - F: = training-size cost + intrinsic difference + transport cost | 0.111 | nan | nan |
+| Barcelona-common features | boosted_trees | total drop | B - F: = training-size cost + intrinsic difference + transport cost | 0.111 |  |  |
 | full against Barcelona-common | boosted_trees | feature loss in rest of Catalonia | A - B: in-domain, same crashes, full Catalan features against the Barcelona-common ones | 0.084 | 0.074 | 0.093 |
 | full against Barcelona-common | boosted_trees | feature loss in Barcelona municipality | C - D: in-domain, same crashes, full Catalan features against the Barcelona-common ones | 0.045 | 0.011 | 0.079 |
 | full against Barcelona-common | logistic | feature loss in rest of Catalonia | A - B: in-domain, same crashes, full Catalan features against the Barcelona-common ones | 0.070 | 0.060 | 0.080 |
@@ -225,39 +253,39 @@ interval. The universal model is the pooled model on the Barcelona-common featur
 
 | target_domain | strategy | estimator | train_n | n | positives | roc_auc | roc_auc_low | roc_auc_high | gain_over_specific | gain_over_specific_low | gain_over_specific_high | calibration_slope |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Barcelona municipality | domain-specific: Barcelona municipality only | logistic | 2,543 | 3,179 | 335 | 0.669 | 0.638 | 0.701 | nan | nan | nan | 0.734 |
+| Barcelona municipality | domain-specific: Barcelona municipality only | logistic | 2,543 | 3,179 | 335 | 0.669 | 0.638 | 0.701 |  |  |  | 0.734 |
 | Barcelona municipality | other domain only: rest of Catalonia | logistic | 21,299 | 3,179 | 335 | 0.624 | 0.591 | 0.655 | -0.045 | -0.077 | -0.014 | 0.596 |
 | Barcelona municipality | pooled: both domains | logistic | 23,842 | 3,179 | 335 | 0.644 | 0.614 | 0.677 | -0.024 | -0.052 | 0.001 | 0.750 |
 | Barcelona municipality | pooled with a domain flag | logistic | 23,842 | 3,179 | 335 | 0.657 | 0.627 | 0.689 | -0.011 | -0.037 | 0.012 | 0.769 |
 | Barcelona municipality | pooled, Barcelona-common features (universal) | logistic | 23,842 | 3,179 | 335 | 0.562 | 0.530 | 0.593 | -0.106 | -0.151 | -0.071 | 0.557 |
-| Barcelona municipality | domain-specific: Barcelona municipality only | boosted_trees | 2,543 | 3,179 | 335 | 0.656 | 0.628 | 0.688 | nan | nan | nan | 0.286 |
+| Barcelona municipality | domain-specific: Barcelona municipality only | boosted_trees | 2,543 | 3,179 | 335 | 0.656 | 0.628 | 0.688 |  |  |  | 0.286 |
 | Barcelona municipality | other domain only: rest of Catalonia | boosted_trees | 21,299 | 3,179 | 335 | 0.642 | 0.609 | 0.677 | -0.015 | -0.054 | 0.021 | 0.435 |
 | Barcelona municipality | pooled: both domains | boosted_trees | 23,842 | 3,179 | 335 | 0.670 | 0.640 | 0.705 | 0.013 | -0.019 | 0.041 | 0.665 |
 | Barcelona municipality | pooled with a domain flag | boosted_trees | 23,842 | 3,179 | 335 | 0.668 | 0.635 | 0.702 | 0.011 | -0.017 | 0.038 | 0.639 |
 | Barcelona municipality | pooled, Barcelona-common features (universal) | boosted_trees | 23,842 | 3,179 | 335 | 0.604 | 0.573 | 0.632 | -0.052 | -0.093 | -0.015 | 0.556 |
-| rest of Catalonia | domain-specific: rest of Catalonia only | logistic | 17,039 | 21,299 | 2,758 | 0.749 | 0.740 | 0.759 | nan | nan | nan | 0.950 |
+| rest of Catalonia | domain-specific: rest of Catalonia only | logistic | 17,039 | 21,299 | 2,758 | 0.749 | 0.740 | 0.759 |  |  |  | 0.950 |
 | rest of Catalonia | other domain only: Barcelona municipality | logistic | 3,179 | 21,299 | 2,758 | 0.577 | 0.566 | 0.590 | -0.172 | -0.185 | -0.159 | 0.271 |
 | rest of Catalonia | pooled: both domains | logistic | 20,218 | 21,299 | 2,758 | 0.750 | 0.740 | 0.759 | 0.000 | -0.001 | 0.002 | 0.994 |
 | rest of Catalonia | pooled with a domain flag | logistic | 20,218 | 21,299 | 2,758 | 0.751 | 0.741 | 0.760 | 0.001 | 0.000 | 0.003 | 0.972 |
 | rest of Catalonia | pooled, Barcelona-common features (universal) | logistic | 20,218 | 21,299 | 2,758 | 0.680 | 0.669 | 0.691 | -0.070 | -0.079 | -0.060 | 1.024 |
-| rest of Catalonia | domain-specific: rest of Catalonia only | boosted_trees | 17,039 | 21,299 | 2,758 | 0.764 | 0.754 | 0.772 | nan | nan | nan | 0.808 |
+| rest of Catalonia | domain-specific: rest of Catalonia only | boosted_trees | 17,039 | 21,299 | 2,758 | 0.764 | 0.754 | 0.772 |  |  |  | 0.808 |
 | rest of Catalonia | other domain only: Barcelona municipality | boosted_trees | 3,179 | 21,299 | 2,758 | 0.581 | 0.569 | 0.592 | -0.183 | -0.196 | -0.170 | 0.181 |
 | rest of Catalonia | pooled: both domains | boosted_trees | 20,218 | 21,299 | 2,758 | 0.766 | 0.756 | 0.775 | 0.002 | -0.002 | 0.007 | 0.877 |
 | rest of Catalonia | pooled with a domain flag | boosted_trees | 20,218 | 21,299 | 2,758 | 0.770 | 0.761 | 0.779 | 0.006 | 0.003 | 0.011 | 0.879 |
 | rest of Catalonia | pooled, Barcelona-common features (universal) | boosted_trees | 20,218 | 21,299 | 2,758 | 0.679 | 0.668 | 0.690 | -0.085 | -0.095 | -0.075 | 0.902 |
-| urban crashes | domain-specific: urban crashes only | logistic | 10,761 | 13,452 | 981 | 0.687 | 0.671 | 0.706 | nan | nan | nan | 0.859 |
+| urban crashes | domain-specific: urban crashes only | logistic | 10,761 | 13,452 | 981 | 0.687 | 0.671 | 0.706 |  |  |  | 0.859 |
 | urban crashes | other domain only: interurban crashes | logistic | 11,026 | 13,452 | 981 | 0.536 | 0.516 | 0.556 | -0.152 | -0.175 | -0.129 | 0.163 |
 | urban crashes | pooled: both domains | logistic | 21,787 | 13,452 | 981 | 0.634 | 0.614 | 0.651 | -0.054 | -0.068 | -0.038 | 0.745 |
 | urban crashes | pooled with a domain flag | logistic | 21,787 | 13,452 | 981 | 0.633 | 0.614 | 0.651 | -0.054 | -0.069 | -0.038 | 0.745 |
-| urban crashes | domain-specific: urban crashes only | boosted_trees | 10,761 | 13,452 | 981 | 0.662 | 0.644 | 0.681 | nan | nan | nan | 0.492 |
+| urban crashes | domain-specific: urban crashes only | boosted_trees | 10,761 | 13,452 | 981 | 0.662 | 0.644 | 0.681 |  |  |  | 0.492 |
 | urban crashes | other domain only: interurban crashes | boosted_trees | 11,026 | 13,452 | 981 | 0.518 | 0.498 | 0.535 | -0.144 | -0.170 | -0.119 | 0.049 |
 | urban crashes | pooled: both domains | boosted_trees | 21,787 | 13,452 | 981 | 0.681 | 0.663 | 0.700 | 0.019 | 0.006 | 0.031 | 0.729 |
 | urban crashes | pooled with a domain flag | boosted_trees | 21,787 | 13,452 | 981 | 0.680 | 0.662 | 0.700 | 0.018 | 0.007 | 0.030 | 0.727 |
-| interurban crashes | domain-specific: interurban crashes only | logistic | 8,820 | 11,026 | 2,112 | 0.733 | 0.721 | 0.745 | nan | nan | nan | 0.942 |
+| interurban crashes | domain-specific: interurban crashes only | logistic | 8,820 | 11,026 | 2,112 | 0.733 | 0.721 | 0.745 |  |  |  | 0.942 |
 | interurban crashes | other domain only: urban crashes | logistic | 13,452 | 11,026 | 2,112 | 0.566 | 0.552 | 0.580 | -0.167 | -0.184 | -0.149 | 0.185 |
 | interurban crashes | pooled: both domains | logistic | 22,272 | 11,026 | 2,112 | 0.721 | 0.710 | 0.733 | -0.012 | -0.017 | -0.006 | 0.983 |
 | interurban crashes | pooled with a domain flag | logistic | 22,272 | 11,026 | 2,112 | 0.721 | 0.710 | 0.733 | -0.012 | -0.017 | -0.006 | 0.982 |
-| interurban crashes | domain-specific: interurban crashes only | boosted_trees | 8,820 | 11,026 | 2,112 | 0.733 | 0.722 | 0.744 | nan | nan | nan | 0.689 |
+| interurban crashes | domain-specific: interurban crashes only | boosted_trees | 8,820 | 11,026 | 2,112 | 0.733 | 0.722 | 0.744 |  |  |  | 0.689 |
 | interurban crashes | other domain only: urban crashes | boosted_trees | 13,452 | 11,026 | 2,112 | 0.564 | 0.551 | 0.576 | -0.169 | -0.185 | -0.153 | 0.135 |
 | interurban crashes | pooled: both domains | boosted_trees | 22,272 | 11,026 | 2,112 | 0.740 | 0.728 | 0.751 | 0.006 | 0.001 | 0.013 | 0.845 |
 | interurban crashes | pooled with a domain flag | boosted_trees | 22,272 | 11,026 | 2,112 | 0.740 | 0.729 | 0.752 | 0.007 | 0.001 | 0.013 | 0.846 |
@@ -305,17 +333,17 @@ On 2016-2023 the Catalan file holds 12,961 crashes (1,627 fatal) and the DGT mic
 | surface | defensible | 0.000 | True | True |
 | junction | defensible | 0.009 | False | False |
 | vehicles | defensible | 0.000 | True | True |
-| speed_limit | unusable | nan | False | False |
-| unit_types | unusable | nan | False | False |
-| geography | unusable | nan | False | False |
+| speed_limit | unusable |  | False | False |
+| unit_types | unusable |  | False | False |
+| geography | unusable |  | False | False |
 
 Barcelona against the rest of Catalonia in the Catalan file, largest divergences first:
 
 | feature | jsd | psi | largest_difference_level | share_a | share_b |
 |---|---|---|---|---|---|
 | D_CARACT_ENTORN | 0.451 | 3.526 | Sense Especificar | 98.4% | 29.2% |
-| D_TRACAT_ALTIMETRIC | 0.450 | 3.278 | nan | 97.5% | 27.2% |
-| D_TITULARITAT_VIA | 0.297 | 2.296 | nan | 97.5% | 44.2% |
+| D_TRACAT_ALTIMETRIC | 0.450 | 3.278 |  | 97.5% | 27.2% |
+| D_TITULARITAT_VIA | 0.297 | 2.296 |  | 97.5% | 44.2% |
 | D_TIPUS_VIA | 0.243 | 1.662 | Via urbana( inclou carrer i carrer residencial) | 92.5% | 44.5% |
 | D_BOIRA | 0.239 | 2.119 | No n'hi ha | 57.3% | 99.5% |
 | D_SUBZONA | 0.216 | 1.346 | Zona urbana | 92.4% | 43.8% |
@@ -345,6 +373,7 @@ to Spain without the stages between.
 |---|---|---|---|---|---|---|
 | barcelona_crash_severity | passed | passed | passed | not run | failed | supported up to stage 3 (another district of the same city) |
 | barcelona_person_severity | passed | passed | passed | not run | failed | supported up to stage 3 (another district of the same city) |
+| calculator | passed | passed | passed | not run | failed | supported up to stage 3 (another region inside the training source) |
 | catalonia_common_bcn | passed | passed | passed | not testable | failed | supported up to stage 3 (another region inside the training source) |
 | catalonia_common_dgt | passed | passed | passed | passed | failed | keeps its ranking on independently recorded Spanish crashes, but the training population differs from Spain's: national use not established |
 | catalonia_crash_severity | passed | passed | passed | not run | failed | supported up to stage 3 (another region inside the training source) |
@@ -357,29 +386,34 @@ Evidence for every stage:
 |---|---|---|---|
 | catalonia_crash_severity | 1 | passed | 5-fold CV, random rows (stratified): ROC-AUC 0.758 (folds 0.743-0.767) |
 | catalonia_crash_severity | 2 | passed | train 2010-2020, choose on 2021-2022, test 2023: ROC-AUC 0.790 (0.758-0.824); n=1,732, positives=209 |
-| catalonia_crash_severity | 3 | passed | rest of Catalonia -> Barcelona municipality: ROC-AUC 0.642 (0.609-0.677), in-domain 0.656, gap -0.015; leave out Barcelona demarcation: ROC-AUC 0.689 (0.676-0.703), in-domain 0.724, gap -0.034; leave out Girona demarcation: ROC-AUC 0.737 (0.714-0.756), in-domain 0.688, gap +0.049; leave out Lleida demarcation: ROC-AUC 0.731 (0.705-0.754), in-domain 0.690, gap +0.040; leave out Tarragona demarcation: ROC-AUC 0.788 (0.767-0.808), in-domain 0.753, gap +0.034 |
+| catalonia_crash_severity | 3 | passed | rest of Catalonia -> Barcelona municipality: ROC-AUC 0.642 (0.609-0.677), in-domain 0.656, gap -0.015; leave out Barcelona demarcation: ROC-AUC 0.689 (0.676-0.703), in-domain 0.724, gap -0.034; leave out Girona demarcation: ROC-AUC 0.737 (0.714-0.756), in-domain 0.688, gap +0.049; leave out Lleida demarcation: ROC-AUC 0.731 (0.705-0.754), in-domain 0.690, gap +0.040; leave out Tarragona demarcation: ROC-AUC 0.788 (0.767-0.808), in-domain 0.753, gap +0.034; rest of Catalonia to 2019 -> Barcelona municipality after 2019: ROC-AUC 0.669 (0.598-0.736), in-domain 0.486, gap +0.183 |
 | catalonia_crash_severity | 4 | not run | no other source records the full Catalan feature set |
-| catalonia_crash_severity | 5 | failed | Catalonia vs Spain outside Catalonia (crashes with a death or serious injury (24 h)): differs on alignment_recorded (JSD 0.070), road_class (JSD 0.063), crash_type (JSD 0.033), weather (JSD 0.032), surface (JSD 0.028); fatal share of severe crashes 12.2% against 15.4% |
+| catalonia_crash_severity | 5 | failed | Catalonia vs Spain outside Catalonia (crashes with a death or serious injury (24 h)): differs on alignment_recorded (JSD 0.070), crash_type (JSD 0.033), weather (JSD 0.032), surface (JSD 0.028); fatal share of severe crashes 12.2% against 15.4% |
+| calculator | 1 | passed | random 5-fold cross-validation 2010-2023: ROC-AUC 0.732 (0.723-0.742) |
+| calculator | 2 | passed | rolling origin: each year 2016-2023 from the years before it: ROC-AUC 0.743 (0.730-0.755); temporal holdout: train 2010-2022, test 2023: ROC-AUC 0.755 (0.718-0.789), in-domain 0.732, gap +0.023 |
+| calculator | 3 | passed | leave out Barcelona demarcation: ROC-AUC 0.665 (0.651-0.680), in-domain 0.695, gap -0.030; leave out Girona demarcation: ROC-AUC 0.728 (0.704-0.749), in-domain 0.717, gap +0.011; leave out Lleida demarcation: ROC-AUC 0.703 (0.672-0.728), in-domain 0.701, gap +0.002; leave out Tarragona demarcation: ROC-AUC 0.774 (0.755-0.794), in-domain 0.771, gap +0.004; rest of Catalonia -> Barcelona municipality: ROC-AUC 0.646 (0.618-0.675), in-domain 0.677, gap -0.031 |
+| calculator | 4 | not run | no other source records the calculator's inputs: DGT's records lack the road's owning network and the posted limit, and their road-type and junction codings disagree with the Catalan file's on the same crashes |
+| calculator | 5 | failed | Catalonia vs Spain outside Catalonia (crashes with a death or serious injury (24 h)): differs on alignment_recorded (JSD 0.070), crash_type (JSD 0.033), weather (JSD 0.032), surface (JSD 0.028); fatal share of severe crashes 12.2% against 15.4% |
 | catalonia_common_dgt | 1 | passed | 5-fold CV, random rows (stratified): ROC-AUC 0.692 (folds 0.683-0.696) |
 | catalonia_common_dgt | 2 | passed | train 2010-2020, choose on 2021-2022, test 2023: ROC-AUC 0.705 (0.664-0.742); n=1,732, positives=209 |
 | catalonia_common_dgt | 3 | passed | leave out Barcelona demarcation (DGT-common features): ROC-AUC 0.653 (0.639-0.668), in-domain 0.668, gap -0.015; leave out Girona demarcation (DGT-common features): ROC-AUC 0.688 (0.663-0.712), in-domain 0.682, gap +0.006; leave out Lleida demarcation (DGT-common features): ROC-AUC 0.670 (0.642-0.695), in-domain 0.677, gap -0.007; leave out Tarragona demarcation (DGT-common features): ROC-AUC 0.724 (0.702-0.745), in-domain 0.723, gap +0.001 |
 | catalonia_common_dgt | 4 | passed | Catalonia -> Spain outside Catalonia: ROC-AUC 0.708 (0.702-0.712), in-domain 0.712, gap -0.004; Catalonia early years -> Spain outside Catalonia later: ROC-AUC 0.701 (0.695-0.706), in-domain 0.712, gap -0.011 |
-| catalonia_common_dgt | 5 | failed | Catalonia vs Spain outside Catalonia (crashes with a death or serious injury (24 h)): differs on alignment_recorded (JSD 0.070), road_class (JSD 0.063), crash_type (JSD 0.033), weather (JSD 0.032), surface (JSD 0.028); fatal share of severe crashes 12.2% against 15.4% |
+| catalonia_common_dgt | 5 | failed | Catalonia vs Spain outside Catalonia (crashes with a death or serious injury (24 h)): differs on alignment_recorded (JSD 0.070), crash_type (JSD 0.033), weather (JSD 0.032), surface (JSD 0.028); fatal share of severe crashes 12.2% against 15.4% |
 | catalonia_common_bcn | 1 | passed | 5-fold CV, random rows (stratified): ROC-AUC 0.672 (folds 0.664-0.678) |
 | catalonia_common_bcn | 2 | passed | train 2010-2020, choose on 2021-2022, test 2023: ROC-AUC 0.681 (0.639-0.719); n=1,732, positives=209 |
 | catalonia_common_bcn | 3 | passed | rest of Catalonia -> Barcelona municipality (Barcelona-common features): ROC-AUC 0.569 (0.534-0.601), in-domain 0.612, gap -0.043 |
 | catalonia_common_bcn | 4 | not testable | Catalonia -> Barcelona 2025 (Guàrdia Urbana, serious or fatal crashes): 11 positives, too few for a discrimination test |
-| catalonia_common_bcn | 5 | failed | Catalonia vs Spain outside Catalonia (crashes with a death or serious injury (24 h)): differs on alignment_recorded (JSD 0.070), road_class (JSD 0.063), crash_type (JSD 0.033), weather (JSD 0.032), surface (JSD 0.028); fatal share of severe crashes 12.2% against 15.4% |
+| catalonia_common_bcn | 5 | failed | Catalonia vs Spain outside Catalonia (crashes with a death or serious injury (24 h)): differs on alignment_recorded (JSD 0.070), crash_type (JSD 0.033), weather (JSD 0.032), surface (JSD 0.028); fatal share of severe crashes 12.2% against 15.4% |
 | barcelona_person_severity | 1 | passed | 5-fold CV, grouped by crash: ROC-AUC 0.853 (folds 0.832-0.875) |
 | barcelona_person_severity | 2 | passed | train months 1-9 with 5-fold cross-validation grouped by crash; test months 10-12: ROC-AUC 0.843 (0.813-0.874); n=4,049, positives=58 |
 | barcelona_person_severity | 3 | passed | leave one district out (pooled out-of-district scores): ROC-AUC 0.864 (0.843-0.883), in-domain 0.855, gap +0.009 |
 | barcelona_person_severity | 4 | not run | no other person-level crash data in the repository (it would need person microdata from another recording source, such as DGT's victim register) |
-| barcelona_person_severity | 5 | failed | Barcelona city vs Spain outside Catalonia (injury crashes): differs on alignment_recorded (JSD 0.233), crash_type (JSD 0.207), road_class (JSD 0.131), zone (JSD 0.092), weather (JSD 0.046), vehicles (JSD 0.032), surface (JSD 0.023); fatal share of severe crashes 9.1% against 15.4% |
+| barcelona_person_severity | 5 | failed | Barcelona city vs Spain outside Catalonia (injury crashes): differs on alignment_recorded (JSD 0.233), crash_type (JSD 0.207), road_class (JSD 0.127), zone (JSD 0.092), weather (JSD 0.046), vehicles (JSD 0.032), surface (JSD 0.023); fatal share of severe crashes 9.1% against 15.4% |
 | barcelona_crash_severity | 1 | passed | 5-fold CV, random rows (stratified): ROC-AUC 0.778 (folds 0.743-0.838) |
 | barcelona_crash_severity | 2 | passed | train months 1-9 with 5-fold cross-validation grouped by crash; test months 10-12: ROC-AUC 0.737 (0.686-0.782); n=1,994, positives=58 |
 | barcelona_crash_severity | 3 | passed | leave one district out (pooled out-of-district scores): ROC-AUC 0.767 (0.741-0.792), in-domain 0.775, gap -0.008 |
 | barcelona_crash_severity | 4 | not run | the Catalan file holds only serious or fatal crashes, so it cannot test a model of serious-or-fatal against lower severity |
-| barcelona_crash_severity | 5 | failed | Barcelona city vs Spain outside Catalonia (injury crashes): differs on alignment_recorded (JSD 0.233), crash_type (JSD 0.207), road_class (JSD 0.131), zone (JSD 0.092), weather (JSD 0.046), vehicles (JSD 0.032), surface (JSD 0.023); fatal share of severe crashes 9.1% against 15.4% |
+| barcelona_crash_severity | 5 | failed | Barcelona city vs Spain outside Catalonia (injury crashes): differs on alignment_recorded (JSD 0.233), crash_type (JSD 0.207), road_class (JSD 0.127), zone (JSD 0.092), weather (JSD 0.046), vehicles (JSD 0.032), surface (JSD 0.023); fatal share of severe crashes 9.1% against 15.4% |
 
 ## Cross-source register
 
@@ -391,13 +425,16 @@ Every place two sources meet, with the key, definitions and what was validated:
 | Catalan file per resident | province x year, 2010-2023 | one-to-one province-years (56) | one crash; one INE population row | one province-year | - | INE table 56947, residents on 1 July, all ages, both sexes | crashes / residents x 100,000 | residents of the province (not exposure: no trips or kilometres) | none | same geography and year; a rate per resident, not a risk |
 | DGT severe crashes per resident, all provinces | province x year, 2016-2024 | one-to-one province-years | one DGT crash; one INE population row | one province-year | crashes with a death or serious injury within 24 h | INE residents on 1 July | crashes / residents x 100,000 | residents of the province where the crash happened (residents and crash-involved people are different populations) | rows without a province code | same source for every province |
 | Catalan model on DGT crashes (cross-source tests) | none: no record is matched; the model is applied to DGT rows | - | one crash | one crash | crashes with a death or serious injury within 24 h; target death within 24 h | Catalan file inclusion rule (24 h, validated) | ten harmonised variables (harmonise.DGT_FIELDS), each validated on the 2016-2023 crashes both sources hold | - | road class and junction (failed the overlap check), speed limit and unit types (absent or outcome counts in DGT) | validated field by field (ml_common_feature_validation.csv) |
-| Catalan model on Barcelona 2025 | none: no record is matched | - | one crash | one crash | - | Barcelona crashes with Numero_morts (24 h) or Numero_lesionats_greus (hospitalised over 24 h) > 0, both checked against the person table | eight harmonised variables (harmonise.BCN_FIELDS) | - | crashes with only minor injuries or none | inclusion rule consistent with the 24 h definitions; too few fatal crashes for a discrimination test |
+| Catalan model on Barcelona 2025 | none: no record is matched | - | one crash | one crash | - | Barcelona crashes with Numero_morts (deaths within 24 h) or Numero_lesionats_greus (hospitalised over 24 h, or died after 24 h) > 0, both checked against the person table | eight harmonised variables (harmonise.BCN_FIELDS) | - | crashes with only minor injuries or none | inclusion rule consistent with the 24 h definitions; too few fatal crashes for a discrimination test |
+| Car drivers involved per km by age, Spain (exposure_risk.national) | age group (16-29 survey residents against drivers aged 18-29; 30-44; 45-64; 65+), no record matched | four age groups | one driver involved (DGT table 4.2); one surveyed resident's working-day trips (EMEF); one INE resident aged x on 1 July; DGT's car-km total | one age group | car drivers involved in injury crashes in 2024, all of Spain, residents or not, injured or not; taxi and ride-hailing drivers left out | EMEF 2022-2024 working-day car-driver km per resident by age and sex (residents aged 16 and over of the province of Barcelona), applied to INE table 56934 (single ages, 1 July 2024) and scaled to DGT's 2024 car-km total less taxi and ride-hailing km; the Madrid survey of 2018 (Monday to Thursday) and the parts of the province as sensitivity profiles | drivers involved / estimated km by age; ratio to 45-64 | a working-day survey profile of residents of one region, transferred to Spain's population and to a full year's km | drivers aged under 18; drivers of unrecorded age allocated in proportion for absolute rates only | numerator counts every driver on a full year's roads, denominator a resident survey's working days: the ratios between ages, not the levels, are the result, with a sensitivity range across profiles |
+| Car drivers involved per km by age, Barcelona city working days (exposure_risk.barcelona) | age group x working day, no record matched | four age groups | one car driver in a Guàrdia Urbana person record (2025); one surveyed resident's working-day car trips inside the city (EMEF 2022-2024) | one age group | - | Guàrdia Urbana 2025: car drivers of crashes with at least one victim on the 248 working days of 2025 (people who refused medical care count as victims); EMEF: car-driver km inside Barcelona on a working day by residents aged 16 and over of the province, times the working days | drivers / km, three denominators for trips crossing the city boundary; ratio to 45-64 | km driven inside the city by residents of the province; drivers from elsewhere are in the numerator only | weekends and holidays; taxis; drivers of unrecorded age (left out of the rates) | matched in place and day type, not in year (survey 2022-2024, crashes 2025) or population (all drivers against resident km): read as a range of ratios between ages |
 
 ## What this does not establish
 
 - That Catalonia or Barcelona is representative of Spain: part A shows where they differ.
-- National validity of the full Catalan model, of either Barcelona model, or of any
-  person-level result: no other source in the repository carries those variables.
+- National validity of the calculator's model, of the original Catalan model, of either
+  Barcelona model, or of any person-level result: no other source in the repository
+  carries those variables.
 - Any causal effect: every transfer result is predictive.
 - Barcelona 2025 as an external benchmark for fatal against serious crashes: too few
   fatal crashes (see the transfer table).

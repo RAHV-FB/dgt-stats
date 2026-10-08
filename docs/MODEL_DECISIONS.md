@@ -9,6 +9,14 @@ how far its evidence reaches, and what it does not answer. Possible decisions: K
 Levels: 1 same source, 2 later time, 3 another region, 4 another recording source, 5
 Spain nationally ([`GENERALISABILITY.md`](GENERALISABILITY.md)).
 
+The decisions are those the rules gave the original models. An independent
+re-evaluation ([`research/ML_MODEL_REVIEW.md`](research/ML_MODEL_REVIEW.md)) then
+changed what the site does with three of them:
+
+- `catalonia_crash_severity`: retired: its strongest predictor, the road's owner, records how a crash was documented (a blank owner on a conventional road is far commoner on fatal records). The published Catalan model is the crash-severity calculator's (`severity_model.py`), tested in [`GENERALISABILITY.md`](GENERALISABILITY.md).
+- `barcelona_crash_severity`: removed; the site reports its table of shares by accident type.
+- `barcelona_person_severity`: kept for research only; the site shows no probability from it.
+
 | Model | Variant | Unit | Target | Source | Baseline | ML | Transfer evidence | Highest validated level | Usefulness | Decision |
 |---|---|---|---|---|---|---|---|---|---|---|
 | catalonia_crash_severity | context | one Catalan crash with a death or serious injury | fatal (a death) rather than serious | Servei Català de Trànsit, 2010-2023 | table of D SUBTIPUS ACCIDENT x D SUBZONA: ROC-AUC 0.695, PR-AUC 0.246 | boosted trees: ROC-AUC 0.790 (0.758-0.824), PR-AUC 0.415; n=1,732, positives=209 | rest of Catalonia -> Barcelona municipality: target-domain native 0.656, transferred 0.642, gap -0.015 (n=3,179, positives=335, calibration slope 0.44); Barcelona municipality -> rest of Catalonia: target-domain native 0.764, transferred 0.581, gap -0.183 (n=21,299, positives=2,758, calibration slope 0.18); leave out Barcelona demarcation: target-domain native 0.724, transferred 0.689, gap -0.034 (n=15,043, positives=1,554, calibration slope 0.49); leave out Girona demarcation: target-domain native 0.688, transferred 0.737, gap +0.049 (n=3,453, positives=561, calibration slope 0.72); leave out Lleida demarcation: target-domain native 0.690, transferred 0.731, gap +0.040 (n=2,593, positives=431, calibration slope 0.79); leave out Tarragona demarcation: target-domain native 0.753, transferred 0.788, gap +0.034 (n=3,389, positives=547, calibration slope 0.97); rest of Catalonia to 2019 -> Barcelona municipality after 2019: target-domain native 0.486, transferred 0.669, gap +0.183 (n=740, positives=70, calibration slope 0.39) | another region inside the training source | gain +0.095 (+0.067 to +0.123) over the table: adds signal | KEEP as useful predictive model |
@@ -25,6 +33,7 @@ Spain nationally ([`GENERALISABILITY.md`](GENERALISABILITY.md)).
 ## catalonia_crash_severity (context)
 
 - **Decision:** KEEP as useful predictive model.
+- **After the review:** retired: its strongest predictor, the road's owner, records how a crash was documented (a blank owner on a conventional road is far commoner on fatal records). The published Catalan model is the crash-severity calculator's (`severity_model.py`), tested in [`GENERALISABILITY.md`](GENERALISABILITY.md).
 - **Unit / target / source:** one Catalan crash with a death or serious injury; fatal (a death) rather than serious; Servei Català de Trànsit, 2010-2023 (Crash microdata: Catalonia).
 - **What it does:** ranks recorded serious-or-fatal crashes by how likely they were fatal, from road, crash and environmental circumstances.
 - **Not answered:** whether a crash happens; risk per trip or kilometre; any causal effect; crashes with only slight injuries.
@@ -36,6 +45,7 @@ Spain nationally ([`GENERALISABILITY.md`](GENERALISABILITY.md)).
 ## catalonia_crash_severity (retrospective_administrative)
 
 - **Decision:** KEEP as research/diagnostic model.
+- **After the review:** retired: its strongest predictor, the road's owner, records how a crash was documented (a blank owner on a conventional road is far commoner on fatal records). The published Catalan model is the crash-severity calculator's (`severity_model.py`), tested in [`GENERALISABILITY.md`](GENERALISABILITY.md).
 - **Unit / target / source:** one Catalan crash with a death or serious injury; fatal (a death) rather than serious; Servei Català de Trànsit, 2010-2023 (Crash microdata: Catalonia).
 - **What it does:** how much the information recorded after the event adds to the ranking.
 - **Not answered:** whether a crash happens; risk per trip or kilometre; any causal effect; crashes with only slight injuries.
@@ -47,6 +57,7 @@ Spain nationally ([`GENERALISABILITY.md`](GENERALISABILITY.md)).
 ## barcelona_person_severity (context)
 
 - **Decision:** KEEP but ranking-only.
+- **After the review:** kept for research only; the site shows no probability from it.
 - **Unit / target / source:** one person recorded in a Barcelona crash; serious or fatal injury; Guàrdia Urbana, 2025 (Rich microdata: Barcelona).
 - **What it does:** ranks the people recorded in crashes by how likely they were seriously or fatally injured, from road role, vehicle, age, sex and crash circumstances.
 - **Not answered:** anyone's risk per trip; the behaviour of a person (causes have no person key); other cities or years.
@@ -58,6 +69,7 @@ Spain nationally ([`GENERALISABILITY.md`](GENERALISABILITY.md)).
 ## barcelona_person_severity (retrospective)
 
 - **Decision:** KEEP as research/diagnostic model.
+- **After the review:** kept for research only; the site shows no probability from it.
 - **Unit / target / source:** one person recorded in a Barcelona crash; serious or fatal injury; Guàrdia Urbana, 2025 (Rich microdata: Barcelona).
 - **What it does:** how much the information recorded after the event adds to the ranking.
 - **Not answered:** anyone's risk per trip; the behaviour of a person (causes have no person key); other cities or years.
@@ -69,6 +81,7 @@ Spain nationally ([`GENERALISABILITY.md`](GENERALISABILITY.md)).
 ## barcelona_crash_severity (context)
 
 - **Decision:** REPLACE with descriptive table.
+- **After the review:** removed; the site reports its table of shares by accident type.
 - **Unit / target / source:** one Barcelona crash; a serious or fatal injury in the crash; Guàrdia Urbana, 2025 (Rich microdata: Barcelona).
 - **What it does:** ranks recorded crashes by how likely they involved a serious or fatal injury.
 - **Not answered:** anyone's risk per trip; the behaviour of a person; other cities or years.
@@ -80,6 +93,7 @@ Spain nationally ([`GENERALISABILITY.md`](GENERALISABILITY.md)).
 ## barcelona_crash_severity (retrospective)
 
 - **Decision:** KEEP as research/diagnostic model.
+- **After the review:** removed; the site reports its table of shares by accident type.
 - **Unit / target / source:** one Barcelona crash; a serious or fatal injury in the crash; Guàrdia Urbana, 2025 (Rich microdata: Barcelona).
 - **What it does:** how much the information recorded after the event adds to the ranking.
 - **Not answered:** anyone's risk per trip; the behaviour of a person; other cities or years.
