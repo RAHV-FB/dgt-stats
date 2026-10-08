@@ -191,13 +191,13 @@ L 584.676406 6.001353
     <g id="ytick_2">
      <g id="line2d_20"/>
      <g id="text_12">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="134.776406" y="36.68915" transform="rotate(-0 134.776406 36.68915)">Madrid  (884 fatal)</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="134.776406" y="36.68915" transform="rotate(-0 134.776406 36.68915)">Navarra  (198 fatal)</text>
      </g>
     </g>
     <g id="ytick_3">
      <g id="line2d_21"/>
      <g id="text_13">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="134.776406" y="52.723736" transform="rotate(-0 134.776406 52.723736)">Navarra  (198 fatal)</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="134.776406" y="52.723736" transform="rotate(-0 134.776406 52.723736)">Madrid  (884 fatal)</text>
      </g>
     </g>
     <g id="ytick_4">
@@ -215,109 +215,109 @@ L 584.676406 6.001353
     <g id="ytick_6">
      <g id="line2d_24"/>
      <g id="text_16">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="134.776406" y="100.827495" transform="rotate(-0 134.776406 100.827495)">Albacete  (126 fatal)</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="134.776406" y="100.827495" transform="rotate(-0 134.776406 100.827495)">Salamanca  (103 fatal)</text>
      </g>
     </g>
     <g id="ytick_7">
      <g id="line2d_25"/>
      <g id="text_17">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="134.776406" y="116.862081" transform="rotate(-0 134.776406 116.862081)">Salamanca  (103 fatal)</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="134.776406" y="116.862081" transform="rotate(-0 134.776406 116.862081)">Albacete  (126 fatal)</text>
      </g>
     </g>
     <g id="ytick_8">
      <g id="line2d_26"/>
      <g id="text_18">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="134.776406" y="133.184386" transform="rotate(-0 134.776406 133.184386)">Araba/Álava  (70 fatal)</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="134.776406" y="132.896667" transform="rotate(-0 134.776406 132.896667)">Valencia/València  (516 fatal)</text>
      </g>
     </g>
     <g id="ytick_9">
      <g id="line2d_27"/>
      <g id="text_19">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="134.776406" y="148.931253" transform="rotate(-0 134.776406 148.931253)">Valencia/València  (516 fatal)</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="134.776406" y="148.931253" transform="rotate(-0 134.776406 148.931253)">Alicante/Alacant  (483 fatal)</text>
      </g>
     </g>
     <g id="ytick_10">
      <g id="line2d_28"/>
      <g id="text_20">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="134.776406" y="164.96584" transform="rotate(-0 134.776406 164.96584)">Alicante/Alacant  (483 fatal)</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="134.776406" y="164.96584" transform="rotate(-0 134.776406 164.96584)">Cádiz  (275 fatal)</text>
      </g>
     </g>
     <g id="ytick_11">
      <g id="line2d_29"/>
      <g id="text_21">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="134.776406" y="181.000426" transform="rotate(-0 134.776406 181.000426)">Córdoba  (211 fatal)</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="134.776406" y="181.000426" transform="rotate(-0 134.776406 181.000426)">Sevilla  (460 fatal)</text>
      </g>
     </g>
     <g id="ytick_12">
      <g id="line2d_30"/>
      <g id="text_22">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="134.776406" y="197.035012" transform="rotate(-0 134.776406 197.035012)">Illes Balears  (382 fatal)</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="134.776406" y="197.035012" transform="rotate(-0 134.776406 197.035012)">Badajoz  (233 fatal)</text>
      </g>
     </g>
     <g id="ytick_13">
      <g id="line2d_31"/>
      <g id="text_23">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="134.776406" y="213.069598" transform="rotate(-0 134.776406 213.069598)">Sevilla  (460 fatal)</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="134.776406" y="213.069598" transform="rotate(-0 134.776406 213.069598)">Granada  (262 fatal)</text>
      </g>
     </g>
     <g id="ytick_14">
      <g id="line2d_32"/>
      <g id="text_24">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="134.776406" y="229.104184" transform="rotate(-0 134.776406 229.104184)">Granada  (262 fatal)</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="134.776406" y="229.104184" transform="rotate(-0 134.776406 229.104184)">Illes Balears  (382 fatal)</text>
      </g>
     </g>
     <g id="ytick_15">
      <g id="line2d_33"/>
      <g id="text_25">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="134.776406" y="245.138771" transform="rotate(-0 134.776406 245.138771)">Badajoz  (233 fatal)</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="134.776406" y="245.426489" transform="rotate(-0 134.776406 245.426489)">Araba/Álava  (70 fatal)</text>
      </g>
     </g>
     <g id="ytick_16">
      <g id="line2d_34"/>
      <g id="text_26">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="134.776406" y="261.173357" transform="rotate(-0 134.776406 261.173357)">Jaén  (193 fatal)</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="134.776406" y="261.173357" transform="rotate(-0 134.776406 261.173357)">Castellón/Castelló  (215 fatal)</text>
      </g>
     </g>
     <g id="ytick_17">
      <g id="line2d_35"/>
      <g id="text_27">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="134.776406" y="277.207943" transform="rotate(-0 134.776406 277.207943)">Cádiz  (275 fatal)</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="134.776406" y="277.207943" transform="rotate(-0 134.776406 277.207943)">Jaén  (193 fatal)</text>
      </g>
     </g>
     <g id="ytick_18">
      <g id="line2d_36"/>
      <g id="text_28">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="134.776406" y="293.242529" transform="rotate(-0 134.776406 293.242529)">Asturias  (263 fatal)</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="134.776406" y="293.242529" transform="rotate(-0 134.776406 293.242529)">Córdoba  (211 fatal)</text>
      </g>
     </g>
     <g id="ytick_19">
      <g id="line2d_37"/>
      <g id="text_29">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="134.776406" y="309.277116" transform="rotate(-0 134.776406 309.277116)">Castellón/Castelló  (215 fatal)</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="134.776406" y="309.277116" transform="rotate(-0 134.776406 309.277116)">Gipuzkoa  (158 fatal)</text>
      </g>
     </g>
     <g id="ytick_20">
      <g id="line2d_38"/>
      <g id="text_30">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="134.776406" y="325.311702" transform="rotate(-0 134.776406 325.311702)">Ciudad Real  (195 fatal)</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="134.776406" y="325.311702" transform="rotate(-0 134.776406 325.311702)">Huesca  (161 fatal)</text>
      </g>
     </g>
     <g id="ytick_21">
      <g id="line2d_39"/>
      <g id="text_31">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="134.776406" y="341.346288" transform="rotate(-0 134.776406 341.346288)">Burgos  (182 fatal)</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="134.776406" y="341.346288" transform="rotate(-0 134.776406 341.346288)">Almería  (255 fatal)</text>
      </g>
     </g>
     <g id="ytick_22">
      <g id="line2d_40"/>
      <g id="text_32">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="134.776406" y="357.380874" transform="rotate(-0 134.776406 357.380874)">Huelva  (169 fatal)</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="134.776406" y="357.380874" transform="rotate(-0 134.776406 357.380874)">Asturias  (263 fatal)</text>
      </g>
     </g>
     <g id="ytick_23">
      <g id="line2d_41"/>
      <g id="text_33">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="134.776406" y="373.41546" transform="rotate(-0 134.776406 373.41546)">Almería  (255 fatal)</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="134.776406" y="373.41546" transform="rotate(-0 134.776406 373.41546)">Málaga  (422 fatal)</text>
      </g>
     </g>
     <g id="ytick_24">
@@ -335,97 +335,97 @@ L 584.676406 6.001353
     <g id="ytick_26">
      <g id="line2d_44"/>
      <g id="text_36">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="134.776406" y="421.519219" transform="rotate(-0 134.776406 421.519219)">Segovia  (85 fatal)</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="134.776406" y="421.519219" transform="rotate(-0 134.776406 421.519219)">Huelva  (169 fatal)</text>
      </g>
     </g>
     <g id="ytick_27">
      <g id="line2d_45"/>
      <g id="text_37">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="134.776406" y="437.553805" transform="rotate(-0 134.776406 437.553805)">Huesca  (161 fatal)</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="134.776406" y="437.553805" transform="rotate(-0 134.776406 437.553805)">Burgos  (182 fatal)</text>
      </g>
     </g>
     <g id="ytick_28">
      <g id="line2d_46"/>
      <g id="text_38">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="134.776406" y="453.588391" transform="rotate(-0 134.776406 453.588391)">Lugo  (159 fatal)</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="134.776406" y="453.588391" transform="rotate(-0 134.776406 453.588391)">Segovia  (85 fatal)</text>
      </g>
     </g>
     <g id="ytick_29">
      <g id="line2d_47"/>
      <g id="text_39">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="134.776406" y="469.622978" transform="rotate(-0 134.776406 469.622978)">Málaga  (422 fatal)</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="134.776406" y="469.622978" transform="rotate(-0 134.776406 469.622978)">Cantabria  (141 fatal)</text>
      </g>
     </g>
     <g id="ytick_30">
      <g id="line2d_48"/>
      <g id="text_40">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="134.776406" y="485.657564" transform="rotate(-0 134.776406 485.657564)">Gipuzkoa  (158 fatal)</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="134.776406" y="485.657564" transform="rotate(-0 134.776406 485.657564)">Ciudad Real  (195 fatal)</text>
      </g>
     </g>
     <g id="ytick_31">
      <g id="line2d_49"/>
      <g id="text_41">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="134.776406" y="501.69215" transform="rotate(-0 134.776406 501.69215)">A Coruña  (373 fatal)</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="134.776406" y="501.69215" transform="rotate(-0 134.776406 501.69215)">Las Palmas  (235 fatal)</text>
      </g>
     </g>
     <g id="ytick_32">
      <g id="line2d_50"/>
      <g id="text_42">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="134.776406" y="517.726736" transform="rotate(-0 134.776406 517.726736)">Bizkaia  (132 fatal)</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="134.776406" y="517.726736" transform="rotate(-0 134.776406 517.726736)">Lugo  (159 fatal)</text>
      </g>
     </g>
     <g id="ytick_33">
      <g id="line2d_51"/>
      <g id="text_43">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="134.776406" y="533.761322" transform="rotate(-0 134.776406 533.761322)">Cantabria  (141 fatal)</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="134.776406" y="533.761322" transform="rotate(-0 134.776406 533.761322)">A Coruña  (373 fatal)</text>
      </g>
     </g>
     <g id="ytick_34">
      <g id="line2d_52"/>
      <g id="text_44">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="134.776406" y="549.795909" transform="rotate(-0 134.776406 549.795909)">Las Palmas  (235 fatal)</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="134.776406" y="549.795909" transform="rotate(-0 134.776406 549.795909)">Bizkaia  (132 fatal)</text>
      </g>
     </g>
     <g id="ytick_35">
      <g id="line2d_53"/>
      <g id="text_45">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="134.776406" y="565.830495" transform="rotate(-0 134.776406 565.830495)">Zamora  (123 fatal)</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="134.776406" y="565.830495" transform="rotate(-0 134.776406 565.830495)">Santa Cruz de Tenerife  (241 fatal)</text>
      </g>
     </g>
     <g id="ytick_36">
      <g id="line2d_54"/>
      <g id="text_46">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="134.776406" y="581.865081" transform="rotate(-0 134.776406 581.865081)">Guadalajara  (75 fatal)</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="134.776406" y="581.865081" transform="rotate(-0 134.776406 581.865081)">Cuenca  (137 fatal)</text>
      </g>
     </g>
     <g id="ytick_37">
      <g id="line2d_55"/>
      <g id="text_47">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="134.776406" y="597.899667" transform="rotate(-0 134.776406 597.899667)">Santa Cruz de Tenerife  (241 fatal)</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="134.776406" y="597.899667" transform="rotate(-0 134.776406 597.899667)">León  (216 fatal)</text>
      </g>
     </g>
     <g id="ytick_38">
      <g id="line2d_56"/>
      <g id="text_48">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="134.776406" y="613.934253" transform="rotate(-0 134.776406 613.934253)">Cuenca  (137 fatal)</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="134.776406" y="613.934253" transform="rotate(-0 134.776406 613.934253)">Pontevedra  (266 fatal)</text>
      </g>
     </g>
     <g id="ytick_39">
      <g id="line2d_57"/>
      <g id="text_49">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="134.776406" y="629.96884" transform="rotate(-0 134.776406 629.96884)">Valladolid  (160 fatal)</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="134.776406" y="629.96884" transform="rotate(-0 134.776406 629.96884)">Zamora  (123 fatal)</text>
      </g>
     </g>
     <g id="ytick_40">
      <g id="line2d_58"/>
      <g id="text_50">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="134.776406" y="646.003426" transform="rotate(-0 134.776406 646.003426)">Toledo  (256 fatal)</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="134.776406" y="646.003426" transform="rotate(-0 134.776406 646.003426)">Teruel  (80 fatal)</text>
      </g>
     </g>
     <g id="ytick_41">
      <g id="line2d_59"/>
      <g id="text_51">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="134.776406" y="662.038012" transform="rotate(-0 134.776406 662.038012)">Teruel  (80 fatal)</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="134.776406" y="662.038012" transform="rotate(-0 134.776406 662.038012)">Valladolid  (160 fatal)</text>
      </g>
     </g>
     <g id="ytick_42">
@@ -443,19 +443,19 @@ L 584.676406 6.001353
     <g id="ytick_44">
      <g id="line2d_62"/>
      <g id="text_54">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="134.776406" y="710.141771" transform="rotate(-0 134.776406 710.141771)">Pontevedra  (266 fatal)</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="134.776406" y="710.141771" transform="rotate(-0 134.776406 710.141771)">Toledo  (256 fatal)</text>
      </g>
     </g>
     <g id="ytick_45">
      <g id="line2d_63"/>
      <g id="text_55">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="134.776406" y="726.176357" transform="rotate(-0 134.776406 726.176357)">Cáceres  (138 fatal)</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="134.776406" y="726.176357" transform="rotate(-0 134.776406 726.176357)">Guadalajara  (75 fatal)</text>
      </g>
     </g>
     <g id="ytick_46">
      <g id="line2d_64"/>
      <g id="text_56">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="134.776406" y="742.210943" transform="rotate(-0 134.776406 742.210943)">León  (216 fatal)</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="134.776406" y="742.210943" transform="rotate(-0 134.776406 742.210943)">Cáceres  (138 fatal)</text>
      </g>
     </g>
    </g>
@@ -465,143 +465,143 @@ L 194.076406 6.001353
 " clip-path="url(#p91a242e879)" style="fill: none; stroke-dasharray: 1.1,1.815; stroke-dashoffset: 0; stroke: #4f4f4f; stroke-width: 1.1"/>
    </g>
    <g id="LineCollection_1">
-    <path d="M 516.986542 17.225564 
-L 516.986542 17.225564 
+    <path d="M 508.377718 17.225564 
+L 508.377718 17.225564 
 " clip-path="url(#p91a242e879)" style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
-    <path d="M 502.033258 33.26015 
-L 502.033258 33.26015 
+    <path d="M 505.250686 33.26015 
+L 505.250686 33.26015 
 " clip-path="url(#p91a242e879)" style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
-    <path d="M 501.81229 49.294736 
-L 501.81229 49.294736 
+    <path d="M 502.419394 49.294736 
+L 502.419394 49.294736 
 " clip-path="url(#p91a242e879)" style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
-    <path d="M 488.07991 65.329322 
-L 488.07991 65.329322 
+    <path d="M 488.553094 65.329322 
+L 488.553094 65.329322 
 " clip-path="url(#p91a242e879)" style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
-    <path d="M 475.345234 81.363909 
-L 475.345234 81.363909 
+    <path d="M 467.48413 81.363909 
+L 467.48413 81.363909 
 " clip-path="url(#p91a242e879)" style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
-    <path d="M 467.053354 97.398495 
-L 467.053354 97.398495 
+    <path d="M 457.41223 97.398495 
+L 457.41223 97.398495 
 " clip-path="url(#p91a242e879)" style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
-    <path d="M 462.426418 113.433081 
-L 462.426418 113.433081 
+    <path d="M 451.764154 113.433081 
+L 451.764154 113.433081 
 " clip-path="url(#p91a242e879)" style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
-    <path d="M 456.612058 129.467667 
-L 456.612058 129.467667 
+    <path d="M 436.692574 129.467667 
+L 436.692574 129.467667 
 " clip-path="url(#p91a242e879)" style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
-    <path d="M 442.310518 145.502253 
-L 442.310518 145.502253 
+    <path d="M 435.614518 145.502253 
+L 435.614518 145.502253 
 " clip-path="url(#p91a242e879)" style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
-    <path d="M 431.942878 161.53684 
-L 431.942878 161.53684 
+    <path d="M 432.662698 161.53684 
+L 432.662698 161.53684 
 " clip-path="url(#p91a242e879)" style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
-    <path d="M 416.419318 177.571426 
-L 416.419318 177.571426 
+    <path d="M 427.862782 177.571426 
+L 427.862782 177.571426 
 " clip-path="url(#p91a242e879)" style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
-    <path d="M 416.049922 193.606012 
-L 416.049922 193.606012 
+    <path d="M 427.070422 193.606012 
+L 427.070422 193.606012 
 " clip-path="url(#p91a242e879)" style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
-    <path d="M 413.292286 209.640598 
-L 413.292286 209.640598 
+    <path d="M 425.26585 209.640598 
+L 425.26585 209.640598 
 " clip-path="url(#p91a242e879)" style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
-    <path d="M 412.045714 225.675184 
-L 412.045714 225.675184 
+    <path d="M 422.560666 225.675184 
+L 422.560666 225.675184 
 " clip-path="url(#p91a242e879)" style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
-    <path d="M 410.700934 241.709771 
-L 410.700934 241.709771 
+    <path d="M 409.24009 241.709771 
+L 409.24009 241.709771 
 " clip-path="url(#p91a242e879)" style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
-    <path d="M 410.486662 257.744357 
-L 410.486662 257.744357 
+    <path d="M 404.819614 257.744357 
+L 404.819614 257.744357 
 " clip-path="url(#p91a242e879)" style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
-    <path d="M 410.360554 273.778943 
-L 410.360554 273.778943 
+    <path d="M 403.416802 273.778943 
+L 403.416802 273.778943 
 " clip-path="url(#p91a242e879)" style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
-    <path d="M 404.040646 289.813529 
-L 404.040646 289.813529 
+    <path d="M 402.844294 289.813529 
+L 402.844294 289.813529 
 " clip-path="url(#p91a242e879)" style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
-    <path d="M 398.985166 305.848116 
-L 398.985166 305.848116 
+    <path d="M 402.468202 305.848116 
+L 402.468202 305.848116 
 " clip-path="url(#p91a242e879)" style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
-    <path d="M 398.49859 321.882702 
-L 398.49859 321.882702 
+    <path d="M 402.152374 321.882702 
+L 402.152374 321.882702 
 " clip-path="url(#p91a242e879)" style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
-    <path d="M 397.344646 337.917288 
-L 397.344646 337.917288 
+    <path d="M 402.12559 337.917288 
+L 402.12559 337.917288 
 " clip-path="url(#p91a242e879)" style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
-    <path d="M 397.21519 353.951874 
-L 397.21519 353.951874 
+    <path d="M 397.450666 353.951874 
+L 397.450666 353.951874 
 " clip-path="url(#p91a242e879)" style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
-    <path d="M 394.792354 369.98646 
-L 394.792354 369.98646 
+    <path d="M 397.19845 369.98646 
+L 397.19845 369.98646 
 " clip-path="url(#p91a242e879)" style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
-    <path d="M 393.66631 386.021047 
-L 393.66631 386.021047 
+    <path d="M 396.654958 386.021047 
+L 396.654958 386.021047 
 " clip-path="url(#p91a242e879)" style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
-    <path d="M 390.319426 402.055633 
-L 390.319426 402.055633 
+    <path d="M 395.466418 402.055633 
+L 395.466418 402.055633 
 " clip-path="url(#p91a242e879)" style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
-    <path d="M 389.450062 418.090219 
-L 389.450062 418.090219 
+    <path d="M 394.254442 418.090219 
+L 394.254442 418.090219 
 " clip-path="url(#p91a242e879)" style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
-    <path d="M 386.934598 434.124805 
-L 386.934598 434.124805 
+    <path d="M 389.81053 434.124805 
+L 389.81053 434.124805 
 " clip-path="url(#p91a242e879)" style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
-    <path d="M 385.579774 450.159391 
-L 385.579774 450.159391 
+    <path d="M 381.61351 450.159391 
+L 381.61351 450.159391 
 " clip-path="url(#p91a242e879)" style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
-    <path d="M 384.47605 466.193978 
-L 384.47605 466.193978 
+    <path d="M 381.296566 466.193978 
+L 381.296566 466.193978 
 " clip-path="url(#p91a242e879)" style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
-    <path d="M 383.760694 482.228564 
-L 383.760694 482.228564 
+    <path d="M 380.951722 482.228564 
+L 380.951722 482.228564 
 " clip-path="url(#p91a242e879)" style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
-    <path d="M 379.832374 498.26315 
-L 379.832374 498.26315 
+    <path d="M 377.684074 498.26315 
+L 377.684074 498.26315 
 " clip-path="url(#p91a242e879)" style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
-    <path d="M 366.214942 514.297736 
-L 366.214942 514.297736 
+    <path d="M 376.498882 514.297736 
+L 376.498882 514.297736 
 " clip-path="url(#p91a242e879)" style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
-    <path d="M 363.955042 530.332322 
-L 363.955042 530.332322 
+    <path d="M 374.679802 530.332322 
+L 374.679802 530.332322 
 " clip-path="url(#p91a242e879)" style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
-    <path d="M 358.922998 546.366909 
-L 358.922998 546.366909 
+    <path d="M 367.678018 546.366909 
+L 367.678018 546.366909 
 " clip-path="url(#p91a242e879)" style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
-    <path d="M 357.24565 562.401495 
-L 357.24565 562.401495 
+    <path d="M 366.393502 562.401495 
+L 366.393502 562.401495 
 " clip-path="url(#p91a242e879)" style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
-    <path d="M 353.782702 578.436081 
-L 353.782702 578.436081 
+    <path d="M 353.124262 578.436081 
+L 353.124262 578.436081 
 " clip-path="url(#p91a242e879)" style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
-    <path d="M 346.607938 594.470667 
-L 346.607938 594.470667 
+    <path d="M 351.471466 594.470667 
+L 351.471466 594.470667 
 " clip-path="url(#p91a242e879)" style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
-    <path d="M 340.905178 610.505253 
-L 340.905178 610.505253 
+    <path d="M 349.13791 610.505253 
+L 349.13791 610.505253 
 " clip-path="url(#p91a242e879)" style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
-    <path d="M 340.630642 626.53984 
-L 340.630642 626.53984 
+    <path d="M 348.132394 626.53984 
+L 348.132394 626.53984 
 " clip-path="url(#p91a242e879)" style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
-    <path d="M 339.733378 642.574426 
-L 339.733378 642.574426 
+    <path d="M 343.247662 642.574426 
+L 343.247662 642.574426 
 " clip-path="url(#p91a242e879)" style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
-    <path d="M 337.056094 658.609012 
-L 337.056094 658.609012 
+    <path d="M 339.195466 658.609012 
+L 339.195466 658.609012 
 " clip-path="url(#p91a242e879)" style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
-    <path d="M 332.578702 674.643598 
-L 332.578702 674.643598 
+    <path d="M 336.128698 674.643598 
+L 336.128698 674.643598 
 " clip-path="url(#p91a242e879)" style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
-    <path d="M 329.751874 690.678184 
-L 329.751874 690.678184 
+    <path d="M 333.448066 690.678184 
+L 333.448066 690.678184 
 " clip-path="url(#p91a242e879)" style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
-    <path d="M 328.49749 706.712771 
-L 328.49749 706.712771 
+    <path d="M 328.316698 706.712771 
+L 328.316698 706.712771 
 " clip-path="url(#p91a242e879)" style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
-    <path d="M 324.023446 722.747357 
-L 324.023446 722.747357 
+    <path d="M 322.557022 722.747357 
+L 322.557022 722.747357 
 " clip-path="url(#p91a242e879)" style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
-    <path d="M 309.604726 738.781943 
-L 309.604726 738.781943 
+    <path d="M 314.689222 738.781943 
+L 314.689222 738.781943 
 " clip-path="url(#p91a242e879)" style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
    </g>
    <g id="patch_3">
@@ -624,52 +624,52 @@ z
 " style="stroke: #ffffff"/>
     </defs>
     <g clip-path="url(#p91a242e879)">
-     <use xlink:href="#m6d4e557dfc" x="516.986542" y="17.225564" style="fill: #1a8eab; stroke: #ffffff"/>
-     <use xlink:href="#m6d4e557dfc" x="502.033258" y="33.26015" style="fill: #1a8eab; stroke: #ffffff"/>
-     <use xlink:href="#m6d4e557dfc" x="501.81229" y="49.294736" style="fill: #1a8eab; stroke: #ffffff"/>
-     <use xlink:href="#m6d4e557dfc" x="488.07991" y="65.329322" style="fill: #1a8eab; stroke: #ffffff"/>
-     <use xlink:href="#m6d4e557dfc" x="475.345234" y="81.363909" style="fill: #1a8eab; stroke: #ffffff"/>
-     <use xlink:href="#m6d4e557dfc" x="467.053354" y="97.398495" style="fill: #1a8eab; stroke: #ffffff"/>
-     <use xlink:href="#m6d4e557dfc" x="462.426418" y="113.433081" style="fill: #1a8eab; stroke: #ffffff"/>
-     <use xlink:href="#m6d4e557dfc" x="456.612058" y="129.467667" style="fill: #1a8eab; stroke: #ffffff"/>
-     <use xlink:href="#m6d4e557dfc" x="442.310518" y="145.502253" style="fill: #1a8eab; stroke: #ffffff"/>
-     <use xlink:href="#m6d4e557dfc" x="431.942878" y="161.53684" style="fill: #1a8eab; stroke: #ffffff"/>
-     <use xlink:href="#m6d4e557dfc" x="416.419318" y="177.571426" style="fill: #1a8eab; stroke: #ffffff"/>
-     <use xlink:href="#m6d4e557dfc" x="416.049922" y="193.606012" style="fill: #1a8eab; stroke: #ffffff"/>
-     <use xlink:href="#m6d4e557dfc" x="413.292286" y="209.640598" style="fill: #1a8eab; stroke: #ffffff"/>
-     <use xlink:href="#m6d4e557dfc" x="412.045714" y="225.675184" style="fill: #1a8eab; stroke: #ffffff"/>
-     <use xlink:href="#m6d4e557dfc" x="410.700934" y="241.709771" style="fill: #1a8eab; stroke: #ffffff"/>
-     <use xlink:href="#m6d4e557dfc" x="410.486662" y="257.744357" style="fill: #1a8eab; stroke: #ffffff"/>
-     <use xlink:href="#m6d4e557dfc" x="410.360554" y="273.778943" style="fill: #1a8eab; stroke: #ffffff"/>
-     <use xlink:href="#m6d4e557dfc" x="404.040646" y="289.813529" style="fill: #1a8eab; stroke: #ffffff"/>
-     <use xlink:href="#m6d4e557dfc" x="398.985166" y="305.848116" style="fill: #1a8eab; stroke: #ffffff"/>
-     <use xlink:href="#m6d4e557dfc" x="398.49859" y="321.882702" style="fill: #1a8eab; stroke: #ffffff"/>
-     <use xlink:href="#m6d4e557dfc" x="397.344646" y="337.917288" style="fill: #1a8eab; stroke: #ffffff"/>
-     <use xlink:href="#m6d4e557dfc" x="397.21519" y="353.951874" style="fill: #1a8eab; stroke: #ffffff"/>
-     <use xlink:href="#m6d4e557dfc" x="394.792354" y="369.98646" style="fill: #1a8eab; stroke: #ffffff"/>
-     <use xlink:href="#m6d4e557dfc" x="393.66631" y="386.021047" style="fill: #1a8eab; stroke: #ffffff"/>
-     <use xlink:href="#m6d4e557dfc" x="390.319426" y="402.055633" style="fill: #1a8eab; stroke: #ffffff"/>
-     <use xlink:href="#m6d4e557dfc" x="389.450062" y="418.090219" style="fill: #1a8eab; stroke: #ffffff"/>
-     <use xlink:href="#m6d4e557dfc" x="386.934598" y="434.124805" style="fill: #1a8eab; stroke: #ffffff"/>
-     <use xlink:href="#m6d4e557dfc" x="385.579774" y="450.159391" style="fill: #1a8eab; stroke: #ffffff"/>
-     <use xlink:href="#m6d4e557dfc" x="384.47605" y="466.193978" style="fill: #1a8eab; stroke: #ffffff"/>
-     <use xlink:href="#m6d4e557dfc" x="383.760694" y="482.228564" style="fill: #1a8eab; stroke: #ffffff"/>
-     <use xlink:href="#m6d4e557dfc" x="379.832374" y="498.26315" style="fill: #1a8eab; stroke: #ffffff"/>
-     <use xlink:href="#m6d4e557dfc" x="366.214942" y="514.297736" style="fill: #1a8eab; stroke: #ffffff"/>
-     <use xlink:href="#m6d4e557dfc" x="363.955042" y="530.332322" style="fill: #1a8eab; stroke: #ffffff"/>
-     <use xlink:href="#m6d4e557dfc" x="358.922998" y="546.366909" style="fill: #1a8eab; stroke: #ffffff"/>
-     <use xlink:href="#m6d4e557dfc" x="357.24565" y="562.401495" style="fill: #1a8eab; stroke: #ffffff"/>
-     <use xlink:href="#m6d4e557dfc" x="353.782702" y="578.436081" style="fill: #1a8eab; stroke: #ffffff"/>
-     <use xlink:href="#m6d4e557dfc" x="346.607938" y="594.470667" style="fill: #1a8eab; stroke: #ffffff"/>
-     <use xlink:href="#m6d4e557dfc" x="340.905178" y="610.505253" style="fill: #1a8eab; stroke: #ffffff"/>
-     <use xlink:href="#m6d4e557dfc" x="340.630642" y="626.53984" style="fill: #1a8eab; stroke: #ffffff"/>
-     <use xlink:href="#m6d4e557dfc" x="339.733378" y="642.574426" style="fill: #1a8eab; stroke: #ffffff"/>
-     <use xlink:href="#m6d4e557dfc" x="337.056094" y="658.609012" style="fill: #1a8eab; stroke: #ffffff"/>
-     <use xlink:href="#m6d4e557dfc" x="332.578702" y="674.643598" style="fill: #1a8eab; stroke: #ffffff"/>
-     <use xlink:href="#m6d4e557dfc" x="329.751874" y="690.678184" style="fill: #1a8eab; stroke: #ffffff"/>
-     <use xlink:href="#m6d4e557dfc" x="328.49749" y="706.712771" style="fill: #1a8eab; stroke: #ffffff"/>
-     <use xlink:href="#m6d4e557dfc" x="324.023446" y="722.747357" style="fill: #1a8eab; stroke: #ffffff"/>
-     <use xlink:href="#m6d4e557dfc" x="309.604726" y="738.781943" style="fill: #1a8eab; stroke: #ffffff"/>
+     <use xlink:href="#m6d4e557dfc" x="508.377718" y="17.225564" style="fill: #1a8eab; stroke: #ffffff"/>
+     <use xlink:href="#m6d4e557dfc" x="505.250686" y="33.26015" style="fill: #1a8eab; stroke: #ffffff"/>
+     <use xlink:href="#m6d4e557dfc" x="502.419394" y="49.294736" style="fill: #1a8eab; stroke: #ffffff"/>
+     <use xlink:href="#m6d4e557dfc" x="488.553094" y="65.329322" style="fill: #1a8eab; stroke: #ffffff"/>
+     <use xlink:href="#m6d4e557dfc" x="467.48413" y="81.363909" style="fill: #1a8eab; stroke: #ffffff"/>
+     <use xlink:href="#m6d4e557dfc" x="457.41223" y="97.398495" style="fill: #1a8eab; stroke: #ffffff"/>
+     <use xlink:href="#m6d4e557dfc" x="451.764154" y="113.433081" style="fill: #1a8eab; stroke: #ffffff"/>
+     <use xlink:href="#m6d4e557dfc" x="436.692574" y="129.467667" style="fill: #1a8eab; stroke: #ffffff"/>
+     <use xlink:href="#m6d4e557dfc" x="435.614518" y="145.502253" style="fill: #1a8eab; stroke: #ffffff"/>
+     <use xlink:href="#m6d4e557dfc" x="432.662698" y="161.53684" style="fill: #1a8eab; stroke: #ffffff"/>
+     <use xlink:href="#m6d4e557dfc" x="427.862782" y="177.571426" style="fill: #1a8eab; stroke: #ffffff"/>
+     <use xlink:href="#m6d4e557dfc" x="427.070422" y="193.606012" style="fill: #1a8eab; stroke: #ffffff"/>
+     <use xlink:href="#m6d4e557dfc" x="425.26585" y="209.640598" style="fill: #1a8eab; stroke: #ffffff"/>
+     <use xlink:href="#m6d4e557dfc" x="422.560666" y="225.675184" style="fill: #1a8eab; stroke: #ffffff"/>
+     <use xlink:href="#m6d4e557dfc" x="409.24009" y="241.709771" style="fill: #1a8eab; stroke: #ffffff"/>
+     <use xlink:href="#m6d4e557dfc" x="404.819614" y="257.744357" style="fill: #1a8eab; stroke: #ffffff"/>
+     <use xlink:href="#m6d4e557dfc" x="403.416802" y="273.778943" style="fill: #1a8eab; stroke: #ffffff"/>
+     <use xlink:href="#m6d4e557dfc" x="402.844294" y="289.813529" style="fill: #1a8eab; stroke: #ffffff"/>
+     <use xlink:href="#m6d4e557dfc" x="402.468202" y="305.848116" style="fill: #1a8eab; stroke: #ffffff"/>
+     <use xlink:href="#m6d4e557dfc" x="402.152374" y="321.882702" style="fill: #1a8eab; stroke: #ffffff"/>
+     <use xlink:href="#m6d4e557dfc" x="402.12559" y="337.917288" style="fill: #1a8eab; stroke: #ffffff"/>
+     <use xlink:href="#m6d4e557dfc" x="397.450666" y="353.951874" style="fill: #1a8eab; stroke: #ffffff"/>
+     <use xlink:href="#m6d4e557dfc" x="397.19845" y="369.98646" style="fill: #1a8eab; stroke: #ffffff"/>
+     <use xlink:href="#m6d4e557dfc" x="396.654958" y="386.021047" style="fill: #1a8eab; stroke: #ffffff"/>
+     <use xlink:href="#m6d4e557dfc" x="395.466418" y="402.055633" style="fill: #1a8eab; stroke: #ffffff"/>
+     <use xlink:href="#m6d4e557dfc" x="394.254442" y="418.090219" style="fill: #1a8eab; stroke: #ffffff"/>
+     <use xlink:href="#m6d4e557dfc" x="389.81053" y="434.124805" style="fill: #1a8eab; stroke: #ffffff"/>
+     <use xlink:href="#m6d4e557dfc" x="381.61351" y="450.159391" style="fill: #1a8eab; stroke: #ffffff"/>
+     <use xlink:href="#m6d4e557dfc" x="381.296566" y="466.193978" style="fill: #1a8eab; stroke: #ffffff"/>
+     <use xlink:href="#m6d4e557dfc" x="380.951722" y="482.228564" style="fill: #1a8eab; stroke: #ffffff"/>
+     <use xlink:href="#m6d4e557dfc" x="377.684074" y="498.26315" style="fill: #1a8eab; stroke: #ffffff"/>
+     <use xlink:href="#m6d4e557dfc" x="376.498882" y="514.297736" style="fill: #1a8eab; stroke: #ffffff"/>
+     <use xlink:href="#m6d4e557dfc" x="374.679802" y="530.332322" style="fill: #1a8eab; stroke: #ffffff"/>
+     <use xlink:href="#m6d4e557dfc" x="367.678018" y="546.366909" style="fill: #1a8eab; stroke: #ffffff"/>
+     <use xlink:href="#m6d4e557dfc" x="366.393502" y="562.401495" style="fill: #1a8eab; stroke: #ffffff"/>
+     <use xlink:href="#m6d4e557dfc" x="353.124262" y="578.436081" style="fill: #1a8eab; stroke: #ffffff"/>
+     <use xlink:href="#m6d4e557dfc" x="351.471466" y="594.470667" style="fill: #1a8eab; stroke: #ffffff"/>
+     <use xlink:href="#m6d4e557dfc" x="349.13791" y="610.505253" style="fill: #1a8eab; stroke: #ffffff"/>
+     <use xlink:href="#m6d4e557dfc" x="348.132394" y="626.53984" style="fill: #1a8eab; stroke: #ffffff"/>
+     <use xlink:href="#m6d4e557dfc" x="343.247662" y="642.574426" style="fill: #1a8eab; stroke: #ffffff"/>
+     <use xlink:href="#m6d4e557dfc" x="339.195466" y="658.609012" style="fill: #1a8eab; stroke: #ffffff"/>
+     <use xlink:href="#m6d4e557dfc" x="336.128698" y="674.643598" style="fill: #1a8eab; stroke: #ffffff"/>
+     <use xlink:href="#m6d4e557dfc" x="333.448066" y="690.678184" style="fill: #1a8eab; stroke: #ffffff"/>
+     <use xlink:href="#m6d4e557dfc" x="328.316698" y="706.712771" style="fill: #1a8eab; stroke: #ffffff"/>
+     <use xlink:href="#m6d4e557dfc" x="322.557022" y="722.747357" style="fill: #1a8eab; stroke: #ffffff"/>
+     <use xlink:href="#m6d4e557dfc" x="314.689222" y="738.781943" style="fill: #1a8eab; stroke: #ffffff"/>
     </g>
    </g>
    <g id="text_57">

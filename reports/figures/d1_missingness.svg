@@ -38,7 +38,7 @@ z
    </g>
    <g clip-path="url(#p3ad7a0dd5e)">
     <image xlink:href="data:image/png;base64,
-iVBORw0KGgoAAAANSUhEUgAAAAkAAAAZCAYAAADjRwSLAAAAfUlEQVR4nGPkCUn7z0AAMBFSMKqIHor4rFxRFaELMDAwMHw6thuFz4IugM0kRqm+1fBUgE0DiknYrA1OycQ0CReA+85VSwVD0lVLhcFVS4WBMX7HeeqkTBYHOTGGA49eYZXcfe0ORBE+E2DuZGFgYGBwkBOjgpv0RHkJKgIAY6AfJgI2xG0AAAAASUVORK5CYII=" id="imagea870e0bebd" width="9" height="25" transform="matrix(47.12 0 0 16.632 85.159687 5.76)" style="image-rendering:crisp-edges;image-rendering:pixelated"/>
+iVBORw0KGgoAAAANSUhEUgAAAAkAAAAZCAYAAADjRwSLAAAAc0lEQVR4nGPkCUn7z0AAMBFSMKqIHor4rFxRFaELMDAwMHw6thtVEUwAm2IYYMGmG10Do1Tf6v/YFGI1CZ+VcN+5aqngdBNj/I7z1EmZLA5yYgwHHr3CKrn72h2IInwmwNzJwsDAwOAgJ0YFN+mJ8hJUBAATSxsc7vbsvQAAAABJRU5ErkJggg==" id="imagee0156aee08" width="9" height="25" transform="matrix(47.12 0 0 16.632 85.159687 5.76)" style="image-rendering:crisp-edges;image-rendering:pixelated"/>
    </g>
    <g id="matplotlib.axis_1">
     <g id="xtick_1">
@@ -261,19 +261,19 @@ L 509.239687 5.76
     <g id="ytick_14">
      <g id="line2d_43"/>
      <g id="text_24">
-      <text style="font-size: 8.5px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="81.659687" y="233.5305" transform="rotate(-0 81.659687 233.5305)">Island</text>
+      <text style="font-size: 8.5px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="81.659687" y="233.5305" transform="rotate(-0 81.659687 233.5305)">Junction type</text>
      </g>
     </g>
     <g id="ytick_15">
      <g id="line2d_44"/>
      <g id="text_25">
-      <text style="font-size: 8.5px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="81.659687" y="250.1625" transform="rotate(-0 81.659687 250.1625)">Weather</text>
+      <text style="font-size: 8.5px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="81.659687" y="250.1625" transform="rotate(-0 81.659687 250.1625)">Island</text>
      </g>
     </g>
     <g id="ytick_16">
      <g id="line2d_45"/>
      <g id="text_26">
-      <text style="font-size: 8.5px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="81.659687" y="266.7945" transform="rotate(-0 81.659687 266.7945)">Junction type</text>
+      <text style="font-size: 8.5px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="81.659687" y="266.7945" transform="rotate(-0 81.659687 266.7945)">Weather</text>
      </g>
     </g>
     <g id="ytick_17">
