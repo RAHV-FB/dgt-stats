@@ -613,13 +613,71 @@ def _profiles() -> dict[str, dict]:
     return out
 
 
+def structure_shares(
+    base: pd.Series | np.ndarray,
+    older_share: float | np.ndarray,
+    non_working: str = WORKING_DAY_MIX,
+    remainder: str = WORKING_DAY_MIX,
+    professional_mix: str = PROFESSIONAL_MIX,
+) -> tuple[pd.Series | np.ndarray, float | np.ndarray]:
+    """One scenario's annual km shares by group and the 75+ share of its 65+ km.
+
+    ``base`` is the covered part's km shares: a Series indexed by group, or an array whose first
+    axis follows :data:`GROUPS` (replicates along the others). ``older_share`` is the split's 75+
+    share of the covered part's 65+ km. The covered part, the professionals' work driving and the
+    non-working days keep that share; a remainder mix that measures the two ages itself (owners'
+    km) brings its own. ``professional_mix`` is :data:`PROFESSIONAL_MIX`, the professionals' own
+    age mix as measured, or :data:`WORKING_DAY_MIX`, the covered part's, which varies one choice
+    at a time (:func:`dgt_stats.exposure_risk.national.older_decomposition`)."""
+    weights = scenario_weights()
+    series = isinstance(base, pd.Series)
+    b = np.asarray(base.reindex(list(GROUPS)) if series else base, dtype=float)
+
+    def column(values: pd.Series) -> np.ndarray:
+        return np.asarray(values.reindex(list(GROUPS)), dtype=float).reshape(
+            (len(GROUPS),) + (1,) * (b.ndim - 1)
+        )
+
+    def mix(name: str) -> tuple[np.ndarray, float | None]:
+        relative = _relative_weights()
+        if name in relative:
+            shares = column(relative[name]) * b
+            return shares / shares.sum(axis=0), None
+        shares, older = _absolute_mixes()[name]
+        return column(shares), older
+
+    if professional_mix == WORKING_DAY_MIX:
+        professional = b
+    else:
+        _, extra = _daily_km()
+        professional = column(extra / extra.sum())
+    other, _ = mix(non_working)
+    rest, rest_older = mix(remainder)
+    shares = (
+        weights["covered"] * b
+        + weights["professional"] * professional
+        + weights["non_working"] * other
+        + weights["remainder"] * rest
+    )
+    i65 = list(GROUPS).index("65+")
+    inherited = (
+        weights["covered"] * b[i65]
+        + weights["professional"] * professional[i65]
+        + weights["non_working"] * other[i65]
+    )
+    own = weights["remainder"] * rest[i65]
+    oldest = (
+        inherited * older_share + own * (older_share if rest_older is None else rest_older)
+    ) / shares[i65]
+    if series:
+        return pd.Series(shares, index=list(GROUPS)), float(oldest)
+    return shares, oldest
+
+
 @cache
 def scenario_km() -> tuple[dict, ...]:
     """Every scenario's annual km shares by group, and its 75+ share of the 65+ km under each
     split assumption. The result is cached: callers must not change it."""
-    weights = scenario_weights()
-    _, professional = _daily_km()
-    professional_mix = professional / professional.sum()
     splits = national._older_ratios()
     out = []
     for profile_name, profile in _profiles().items():
@@ -630,26 +688,10 @@ def scenario_km() -> tuple[dict, ...]:
             split = national._split_older(profile, ratios)
             older[assumption] = split["75+"] / (split["75+"] + split["65-74"])
         for non_working in NON_WORKING_MIXES:
-            other, _ = mix_shares(non_working, base)
             for remainder in REMAINDER_MIXES:
-                rest, rest_older = mix_shares(remainder, base)
-                shares = (
-                    weights["covered"] * base
-                    + weights["professional"] * professional_mix
-                    + weights["non_working"] * other
-                    + weights["remainder"] * rest
-                )
-                inherited = (
-                    weights["covered"] * base["65+"]
-                    + weights["professional"] * professional_mix["65+"]
-                    + weights["non_working"] * other["65+"]
-                )
-                own = weights["remainder"] * rest["65+"]
-                oldest = {
-                    assumption: (inherited * q + own * (q if rest_older is None else rest_older))
-                    / float(shares["65+"])
-                    for assumption, q in older.items()
-                }
+                oldest = {}
+                for assumption, q in older.items():
+                    shares, oldest[assumption] = structure_shares(base, q, non_working, remainder)
                 out.append(
                     {
                         "profile": profile_name,

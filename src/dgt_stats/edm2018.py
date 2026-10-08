@@ -4,14 +4,15 @@ The EDM2018 (Consorcio Regional de Transportes de Madrid) interviewed 85,064 res
 Comunidad de Madrid about one weekday, Monday to Thursday, in 2018. Unlike the EMEF, its public
 files give **exact age**, so it shows how car driving falls between 65 and 85, which no EMEF
 file can. It is read here only for that age profile; it is a different region and year, so any
-transfer to the EMEF or to Spain is labelled as model-dependent.
+transfer to the EMEF or to Spain is a stated, conditional assumption.
 
 Files: the extracts written by ``scripts/fetch_edm.py`` under ``data/raw/crtm/edm2018``.
 A *car-driver trip* is a trip whose main mode (``MODO_PRIORITARIO``) is car driver (11 private,
 12 company, 13 rental). A trip combining car driving with public transport is classed by its
 public-transport stage, so a few car legs are missed. ``DISTANCIA_VIAJE`` is "the distance in km
-from the trip's origin to its destination"; the codebook does not say whether it is a straight
-line or a network distance, so only ratios between ages are used. Eight car-driver trips record
+from the trip's origin to its destination", a straight-line distance ("a vuelo de pájaro": CRTM,
+EDM2018 Documento síntesis, chapter 10, note 6), so only ratios between ages are used. Eight
+car-driver trips record
 4,199 to 4,517 km, more than a day's drive (the next longest is 528 km); a distance above
 ``DISTANCE_LIMIT_KM`` is treated as an error and counts as nothing, the trip itself still counting.
 Every rate divides weighted
@@ -136,35 +137,103 @@ def profile(by: str = "band", sex: str | None = None) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-def older_split() -> pd.DataFrame:
-    """Within the 65-and-over group: the 75-and-over share of residents, licence holders and
-    car-driver km, and the ratio of 75-and-over to 65-74 km per resident, by sex, with intervals."""
-    frame = person_day()
-    factors = replicate_factors()
-    rows = []
-    for sex in ("all", "male", "female"):
-        mask = (frame.EDAD_FIN >= 65).to_numpy().copy()
-        if sex != "all":
-            mask &= (frame.sex == sex).to_numpy()
-        part = frame[mask]
-        f = factors[mask]
-        w = part.weight.to_numpy()
-        old = (part.EDAD_FIN >= 75).to_numpy()
-        km = part.car_km.to_numpy()
-        licensed = part.licence.to_numpy()
+OLDER_SEXES = ("all", "male", "female")
 
-        point_older = (w * km * old).sum() / (w * old).sum()
-        point_younger = (w * km * ~old).sum() / (w * ~old).sum()
-        rep_older = ((w * km * old) @ f) / ((w * old) @ f)
-        rep_younger = ((w * km * ~old) @ f) / ((w * ~old) @ f)
-        rep_ratio = rep_older / rep_younger
-        rep_share = ((w * km * old) @ f) / ((w * km) @ f)
+
+def _older_parts(sex: str) -> dict[str, np.ndarray]:
+    """Respondents aged 65 and over of one sex (or ``all``): weights, km, licence, 75-and-over
+    flag and the household-bootstrap factors, aligned."""
+    frame = person_day()
+    mask = (frame.EDAD_FIN >= 65).to_numpy().copy()
+    if sex != "all":
+        mask &= (frame.sex == sex).to_numpy()
+    part = frame[mask]
+    return {
+        "w": part.weight.to_numpy(),
+        "km": part.car_km.to_numpy(),
+        "licence": part.licence.to_numpy(),
+        "old": (part.EDAD_FIN >= 75).to_numpy(),
+        "drove": part.drove.to_numpy(),
+        "f": replicate_factors()[mask],
+    }
+
+
+def older_ratio_replicates() -> dict[str, dict[str, tuple[float, np.ndarray]]]:
+    """For each sex (and ``all``): the ratio of car-driver km at 75 and over to 65-74, per
+    resident and per self-reported licence holder, as ``(point, replicates)``. The replicates are
+    the household-bootstrap columns of :func:`replicate_factors`, the same columns every other
+    EDM2018 estimate uses, so they can be matched with the Madrid age profile replicate by
+    replicate."""
+    out = {}
+    for sex in OLDER_SEXES:
+        p = _older_parts(sex)
+        w, km, lic, old, f = p["w"], p["km"], p["licence"], p["old"], p["f"]
+        young = ~old
+        per_resident = ((w * km * old).sum() / (w * old).sum()) / (
+            (w * km * young).sum() / (w * young).sum()
+        )
+        per_holder = ((w * km * old).sum() / (w * lic * old).sum()) / (
+            (w * km * young).sum() / (w * lic * young).sum()
+        )
+        km_old, km_young = (w * km * old) @ f, (w * km * young) @ f
+        out[sex] = {
+            "per_resident": (
+                float(per_resident),
+                (km_old / ((w * old) @ f)) / (km_young / ((w * young) @ f)),
+            ),
+            "per_licence_holder": (
+                float(per_holder),
+                (km_old / ((w * lic * old) @ f)) / (km_young / ((w * lic * young) @ f)),
+            ),
+            "share_of_km": (
+                float((w * km * old).sum() / (w * km).sum()),
+                km_old / ((w * km) @ f),
+            ),
+        }
+    return out
+
+
+def like_for_like_per_holder(prevalence_ratio: dict[str, float]) -> pd.DataFrame:
+    """The ratio of km per *registered* car-licence holder at 75 and over to 65-74, by sex: the
+    survey's ratio per resident divided by the ratio of licence holders per resident in DGT's
+    census for the same place (``prevalence_ratio``, 75 and over over 65-74, by sex). Unlike the
+    survey's own licence question, this uses one definition of a licence holder for the ratio the
+    national splits are compared with."""
+    replicates = older_ratio_replicates()
+    rows = []
+    for sex, ratio in prevalence_ratio.items():
+        point, rep = replicates[sex]["per_resident"]
         rows.append(
             {
                 "sex": sex,
-                "respondents_65_plus": int(mask.sum()),
+                "ratio_per_resident": point,
+                "dgt_prevalence_ratio": float(ratio),
+                "ratio_per_dgt_holder": point / float(ratio),
+                "ratio_low": float(np.percentile(rep / float(ratio), 2.5)),
+                "ratio_high": float(np.percentile(rep / float(ratio), 97.5)),
+            }
+        )
+    return pd.DataFrame(rows)
+
+
+def older_split() -> pd.DataFrame:
+    """Within the 65-and-over group: the 75-and-over share of residents, licence holders and
+    car-driver km, and the ratio of 75-and-over to 65-74 km per resident, by sex, with intervals."""
+    replicates = older_ratio_replicates()
+    rows = []
+    for sex in OLDER_SEXES:
+        p = _older_parts(sex)
+        w, km, licensed, old = p["w"], p["km"], p["licence"], p["old"]
+        point_older = (w * km * old).sum() / (w * old).sum()
+        point_younger = (w * km * ~old).sum() / (w * ~old).sum()
+        _, rep_ratio = replicates[sex]["per_resident"]
+        _, rep_share = replicates[sex]["share_of_km"]
+        rows.append(
+            {
+                "sex": sex,
+                "respondents_65_plus": int(len(w)),
                 "respondents_75_plus": int(old.sum()),
-                "drivers_75_plus": int((part.drove & old).sum()),
+                "drivers_75_plus": int((p["drove"] & old).sum()),
                 "share_of_residents_75_plus": float((w * old).sum() / w.sum()),
                 "share_of_licence_holders_75_plus": float(
                     (w * licensed * old).sum() / (w * licensed).sum()

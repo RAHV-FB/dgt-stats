@@ -1,0 +1,34 @@
+check,subject,value,low,high,note
+"B-licence holders per resident, 75 and over over 65-74 (DGT 2024)","province of Madrid, male",0.7150746542,,,
+"B-licence holders per resident, 75 and over over 65-74 (DGT 2024)","province of Madrid, female",0.2845420741,,,
+"B-licence holders per resident, 75 and over over 65-74 (DGT 2024)","province of Barcelona, male",0.7161300324,,,
+"B-licence holders per resident, 75 and over over 65-74 (DGT 2024)","province of Barcelona, female",0.2755763176,,,
+"B-licence holders per resident, 75 and over over 65-74 (DGT 2024)","Spain, male",0.7103009522,,,
+"B-licence holders per resident, 75 and over over 65-74 (DGT 2024)","Spain, female",0.2622559643,,,
+"Madrid 2018 car-driver km per DGT licence holder, 75 and over over 65-74",male,0.4765773586,0.3637380585,0.6266637229,EDM2018 ratio per resident over DGT 2024 licence holding in the province of Madrid
+"Madrid 2018 car-driver km per DGT licence holder, 75 and over over 65-74",female,0.9921932783,0.5594802853,1.582243713,EDM2018 ratio per resident over DGT 2024 licence holding in the province of Madrid
+"Implied km per DGT licence holder, 75 and over over 65-74",Madrid survey: km per resident; male,0.4797802803,,,
+"Implied km per DGT licence holder, 75 and over over 65-74",Madrid survey: km per resident; female,1.076508342,,,
+"Implied km per DGT licence holder, 75 and over over 65-74",Madrid survey: km per resident; both sexes,0.6082247668,,,
+"Implied km per DGT licence holder, 75 and over over 65-74","Madrid km per licence holder, Spain's licence holders; male",0.4524578221,,,
+"Implied km per DGT licence holder, 75 and over over 65-74","Madrid km per licence holder, Spain's licence holders; female",0.7973082815,,,
+"Implied km per DGT licence holder, 75 and over over 65-74","Madrid km per licence holder, Spain's licence holders; both sexes",0.5452678786,,,
+"Implied km per DGT licence holder, 75 and over over 65-74","RACC driving-days limit for men, equal km per licence holder for women; male",0.6765655286,,,
+"Implied km per DGT licence holder, 75 and over over 65-74","RACC driving-days limit for men, equal km per licence holder for women; female",1,,,
+"Implied km per DGT licence holder, 75 and over over 65-74","RACC driving-days limit for men, equal km per licence holder for women; both sexes",0.7876923529,,,
+"Implied km per DGT licence holder, 75 and over over 65-74",equal km per licence holder; male,1,,,
+"Implied km per DGT licence holder, 75 and over over 65-74",equal km per licence holder; female,1,,,
+"Implied km per DGT licence holder, 75 and over over 65-74",equal km per licence holder; both sexes,1.082966751,,,
+"Working-day car-driver km per resident in Spain, 65 and over over 45-64","A: EMEF, province of Barcelona",0.4060815171,,,
+"Working-day car-driver km per resident in Spain, 65 and over over 45-64",C: Madrid survey 2018,0.2931429626,,,
+"Km of cars registered to private owners, 75 and over over 65-74",per resident,0.451021366,,,owner km cannot say who drove
+"Km of cars registered to private owners, 75 and over over 65-74",per car,0.7604211597,,,owner km cannot say who drove
+"Km of cars registered to private owners, 75 and over over 65-74",per B-licence holder,0.9231219314,,,owner km cannot say who drove
+Cars registered to private owners per B-licence holder,65-74,0.9398885964,,,
+Cars registered to private owners per B-licence holder,75+,1.140988471,,,
+"Licence holders of any class per resident aged 75 and over, 2024 over 2018 (DGT census, INE)",male,1.082446077,,,
+"Licence holders of any class per resident aged 75 and over, 2024 over 2018 (DGT census, INE)",female,1.681550109,,,
+"Car drivers involved in injury crashes per 1,000 B-licence holders",75+,2.839335666,,,
+"Car drivers involved in injury crashes per 1,000 B-licence holders",65-74,2.133194589,,,
+"Car drivers involved in injury crashes per 1,000 B-licence holders",45-64,2.983309636,,,
+"Car drivers involved per B-licence holder, 75 and over over 45-64",count-only 95% interval,0.9517401853,0.9224892835,0.9814540867,Poisson error in the two counts only

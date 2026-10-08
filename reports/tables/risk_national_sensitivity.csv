@@ -107,6 +107,10 @@ older sample,65+ employed share set to the census,18-29,0.1143283651,2.534097832
 older sample,65+ employed share set to the census,30-44,0.2797266103,1.403547475,1.186617461
 older sample,65+ employed share set to the census,45-64,0.4787994888,1,1
 older sample,65+ employed share set to the census,65+,0.1271455358,1.226028737,3.003366344
+older sample,share aged 75+ in the 65+ sample at the routing-identified share (bound),18-29,0.1153829957,2.534097832,2.260969755
+older sample,share aged 75+ in the 65+ sample at the routing-identified share (bound),30-44,0.2823069693,1.403547475,1.186617461
+older sample,share aged 75+ in the 65+ sample at the routing-identified share (bound),45-64,0.4832162105,1,1
+older sample,share aged 75+ in the 65+ sample at the routing-identified share (bound),65+,0.1190938245,1.320992467,3.235996186
 non-working days,"car trips on an average weekend day (MOVILIA 2006, Spain), 22% of km",18-29,0.115849088,2.468834035,2.202740167
 non-working days,"car trips on an average weekend day (MOVILIA 2006, Spain), 22% of km",30-44,0.2699639253,1.435695371,1.213796631
 non-working days,"car trips on an average weekend day (MOVILIA 2006, Spain), 22% of km",45-64,0.4726730298,1,1
