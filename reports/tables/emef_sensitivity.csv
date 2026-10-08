@@ -1,0 +1,73 @@
+variant,choice,age4,km_per_resident,share_of_km
+central,"2022-2024, unbanded bounded, multimodal half",16-29,9.17831038,0.1168669136
+central,"2022-2024, unbanded bounded, multimodal half",30-44,17.57310368,0.2977185801
+central,"2022-2024, unbanded bounded, multimodal half",45-64,19.27887715,0.4606674843
+central,"2022-2024, unbanded bounded, multimodal half",65+,7.870212537,0.1247470221
+years,2021-2022-2023-2024,16-29,9.101941166,0.1173751597
+years,2021-2022-2023-2024,30-44,17.76592002,0.3117704418
+years,2021-2022-2023-2024,45-64,18.58614663,0.4507447341
+years,2021-2022-2023-2024,65+,7.464691825,0.1201096643
+years,2023-2024,16-29,9.017998315,0.1158540571
+years,2023-2024,30-44,17.17317407,0.2871657889
+years,2023-2024,45-64,19.69526649,0.4703244286
+years,2023-2024,65+,7.996385713,0.1266557254
+years,2024,16-29,8.371738365,0.1104935289
+years,2024,30-44,16.39355598,0.2760947932
+years,2024,45-64,19.87660406,0.4821465728
+years,2024,65+,8.144210964,0.1312651051
+years,2019-2021-2022-2023-2024,16-29,9.161586051,0.1141248846
+years,2019-2021-2022-2023-2024,30-44,18.84147346,0.3268230295
+years,2019-2021-2022-2023-2024,45-64,18.69820976,0.4386674973
+years,2019-2021-2022-2023-2024,65+,7.71951342,0.1203845886
+area,RMB only,16-29,8.04601618,0.1095670967
+area,RMB only,30-44,16.26883059,0.2956907608
+area,RMB only,45-64,18.36962891,0.4677635231
+area,RMB only,65+,7.522790167,0.1269786194
+multimodal,car leg counted as nothing,16-29,8.777394061,0.1169292526
+multimodal,car leg counted as nothing,30-44,17.03682668,0.3018953366
+multimodal,car leg counted as nothing,45-64,18.17572768,0.454556253
+multimodal,car leg counted as nothing,65+,7.62942616,0.1266191578
+multimodal,car leg counted as the whole trip,16-29,9.579226699,0.1168316035
+multimodal,car leg counted as the whole trip,30-44,18.10938067,0.2939334548
+multimodal,car leg counted as the whole trip,45-64,20.38202662,0.4661860766
+multimodal,car leg counted as the whole trip,65+,8.110998914,0.1230488651
+unbanded trips,excluded,16-29,8.658522456,0.1245826182
+unbanded trips,excluded,30-44,16.16135496,0.3092866226
+unbanded trips,excluded,45-64,16.92821307,0.4568214805
+unbanded trips,excluded,65+,6.109690995,0.1093092787
+unbanded trips,truncated,16-29,9.028522774,0.1189111903
+unbanded trips,truncated,30-44,17.17896898,0.3009955551
+unbanded trips,truncated,45-64,18.58222282,0.4591726436
+unbanded trips,truncated,65+,7.377979989,0.120920611
+unbanded trips,uncapped,16-29,9.274631233,0.1132128154
+unbanded trips,uncapped,30-44,18.05176618,0.2931136254
+unbanded trips,uncapped,45-64,20.22598854,0.4634544745
+unbanded trips,uncapped,65+,8.563125834,0.1302190847
+distance within band,geometric midpoint,16-29,9.667587152,0.1184221879
+distance within band,geometric midpoint,30-44,18.29660569,0.2982194133
+distance within band,geometric midpoint,45-64,20.05773621,0.4612284318
+distance within band,geometric midpoint,65+,8.005337733,0.122129967
+distance within band,arithmetic midpoint,16-29,11.85866129,0.1202756724
+distance within band,arithmetic midpoint,30-44,22.34019506,0.3014553215
+distance within band,arithmetic midpoint,45-64,24.24775226,0.4615711439
+distance within band,arithmetic midpoint,65+,9.241654644,0.1166978621
+band edges,10-50 km band at 10 km,16-29,6.607804762,0.1112912417
+band edges,10-50 km band at 10 km,30-44,12.86324008,0.2884056767
+band edges,10-50 km band at 10 km,45-64,14.51752744,0.4594655849
+band edges,10-50 km band at 10 km,65+,6.706514728,0.1408374966
+band edges,10-50 km band at 50 km,16-29,16.71863706,0.1231700335
+band edges,10-50 km band at 50 km,30-44,31.29953919,0.3067254089
+band edges,10-50 km band at 50 km,45-64,33.4890949,0.4629454657
+band edges,10-50 km band at 50 km,65+,11.68807765,0.1071590918
+band edges,over-100 km band at 100 km,16-29,9.032163604,0.1180387503
+band edges,over-100 km band at 100 km,30-44,17.21160803,0.2992635654
+band edges,over-100 km band at 100 km,45-64,18.83800094,0.4619059962
+band edges,over-100 km band at 100 km,65+,7.424838763,0.120791688
+road distance,bounded at 80 km/h door to door (ratio 1.504),16-29,9.140558099,0.1168173729
+road distance,bounded at 80 km/h door to door (ratio 1.504),30-44,17.59064786,0.2990470237
+road distance,bounded at 80 km/h door to door (ratio 1.504),45-64,19.27717179,0.4621660659
+road distance,bounded at 80 km/h door to door (ratio 1.504),65+,7.669645823,0.1219695376
+road distance,bounded at 100 km/h door to door (ratio 1.474),16-29,9.147896903,0.1170245517
+road distance,bounded at 100 km/h door to door (ratio 1.474),30-44,17.53559452,0.2984373691
+road distance,bounded at 100 km/h door to door (ratio 1.474),45-64,19.24478834,0.4619002979
+road distance,bounded at 100 km/h door to door (ratio 1.474),65+,7.703024112,0.1226377813
