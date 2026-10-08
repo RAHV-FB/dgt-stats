@@ -249,9 +249,17 @@ def test_the_validation_page_does_not_claim_national_transferability(
     if not path.verdict.eq("potentially nationally transferable").any():
         assert "nationally transferable" not in visible
         assert "national use of the models is not established" in visible
-    # The two scores of a validation are named in plain words.
-    assert "Catalonia-trained model" in visible
-    assert re.search(r"trained (in|within) the test population", visible)
+    # The two scores of a validation are named in plain words, the published and the retired
+    # model each by one name, and ranking skill on the models page's scale.
+    assert "fitted on the Catalan file alone" in visible
+    assert re.search(r"fitted (in|within) the test population", visible)
+    assert "the Catalan severity model" in visible and "original Catalan model (retired)" in visible
+    # (Figure captions are written with the charts.)
+    prose = re.sub(r"<figcaption>.*?</figcaption>", "", built["validation"], flags=re.S)
+    assert "calculator's model" not in _visible(prose)
+    assert visible.count("the share of pairs in which the fatal one gets the higher") == 1
+    # No pair of headline numbers without intervals.
+    assert 'class="compare"' not in built["validation"]
 
 
 def test_pages_carry_no_template_furniture(built: dict[str, str]) -> None:
