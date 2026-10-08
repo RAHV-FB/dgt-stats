@@ -11,7 +11,7 @@ Among people recorded in Barcelona crashes, which observed circumstances and roa
 - **Feature table:** `data/features/barcelona_person_severity.parquet` (15,848 rows, id `person_record_id`, grouped by `Numero_expedient`).
 - **Source files:** `data/raw/barcelona/2025/accidents_gu_bcn_2025.csv` (SHA-256 `2bd4dc9f35e1…`); `data/raw/barcelona/2025/accidents_tipus_gu_bcn_2025.csv` (SHA-256 `be50665fef12…`); `data/raw/barcelona/2025/accidents_causes_mediates_gu_bcn_2025.csv` (SHA-256 `17d6df8b5dd5…`); `data/raw/barcelona/2025/accidents_causa_conductor_gu_bcn_2025.csv` (SHA-256 `2d0f89d743d1…`); `data/raw/barcelona/2025/accidents_persones_gu_bcn_2025.csv` (SHA-256 `a851a51b2478…`); `data/raw/barcelona/2025/accidents_vehicles_gu_bcn_2025.csv` (SHA-256 `6f50be9587d4…`).
 - **Layer:** Rich microdata: Barcelona.
-- **Decision:** KEEP but ranking-only (gain +0.063 (+0.020 to +0.106) over the table: adds signal).
+- **Status:** research only, after the model review ([`ML_MODEL_REVIEW.md`](../research/ML_MODEL_REVIEW.md)). The decision rules gave: KEEP but ranking-only (gain +0.063 (+0.020 to +0.106) over the table: adds signal).
 - **What it does:** ranks the people recorded in crashes by how likely they were seriously or fatally injured, from road role, vehicle, age, sex and crash circumstances.
 - **Not answered:** anyone's risk per trip; the behaviour of a person (causes have no person key); other cities or years.
 

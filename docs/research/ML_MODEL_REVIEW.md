@@ -17,7 +17,7 @@ and `reports/tables/sev_*.csv`.
 | Barcelona crash severity (logistic) | serious or fatal injury in the crash; one 2025 Barcelona crash | accident-type table: 0.734 | 0.737 (1,994 crashes, 58 positive) | slope 0.84 | **REMOVE**: no gain over the table |
 | Catalan model on DGT-common or Barcelona-common variables | fatal rather than serious | not a predictive model | transfer tests | — | **RESEARCH ONLY**: validation instruments |
 | DGT crash severity (logistic, association analysis) | a death within 30 days; one DGT injury crash, 2016–2024 | not compared | 0.801 on 2023–2024 (203,302 crashes, 3,336 fatal) | every decile within half a point | **RESEARCH ONLY**: recording artefacts (below) |
-| Monthly road deaths forecast (Poisson regression) | deaths in a month, Spain | last year's count: 5.9% error in ordinary held-out years | 6.6% | — | **REMOVE** as a forecast (below) |
+| Monthly road deaths forecast (Poisson regression) | deaths in a month, Spain | last year's count: 5.9% error in ordinary held-out years | 6.6% | — | **WITHDRAWN**: its page is a withdrawal notice (below) |
 
 Read each row as follows. The benchmark is a table any analyst could make, scored on the same
 held-out records. ROC-AUC is the chance that a randomly chosen fatal crash is ranked above a
@@ -66,7 +66,8 @@ coefficients mix road and recording. It stays a research analysis.
 
 The forecast was a Poisson regression of monthly deaths on month, a linear trend, road fuel and
 the number of Fridays, Saturdays and Sundays, fitted on the four years before the year predicted:
-16 coefficients from 48 months. It was chosen on 2006–2015, when deaths fell steeply, and there
+17 coefficients (an intercept and eleven month terms, the trend, road fuel and three calendar
+counts) from 48 months. It was chosen on 2006–2015, when deaths fell steeply, and there
 it beat last year's count easily (error 4.9% against 11.7%; last year's count was biased by −9.7%
 every year). In the held-out years 2016–2019 and 2022–2024 deaths were roughly flat and the
 ranking reversed: 6.6% against 5.9% (`review_forecast`).
@@ -82,7 +83,7 @@ estimation error but extrapolates an older trend (6.8% held out, 8.1% in 2006–
 specification wins in both kinds of year, and whether the next years will be flat is unknown when
 the forecast is made.
 
-The model is removed as a forecast. Its page also used the model's errors to state how large a
+The model is withdrawn as a forecast. Its page also used the model's errors to state how large a
 change in deaths a before-and-after comparison can detect, and that statement depended on the
 rejected model. The page is withdrawn, and the investigation is kept here.
 

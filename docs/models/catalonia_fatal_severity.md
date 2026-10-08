@@ -13,7 +13,7 @@ Among recorded crashes in Catalonia with a death or a serious injury, which comb
 - **Feature table:** `data/features/catalonia_crash_severity.parquet` (24,478 rows, id `cat_crash_id`).
 - **Source files:** `data/raw/catalonia/accidents_morts_ferits_greus_catalunya_2010_2023.csv` (SHA-256 `05910aa53daf…`).
 - **Layer:** Crash microdata: Catalonia.
-- **Decision:** KEEP as useful predictive model (gain +0.095 (+0.067 to +0.123) over the table: adds signal).
+- **Status:** retired, after the model review ([`ML_MODEL_REVIEW.md`](../research/ML_MODEL_REVIEW.md)). The decision rules gave: KEEP as useful predictive model (gain +0.095 (+0.067 to +0.123) over the table: adds signal).
 - **What it does:** ranks recorded serious-or-fatal crashes by how likely they were fatal, from road, crash and environmental circumstances.
 - **Not answered:** whether a crash happens; risk per trip or kilometre; any causal effect; crashes with only slight injuries.
 

@@ -11,7 +11,7 @@ Which recorded crash circumstances distinguish Barcelona crashes with a serious 
 - **Feature table:** `data/features/barcelona_crash_severity.parquet` (7,741 rows, id `Numero_expedient`).
 - **Source files:** `data/raw/barcelona/2025/accidents_gu_bcn_2025.csv` (SHA-256 `2bd4dc9f35e1…`); `data/raw/barcelona/2025/accidents_tipus_gu_bcn_2025.csv` (SHA-256 `be50665fef12…`); `data/raw/barcelona/2025/accidents_causes_mediates_gu_bcn_2025.csv` (SHA-256 `17d6df8b5dd5…`); `data/raw/barcelona/2025/accidents_causa_conductor_gu_bcn_2025.csv` (SHA-256 `2d0f89d743d1…`); `data/raw/barcelona/2025/accidents_persones_gu_bcn_2025.csv` (SHA-256 `a851a51b2478…`); `data/raw/barcelona/2025/accidents_vehicles_gu_bcn_2025.csv` (SHA-256 `6f50be9587d4…`).
 - **Layer:** Rich microdata: Barcelona.
-- **Decision:** REPLACE with descriptive table (gain +0.003 (-0.039 to +0.051) over the table: no measurable gain).
+- **Status:** removed, after the model review ([`ML_MODEL_REVIEW.md`](../research/ML_MODEL_REVIEW.md)). The decision rules gave: REPLACE with descriptive table (gain +0.003 (-0.039 to +0.051) over the table: no measurable gain).
 - **What it does:** ranks recorded crashes by how likely they involved a serious or fatal injury.
 - **Not answered:** anyone's risk per trip; the behaviour of a person; other cities or years.
 
