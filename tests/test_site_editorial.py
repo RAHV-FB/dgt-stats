@@ -256,9 +256,9 @@ def test_the_validation_page_does_not_claim_national_transferability(
     assert "fitted on the Catalan file alone" in visible
     assert re.search(r"fitted (in|within) the test population", visible)
     assert "the Catalan severity model" in visible and "original Catalan model (retired)" in visible
-    # (Figure captions are written with the charts.)
-    prose = re.sub(r"<figcaption>.*?</figcaption>", "", built["validation"], flags=re.S)
-    assert "calculator's model" not in _visible(prose)
+    # The figure titles and captions, written with the charts, use the same names.
+    for old in ("calculator's model", "Catalonia model", "Catalonia crash-severity", "trained"):
+        assert old not in visible, old
     assert visible.count("the share of pairs in which the fatal one gets the higher") == 1
     # No pair of headline numbers without intervals.
     assert 'class="compare"' not in built["validation"]
