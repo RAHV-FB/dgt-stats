@@ -17,9 +17,16 @@ from __future__ import annotations
 
 import argparse
 import logging
+import os
 import sys
 import time
 from pathlib import Path
+
+# The distance model's fit sums a log-likelihood over tens of thousands of trips, so where the
+# optimiser stops depends on the order of floating-point sums, which the BLAS thread count
+# changes. One thread makes the committed tables reproducible on any machine.
+for variable in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS"):
+    os.environ[variable] = "1"
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 

@@ -8,6 +8,8 @@ on:
       - "reports/**"
       - "src/dgt_stats/**"
       - "scripts/build_site.py"
+      - "requirements.lock"
+      - "pyproject.toml"
       - ".github/workflows/pages.yml"
   workflow_dispatch:
 
@@ -33,6 +35,10 @@ jobs:
           python-version: "3.11"
       - run: pip install --require-hashes -r requirements.lock
       - run: python scripts/build_site.py
+      # Deploy only pages that match the committed ones and pass the site's own tests, so a push
+      # straight to main cannot publish a page the checks would reject.
+      - run: git diff --exit-code -- site
+      - run: pytest -q tests/test_site.py tests/test_site_editorial.py tests/test_site_design.py
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

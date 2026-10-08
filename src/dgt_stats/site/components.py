@@ -760,6 +760,7 @@ def render_page(slug: str, title: str, lead: str, body: str, head: str = "") -> 
 <title>{page_title}</title>
 <meta name="description" content="{esc(lead)}">
 <link rel="preload" href="fonts/NunitoSans.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="icon" href="data:,">
 <link rel="stylesheet" href="style.css">
 {JS_FLAG}
 <script src="site.js" defer></script>{head}

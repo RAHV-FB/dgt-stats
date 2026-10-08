@@ -102,6 +102,11 @@ jobs:
       - name: Build the site
         run: python scripts/build_site.py
 
+      # The committed pages must be the ones the committed tables build; otherwise a page in the
+      # repository would say something its source no longer does.
+      - name: Check the committed pages match the build
+        run: git diff --exit-code -- site
+
       - name: Test the built site in a browser
         env:
           REQUIRE_BROWSER: "1"
