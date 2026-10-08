@@ -85,7 +85,7 @@ The fatal model refitted without provinces 8, 17, 25, 43: 32 of the 32 odds rati
 ## Other checks
 
 - Adverse conditions under 8 model variants (`q3_adverse_conditions`): wet surface without the weather predictor 0.56 (0.49 to 0.64), at a junction 0.75 (0.69 to 0.81) (fatal).
-- The junction odds ratio by coding period (`q3_period_refits`): 0.69 (0.65 to 0.72) in 2016-2022, 0.98 (0.76 to 1.28) in 2023-2024, after the junction coding changed, mostly in Cataluña, where the share of crashes coded at a junction went from 39.6% to 62.8%; outside Cataluña 0.74 (0.66 to 0.83) in the later period. The full model's junction odds ratio pools the two regimes.
+- The junction odds ratio by coding period (`q3_period_refits`): 0.69 (0.65 to 0.72) in 2016-2022, 0.98 (0.76 to 1.28) in 2023-2024, after DGT's records for Cataluña began to code the junction flag the wrong way round (crashes between junctions as at a junction and the reverse; `dgt_audit_junction_coding`), so the share of Catalan crashes coded at a junction went from 39.6% to 62.8%; outside Cataluña 0.74 (0.66 to 0.83) in the later period. The full model's junction odds ratio pools the inverted rows with the rest.
 - Zone and road type split one location between them; their joint contrasts against an urban street, with the covariance of the two terms (`q3_location_contrasts`), run up to 8.74 (6.52 to 11.71) (urban crossing, conventional).
 - Hail or snow with the 3 provinces that record most of it removed: 0.66 (0.46 to 0.93) (`q3_adverse_exclusions`).
 - Year-by-year refits (`q3_year_stability`): 39 of 108 estimates of the 10 largest non-nuisance terms and of junction 'at a junction' and road surface 'wet' fall outside the full model's interval. Of the 12 terms, those whose yearly estimates vary by more than their yearly errors allow (Cochran's Q, p < 0.05): junction 'at a junction'.
@@ -106,6 +106,6 @@ The fatal model refitted without provinces 8, 17, 25, 43: 32 of the 32 odds rati
 ## Limitations
 
 - DGT's national microdata have one row per crash, with counts of the people killed and injured, and no record of individual drivers, vehicles or people and no speed field.
-- Recording practice differs between forces and years: the missing states concentrate in some provinces and years, and coding changes (urban road types in 2024, junctions from 2023, road-type codes 5 and 6 in 2021) move crashes between levels.
+- Recording practice differs between forces and years: the missing states concentrate in some provinces and years, and coding changes (urban road types in 2024, the junction flag of Cataluña's records, inverted from 2023, road-type codes 5 and 6 in 2021) move crashes between levels.
 - Standard errors are clustered by province; with 4 provinces removed the clustering changes too.
 - The holdout check scores later years with a model that has no year term, so a change in recording between the training and test years counts as model error.

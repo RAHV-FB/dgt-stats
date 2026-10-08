@@ -53,10 +53,6 @@ CONDITION_LABELS = {
 # The profile labels in ``q3_profiles`` use DGT's Spanish name for a dual carriageway.
 PROFILE_TERMS = {"Autovía": "Dual carriageway"}
 
-# A fall of more than this in the share of crashes with an empty junction-type field, from one
-# year to the next, marks the year DGT began to code junctions differently (as on data.html).
-JUNCTION_BREAK_DROP = 0.05
-
 NUMBER_WORDS = ("zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine")
 
 
@@ -70,16 +66,25 @@ def _count(value: int) -> str:
 
 
 def _junction_break_year() -> int:
-    """The year the junction fields were first coded differently, read from the table behind
-    data.html's coding breaks: the one year in which the junction-type field stops being empty
-    for a large share of crashes."""
-    missing = read_table("missingness_by_year")
-    info = missing[missing.column == "NUDO_INFO"].set_index("year").share_empty.sort_index()
-    drops = info.diff()
-    junction = [int(year) for year in drops[drops < -JUNCTION_BREAK_DROP].index]
-    if len(junction) != 1:
-        raise ValueError("severity page: the junction coding break is no longer one year")
-    return junction[0]
+    """The year the Catalan provinces' records began to code the junction flag the wrong way
+    round, read from the table behind data.html's coding breaks: the first year of the
+    province-years whose junction flag reads inverted, which must be the four Catalan provinces
+    in every year from then to the last."""
+    junctions = read_table("dgt_audit_junction_coding")
+    inverted = junctions[junctions.junction_flag_inverted.astype(bool)]
+    catalan = junctions[junctions.catalan.astype(bool)]
+    first = int(inverted.year.min())
+    years = set(range(first, int(junctions.year.max()) + 1))
+    if not (
+        set(inverted.province) == set(catalan.province)
+        and set(inverted.year) == years
+        and len(inverted) == catalan.province.nunique() * len(years)
+    ):
+        raise ValueError(
+            "severity page: the junction flag is no longer inverted in the Catalan provinces "
+            "alone, from one year to the last"
+        )
+    return first
 
 
 def page_severity(captions: dict[str, str]) -> str:
@@ -369,7 +374,7 @@ def page_severity(captions: dict[str, str]) -> str:
         < float(fatal_holdout.auc_missing_only)
         < float(fatal_holdout.auc_recorded_only)
         < float(fatal_holdout.auc),
-        "the audit's blank fields rank fatal crashes well on their own": float(
+        "the audit's unrecorded fields rank fatal crashes well on their own": float(
             artefact.roc_auc_unrecorded_flags_only
         )
         > 0.65,
@@ -412,8 +417,8 @@ def page_severity(captions: dict[str, str]) -> str:
         f"and so did junctions in {span(junction_before)} "
         f"({float(junction_before.odds_ratio):.2f}, {interval(junction_before)}) but not in "
         f"{span(junction_from)} ({float(junction_from.odds_ratio):.2f}, "
-        f"{interval(junction_from)}), after DGT began to code junctions differently, mostly in "
-        "Catalonia. These associations among crashes that happened say nothing about how often "
+        f"{interval(junction_from)}), after the records for the Catalan provinces began to "
+        "code the junction flag the wrong way round. These associations among crashes that happened say nothing about how often "
         "crashes happen or why some are deadlier. The pages on "
         '<a href="catalonia.html">Catalonia</a> (crashes with a death or serious injury, deaths '
         'within 24 hours) and <a href="barcelona.html">Barcelona</a> (every crash the city police '
@@ -513,10 +518,12 @@ def page_severity(captions: dict[str, str]) -> str:
         f"and {orr('street', 'wet')} on urban streets. Its interval lies below 1 in every model "
         "variant.</p>"
         "<p>The junction association is below 1 in every variant too, at "
-        f"{orr('full', 'at a junction')} in the full model, but that figure pools two ways of "
-        "recording junctions. From "
-        f"{junction_break}, DGT's records code junctions differently, and almost all of the "
-        "change is in Catalonia, where the share of crashes recorded at a junction went from "
+        f"{orr('full', 'at a junction')} in the full model, but that figure pools records "
+        "whose junction flag is the wrong way round with the rest. From "
+        f"{junction_break} the records for the Catalan provinces code crashes between "
+        "junctions as at a junction and the reverse "
+        '(<a href="data.html#coding-breaks">coding breaks</a>). The share of their crashes '
+        "recorded at a junction went from "
         f"{_fmt_pct(float(junction_before.share_at_level_inside), 0)} in "
         f"{span(junction_before)} to {_fmt_pct(float(junction_from.share_at_level_inside), 0)} "
         f"in {span(junction_from)}, against "
@@ -525,7 +532,8 @@ def page_severity(captions: dict[str, str]) -> str:
         "period apart, crashes at a junction had "
         f"{ci_of(junction_before)} times the odds of a death in {span(junction_before)} and "
         f"{ci_of(junction_from)} in {span(junction_from)}. Outside Catalonia the later figure "
-        f"is {ci_of(junction_from_outside)}, so the association disappears only where the coding changed. The results for "
+        f"is {ci_of(junction_from_outside)}, so the association disappears only where the flag "
+        "is inverted. The results for "
         "junctions are read from the earlier years.</p>"
     )
     body += figure(
@@ -611,7 +619,7 @@ def page_severity(captions: dict[str, str]) -> str:
         "level that records a missing value folded into its reference, the regression for a "
         f"death scores {auc(fatal_holdout.auc_recorded_only)}, and those levels on their own "
         f"{auc(fatal_holdout.auc_missing_only)}. Across the wider set of fields the DGT "
-        "microdata audit examines, which fields were left blank scores "
+        "microdata audit examines, which fields were left unrecorded scores "
         f"{auc(artefact.roc_auc_unrecorded_flags_only)} on its own, one reason the file is not "
         "used to train a predictive model. The "
         '<a href="severity-models.html">Catalan severity model</a> scores '

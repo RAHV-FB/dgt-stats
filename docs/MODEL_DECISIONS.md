@@ -133,7 +133,7 @@ changed what the site does with three of them:
 - **Baseline:** not compared. **ML:** logistic regression: ROC-AUC 0.801 on 2023–2024; n=203,302, positives=3,336. **Usefulness:** an association model.
 - **Calibration:** Brier skill +0.042.
 - **Transfer evidence:** not tested across sources.
-- **Highest validated level:** later time; next level blocked by: DGT microdata audit: failing checks 6 comparable across regions, 7 recording artefacts do not dominate; which fields were left unrecorded alone ranks death within 30 days at ROC-AUC 0.724 against 0.834 from the recorded values.
+- **Highest validated level:** later time; next level blocked by: DGT microdata audit: failing checks 6 comparable across regions, 7 recording artefacts do not dominate; which fields were left unrecorded alone ranks death within 30 days at ROC-AUC 0.681 against 0.834 from the recorded values.
 
 ## dgt_monthly_deaths_forecast (Poisson regression, Month + trend + traffic + calendar)
 

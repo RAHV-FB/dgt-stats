@@ -96,7 +96,95 @@ def test_absence_coded_dgt_field_counts_blanks_as_recorded() -> None:
     frame = pd.DataFrame({c: [np.nan, "1"] for c in dgt_audit.CANDIDATES})
     status = dgt_audit.statuses(frame)
     assert status.loc[0, "CONDICION_VIENTO"] == "observed"
+    assert status.loc[0, "CONDICION_NIEBLA"] == "observed"
     assert status.loc[0, "TIPO_VIA"] == "empty"
+    # With no NUDO value, whether the junction fields apply is unknown: they stay unrecorded.
+    assert status.loc[0, "NUDO_INFO"] == "empty"
+    # The presence fields are read from DGT's dictionary: the condition fields with no
+    # "not specified" code, which are fog and wind and nothing else.
+    present = [c for c in dgt_audit.CANDIDATES if dgt_audit.presence_field(c)]
+    assert present == ["CONDICION_NIEBLA", "CONDICION_VIENTO"]
+
+
+def test_junction_fields_do_not_apply_away_from_a_junction() -> None:
+    from dgt_stats.microdata.validation import dgt_audit
+
+    junction = dgt_audit.junction_code()
+    assert junction == 1  # "En intersección o nudo" in DGT's dictionary
+    rows = [
+        # NUDO, NUDO_INFO, PRIORI_NORMA
+        (1, 999, 999),  # at a junction, nothing recorded: unrecorded
+        (1, 4, 0),  # at a junction, recorded
+        (2, np.nan, 999),  # away from a junction: neither applies
+        (2, 4, 1),  # away from a junction but recorded: a recorded value stays recorded
+    ]
+    frame = pd.DataFrame({c: ["1"] * len(rows) for c in dgt_audit.CANDIDATES})
+    frame["NUDO"], frame["NUDO_INFO"], frame["PRIORI_NORMA"] = zip(*rows)
+    status = dgt_audit.statuses(frame)
+    assert list(status.NUDO_INFO) == ["not_specified", "observed", "not_applicable", "observed"]
+    assert list(status.PRIORI_NORMA) == ["not_specified", "observed", "not_applicable", "observed"]
+    # A field outside the junction fields keeps its 999 away from a junction.
+    frame["CONDICION_METEO"] = 999
+    assert (dgt_audit.statuses(frame).CONDICION_METEO == "not_specified").all()
+
+
+def test_unrecorded_shares_are_taken_over_the_crashes_a_field_applies_to(monkeypatch) -> None:
+    from dgt_stats.microdata.validation import dgt_audit
+
+    monkeypatch.setattr(dgt_audit, "MIN_PROVINCE_CRASHES", 1)
+    # Province 28: four junction crashes, one with the junction type unrecorded, and four crashes
+    # away from a junction. Province 41: two junction crashes, both recorded.
+    nudo = [1, 1, 1, 1, 2, 2, 2, 2, 1, 1]
+    info = [999, 4, 4, 4, np.nan, np.nan, np.nan, np.nan, 2, 2]
+    frame = pd.DataFrame({c: ["1"] * len(nudo) for c in dgt_audit.CANDIDATES})
+    frame["NUDO"], frame["NUDO_INFO"] = nudo, info
+    frame["COD_PROVINCIA"] = [28] * 8 + [41] * 2
+    frame["ANYO"] = 2020
+    status = dgt_audit.statuses(frame)
+    coding = pd.DataFrame(
+        {"province": [28, 41], "year": [2020, 2020], "junction_flag_inverted": [False, False]}
+    )
+    regional = dgt_audit.regional_recording(frame, status, coding).set_index("field")
+    row = regional.loc["NUDO_INFO"]
+    assert row.applies_share == pytest.approx(6 / 10)
+    assert row.unrecorded_share == pytest.approx(1 / 6)
+    assert row.province_max == pytest.approx(1 / 4) and row.province_min == 0
+
+
+def test_catalan_junction_years_name_the_place_dgt_counts_match() -> None:
+    from dgt_stats.microdata.validation import dgt_audit
+
+    coding = pd.DataFrame(
+        {
+            "province": [8, 8, 28],
+            "year": [2022, 2023, 2023],
+            "catalan": [True, True, False],
+            "severe_crashes": [100, 100, 50],
+            "severe_at_junction": [30, 70, 20],
+            "cat_file_severe_crashes": [100, 100, np.nan],
+            "cat_file_within_junction": [25, 25, np.nan],
+            "cat_file_near_junction": [5, 5, np.nan],
+            "cat_file_between_junctions": [70, 70, np.nan],
+            "junction_flag_inverted": [False, True, False],
+        }
+    )
+    years = dgt_audit.catalan_junction_years(coding).set_index("year")
+    assert years.loc[2022, "dgt_at_junction_matches"] == "within or near a junction"
+    assert years.loc[2023, "dgt_at_junction_matches"] == "between junctions"
+    assert bool(years.loc[2023, "junction_flag_inverted"])
+    assert years.loc[2023, "cat_share_between_junctions"] == pytest.approx(0.7)
+
+
+def test_the_artefact_share_interval_holds_its_estimate() -> None:
+    from dgt_stats.microdata.validation import dgt_audit
+
+    rng = np.random.default_rng(0)
+    y = rng.integers(0, 2, 2000)
+    values = y + rng.normal(0, 1, len(y))
+    flags = y + rng.normal(0, 3, len(y))
+    share = dgt_audit._share_of_lift(y, flags, values)
+    low, high = dgt_audit.share_interval(y, flags, values)
+    assert 0 < low < share < high < 1
 
 
 # ----------------------------------------------------------------------------- results
@@ -188,6 +276,36 @@ def test_the_dgt_audit_decision_follows_its_checks() -> None:
     assert len(file_checks) == 7
     decision = checks.decision.iloc[0]
     assert decision.startswith("DGT microdata may train") == bool(file_checks.passed.all())
+
+
+def test_the_dgt_audit_tables_follow_its_definition_of_unrecorded() -> None:
+    from dgt_stats.microdata.validation import dgt_audit
+
+    regional = _table("dgt_audit_regional").set_index("field")
+    # Blank fog and wind fields are the recorded "no"; the junction fields apply to some crashes.
+    assert (regional.loc[["CONDICION_NIEBLA", "CONDICION_VIENTO"]].unrecorded_share == 0).all()
+    assert (regional.loc[list(dgt_audit.JUNCTION_FIELDS)].applies_share < 1).all()
+    junction = regional.loc[list(dgt_audit.JUNCTION_FIELDS)]
+    assert junction.province_spread_without_inverted_junction_years.notna().all()
+    artefacts = _table("dgt_audit_artefacts")
+    assert (artefacts.artefact_share_low <= artefacts.artefact_share_of_lift).all()
+    assert (artefacts.artefact_share_of_lift <= artefacts.artefact_share_high).all()
+    assert (
+        artefacts.artefacts_dominate
+        == (artefacts.artefact_share_of_lift >= dgt_audit.MAX_ARTEFACT_SHARE)
+    ).all()
+
+
+def test_only_catalan_records_have_the_junction_flag_inverted() -> None:
+    from dgt_stats.microdata.validation import dgt_audit
+
+    coding = _table("dgt_audit_junction_coding")
+    inverted = coding[coding.junction_flag_inverted]
+    assert inverted.catalan.all()
+    matched = dgt_audit.catalan_junction_years(coding)
+    flipped = matched.junction_flag_inverted
+    assert (matched[flipped].dgt_at_junction_matches == "between junctions").all()
+    assert (matched[~flipped].dgt_at_junction_matches != "between junctions").all()
 
 
 def test_the_national_test_holds_no_catalan_record() -> None:

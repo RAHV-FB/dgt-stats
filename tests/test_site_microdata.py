@@ -284,6 +284,13 @@ def test_sources_page_states_the_dgt_audit_decision(pages: dict[str, str]) -> No
     assert f"{died.roc_auc_unrecorded_flags_only:.2f}" in text
     assert f"{died.roc_auc_recorded_values:.2f}" in text
     assert "DGT_MICRODATA_AUDIT.md" in text and 'id="scope"' in text
+    # Fields that do not apply are not unrecorded, and a narrow pass of a limit is called narrow.
+    assert "in a crash it applies to" in text
+    if died.artefacts_dominate and died.artefact_share_of_lift - 0.5 < 0.1:
+        assert "but only by" in text
+    # The junction flag is described as inverted, not as a new way of marking missing types.
+    assert "the junction flag the wrong way round" in text
+    assert "instead of leaving it blank" not in text
 
 
 def test_the_models_group_holds_only_models_that_beat_their_comparator() -> None:

@@ -772,6 +772,24 @@ def test_methodology_lists_every_assumption_the_methods_document_tests(built: Pa
     assert f"{components._fmt_dec(scatter['crashes'], 0)} times" not in main
 
 
+def test_coding_breaks_describe_the_inverted_catalan_junction_flag(built: Path) -> None:
+    from dgt_stats.microdata.validation import dgt_audit
+
+    data = (built / "data.html").read_text(encoding="utf-8")
+    block = data[data.index('id="coding-breaks"') :]
+    block = components.html.unescape(block[: block.index("</p>")])
+    assert "the junction flag the wrong way round" in block
+    assert "changes how it marks a missing value" not in block
+    matched = dgt_audit.catalan_junction_years(
+        pd.read_csv(TABLES_DIR / "dgt_audit_junction_coding.csv")
+    )
+    first = matched[matched.junction_flag_inverted].iloc[0]
+    assert components._fmt_pct(first.dgt_share_at_junction) in block
+    assert components._fmt_pct(first.cat_share_between_junctions) in block
+    # The "other" road group and code 14 are named apart.
+    assert "“other” road group" in block and "code 14" in block
+
+
 def test_forecast_page_is_withdrawn_and_says_why(built: Path) -> None:
     text = (built / "forecast.html").read_text(encoding="utf-8")
     body = text[text.find("<main>") : text.find("</main>")]

@@ -10,6 +10,7 @@ import re
 
 import pandas as pd
 
+from dgt_stats import codes
 from dgt_stats.microdata.ml import recording
 from dgt_stats.microdata.validation import dgt_audit
 from dgt_stats.site.components import (
@@ -366,6 +367,7 @@ def _audit() -> str:
     checks = read_table("dgt_audit_checks")
     artefacts = read_table("dgt_audit_artefacts")
     regional = read_table("dgt_audit_regional")
+    junctions = read_table("dgt_audit_junction_coding")
     decision = str(checks.decision.iloc[0])
     numbered = checks[checks.check.str.match(r"\d")]
     failed = numbered[~numbered.passed.astype(bool)]
@@ -381,8 +383,26 @@ def _audit() -> str:
         "sources",
         "the national records do not train a severity model",
     )
-    comparable = int(regional.comparable_across_provinces.astype(bool).sum())
+    regional_only = checks.assign(passed=checks.passed.astype(bool) | checks.check.str.match("7"))
+    _check(
+        dgt_audit.decide(regional_only).startswith("DGT microdata stay"),
+        "sources",
+        "the uneven recording across provinces fails the audit on its own",
+    )
+    # What counts as unrecorded: blank fog and wind fields are the recorded "no", and the junction
+    # fields do not apply away from a junction.
+    shares = regional.set_index("field")
+    _check(
+        all(dgt_audit.presence_field(f) for f in ("CONDICION_NIEBLA", "CONDICION_VIENTO"))
+        and float(shares.loc[["CONDICION_NIEBLA", "CONDICION_VIENTO"]].unrecorded_share.max()) == 0
+        and {"NUDO_INFO", *codes.PRIORI_COLUMNS} == set(dgt_audit.JUNCTION_FIELDS)
+        and bool((shares.loc[list(dgt_audit.JUNCTION_FIELDS)].applies_share < 1).all()),
+        "sources",
+        "the fog and wind fields are filled in only when present; the junction fields apply "
+        "only at a junction",
+    )
     priority = regional[regional.field.str.startswith("PRIORI_")]
+    others = regional[~regional.field.str.startswith("PRIORI_")]
     _check(
         not priority.empty and not priority.comparable_across_provinces.astype(bool).any(),
         "sources",
@@ -390,56 +410,89 @@ def _audit() -> str:
     )
     # The right-of-way flags answer one question in several columns unrecorded together,
     # so they count as one field.
-    fields = len(regional) - len(priority) + 1
+    fields = len(others) + 1
+    uneven = int((~others.comparable_across_provinces.astype(bool)).sum()) + 1
     _check(
         float(priority.unrecorded_share.max() - priority.unrecorded_share.min()) < 0.01,
         "sources",
         "the right-of-way flags are unrecorded together",
     )
-    _check(comparable <= fields / 2, "sources", "at most half the fields are recorded alike")
+    _check(0 < uneven < fields, "sources", "some fields are recorded alike and some are not")
+    # The junction flag of the Catalan provinces' records, inverted from one year to the last.
+    inverted = junctions[junctions.junction_flag_inverted.astype(bool)]
+    inverted_from = int(inverted.year.min())
+    catalan = set(junctions[junctions.catalan.astype(bool)].province)
+    matched = dgt_audit.catalan_junction_years(junctions)
+    flipped = matched[matched.junction_flag_inverted.astype(bool)]
+    _check(
+        set(inverted.province) == catalan
+        and set(inverted.year) == set(range(inverted_from, int(junctions.year.max()) + 1))
+        and len(inverted) == len(catalan) * len(set(inverted.year))
+        and not flipped.empty
+        and bool((flipped.dgt_at_junction_matches == "between junctions").all())
+        and bool(
+            (
+                matched[~matched.junction_flag_inverted.astype(bool)].dgt_at_junction_matches
+                != "between junctions"
+            ).all()
+        ),
+        "sources",
+        "only the Catalan provinces' records have the junction flag inverted, every year from "
+        "the first to the last, and there DGT's junction crashes are the Catalan file's crashes "
+        "between junctions",
+    )
+    worst_without = float(priority.province_max_without_inverted_junction_years.max())
+    _check(
+        worst_without < float(priority.province_max.max())
+        and worst_without > dgt_audit.MAX_REGIONAL_SPREAD,
+        "sources",
+        "without the inverted years the right-of-way fields are still recorded unevenly",
+    )
     coding = read_table("gen_coding_by_region").set_index(["region", "year"]).sort_index()
-    cat_codes, rest_codes = coding.loc["Catalonia"], coding.loc["Spain outside Catalonia"]
+    cat_codes = coding.loc["Catalonia"]
     switch = int(cat_codes[cat_codes.road_type_5_dual_carriageway.eq(0)].index.min())
-    cat_unspecified = cat_codes.junction_type_not_specified / cat_codes.crashes
-    rest_unspecified = rest_codes.junction_type_not_specified / rest_codes.crashes
-    junction_year = int(cat_unspecified[cat_unspecified > 0.5].index.min())
     _check(
         bool(
             (
                 cat_codes.loc[: switch - 1].road_type_6_single_carriageway
                 < 0.01 * cat_codes.loc[: switch - 1].road_type_5_dual_carriageway
             ).all()
-        )
-        and float(rest_unspecified.loc[junction_year:].max()) < 0.05,
+        ),
         "sources",
-        "the Catalan records code conventional roads and missing junction types their own way",
+        "the Catalan records code conventional roads their own way",
     )
     died_30 = artefacts[artefacts.target.str.contains("30 days")].iloc[0]
     died_24 = artefacts[artefacts.target.str.contains("24 hours")].iloc[0]
+    limit = dgt_audit.MAX_ARTEFACT_SHARE
+    share_30 = float(died_30.artefact_share_of_lift)
     _check(
         bool(died_30.artefacts_dominate) and not bool(died_24.artefacts_dominate),
         "sources",
         "unrecorded fields dominate for 30-day deaths and not among serious crashes",
     )
     _check(
-        float(died_24.artefact_share_of_lift)
-        < dgt_audit.MAX_ARTEFACT_SHARE
-        < float(died_30.artefact_share_of_lift),
+        float(died_24.artefact_share_high) < limit < float(died_30.artefact_share_low)
+        and share_30 - limit < 0.1,
         "sources",
-        "the artefact shares fall either side of the limit",
+        "the artefact shares fall either side of the limit, the 30-day share only narrowly "
+        "above it with its interval above it too",
     )
     # Fields whose unrecorded share differs between fatal and other crashes by the recording
     # check's factor, in DGT's records for Catalonia or for the rest of Spain.
     outcome = read_table("dgt_audit_outcome_recording")
-    limit = recording.RATIO_LIMIT
+    ratio = recording.RATIO_LIMIT
     dependent = outcome[
         (outcome.unrecorded_share_not_fatal >= recording.MIN_RATE)
         & (
-            (outcome.ratio_fatal_to_not_fatal >= limit)
-            | (outcome.ratio_fatal_to_not_fatal <= 1 / limit)
+            (outcome.ratio_fatal_to_not_fatal >= ratio)
+            | (outcome.ratio_fatal_to_not_fatal <= 1 / ratio)
         )
     ]
-    lower_when_fatal = dependent.groupby("field").ratio_fatal_to_not_fatal.max() <= 1 / limit
+    # The right-of-way flags count as one field here too.
+    dependent = dependent.assign(
+        field=dependent.field.where(~dependent.field.str.startswith("PRIORI_"), "right of way")
+    )
+    lower_when_fatal = dependent.groupby("field").ratio_fatal_to_not_fatal.max() <= 1 / ratio
     _check(
         not dependent.empty and lower_when_fatal.sum() > len(lower_when_fatal) / 2,
         "sources",
@@ -455,34 +508,44 @@ def _audit() -> str:
         "found three problems: provinces leave fields unrecorded at very different rates, "
         "the records for the Catalan provinces code some fields their own way, and which fields "
         "are unrecorded carries information about the outcome. A field counts as unrecorded "
-        "when it is “not specified”, “unknown” or left blank.</p>"
+        "when it is “not specified”, “unknown” or left blank in a crash it applies to. The "
+        "junction type and the fields that record who had right of way apply only to a crash "
+        "at a junction, and DGT fills in the fog and wind fields only when there was fog or "
+        "strong wind, so a blank there means there was none.</p>"
         f"<p>Of the {_fmt_int(fields)} fields examined (the {_fmt_int(len(priority))} that "
-        f"record who had right of way counted as one), {_words(comparable)} have an unrecorded "
-        f"share that varies by no more than {dgt_audit.MAX_REGIONAL_SPREAD * 100:.0f} "
-        "percentage points across the provinces with at least "
-        f"{_fmt_int(dgt_audit.MIN_PROVINCE_CRASHES)} crashes. The right-of-way fields are "
-        f"unrecorded in {_fmt_pct(priority.province_min.min(), 0)} of crashes in one province "
-        f"and {_fmt_pct(priority.province_max.max(), 0)} in another. Fields that are always "
-        "filled in can still be coded differently: the records for the four Catalan provinces "
-        f"code conventional roads as dual carriageways until {switch - 1}, and from "
-        f"{junction_year} mark a missing junction type as “not specified” instead of leaving it "
-        'blank, while the rest of Spain does neither (<a href="data.html#coding-breaks">coding '
-        "breaks</a>).</p>"
+        f"record who had right of way counted as one), {_words(uneven)} have an unrecorded "
+        f"share that varies by more than {dgt_audit.MAX_REGIONAL_SPREAD * 100:.0f} percentage "
+        "points across the provinces with at least "
+        f"{_fmt_int(dgt_audit.MIN_PROVINCE_CRASHES)} crashes, counting only the crashes each "
+        "field applies to. Among crashes recorded at a junction, the share with the right-of-way "
+        f"fields unrecorded runs from {_fmt_pct(priority.province_min.min(), 0)} in one province "
+        f"to {_fmt_pct(priority.province_max.max(), 0)} in another, and reaches "
+        f"{_fmt_pct(worst_without, 0)} without the Catalan provinces' records from "
+        f"{inverted_from}, described next. Fields that are always filled in can still be coded "
+        "differently: the records for the four Catalan provinces code conventional roads as "
+        f"dual carriageways until {switch - 1}, and from {inverted_from} code the junction flag "
+        "the wrong way round, recording crashes between junctions as at a junction and crashes "
+        "at a junction as away from one, while the rest of Spain does neither "
+        '(<a href="data.html#coding-breaks">coding breaks</a>).</p>'
         f"<p>Recording also depends on the outcome. In {_words(dependent.field.nunique())} "
-        f"fields the unrecorded share differs by a factor of {limit:.1f} or more between fatal "
+        f"fields the unrecorded share differs by a factor of {ratio:.1f} or more between fatal "
         "and other crashes, in Catalonia or in the rest of Spain, and in most of them it is "
         "lower when someone died. A model that sees only which fields were unrecorded ranks "
         "crashes with a death within 30 days with "
         f"a ROC-AUC of {float(died_30.roc_auc_unrecorded_flags_only):.2f} "
         '(<a href="data.html#models">ranking measure</a>), against '
         f"{float(died_30.roc_auc_recorded_values):.2f} for a model that sees the recorded "
-        "values: which fields are unrecorded gives "
-        f"{_fmt_pct(float(died_30.artefact_share_of_lift), 0)} of the recorded model's gain over "
-        f"chance, above the {_fmt_pct(dgt_audit.MAX_ARTEFACT_SHARE, 0)} limit set in advance. "
-        "Among crashes with a death or serious injury, the population of the external test, "
-        f"the share is {_fmt_pct(float(died_24.artefact_share_of_lift), 0)}, below it. A model "
-        "trained on all of Spain would partly be ranking crashes by how completely each "
-        "province records them.</p>"
+        f"values: which fields are unrecorded gives {_fmt_pct(share_30, 0)} of the recorded "
+        "model's gain over chance (95% interval "
+        f"{_fmt_pct(float(died_30.artefact_share_low), 0)} to "
+        f"{_fmt_pct(float(died_30.artefact_share_high), 0)}), above the "
+        f"{_fmt_pct(limit, 0)} limit set in advance, but only by "
+        f"{_words(round((share_30 - limit) * 100))} percentage points. Among crashes with a "
+        "death or serious injury, the population of the external test, the share is "
+        f"{_fmt_pct(float(died_24.artefact_share_of_lift), 0)}, below it. The uneven recording "
+        "across provinces fails the audit on its own, so the decision does not rest on that "
+        "narrow result. A model trained on all of Spain would partly be ranking crashes by how "
+        "completely each province records them.</p>"
         "<p>The national records are therefore used to describe Spain, including the "
         f"associations reported under {severity}, and, on the variables validated against the "
         "Catalan file, as an external test of a version of the original Catalan model. They "
@@ -583,6 +646,7 @@ def page_sources(captions: dict[str, str]) -> str:
             ("dgt_audit_regional", "unrecorded shares by field and province"),
             ("dgt_audit_artefacts", "ranking from unrecorded fields alone"),
             ("dgt_audit_outcome_recording", "unrecorded shares by outcome"),
+            ("dgt_audit_junction_coding", "junction coding by province and year"),
         ],
         method=("data.html#records", "reading police crash records"),
     )
