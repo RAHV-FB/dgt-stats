@@ -265,22 +265,35 @@ def test_drivers_page_separates_the_two_questions(built: Path) -> None:
     central = rates[rates.method.str.startswith("A:")].set_index("group")
     severity = pd.read_csv(TABLES_DIR / "risk_severity_and_licences.csv").set_index("group")
     young, older = central.loc["18-29"], central.loc["65+"]
-    # The page leads with involvement per km by driver age, quoted with its interval, and the
-    # key result comes before the per-km table; the numbers come from the tables.
+    # The page leads with involvement per km by driver age, quoted with its interval; the numbers
+    # come from the tables, and no big-number callout repeats the summary.
     opening = re.search(r'<p class="summary">(.*?)</p>', body, re.S).group(1)
     assert f"{young.involved_ratio_low:.2f}–{young.involved_ratio_high:.2f}" in opening
     assert f"{older.involved_ratio:.2f}" in opening
     assert f"{severity.loc['75+', 'killed_per_1000_involved']:.1f}" in opening
-    key = re.search(r'<div class="key-result">(.*?)</div>', body, re.S).group(1)
-    assert f'<p class="key-value">{young.involved_ratio:.2f}×</p>' in key
+    assert 'class="key-result"' not in body
     assert 'src="figures/dr1_involved_per_km.svg"' in body
     assert body.find("dr1_involved_per_km") < body.find("<table")
     # Intervals and sensitivity ranges are told apart, and the transfer is flagged as an estimate;
-    # the range spans every alternative of the sensitivity table.
+    # the range spans every alternative of the sensitivity table. For 65 and over, both ranges
+    # are labelled wherever they are quoted together.
     spread = pd.read_csv(TABLES_DIR / "risk_national_sensitivity.csv").groupby("group")
     assert "sensitivity range" in body and "not measurements" in body
     assert f"{spread.involved_ratio.max()['65+']:.2f}" in body
     assert f"{spread.involved_ratio.min()['18-29']:.2f}" in body
+    assert (
+        f"(95% interval {older.involved_ratio_low:.2f}–{older.involved_ratio_high:.2f}; "
+        f"sensitivity range {spread.involved_ratio.min()['65+']:.2f}–"
+        f"{spread.involved_ratio.max()['65+']:.2f})"
+    ) in opening
+    # The opening says what involvement does not show: who caused the crash, or harm to others.
+    assert "whoever caused it" in opening and "more dangerous to others" in opening
+    # Table 1 names the rows of the published CSV it reproduces, and has no jargon column.
+    assert f"method “{young.method}” and kilometre total “{young.km_total}”" in body
+    assert "bootstrap replicates are not published" in body
+    assert "licence-calibrated transfer</th>" not in body
+    # No project process notes in the results.
+    assert "request for the split" not in body
     # Barcelona's working-day check, the model-dependent oldest group, and deaths once involved.
     city = pd.read_csv(TABLES_DIR / "risk_barcelona_rates.csv")
     city = city[city.numerator == city.numerator.iloc[0]]
@@ -293,7 +306,8 @@ def test_drivers_page_separates_the_two_questions(built: Path) -> None:
         assert f"{value:.2f}" in body
     assert 'src="figures/dr2_killed_per_involved.svg"' in body
     assert "Powered by CRTM" in body and 'href="https://www.crtm.es"' in body
-    # The former owner-age figures are explained, not hidden, and are no longer the result.
+    # The former owner-age figures are explained, not hidden, and are no longer the result: a
+    # short note closes the per-km section, with no section or table of its own.
     owner = pd.read_csv(TABLES_DIR / "risk_owner_age_comparison.csv")
     old = owner[owner.denominator.str.endswith("(former figure)")].set_index("group")
     same = owner[owner.denominator.str.endswith("same age groups")].set_index("group")
@@ -301,6 +315,16 @@ def test_drivers_page_separates_the_two_questions(built: Path) -> None:
     assert f"{same.loc['18-29', 'ratio_to_reference']:.2f} times the 45–64 rate" in body
     assert f"{old.loc['18-24', 'ratio_to_reference']:.2f}, compared drivers aged 18–24" in body
     assert "A car's owner is often not its driver" in body
+    assert "Why the former figure differed" not in body and "Ratio to 35–54" not in body
+    sections = re.split(r"<h2[^>]*>", body)
+    per_km = next(s for s in sections if s.startswith("Crashes per kilometre"))
+    assert "A car's owner is often not its driver" in per_km
+    # The firm result, deaths once a crash has happened, follows the per-km section directly.
+    headings = re.findall(r'<h2 id="([^"]+)"', body)
+    assert headings[:2] == [
+        "involvement-in-crashes-per-kilometre-driven",
+        "deaths-once-a-crash-has-happened",
+    ]
     for phrase in ("frailty", "travel-weighted", "extra travel", "nearly seven"):
         assert phrase not in text, phrase
     assert "doi.org" not in text  # no external study interprets these results
@@ -690,8 +714,8 @@ def test_drivers_page_chains_crashes_and_deaths_per_crash(built: Path) -> None:
         rates.method.str.startswith("A:") & (rates.km_total == "less taxi and ride-hailing")
     ].set_index("group")
     older = central.loc["65+"]
-    assert f"{older.killed_ratio:.1f} times as often per kilometre" in text
-    assert f"({older.killed_ratio_low:.2f}–{older.killed_ratio_high:.2f})" in text
+    assert f"{older.killed_ratio:.2f} times as often per kilometre" in text
+    assert f"(95% interval {older.killed_ratio_low:.2f}–{older.killed_ratio_high:.2f})" in text
 
 
 def test_vehicles_page_quotes_per_km_rates_for_all_roads_only(built: Path) -> None:
