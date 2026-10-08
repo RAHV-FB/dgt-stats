@@ -18,7 +18,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from dgt_stats import factors, plots, policy, summaries
+from dgt_stats import codes, factors, plots, policy, summaries
 from dgt_stats.microdata import charts as microdata_charts
 from dgt_stats.paths import FIGURES_DIR, NARROW_FIGURES_DIR, TABLES_DIR
 
@@ -45,10 +45,13 @@ VEHICLE_FLEET_SOURCE = "DGT registered vehicle fleet"
 
 SPEED_STATUS_LABELS = {
     "speed_infraction": "Speed infraction recorded",
-    "too_slow": "Driving too slowly (too few to show)",
     "none": "No speed infraction recorded",
     "unknown": "No speed status recorded",
 }
+# Drivers recorded as driving too slowly count in each year's total but are not drawn: they are
+# below this share of drivers in every year, too few to see.
+TOO_SLOW = "too_slow"
+TOO_SLOW_MAX_SHARE = 0.001
 
 
 def _caption(shown: str, source: str, n: str | int | None = None) -> str:
@@ -63,6 +66,22 @@ def _caption(shown: str, source: str, n: str | int | None = None) -> str:
 def _ranges(text: str) -> str:
     """A range written with a hyphen between numbers (hours 10-13) with an en dash."""
     return re.sub(r"(?<=\d)-(?=\d)", "–", text)
+
+
+def _year_runs(years: list[int]) -> list[str]:
+    """Years as runs of consecutive years: [2005, 2007, 2008, 2009] gives 2005 and 2007–2009."""
+    runs: list[list[int]] = []
+    for year in sorted(years):
+        if runs and year == runs[-1][-1] + 1:
+            runs[-1].append(year)
+        else:
+            runs.append([year])
+    return [str(run[0]) if len(run) == 1 else f"{run[0]}–{run[-1]}" for run in runs]
+
+
+def _join_words(items: list[str]) -> str:
+    """'a', 'a and b', 'a, b and c'."""
+    return items[0] if len(items) == 1 else ", ".join(items[:-1]) + " and " + items[-1]
 
 
 def build_all(
@@ -157,13 +176,16 @@ def _draw_all(figures_dir: Path, captions: dict[str, str], summary) -> None:
 def _speed_status_figure(figures_dir: Path, captions: dict[str, str], summary) -> None:
     shares = summary("q9_infraction_shares")
     block = shares[shares.zone == "all"]
+    too_slow = block[TOO_SLOW] / block[[*SPEED_STATUS_LABELS, TOO_SLOW]].sum(axis=1)
+    if not (too_slow < TOO_SLOW_MAX_SHARE).all():
+        raise ValueError("c3: drivers recorded as too slow are now too many to leave undrawn")
     long = block.melt(
         id_vars="year",
-        value_vars=list(SPEED_STATUS_LABELS),
+        value_vars=[*SPEED_STATUS_LABELS, TOO_SLOW],
         var_name="status",
         value_name="drivers",
     )
-    long["status"] = long.status.map(SPEED_STATUS_LABELS)
+    long["status"] = long.status.map({**SPEED_STATUS_LABELS, TOO_SLOW: TOO_SLOW})
     plots.bar_shares(
         long,
         "year",
@@ -172,12 +194,14 @@ def _speed_status_figure(figures_dir: Path, captions: dict[str, str], summary) -
         figures_dir / "c3_speed_status.svg",
         "Drivers in injury crashes by recorded speed status, all roads",
         order=list(SPEED_STATUS_LABELS.values()),
-        colors=[plots.ACCENT, plots.CATEGORICAL[1], "#d4d4cf", "#8f8f8a"],
+        colors=[plots.ACCENT, "#d4d4cf", "#8f8f8a"],
+        hidden=(TOO_SLOW,),
     )
     captions["c3_speed_status"] = _caption(
         "Drivers involved in injury crashes by the police record of a speed infraction, Spain, "
         f"all roads, {int(block.year.min())}–{int(block.year.max())}; the share with no speed "
-        "status recorded changes in 2016, which shifts every share below it",
+        "status recorded changes in 2016, which shifts every share below it. Drivers recorded "
+        f"as driving too slowly, under {TOO_SLOW_MAX_SHARE:.1%} in every year, are not drawn",
         TABLES_SOURCE,
         f"{int(block.total.sum()):,} drivers",
     )
@@ -244,6 +268,12 @@ LONG_RUN_RATIO_PANELS = {
 }
 # The zoom of the ratio charts: the decade before the pandemic and every year after it.
 RATIO_ZOOM_YEARS = 10
+# Panel titles of the kilometre check, by measure; the caption says why the fuel panel is only a
+# check.
+LONG_RUN_KM_PANELS = {
+    "per_km": "Per measured interurban vehicle-km",
+    "per_fuel": "Over national road fuel (check)",
+}
 
 
 def _long_run_figures(figures_dir: Path, captions: dict[str, str], summary) -> None:
@@ -316,6 +346,10 @@ def _long_run_figures(figures_dir: Path, captions: dict[str, str], summary) -> N
     )
     covered = f"{int(coverage.year.min())}–{int(coverage.year.max())}"
     check = check[check.year >= zoom_first]
+    untitled = set(check.measure) - set(LONG_RUN_KM_PANELS)
+    if untitled:
+        raise ValueError(f"l4 panel titles: no title for {sorted(untitled)}")
+    check = check.assign(measure_label=check.measure.map(LONG_RUN_KM_PANELS))
     plots.ratio_panels(
         check,
         "measure_label",
@@ -332,8 +366,9 @@ def _long_run_figures(figures_dir: Path, captions: dict[str, str], summary) -> N
     )
     captions["l4_km_against_fuel"] = _caption(
         f"Interurban deaths within 30 days as a ratio to a trend fitted to {fit_first}–{fit_end} "
-        f"and projected from {first_projected}, per measured vehicle-kilometre and, as a check, "
-        "over national road fuel sold, with the trend's 95% prediction range shaded, Spain, "
+        f"and projected from {first_projected}, per measured vehicle-kilometre and, as a check "
+        "on fuel as a measure of traffic, over the road fuel sold for every road in Spain, towns "
+        "included, with the trend's 95% prediction range shaded, Spain, "
         f"{int(check.year.min())}–{int(check.year.max())}; the kilometres leave out roads run "
         f"by municipalities and other bodies, which account for {outside} of interurban deaths "
         f"({covered})",
@@ -570,6 +605,15 @@ def _factor_figures(figures_dir: Path, captions: dict[str, str], summary) -> Non
 
     shares = summary("factor_shares")
     shares = shares[shares.zone != "all"]
+    # A series that breaks at every year is drawn as unjoined points; the caption names the
+    # factors whose series do so on both kinds of road, and the build stops on any other.
+    runs = shares.groupby(["factor", "zone"]).agg(
+        years=("year", "size"), runs=("segment", "nunique")
+    )
+    every_year = (runs.years == runs.runs).groupby(level="factor").agg(["all", "any"])
+    unjoined = list(every_year.index[every_year["all"]])
+    if len(unjoined) != 1 or every_year["any"].sum() != len(unjoined):
+        raise ValueError(f"f2 caption: series that break at every year: {every_year}")
     plots.segmented_small_multiples(
         shares,
         "factor",
@@ -591,9 +635,12 @@ def _factor_figures(figures_dir: Path, captions: dict[str, str], summary) -> Non
     captions["f2_factor_shares"] = _caption(
         "Injury crashes in which the police recorded each factor, as a share of all "
         "injury crashes on interurban roads and on urban streets, Spain outside Catalonia and "
-        "the Basque Country, 2014–2023; a line breaks where the share rises by more than "
-        f"{factors.BREAK_RATIO - 1:.0%} or falls by more than {1 - 1 / factors.BREAK_RATIO:.0%} "
-        f"in a year, or a year has fewer than {factors.MIN_CRASHES} crashes",
+        "the Basque Country, 2014–2023; a line breaks, at a short vertical mark, where the share "
+        f"rises by more than {factors.BREAK_RATIO - 1:.0%} or falls by more than "
+        f"{1 - 1 / factors.BREAK_RATIO:.0%} in a year, or a year has fewer than "
+        f"{factors.MIN_CRASHES} crashes. The {unjoined[0].lower()} series breaks at every year "
+        "on both kinds of road, so its points are not joined and are not comparable from year "
+        "to year",
         SPEED_REPORT_SOURCE,
     )
 
@@ -761,14 +808,15 @@ def _driver_exposure_figures(figures_dir: Path, captions: dict[str, str]) -> Non
         "45–64 (2024)",
         xlabel="Rate ratio per km against drivers aged 45–64 (log scale)",
         reference_label="45–64 rate",
-        estimate_label="Estimate with 95% interval (EMEF age profile, Spain's population, DGT km)",
-        range_label="Sensitivity range: other profiles, distance treatments, survey years, "
-        "weekend mixes and, for 65–74 and 75 and over, the split of the 65+ kilometres",
+        # The caption says what the estimate rests on and what the ranges cover.
+        estimate_label="Estimate with 95% interval",
+        range_label="Sensitivity range (see caption)",
     )
     captions["dr1_involved_per_km"] = _caption(
         "Car drivers involved in injury crashes in Spain in 2024 per kilometre driven by drivers "
-        "of the same age, as ratios to drivers aged 45–64; kilometres by age from the EMEF's "
-        "working-day profile applied to Spain's population and scaled to DGT's car kilometres. "
+        "of the same age, as ratios to drivers aged 45–64 (hollow marker); kilometres by age "
+        "from the EMEF's working-day profile applied to Spain's population and scaled to DGT's "
+        "car kilometres. "
         "The grey bands are sensitivity ranges, not intervals: other regional profiles, the "
         "licence-calibrated transfer, other treatments of trip distances, other survey years, "
         "professionals' work driving, the older sample's employment and the age mix of "
@@ -836,10 +884,13 @@ def _vehicle_figures(figures_dir: Path, captions: dict[str, str], summary) -> No
         raise ValueError("v1 caption: the per-km ranking no longer has one clear leader")
     captions["v1_per_vehicle_vs_per_km"] = _caption(
         "Vehicles of each type involved in fatal crashes (deaths within 30 days) per 100,000 "
-        "circulating vehicles (left) and per billion vehicle-kilometres (right), Spain, 2022; "
-        f"per kilometre only the lead of {str(top.label).lower()} is clear of the 95% intervals "
-        "of the types below, some of which overlap (intervals in the rates table)",
+        "circulating vehicles (left) and per billion vehicle-kilometres (right), Spain, 2022. "
+        "The vertical position shows the rank only; each rate is printed beside its point. Per "
+        f"kilometre only the lead of {str(top.label).lower()} is clear of the 95% intervals of "
+        "the types below, some of which overlap (intervals and counts by type in the rates "
+        "table)",
         f"{TABLES_SOURCE}; {KM_SOURCE}",
+        f"{int(per_km['count'].sum()):,} vehicles in fatal crashes",
     )
 
 
@@ -850,6 +901,12 @@ def _policy_figures(figures_dir: Path, captions: dict[str, str], summary) -> Non
     points = policy.INTERVENTIONS["points_licence"]
     series = summary("q8_points_series")
     series["period"] = pd.to_datetime(series.period)
+    # The lower panel enlarges the months around the change, from the January of the year before.
+    zoom_from = pd.Timestamp(year=points.date.year - 1, month=1, day=1)
+    after = series[series.period >= points.date]
+    if not (after.counterfactual_linear > after.counterfactual_main).all():
+        raise ValueError("p1 caption: the straight-line projection no longer gives the larger drop")
+    break_label = f"{points.date.day} {points.date:%B %Y}"
     plots.intervention(
         series,
         "period",
@@ -857,24 +914,65 @@ def _policy_figures(figures_dir: Path, captions: dict[str, str], summary) -> Non
         "fitted_main",
         "counterfactual_main",
         figures_dir / "p1_points_series.svg",
-        "Monthly road deaths around the points-based licence, 2000–2007",
+        "Monthly road deaths around the points-based licence, "
+        f"{series.period.min().year}–{series.period.max().year}",
         points.date,
-        "1 July 2006",
+        break_label,
         ylabel="Deaths (30 days)",
-        alternative=("counterfactual_linear", "Counterfactual, one straight pre-trend"),
+        # One name for each line, the same in the legend, the caption and the page.
+        names={
+            "observed": "Observed deaths",
+            "fitted": "Fitted model",
+            "counterfactual": "Projection without the change, preferred pre-trend",
+        },
+        alternative=(
+            "counterfactual_linear",
+            "Projection without the change, straight-line pre-trend",
+        ),
+        zero_based=False,
+        zoom_from=zoom_from,
     )
     captions["p1_points_series"] = _caption(
         "Monthly road deaths within 30 days, Spain, "
-        f"{series.period.min():%B %Y} to {series.period.max():%B %Y}, with a fitted segmented "
-        "regression and two counterfactuals without the points-based licence of 1 July 2006: "
-        "the fitted model with its change set to zero, and the same with one straight "
-        "pre-trend, which gives the larger drop",
+        f"{series.period.min():%B %Y} to {series.period.max():%B %Y} (top) and enlarged from "
+        f"{zoom_from:%B %Y} (bottom), with the fitted model, a segmented regression, and from "
+        f"{break_label} two projections without the change: the preferred pre-trend (dashed) "
+        "and a straight-line pre-trend (dotted), which gives the larger drop. The value axes do "
+        "not start at zero. The projections are drawn without intervals; the intervals of the "
+        "step and of the average change are given in the text and in the table of every "
+        "specification",
         SERIES_SOURCE,
         f"{int(series.deaths.sum()):,} deaths",
     )
 
     placebo = summary("q8_points_calendar_placebo")
     placebo["label"] = pd.to_datetime(placebo.break_date).dt.strftime("%Y")
+    # The Julys whose windows hold the change are left out of the placebos; a note row stands in
+    # each run of them, so the axis does not read as consecutive years.
+    years = pd.to_datetime(placebo.break_date).dt.year
+    pre, post = policy.CALENDAR_PRE_MONTHS, points.post_months
+    missing = sorted(set(range(years.min(), years.max() + 1)) - set(years))
+    holds_change = [
+        pd.Timestamp(year=year, month=7, day=1) - pd.DateOffset(months=pre)
+        <= points.date
+        < pd.Timestamp(year=year, month=7, day=1) + pd.DateOffset(months=post)
+        for year in missing
+    ]
+    if not missing or not all(holds_change):
+        raise ValueError("p2: the Julys left out are no longer those whose window holds the change")
+    left_out = _year_runs(missing)
+    notes = pd.DataFrame(
+        {
+            "label": [f"{run}: left out" for run in left_out],
+            "year": [int(run[:4]) for run in left_out],
+            "is_true": False,
+        }
+    )
+    placebo = (
+        pd.concat([placebo.assign(year=years), notes], ignore_index=True)
+        .sort_values("year", kind="stable")
+        .reset_index(drop=True)
+    )
     plots.dot_interval(
         placebo,
         "label",
@@ -889,36 +987,141 @@ def _policy_figures(figures_dir: Path, captions: dict[str, str], summary) -> Non
         highlight="is_true",
         keep_order=True,
     )
-    july = pd.to_datetime(placebo.break_date).dt.year
     captions["p2_july_placebos"] = _caption(
         "Estimated change in the level of monthly deaths at 1 July 2006 and at every other "
-        f"July of {july.min()}–{july.max()} whose window avoids July 2006 and the pandemic, "
-        "each from the same segmented regression on 60 months before and 17 after, Spain, "
+        f"July of {years.min()}–{years.max()} whose window avoids July 2006 and the pandemic, "
+        f"each from the same segmented regression on {pre} months before and {post} after, Spain, "
         "with model-based 95% intervals, which these placebos show to be too narrow; the "
-        "filled marker is July 2006",
+        f"filled marker is July 2006. The Julys of {_join_words(left_out)} are left out because "
+        "their windows include July 2006",
         SERIES_SOURCE,
-        f"{int(placebo.n_fits.iloc[0])} fits",
+        f"{int(placebo.n_fits.dropna().iloc[0])} fits",
     )
 
 
 # --------------------------------------------------------------------------- data
 
 
+# The fields of DGT's crash records in the missing-values chart, in English; the table of missing
+# values keeps DGT's field names. The right-of-way flags (``codes.PRIORI_COLUMNS``) share one row.
+MISSINGNESS_FIELDS = {
+    "DIA_SEMANA": "Day of the week",
+    "COD_PROVINCIA": "Province",
+    "COD_MUNICIPIO": "Municipality",
+    "ISLA": "Island",
+    "ZONA": "Zone",
+    "ZONA_AGRUPADA": "Interurban or urban",
+    "CARRETERA": "Road number",
+    "KM": "Kilometre post",
+    "CARRETERA_CRUCE": "Crossing road",
+    "SENTIDO_1F": "Direction of travel",
+    "TITULARIDAD_VIA": "Road owner",
+    "TIPO_VIA": "Road type",
+    "TIPO_ACCIDENTE": "Crash type",
+    "NUDO": "At a junction or not",
+    "NUDO_INFO": "Junction type",
+    "CONDICION_NIVEL_CIRCULA": "Traffic level",
+    "CONDICION_FIRME": "Road surface",
+    "CONDICION_ILUMINACION": "Lighting",
+    "CONDICION_METEO": "Weather",
+    "CONDICION_NIEBLA": "Fog",
+    "CONDICION_VIENTO": "Strong wind",
+    "VISIB_RESTRINGIDA_POR": "Restricted visibility",
+    "ACERA": "Pavement",
+    "TRAZADO_PLANTA": "Road alignment",
+}
+# The right-of-way flags are drawn as one row only while their shares stay this close together.
+PRIORITY_SPREAD = 0.01
+# Optional fields whose empty cells DGT's dictionary does not define, named in the caption as
+# fields where an empty cell may also mean there was nothing to record; each is empty in most
+# crashes.
+OPTIONAL_FIELDS = ("CONDICION_NIEBLA", "KM", "NUDO_INFO")
+
+
+def empty_means(column: str) -> str | None:
+    """What DGT's dictionary says an empty cell of ``column`` means: ``"not applicable"`` where
+    it labels an empty cell "No aplica" (the island field), ``"no"`` where it codes absence as
+    '.' (the strong-wind field, whose files leave that cell empty), otherwise None."""
+    labels = codes.load_dictionary().get(column, {})
+    if labels.get("", "").strip().lower() == "no aplica":
+        return "not applicable"
+    if "." in labels:
+        return "no"
+    return None
+
+
+def priority_row(count: int) -> str:
+    return f"Right of way, {count} flags"
+
+
+def recorded_where_applicable(profile: pd.DataFrame) -> pd.DataFrame:
+    """Field × year share of crashes with a value recorded, among the crashes the field applies
+    to, from the missing-values table (``missingness_by_year``), as the chart draws it.
+
+    A value is not applicable, and is left out, when it is coded 998, when it is a non-coded
+    field's own "not applicable" placeholder (both in ``share_not_applicable``), or when the cell
+    is empty in a field whose dictionary defines an empty cell as not applicable. An empty cell
+    in a field whose dictionary codes absence as '.' is the recorded "no". Every other empty
+    cell, 999, an explicit unknown code and the placeholders count as missing. The right-of-way
+    flags are one row, their mean, and the rows run from the most completely recorded down.
+    """
+    meaning = profile.column.map(empty_means)
+    not_applicable = profile.share_not_applicable + profile.share_empty.where(
+        meaning.eq("not applicable"), 0.0
+    )
+    recorded = profile.share_observed + profile.share_empty.where(meaning.eq("no"), 0.0)
+    applies = 1 - not_applicable
+    shares = profile.assign(share=(recorded / applies).where(applies > 0))
+    matrix = shares.pivot(index="column", columns="year", values="share")
+    priority = matrix[matrix.index.isin(codes.PRIORI_COLUMNS)]
+    unnamed = set(matrix.index) - set(MISSINGNESS_FIELDS) - set(priority.index)
+    if unnamed:
+        raise ValueError(f"d1: no English name for the fields {sorted(unnamed)}")
+    if len(priority):
+        if ((priority.max() - priority.min()) >= PRIORITY_SPREAD).any():
+            raise ValueError("d1: the right-of-way flags are no longer recorded together")
+        matrix = matrix.drop(index=priority.index)
+        matrix.loc[priority_row(len(priority))] = priority.mean()
+    matrix = matrix.rename(index=MISSINGNESS_FIELDS)
+    means = matrix.mean(axis=1).round(6)
+    return matrix.loc[sorted(matrix.index, key=lambda row: (-means[row], row))]
+
+
 def _data_figures(figures_dir: Path, captions: dict[str, str]) -> None:
     profile = pd.read_csv(TABLES_DIR / "missingness_by_year.csv")
+    matrix = recorded_where_applicable(profile)
     plots.missingness_heatmap(
-        profile,
+        matrix,
         figures_dir / "d1_missingness.svg",
-        "Share of crashes with a value recorded, by field and year",
+        "Share of crashes with a value recorded where the field applies, by field and year",
     )
+    columns = sorted(set(profile.column))
+    meaning = {column: empty_means(column) for column in columns}
+    empty_na = [MISSINGNESS_FIELDS[c].lower() for c in columns if meaning[c] == "not applicable"]
+    empty_no = [MISSINGNESS_FIELDS[c].lower() for c in columns if meaning[c] == "no"]
+    optional = profile[profile.column.isin(OPTIONAL_FIELDS)].groupby("column").share_empty.mean()
+    if (
+        len(empty_na) != 1
+        or len(empty_no) != 1
+        or len(optional) != len(OPTIONAL_FIELDS)
+        or not (optional > 0.5).all()
+        or any(meaning[c] for c in OPTIONAL_FIELDS)
+    ):
+        raise ValueError("d1 caption: the fields whose empty cells it describes have changed")
+    priority = profile[profile.column.isin(codes.PRIORI_COLUMNS)].column.nunique()
+    optional_names = _join_words([MISSINGNESS_FIELDS[c].lower() for c in OPTIONAL_FIELDS])
     captions["d1_missingness"] = _caption(
-        "Share of crashes with a value recorded in each field of the DGT crash records, by "
-        f"year, Spain, {int(profile.year.min())}–{int(profile.year.max())}; a value counts as "
-        "missing when it is empty, 999 (not specified), 998 (not applicable), an explicit "
-        "unknown code or a placeholder (KM 9999, and 1000 in 2019; CARRETERA 'No "
-        "inventariada'; COD_MUNICIPIO 00000). CONDICION_VIENTO is a presence flag: DGT's "
-        "dictionary codes its absence as an empty cell, so its low share recorded means no "
-        "strong wind, not missing data",
+        "Share of crashes with a value recorded in each field of the DGT crash records, among "
+        f"the crashes the field applies to, by year, Spain, {int(profile.year.min())}–"
+        f"{int(profile.year.max())}. A value is not applicable, and is left out, when it is 998 "
+        "(not applicable), when the road is 'No inventariada' (no road number), or when the "
+        f"{empty_na[0]} field is empty, which DGT's dictionary defines as not applicable. An "
+        f"empty cell in the {empty_no[0]} field is the dictionary's code for no {empty_no[0]} "
+        "and counts as recorded. A value is missing when it is 999 (not specified), an "
+        "explicit unknown code, a placeholder (kilometre post 9999, and 1000 in 2019; "
+        "municipality 00000) or any other empty cell, although in optional fields "
+        f"({optional_names}) an empty cell may also mean there was nothing to record. The "
+        f"{priority} right-of-way flags, recorded together, share one row",
         MICRODATA_SOURCE,
         f"{int(profile.groupby('year').rows.first().sum()):,} crashes",
     )
@@ -928,7 +1131,8 @@ def _data_figures(figures_dir: Path, captions: dict[str, str]) -> None:
 
 
 def _severity_calculator_figures(figures_dir: Path, captions: dict[str, str]) -> None:
-    """Predicted against observed for the calculator's model, on years it was not fitted on."""
+    """Predicted against observed for the Catalan severity model, the published model behind the
+    calculator, on years it was not fitted on."""
     path = TABLES_DIR / "sev_calibration.csv"
     if not path.exists():
         log.warning("sev_calibration.csv missing: run scripts/severity_calculator.py calculator")
