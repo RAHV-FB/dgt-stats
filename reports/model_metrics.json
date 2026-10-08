@@ -5634,7 +5634,7 @@
    "transfer_evidence": "not tested across sources",
    "highest_validated_level": 2,
    "highest_validated_level_name": "later time",
-   "next_level_blocked_by": "DGT microdata audit: failing checks 6 comparable across regions, 7 recording artefacts do not dominate; which fields were left unrecorded alone ranks death within 30 days at ROC-AUC 0.724 against 0.834 from the recorded values",
+   "next_level_blocked_by": "DGT microdata audit: failing checks 6 comparable across regions, 7 recording artefacts do not dominate; which fields were left unrecorded alone ranks death within 30 days at ROC-AUC 0.681 against 0.834 from the recorded values",
    "calibration": "Brier skill +0.042",
    "usefulness": "an association model",
    "question_answered": "which recorded circumstances are associated with fatal outcomes in Spain's injury crashes, adjusting for each other",
