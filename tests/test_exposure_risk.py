@@ -325,8 +325,12 @@ def test_older_split_joint_interval(older_split_table) -> None:
     assert reference.loc["65-74", "ratio_to_45_64"] == pytest.approx(0.939, abs=0.001)
     for (_, group), row in split.iterrows():
         assert row.ratio_low <= row.ratio_to_45_64 <= row.ratio_high
-        assert row.mc_se_low < 0.02 and row.mc_se_high < 0.02
+        # The Monte Carlo error of each end is real but small against the interval's width.
+        assert 0 < row.mc_se_low < 0.05 * (row.ratio_high - row.ratio_low)
+        assert 0 < row.mc_se_high < 0.06 * (row.ratio_high - row.ratio_low)
     assert reference.loc["75+", "ratio_low"] > 1
+    # Another set of replicates would not bring the interval down to the 45-64 rate.
+    assert reference.loc["75+", "ratio_low"] - 3 * reference.loc["75+", "mc_se_low"] > 1
     # A regression check, not an invariant: adding the Madrid survey's sampling error widens
     # the interval of the two Madrid splits.
     for assumption in national.EDM_SPLITS:
@@ -336,6 +340,33 @@ def test_older_split_joint_interval(older_split_table) -> None:
         assert joint >= fixed - 0.02
         assert "EDM2018" in row.sampling_sources
     assert "RACC constant" in split.loc[(national.RACC_SPLIT, "75+"), "sampling_sources"]
+
+
+def test_interval_monte_carlo_error_respects_crossed_replicates() -> None:
+    # Draws that share row and column effects, as the crossed EMEF x EDM cells do. The standard
+    # error of a percentile is measured directly over independent sets of draws, and the
+    # pigeonhole estimate from one set must match it; a batch estimate over blocks that share
+    # rows and columns came out several times too small.
+    rng = np.random.default_rng(1)
+
+    def crossed(n: int = 60) -> np.ndarray:
+        return rng.normal(0, 1.0, (n, 1)) + rng.normal(0, 0.7, (1, n)) + rng.normal(0, 0.3, (n, n))
+
+    direct = np.std([np.percentile(crossed(), [2.5, 97.5]) for _ in range(300)], axis=0, ddof=1)
+    estimated = np.mean(
+        [
+            [national._interval(d, 100)[k] for k in ("mc_se_low", "mc_se_high")]
+            for d in (crossed() for _ in range(20))
+        ],
+        axis=0,
+    )
+    assert np.all(estimated / direct > 0.7) and np.all(estimated / direct < 1.5)
+    # A fixed split: the rows carry the profile and the columns only the count draws.
+    profile_only = rng.normal(0, 1.0, (60, 1)) + rng.normal(0, 0.3, (60, 60))
+    assert national._interval(profile_only, 100)["mc_se_low"] > 0
+    # Paired draws are one-dimensional.
+    paired = national._interval(rng.normal(0, 1.0, 300), 100)
+    assert 0.05 < paired["mc_se_low"] < 0.4
 
 
 def test_racc_limit_derivation() -> None:
@@ -473,6 +504,42 @@ def test_decomposition_table(older_table, older_split_table) -> None:
     assert list(factors.log_width) == sorted(factors.log_width, reverse=True)
 
 
+def test_decomposition_labels_keep_their_subject() -> None:
+    # Each chart label names the same assumption as its long label: the remainder is the
+    # unexplained km, never "outside working days", which would also hold the weekends of the
+    # separate weekend bar.
+    subjects = {
+        "regional profile": "region",
+        "split": "split",
+        "remainder": "unexplained",
+        "distance": "conversion",
+        "non-working days": "weekend",
+        "professionals' work driving": "professional",
+        "composition": "share",
+        "licence-calibrated transfer": "per licence holder",
+        "employment": "share in work",
+        "survey years": "survey years",
+    }
+    assert set(subjects) == set(national.DECOMPOSITION_FACTORS)
+    for factor, (label, short) in national.DECOMPOSITION_FACTORS.items():
+        assert subjects[factor] in label.lower() and subjects[factor] in short.lower(), factor
+        assert "working days" not in short.lower(), factor
+    shorts = [short for _, short in national.DECOMPOSITION_FACTORS.values()]
+    assert len(set(shorts)) == len(shorts)
+
+
+def test_reference_checks_licence_trend() -> None:
+    checks = national.reference_checks().set_index(["check", "subject"])
+    gradient = checks.xs(national.CHECK_LICENCE_GRADIENT_TREND, level="check").value
+    level = checks.xs(national.CHECK_LICENCE_TREND, level="check").value
+    # Licence holding at 75 and over rose against 65-74 for both sexes, by less than at 75 and
+    # over alone, and the cohort update lowers the conditional estimate.
+    assert (gradient > 1).all() and (gradient < level).all()
+    cohort = float(checks.loc[(national.CHECK_COHORT_UPDATE, "both sexes"), "value"])
+    split = national.older_split().set_index(["assumption", "group"])
+    assert 1 < cohort < float(split.loc[(national.REFERENCE_SPLIT, "75+"), "ratio_to_45_64"])
+
+
 def test_attribution_shares(older_table) -> None:
     shares = national.older_attribution(older_table)
     for column in ("share_all_splits", "share_without_equal_split"):
@@ -485,3 +552,6 @@ def test_barcelona_older() -> None:
     assert set(table.assumption) == set(national.SPLITS)
     assert (table.ratio_low <= table.ratio_to_45_64).all()
     assert (table.ratio_to_45_64 <= table.ratio_high).all()
+    # Each end carries its Monte Carlo error, so the pages can print it to a supported precision.
+    assert (table.mc_se_low > 0).all() and (table.mc_se_high > 0).all()
+    assert (table.mc_se_high < 0.1 * (table.ratio_high - table.ratio_low)).all()

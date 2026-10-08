@@ -27,7 +27,10 @@ check,subject,value,low,high,note
 Cars registered to private owners per B-licence holder,65-74,0.9398885964,,,
 Cars registered to private owners per B-licence holder,75+,1.140988471,,,
 "Licence holders of any class per resident aged 75 and over, 2024 over 2018 (DGT census, INE)",male,1.082446077,,,
+"Licence holders of any class per resident, 75 and over over 65-74, 2024 over 2018 (DGT census, INE)",male,1.074497001,,,
 "Licence holders of any class per resident aged 75 and over, 2024 over 2018 (DGT census, INE)",female,1.681550109,,,
+"Licence holders of any class per resident, 75 and over over 65-74, 2024 over 2018 (DGT census, INE)",female,1.297251927,,,
+"Conditional estimate, 75 and over over 45-64, with the Madrid ratios scaled by that change in licence holding (driving per holder as in 2018; exploratory)",both sexes,1.882738953,,,assumes km per licence holder at 65-74 and at 75 and over as in Madrid in 2018
 "Car drivers involved in injury crashes per 1,000 B-licence holders",75+,2.839335666,,,
 "Car drivers involved in injury crashes per 1,000 B-licence holders",65-74,2.133194589,,,
 "Car drivers involved in injury crashes per 1,000 B-licence holders",45-64,2.983309636,,,

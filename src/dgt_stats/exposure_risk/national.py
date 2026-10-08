@@ -634,8 +634,8 @@ def public_split_labels() -> dict[str, str]:
         REFERENCE_SPLIT: "Madrid survey: km per resident (used for the estimate)",
         LICENCE_SPLIT: "Madrid km per licence holder, applied to Spain's licence holders (mixes "
         "two definitions of a licence)",
-        RACC_SPLIT: f"Upper limit from driving days (RACC survey published in {RACC_YEAR}): men "
-        f"{racc_men_limit():.2f} of 65–74 per licence holder, women equal",
+        RACC_SPLIT: f"Upper limit on men's kilometres from driving days (RACC survey published in "
+        f"{RACC_YEAR}): men {racc_men_limit():.2f} of 65–74 per licence holder, women equal",
         EQUAL_SPLIT: "Equal km per licence holder at 65–74 and 75 and over (at odds with surveys "
         "of men's driving; kept in the range)",
     }
@@ -801,25 +801,36 @@ def _older_draws(
     return g75 / (q * s65) / reference, g65 / ((1 - q) * s65) / reference
 
 
-BATCHES = 5
+MC_RESAMPLES = 200
 
 
-def _interval(draws: np.ndarray) -> dict[str, float]:
-    """The 2.5th and 97.5th percentiles of ``draws``, with a Monte Carlo standard error of each by
-    batches: each axis is cut into :data:`BATCHES` blocks (5 x 5 blocks of 60 x 60 cells for
-    300 x 300), the percentile is taken in every block, and the standard error is the blocks'
-    standard deviation over the square root of their number."""
+def _interval(draws: np.ndarray, resamples: int = MC_RESAMPLES) -> dict[str, float]:
+    """The 2.5th and 97.5th percentiles of ``draws``, with a Monte Carlo standard error of each:
+    how far the endpoints would move with another set of the surveys' replicates and count
+    draws.
+
+    The cells of a two-dimensional ``draws`` share replicates along their rows (the profile's
+    survey) and their columns (the split's survey, or only the count draws when the split is
+    fixed), so blocks of cells are not independent and a batch standard error understates the
+    error several times. The pigeonhole bootstrap (Owen 2007, *Annals of Applied Statistics*
+    1:386-411) respects that crossed dependence: rows and columns are resampled independently
+    with replacement, the percentiles recomputed, and the standard error is their standard
+    deviation over ``resamples`` resamples. One-dimensional ``draws`` (profile and split from one
+    survey's resample, paired) take an ordinary bootstrap. For the Madrid split at 75 and over,
+    eight independent sets of 300 x 300 replicates gave endpoint standard deviations of about
+    0.012 and 0.039, against pigeonhole errors of 0.014-0.019 and 0.023-0.039 within each set."""
     low, high = np.percentile(draws, [2.5, 97.5])
-    blocks = []
-    if draws.ndim == 1:
-        for part in np.array_split(draws, BATCHES):
-            blocks.append(np.percentile(part, [2.5, 97.5]))
-    else:
-        for rows in np.array_split(np.arange(draws.shape[0]), BATCHES):
-            for columns in np.array_split(np.arange(draws.shape[1]), BATCHES):
-                blocks.append(np.percentile(draws[np.ix_(rows, columns)], [2.5, 97.5]))
-    blocks = np.asarray(blocks)
-    se = blocks.std(axis=0, ddof=1) / np.sqrt(len(blocks))
+    rng = np.random.default_rng(SEED)
+    ends = np.empty((resamples, 2))
+    for b in range(resamples):
+        if draws.ndim == 1:
+            sample = draws[rng.integers(0, len(draws), len(draws))]
+        else:
+            rows = rng.integers(0, draws.shape[0], draws.shape[0])
+            columns = rng.integers(0, draws.shape[1], draws.shape[1])
+            sample = draws[np.ix_(rows, columns)]
+        ends[b] = np.percentile(sample, [2.5, 97.5])
+    se = ends.std(axis=0, ddof=1)
     return {
         "low": float(low),
         "high": float(high),
@@ -1543,23 +1554,29 @@ def older_extremes(table: pd.DataFrame | None = None) -> pd.DataFrame:
 
 # One-at-a-time factors of the 75+ figure, each a source of :func:`older_sensitivity` (or a
 # computation of its own), with the label of the research table and the short label of the chart.
+# A short label names the assumption that changes, not a cause of crashes, and keeps its long
+# label's subject: the remainder is the km no measured part explains, not the km outside working
+# days, which also hold the weekends of the separate "non-working days" bar.
 DECOMPOSITION_FACTORS: dict[str, tuple[str, str]] = {
     "regional profile": (
         "Region whose age profile stands in for Spain (four parts of the province of Barcelona, "
         "and Madrid)",
-        "Region",
+        "Region used for the age profile",
     ),
     "split": ("Split of the 65-and-over km between 65–74 and 75 and over", "Split of the 65+ km"),
     "remainder": (
-        "Age mix of the km that no measured part of DGT's total explains",
-        "Km outside working days",
+        "Age mix of the km that no measured part of DGT's total explains (the unexplained km)",
+        "Age mix of the unexplained km",
     ),
-    "distance": ("Conversion of trips to kilometres", "Trip distances"),
+    "distance": ("Conversion of trips to kilometres", "Trip-to-km conversion"),
     "non-working days": (
         "Weekends and holidays at a share of the km with a weekend age mix",
-        "Weekends",
+        "Weekend and holiday age mix",
     ),
-    "professionals' work driving": ("Professional drivers' work driving added", "Work driving"),
+    "professionals' work driving": (
+        "Professional drivers' work driving added",
+        "Professionals' km added",
+    ),
     "composition": (
         "Share aged 75 and over in the survey's 65+ sample at the routing-identified share (bound)",
         "75+ share of the sample at its bound",
@@ -1763,6 +1780,14 @@ CHECK_LICENCE_TREND = (
     f"Licence holders of any class per resident aged 75 and over, {YEAR} over "
     f"{edm2018.SURVEY_YEAR} (DGT census, INE)"
 )
+CHECK_LICENCE_GRADIENT_TREND = (
+    "Licence holders of any class per resident, 75 and over over 65-74, "
+    f"{YEAR} over {edm2018.SURVEY_YEAR} (DGT census, INE)"
+)
+CHECK_COHORT_UPDATE = (
+    "Conditional estimate, 75 and over over 45-64, with the Madrid ratios scaled by that change "
+    f"in licence holding (driving per holder as in {edm2018.SURVEY_YEAR}; exploratory)"
+)
 
 
 def reference_checks() -> pd.DataFrame:
@@ -1857,21 +1882,47 @@ def reference_checks() -> pd.DataFrame:
             group,
             owned[group].n_vehicles / lic[group],
         )
-    # Licence holding at 75 and over since the Madrid survey's year (holders of any class: the
-    # census tables give B licences by age only from the text files of later years).
-    census = io_exposure.licence_holders_by_age()
-    census = census[census.band == "75+"].set_index(["year", "sex"]).n_drivers
+    # Licence holding at 75 and over since the Madrid survey's year, alone and against 65-74
+    # (holders of any class, Spain: the 2018 census tables give licences by age for all classes
+    # together; B licences by age come only from the text files of later years).
+    census = io_exposure.licence_holders_by_age().set_index(["year", "sex", "band"]).n_drivers
+    older_bands = {"65-74": ("65-69", "70-74"), "75+": ("75+",)}
+    gradient_change = {}
     for sex in SEXES:
-        per_resident = {}
+        per_resident: dict[tuple[int, str], float] = {}
         for year in (edm2018.SURVEY_YEAR, YEAR):
             people = io_population.population(year, REFERENCE_DATE, sex)
-            residents = float(people[people.age_low >= 75].population.sum())
-            per_resident[year] = float(census[(year, sex)]) / residents
+            for group, bands in older_bands.items():
+                low, high = GROUP_AGES[group]
+                residents = float(people[people.age_low.between(low, high)].population.sum())
+                licensed = sum(float(census[(year, sex, band)]) for band in bands)
+                per_resident[(year, group)] = licensed / residents
         add(
             CHECK_LICENCE_TREND,
             sex,
-            per_resident[YEAR] / per_resident[edm2018.SURVEY_YEAR],
+            per_resident[(YEAR, "75+")] / per_resident[(edm2018.SURVEY_YEAR, "75+")],
         )
+        gradient = {
+            year: per_resident[(year, "75+")] / per_resident[(year, "65-74")]
+            for year in (edm2018.SURVEY_YEAR, YEAR)
+        }
+        gradient_change[sex] = gradient[YEAR] / gradient[edm2018.SURVEY_YEAR]
+        add(CHECK_LICENCE_GRADIENT_TREND, sex, gradient_change[sex])
+    # If driving per licence holder at each age stayed as in the Madrid survey's year, the ratio
+    # per resident moves with the ratio of licence holding: an extrapolation, not a measurement.
+    profile = emef_profile()
+    km, _ = national_km(profile)
+    madrid_ratios = _older_ratios()[REFERENCE_SPLIT]
+    updated = _split_older(
+        profile, {sex: madrid_ratios[sex] * gradient_change[sex] for sex in SEXES}
+    )
+    add(
+        CHECK_COHORT_UPDATE,
+        "both sexes",
+        _older_ratios_to_reference(km, updated["75+"] / sum(updated.values()))["75+"],
+        note="assumes km per licence holder at 65-74 and at 75 and over as in Madrid in "
+        f"{edm2018.SURVEY_YEAR}",
+    )
     counts = drivers_involved().set_index("group").involved
     for group in ("75+", "65-74", REFERENCE):
         add(

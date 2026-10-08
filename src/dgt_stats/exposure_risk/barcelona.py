@@ -343,7 +343,8 @@ def older_ratios() -> pd.DataFrame:
 
     Each has a 95% sampling interval: the city frame's EMEF bootstrap replicates, crossed with the
     Madrid survey's household replicates for the two Madrid splits, with gamma draws of the
-    counts in every cell. The RACC constant and licence holding are held fixed."""
+    counts in every cell, and the Monte Carlo standard error of each end
+    (:func:`national._interval`). The RACC constant and licence holding are held fixed."""
     from dgt_stats.exposure_risk import national
 
     frame = city_person_day()
@@ -389,6 +390,7 @@ def older_ratios() -> pd.DataFrame:
                 rate = n / point[label]
                 ratio = rng.gamma(n + 0.5, 1.0, shape) / np.broadcast_to(draws[label], shape)
                 ratio = ratio / reference
+                interval = national._interval(ratio)
                 rows.append(
                     {
                         "denominator": denominator,
@@ -396,8 +398,10 @@ def older_ratios() -> pd.DataFrame:
                         "age": label,
                         "drivers_involved": int(n),
                         "ratio_to_45_64": rate / (reference_n / reference_km),
-                        "ratio_low": float(np.percentile(ratio, 2.5)),
-                        "ratio_high": float(np.percentile(ratio, 97.5)),
+                        "ratio_low": interval["low"],
+                        "ratio_high": interval["high"],
+                        "mc_se_low": interval["mc_se_low"],
+                        "mc_se_high": interval["mc_se_high"],
                         "sampling_sources": national._sampling_sources(
                             split, "EMEF (Barcelona city frame)"
                         ),
