@@ -1091,8 +1091,9 @@ def test_coding_breaks_describe_the_inverted_catalan_junction_flag(built: Path) 
     from dgt_stats.microdata.validation import dgt_audit
 
     data = (built / "data.html").read_text(encoding="utf-8")
+    # The four changes and how the series are read, up to the fog and strong-wind fields.
     block = data[data.index('id="coding-breaks"') :]
-    block = components.html.unescape(block[: block.index("</p>")])
+    block = components.html.unescape(block[: block.index("<p>The fog and strong-wind fields")])
     assert "the junction flag the wrong way round" in block
     assert "changes how it marks a missing value" not in block
     matched = dgt_audit.catalan_junction_years(
