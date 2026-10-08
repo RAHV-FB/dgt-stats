@@ -810,20 +810,20 @@ are descriptive only and never mark a row.
 
 ### The other three splits
 
-* **Madrid km per DGT licence holder, Spain's licence holders** (2.09, 95% sampling interval 1.66–2.69, printed 1.7–2.7). Madrid's km per
-  licence holder, with holders counted on DGT's 2024 register in the province of Madrid, carried
-  to Spain's DGT licence holders: the EDM ratio per resident times Spain's licence gradient (75+
-  over 65–74) over the province of Madrid's (`national._licence_transfer`: men 0.993, women
-  0.922). Until October 2026 this split multiplied the EDM's km per *self-reported* licence holder
-  by DGT's census prevalence. At 75 and over the self-reported prevalence in 2018 (men 0.670,
-  women 0.167) is above DGT's Madrid figure for 2024 (0.606, 0.127) despite cohort growth, so the
-  fall in licence holding was counted twice (2.24, 1.77–2.89, and the top of the range, 3.28,
-  about +7–9% too high); it is now computed like for like. The register is of 2024 and the
-  survey of 2018: DGT's Madrid holders by age for 2018 are not archived (item 6 of the list
-  below), and the cohort update in `risk_older_reference_checks.csv` shows the size of that
-  time gap. Because the province of Madrid's licence gradient is close to Spain's, this split
-  now gives nearly the Madrid split's figures, and its implied km per DGT holder for men equals
-  the EDM like-for-like 0.48.
+* **Madrid km per DGT licence holder, Spain's licence holders** (2.09, 95% sampling interval
+  1.66–2.69, printed 1.7–2.7). Madrid's km per licence holder, with holders counted on DGT's 2024
+  register in the province of Madrid, carried to Spain's DGT licence holders: the EDM ratio per
+  resident times Spain's licence gradient (75+ over 65–74) over the province of Madrid's
+  (`national._licence_transfer`: men 0.993, women 0.922). Until October 2026 this split multiplied
+  the EDM's km per *self-reported* licence holder by DGT's census prevalence. At 75 and over the
+  self-reported prevalence in 2018 (men 0.670, women 0.167) is above DGT's Madrid figure for 2024
+  (0.606, 0.127) despite cohort growth, so the fall in licence holding was counted twice (2.24,
+  1.77–2.89, and the top of the range, 3.28, about +7–9% too high); it is now computed like for
+  like. The register is of 2024 and the survey of 2018: DGT's Madrid holders by age for 2018 are not
+  archived (item 6 of the list below), and the cohort update in `risk_older_reference_checks.csv`
+  shows the size of that time gap. Because the province of Madrid's licence gradient is close to
+  Spain's, this split now gives nearly the Madrid split's figures, and its implied km per DGT holder
+  for men equals the EDM like-for-like 0.48.
 * **RACC driving-days limit for men, equal km per licence holder for women** (1.69, 1.45–1.95).
   `national.racc_men_limit` derives the men's limit in code from the constants quoted from
   Fundació RACC, *Mayores al volante* (slide dossier published 29 May 2013; 3,003 licence holders
@@ -891,8 +891,8 @@ working-day mix it equals the estimate exactly (tested). The low end of the regi
 Barcelona city, whose replicate spread of the 65+/45–64 km ratio (0.75–1.43 relative) is much
 wider than the province's (0.87–1.14), so it lies within sampling error; part of the profile's
 share below is sampling noise. The high end is the Madrid profile, 3.01 since its 65+ km are
-standardised to Spain's older population (2.85 before). Bar lengths depend on which alternatives were tried, not on how
-likely they are.
+standardised to Spain's older population (2.85 before). Bar lengths depend on which
+alternatives were tried, not on how likely they are.
 
 **Shapley shares** of the variance of the log 75+ ratio over the one full factorial in the table,
 profile (7) × non-working mix (3) × remainder mix (4) × split (`risk_older_attribution.csv`; SD
@@ -946,9 +946,9 @@ standardised profile apart with Spain's population, so that under the Madrid spl
 profile gives back the survey's own exact-age cells. That raises the Madrid profile's 65+ ratio
 from 1.650 to 1.744 and, before the licence correction, the tops of the ranges from 1.750 to
 1.821 (65+), 1.630 to 1.698 (65–74) and 3.281 to 3.412 (75+), bottoms and 18–29 unchanged (an
-independent review's figures, reproduced exactly). With both corrections the top is 3.20 (3.1985) at
-75 and over. At the top, drivers aged 75 and over would drive 42% of the km DGT records for
-cars of owners aged 75 and over, against 65% at 65–74 and 105% at 45–64: a national
+independent review's figures, reproduced exactly). With both corrections the top is 3.20
+(3.1985) at 75 and over. At the top, drivers aged 75 and over would drive 42% of the km DGT
+records for cars of owners aged 75 and over, against 65% at 65–74 and 105% at 45–64: a national
 tension, reported, not used to mark rows. The top's agreement with the EDM is circular (a Madrid
 profile checked against Madrid's survey). The EMEF profiles are not standardised the same way:
 their public files group everyone aged 65 and over, so standardising them would need a split,
