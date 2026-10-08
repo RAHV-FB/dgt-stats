@@ -9,6 +9,7 @@ import re
 import pandas as pd
 
 from dgt_stats.paths import FIGURES_DIR, TABLES_DIR
+from dgt_stats.risk_trends import BASE_YEAR
 from dgt_stats.site.script import JS_FLAG
 
 REPO_URL = "https://github.com/RAHV-FB/dgt-stats"
@@ -34,7 +35,7 @@ NAV_GROUPS: tuple[tuple[str, tuple[tuple[str, str], ...]], ...] = (
     (
         SPAIN,
         (
-            ("trends", "Trends since 2019"),
+            ("trends", f"Trends since {BASE_YEAR}"),
             ("long-run", "Long-run trends"),
             ("seasons", "Seasons"),
             ("drivers", "Drivers"),

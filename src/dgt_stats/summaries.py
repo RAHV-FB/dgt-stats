@@ -229,6 +229,7 @@ SUMMARIES = {
     "longrun_series": risk_trends.long_run_series,
     "longrun_segments": risk_trends.long_run_segments,
     "longrun_model_choice": risk_trends.long_run_model_choice,
+    "longrun_projection_sensitivity": risk_trends.long_run_projection_sensitivity,
     "longrun_efficiency": risk_trends.long_run_efficiency_sensitivity,
     "longrun_km_panel": risk_trends.interurban_km_panel,
     "longrun_km_check": risk_trends.km_trend_check,
