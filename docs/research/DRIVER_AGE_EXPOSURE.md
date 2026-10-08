@@ -951,8 +951,11 @@ are wide, but not every one includes 1: for the Madrid split they are 0.83–1.7
 1.00–1.99, and with crossing trips counted at an internal trip's
 length the licence and RACC splits' intervals (1.33–2.51, 1.07–1.78) exclude 1 too. The check
 neither confirms nor rules out a rate above 45–64 because the splits and the ways of counting
-crossing trips disagree, and the intervals include 1 under two of the three ways of counting,
-not because every interval is wide.
+crossing trips disagree, not because every interval is wide. For the Madrid split, one interval
+includes 1 (internal trips only), one lies above it (crossing trips at an internal trip's
+length) and one has its lower end at 0.999 with a Monte Carlo error of 0.012 (crossing trips in
+full): nine independent sets of replicates put that end between 0.998 and 1.020, so the page
+says another set of resamples could put it on either side of 1 rather than counting it.
 
 ### Validation and context sources
 

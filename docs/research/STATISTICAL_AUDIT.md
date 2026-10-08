@@ -52,7 +52,7 @@ The verdicts used in the table below are:
 | Overview | Road deaths fell 74% from 1993 to 2013; 1,785 deaths in 2024 | Stands | Yearbook series, reconciled against the published totals |
 | Overview | Deaths per injury crash fell 73% (1996–2024); injury crashes per tonne of fuel 13% | Stands | An identity of published counts; fuel is labelled a traffic proxy |
 | Overview, drivers | Drivers 75+ involved in an injury crash died 3.9 times as often as drivers 35–54 (15.9 against 4.1 per 1,000) | Restated | Exposure-free and correct. The rebuilt drivers page compares every age with 45–64, the reference of the exposure analysis: 15.9 against 4.6 per 1,000 (3.4 times), private cars |
-| Overview, drivers | Drivers 18–24 were involved in 6.8 times as many injury crashes per km as drivers 35–54 (2.0 under an extreme reassignment) | Replaced | The kilometres were those of cars registered to owners of each age, not those driven by drivers of that age. Young drivers drive cars registered to others, so their kilometres were understated and their rate overstated. Replaced by the driver-age estimate: 18–29 at 2.57 times the 45–64 rate (95% CI 2.28–2.86; 1.6–3.7 across methods) ([`DRIVER_AGE_EXPOSURE.md`](DRIVER_AGE_EXPOSURE.md)) |
+| Overview, drivers | Drivers 18–24 were involved in 6.8 times as many injury crashes per km as drivers 35–54 (2.0 under an extreme reassignment) | Replaced | The kilometres were those of cars registered to owners of each age, not those driven by drivers of that age. Young drivers drive cars registered to others, so their kilometres were understated and their rate overstated. Replaced by the driver-age estimate: 18–29 at 2.53 times the 45–64 rate (95% sampling interval 2.25–2.82; sensitivity range 1.49–3.75), first published as 2.57 (2.28–2.86; 1.6–3.7 across methods) before the final audit's distance corrections and coverage scenarios ([`DRIVER_AGE_EXPOSURE.md`](DRIVER_AGE_EXPOSURE.md)) |
 | Drivers | Drivers 75+ involved 1.43 times as often per km as drivers 65–74 | Withdrawn | Same owner-age denominator. No source measures kilometres at 75+; a conditional estimate (2.06 times the 45–64 rate if people aged 75 and over drive as much less than those aged 65–74 as in Madrid in 2018) is given beside the sensitivity range (0.97–3.28); see [75+ exposure](#75-exposure-constraining-the-estimate) |
 | Drivers | Men died at the wheel of a car 3.63 times as often as women per licence holder, 2022–2024 | Reworded | The ratio is for drivers aged 18 and over; the headline sentence now says so (below). The denominator counts holders of any licence class; with car (B) licence holders, the ratio for 2023–2024 rises from 3.49 to 3.57, so the published figure is about 2% conservative. This is disclosed rather than changed, because B holders by sex are not available for the whole 2014–2024 series |
 | Overview | Recorded inappropriate speed: about twice the deaths per crash, adjusted for road type | Stands | An association in police records, worded as one; the adjusted ratio (2.00, 1.69–2.36) is a quasi-Poisson estimate on the report's provinces |
@@ -69,7 +69,7 @@ The verdicts used in the table below are:
 | Catalonia | 24,478 crashes, 3,093 fatal (12.6%); 19.2% interurban against 6.9% urban | Stands (recounted) | Per-resident rates now use the 1 July population (below) |
 | Barcelona | 7,741 crashes; 1.6% of 15,848 people seriously or fatally injured | Stands (recounted) | |
 | Severity models | Catalan model 0.79 against a table at 0.70; calibration slope 0.97; Barcelona person model 0.84 | Replaced | Single-year test, a recording artefact in the strongest predictor and a page leading with ROC-AUC. Replaced by the rolling-origin evaluation, the predicted-against-observed figure and the calculator |
-| External validation | Catalan model on DGT records 0.708 against 0.712 for a DGT-trained model; provinces 0.60–0.79 | Stands, research only | Transfer tests, labelled as such; the province figure (`tr3_province_auc.svg`), drawn but never shown, is now embedded beside the prose that quotes it |
+| External validation | Catalan model on DGT records 0.708 against 0.712 for a DGT-trained model; provinces 0.60–0.79 | Restated, research only | Transfer tests, labelled as such. Once the Catalan provinces' inverted junction flag of 2023–2024 was read the right way round and junction entered the harmonised model, the transfer became 0.710 against 0.721 (gap −0.011) and the provinces 0.61–0.78; the province figure (`tr3_province_auc.svg`), drawn but never shown, is now embedded beside the prose that quotes it |
 | Data sources | 482 checks pass; record counts | Stands | |
 | Methodology | "Each count is divided only by a denominator that could contain it" | Reworded | Three disclosed exceptions contradict the sentence as written: the sex rates (any licence class, unlicensed and foreign drivers in the numerator), the vehicle rates (foreign vehicles) and the per-fuel interurban check (national fuel). The sentence now names them |
 
@@ -258,8 +258,11 @@ and each was corrected:
   aged 75 and over are involved more often per kilometre whatever the assumption, nor by how
   much", and the drivers page's opening was shortened, with the detail moved to the 75+ section.
 * The Barcelona check blamed its inconclusiveness on wide intervals, although some exclude 1. It
-  now says the figures disagree and that the Madrid split's intervals include 1 under two of the
-  three ways of counting crossing trips.
+  now says the figures disagree. Of the Madrid split's three intervals, one includes 1, one lies
+  above it and one ends within its Monte Carlo error of 1 (0.999, standard error 0.012), and the
+  page says that last end could fall on either side rather than counting it; the page's count of
+  intervals that include 1 is classified with the same three-standard-error margin as the
+  conditional estimate.
 * The table of possible biases left out the women's implied km per licence holder under the
   Madrid split (1.08), which points higher. It is now listed (exploratory: +1% to +17%).
 * The licence trend at 75 and over was labelled as B licences; it is the any-class series, and
