@@ -153,34 +153,59 @@ as Poisson and the denominators as known; for the count itself the ratio is the 
 **An ordinary year, not only chance** (`year_to_year_dispersion`). A Poisson interval assumes a
 year's count varies only by chance. Spain's annual counts scatter more than that around their own
 trend: fitted log-linearly over the 2013–2019 plateau, the Pearson dispersion is about 1.5 for
-deaths, 8 for hospital admissions and 68 for injury crashes, whose count depends on how completely
-slight injuries are recorded. Each numerator has its own: 1.0 for driver deaths, 1.76 for drivers
-admitted to hospital, 2.35 for occupant deaths and 3.83 for occupants admitted to hospital
-(`risk_dispersion.csv`). The dispersion is a ratio of variances (floored at 1): the variance of
-crashes around their trend is about 68 times that of a Poisson count of the same size, so their
-spread is about √68 ≈ 8 times the Poisson spread. The page reads every change against the interval
-widened by the square root of that ratio (`ratio_low_yty`, `ratio_high_yty`), so a change outside it
-is larger than an ordinary year. In 2024, against 2019, no change in injury crashes is beyond an
-ordinary year; a pure Poisson interval would flag the falls as a count and per resident. Hospital
-admissions are beyond an ordinary year as a count (+11.0 %) and per tonne of road fuel (+13.0 %);
-within it are admissions per resident (+7.1 %), drivers admitted per licence holder (+4.5 %) and
-occupants admitted per registered vehicle (+3.4 %). Deaths in 2024 are within an ordinary year of
-2019 under all five pairings: the count, per resident, per tonne of road fuel, drivers per licence
-holder and occupants per registered vehicle.
+deaths, 8 for hospital admissions and 68 for injury crashes. Each numerator has its own: 1.0 for
+driver deaths (0.92 before the floor), 1.76 for drivers admitted to hospital, 2.35 for occupant
+deaths and 3.83 for occupants admitted to hospital (`risk_dispersion.csv`). The dispersion is a
+ratio of variances (floored at 1): the variance of crashes around their trend is about 68 times
+that of a Poisson count of the same size, so their spread is about √68 ≈ 8 times the Poisson
+spread. The page reads every change against the interval widened by the square root of that ratio
+(`ratio_low_yty`, `ratio_high_yty`), so a change outside it is larger than an ordinary year.
+
+Seven years leave five residual degrees of freedom, so each factor is itself uncertain: the table
+gives its 95 % chi-square interval (`dispersion_low`, `dispersion_high`), 0.57 to 8.7 for deaths and
+26 to 407 for injury crashes. The widened interval therefore uses the Student-t quantile with those
+five degrees of freedom (2.571, `t_quantile`) instead of the normal 1.96, which widens it by 31 %.
+The crash factor does not describe an ordinary year: between 2013 and 2016 recorded urban injury
+crashes rose 26 % while interurban ones fell 2 %, a step a straight trend cannot follow, so the
+crash intervals are too wide to judge the falls since 2019 either way (`crashes_urban`,
+`crashes_interurban` in `risk_annual_panel.csv`).
+
+In 2024, against 2019, no change in injury crashes is beyond an ordinary year; a pure Poisson
+interval would flag the falls as a count and per resident. Hospital admissions per tonne of road
+fuel (+13.0 %, interval +1.6 % to +25.6 %) are beyond an ordinary year; admissions as a count
+(+11.0 %, −0.2 % to +23.4 %) are at its edge; within it are admissions per resident (+7.1 %),
+drivers admitted per licence holder (+4.5 %) and occupants admitted per registered vehicle
+(+3.4 %). Deaths in 2024 are within an ordinary year of 2019 under all five pairings: the count, per
+resident, per tonne of road fuel, drivers per licence holder and occupants per registered vehicle.
+In 2020 deaths were below the interval under every pairing but road fuel, and in 2021 as a count
+and per resident; the statement on the front page is about 2024 against 2019.
 
 **How often against how hard** (`frequency_severity`). Deaths per tonne of road fuel is the exact
-product of injury crashes per tonne and deaths per injury crash; the three are indexed to 1996, the
-first year of the fuel series. Over 1996–2024 the first fell 76 %, the second 13 % and the third
-73 %. The split depends on how completely slight-injury crashes are recorded, which moves the two
-factors in opposite directions without moving their product; deaths are counted completely.
+product of injury crashes per tonne and deaths per injury crash, and equally of people admitted to
+hospital per tonne and deaths per admission; all five are indexed to 1996, the first year of the
+fuel series. Over 1996–2024 deaths per tonne fell 76 %. By injury crashes, crashes per tonne fell
+13 % and deaths per crash 73 %; by admissions, admissions per tonne fell 79 % and deaths per
+admission rose 15 %. The two splits disagree, so the series do not identify how the fall divides
+between frequency and severity: each split depends on how completely the lesser casualties were
+recorded, which moves its two factors in opposite directions without moving their product. The
+injury-crash series has two visible steps inside the period, +13 % in 1998 (+21 % on interurban
+roads) and the 2013–2016 urban step above. The fall in deaths per tonne is the firm result.
 
 Road fuel is a proxy for vehicle-kilometres, not a count of them. No series in the repository
-measures kilometres per tonne on all roads; `fuel_efficiency_sensitivity` shows the per-fuel
-change under hypothetical drifts of 0, 1 % and 2 % a year from 2019 (`hypothetical_annual_gain`),
-which support no conclusion. DGT's two published kilometre estimates (2022, from ITV odometer
-readings; 2024, an annualised estimate) are compared with fuel in `km_crosscheck` and are not
-chained into a trend: they are built differently, and between the two years they move −1.6 % while
-fuel moves +1.5 %.
+measures kilometres per tonne on all roads since 2019; `fuel_efficiency_sensitivity` divides deaths
+by the kilometres implied by hypothetical drifts of 0, 1 % and 2 % a year in kilometres per tonne
+from 2019 (`hypothetical_annual_gain`), which support no conclusion: its ratios are deaths per
+implied kilometre, not per tonne. DGT's 2024 kilometre release gives mean annual kilometres per
+vehicle for 2022, 2023 and 2024 as one series (its table 6, read by
+`io_exposure.read_km_mean_series_2024`); its 2022 values equal the 2022 release's fleet-weighted
+means for mopeds, motorcycles, cars, vans and buses, which `km_crosscheck` checks to the kilometre.
+The release's notes say its evolution tables come from inspection readings up to 2021 and from the
+model's estimates after, so 2022–2024 are estimates on one basis. The repository holds the fleet,
+and so total vehicle-kilometres, for 2022 and 2024: 406.4 and 400.1 billion, −1.6 %, while fuel
+sold rose 1.5 % (cars: 13,073 and 12,295 km a year, −6 %; 2023, 12,950 km). Over 2022–2024
+deaths per kilometre by DGT's estimate rose 3.9 % and deaths per tonne of fuel 0.8 %. The series
+starts after 2019, so it cannot replace fuel as the denominator of the comparison with 2019 or of
+the long run.
 
 ## 5. The long run and the pandemic (`risk_trends.py`)
 
@@ -194,25 +219,62 @@ points every admissible placement (segments at least four years long) is fitted 
 lowest-deviance one kept; the number of turning points is chosen by QBIC, the Poisson BIC divided by
 the dispersion of the largest model with each turning point costing two parameters, taking the
 simplest model within two points of the minimum (`joinpoint_search`). The segment slopes are
-reported as annual percentage changes with intervals from the scaled covariance (`segment_changes`).
-All three measures choose two turning points: 2003 and 2013 for the count and for occupants per
-vehicle, 2002 and 2011 per tonne of road fuel (`longrun_model_choice.csv`).
+reported as annual percentage changes with intervals from the scaled covariance and the Student-t
+quantile with the fit's residual degrees of freedom (`segment_changes`); the intervals take the
+turning points as known. All three measures choose two turning points: 2003 and 2013 for the count
+and for occupants per vehicle, 2002 and 2011 per tonne of road fuel (`longrun_model_choice.csv`).
+For the count a third turning point in 2007 scores slightly better on QBIC (96.3 against 97.2) and
+loses only to the simplicity rule; fitted alone, the count of 2013–2019 rises 1.2 % a year
+(95 % interval −0.2 % to +2.7 %, `longrun_projection_sensitivity.csv`), so a slight rise since 2013
+cannot be ruled out.
 
-The last segment is projected through 2020–2024 (`project`) with a 95 % prediction interval that
-combines the uncertainty of the fitted line (delta method on the linear predictor) with
-overdispersed noise around it. For the per-vehicle and per-fuel forms the projection is multiplied
-back by each year's fleet or fuel, so all three are in deaths and `observed / expected` reads the
-same way. The per-fuel trend's last segment runs from 2011, so its projection carries whatever
-kilometres per tonne did over 2011–2019 into the years after. No series measures that on all
-roads; `long_run_efficiency_sensitivity` shows how the per-fuel ratio would move under hypothetical
-extra gains of 1 % and 2 % a year from 2020 (`hypothetical_extra_annual_gain`), which support no
-conclusion.
+**The projection** (`fit_segment`, `project_segment`). From 2020 each measure is projected by its
+last segment refitted on its own years (2013–2019 for the count and per vehicle, 2011–2019 per tonne
+of fuel) as a log-linear quasi-Poisson trend, with a 95 % prediction interval that combines the
+uncertainty of the refitted line (delta method) with the overdispersed scatter of those years, and
+the Student-t quantile with the refit's residual degrees of freedom (5, 5 and 7). The whole fit's
+dispersion (7.3 for the count, 4.5 per vehicle, 2.8 per fuel) is inflated by the poorer fit of the
+early years: the Pearson X²/n of the count fit is 7.9 over 1993–2012 and 1.3 over 2013–2019. The
+refit's scatter (1.45 for the count, the same estimate as the 2019–2024 comparison's; 2.8 per
+vehicle; 1.55 per fuel) is the one a projected year should be read against. Up to 2019
+`longrun_series.csv` carries the joinpoint trend; from 2020 the projection, with `range_low` and
+`range_high` (the interval over the expected count) and the refit's start, slope, dispersion and
+degrees of freedom. For the per-vehicle and per-fuel forms the trend is multiplied back by each
+year's fleet or fuel, so all three are in deaths and `observed / expected` reads the same way.
 
 The question this answers is whether 2020–2024 is a distortion or a change of trend. As a count,
-2020 is far below trend and the count is inside its interval from 2021. Occupant deaths per
-registered vehicle are below the interval in 2020 and 2021 and inside it from 2022. Per tonne of
-road fuel, deaths stayed inside the trend's interval in 2020–2022, and in 2023–2024 they are above
-the interval.
+2020 (−25 %) and 2021 (−18 %) are below the range and 2022–2024 inside it. Occupant deaths per
+registered vehicle are below the range in 2020 and 15 % below trend, inside a wider range, in 2021.
+Per tonne of road fuel, deaths stayed inside the range in 2020–2022, and in 2023–2024 they are
+above it (+16 % and +14 %).
+
+**How far the reading depends on the choices** (`long_run_projection_sensitivity`). For every
+measure and projected year the table repeats the reading under other choices: the last segment
+started at the other measures' last turning point; the normal quantile in place of Student's t; the
+continuous joinpoint trend continued with the whole fit's scatter and the normal quantile; and
+deaths within 24 hours, with the turning points searched again (count and per fuel only). The
+per-fuel excess depends on where the last segment starts: from 2013, when the fall was slower
+(−1.2 % a year against −2.1 % from 2011), 2023 is +10 % against a range of ±10.5 % and 2024 +8 %
+inside its range. The 2021 reading of the count depends mostly on the scatter: with the
+continuous joinpoint trend and the whole fit's scatter it is inside its range (−16 % against
+±17 %) and the per-vehicle measure outside it.
+Refitted on 24-hour deaths, the search places the turning points in the same years; the count
+reads as above, and per tonne of fuel 2023 and 2024 stay above the range (2022 is above it too).
+
+**The 30-day definition.** DGT estimated the 30-day deaths of 1993–2010 from deaths within
+24 hours with correction factors drawn from following a sample of people admitted to hospital
+(revised in 1996 and 2000), and has counted them since 2011 by matching crash records with the INE
+register of deaths (DGT, *Anuario estadístico de accidentes 2014*, annex II, "Metodología revisada
+para el cálculo de fallecidos a 30 días"; `risk_trends.DEATHS_30D_COUNTED_FROM`). The ratio of 30-day
+to 24-hour deaths falls from 1.155 in 2010 to 1.121 in 2011. The police count 24-hour deaths
+directly throughout (`deaths_24h` in `risk_annual_panel.csv`), and the trends refitted on them
+place the turning points in the same years, so the long-run results do not rest on the change.
+
+The per-fuel trend's last segment runs from 2011, so its projection carries whatever kilometres per
+tonne did over 2011–2019 into the years after. No series measures that on all roads;
+`long_run_efficiency_sensitivity` divides deaths by the kilometres implied by hypothetical extra
+gains of 1 % and 2 % a year from 2020 (`hypothetical_extra_annual_gain`) and reads them against the
+per-fuel trend, which supports no conclusion.
 
 **Re-run on measured kilometres** (`interurban_km_panel`, `km_trend_check`). The Ministerio de
 Transportes' yearbook table 1.2.14 gives the vehicle-kilometres measured each year on the
@@ -220,10 +282,10 @@ interurban networks of the State, the regions and the provincial councils, by ty
 2004 (`io_traffic.read_road_traffic`; the four road types must add up to the published total, and
 the series is comparable from 2008, when the road inventory was redone). The same joinpoint search
 is fitted to interurban deaths over 2008–2019 with the log of measured kilometres as offset
-(`per_km`, the rate); it chooses a turning point in 2013 and a decline of 1.8 % a year after it.
-Projected on, every year from 2020 to 2023 is inside the interval of the 2013–2019 decline
-continued: 2020 lies exactly on the trend, and per measured interurban km 2023 is +5 % on trend,
-inside its interval (−4 % to +15 %). The kilometres end in 2023.
+(`per_km`, the rate); it chooses a turning point in 2013, and the trend refitted on 2013–2019
+declines 1.8 % a year. Projected on as above, every year from 2020 to 2023 is inside the trend's
+range: 2020 lies exactly on the trend, and per measured interurban km 2023 is +5 % against a range
+of ±12 %. The kilometres end in 2023.
 
 **Which roads the kilometres cover** (`interurban_network_coverage`, `longrun_km_coverage.csv`).
 The kilometres leave out interurban roads run by municipalities and other bodies, and urban
@@ -237,8 +299,8 @@ yearbook's interurban count every year. The share cannot be measured before 2016
 **Interurban deaths over national road fuel: a diagnostic, not a rate.** The same deaths are also
 fitted with the log of national road fuel as offset (`per_fuel`). Fuel is sold for every road,
 towns included, so its scope does not match the numerator, and its ratios describe how the fuel
-proxy behaves beside the measured kilometres. On that fit 2023 is 13 % above trend, outside the
-interval, and 2022 just inside it. Interurban kilometres per tonne of all road fuel
+proxy behaves beside the measured kilometres. On that fit 2023 is 13 % above trend, just outside
+its range of ±12 %, and 2022 inside it. Interurban kilometres per tonne of all road fuel
 (`km_per_tonne`) grew 0.5 % a year over 2011–2019 and 1.9 % a year over 2019–2023; the ratio mixes
 interurban kilometres with fuel for every road, so it is not fuel economy and also moves when
 traffic shifts between towns and interurban roads, and with the mix of freight. CORES publishes
@@ -255,6 +317,9 @@ autopistas and autovías together and for conventional roads (with the table's m
 pooled because the table puts free motorways with autovías and the crash data put them with toll
 motorways. Interurban crashes are classed by road-type code (autopistas 1 and 2, autovías 3,
 conventional roads 4 to 6), so each class keeps together the codes DGT swapped between years.
+The conventional class therefore holds single- and dual-carriageway conventional roads (code 5 and
+the table's multi-lane roads, formerly "doble calzada"), and the pages call the other class
+motorways (autopistas and autovías), never "dual carriageways".
 
 The numerator of every rate is restricted to roads of owners (`TITULARIDAD_VIA`) 1 to 3, the
 State, the autonomous communities and the provincial councils, which are the networks the
@@ -276,9 +341,9 @@ of the class of road. `baseline` gives the mean annual crashes and casualties by
 
 Monthly 30-day deaths from the yearbook series are set beside three monthly traffic series
 (`TRAFFIC_SERIES`), and only one of them is used as an offset or denominator: road fuel (petrol
-plus diesel, CORES), the one series whose scope, every road and every vehicle, matches deaths on
-all roads. It is fuel sold, not kilometres driven, and it mixes freight with private travel, so
-deaths per tonne of road fuel are a proxy rate and are labelled as one. Petrol sold alone leaves
+plus diesel, CORES), the one series whose scope, every road, matches deaths on all roads. It is
+fuel sold, not kilometres driven; it leaves out electric and gas-powered vehicles and mixes freight
+with private travel, so deaths per tonne of road fuel are a proxy rate and are labelled as one. Petrol sold alone leaves
 out every diesel vehicle, and toll-motorway intensity (average daily vehicles per kilometre of the
 state toll network) measures traffic on a small part of the network; both are traffic indices
 shown beside deaths, never an offset or a denominator. Intensity is read rather than
@@ -292,9 +357,16 @@ effects (`month_effects`) come from quasi-Poisson models of monthly deaths with 
 sum-to-zero month effects, with no exposure and with the log of road fuel as an offset
 (`EXPOSURES`); with the offset the month effect is deaths per tonne of road fuel against the
 average month. A synthetic test checks that an offset exactly proportional to the outcome removes
-all seasonality. The lockdown comparison (`lockdown_months`) sets each month of 2020 against the
-same month's 2017–2019 mean for deaths, for each traffic series and for deaths per tonne of road
-fuel (`deaths_per_road_fuel_tonnes_change`).
+all seasonality. Deaths and fuel are monthly totals and are not adjusted for the number of days in
+a month, so February's raw effect is partly its 28 days; fuel scales with the days too, so the
+per-fuel effects are not affected. Toll-motorway intensity is a daily average. The lockdown
+comparison (`lockdown_months`) sets each month of 2020 against the same month's 2017–2019 mean for
+deaths, for each traffic series and for deaths per tonne of road fuel
+(`deaths_per_road_fuel_tonnes_change`), with the length of the toll network in each
+(`toll_network_km`, `toll_network_km_baseline`: 1,894 km in April 2020 against 2,513 km on average
+in April 2017–2019). Petrol and toll traffic were already 9 % to 16 % above the baseline in January
+and February 2020, so their April falls measured from that level would be larger; deaths fell less
+than both on either reckoning.
 
 ## 7. Age and driving exposure (`exposure_risk/`, `emef/`, `edm2018.py`, `driver_risk.py`)
 
@@ -410,8 +482,16 @@ circulating vehicles, with exact Poisson intervals. Vehicle-kilometres exist for
 so the rows by zone (interurban, urban) carry counts and rates per 100,000 circulating vehicles and
 no rate per kilometre. The two sides of the division do not cover quite the same vehicles: the
 crash counts include foreign-registered vehicles, and the kilometres include the distance Spanish
-vehicles drive abroad. The kilometres are annualised over inspection readings taken across
-2014–2023, so they describe a normal year imputed to the 2022 fleet rather than 2022 travel.
+vehicles drive abroad. The repository has no nationality field, so the size of that mismatch
+cannot be measured and its direction is unknown; it bears most on heavy trucks and buses, and the
+page says so in its limitations. The kilometres are annualised over inspection readings taken
+across 2014–2023, so they describe a normal year imputed to the 2022 fleet rather than 2022
+travel. DGT's 2024 release gives mean kilometres by type for 2022–2024 on the same basis (section
+4); the comparison is made for 2022 only. Rates are kept unrounded in `q6_summary_2022.csv` and
+rounded once, where they are printed. Some neighbouring ranks are not separated by the 95 %
+intervals: per kilometre, mopeds (20.7, 14.7 to 28.3) and buses (15.7, 11.3 to 21.2); and heavy
+trucks' own occupants killed per kilometre (1.93, 1.43 to 2.53) against cars' (2.25, 2.08 to 2.42).
+Motorcycles' lead per kilometre (43.5, 39.5 to 47.8) is clear.
 
 ## 9. Speed as a severity factor and speed status (`factors.py`, `speed.py`, `io_reports.py`)
 
@@ -551,13 +631,15 @@ listed with their results on the data page.
 
 | Assumption | Test | Result |
 |---|---|---|
-| A year's count varies only by chance | dispersion around the 2013–2019 trend | fails for all three counts, least for deaths and most for injury crashes; intervals widened (section 4); against 2019, the 2024 rise in admissions is beyond an ordinary year as a count and per tonne of road fuel, and no change in injury crashes is |
+| A year's count varies only by chance | dispersion around the 2013–2019 trend | fails for all three counts, least for deaths and most for injury crashes; intervals widened, with Student's t for the five degrees of freedom the factors rest on (section 4); against 2019, the 2024 rise in admissions is beyond an ordinary year per tonne of road fuel and at its edge as a count, and no change in injury crashes is beyond it, though the crash factor reflects a 2013–2016 step in urban crashes |
 | Road fuel tracks the kilometres driven | measured interurban vehicle-km against national road fuel (the scopes differ, so a diagnostic of the proxy, not a rate) | cannot be tested on all roads: the measured kilometres cover only State, regional and provincial interurban roads; per measured km, interurban deaths in 2023 are +5 % on trend, inside the interval; 8.7 % to 11.2 % of interurban deaths are on roads the kilometres leave out (section 5) |
 | CORES road fuel includes the biofuel blended into it, and a tonne means the same every year | each subtotal against the sum of its products, biofuels included, every month; the published biofuel share | holds: biofuel was 6.6 % of road fuel by mass in 2019 and 7.8 % in 2023, and as it carries less energy per tonne it cannot explain the rise in interurban kilometres per tonne (section 5) |
 | The owner's age stands for the driver's | cars and km per B-permit holder by band | does not hold at either end (0.23 cars per B-permit holder at 18–24, 0.56 at 25–34, 1.14 at 75+); the owner-age kilometres are replaced by kilometres driven by drivers of each age (section 7) |
 | One region's age profile of driving holds for Spain | the per-km ratios recomputed with each part of the province of Barcelona and with the Madrid survey of 2018; Barcelona's crashes on working days against driving inside the city | the ratio of older to middle-aged driving per resident is nearly the same across the province (0.40–0.47), but Madrid's older residents drive less; ratios by age are published with these sensitivity ranges (section 7) |
 | Working-day driving represents the year | the EMEF 2023 weekend question and Barcelona's crashes by type of day | non-working days move the 65-and-over ratio from 1.16 to 1.06–1.09; a modest, downward source of uncertainty (section 7) |
-| The fall in deaths was in how deadly crashes are | exact frequency × severity split | holds; the split, not the product, depends on recording (section 4) |
+| The fall in deaths per tonne of fuel was in how deadly crashes are | exact frequency × severity split by injury crashes and by hospital admissions | does not hold: by injury crashes most of the fall is severity, by admissions all of it is frequency; the product is firm and the split is not identified (section 4) |
+| The 30-day death series is consistent over time | 24-hour deaths, counted directly, against the 30-day series, which DGT estimated from them until 2010 | the joinpoint search on 24-hour deaths finds the same turning points (section 5) |
+| The projected per-fuel excess of 2023–2024 does not depend on the trend's start | last segment refitted from 2013 instead of 2011 | it does: from 2013, 2023 lies at the edge of the range and 2024 inside it (section 5) |
 | A forecast can show a change in the counts | out-of-sample forecast errors | the forecast loses to last year's count in the ordinary held-out years and was withdrawn, with the detectable changes computed from its errors (section 11) |
 
 ## 13. Supporting analysis: associations in DGT crash records (not a predictive model) (`features.py`, `models.py`, `scripts/model.py`)
