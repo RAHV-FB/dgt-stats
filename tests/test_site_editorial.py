@@ -167,8 +167,11 @@ def test_headings_and_leads_are_statements(built: dict[str, str]) -> None:
         text = built[slug]
         for heading in re.findall(r"<h[1-3][^>]*>(.*?)</h[1-3]>", text, re.S):
             assert "?" not in re.sub(r"<[^>]+>", "", heading), (slug, heading)
-        lead = re.search(r'<p class="lead">(.*?)</p>', text, re.S).group(1)
+        # The page's one-sentence description: its search description, shown under the title
+        # only on the home page (a page with a summary does not open twice).
+        lead = re.search(r'<meta name="description" content="([^"]*)">', text).group(1)
         assert "?" not in lead, slug
+        assert ('<p class="lead">' in text) == (slug == "index"), slug
         for opening in re.findall(r'<p class="summary">(.*?)</p>', text, re.S):
             assert "?" not in re.sub(r"<[^>]+>", "", opening), slug
 

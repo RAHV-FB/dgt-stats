@@ -505,38 +505,10 @@ def summary(text: str) -> str:
     return f'<p class="summary">{text}</p>'
 
 
-def key_result(value: str, text: str) -> str:
-    """One headline number with a sentence saying exactly what it measures. Used sparingly."""
-    return (
-        f'<div class="key-result"><p class="key-value">{value}</p>'
-        f'<p class="key-text">{text}</p></div>'
-    )
-
-
-def compare(items: list[tuple[str, str]], note: str = "") -> str:
-    """Two numbers side by side, each with what it measures, and a sentence reading them."""
-    cells = "".join(
-        f'<div class="compare-item"><p class="compare-value">{value}</p>'
-        f'<p class="compare-label">{label}</p></div>'
-        for value, label in items
-    )
-    note_html = f'<p class="compare-note">{note}</p>' if note else ""
-    return f'<div class="compare"><div class="compare-items">{cells}</div>{note_html}</div>'
-
-
 def facts(rows: list[tuple[str, str]], label: str) -> str:
-    """A short definition list that can be read in a few seconds (a model's unit, outcome,
-    benchmark, score and decision)."""
+    """A short definition list: terms and what they mean."""
     items = "".join(f"<div><dt>{esc(term)}</dt><dd>{value}</dd></div>" for term, value in rows)
     return f'<dl class="facts" aria-label="{esc(label)}">{items}</dl>'
-
-
-def decision_label(text: str) -> str:
-    """A model's decision, set after its section heading as a quiet label."""
-    return (
-        '<span class="decision-label"><span class="visually-hidden">Decision: </span>'
-        f"<span>{esc(text)}</span></span>"
-    )
 
 
 def evidence_note(text: str) -> str:
@@ -548,7 +520,7 @@ def limitation(text: str) -> str:
     """A short methodological limitation, kept next to the results it qualifies."""
     return (
         '<aside class="limit" aria-label="Limitations">'
-        f'<p><span class="limit-label">Limitations</span>{text}</p></aside>'
+        f'<p><span class="limit-label">Limitations.</span> {text}</p></aside>'
     )
 
 
@@ -573,10 +545,6 @@ TOC_MIN_SECTIONS = 3
 TOC_MIN_CHARS = 6000
 
 
-# A model's decision set after its section heading; the contents list leaves it out.
-DECISION_LABEL = re.compile(r'<span class="decision-label">.*?</span></span>', re.S)
-
-
 def _sections(body: str) -> tuple[str, list[tuple[str, str]]]:
     """Give every section heading of a page an id, and list the headings for its contents.
 
@@ -587,7 +555,7 @@ def _sections(body: str) -> tuple[str, list[tuple[str, str]]]:
 
     def name(match: re.Match[str]) -> str:
         attributes, text = match.group(1), match.group(2)
-        plain = DECISION_LABEL.sub("", text).strip()
+        plain = text.strip()
         found = re.search(r'id="([^"]+)"', attributes)
         anchor = found.group(1) if found else _slug(plain)
         base, number = anchor, 2
@@ -646,16 +614,6 @@ def _number(body: str) -> str:
     return pattern.sub(
         lambda m: figure_title(m) if m.group(0).startswith("<p") else table_block(m), body
     )
-
-
-def _block_end(html_text: str, start: int) -> int:
-    """The position just after the <div> that opens at ``start`` and everything nested in it."""
-    depth = 0
-    for match in re.finditer(r"<(/?)div\b", html_text[start:]):
-        depth += -1 if match.group(1) else 1
-        if depth == 0:
-            return html_text.index(">", start + match.start()) + 1
-    raise ValueError("unclosed <div>")
 
 
 def _toc_lists(entries: list[tuple[str, str]]) -> tuple[str, str]:
@@ -733,12 +691,13 @@ def _place(slug: str) -> tuple[str, str]:
 SITE_TITLE = "Road safety in Spain"
 
 
-def render_page(
-    slug: str, title: str, lead: str, body: str, head: str = "", scope: str = ""
-) -> str:
-    """A whole page: the site header and navigation, the page's opening (section, title, one
-    sentence and, for a regional page, its source and scope), its argument with a contents list
-    when it is long, the reading-order links and the footer."""
+def render_page(slug: str, title: str, lead: str, body: str, head: str = "") -> str:
+    """A whole page: the site header and navigation, the page's opening (section and title), its
+    argument with a contents list when it is long, the reading-order links and the footer.
+
+    ``lead`` is one sentence on what the page covers. It is the page's search description, and it
+    is shown under the title only where no summary follows to state the result: on the home page,
+    which it introduces, and on the withdrawn and moved notices, where it gives the reason."""
     eyebrow, pager = _place(slug)
     page_title = SITE_TITLE if slug == "index" else esc(title) + " · " + SITE_TITLE
     body, entries = _sections(_number(body))
@@ -748,11 +707,12 @@ def render_page(
         rail, inline = _toc_lists(entries)
         opening = re.search(r'<p class="summary">.*?</p>', body, re.S)
         cut = opening.end() if opening else 0
-        # A headline number that follows the summary stays with it, before the contents.
-        if re.match(r'<div class="(compare|key-result)">', body[cut:]):
-            cut = _block_end(body, cut)
         body = body[:cut] + inline + body[cut:]
-    scope_html = f'<p class="scope">{scope}</p>' if scope else ""
+    shown_lead = (
+        f'\n<p class="lead">{esc(lead)}</p>'
+        if slug == "index" or '<p class="summary">' not in body
+        else ""
+    )
     body_class = ' class="home"' if slug == "index" else ""
     page_class = "page has-toc" if rail else "page"
     return f"""<!DOCTYPE html>
@@ -785,8 +745,7 @@ def render_page(
 <div class="{page_class}">
 <main>
 <header class="page-header" id="content">
-{eyebrow}<h1>{esc(title)}</h1>
-<p class="lead">{esc(lead)}</p>{scope_html}
+{eyebrow}<h1>{esc(title)}</h1>{shown_lead}
 </header>
 {body}
 {pager}</main>{rail}
