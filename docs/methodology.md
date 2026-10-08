@@ -982,8 +982,8 @@ what the repository's own data show on the subject; no live page links to them.
 Nearly every number in a page's sentences, the front-page digest included, is computed from the
 result tables at build time, so a rebuilt table rewrites the text that quotes it; where a sentence
 says which results lie inside or outside an interval, the build stops if the table no longer
-supports it. Full result tables are copied into `site/tables/` and linked as CSV rather than
-printed: the default on a page is one figure, one interpretation and one limits note per finding.
+supports it. The full result tables a page links are copied into `site/tables/` and linked as
+CSV rather than printed; a table no page links is not published: the default on a page is one figure, one interpretation and one limits note per finding.
 Tests check that every internal link and anchor resolves, every image has alt text, every page has
 one heading and a description, that no page runs a script other than the site's reading aid and,
 on the models page, the calculator, that no year or result is typed into page code, and that each

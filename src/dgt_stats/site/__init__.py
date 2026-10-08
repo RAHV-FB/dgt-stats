@@ -5,9 +5,10 @@ works without it) and two self-hosted open fonts (``fonts``). The navigation (``
 national picture from DGT and INE with three supporting analyses, the Catalan and Barcelona crash
 records, the two severity models and their external validation, and the sources and methods.
 Every sentence that carries a number computes it from a committed result table at build time, so
-the prose cannot drift from the tables; full tables are copied into ``site/tables`` and linked as
-CSV rather than printed. Only the figures a page shows are copied into ``site/figures``, with
-their drawings for a phone's column in ``site/figures/narrow``.
+the prose cannot drift from the tables; full tables are linked as CSV rather than printed. Only
+the tables a page links are copied into ``site/tables``, and only the figures a page shows into
+``site/figures``, with their drawings for a phone's column in ``site/figures/narrow``; the other
+result tables stay in the repository, unpublished.
 
 One module per page: ``overview``, ``trends``, ``long_run``, ``seasons``, ``drivers``,
 ``vehicles``, ``speed``, ``factors``, the supporting ``severity`` and ``policy``,
@@ -86,6 +87,7 @@ __all__ = [
     "mark_spanish",
     "page_moved",
     "page_withdrawn",
+    "publish_tables",
     "read_captions",
     "table",
 ]
@@ -185,19 +187,15 @@ def build(site_dir: Path = SITE_DIR) -> list[Path]:
     captions = read_captions()
     site_dir.mkdir(parents=True, exist_ok=True)
     written: list[Path] = []
-    for source, name, pattern in (
-        (TABLES_DIR, "tables", "*.csv"),
-        # The web fonts and their licences.
-        (FONTS_DIR, "fonts", "*.*"),
-    ):
-        target_dir = site_dir / name
-        if target_dir.exists():
-            shutil.rmtree(target_dir)
-        target_dir.mkdir()
-        for path in sorted(source.glob(pattern)):
-            target = target_dir / path.name
-            shutil.copyfile(path, target)
-            written.append(target)
+    # The web fonts and their licences.
+    fonts_dir = site_dir / "fonts"
+    if fonts_dir.exists():
+        shutil.rmtree(fonts_dir)
+    fonts_dir.mkdir()
+    for path in sorted(FONTS_DIR.glob("*.*")):
+        target = fonts_dir / path.name
+        shutil.copyfile(path, target)
+        written.append(target)
     # The one site-wide script is the site's own; any other, such as those of the withdrawn
     # simulator and factor models, is removed. The calculator's engine, its page script and the
     # exported model it reads live apart, in ``models/``, and only its page loads them.
@@ -228,10 +226,39 @@ def build(site_dir: Path = SITE_DIR) -> list[Path]:
         target = site_dir / f"{slug}.html"
         target.write_text(page_withdrawn(slug), encoding="utf-8")
         written.append(target)
-    written.extend(publish_figures(site_dir, [path for path in written if path.suffix == ".html"]))
+    pages = [path for path in written if path.suffix == ".html"]
+    written.extend(publish_figures(site_dir, pages))
+    written.extend(publish_tables(site_dir, pages))
     # A page no builder wrote any more is dead: remove it rather than leave it published.
     for stale in set(site_dir.glob("*.html")) - set(written):
         stale.unlink()
+    return written
+
+
+# A result table as a page links it for download.
+TABLE_REFERENCE = re.compile(r'href="tables/([^"/]+\.csv)"')
+
+
+def publish_tables(site_dir: Path, pages: list[Path], source_dir: Path = TABLES_DIR) -> list[Path]:
+    """Copy into ``site_dir/tables`` the result tables that ``pages`` link, and nothing else: a
+    table no page links (a withdrawn analysis's record, a check behind a generated document) stays
+    in the repository and is not published. A page that links a table the reports do not hold
+    fails the build."""
+    target_dir = site_dir / "tables"
+    if target_dir.exists():
+        shutil.rmtree(target_dir)
+    target_dir.mkdir(parents=True)
+    linked = {
+        name for page in pages for name in TABLE_REFERENCE.findall(page.read_text(encoding="utf-8"))
+    }
+    written = []
+    for name in sorted(linked):
+        source = source_dir / name
+        if not source.exists():
+            raise FileNotFoundError(f"a page links tables/{name}, which no step wrote")
+        target = target_dir / name
+        shutil.copyfile(source, target)
+        written.append(target)
     return written
 
 

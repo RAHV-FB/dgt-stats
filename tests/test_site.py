@@ -158,13 +158,29 @@ def test_referenced_assets_exist(built: Path) -> None:
 
 def test_full_result_tables_are_published_as_csv(built: Path) -> None:
     published = {p.name for p in (built / "tables").glob("*.csv")}
-    assert {f"{name}.csv" for name in summaries.SUMMARIES} <= published
+    # Exactly the tables some page links are published; the others stay in the repository.
+    linked = {
+        name
+        for page in built.glob("*.html")
+        for name in re.findall(r'href="tables/([^"/]+\.csv)"', page.read_text("utf-8"))
+    }
+    assert published == linked
     assert {f"{name}.csv" for name in summaries.MODEL_TABLES} <= published
     assert "validation.csv" in published
+    # Withdrawn analyses leave no download behind.
+    withdrawn = {f"{name}.csv" for name in summaries.WITHDRAWN_SUMMARIES}
+    assert not published & (withdrawn | {"review_forecast.csv", "q7_breakeven_km.csv"})
     # Every page that shows a headline number also links the table it came from.
     for slug in ANALYSIS_PAGES + ("severity", "policy"):
         text = (built / f"{slug}.html").read_text(encoding="utf-8")
         assert 'href="tables/' in text, slug
+
+
+def test_a_page_that_links_a_missing_table_fails_the_build(tmp_path: Path) -> None:
+    page = tmp_path / "page.html"
+    page.write_text('<a href="tables/no_such_table.csv">x</a>', encoding="utf-8")
+    with pytest.raises(FileNotFoundError, match="no_such_table.csv"):
+        site.publish_tables(tmp_path / "site", [page])
 
 
 def test_figures_are_copied_and_captioned(built: Path) -> None:
