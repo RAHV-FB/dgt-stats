@@ -280,6 +280,23 @@ def test_dot_interval(tmp_path: Path) -> None:
     _svg_ok(out)
 
 
+def test_dot_interval_can_keep_its_ticks_on_whole_numbers(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Deaths per 1,000 involved run from about 3 to 20: whole-number ticks, no needless decimals.
+    drawn = _capture_axes(monkeypatch)
+    frame = pd.DataFrame(
+        {"name": list("abc"), "v": [4.1, 8.5, 15.9], "lo": [3.3, 6.5, 12.6], "hi": [5.1, 10.8, 20]}
+    )
+    plots.dot_interval(
+        frame, "name", "v", "lo", "hi", tmp_path / "w.svg", "W", keep_order=True, integer_ticks=True
+    )
+    axis = drawn[0][0]
+    axis.figure.canvas.draw()
+    labels = [label.get_text() for label in axis.get_xticklabels() if label.get_text()]
+    assert labels and all("." not in label for label in labels), labels
+
+
 def test_ratio_charts_can_use_a_log_axis(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     # Ratios on a log axis, so a halving and a doubling look the same size; the axes are
     # captured as each chart is saved.
@@ -1055,6 +1072,18 @@ def _layered_frame() -> pd.DataFrame:
     )
 
 
+def _contrast(first: str, second: str) -> float:
+    """WCAG contrast ratio of two colours."""
+
+    def luminance(colour: str) -> float:
+        channels = [int(colour.lstrip("#")[i : i + 2], 16) / 255 for i in (0, 2, 4)]
+        linear = [c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4 for c in channels]
+        return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2]
+
+    light, dark = sorted((luminance(first), luminance(second)), reverse=True)
+    return (light + 0.05) / (dark + 0.05)
+
+
 def _legend_labels(axis) -> list[str]:
     legend = axis.get_legend() or axis.figure.legends[0]
     return [text.get_text().replace("\n", " ") for text in legend.get_texts()]
@@ -1097,6 +1126,15 @@ def test_estimate_and_range_draws_the_layers_of_the_per_km_chart(
     counts = [text.get_text() for text in axis.texts if text.get_text().endswith("involved")]
     assert counts == [f"{n:,} involved" for n in (100, 200, 300, 150, 150)]
     assert _legend_labels(axis) == ["estimate", "conditional", "range", "hatched"]
+    # Every range band has an outline as long as the whole band, in a grey that stands 3:1 or
+    # more against the white chart box (the band's own fill does not).
+    outlines = sorted(
+        (round(p.get_x(), 2), round(p.get_x() + p.get_width(), 2))
+        for p in axis.patches
+        if not p.get_fill()
+    )
+    assert outlines == [(0.66, 1.63), (0.9, 1.7), (0.97, 3.28), (1.4, 3.0)]
+    assert _contrast(plots.RANGE_OUTLINE["color"], plots.SURFACE) >= 3
     if narrow:
         assert figures.svg_width(tmp_path / "layers.svg") <= plots.NARROW_MAX_POINTS
 
@@ -1160,6 +1198,8 @@ def test_estimate_and_range_draws_a_frame_without_the_new_columns_as_before(
     )
     axis = drawn[0][0]
     assert _legend_labels(axis) == ["e", "r"]
-    assert not axis.patches and not [t for t in axis.texts if t.get_text()]
+    # No hatching and no texts; the only patches are the bands' outlines.
+    assert not [p for p in axis.patches if p.get_hatch() or p.get_fill()]
+    assert not [t for t in axis.texts if t.get_text()]
     assert not [line for line in axis.get_lines() if line.get_marker() == "D"]
     assert [label.get_text() for label in axis.get_yticklabels()][1] == "middle (reference)"

@@ -203,28 +203,28 @@ L 252.018457 5.76
    </g>
    <g id="LineCollection_1">
     <path d="M 180.16623 18.539708 
-L 247.304996 18.539708 
-" clip-path="url(#p75a71549d4)" style="fill: none; stroke: #bdbdb8; stroke-opacity: 0.6; stroke-width: 8"/>
+L 245.032242 18.539708 
+" clip-path="url(#p75a71549d4)" style="fill: none; stroke: #d7d7d4; stroke-width: 8"/>
    </g>
    <g id="LineCollection_2">
     <path d="M 159.083761 46.837633 
 L 190.411271 46.837633 
-" clip-path="url(#p75a71549d4)" style="fill: none; stroke: #bdbdb8; stroke-opacity: 0.6; stroke-width: 8"/>
+" clip-path="url(#p75a71549d4)" style="fill: none; stroke: #d7d7d4; stroke-width: 8"/>
    </g>
    <g id="LineCollection_3">
     <path d="M 139.612913 103.433482 
-L 191.822754 103.433482 
-" clip-path="url(#p75a71549d4)" style="fill: none; stroke: #bdbdb8; stroke-opacity: 0.6; stroke-width: 8"/>
+L 194.711565 103.433482 
+" clip-path="url(#p75a71549d4)" style="fill: none; stroke: #d7d7d4; stroke-width: 8"/>
    </g>
    <g id="LineCollection_4">
-    <path d="M 120.556498 131.731407 
-L 179.321334 131.731407 
-" clip-path="url(#p75a71549d4)" style="fill: none; stroke: #bdbdb8; stroke-opacity: 0.6; stroke-width: 8"/>
+    <path d="M 121.910184 131.731407 
+L 182.235013 131.731407 
+" clip-path="url(#p75a71549d4)" style="fill: none; stroke: #d7d7d4; stroke-width: 8"/>
    </g>
    <g id="LineCollection_5">
     <path d="M 165.220305 160.029332 
-L 237.592226 160.029332 
-" clip-path="url(#p75a71549d4)" style="fill: none; stroke: #bdbdb8; stroke-opacity: 0.6; stroke-width: 8"/>
+L 235.7345 160.029332 
+" clip-path="url(#p75a71549d4)" style="fill: none; stroke: #d7d7d4; stroke-width: 8"/>
    </g>
    <g id="line2d_22">
     <path d="M 151.060124 172.80904 
@@ -232,10 +232,10 @@ L 151.060124 5.76
 " clip-path="url(#p75a71549d4)" style="fill: none; stroke-dasharray: 1.1,1.815; stroke-dashoffset: 0; stroke: #4f4f4f; stroke-width: 1.1"/>
    </g>
    <g id="patch_3">
-    <path d="M 179.321334 135.731407 
-L 186.655911 135.731407 
-L 186.655911 127.731407 
-L 179.321334 127.731407 
+    <path d="M 182.235013 135.731407 
+L 189.618932 135.731407 
+L 189.618932 127.731407 
+L 182.235013 127.731407 
 z
 " clip-path="url(#p75a71549d4)" style="fill: url(#hcf41069593); stroke: #7d7d78; stroke-width: 0.6; stroke-linejoin: miter"/>
    </g>
@@ -247,14 +247,59 @@ L 149.193771 156.029332
 z
 " clip-path="url(#p75a71549d4)" style="fill: url(#hcf41069593); stroke: #7d7d78; stroke-width: 0.6; stroke-linejoin: miter"/>
    </g>
+   <g id="patch_5">
+    <path d="M 180.16623 22.539708 
+L 245.032242 22.539708 
+L 245.032242 14.539708 
+L 180.16623 14.539708 
+L 180.16623 22.539708 
+z
+" clip-path="url(#p75a71549d4)" style="fill: none; stroke: #7d7d78; stroke-width: 0.75; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_6">
+    <path d="M 159.083761 50.837633 
+L 190.411271 50.837633 
+L 190.411271 42.837633 
+L 159.083761 42.837633 
+L 159.083761 50.837633 
+z
+" clip-path="url(#p75a71549d4)" style="fill: none; stroke: #7d7d78; stroke-width: 0.75; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_7">
+    <path d="M 139.612913 107.433482 
+L 194.711565 107.433482 
+L 194.711565 99.433482 
+L 139.612913 99.433482 
+L 139.612913 107.433482 
+z
+" clip-path="url(#p75a71549d4)" style="fill: none; stroke: #7d7d78; stroke-width: 0.75; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_8">
+    <path d="M 121.910184 135.731407 
+L 189.618932 135.731407 
+L 189.618932 127.731407 
+L 121.910184 127.731407 
+L 121.910184 135.731407 
+z
+" clip-path="url(#p75a71549d4)" style="fill: none; stroke: #7d7d78; stroke-width: 0.75; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_9">
+    <path d="M 149.193771 164.029332 
+L 235.7345 164.029332 
+L 235.7345 156.029332 
+L 149.193771 156.029332 
+L 149.193771 164.029332 
+z
+" clip-path="url(#p75a71549d4)" style="fill: none; stroke: #7d7d78; stroke-width: 0.75; stroke-linejoin: miter"/>
+   </g>
    <g id="LineCollection_6">
-    <path d="M 210.277812 18.539708 
-L 226.604617 18.539708 
+    <path d="M 209.877991 18.539708 
+L 226.639437 18.539708 
 " clip-path="url(#p75a71549d4)" style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
    </g>
    <g id="LineCollection_7">
-    <path d="M 170.138123 46.837633 
-L 182.073121 46.837633 
+    <path d="M 169.924442 46.837633 
+L 181.777133 46.837633 
 " clip-path="url(#p75a71549d4)" style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
    </g>
    <g id="LineCollection_8">
@@ -263,8 +308,8 @@ L 151.060124 75.135558
 " clip-path="url(#p75a71549d4)" style="fill: none; stroke: #7d7d78; stroke-opacity: 0.9; stroke-width: 1.6"/>
    </g>
    <g id="LineCollection_9">
-    <path d="M 153.18918 103.433482 
-L 173.413551 103.433482 
+    <path d="M 152.800137 103.433482 
+L 173.559778 103.433482 
 " clip-path="url(#p75a71549d4)" style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
    </g>
    <g id="LineCollection_10">
@@ -277,7 +322,7 @@ L 157.725771 131.731407
 L 221.836791 160.029332 
 " clip-path="url(#p75a71549d4)" style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
    </g>
-   <g id="patch_5">
+   <g id="patch_10">
     <path d="M 92.907969 172.80904 
 L 258.95952 172.80904 
 " style="fill: none; stroke: #b5b5b0; stroke-width: 0.8; stroke-linejoin: miter; stroke-linecap: square"/>
@@ -395,17 +440,19 @@ L 29.7 255.821479
     <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #1b1b1b" transform="translate(36.9 258.15276)">as much less than those aged 65–74 as in</text>
     <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #1b1b1b" transform="translate(36.9 269.40276)">Madrid in 2018</text>
    </g>
-   <g id="line2d_31">
-    <path d="M 8.1 288.446479 
-L 18.9 288.446479 
-L 29.7 288.446479 
-" style="fill: none; stroke: #bdbdb8; stroke-opacity: 0.6; stroke-width: 8; stroke-linecap: round"/>
+   <g id="patch_11">
+    <path d="M 8.1 291.596479 
+L 29.7 291.596479 
+L 29.7 285.296479 
+L 8.1 285.296479 
+z
+" style="fill: #d7d7d4; stroke: #7d7d78; stroke-width: 0.75; stroke-linejoin: miter"/>
    </g>
    <g id="text_24">
     <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #1b1b1b" transform="translate(36.9 285.15276)">Sensitivity range: span of the assumptions</text>
     <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #1b1b1b" transform="translate(36.9 296.40276)">tested</text>
    </g>
-   <g id="patch_6">
+   <g id="patch_12">
     <path d="M 8.1 324.221479 
 L 29.7 324.221479 
 L 29.7 317.921479 

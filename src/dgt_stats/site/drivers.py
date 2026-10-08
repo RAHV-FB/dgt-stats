@@ -29,6 +29,7 @@ from dgt_stats.site.components import (
     _fmt_dec,
     _fmt_pct,
     _join,
+    definition_link,
     downloads,
     evidence_note,
     figure,
@@ -51,6 +52,9 @@ from dgt_stats.site.numbers import (
     _sex_numbers,
     joint_interval,
     mc_digits,
+    mc_interval,
+    rate_interval,
+    side_of_one_shown,
 )
 
 REFERENCE = "45-64"
@@ -76,12 +80,88 @@ def _check(holds: bool, claim: str) -> None:
         raise ValueError(f"drivers page: the tables no longer support: {claim}")
 
 
-def _ci(row: pd.Series, column: str) -> str:
-    return f"{float(row[f'{column}_low']):.2f}–{float(row[f'{column}_high']):.2f}"
+def _ci(row: pd.Series, column: str, sep: str = "–") -> str:
+    """A ratio's sampling interval from ``risk_national_rates``, at the precision its Monte Carlo
+    error supports."""
+    return rate_interval(row, column, sep)
+
+
+# The closed sections the text sends readers to, with their ids.
+SOURCES_TITLE, SOURCES_ANCHOR = (
+    "Sources of the sensitivity range",
+    "sources-of-the-sensitivity-range",
+)
+COVERAGE_TITLE, COVERAGE_ANCHOR = "What DGT's kilometres are made of", "what-dgts-kilometres"
+
+
+NUMBER_WORDS = ("no", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine")
+
+
+def _words(number: int) -> str:
+    """A count under ten in words, as in running prose."""
+    return NUMBER_WORDS[number] if 0 <= number < len(NUMBER_WORDS) else f"{number:,}"
+
+
+def _open_link(anchor: str, label: str) -> str:
+    """A pointer to a closed section of technical detail further down the page."""
+    return f'open “<a href="#{anchor}">{label}</a>” below'
 
 
 def _span(values: pd.Series) -> str:
     return f"{float(values.min()):.2f}–{float(values.max()):.2f}"
+
+
+RATE_COARSEST = -2  # rates per billion km may be rounded to tens, never to thousands
+DIGIT_WORDS = {2: "two decimals", 1: "one decimal", 0: "whole numbers", -1: "tens"}
+
+
+def _mc_errors(rows: pd.DataFrame, column: str) -> float:
+    """The largest Monte Carlo standard error of the interval ends of ``column`` in ``rows``."""
+    return float(rows[[f"{column}_mc_se_low", f"{column}_mc_se_high"]].max().max())
+
+
+def _precision_rule(central: pd.DataFrame) -> str:
+    """The page's one statement of how its sampling intervals are printed, with the Monte Carlo
+    errors of the ratios and rates of Table 1 and of the death ratios quoted with them."""
+    shown = central.loc[[group for group in GROUPS if group != REFERENCE]]
+    involved = _mc_errors(shown, "involved_ratio")
+    killed = _mc_errors(shown, "killed_ratio")
+    rate_digits = sorted(
+        {
+            mc_digits(
+                row.involved_per_bn_km_mc_se_low,
+                row.involved_per_bn_km_mc_se_high,
+                coarsest=RATE_COARSEST,
+            )
+            for row in central.itertuples()
+        },
+        reverse=True,
+    )
+    ratio_digits = mc_digits(involved, killed)
+    each = {
+        mc_digits(getattr(row, f"{c}_mc_se_low"), getattr(row, f"{c}_mc_se_high"))
+        for row in shown.itertuples()
+        for c in ("involved_ratio", "killed_ratio")
+    }
+    _check(
+        0 < involved < 0.05 and 0 < killed < 0.05 and each == {ratio_digits} and ratio_digits >= 1,
+        "the ratios' interval ends move by less than 0.05 between resamples, so they keep one "
+        "decimal at least, and every ratio's interval is printed to the same digit",
+    )
+    rates = " or ".join(DIGIT_WORDS[d] for d in rate_digits)
+    return (
+        "How every sampling interval on this page is printed: it comes from resampling the "
+        "surveys and the crash counts, and another set of resamples would move its ends "
+        "slightly, so both ends are printed to the last digit that the larger of their Monte "
+        "Carlo standard errors supports, a unit at least twice that error. Here the ratios' ends "
+        f"carry errors of up to {involved:.3f} for involvement and {killed:.3f} for deaths per "
+        f"kilometre, so the ratios' intervals are given to {DIGIT_WORDS[ratio_digits]}; the "
+        f"rates' ends carry errors of up to {_mc_errors(central, 'involved_per_bn_km'):.1f} per "
+        f"billion km, so they are given to {rates}, as each row's error allows. No sentence on "
+        "the page rests on which side of 1 an end lies unless the printed end shows it and "
+        f"stands {_words(MC_MARGIN)} Monte Carlo errors clear of 1. The 95% intervals of men "
+        "against women per licence holder come from a formula, not from resampling."
+    )
 
 
 def _rates_table(central: pd.DataFrame, ranges: pd.DataFrame, level: pd.Series, year: int) -> str:
@@ -96,7 +176,7 @@ def _rates_table(central: pd.DataFrame, ranges: pd.DataFrame, level: pd.Series, 
                 "Kilometres (billion)": row.billion_km,
                 "Involved per billion km (95% sampling interval)": (
                     f"{row.involved_per_bn_km:,.0f} "
-                    f"({row.involved_per_bn_km_low:,.0f}–{row.involved_per_bn_km_high:,.0f})"
+                    f"({rate_interval(row, 'involved_per_bn_km', coarsest=RATE_COARSEST)})"
                 ),
                 "Ratio to 45–64 (95% sampling interval)": "1 (reference)"
                 if reference
@@ -108,23 +188,17 @@ def _rates_table(central: pd.DataFrame, ranges: pd.DataFrame, level: pd.Series, 
         )
     # A reader reproducing the table needs the rows of the published CSV it comes from.
     method, km_total = str(central.method.iloc[0]), str(central.km_total.iloc[0])
-    # The ratios' interval ends are printed to two decimals; the note says how far another set
-    # of resamples would move them, so the second decimal is not read as exact.
-    shown = central.loc[[group for group in GROUPS if group != REFERENCE]]
-    mc_error = float(shown[["involved_ratio_mc_se_low", "involved_ratio_mc_se_high"]].max().max())
-    _check(
-        0 < mc_error < 0.05, "the ratios' interval ends move by less than 0.05 between resamples"
-    )
     return table(
         pd.DataFrame(rows),
         f"Car drivers involved in injury crashes per kilometre driven, by age, Spain, {year}. "
         "Kilometres by age from the EMEF's working-day profile applied to Spain's population "
         "and scaled to DGT's car kilometres less taxis and ride-hailing cars. The 95% sampling "
-        "intervals combine a bootstrap of the survey with Poisson error in the crash counts; the "
-        "bootstrap replicates are not published. The ends of the ratios' intervals carry a Monte "
-        f"Carlo standard error of up to {mc_error:.2f}, so another set of resamples could change "
-        "their second decimal. The sensitivity range spans every alternative in the table of "
-        "sources below. Data: the rows of the CSV of involvement and deaths per km by "
+        "intervals combine a bootstrap of the survey (the bootstrap replicates are not "
+        "published) with Poisson error in the crash counts, "
+        f"{national.COUNT_DRAWS} draws of each count for every replicate. "
+        f"{_precision_rule(central)} The sensitivity range spans "
+        f"every alternative in the closed section “{SOURCES_TITLE}” below. Data: "
+        "the rows of the CSV of involvement and deaths per km by "
         f"age with method “{method}” and kilometre total “{km_total}”; its other kilometre "
         f"totals change the rates (from {float(level.min()):,.0f} to {float(level.max()):,.0f} "
         "per billion km at 65 and over) but not the ratios.",
@@ -174,7 +248,7 @@ COVERAGE_LABELS = {
     "working days": ("Working days, as the survey measures them", "survey's working days"),
     PROFESSIONAL_PART: (
         "Work trips of people who drive for a living, counted but not described by the survey",
-        "professionals' work trips",
+        "survey's working days; their own age mix tested",
     ),
     "regional level": (
         "More driving per resident in Spain than in the province",
@@ -190,7 +264,7 @@ COVERAGE_LABELS = {
     ),
     "remainder (not explained)": (
         "Not explained by any part above",
-        "survey's working days; four other measured mixes and two bounds tested",
+        "survey's working days; three other measured mixes tested, three bounds reported",
     ),
     "cars registered to companies": (
         "Cars registered to companies (overlaps the parts above)",
@@ -252,7 +326,7 @@ def _barcelona_table(barcelona: pd.DataFrame) -> str:
             row[column] = (
                 "1 (reference)"
                 if group == REFERENCE
-                else f"{value.ratio_to_45_64:.2f} ({value.ratio_low:.2f}–{value.ratio_high:.2f})"
+                else f"{value.ratio_to_45_64:.2f} ({joint_interval(value)})"
             )
         rows.append(row)
     return table(
@@ -267,22 +341,21 @@ def _barcelona_table(barcelona: pd.DataFrame) -> str:
     )
 
 
-def _older_table(older: pd.DataFrame, variants: pd.DataFrame, full: str, madrid: str) -> str:
+def _older_table(
+    older: pd.DataFrame, variants: pd.DataFrame, full: str, madrid: str, like_for_like: float
+) -> str:
     labels = national.public_split_labels()
-    men = older[older.group == "75+"].set_index("assumption").men_km_per_holder_75_vs_65_74
-    per_resident_row = float(men[national.REFERENCE_SPLIT])
-    per_holder_row = float(men[national.LICENCE_SPLIT])
-    racc = older[(older.group == "75+") & (older.assumption == national.RACC_SPLIT)]
+    oldest = older[older.group == "75+"].set_index("assumption")
+    men = oldest.men_km_per_holder_75_vs_65_74
+    ratio = oldest.ratio_to_45_64
     _check(
-        per_holder_row < per_resident_row
-        and float(racc.ratio_to_45_64.iloc[0])
-        < float(
-            older[
-                (older.group == "75+") & (older.assumption == national.REFERENCE_SPLIT)
-            ].ratio_to_45_64.iloc[0]
-        ),
-        "the licence split implies a lower men's ratio per holder than the Madrid split, and "
-        "the RACC upper limit on men's km gives a lower involvement ratio",
+        np.isclose(float(men[national.LICENCE_SPLIT]), like_for_like)
+        and abs(float(ratio[national.LICENCE_SPLIT]) / float(ratio[national.REFERENCE_SPLIT]) - 1)
+        < 0.05
+        and float(ratio[national.RACC_SPLIT]) < float(ratio[national.REFERENCE_SPLIT]),
+        "the licence split implies Madrid's own men's ratio per DGT licence holder and gives "
+        "nearly the Madrid split's figure, and the RACC upper limit on men's km gives a lower "
+        "involvement ratio",
     )
     rows = []
     for split in national.SPLITS:
@@ -312,11 +385,10 @@ def _older_table(older: pd.DataFrame, variants: pd.DataFrame, full: str, madrid:
         f"over all four splits and every other choice is {full} at 75 and over. The first two "
         "rows' intervals include the Madrid survey's sampling error; the last two include only "
         "the Barcelona-area survey's and the crash counts', and the RACC figure is held fixed. "
-        "Interval ends are rounded to the precision their Monte Carlo error supports. "
-        f"{madrid} The second row implies {per_holder_row:.2f} for men, not "
-        f"{per_resident_row:.2f}, because it applies Madrid's kilometres per licence holder, "
-        "counting those respondents who said they held a licence, to DGT's register of licence "
-        "holders, so the fall in licence holding at 75 and over is counted a second time. The "
+        f"{madrid} The second row carries Madrid's kilometres per licence holder, with holders "
+        f"counted on DGT's {YEAR} register in the province of Madrid and in Spain alike, to "
+        "Spain's licence holders; licence holding falls about as much from 65–74 to 75 and over "
+        "in the province of Madrid as in Spain, so it gives nearly the figures of the first. The "
         "third row's upper limit is on men's kilometres, so it gives a lower ratio of "
         "involvement.",
         {"Implied km per licence holder, men 75 and over against 65–74": "dec2"},
@@ -508,15 +580,30 @@ def page_drivers(captions: dict[str, str]) -> str:
     other_ranges = others.groupby("group").involved_ratio.agg(["min", "max"])
     licence_bound = bounds[bounds.remainder_mix == coverage_design.LICENCE_MIX]
     under_65_bound = bounds[bounds.remainder_mix == coverage_design.UNDER_65_MIX]
+    # The bounds with every profile, as the 75+ section and the owner-age bound quote them.
+    every_bound = {mix: scenarios[scenarios.remainder_mix == mix] for mix in coverage_design.BOUNDS}
+    owner_bound = every_bound[coverage_design.OWNER_MIX]
+    measured_mixes = [
+        mix
+        for mix in coverage_design.REMAINDER_MIXES
+        if mix not in coverage_design.BOUNDS and mix != coverage_design.WORKING_DAY_MIX
+    ]
+    _check(
+        not bool(owner_bound.credible.any())
+        and set(scenarios[~scenarios.credible].remainder_mix) == set(coverage_design.BOUNDS)
+        and len(measured_mixes) == len(coverage_design.BOUNDS) == 3,
+        "the owner-age mix is a bound, left out of the range like the two constructed ones: "
+        "three measured mixes besides the working day's and three bounds, as Table 2 says",
+    )
     for group, column in (("18-29", "ratio_18_29"), ("65+", "ratio_65_plus")):
         _check(
             float(other_ranges.loc[group, "min"]) <= float(alone[column].min())
             and float(alone[column].max()) <= float(other_ranges.loc[group, "max"])
             and float(ranges.loc[group, "min"]) < float(other_ranges.loc[group, "min"])
             and np.isclose(float(credible[column].min()), float(ranges.loc[group, "min"]))
-            and np.isclose(float(credible[column].max()), float(ranges.loc[group, "max"])),
+            and float(credible[column].max()) <= float(ranges.loc[group, "max"]) + 1e-9,
             f"for {group}, the uncovered kilometres alone stay inside the other tests' range, and "
-            "with another region's profile they set both ends of the sensitivity range",
+            "with another region's profile they widen it and stay inside the sensitivity range",
         )
     _check(
         float(ranges.loc["65+", "min"]) <= float(licence_bound.ratio_65_plus.min())
@@ -702,9 +789,15 @@ def page_drivers(captions: dict[str, str]) -> str:
         "deaths once involved separate the older groups from 45-64 more than involvement per km",
     )
     # Barcelona's working-day check.
+    city_rows = city[city.age4 == "65+"]
     _check(
-        bool((city[city.age4 == "65+"].ratio_low < 1).all())
-        and bool((city[city.age4 == "65+"].ratio_high > 1).all())
+        bool((city_rows.ratio_low < 1).all())
+        and bool((city_rows.ratio_high > 1).all())
+        and all(
+            side_of_one_shown(row.ratio_low, row.mc_se_low, row.mc_se_low, row.mc_se_high)
+            and side_of_one_shown(row.ratio_high, row.mc_se_high, row.mc_se_low, row.mc_se_high)
+            for row in city_rows.itertuples()
+        )
         and bool((city_young > 1.8).all()),
         "in Barcelona on working days, 65+ at about the 45-64 rate (every interval includes 1) "
         "and the young at about twice it or more",
@@ -748,9 +841,26 @@ def page_drivers(captions: dict[str, str]) -> str:
         for sex in national.SEXES
     }
     transfer = check.xs(national.CHECK_TRANSFER, level="check").value
+    within_survey = check.xs(national.CHECK_WITHIN_SURVEY, level="check").value
     like_for_like = check.xs(national.CHECK_MADRID_PER_HOLDER, level="check")
     men_madrid = like_for_like.loc["male"]
     women_madrid = like_for_like.loc["female"]
+    men_madrid_ci = mc_interval(
+        men_madrid.low, men_madrid.high, men_madrid.mc_se_low, men_madrid.mc_se_high
+    )
+    _check(
+        side_of_one_shown(
+            men_madrid.high, men_madrid.mc_se_high, men_madrid.mc_se_low, men_madrid.mc_se_high
+        )
+        and float(men_madrid.high) < 1
+        and abs(
+            float(within_survey[national.CENTRAL_METHOD]) - float(transfer[national.CENTRAL_METHOD])
+        )
+        < 0.05,
+        "Madrid's men drive less per licence holder at 75+ even at the top of the printed "
+        "interval; the Barcelona-area survey's own 65+/45-64 ratio is close to its value after "
+        "transfer",
+    )
     trend_key = national.CHECK_LICENCE_TREND
     licence_trend = check.xs(trend_key, level="check").value
     licence_gradient = check.xs(national.CHECK_LICENCE_GRADIENT_TREND, level="check").value
@@ -863,8 +973,9 @@ def page_drivers(captions: dict[str, str]) -> str:
         "estimate gives the rest the same age mix. On that "
         f"estimate, car drivers aged 18–29 were involved in injury crashes in Spain in {year} "
         f"{float(young.involved_ratio):.2f} times as often per kilometre driven as drivers aged "
-        f"45–64 (95% sampling interval {_ci(young, 'involved_ratio')}; sensitivity range, the "
-        f"span across the assumptions tested, {spread('18-29')}), and more often under every "
+        f"45–64 (95% {definition_link('Sampling interval')} {_ci(young, 'involved_ratio')}; "
+        f"{definition_link('Sensitivity range')}, the span across the assumptions tested, "
+        f"{spread('18-29')}), and more often under every "
         "assumption tested. Drivers aged 65 and over were involved "
         f"{float(older_all.involved_ratio):.2f} times as often (95% sampling interval "
         f"{_ci(older_all, 'involved_ratio')}; sensitivity range {spread('65+')}), so whether "
@@ -873,7 +984,8 @@ def page_drivers(captions: dict[str, str]) -> str:
         f"the sensitivity range is {full_75} times the 45–64 rate{direction}. "
         f"{madrid_pattern[:1].upper()}{madrid_pattern[1:]}, on the same estimate they were "
         f"involved about {float(cond_75.ratio_to_45_64):.1f} times as often (95% sampling "
-        f"interval {joint_interval(cond_75, 1)}). Counted directly, with no kilometres, "
+        f"interval {joint_interval(cond_75, 1)}), a {definition_link('Conditional estimate')} "
+        "that holds only on that assumption. Counted directly, with no kilometres, "
         f"{killed['75+']:.1f} of every 1,000 car drivers aged 75 and over involved in an injury "
         f"crash died within 30 days, against {killed[REFERENCE]:.1f} at 45–64. Involvement "
         "counts every driver in a crash, whoever caused it, and the death rate only the "
@@ -916,7 +1028,7 @@ def page_drivers(captions: dict[str, str]) -> str:
         return (
             f"{LABELS[group]}: {int(row.involved):,} involved; "
             f"{float(row.involved_ratio):.2f} times the 45–64 rate (95% sampling interval "
-            f"{to(float(row.involved_ratio_low), float(row.involved_ratio_high))}; sensitivity "
+            f"{_ci(row, 'involved_ratio', ' to ')}; sensitivity "
             f"range {to(float(ranges.loc[group, 'min']), float(ranges.loc[group, 'max']))})"
         )
 
@@ -942,10 +1054,10 @@ def page_drivers(captions: dict[str, str]) -> str:
     body += _rates_table(central, ranges, level, year)
     body += (
         "<p>The 95% sampling interval reflects only sampling error in the survey and chance "
-        "variation in "
-        "the crash counts, and is probably too narrow, because its resampling of survey "
-        "respondents ignores the clustering of the survey's sample, which makes an interval too "
-        "narrow; the sensitivity range adds the other choices, set out in the table below. For "
+        "variation in the crash counts, and is probably too narrow, because the resampling "
+        "treats respondents as independent although the survey samples them in clusters; the "
+        "sensitivity range adds the other choices (to see them, "
+        f"{_open_link(SOURCES_ANCHOR, SOURCES_TITLE)}). For "
         "drivers aged 18–29 the largest is which region's age profile stands in for Spain's "
         f"({_fmt_span(float(regional_young['min']), float(regional_young['max']))}). Carrying "
         "the survey's driving per licence holder rather than per resident to Spain gives "
@@ -967,7 +1079,8 @@ def page_drivers(captions: dict[str, str]) -> str:
     dgt_low, dgt_high = float(dgt_regional.min()), float(dgt_regional.max())
     body += (
         "<p>The other half of DGT's kilometres is not measured by age, but most of it can be "
-        "sized from the sources this site uses; the table below gives each part. Weekends and "
+        "sized from the sources this site uses (for each part, "
+        f"{_open_link(COVERAGE_ANCHOR, COVERAGE_TITLE)}). Weekends and "
         f"public holidays, {non_working} days in {year}, add {share_span('non-working days')} "
         f"of DGT's total if each carries {_fmt_pct(national.NON_WORKING_RATIOS[0], 0)} to "
         f"{_fmt_pct(national.NON_WORKING_RATIOS[1], 0)} of a working day's driving; "
@@ -990,24 +1103,29 @@ def page_drivers(captions: dict[str, str]) -> str:
         "not beside them; hire cars also bound the driving that visitors from abroad do in "
         "Spanish cars.</p>"
     )
-    body += technical("What DGT's kilometres are made of", _coverage_table(parts))
+    body += technical(COVERAGE_TITLE, _coverage_table(parts), COVERAGE_ANCHOR)
     body += (
         "<p>The central estimate gives all of these parts the survey's working-day age mix. To "
         "test that, the non-working days and the unexplained part, taken at its largest "
-        f"({_fmt_pct(remainder[1], 0)} of the total), were given age mixes measured elsewhere: "
-        "DGT's kilometres by the age of a car's private owner, car journeys over 50 km per "
-        f"resident in {coverage_design.MOVILIA_LONG}, and the two weekend mixes. With the "
+        f"({_fmt_pct(remainder[1], 0)} of the total), were given age mixes measured elsewhere "
+        f"by the traveller's own age: car journeys over 50 km per resident in "
+        f"{coverage_design.MOVILIA_LONG}, and the two weekend mixes. With the "
         f"survey's profile for the rest, these give {_span(alone.ratio_18_29)} at 18–29 and "
         f"{_span(alone.ratio_65_plus)} at 65 and over, inside the ranges of the other tests. "
         "Combined with another region's profile, the two largest uncertainties together, they "
-        f"give {spread('18-29')} and {spread('65+')}, and the sensitivity range includes these "
-        "combinations. Two allocations that no source supports are reported but left out of "
-        "the range: the same kilometres per licence holder at every age "
-        f"({_span(licence_bound.ratio_65_plus)} at 65 and over) and no driving at 65 and over "
-        "in the unexplained part (up to "
-        f"{float(under_65_bound.ratio_65_plus.max()):.2f}).</p>"
+        f"give {_span(credible.ratio_18_29)} and {_span(credible.ratio_65_plus)}, and the "
+        "sensitivity range includes these combinations. Three allocations of the unexplained "
+        "part are reported but left out of "
+        "the range. Two are constructed, and no source supports them: the same kilometres per "
+        f"licence holder at every age ({_span(licence_bound.ratio_65_plus)} at 65 and over) "
+        "and no driving at 65 and over (up to "
+        f"{float(under_65_bound.ratio_65_plus.max()):.2f}). The third is DGT's kilometres by "
+        "the age of a car's private owner, which is not the age of its driver (see the former "
+        "figure, at the end of this section); with each region's profile it would give "
+        f"{_span(owner_bound.ratio_18_29)} at 18–29 and {_span(owner_bound.ratio_65_plus)} at "
+        "65 and over.</p>"
     )
-    body += technical("Sources of the sensitivity range", _sources_table(by_source))
+    body += technical(SOURCES_TITLE, _sources_table(by_source), SOURCES_ANCHOR)
     body += (
         "<p>Further choices raise the 65-and-over ratio. The share of the survey's older "
         f"respondents in work was about {_fmt_pct(float(employed_survey.loc[early_years, 'employed_share'].mean()))} "
@@ -1059,8 +1177,8 @@ def page_drivers(captions: dict[str, str]) -> str:
         "dr2_killed_per_involved",
         f"Dot chart of private-car drivers killed per 1,000 involved in an injury crash in {year}, "
         f"by age, with 95% intervals. The rate is {killed['18-29']:.1f} at 18–29, "
-        f"{killed[REFERENCE]:.1f} at 45–64, {killed['65-74']:.1f} at 65–74 and "
-        f"{killed['75+']:.1f} at 75 and over.",
+        f"{killed['30-44']:.1f} at 30–44, {killed[REFERENCE]:.1f} at 45–64, "
+        f"{killed['65-74']:.1f} at 65–74 and {killed['75+']:.1f} at 75 and over.",
         captions,
     )
     body += (
@@ -1138,15 +1256,6 @@ def page_drivers(captions: dict[str, str]) -> str:
         "because under every assumption tested licence holders aged 75 and over drive fewer "
         "kilometres than those aged 45–64.</p>"
     )
-    # The joint interval's ends are printed to the decimals their Monte Carlo error supports.
-    digits_75 = mc_digits(cond_75.mc_se_low, cond_75.mc_se_high)
-    precision_note = (
-        ""
-        if digits_75 == 2
-        else " Its ends, which combine the resamples of two surveys, carry Monte Carlo standard "
-        f"errors of {float(cond_75.mc_se_low):.2f} and {float(cond_75.mc_se_high):.2f}, so they "
-        "are given to " + ("one decimal." if digits_75 == 1 else "whole numbers.")
-    )
     body += (
         "<p><strong>Conditional estimate.</strong> The EMEF's public files group everyone aged "
         "65 and over, although the survey sampled 65–74 and 75 and over separately until "
@@ -1163,27 +1272,42 @@ def page_drivers(captions: dict[str, str]) -> str:
         f"{float(cond_65.ratio_to_45_64):.2f} times ({joint_interval(cond_65)}). The interval "
         "allows for sampling error in both surveys and chance in the crash counts, and holds "
         "the assumption fixed. It may be too narrow or too wide: the Barcelona-area survey's "
-        "resampling ignores the clustering of its sample, which makes an interval too narrow, "
-        "and the Madrid survey's ignores the stratification of its sample, which makes one too "
-        f"wide.{precision_note} Under the other assumptions tested the figure for 75 and over "
-        f"runs from {full_75} (the sensitivity range, below).</p>"
+        "resampling treats respondents as independent although the survey samples them in "
+        "clusters, which makes an interval too narrow, and the Madrid survey's ignores the "
+        "stratification of its sample, which makes one too wide. Under the other assumptions "
+        f"tested the figure for 75 and over runs from {full_75} (the sensitivity range, "
+        "below).</p>"
     )
     places_text = {
         sex: ", ".join(f"{v:.2f}" for v in values) for sex, values in licence_fall.items()
     }
+    years_after = YEAR - madrid_year
+    _check(
+        0 < years_after < 10
+        and float(transfer[national.MADRID_METHOD]) < float(transfer[national.CENTRAL_METHOD])
+        and float(within_survey[national.MADRID_METHOD])
+        < float(within_survey[national.CENTRAL_METHOD]),
+        "the licence split counts holders some years after the Madrid survey; Madrid's 65+ "
+        "residents drive less, against 45-64, than the Barcelona-area survey's, within each "
+        "survey and carried to Spain",
+    )
     body += technical(
         "Why this assumption, and what could move it",
         "<ul>"
-        "<li>It is the only split that uses kilometres measured by exact age without a bridge "
-        "between two definitions of a licence holder.</li>"
+        "<li>It uses only kilometres measured by exact age; the second split, Madrid's "
+        "kilometres per licence holder, also needs DGT's counts of licence holders, taken "
+        f"{_words(years_after)} years after the survey.</li>"
         "<li>Car-licence holding falls about equally from 65–74 to 75 and over in the province "
         "of Madrid, the province of Barcelona and Spain (holders per resident at 75 and over "
         f"against 65–74, DGT, {year}: men {places_text['male']}; women "
         f"{places_text['female']}). That is consistent with the assumption but does not test "
-        "it: Madrid's residents aged 65 and over drive much less, relative to those aged 45–64, "
-        "than the Barcelona-area survey's "
-        f"({float(transfer[national.MADRID_METHOD]):.2f} against "
-        f"{float(transfer[national.CENTRAL_METHOD]):.2f} times as far per resident on working days).</li>"
+        "it: the Madrid survey has residents aged 65 and over driving much less, relative to "
+        "those aged 45–64, than the Barcelona-area survey does. Each survey's profile carried "
+        f"to Spain's population gives {float(transfer[national.MADRID_METHOD]):.2f} against "
+        f"{float(transfer[national.CENTRAL_METHOD]):.2f} times as far per resident on working "
+        "days; among each survey's own residents the figures are "
+        f"{float(within_survey[national.MADRID_METHOD]):.2f} and "
+        f"{float(within_survey[national.CENTRAL_METHOD]):.2f}.</li>"
         "<li>Some evidence points lower: licence holding at 75 and over has risen since "
         f"{madrid_year}, more than at 65–74, and surveys in other European countries show a "
         f'gentler fall in driving after 75 (see <a href="{EXPOSURE_DOC}">the exposure '
@@ -1199,32 +1323,70 @@ def page_drivers(captions: dict[str, str]) -> str:
         "<li>Which way the figure errs is not known.</li>"
         "</ul>",
     )
+    # Which choices the sensitivity table crosses, and which it varies one at a time.
+    crossed = older_variants[
+        older_variants.source.isin([national.COVERAGE_SOURCE, national.COVERAGE_PROFILE_SOURCE])
+    ]
+    one_at_a_time = older_variants.drop(crossed.index)
+    factorial = [crossed[c].nunique() for c in ("profile", "non_working_mix", "remainder_mix")]
+    _check(
+        len(crossed) == int(np.prod(factorial)) * len(national.SPLITS)
+        and factorial[0] == len(national._profile_methods())
+        and set(one_at_a_time.source)
+        == {
+            "regional profile",
+            "licence-calibrated transfer",
+            "distance",
+            "survey years",
+            "professionals' work driving",
+            "older sample",
+            "non-working days",
+        }
+        and bool(
+            older_variants.groupby(["source", "variant"])
+            .assumption.nunique()
+            .eq(len(national.SPLITS))
+            .all()
+        ),
+        "every split is combined with every structure; the profiles are crossed with the age "
+        "mixes of weekends and of the unexplained km; the other choices vary one at a time",
+    )
+    bound_75 = {mix: _span(part.ratio_75_plus) for mix, part in every_bound.items()}
     body += (
         "<p><strong>Across the assumptions.</strong> Four splits of the 65-and-over kilometres "
         "were tested: Madrid's, used for the estimate; Madrid's kilometres per licence holder "
         "applied to Spain's licence holders; an upper limit for men from the number of days "
         "they drive, with women driving as far per licence holder at 75 and over as at 65–74; "
-        "and equal kilometres per licence holder at 65–74 and 75 and over. Combined with every "
-        "alternative for the 65-and-over kilometres (other regions' age profiles, trip "
+        "and equal kilometres per licence holder at 65–74 and 75 and over. Each split was "
+        "combined with every alternative for the 65-and-over kilometres. Of these, the region "
+        "whose age profile stands in for Spain's (the province of Barcelona's, its four parts, "
+        "Madrid's, or the province's carried per licence holder) was crossed with the age "
+        "mixes for weekends and holidays and for the kilometres no part explains; trip "
         "distances, survey years, work driving, the older respondents' employment and age mix, "
-        "weekend mixes and the age mixes of the kilometres the survey does not cover), they give "
+        "and a weekend age mix on its own were varied one at a time, each with everything else "
+        "as in the central estimate. Together they give "
         f"a sensitivity range of {full_75} at 75 and over and "
         f"{to(*older_range['65-74'])} at 65–74. A sensitivity range is not an interval: it "
-        "carries no probability, and it is not a limit, because choices varied here one at a "
-        "time are not combined with each other, which would move both ends. The split with "
-        "equal kilometres per licence holder stays in the range, unlike the two allocations of "
-        "the uncovered kilometres described above that no source supports: it was part of the "
-        "range as first published, women's driving does not rule it out, and the evidence "
-        "against it for men comes from regional or dated surveys rather than a national measure "
-        "of kilometres.</p>"
+        "carries no probability, and it is not a limit, because the choices varied one at a "
+        "time are not combined with each other or with the crossed ones, which would move both "
+        "ends. The split with equal kilometres per licence holder stays in the range: women's "
+        "driving does not rule it out, and the evidence against it for men comes from regional "
+        "or dated surveys rather than a national measure of kilometres. The three allocations "
+        "of the unexplained kilometres reported above stay out of it, for the reasons given "
+        "there; at 75 and over, across the profiles and splits, they would give "
+        f"{bound_75[coverage_design.LICENCE_MIX]} with the same kilometres per licence holder at "
+        f"every age, {bound_75[coverage_design.UNDER_65_MIX]} with no driving at 65 and over, "
+        f"and {bound_75[coverage_design.OWNER_MIX]} with DGT's kilometres by the owner's "
+        "age.</p>"
     )
     body += _older_table(
         older,
         older_variants,
         older_75,
         f"In Madrid in {madrid_year} men aged 75 and over drove {float(men_madrid.value):.2f} "
-        f"times ({float(men_madrid.low):.2f}–{float(men_madrid.high):.2f}) as far per "
-        "car-licence holder as men aged 65–74.",
+        f"times ({men_madrid_ci}) as far per {YEAR} DGT licence holder as men aged 65–74 (the "
+        f"survey's kilometres per resident over the province's licence holding in {YEAR}).",
+        float(men_madrid.value),
     )
     whole = decomposition[decomposition.kind == "all"].iloc[0]
     shown = decomposition[decomposition.kind == "factor"].head(figures_module.DR3_FACTORS)
@@ -1273,8 +1435,8 @@ def page_drivers(captions: dict[str, str]) -> str:
         "equal kilometres per licence holder at 65–74 and 75 and over, which assumes men aged "
         "75 and over with a car licence drive as far as men aged 65–74 with one. Spanish "
         f"surveys of men's driving show them driving less: in Madrid in {madrid_year}, "
-        f"{float(men_madrid.value):.2f} times as far per licence holder (95% sampling interval "
-        f"{float(men_madrid.low):.2f}–{float(men_madrid.high):.2f}); in RACC's survey of "
+        f"{float(men_madrid.value):.2f} times as far per {YEAR} DGT licence holder (95% "
+        f"sampling interval {men_madrid_ci}); in RACC's survey of "
         f"licence holders aged 65 and over, published in {national.RACC_YEAR}, on about "
         f"{racc_limit:.2f} times as many days, an upper limit for their kilometres. Surveys of "
         "women's driving are too uncertain to "
@@ -1283,12 +1445,21 @@ def page_drivers(captions: dict[str, str]) -> str:
         f"{figure_ref('dr3_older_range_sources')}. Among the other combinations tested, the "
         f"lowest, about {clear['75+'][0]:.1f}, combines Barcelona city's age profile, weekend "
         "age mixes for the kilometres outside the survey's working days and the RACC limit; "
-        f"this edge is set by that limit. {sampling} At the top, {older_range['75+'][1]:.2f}, "
+        f"this edge is set by that limit. {sampling} The top, {older_range['75+'][1]:.2f}, "
+        "combines Madrid's age profile, the age mix of long car journeys for the kilometres no "
+        "part explains and Madrid's kilometres per licence holder, the second split. There "
         "drivers aged 75 and over would drive "
         f"{_fmt_pct(float(highest_75.driver_over_owner_km_75_plus), 0)} of the kilometres DGT "
         "records for cars registered to owners of that age, against "
         f"{_fmt_pct(float(highest_75.driver_over_owner_km_45_64), 0)} at 45–64; owner figures "
         "cannot say who drove, so this is noted, not counted against it.</p>"
+    )
+    _check(
+        str(highest_75.profile) == national.MADRID_METHOD
+        and str(highest_75.remainder_mix) == coverage_design.LONG_DISTANCE_MIX
+        and str(highest_75.assumption) == national.LICENCE_SPLIT,
+        "the top of the 75+ range combines Madrid's profile, the long-journey mix for the "
+        "unexplained km and the licence split",
     )
     _check(
         float(racc.ratio_75_plus.min()) == clear["75+"][0]
@@ -1349,15 +1520,31 @@ def page_drivers(captions: dict[str, str]) -> str:
         "reused under the open-data licence of the Consorcio Regional de Transportes de Madrid. "
         f'<a href="{CRTM_URL}">Powered by CRTM</a>.</p>'
     )
-    previous = older[older.assumption == national.REFERENCE_SPLIT].set_index("group").loc["75+"]
+    # The change note is written against the last deployed page, which divided the drivers by
+    # the kilometres of cars registered to owners of each age (35-54 the reference).
+    former_75 = float(owner.loc["75+", "ratio_to_reference"])
+    cars_per_holder = check.xs(
+        "Cars registered to private owners per B-licence holder", level="check"
+    ).value
+    _check(
+        0.9 < former_75 < 1.1
+        and str(owner.reference.iloc[0]) == "35-54"
+        and float(cars_per_holder["75+"]) > 1 > float(cars_per_holder["65-74"]),
+        "the former figure put drivers aged 75+ at about the 35-54 rate per owner km, and owners "
+        "aged 75+ have more cars than car-licence holders",
+    )
     body += (
-        f"<p>Changed in {national.OLDER_ESTIMATE_CHANGED}: this section previously said "
-        "involvement per kilometre at 75 and over was not established and gave no figure; it "
-        "now gives a conditional estimate beside the sensitivity range. The Madrid-split "
-        f"interval, previously {float(previous.ratio_low_split_fixed):.2f}–"
-        f"{float(previous.ratio_high_split_fixed):.2f}, now includes the Madrid survey's own "
-        f"sampling error ({joint_interval(previous)}). A fourth split and the hatching of "
-        "combinations at odds with men's driving were added.</p>"
+        f"<p>Changed in {national.OLDER_ESTIMATE_CHANGED}: this page used to divide the drivers "
+        "involved by DGT's kilometres of cars registered to owners of each age, and on those "
+        "kilometres said that drivers aged 75 and over were involved about as often per "
+        f"kilometre as drivers aged 35–54 ({former_75:.2f} times). A car's owner is often not its "
+        f"driver: owners aged 75 and over have {float(cars_per_holder['75+']):.2f} cars "
+        "registered to them for every car-licence holder of that age, more cars than holders, "
+        "and others drive some of them, so those kilometres do not measure how far drivers of "
+        "that age drive. The page now estimates the kilometres driven by drivers of each age and "
+        "gives, for 75 and over, a conditional estimate beside the sensitivity range; the "
+        "former figure is compared like for like at the end of the section on crashes per "
+        "kilometre.</p>"
     )
 
     # ------------------------------------------------------------------- men and women
@@ -1472,4 +1659,6 @@ def page_drivers(captions: dict[str, str]) -> str:
 
 
 def ci_km(row: pd.Series) -> str:
-    return f"{float(row.ratio_low):.2f}–{float(row.ratio_high):.2f}"
+    """The sampling interval of a ratio of men's to women's rates per km, at the precision its
+    Monte Carlo error supports."""
+    return joint_interval(row)

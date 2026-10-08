@@ -517,9 +517,32 @@ def summary(text: str) -> str:
     return f'<p class="summary">{text}</p>'
 
 
-def facts(rows: list[tuple[str, str]], label: str) -> str:
-    """A short definition list: terms and what they mean."""
-    items = "".join(f"<div><dt>{esc(term)}</dt><dd>{value}</dd></div>" for term, value in rows)
+# Terms of the methodology page's definitions that other pages link to at their first use, and
+# their anchors there.
+DEFINITION_IDS = {
+    "Sampling interval": "sampling-interval",
+    "Sensitivity range": "sensitivity-range",
+    "Conditional estimate": "conditional-estimate",
+}
+
+
+def definition_link(term: str, text: str | None = None) -> str:
+    """A link to ``term`` in the methodology page's definitions, reading ``text`` (by default the
+    term in lower case)."""
+    return f'<a href="data.html#{DEFINITION_IDS[term]}">{text or term.lower()}</a>'
+
+
+def facts(rows: list[tuple[str, str]], label: str, anchors: dict[str, str] | None = None) -> str:
+    """A short definition list: terms and what they mean. ``anchors`` gives some terms an id,
+    so that other pages can link to their definition."""
+    anchors = anchors or {}
+
+    def term_tag(term: str) -> str:
+        return f'<dt id="{anchors[term]}">' if term in anchors else "<dt>"
+
+    items = "".join(
+        f"<div>{term_tag(term)}{esc(term)}</dt><dd>{value}</dd></div>" for term, value in rows
+    )
     return f'<dl class="facts" aria-label="{esc(label)}">{items}</dl>'
 
 
@@ -536,11 +559,12 @@ def limitation(text: str) -> str:
     )
 
 
-def technical(label: str, body: str) -> str:
+def technical(label: str, body: str, anchor: str | None = None) -> str:
     """Secondary detail a reader can open: full counts, specifications, diagnostics. The label
-    says exactly what is inside."""
+    says exactly what is inside. ``anchor`` gives it an id, so the text can send readers to it."""
+    attribute = f' id="{anchor}"' if anchor else ""
     return (
-        f'<details class="technical"><summary>{esc(label)}</summary>'
+        f'<details class="technical"{attribute}><summary>{esc(label)}</summary>'
         f'<div class="technical-body">{body}</div></details>'
     )
 

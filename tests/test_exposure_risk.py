@@ -393,9 +393,10 @@ def test_racc_split_between(older_table) -> None:
 
 def test_marking_rule(older_table) -> None:
     table = older_table
-    # Nothing is filtered: every structure under every split.
+    # Nothing is filtered: every structure under every split. 115 structures: 31 one at a time
+    # and 7 profiles x 3 non-working-day mixes x 4 credible remainder mixes.
     structures = table.drop_duplicates(["source", "variant"])
-    assert len(table) == len(national.SPLITS) * len(structures) == 544
+    assert len(table) == len(national.SPLITS) * len(structures) == 460
     # The men's ratio recomputed from the km allocation and DGT's holders matches the column,
     # and is a property of the split.
     holders = national.older_licence_prevalence().set_index(["sex", "group"]).b_licence_holders
@@ -405,9 +406,12 @@ def test_marking_rule(older_table) -> None:
             km[("male", "65-74")] / holders[("male", "65-74")]
         )
         assert np.allclose(part.men_km_per_holder_75_vs_65_74, men)
+    # The licence split carries Madrid's km per DGT licence holder, so it implies Madrid's own
+    # men's ratio per DGT licence holder (0.48, like the Madrid split), not the 0.45 it gave
+    # when it divided by the survey's self-reported licence holding.
     expected = {
         national.REFERENCE_SPLIT: 0.48,
-        national.LICENCE_SPLIT: 0.45,
+        national.LICENCE_SPLIT: 0.48,
         national.RACC_SPLIT: 0.677,
         national.EQUAL_SPLIT: 1.0,
     }
@@ -555,3 +559,104 @@ def test_barcelona_older() -> None:
     # Each end carries its Monte Carlo error, so the pages can print it to a supported precision.
     assert (table.mc_se_low > 0).all() and (table.mc_se_high > 0).all()
     assert (table.mc_se_high < 0.1 * (table.ratio_high - table.ratio_low)).all()
+
+
+# ----------------------------------------------------------------------------- October 2026 review
+
+
+def test_madrid_profile_is_standardised_to_spain() -> None:
+    # The Madrid profile's 65+ cell is its exact-age km per resident at 65-74 and 75 and over,
+    # weighted by Spain's residents of those ages, replicate by replicate, not Madrid's own 65+
+    # mean (Madrid's 65+ residents are younger than Spain's).
+    profile = national.edm_profile()
+    spain = national.population_by_group().set_index(["sex", "group"]).population
+    frame = edm2018.person_day()
+    for sex in national.SEXES:
+        young, old = spain[(sex, "65-74")], spain[(sex, "75+")]
+        for index in (0, 1):
+            expected = (
+                profile[(sex, "65-74")][index] * young + profile[(sex, "75+")][index] * old
+            ) / (young + old)
+            assert np.allclose(profile[(sex, "65+")][index], expected)
+        older = frame[(frame.sex == sex) & (frame.EDAD_FIN >= 65)]
+        madrid_mean = float(np.average(older.car_km, weights=older.weight))
+        assert profile[(sex, "65+")][0] < madrid_mean
+    # Under the Madrid split the 65+ km come apart into the survey's own exact-age cells times
+    # Spain's residents; an EMEF profile is still taken apart with the province's population.
+    km = national._split_older_by_sex(profile, national._older_ratios()[national.REFERENCE_SPLIT])
+    for sex in national.SEXES:
+        for group in national.OLDER:
+            assert km[(sex, group)] == pytest.approx(profile[(sex, group)][0] * spain[(sex, group)])
+    emef = national.emef_profile()
+    assert national._older_mean_population(emef).equals(
+        national.barcelona_older_population().set_index(["sex", "group"]).population
+    )
+
+
+def test_licence_split_counts_licence_holders_one_way() -> None:
+    # Madrid's km per DGT licence holder carried to Spain's DGT licence holders: the survey's
+    # ratio per resident times Spain's licence gradient over the province of Madrid's.
+    ratios = national._older_ratios()
+    survey = edm2018.older_ratio_replicates()
+    spain = national.older_prevalence_ratio()
+    madrid = national.older_prevalence_ratio(national.MADRID_PROVINCE)
+    like = edm2018.like_for_like_per_holder(madrid).set_index("sex")
+    implied = national.implied_km_per_holder(ratios[national.LICENCE_SPLIT])
+    replicates = national._split_replicates(national.LICENCE_SPLIT)
+    for sex in national.SEXES:
+        transfer = spain[sex] / madrid[sex]
+        assert ratios[national.LICENCE_SPLIT][sex] == pytest.approx(
+            survey[sex]["per_resident"][0] * transfer
+        )
+        assert np.allclose(replicates[sex], survey[sex]["per_resident"][1] * transfer)
+        assert implied[sex] == pytest.approx(like.loc[sex, "ratio_per_dgt_holder"])
+    assert "DGT licence prevalence" in national._sampling_sources(national.LICENCE_SPLIT)
+
+
+def test_owner_age_mix_is_a_bound_with_the_scenarios_own_split() -> None:
+    assert coverage.OWNER_MIX in coverage.BOUNDS and "bound" in coverage.OWNER_MIX
+    km, _ = national.national_km(national.emef_profile())
+    _, own = coverage.mix_shares(coverage.OWNER_MIX, km / km.sum())
+    assert own is None
+    mixes = coverage.mixes().drop_duplicates("mix").set_index("mix")
+    assert not mixes.loc[coverage.OWNER_MIX, "credible"]
+    assert mixes.loc[coverage.OWNER_MIX, "status"].startswith("bound")
+    assert np.isnan(mixes.loc[coverage.OWNER_MIX, "share_75_plus_of_65_plus"])
+    # With no split of its own, the owner-age remainder keeps each scenario's 75+ share, as the
+    # working-day remainder does.
+    keyed = {
+        (s["profile"], s["non_working_mix"], s["remainder_mix"]): s for s in coverage.scenario_km()
+    }
+    for (profile, non_working, remainder), scenario in keyed.items():
+        if remainder != coverage.OWNER_MIX:
+            continue
+        assert not scenario["credible"]
+        same = keyed[(profile, non_working, coverage.WORKING_DAY_MIX)]
+        for split, share in scenario["share_75_plus_of_65_plus"].items():
+            assert share == pytest.approx(same["share_75_plus_of_65_plus"][split])
+    # It is in no published range.
+    assert not national.sensitivity().variant.str.contains("owner", regex=False).any()
+
+
+def test_rate_intervals_cross_count_draws_with_the_replicates() -> None:
+    rates = national.rates()
+    central = rates[rates.method == national.CENTRAL_METHOD].set_index("group")
+    others = central.drop(index=national.REFERENCE)
+    for measure in ("involved", "killed"):
+        for column in (f"{measure}_ratio", f"{measure}_per_bn_km"):
+            for end in ("low", "high"):
+                assert (central[f"{column}_mc_se_{end}"] >= 0).all()
+        # Several count draws per replicate: the death ratios' ends move by a few hundredths at
+        # most, against up to 0.07 with one draw per replicate.
+        assert others[f"{measure}_ratio_mc_se_high"].max() < 0.035
+        assert (others[f"{measure}_ratio_low"] <= others[f"{measure}_ratio"]).all()
+        assert (others[f"{measure}_ratio"] <= others[f"{measure}_ratio_high"]).all()
+    rng = np.random.default_rng(1)
+    assert national._count_draws(rng, 10, 7).shape == (7, national.COUNT_DRAWS)
+    sex = national.sex_per_km()
+    assert {"mc_se_low", "mc_se_high"} <= set(sex.columns)
+    assert (sex.ratio_low <= sex.ratio_men_to_women).all()
+    city = barcelona.rates()
+    assert (city.mc_se_low >= 0).all() and (city.mc_se_high >= 0).all()
+    severity = national.severity_and_licences().set_index("group")
+    assert severity.killed_per_1000_involved_mc_se_high.max() < 0.05

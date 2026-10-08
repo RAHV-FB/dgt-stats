@@ -163,15 +163,15 @@ L 244.657407 5.76
     <g id="ytick_4">
      <g id="line2d_16"/>
      <g id="text_11">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #555555" transform="translate(11.635312 154.389686)">Age mix of the</text>
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #555555" transform="translate(5.76 165.639686)">unexplained km</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #555555" transform="translate(25.821562 154.389686)">Trip-to-km</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #555555" transform="translate(26.20125 165.639686)">conversion</text>
      </g>
     </g>
     <g id="ytick_5">
      <g id="line2d_17"/>
      <g id="text_12">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #555555" transform="translate(25.821562 191.804615)">Trip-to-km</text>
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #555555" transform="translate(26.20125 203.054615)">conversion</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #555555" transform="translate(11.635312 191.804615)">Age mix of the</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #555555" transform="translate(5.76 203.054615)">unexplained km</text>
      </g>
     </g>
     <g id="ytick_6">
@@ -191,27 +191,27 @@ L 244.657407 5.76
    </g>
    <g id="LineCollection_1">
     <path d="M 128.409678 22.657065 
-L 225.336528 22.657065 
-" clip-path="url(#p2616171aec)" style="fill: none; stroke: #bdbdb8; stroke-opacity: 0.6; stroke-width: 8"/>
+L 222.848498 22.657065 
+" clip-path="url(#p2616171aec)" style="fill: none; stroke: #d7d7d4; stroke-width: 8"/>
    </g>
    <g id="LineCollection_2">
     <path d="M 161.697064 81.193326 
-L 211.626618 81.193326 
+L 217.022212 81.193326 
 " clip-path="url(#p2616171aec)" style="fill: none; stroke: #8f8f8a; stroke-width: 5"/>
    </g>
    <g id="LineCollection_3">
     <path d="M 160.784942 118.608256 
-L 188.054183 118.608256 
+L 181.444921 118.608256 
 " clip-path="url(#p2616171aec)" style="fill: none; stroke: #8f8f8a; stroke-width: 5"/>
    </g>
    <g id="LineCollection_4">
-    <path d="M 163.029751 156.023186 
-L 189.402032 156.023186 
+    <path d="M 174.616963 156.023186 
+L 195.963282 156.023186 
 " clip-path="url(#p2616171aec)" style="fill: none; stroke: #8f8f8a; stroke-width: 5"/>
    </g>
    <g id="LineCollection_5">
-    <path d="M 174.616963 193.438115 
-L 195.963282 193.438115 
+    <path d="M 168.079266 193.438115 
+L 189.402032 193.438115 
 " clip-path="url(#p2616171aec)" style="fill: none; stroke: #8f8f8a; stroke-width: 5"/>
    </g>
    <g id="LineCollection_6">
@@ -251,6 +251,15 @@ L 179.70607 5.76
 " clip-path="url(#p2616171aec)" style="fill: none; stroke-dasharray: 3.6,1.8; stroke-dashoffset: 0; stroke: #1a8eab; stroke-width: 0.9"/>
    </g>
    <g id="patch_5">
+    <path d="M 106.945531 26.657065 
+L 222.848498 26.657065 
+L 222.848498 18.657065 
+L 106.945531 18.657065 
+L 106.945531 26.657065 
+z
+" clip-path="url(#p2616171aec)" style="fill: none; stroke: #7d7d78; stroke-width: 0.75; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_6">
     <path d="M 71.109688 285.16504 
 L 253.95349 285.16504 
 " style="fill: none; stroke: #b5b5b0; stroke-width: 0.8; stroke-linejoin: miter; stroke-linecap: square"/>
@@ -263,16 +272,18 @@ L 253.95349 285.16504
    </g>
   </g>
   <g id="legend_1">
-   <g id="line2d_22">
-    <path d="M 8.1 341.48376 
-L 18.9 341.48376 
-L 29.7 341.48376 
-" style="fill: none; stroke: #bdbdb8; stroke-opacity: 0.6; stroke-width: 8; stroke-linecap: round"/>
+   <g id="patch_7">
+    <path d="M 8.1 344.63376 
+L 29.7 344.63376 
+L 29.7 338.33376 
+L 8.1 338.33376 
+z
+" style="fill: #d7d7d4; stroke: #7d7d78; stroke-width: 0.75; stroke-linejoin: miter"/>
    </g>
    <g id="text_17">
     <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: start; fill: #1b1b1b" x="36.9" y="344.63376" transform="rotate(-0 36.9 344.63376)">Sensitivity range: all combinations tested</text>
    </g>
-   <g id="line2d_23">
+   <g id="line2d_22">
     <path d="M 8.1 362.552479 
 L 18.9 362.552479 
 L 29.7 362.552479 
@@ -282,7 +293,7 @@ L 29.7 362.552479
     <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #1b1b1b" transform="translate(36.9 359.25876)">One choice changed, the others as in the</text>
     <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #1b1b1b" transform="translate(36.9 370.50876)">Madrid-pattern estimate</text>
    </g>
-   <g id="patch_6">
+   <g id="patch_8">
     <path d="M 8.1 392.702479 
 L 29.7 392.702479 
 L 29.7 386.402479 

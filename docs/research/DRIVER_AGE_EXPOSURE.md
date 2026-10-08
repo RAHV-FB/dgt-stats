@@ -371,15 +371,19 @@ times between the first and the last denominator, so only the ratios between age
 
 | Age | Drivers involved, working days | Ratio to 45–64: internal trips only | crossing trips at an internal trip's length | crossing trips in full |
 |---|---:|---:|---:|---:|
-| 18–29 | 624 | 2.61 (1.81–4.27) | 2.23 (1.89–2.74) | 2.14 (1.76–2.67) |
-| 30–44 | 933 | 1.16 (0.87–1.47) | 1.21 (1.05–1.37) | 1.07 (0.92–1.25) |
+| 18–29 | 624 | 2.61 (2–4) | 2.23 (1.8–2.7) | 2.14 (1.7–2.7) |
+| 30–44 | 933 | 1.16 (0.9–1.5) | 1.21 (1.0–1.4) | 1.07 (0.9–1.3) |
 | 45–64 | 1,216 | 1 | 1 | 1 |
-| 65+ | 344 | 0.80 (0.60–1.07) | 1.11 (0.89–1.35) | 0.94 (0.72–1.16) |
+| 65+ | 344 | 0.80 (0.6–1.1) | 1.11 (0.9–1.4) | 0.94 (0.7–1.2) |
 | Age not recorded | 204 | | | |
 
-Each ratio is shown with its 95% interval, which combines the EMEF sampling error and Poisson
-error in the count. The youngest group's drivers are aged 18–29; its kilometres are those of
-residents aged 16–29, of whom those aged 16 and 17 drive no car.
+Each ratio is shown with its 95% interval, which crosses the EMEF city-frame replicates with 50
+gamma draws of each count per replicate (`risk_barcelona_rates.csv`). The ends carry Monte Carlo
+standard errors of 0.006–0.12 (`mc_se_low`, `mc_se_high`) and are printed, here and on the site,
+to the last digit those errors support; the internal-trip interval at 18–29 rests on few young
+respondents, and its upper end moves by about 0.12 between sets of resamples. The youngest
+group's drivers are aged 18–29; its kilometres are those of residents aged 16–29, of whom those
+aged 16 and 17 drive no car.
 
 | Numerator | 18–29, across the three denominators | 65+, across the three denominators |
 |---|---:|---:|
@@ -485,7 +489,11 @@ No national source measures kilometres by the driver's age. Five methods are com
   the Madrid survey, eight car-driver trips record 4,199 to 4,517 km, more than a day's drive (the
   next longest is 528 km); their distance counts as nothing, and the trips still count as trips.
   The spread across these profiles shows how much the answer depends on which region's profile is
-  transferred.
+  transferred. Because the Madrid survey has exact ages, its 65+ km per resident is standardised
+  to Spain's older population (since October 2026): Madrid's km per resident at 65–74 and at 75
+  and over, weighted by Spain's residents of those ages, by sex and replicate by replicate
+  (`national.edm_profile`). Madrid's own 65+ mean would carry the age mix of Madrid's younger 65+
+  population (75 and over within 65+: men 0.402, women 0.457, against 0.457 and 0.526 in Spain).
 * **D, registered owners.** DGT's kilometres by the age of the car's registered owner were the
   denominator of the former driver-age figure. Cars are driven by people other than their owners,
   and company cars carry no age, so D is kept as a comparison only.
@@ -498,7 +506,7 @@ No national source measures kilometres by the driver's age. Five methods are com
 | C: rest of the metropolitan area | 10.5% | 26.3% | 49.9% | 13.4% |
 | C: rest of the metropolitan region | 11.7% | 30.5% | 45.6% | 12.3% |
 | C: rest of the province | 15.7% | 30.4% | 42.4% | 11.5% |
-| C: Madrid survey 2018 | 9.9% | 34.2% | 46.6% | 9.2% |
+| C: Madrid survey 2018 (65+ standardised to Spain) | 10.0% | 34.4% | 46.9% | 8.8% |
 | D: registered private owners, same age groups | 6.5% | 27.2% | 50.0% | 16.3% |
 
 Row D sums DGT's owner bands onto the same groups (`risk_owner_age_comparison.csv`; company cars
@@ -579,7 +587,7 @@ right.
 | Mix | 18–29 share | 65+ share | 65+ km per resident, against 45–64 | 65+ km per B-licence holder, against 45–64 | Status |
 |---|---:|---:|---:|---:|---|
 | EMEF working day (central) | 11.4% | 13.0% | 0.41 | 0.67 | measured |
-| DGT km of cars by the private owner's age, 2024 | 6.5% | 16.3% | 0.48 | 0.79 | measured |
+| DGT km of cars by the private owner's age, 2024 | 6.5% | 16.3% | 0.48 | 0.79 | bound (owner's age, not the driver's) |
 | Car journeys over 50 km per resident, MOVILIA 2007 | 19.8% | 7.6% | 0.26 | 0.43 | measured |
 | EMEF 2023 overnight weekend stays, driving (weights) | 13.1% | 16.4% | 0.54 | 0.88 | measured proxy |
 | MOVILIA 2006 weekend car trips (weights) | 12.3% | 18.1% | 0.59 | 0.96 | measured proxy |
@@ -588,15 +596,25 @@ right.
 | Under 65 only (working-day mix without 65+) | 13.1% | 0% | 0 | 0 | bound |
 
 A mix is treated as **credible** when it comes from a measured age pattern of driving or car
-travel, and as a **bound** when it is constructed. Every measured mix tested for the remainder
-gives licence holders aged 65 and over less driving than those aged 45–64 (0.43 to 0.96 of their
-kilometres per licence holder) and gives residents aged 65 and over some (0.26 to 0.59 of the
-45–64 kilometres per resident). Equal kilometres per licence holder lies beyond the first range
-and no driving at 65 and over beyond the second, so both are reported as bounds and left out of
-the published ranges. "Under 65 only" would need the whole remainder, up to 85 billion km, to be
-driving like professionals' work driving, which at most (every work trip by car) is 37.7 billion.
-The owners' mix and the licence mix measure 75 and over themselves (30.7% and 32.4% of their 65+
-kilometres); the others take the split assumptions of the next section.
+travel by the traveller's own age, and as a **bound** otherwise. Every credible mix tested for the
+remainder gives licence holders aged 65 and over less driving than those aged 45–64 (0.43 to 0.96
+of their kilometres per licence holder) and gives residents aged 65 and over some (0.26 to 0.59 of
+the 45–64 kilometres per resident). Equal kilometres per licence holder lies beyond the first
+range and no driving at 65 and over beyond the second, so both constructed mixes are reported as
+bounds and left out of the published ranges. "Under 65 only" would need the whole remainder, up to
+85 billion km, to be driving like professionals' work driving, which at most (every work trip by
+car) is 37.7 billion. DGT's kilometres by the private owner's age are measured, but by the age of
+the car's owner, and a car's owner is often not its driver (young people drive cars registered to
+their parents; owners aged 75 and over have 1.14 cars per B-licence holder): that is why the
+former owner-age figure was withdrawn and why the drivers page rejects owner age as a stand-in
+for driver age. Until October 2026 the owner mix was nevertheless counted as credible for the
+unexplained kilometres, set the top of the published 18–29 range (3.7493; 3.6341 without it)
+and gave those kilometres the owners' own 75+ share of their 65+ km (30.7%; 0.45 times the
+65–74 km per resident, against Madrid's 0.30). It is now a third bound, reported with its values
+and left out of the ranges like the two constructed ones (`coverage.BOUNDS`;
+`risk_coverage_mixes.csv`, column `status`). Only the licence-holder bound fixes its own split
+of the 65+ km (32.4% at 75 and over, equal km per holder at every age); every other mix, the owner
+mix included, takes the split assumptions of the next section.
 
 ### Scenarios
 
@@ -605,28 +623,31 @@ total, professionals' work driving 3.4%, the non-working days 14.9% and the rema
 gives the remainder its largest share, and the non-working days and the remainder together, the
 two parts that take other age mixes, 44% of the total, more than any other setting. Each scenario
 gives the non-working days one of three mixes (working day, EMEF 2023 proxy, MOVILIA 2006) and the
-remainder one of seven. With Method A's profile for the covered part
-(ratios to 45–64; each cell spans the three non-working-day mixes and, for 65–74 and 75 and over,
-the three split assumptions):
+remainder one of seven: four credible mixes and three bounds. With Method A's profile for the
+covered part (ratios to 45–64; each cell spans the three non-working-day mixes and, for 65–74 and
+75 and over, the four split assumptions):
 
 | Remainder's age mix | 18–29 | 30–44 | 65+ | 65–74 | 75+ |
 |---|---:|---:|---:|---:|---:|
-| Working-day mix | 2.43–2.50 | 1.41–1.43 | 1.15–1.23 | 0.89–1.14 | 1.31–2.31 |
-| DGT km by owner's age | 2.80–2.90 | 1.44–1.46 | 1.09–1.16 | 0.88–1.06 | 1.29–1.87 |
-| MOVILIA 2007 journeys over 50 km | 1.95–2.00 | 1.34–1.36 | 1.27–1.36 | 0.98–1.26 | 1.45–2.56 |
-| EMEF 2023 weekend proxy | 2.29–2.36 | 1.43–1.45 | 1.06–1.12 | 0.81–1.04 | 1.21–2.11 |
-| MOVILIA 2006 weekend car trips | 2.35–2.42 | 1.45–1.47 | 1.03–1.09 | 0.79–1.01 | 1.17–2.04 |
-| **All credible** | **1.95–2.90** | **1.34–1.47** | **1.03–1.36** | **0.79–1.26** | **1.17–2.56** |
-| Bound: equal km per licence holder | 2.29–2.36 | 1.39–1.41 | 1.02–1.08 | 0.83–0.99 | 1.18–1.68 |
-| Bound: under 65 only | 2.43–2.51 | 1.41–1.43 | 1.68–1.84 | 1.30–1.70 | 1.92–3.45 |
+| Working-day mix | 2.43–2.50 | 1.41–1.43 | 1.15–1.23 | 0.90–1.14 | 1.31–2.16 |
+| MOVILIA 2007 journeys over 50 km | 1.95–2.00 | 1.34–1.36 | 1.27–1.36 | 1.00–1.26 | 1.45–2.39 |
+| EMEF 2023 weekend proxy | 2.29–2.36 | 1.43–1.45 | 1.06–1.12 | 0.83–1.04 | 1.21–1.97 |
+| MOVILIA 2006 weekend car trips | 2.35–2.42 | 1.45–1.47 | 1.03–1.09 | 0.81–1.01 | 1.17–1.91 |
+| **All credible** | **1.95–2.50** | **1.34–1.47** | **1.03–1.36** | **0.81–1.26** | **1.17–2.39** |
+| Bound: DGT km by owner's age | 2.80–2.90 | 1.44–1.46 | 1.09–1.16 | 0.86–1.08 | 1.25–2.04 |
+| Bound: equal km per licence holder | 2.29–2.36 | 1.39–1.41 | 1.02–1.08 | 0.84–0.99 | 1.18–1.62 |
+| Bound: under 65 only | 2.43–2.51 | 1.41–1.43 | 1.68–1.84 | 1.32–1.70 | 1.92–3.23 |
 
 The same scenarios are computed with every other profile for the covered part (the licence-
 calibrated transfer, the four parts of the province and the Madrid survey), because the regional
-profile and the uncovered half are separate uncertainties. The credible combinations give 1.49–3.75
-at 18–29, 1.13–1.72 at 30–44, 0.85–1.75 at 65 and over, 0.66–1.63 at 65–74 and 0.97–3.28 at 75 and
+profile and the uncovered half are separate uncertainties. The credible combinations give 1.49–3.52
+at 18–29, 1.13–1.72 at 30–44, 0.85–1.82 at 65 and over, 0.67–1.70 at 65–74 and 0.97–3.20 at 75 and
 over. The lowest values at 65 and over and at 75 and over combine Barcelona city's profile with
 a weekend mix for both the non-working days and the remainder; the highest combine the Madrid
-profile with the MOVILIA 2007 long-distance mix.
+profile with the MOVILIA 2007 long-distance mix. With every profile, the three bounds give, at
+18–29, 2.02–3.75 (owner's age), 1.70–2.95 (equal km per licence holder) and 1.60–3.53 (under 65
+only); at 65 and over 0.96–1.46, 0.90–1.34 and 1.42–2.64; at 75 and over 1.10–2.56, 1.04–1.94 and
+1.62–4.63 (`risk_coverage_scenarios.csv`, rows with `credible` false).
 
 ### Do the published ranges widen?
 
@@ -641,21 +662,29 @@ sensitivity ranges therefore include the combinations of each profile with each 
 
 | Group | Before | Now |
 |---|---:|---:|
-| 18–29 | 1.64–3.63 | 1.49–3.75 |
+| 18–29 | 1.64–3.63 | 1.49–3.63 |
 | 30–44 | 1.12–1.64 | 1.12–1.72 |
-| 65+ | 0.99–1.65 | 0.85–1.75 |
-| 65–74 (four splits) | 0.76–1.54 | 0.66–1.63 (unmarked 0.66–1.47) |
-| 75+ (four splits) | 1.13–3.09 | 0.97–3.28 (unmarked 1.21–3.28) |
+| 65+ | 0.99–1.65 | 0.85–1.82 |
+| 65–74 (four splits) | 0.76–1.54 | 0.67–1.70 (unmarked 0.67–1.53) |
+| 75+ (four splits) | 1.13–3.09 | 0.97–3.20 (unmarked 1.21–3.20) |
 
-The 65–74 and 75+ rows have 544 combinations, 136 structures under each of four splits; the 136
+"Now" is after the October 2026 corrections (the standardised Madrid profile, the licence split
+counted one way, the owner-age mix as a bound; see the change log of the next section). Until
+then the column read 1.49–3.75, 1.12–1.72, 0.85–1.75, 0.66–1.63 (unmarked 0.66–1.47) and
+0.97–3.28 (unmarked 1.21–3.28). The top at 18–29 is now Barcelona city's profile alone (3.63);
+the bottom at 18–29, both ends at 65 and over and the top at 30–44 are combinations of a profile
+with the uncovered kilometres.
+
+The 65–74 and 75+ rows have 460 combinations, 115 structures under each of four splits; the 115
 equal-split rows are marked as at odds with surveys of men's driving and stay in the range
 ([ages 75 and over](#ages-75-and-over)).
 
-The two bounds stay out. Other choices taken together, such as a distance treatment with a
-regional profile, would widen the ranges further, so the ranges are not bounds either. The
-direction at 18–29 holds under every combination. At 65 and over the range includes the 45–64 rate,
-so no direction is claimed for it nationally; at 75 and over the range includes it too, and only
-combinations at odds with surveys of men's driving reach it (see the next section).
+The three bounds stay out, with their values reported above. Other choices taken together, such
+as a distance treatment with a regional profile, would widen the ranges further, so the ranges are
+not bounds either. The direction at 18–29 holds under every combination. At 65 and over the range
+includes the 45–64 rate, so no direction is claimed for it nationally; at 75 and over the range
+includes it too, and only combinations at odds with surveys of men's driving reach it (see the
+next section).
 
 ## Ages 75 and over
 
@@ -745,8 +774,10 @@ ratio to each sex is mis-specified (it gives 2.19) and is not used.
   the province of Barcelona and Spain (holders per resident, 75+ over 65–74, DGT 2024: men 0.715,
   0.716, 0.710; women 0.285, 0.276, 0.262). That is consistent with the split but does not test
   whether the km gradient transfers: with similar licence structures, Madrid's residents aged 65
-  and over drive much less relative to 45–64 than the EMEF profile implies after transfer (0.29
-  against 0.41 on working days).
+  and over drive much less relative to 45–64 than the EMEF profile implies: 0.28 against 0.41 on
+  working days once each profile is carried to Spain's population (the Madrid profile standardised
+  to Spain's older population), and 0.29 against 0.40 among each survey's own residents
+  (`risk_older_reference_checks.csv`).
 * Its implied km per DGT holder, 75+ over 65–74, is men 0.48 and women 1.08. These lie inside
   the like-for-like EDM intervals (the EDM ratio per resident over DGT's Madrid prevalence ratio:
   men 0.48 (0.36–0.63), women 0.99 (0.56–1.58)). The agreement is nearly automatic, because
@@ -779,11 +810,20 @@ are descriptive only and never mark a row.
 
 ### The other three splits
 
-* **Madrid km per licence holder, Spain's licence holders** (2.24, 1.77–2.89). It multiplies the
-  EDM's km per *self-reported* licence holder by DGT's census prevalence. At 75 and over the
+* **Madrid km per DGT licence holder, Spain's licence holders** (2.09, 95% sampling interval
+  1.66–2.69, printed 1.7–2.7). Madrid's km per licence holder, with holders counted on DGT's 2024
+  register in the province of Madrid, carried to Spain's DGT licence holders: the EDM ratio per
+  resident times Spain's licence gradient (75+ over 65–74) over the province of Madrid's
+  (`national._licence_transfer`: men 0.993, women 0.922). Until October 2026 this split multiplied
+  the EDM's km per *self-reported* licence holder by DGT's census prevalence. At 75 and over the
   self-reported prevalence in 2018 (men 0.670, women 0.167) is above DGT's Madrid figure for 2024
-  (0.606, 0.127) despite cohort growth, so attrition is counted twice; like for like it would be
-  about 2.09 (exploratory). It stays in the range, labelled as mixing two definitions of a licence.
+  (0.606, 0.127) despite cohort growth, so the fall in licence holding was counted twice (2.24,
+  1.77–2.89, and the top of the range, 3.28, about +7–9% too high); it is now computed like for
+  like. The register is of 2024 and the survey of 2018: DGT's Madrid holders by age for 2018 are not
+  archived (item 6 of the list below), and the cohort update in `risk_older_reference_checks.csv`
+  shows the size of that time gap. Because the province of Madrid's licence gradient is close to
+  Spain's, this split now gives nearly the Madrid split's figures, and its implied km per DGT holder
+  for men equals the EDM like-for-like 0.48.
 * **RACC driving-days limit for men, equal km per licence holder for women** (1.69, 1.45–1.95).
   `national.racc_men_limit` derives the men's limit in code from the constants quoted from
   Fundació RACC, *Mayores al volante* (slide dossier published 29 May 2013; 3,003 licence holders
@@ -802,21 +842,23 @@ are descriptive only and never mark a row.
   rows. The
   figures are quoted, not archived: the RACC site grants no licence and forbids redistribution.
 * **Equal km per licence holder at 65–74 and 75 and over** (1.36, 1.16–1.57). Spanish surveys of
-  men's driving contradict it (below). It stays in the range, while the two coverage bounds ("the
-  same km per licence holder at every age" and "under 65 only") stay out, because the coverage
-  bounds were declared bounds before any result and no source supports them; the equal split was
-  in the range as first published, women's evidence does not rule it out, and the evidence against
-  it for men is regional or dated. Narrowing the range on a rule adopted after seeing the results
-  would understate the uncertainty.
+  men's driving contradict it (below). It stays in the range, while the three coverage bounds
+  ("the same km per licence holder at every age", "under 65 only" and DGT's km by the owner's age)
+  stay out: the two constructed ones were declared bounds before any result and no source supports
+  them, and owner age is not driver age. The equal split was in the range as first published,
+  women's evidence does not rule it out, and the evidence against it for men is regional or dated.
+  Narrowing the range on a rule adopted after seeing the results would understate the uncertainty.
 
 ### The sensitivity range and what moves it
 
-Repeating the four splits under every alternative for the 65-and-over km (136 structures: the
+Repeating the four splits under every alternative for the 65-and-over km (115 structures: the
 regional profiles, the licence-calibrated transfer, 13 distance treatments, 4 survey-year sets,
 professionals' work driving, the employment reweight, the composition bound, the weekend mixes,
-and the 15 credible coverage scenarios with each of the 7 profiles) gives 544 rows
-(`risk_older_sensitivity.csv`). The range is **0.97–3.28** at 75 and over (0.9747–3.2812) and
-0.66–1.63 at 65–74. No row is dropped.
+and the 12 credible coverage scenarios with each of the 7 profiles) gives 460 rows
+(`risk_older_sensitivity.csv`). The range is **0.97–3.20** at 75 and over (0.9747–3.1985) and
+0.67–1.70 at 65–74 (0.6701–1.6980). No row is dropped; the 84 rows with the owner-age mix for
+the unexplained km left the table in October 2026, when that mix became a bound, and are
+reported in `risk_coverage_scenarios.csv`.
 
 **Composition bound.** `emef.older_routing` flags retirees aged 75 and over in 2022–2024 (P1b
 blank among respondents aged 65+ not in work). Weighted, they are 37.7% of men and 35.2% of
@@ -832,11 +874,11 @@ choice, everything else as in the Madrid-pattern estimate):
 
 | Choice varied | 75+ ratio | Log width |
 |---|---:|---:|
-| All combinations tested (the sensitivity range) | 0.97–3.28 | 1.21 |
-| Region whose age profile stands in for Spain | 1.71–2.85 | 0.51 |
-| Split of the 65+ km (hatched below 1.69: equal split only) | 1.36–2.24 | 0.50 |
-| Age mix of the unexplained km (non-working days and professionals at the working-day mix) | 1.73–2.27 | 0.27 |
+| All combinations tested (the sensitivity range) | 0.97–3.20 | 1.19 |
+| Region whose age profile stands in for Spain | 1.71–3.01 | 0.57 |
+| Split of the 65+ km (hatched below 1.69: equal split only) | 1.36–2.09 | 0.43 |
 | Trip-distance conversion | 1.95–2.43 | 0.22 |
+| Age mix of the unexplained km (non-working days and professionals at the working-day mix) | 1.82–2.27 | 0.22 |
 | Weekends (standalone) | 1.80–2.06 | 0.13 |
 | Professionals' work driving | 2.06–2.29 | 0.11 |
 | Composition bound | 2.06–2.28 | 0.10 |
@@ -848,27 +890,30 @@ The remainder bar is recomputed so that it varies one choice: with the remainder
 working-day mix it equals the estimate exactly (tested). The low end of the region bar is
 Barcelona city, whose replicate spread of the 65+/45–64 km ratio (0.75–1.43 relative) is much
 wider than the province's (0.87–1.14), so it lies within sampling error; part of the profile's
-share below is sampling noise. Bar lengths depend on which alternatives were tried, not on how
-likely they are.
+share below is sampling noise. The high end is the Madrid profile, 3.01 since its 65+ km are
+standardised to Spain's older population (2.85 before). Bar lengths depend on which
+alternatives were tried, not on how likely they are.
 
 **Shapley shares** of the variance of the log 75+ ratio over the one full factorial in the table,
-profile (7) × non-working mix (3) × remainder mix (5) × split (`risk_older_attribution.csv`; SD
-of the log 0.236 with four splits, 0.191 without the equal split):
+profile (7) × non-working mix (3) × remainder mix (4) × split (`risk_older_attribution.csv`; SD
+of the log 0.244 with four splits, 0.195 without the equal split):
 
 | Factor | Four splits | Without the equal split |
 |---|---:|---:|
-| Split | 58% | 32% |
-| Profile | 27% | 40% |
-| Remainder | 15% | 26% |
+| Split | 52% | 24% |
+| Profile | 36% | 56% |
+| Remainder | 11% | 18% |
 | Non-working days | 1% | 2% |
 
 These are descriptive and depend on the alternatives chosen: adding one post-hoc split moved the
-split's share without the equal split from 6% (the earlier 315-cell table) to 32%. They are not
+split's share without the equal split from 6% (the earlier 315-cell table) to 32%, and the
+October 2026 corrections (the owner mix out, the Madrid profile standardised, the licence split
+counted one way) moved it again, to 24%. They are not
 used to rank data priorities and are not on the site.
 
 **The ends** (`risk_older_extremes.csv`, joint 95% sampling intervals with the mixes' external
 weights, the coverage weights and the RACC constant held fixed, so too narrow if anything; their
-pigeonhole Monte Carlo errors are 0.006–0.055, so at most one decimal of each end is firm):
+pigeonhole Monte Carlo errors are 0.006–0.065, so at most one decimal of each end is firm):
 
 * Minimum, 0.975: Barcelona city's profile, MOVILIA 2006's weekend mix for both the non-working
   days and the unexplained km, equal split; marked. Interval 0.74–1.42. The second row at or below
@@ -877,9 +922,10 @@ pigeonhole Monte Carlo errors are 0.006–0.055, so at most one decimal of each 
   reaches 1. Its implied 65–74/45–64 km per holder is 0.995. The edge is set by how the RACC split
   is built and is not stable under fuller crossing (exploratory 1.15–1.19), so the site prints
   "about 1.2" and says what sets it.
-* Maximum, 3.281: Madrid's profile, the working-day mix for non-working days, MOVILIA 2007's
-  over-50-km journeys for the unexplained km, the Madrid licence-holder split; not marked.
-  Interval 2.67–4.10 (profile and split from the same EDM resample, paired one to one).
+* Maximum, 3.199: Madrid's profile (standardised), the working-day mix for non-working days,
+  MOVILIA 2007's over-50-km journeys for the unexplained km, the Madrid km per DGT licence holder
+  split; not marked. Interval 2.59–4.02 (profile and split from the same EDM resample, paired one
+  to one). Before October 2026 it was 3.281 (2.67–4.10).
 
 **The range is not a bound.** Distance, survey years, professionals, A2, employment and
 composition are varied one at a time; crossing them would move both ends and the unmarked
@@ -887,20 +933,35 @@ minimum. Exploratory crossings, not reproduced by the pipeline and not on the si
 0.92–3.53 with survey years pooled, 0.78–3.59 with single-year area cells, and an unmarked
 minimum of about 1.15–1.19 with four splits.
 
-**Two top-end biases of opposite sign**, neither corrected: the licence split's definitional
-mismatch, about +7–9% (3.28 against about 3.07 like for like), and the Madrid-profile cells
-understating Madrid's own pattern, about −5% (a direct transfer gives 3.01 against 2.85). At the
-top, drivers aged 75 and over would drive 41% of the km DGT records for cars of owners aged 75 and
-over, against 69% at 65–74 and 105% at 45–64: a national tension, reported, not used to mark rows.
-The top's agreement with the EDM is circular (a Madrid profile checked against Madrid's survey).
+**Two top-end biases of opposite sign, both corrected in October 2026** instead of being left to
+cancel. (1) The licence split's definitional mismatch (above): about +7–9% at the top (3.28
+against about 3.07 like for like). (2) The Madrid profile was not age-standardised: its 65+ km per
+resident was Madrid's own 65+ mean, although Madrid's 65+ residents are younger than Spain's
+(weighted share aged 75 and over within 65+: EDM2018 men 0.402, women 0.457; Spain on 1 July 2024
+0.457, 0.526; province of Barcelona 2022–2024 0.466, 0.531), and for the 75+ split that mean was
+taken apart with the province of Barcelona's 65–74 and 75+ population. `national.edm_profile` now
+builds the 65+ cell from the EDM's exact-age cells, k(65–74)·P_Spain(65–74) + k(75+)·P_Spain(75+)
+over P_Spain(65+), by sex and replicate by replicate, and `national._split_older_by_sex` takes a
+standardised profile apart with Spain's population, so that under the Madrid split the Madrid
+profile gives back the survey's own exact-age cells. That raises the Madrid profile's 65+ ratio
+from 1.650 to 1.744 and, before the licence correction, the tops of the ranges from 1.750 to
+1.821 (65+), 1.630 to 1.698 (65–74) and 3.281 to 3.412 (75+), bottoms and 18–29 unchanged (an
+independent review's figures, reproduced exactly). With both corrections the top is 3.20
+(3.1985) at 75 and over. At the top, drivers aged 75 and over would drive 42% of the km DGT
+records for cars of owners aged 75 and over, against 65% at 65–74 and 105% at 45–64: a national
+tension, reported, not used to mark rows. The top's agreement with the EDM is circular (a Madrid
+profile checked against Madrid's survey). The EMEF profiles are not standardised the same way:
+their public files group everyone aged 65 and over, so standardising them would need a split,
+and the measured 65+ figure would become conditional.
 
 ### Joint-scenario checks: the marking rule
 
 A row is marked `at_odds_with_mens_driving` when the km it allocates to men aged 75 and over per
 DGT B-licence holder are at least those of men aged 65–74 (≥ 1 − 1e-9). It is computed from the
 km allocation by sex and age over DGT holders by sex and age, and is a property of the split: men's
-implied ratio is 0.48 (Madrid per resident), 0.45 (Madrid per licence holder), 0.68 (RACC limit)
-and 1.00 (equal split) in every structure. The rule marks exactly the 136 equal-split rows, and
+implied ratio is 0.48 (Madrid per resident), 0.48 (Madrid per DGT licence holder; 0.45 before
+it was counted one way), 0.68 (RACC limit) and 1.00 (equal split) in every structure. The rule
+marks exactly the 115 equal-split rows, and
 the same set for any threshold in (0.68, 1]. Evidence that men aged 75 and over drive less per
 holder than men aged 65–74 (men drive 78–86% of 75+ km under any split):
 
@@ -922,8 +983,8 @@ ratio_65_74 ≤ 0.715 (the involved-per-holder ratio), so it set the 65–74 edg
 its evidence (EDM Monday–Thursday 0.51, EMEF province 0.55–0.62) is working-day and regional and
 does not test the weekend mixes it marked; the only all-days national figure is owner-based
 (0.81). At threshold 1 it does not change the lowest unmarked 75+ value (1.214 with or without
-it). The ten Barcelona-city rows with weekend mixes under the Madrid splits (75+ 1.47–1.70, implied
-65–74/45–64 per holder 1.00–1.09) and the RACC minimum row (0.995) are tensions, described here.
+it). The ten Barcelona-city rows with weekend mixes under the Madrid splits (75+ 1.47–1.59, implied
+65–74/45–64 per holder 1.00–1.07) and the RACC minimum row (0.995) are tensions, described here.
 
 The minimum row gives drivers aged 75 and over 1.47 times the km of cars registered to owners
 of that age (`driver_over_owner_km_75_plus`); by an exploratory calculation, that is 18.5 bn km,
@@ -943,13 +1004,14 @@ on the site.
 ### Barcelona's working-day check
 
 In the city, 120 of the 344 car drivers aged 65 and over with a recorded age were 75 or over.
-Splitting the city's 65+ km with the four splits gives 0.80–1.82 at 75 and over across the three
+Splitting the city's 65+ km with the four splits gives 0.80–1.70 at 75 and over across the three
 denominators (`risk_barcelona_older.csv`), below the 45–64 rate in some combinations and above
 it in others. The 95% sampling intervals (EMEF city replicates, crossed with the EDM's for the
 Madrid splits, and gamma draws; Monte Carlo errors 0.01–0.03, so the page prints one decimal)
 are wide, but not every one includes 1: for the Madrid split they are 0.83–1.79, 1.22–2.29 and
 1.00–1.99, and with crossing trips counted at an internal trip's
-length the licence and RACC splits' intervals (1.33–2.51, 1.07–1.78) exclude 1 too. The check
+length the licence and RACC splits' intervals (1.24–2.34, 1.07–1.78; the licence split's was
+1.33–2.51 before its October 2026 correction) exclude 1 too. The check
 neither confirms nor rules out a rate above 45–64 because the splits and the ways of counting
 crossing trips disagree, not because every interval is wide. For the Madrid split, one interval
 includes 1 (internal trips only), one lies above it (crossing trips at an internal trip's
@@ -1037,6 +1099,36 @@ In order of what they would resolve, with the holder and the route (details in
   days", which read as including weekends). The Barcelona check's reason is corrected. The EMEF
   questionnaires of 2014–2016 and 2022–2023 and the methodology report 2003–2018 are archived in
   `data/raw/emef/`.
+* October 2026, after a fourth independent review (three methodological findings):
+  1. *The Madrid profile is age-standardised.* Its 65+ km per resident was Madrid's own 65+
+     mean, applied to Spain's older population and, for the 75+ split, taken apart with the
+     province of Barcelona's; it is now built from the EDM's exact-age cells weighted by Spain's
+     population, and taken apart with Spain's (above, "Two top-end biases"). The licence split's
+     double counting of the fall in licence holding is corrected at the same time, so the two
+     top-end biases no longer offset each other: the split now carries Madrid's km per DGT
+     licence holder (2.09 at 75 and over, against 2.24 before).
+  2. *DGT's kilometres by the owner's age are a bound, not a credible mix,* for the unexplained
+     kilometres, and they no longer bring the owners' own 75+ share: each scenario applies its
+     own split. They are reported with their values and left out of the ranges, like the two
+     constructed allocations. That removes 84 rows from the 75+ table (460 rows, 115 structures)
+     and lowers the top of the 18–29 range from 3.75 (3.7493) to 3.63 (3.6341).
+  3. *Monte Carlo precision.* The national rates, the Barcelona rates and the comparison of men
+     and women per km now cross each survey replicate with 50 gamma draws of each count; the
+     deaths-once-involved intervals use 100,000 Beta draws; every end carries its Monte Carlo
+     error, and the pages print every sampling interval to the digit that error supports
+     (one statement of the rule, under Table 1 of the drivers page). The ratios of involvement
+     keep Monte Carlo errors of up to 0.017, set by the 300 survey replicates rather than the
+     count draws, so their intervals are printed to one decimal (18–29: 2.2–2.8; 65 and over:
+     1.0–1.4); the death ratios' errors fell from up to 0.07 to up to 0.03 (65 and over: 2.3–3.9,
+     2.21–3.82 before). No page sentence rests on an interval end's side of 1 that its printed
+     precision hides (`site.numbers.side_of_one_shown`).
+  The ranges are now 1.49–3.63 at 18–29, 1.12–1.72 at 30–44, 0.85–1.82 at 65 and over, 0.67–1.70
+  at 65–74 and 0.97–3.20 at 75 and over (unmarked 0.67–1.53 and 1.21–3.20); before, 1.49–3.75,
+  1.12–1.72, 0.85–1.75, 0.66–1.63 and 0.97–3.28. The conditional estimate, 2.06 (1.6–2.6), and the
+  lowest unmarked 75+ combination, 1.21 (0.9–1.8), are unchanged. No scenario was dropped without
+  being reported: the owner-age rows are in `risk_coverage_scenarios.csv`, flagged as a bound.
+  On the drivers page the change note now describes the change from the last deployed page
+  (owner-age kilometres), and the notes about intermediate versions stay in this log.
 
 ## The crash numerator
 
@@ -1057,28 +1149,32 @@ the ratios between ages unchanged, but only if their ages follow the recorded mi
 instead of 2.53. If all were aged 45–64, the ratios would be 2.38 at 18–29 and 1.12 at 65 and
 over. If all were aged 65 and over, the 65+ ratio would be 1.42.
 
-| Age | Drivers involved | Drivers killed | Killed per 1,000 involved (95% CI) | Involved per 1,000 car-licence holders |
+| Age | Drivers involved | Drivers killed | Killed per 1,000 involved (95% CI, 100,000 Beta draws) | Involved per 1,000 car-licence holders |
 |---|---:|---:|---:|---:|
-| 18–29 | 21,234 | 88 | 4.1 (3.4–5.1) | 6.2 |
-| 30–44 | 28,775 | 113 | 3.9 (3.3–4.7) | 4.0 |
+| 18–29 | 21,234 | 88 | 4.1 (3.3–5.1) | 6.2 |
+| 30–44 | 28,775 | 113 | 3.9 (3.2–4.7) | 4.0 |
 | 45–64 | 35,092 | 163 | 4.6 (4.0–5.4) | 3.0 |
-| 65+ | 11,425 | 130 | 11.4 (9.5–13.4) | 2.4 |
+| 65+ | 11,425 | 130 | 11.4 (9.6–13.4) | 2.4 |
 | 65–74 | 6,970 | 59 | 8.5 (6.5–10.8) | 2.1 |
-| 75+ | 4,455 | 71 | 15.9 (12.6–19.8) | 2.8 |
+| 75+ | 4,455 | 71 | 15.9 (12.6–20.0) | 2.8 |
 
 (`risk_severity_and_licences.csv`)
 
 ## Involvement per kilometre by age
 
 Under Methods A and B, the central estimate for 2024 is shown below (`risk_national_rates.csv`).
-The 95% intervals combine sampling error in the exposure shares with Poisson error in the counts.
+The 95% intervals cross the sampling error in the exposure shares (300 replicates) with Poisson
+error in the counts (50 gamma draws per replicate). Their ends are printed to the precision their
+Monte Carlo errors support (`*_mc_se_low`, `*_mc_se_high`): up to 0.017 for the involvement ratios
+and 0.030 for the death ratios, so one decimal, and up to 3.8 per billion km for the rates, so
+whole numbers or tens. The CSV keeps every end unrounded.
 
 | Age | Billion km | Involved per bn km (95% CI) | Ratio to 45–64 (95% CI) | Driver deaths per bn km | Ratio to 45–64 (95% CI) |
 |---|---:|---:|---:|---:|---:|
-| 18–29 | 33.0 | 643 (587–707) | 2.53 (2.25–2.82) | 2.67 | 2.26 (1.71–2.92) |
-| 30–44 | 80.8 | 356 (337–375) | 1.40 (1.30–1.53) | 1.40 | 1.19 (0.91–1.51) |
+| 18–29 | 33.0 | 643 (590–700) | 2.53 (2.2–2.8) | 2.67 | 2.26 (1.7–3.0) |
+| 30–44 | 80.8 | 356 (340–380) | 1.40 (1.3–1.5) | 1.40 | 1.19 (0.9–1.5) |
 | 45–64 | 138.2 | 254 (245–264) | 1 | 1.18 | 1 |
-| 65+ | 37.8 | 302 (267–341) | 1.19 (1.03–1.36) | 3.44 | 2.92 (2.21–3.82) |
+| 65+ | 37.8 | 302 (270–340) | 1.19 (1.0–1.4) | 3.44 | 2.92 (2.3–3.9) |
 
 The billion kilometres carry the intervals of the shares in the methods table above.
 
@@ -1088,26 +1184,28 @@ kilometre sensitivity, weekend and coverage tables above, and in `risk_coverage_
 
 | Source of variation | 18–29 | 30–44 | 65+ |
 |---|---|---|---|
-| Regional profile (Method C: four parts of the province, Madrid 2018) | 1.64–3.63 | 1.12–1.64 | 0.99–1.65 |
+| Regional profile (Method C: four parts of the province, Madrid 2018) | 1.64–3.63 | 1.12–1.64 | 0.99–1.74 |
 | Licence-calibrated transfer (Method A2) | 2.24 | 1.27 | 1.23 |
 | Distance treatment (thirteen alternatives) | 2.36–2.66 | 1.35–1.45 | 1.13–1.41 |
 | Survey years (2024; 2023–2024; 2021–2024; 2019 and 2021–2024) | 2.46–2.85 | 1.28–1.54 | 1.18–1.21 |
 | Professionals' unrecorded work driving (25% or 50% of work trips by car) | 2.44–2.48 | 1.41–1.42 | 1.26–1.33 |
 | Older sample's employed share set to the census | 2.53 | 1.40 | 1.23 |
 | Non-working days (two age mixes, 22% or 32% of annual km) | 2.38–2.47 | 1.42–1.45 | 1.05–1.11 |
-| Age mixes of the kilometres the survey does not cover (five credible mixes, Method A's profile) | 1.95–2.90 | 1.34–1.47 | 1.03–1.36 |
-| Those mixes with each other regional profile | 1.49–3.75 | 1.13–1.72 | 0.85–1.75 |
-| **All of the above** (the sensitivity range on the site) | **1.49–3.75** | **1.12–1.72** | **0.85–1.75** |
+| Age mixes of the kilometres the survey does not cover (four credible mixes, Method A's profile) | 1.95–2.50 | 1.34–1.47 | 1.03–1.36 |
+| Those mixes with each other regional profile | 1.49–3.52 | 1.13–1.72 | 0.85–1.82 |
+| **All of the above** (the sensitivity range on the site) | **1.49–3.63** | **1.12–1.72** | **0.85–1.82** |
 | Kilometre total (Method B variants) | none: a common factor | none | none |
 
 The regional profile, combined with the age mixes of the uncovered kilometres, sets both ends of
-the ranges at 18–29 and 65 and over. Without the regional profiles and the uncovered kilometres,
+the range at 65 and over and the bottom at 18–29; the top at 18–29 is Barcelona city's profile
+alone (3.63). Until October 2026 the combinations with DGT's km by owner's age set that top
+(3.75); that mix is now a bound. Without the regional profiles and the uncovered kilometres,
 the alternatives span 2.24–2.85 at 18–29, 1.27–1.54 at 30–44 and 1.05–1.41 at 65 and over. For 65
 and over, most of those alternatives raise the ratio: the distance treatments (up to 1.41),
 professionals' driving (1.26–1.33), the census employment share (1.23) and the licence-calibrated
 transfer (1.23). The weekend mixes lower it (1.05–1.11), and so does the Barcelona city profile
 (0.99). Under all the alternatives the ratio of driver deaths per kilometre to 45–64 ranges from
-1.33 to 3.35 at 18–29 and from 2.09 to 4.29 at 65 and over. The absolute rates move with the
+1.33 to 3.24 at 18–29 and from 2.09 to 4.46 at 65 and over. The absolute rates move with the
 kilometre total, from 299 (all cars) to 315 (no hire cars or driving schools) per billion km for
 the 65-and-over group, but the ratios do not.
 
@@ -1124,7 +1222,7 @@ as ratios to owners aged 35–54 (`risk_owner_age_comparison.csv`). It put the 1
 65–74 at 0.71 and 75 and over at 1.02. Those ratios use other age bands and another reference than
 the current figures. Summed onto the same groups and set against 45–64, the owner kilometres give
 4.62 at 18–29, 1.51 at 30–44, 1.00 at 65 and over, 0.88 at 65–74 and 1.27 at 75 and over. The
-driver-age kilometres give 2.53, 1.40 and 1.19, with 0.92–1.10 at 65–74 and 1.36–2.24 at 75 and
+driver-age kilometres give 2.53, 1.40 and 1.19, with 0.93–1.10 at 65–74 and 1.36–2.09 at 75 and
 over under the split assumptions. Compared like for like, the change of denominator lowers the
 young drivers' ratio from about 4.6 to about 2.5 (2.2 with the licence-calibrated transfer) and
 raises the 65+ ratio from about 1.0 to about 1.2. At 65–74 the move from 0.71 to 0.88 is on owner
@@ -1140,8 +1238,9 @@ The EMEF profile is by sex as well as age, so the same transfer to Spain gives e
 car-driver kilometres (`national.sex_per_km`; `risk_sex_per_km.csv`). On that estimate, men drove
 66% of car-driver kilometres in Spain in 2024, about two thirds. Per kilometre, male private-car
 drivers aged 18 and over were involved in injury crashes 0.91 times as often as female drivers
-(95% CI 0.85–0.98; 62,064 men and 34,257 women involved) and were killed 2.65 times as often
-(2.10–3.38; 414 men and 79 women killed). Under the licence-calibrated transfer and the other
+(95% CI 0.86–0.98 in the table, 0.9–1.0 at the precision its Monte Carlo error supports;
+62,064 men and 34,257 women involved) and were killed 2.65 times as often (2.1–3.4; 414 men and
+79 women killed). Under the licence-calibrated transfer and the other
 regional profiles (EMEF areas and Madrid) the involvement ratio runs from 0.60 to 1.23 and the
 death ratio from 1.75 to 3.55, so per kilometre men are involved about as often as women and
 killed far more often.
@@ -1190,10 +1289,18 @@ responsible, relative to how often they are on the road.
 
 ## Uncertainty
 
-The intervals above are 95% confidence intervals for sampling and count error. They pair 300 EMEF
-bootstrap replicates (respondents resampled within year and comarca), or household replicates for
-the Madrid survey, with gamma draws for each count. They are narrower than the honest uncertainty
-in three respects:
+The intervals above are 95% confidence intervals for sampling and count error. They cross 300
+EMEF bootstrap replicates (respondents resampled within year and comarca), or household
+replicates for the Madrid survey, with gamma draws of each count: 50 per replicate for the
+national rates, the Barcelona rates and men against women per km (`national.COUNT_DRAWS`; one
+per replicate until October 2026, which left the death ratios' ends with Monte Carlo errors of
+up to 0.07), and one per cell of the 300 × 300 arrays of the 75+ intervals. Each end carries the
+Monte Carlo standard error of a pigeonhole bootstrap over the crossed array (`national._interval`),
+and every interval is printed to the last digit that error supports (a unit of at least twice
+the error; `site.numbers.mc_digits`). With 300 EMEF replicates the involvement ratios' ends keep
+errors of up to about 0.02, which come from the replicates rather than the count draws, so they
+are printed to one decimal; more count draws brought the death ratios' errors from up to 0.07 to
+up to 0.03. They are narrower than the honest uncertainty in three respects:
 
 * The EMEF is a stratified multi-stage sample with calibrated weights, and the public files carry
   neither the sampling units nor the calibration margins, so the bootstrap reflects neither.
@@ -1202,10 +1309,11 @@ in three respects:
 
 The analytic choices are covered by the sensitivity ranges, which are reported separately and
 never merged into the intervals. For drivers aged 18–29 and 65 and over the regional profile
-(1.64–3.63 and 0.99–1.65 alone) and the age mix of the half of DGT's kilometres that the survey
-does not cover dominate; together they give 1.49–3.75 and 0.85–1.75. The distance treatment
+(1.64–3.63 and 0.99–1.74 alone) and the age mix of the half of DGT's kilometres that the survey
+does not cover dominate; together they give 1.49–3.52 and 0.85–1.82 (the range at 18–29 is
+1.49–3.63, its top Barcelona city's profile alone). The distance treatment
 (1.13–1.41 at 65 and over) comes next. For drivers aged 75 and over the region and the split
-move the figure most one at a time (1.71–2.85 and 1.36–2.24); the sampling interval of the
+move the figure most one at a time (1.71–3.01 and 1.36–2.09); the sampling interval of the
 conditional estimate holds the split fixed but includes the Madrid survey's sampling error. The sensitivity ranges are not
 bounds: they combine only the regional profile with the uncovered kilometres, and other choices
 taken together would widen them.
@@ -1220,10 +1328,10 @@ taken together would widen them.
    others.
 2. **Involvement per kilometre** (modelled). Per kilometre driven in Spain in 2024, car drivers
    aged 18–29 were involved in injury crashes 2.53 times as often as drivers aged 45–64 (95% CI
-   2.25–2.82; sensitivity range 1.49–3.75; 2.24 with the licence-calibrated transfer). The
+   2.2–2.8; sensitivity range 1.49–3.63; 2.24 with the licence-calibrated transfer). The
    direction holds under every alternative; the size does not. Drivers aged 30–44 were involved
-   1.40 times as often (1.30–1.53; range 1.12–1.72). Drivers aged 65 and over were involved 1.19
-   times as often on the central estimate (1.03–1.36), but the alternatives give 0.85–1.75, so
+   1.40 times as often (1.3–1.5; range 1.12–1.72). Drivers aged 65 and over were involved 1.19
+   times as often on the central estimate (1.0–1.4), but the alternatives give 0.85–1.82, so
    whether they are involved more or less often per kilometre than drivers aged 45–64 is not
    established. Most alternatives taken one at a time raise their ratio, among them the distance
    treatments (1.13–1.41) and professionals' unrecorded driving (1.26–1.33); the weekend mixes
@@ -1238,19 +1346,19 @@ taken together would widen them.
    drivers aged 75 and over were involved 2.06 times as often per km as drivers aged 45–64 (95%
    sampling interval 1.6–2.6, which includes both surveys' sampling error; its second decimal is
    within Monte Carlo error) and drivers aged 65–74 0.94 times (0.8–1.1). Across four splits and
-   every other choice the sensitivity range is 0.97–3.28 (65–74: 0.66–1.63); below about 1.2 it is
+   every other choice the sensitivity range is 0.97–3.20 (65–74: 0.67–1.70); below about 1.2 it is
    reached only with equal km per licence holder, at odds with Spanish surveys of men's driving.
    The lowest other combination, 1.21, has a sampling interval of 0.9–1.8, so these data cannot
    show that drivers aged 75 and over are involved more often per km whatever the assumption, nor
    by how much. Involvement per licence holder at 75 and over is 0.95 times the 45–64 rate. In
-   Barcelona the four splits give 0.80–1.82 and disagree with each other. The EMEF's own aggregates
+   Barcelona the four splits give 0.80–1.70 and disagree with each other. The EMEF's own aggregates
    for 65–74 and 75 and over would replace the Madrid transfer
    ([`EMEF_DATA_REQUEST.md`](EMEF_DATA_REQUEST.md)).
 5. **Severity once involved** (counted). Car drivers aged 65 and over were killed in 11.4 of every
-   1,000 involvements in 2024 (9.5–13.4), against 4.6 (4.0–5.4) at 45–64; drivers aged 75 and over
-   in 15.9 (12.6–19.8). This needs no kilometres. Driver deaths per kilometre at 65 and over are
-   2.92 times the middle-aged rate on the central estimate (2.21–3.82; sensitivity range
-   2.09–4.29), against 1.19 for involvement (range 0.85–1.75). Under every alternative the death
+   1,000 involvements in 2024 (9.6–13.4), against 4.6 (4.0–5.4) at 45–64; drivers aged 75 and over
+   in 15.9 (12.6–20.0). This needs no kilometres. Driver deaths per kilometre at 65 and over are
+   2.92 times the middle-aged rate on the central estimate (2.3–3.9; sensitivity range
+   2.09–4.46), against 1.19 for involvement (range 0.85–1.82). Under every alternative the death
    ratio exceeds the involvement ratio, so the excess in deaths per kilometre comes mainly from the
    outcome once a crash has happened; these data cannot say why older drivers fare worse.
 6. **Responsibility** cannot be assessed with public data (see above). Involvement counts every
@@ -1261,8 +1369,8 @@ taken together would widen them.
    resident describe the burden on a population, not the risk of a kilometre driven.
 8. **Men and women.** On the same transfer, men drove about two thirds of car-driver kilometres in
    2024. Per kilometre, male private-car drivers were involved 0.91 times as often as female
-   drivers (0.85–0.98; 0.60–1.23 under the other profiles), so neither sex is shown to be involved more often per km, and killed 2.65 times
-   as often (2.10–3.38; 1.75–3.55).
+   drivers (0.9–1.0; 0.60–1.23 under the other profiles), so neither sex is shown to be involved
+   more often per km, and killed 2.65 times as often (2.1–3.4; 1.75–3.55).
 9. **The former owner-age figure.** Compared like for like (drivers aged 18–29, 30–44 and 65 and
    over against 45–64), owner kilometres gave 4.62, 1.51 and 1.00, against 2.53, 1.40 and 1.19 by
    the driver's age. The former figure's 6.75 compared owners aged 18–24 with 35–54. A car's owner

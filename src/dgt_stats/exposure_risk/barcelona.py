@@ -33,8 +33,9 @@ because every one of them omits the traffic named above:
 Only the ratio of each age group's rate to that of drivers aged 45-64 is read.
 
 **Uncertainty.** Each interval combines the sampling error of the denominator (the EMEF
-bootstrap replicates) with Poisson error in the count (a gamma draw per replicate), paired
-replicate by replicate. Drivers whose age was not recorded are left out of the rates; the ratios
+bootstrap replicates) with Poisson error in the count (several gamma draws per replicate, crossed
+with the replicates), and each end carries its Monte Carlo standard error. Drivers whose age was
+not recorded are left out of the rates; the ratios
 then assume their ages follow the recorded mix. :func:`unknown_age_bounds` gives the ratios if
 they were all of one age group. ``rate_allocated_per_bn_km`` spreads them across ages in
 proportion to those recorded.
@@ -228,7 +229,11 @@ def _denominator_columns(frame: pd.DataFrame) -> dict[str, np.ndarray]:
 
 def rates() -> pd.DataFrame:
     """Car drivers involved per billion working-day km inside Barcelona, by age group, under each
-    denominator and numerator, with each group's ratio to drivers aged 45-64."""
+    denominator and numerator, with each group's ratio to drivers aged 45-64. The intervals cross
+    the survey's replicates with :data:`national.COUNT_DRAWS` gamma draws of the counts each, and
+    each ratio end carries its Monte Carlo standard error (:func:`national._interval`)."""
+    from dgt_stats.exposure_risk import national
+
     frame = city_person_day()
     n_years = frame.year.nunique()
     factors = exposure.replicate_factors(frame)
@@ -242,7 +247,9 @@ def rates() -> pd.DataFrame:
         known = cars.age4.value_counts()
         unknown_share = float(cars.age.isna().mean())
         rng = np.random.default_rng(SEED)
-        count_draws = {label: rng.gamma(known.get(label, 0) + 0.5, 1.0, n_rep) for label in labels}
+        count_draws = {
+            label: national._count_draws(rng, known.get(label, 0), n_rep) for label in labels
+        }
         for denominator, km in _denominator_columns(frame).items():
             point, replicate = {}, {}
             block = []
@@ -253,7 +260,7 @@ def rates() -> pd.DataFrame:
                 yearly_rep = working_days * (w @ factors[mask])
                 n = float(known.get(label, 0))
                 point[label] = n / yearly_km * BILLION
-                replicate[label] = count_draws[label] / yearly_rep * BILLION
+                replicate[label] = count_draws[label] / yearly_rep[:, None] * BILLION
                 block.append(
                     {
                         "numerator": name,
@@ -271,10 +278,12 @@ def rates() -> pd.DataFrame:
                 )
             for row in block:
                 label = row["age4"]
-                ratio = replicate[label] / replicate[REFERENCE]
+                ratio = national._interval(replicate[label] / replicate[REFERENCE])
                 row["ratio_to_45_64"] = point[label] / point[REFERENCE]
-                row["ratio_low"] = float(np.percentile(ratio, 2.5))
-                row["ratio_high"] = float(np.percentile(ratio, 97.5))
+                row["ratio_low"] = ratio["low"]
+                row["ratio_high"] = ratio["high"]
+                row["mc_se_low"] = ratio["mc_se_low"]
+                row["mc_se_high"] = ratio["mc_se_high"]
             rows += block
     out = pd.DataFrame(rows)
     out.attrs["internal_trip_mean_km"] = frame.attrs["internal_trip_mean_km"]

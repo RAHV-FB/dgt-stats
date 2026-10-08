@@ -825,11 +825,14 @@ def dot_interval(
     group: str | None = None,
     xlim: tuple[float, float] | None = None,
     log: bool = False,
+    integer_ticks: bool = False,
 ) -> Path:
     """Dots with interval whiskers, one row per label, highest value at the top.
 
     ``log`` draws the value axis on a logarithmic scale, for ratios, with labelled ticks at each
     doubling (as in ``forest``), so that a halving and a doubling look the same size.
+    ``integer_ticks`` puts the value axis's ticks on whole numbers only, for counts and rates whose
+    ticks would otherwise carry needless decimals.
 
     ``keep_order`` keeps the frame's own order (first row at the top) instead of ranking.
     ``highlight`` names a boolean column: its rows are drawn as filled accent dots and the
@@ -942,6 +945,9 @@ def dot_interval(
         # by the plot edge (every value lies inside the limits, so nothing else leaves the axes).
         for artist in [*axis.lines, *axis.collections]:
             artist.set_clip_on(False)
+    if integer_ticks and not log:
+        axis.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
+        axis.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(lambda v, _: f"{v:,.0f}"))
     if percent:
         # Changes carry a sign; shares do not (an interval may end a rounding error below 0).
         signed = float(ordered[low].min()) < -1e-9
@@ -1066,7 +1072,11 @@ def dot_range(
     return save(fig, path)
 
 
-RANGE_BAND = {"color": NEUTRAL_LIGHT, "linewidth": 8.0, "alpha": 0.6}
+# A sensitivity range: a light opaque band (the light grey at 60% on white, as before) with a 0.75
+# point outline in the neutral grey, which stands 4.1:1 against the white chart box in both
+# themes; the band's fill alone stood only 1.4:1.
+RANGE_BAND = {"color": "#d7d7d4", "linewidth": 8.0, "alpha": 1.0}
+RANGE_OUTLINE = {"color": NEUTRAL, "linewidth": 0.75}
 # A one-at-a-time bar: one choice changed, the others held (``band_style`` "factor").
 FACTOR_BAND = {"color": CONTEXT_STYLES[2][0], "linewidth": 5.0, "alpha": 1.0}
 # The part of a range reached only by combinations a chart marks: a hatched segment of the
@@ -1093,6 +1103,31 @@ def _hatched_segment(axis: plt.Axes, low: float, high: float, y: float, height: 
     )
     patch.set_hatch_linewidth(HATCH_LINEWIDTH)
     axis.add_patch(patch)
+
+
+def _band_outline(axis: plt.Axes, low: float, high: float, y: float, height: float) -> None:
+    """The outline of a range band from ``low`` to ``high`` at row ``y``, ``height`` data units
+    tall, so that the band's edges and ends read against the chart's background."""
+    axis.add_patch(
+        matplotlib.patches.Rectangle(
+            (low, y - height / 2),
+            high - low,
+            height,
+            fill=False,
+            edgecolor=RANGE_OUTLINE["color"],
+            linewidth=RANGE_OUTLINE["linewidth"],
+            zorder=1.6,
+        )
+    )
+
+
+def _range_handle(label: str) -> matplotlib.patches.Patch:
+    return matplotlib.patches.Patch(
+        facecolor=RANGE_BAND["color"],
+        edgecolor=RANGE_OUTLINE["color"],
+        linewidth=RANGE_OUTLINE["linewidth"],
+        label=label,
+    )
 
 
 def _hatch_handle(label: str) -> matplotlib.patches.Patch:
@@ -1183,6 +1218,7 @@ def estimate_and_range(
     height = max(2.6, per_row * (top + 1) + 1.6)
     fig, axis = _subplots(figsize=(FIGURE_WIDTH, height))
     hatched: list[tuple[float, float, float, float]] = []
+    outlined: list[tuple[float, float, float, float]] = []
     present = {"estimate": False, "conditional": False, "range": False, "factor": False}
     for position, (_, row) in zip(positions, ordered.iterrows()):
         if _flag(row, "group_start"):
@@ -1207,6 +1243,8 @@ def estimate_and_range(
                 zorder=1,
             )
             present[style] = True
+            if style == "range":
+                outlined.append((low, high, position, look["linewidth"]))
             for start, end in ((low, clear_low), (clear_high, high)):
                 if end > start * (1 + 1e-9):
                     hatched.append((start, end, position, look["linewidth"]))
@@ -1299,11 +1337,7 @@ def estimate_and_range(
             )
         )
     if legacy or present["range"]:
-        handles.append(
-            matplotlib.lines.Line2D(
-                [], [], color=NEUTRAL_LIGHT, linewidth=8, alpha=0.6, label=entry(range_label)
-            )
-        )
+        handles.append(_range_handle(entry(range_label)))
     if present["factor"]:
         handles.append(
             matplotlib.lines.Line2D(
@@ -1320,14 +1354,17 @@ def estimate_and_range(
     _legend_below(axis, -0.16, columns, handles=handles)
     _title(path, title)
     axis.set_xlabel(_axis_text(xlabel))
-    if hatched or has_counts:
-        # The hatched segments and the counts are placed once the layout is final, so that a
-        # segment is exactly as tall as its band and a count sits under its label.
+    if hatched or outlined or has_counts:
+        # The hatched segments, the bands' outlines and the counts are placed once the layout is
+        # final, so that a segment or an outline is exactly as tall as its band and a count sits
+        # under its label.
         fig.draw_without_rendering()
         y0, y1 = axis.transData.transform([(1, 0), (1, 1)])[:, 1]
         points_per_unit = (y1 - y0) * 72 / fig.dpi
         for low, high, position, width in hatched:
             _hatched_segment(axis, low, high, position, width / points_per_unit)
+        for low, high, position, width in outlined:
+            _band_outline(axis, low, high, position, width / points_per_unit)
         if has_counts:
             renderer = fig.canvas.get_renderer()
             for tick, position, (_, row) in zip(
