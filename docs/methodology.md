@@ -1227,9 +1227,16 @@ the recorded values). A field counts as unrecorded ("not specified", its own "un
 blank) only in a crash it applies to. A 998 code, a blank fog or wind field (DGT's dictionary gives
 these two condition fields no "not specified" code: they record a condition only when present)
 and a blank or 999 junction type or right-of-way flag in a crash `NUDO` places away from a junction
-are not applicable, and the check-6 shares are taken over the crashes each field applies to. On
-the 2016–2024 records checks 1–5 pass. Check 6 fails clearly: 20 of the 30 fields vary by more
-than 10 points between provinces, and among crashes at a junction the right-of-way flags are
+are not applicable, and the check-6 shares are taken over the crashes each field applies to. The
+presence reading fails in a few province-years whose records give the condition to more than a
+tenth of their crashes (`dgt_audit_presence_coding.csv`): fog in Barcelona's from 2017 (33–45 % a
+year, against under 0.1 % in 2016 and at most 7.6 % in any other province-year; the Catalan file
+records fog in the same number of Barcelona's crashes with a death or serious injury each year),
+and strong wind in the four Catalan provinces' in 2021 (every crash) and Sevilla's in 2017–2018
+(19–22 %). There neither a value nor a blank says whether the condition was present; neither
+field enters the association analysis or the calculator. On the 2016–2024 records checks 1–5
+pass. Check 6 fails clearly: 20 of the 30 fields vary by more than 10 points between provinces,
+and among crashes at a junction the right-of-way flags are
 unrecorded in 0 % to 51 % by province (39 % at most without the Catalan provinces' 2023–2024
 records, whose junction flag is inverted; section 13). Check 7 fails narrowly: for 30-day deaths
 the flags reach 54 % of the recorded model's lift (95 % interval 52–56 %, resampling the evaluated

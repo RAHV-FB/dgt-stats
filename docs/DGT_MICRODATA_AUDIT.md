@@ -15,6 +15,8 @@ A field is unrecorded in a crash when it is 999 ("Sin especificar"), its own "un
 
 Share of crashes each such field applies to: the junction type 42.1%, the right-of-way flags 46.2%, the pavement field 13.1% and the road alignment 37.5%.
 
+A presence field is read that way only where it records the condition in few crashes: elsewhere fog or strong wind is recorded in at most 7.6% of a province-year's crashes. A field records its condition in more than 10% of crashes in these province-years: fog in the records for Barcelona in 2017-2024 (33%-45%); strong wind in the records for Barcelona, Girona, Lleida and Tarragona in 2021 (100%); strong wind in the records for Sevilla in 2017-2018 (19%-22%) (`dgt_audit_presence_coding.csv`). There the field is coded another way: neither a value nor a blank says whether the condition was present. The Servei Català de Trànsit's file shows the same fog coding: of the crashes with a death or serious injury within 24 hours in those province-years that it holds, DGT records fog in 1,378 and the Catalan file in 1,378, the same number every year.
+
 ## Checks on the file
 
 | check | criterion | evidence | passed |

@@ -855,7 +855,14 @@ def test_the_missing_values_figure_reads_the_audit_rule(built: Path) -> None:
     captions = json.loads((FIGURES_DIR / "captions.json").read_text(encoding="utf-8"))
     caption = captions["d1_missingness"]
     assert "in a crash recorded away from a junction" in caption
-    assert "fog or strong wind field is the recorded 'no'" in caption
+    assert "fog or strong wind field counts as recorded" in caption
+    # The crossing road follows the junction rule, and is named with the kilometre post as a
+    # field whose empty cell may mean there was nothing to record.
+    assert "the crossing road, when the cell is empty or 999" in caption
+    assert "kilometre post and crossing road fields" in caption
+    # The inverted Catalan junction flag is read the other way round, not shown as a drop.
+    assert "the flag is read the other way round" in caption
+    assert "recorded less often" not in caption
     assert "optional fields (fog" not in caption
     assert "right-of-way flags and the junction type in under half" not in block
 

@@ -511,7 +511,8 @@ def _audit() -> str:
         "when it is “not specified”, “unknown” or left blank in a crash it applies to. The "
         "junction type and the fields that record who had right of way apply only to a crash "
         "at a junction, and DGT fills in the fog and wind fields only when there was fog or "
-        "strong wind, so a blank there means there was none.</p>"
+        "strong wind, so a blank there means there was none, except in a few province-years "
+        'that code them another way (<a href="data.html#coding-breaks">coding breaks</a>).</p>'
         f"<p>Of the {_fmt_int(fields)} fields examined (the {_fmt_int(len(priority))} that "
         f"record who had right of way counted as one), {_words(uneven)} have an unrecorded "
         f"share that varies by more than {dgt_audit.MAX_REGIONAL_SPREAD * 100:.0f} percentage "

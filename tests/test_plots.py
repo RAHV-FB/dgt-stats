@@ -137,6 +137,7 @@ def test_the_missing_values_chart_leaves_not_applicable_out() -> None:
             ("ACERA", {"not_applicable": 0.8, "not_specified": 0.05}),
             ("CONDICION_NIEBLA", {"empty": 0.9}),
             ("NUDO_INFO", {"empty": 0.6}),
+            ("CARRETERA_CRUCE", {"empty": 0.97}),
             *[(column, {"not_specified": 0.6}) for column in codes.PRIORI_COLUMNS],
         ]
     )
@@ -149,6 +150,8 @@ def test_the_missing_values_chart_leaves_not_applicable_out() -> None:
             ("CONDICION_NIEBLA", 1000, 1000),
             # Not applicable away from a junction.
             ("NUDO_INFO", 400, 380),
+            # The crossing road, like the junction fields, applies only at a junction.
+            ("CARRETERA_CRUCE", 400, 30),
             *[(column, 450, 360 + i // 10) for i, column in enumerate(codes.PRIORI_COLUMNS)],
         ]
     )
@@ -158,6 +161,7 @@ def test_the_missing_values_chart_leaves_not_applicable_out() -> None:
     assert shown[names["ISLA"]] == pytest.approx(0.08 / 0.1)
     assert shown[names["CONDICION_NIEBLA"]] == pytest.approx(1.0)
     assert shown[names["NUDO_INFO"]] == pytest.approx(0.95)
+    assert shown[names["CARRETERA_CRUCE"]] == pytest.approx(0.075)
     # The right-of-way flags share one row, and no raw field name is left.
     row = figures.priority_row(len(codes.PRIORI_COLUMNS))
     assert shown[row] == pytest.approx(0.8, abs=0.01)
@@ -180,7 +184,8 @@ def test_the_missing_values_chart_leaves_not_applicable_out() -> None:
 
 def test_the_missing_values_chart_reads_the_audit_rule() -> None:
     """On the committed tables, the chart's audited rows are the audit's: the fog and strong-wind
-    fields are always recorded, and the junction fields drop only in the inverted years."""
+    fields are always recorded, and, with the inverted Catalan junction flag read the other way
+    round, the junction fields are not recorded less often in the inverted years."""
     profile_path = TABLES_DIR / "missingness_by_year.csv"
     audited_path = TABLES_DIR / "missingness_where_applicable.csv"
     junctions_path = TABLES_DIR / "dgt_audit_junction_coding.csv"
@@ -190,10 +195,22 @@ def test_the_missing_values_chart_reads_the_audit_rule() -> None:
     shown = figures.recorded_where_applicable(pd.read_csv(profile_path), applicability)
     names = figures.MISSINGNESS_FIELDS
     assert (shown.loc[[names["CONDICION_NIEBLA"], names["CONDICION_VIENTO"]]] == 1).all().all()
-    years = figures.junction_years_apart(shown, pd.read_csv(junctions_path))
+    junctions = pd.read_csv(junctions_path)
+    years = figures.inverted_junction_years(shown, junctions)
     assert years == [2023, 2024]
-    junction_type = applicability[applicability.column == "NUDO_INFO"]
-    assert (junction_type.applies < junction_type.rows).all()
+    for column in ("NUDO_INFO", "CARRETERA_CRUCE"):
+        rows = applicability[applicability.column == column]
+        assert (rows.applies < rows.rows).all()
+    # Read as published, the inverted years' junction type would fall far below every other
+    # year's; read the other way round, it does not.
+    junction_type = shown.loc[figures.MISSINGNESS_FIELDS["NUDO_INFO"]]
+    others = [year for year in shown.columns if year not in years]
+    assert junction_type[years].min() >= junction_type[others].min()
+    # A table that shows the drop is refused.
+    dropped = shown.copy()
+    dropped.loc[figures.MISSINGNESS_FIELDS["NUDO_INFO"], years] = 0.7
+    with pytest.raises(ValueError):
+        figures.inverted_junction_years(dropped, junctions)
 
 
 def test_caption_format() -> None:

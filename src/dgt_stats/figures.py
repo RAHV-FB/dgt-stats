@@ -1036,13 +1036,11 @@ MISSINGNESS_FIELDS = {
 }
 # The right-of-way flags are drawn as one row only while their shares stay this close together.
 PRIORITY_SPREAD = 0.01
-# Optional fields whose empty cells DGT's dictionary does not define and the DGT microdata audit
-# does not examine, named in the caption as fields where an empty cell may also mean there was
-# nothing to record; each is empty in most crashes.
-OPTIONAL_FIELDS = ("KM",)
-# In the years whose Catalan junction flag is inverted, the junction type is recorded where it
-# applies at least this much less often than in any other year (the caption says why).
-JUNCTION_TYPE_DROP = 0.1
+# Optional fields whose empty cells DGT's dictionary does not define, named in the caption as
+# fields where an empty cell may also mean there was nothing to record; each is empty in most
+# crashes. The crossing road applies only at a junction (``dgt_audit.CROSSING_ROAD``), and even
+# there names a road only where the junction is with a numbered one.
+OPTIONAL_FIELDS = ("KM", "CARRETERA_CRUCE")
 
 
 def empty_means(column: str) -> str | None:
@@ -1065,11 +1063,13 @@ def recorded_where_applicable(profile: pd.DataFrame, applicability: pd.DataFrame
     """Field × year share of crashes with a value recorded, among the crashes the field applies
     to, as the chart draws it.
 
-    The fields the DGT microdata audit examines take their shares from ``applicability``
-    (``missingness_where_applicable``, from :func:`dgt_audit.recording_by_year`), so they follow
-    the audit's rule (:func:`dgt_audit.statuses`): a 998 code does not apply, an empty fog or
-    strong-wind cell is the recorded "no", and an empty or 999 junction type or right-of-way flag
-    does not apply to a crash recorded away from a junction. The other fields take theirs from the
+    The fields the DGT microdata audit examines, and the crossing road, take their shares from
+    ``applicability`` (``missingness_where_applicable``, from :func:`dgt_audit.recording_by_year`),
+    so they follow the audit's rule (:func:`dgt_audit.statuses`): a 998 code does not apply, an
+    empty fog or strong-wind cell is the recorded "no", and an empty or 999 junction type,
+    right-of-way flag or crossing road does not apply to a crash recorded away from a junction
+    (whether it is at one read as the association analysis reads it, the other way round where
+    the flag is inverted: ``summaries._recording_by_year``). The other fields take theirs from the
     missing-values table (``missingness_by_year``): a value is not applicable when it is coded 998,
     when it is a non-coded field's own "not applicable" placeholder (both in
     ``share_not_applicable``) or when the cell is empty in a field whose dictionary defines an
@@ -1111,10 +1111,11 @@ def recorded_where_applicable(profile: pd.DataFrame, applicability: pd.DataFrame
     return matrix.loc[sorted(matrix.index, key=lambda row: (-means[row], row))]
 
 
-def junction_years_apart(shown: pd.DataFrame, junctions: pd.DataFrame) -> list[int]:
+def inverted_junction_years(shown: pd.DataFrame, junctions: pd.DataFrame) -> list[int]:
     """The years whose Catalan junction flag is inverted (``dgt_audit_junction_coding``), checked
-    to be the years in which the junction type and right-of-way flags are recorded less often
-    where they apply than in every other year, the junction type by ``JUNCTION_TYPE_DROP``."""
+    to be the Catalan provinces', and, with the flag read the other way round there, to be years
+    in which the junction type and right-of-way flags are recorded where they apply no less often
+    than in the least complete other year."""
     inverted = junctions[junctions.junction_flag_inverted.astype(bool)]
     if set(inverted.province) != set(junctions[junctions.catalan.astype(bool)].province):
         raise ValueError("d1: the inverted junction flag is no longer the Catalan provinces'")
@@ -1124,11 +1125,10 @@ def junction_years_apart(shown: pd.DataFrame, junctions: pd.DataFrame) -> list[i
     others = [year for year in shown.columns if year not in years]
     if not (
         years
-        and float(junction_type[years].max())
-        < float(junction_type[others].min()) - JUNCTION_TYPE_DROP
-        and float(priority[years].max()) < float(priority[others].min())
+        and float(junction_type[years].min()) >= float(junction_type[others].min())
+        and float(priority[years].min()) >= float(priority[others].min())
     ):
-        raise ValueError("d1: the junction fields no longer drop in the inverted years alone")
+        raise ValueError("d1: the junction fields drop in the inverted years once read corrected")
     return years
 
 
@@ -1151,19 +1151,22 @@ def _data_figures(figures_dir: Path, captions: dict[str, str]) -> None:
         if c in audited and dgt_audit.presence_field(c)
     ]
     optional = profile[profile.column.isin(OPTIONAL_FIELDS)].groupby("column").share_empty.mean()
+    junction_only = set(dgt_audit.AT_JUNCTION_ONLY)
     if (
         len(empty_na) != 1
         or any(meaning[c] == "no" for c in columns)
         or presence != ["fog", "strong wind"]
         or set(dgt_audit.JUNCTION_FIELDS) != {"NUDO_INFO", *codes.PRIORI_COLUMNS}
-        or not set(dgt_audit.JUNCTION_FIELDS) <= audited
+        or junction_only != {*dgt_audit.JUNCTION_FIELDS, "CARRETERA_CRUCE"}
+        or not junction_only <= audited
         or len(optional) != len(OPTIONAL_FIELDS)
         or not (optional > 0.5).all()
-        or any(meaning[c] or c in audited for c in OPTIONAL_FIELDS)
+        or any(empty_means(c) for c in OPTIONAL_FIELDS)
+        or any(c in audited and c not in junction_only for c in OPTIONAL_FIELDS)
     ):
         raise ValueError("d1 caption: the fields whose empty cells it describes have changed")
     junctions = pd.read_csv(TABLES_DIR / "dgt_audit_junction_coding.csv")
-    years = junction_years_apart(matrix, junctions)
+    years = inverted_junction_years(matrix, junctions)
     priority = profile[profile.column.isin(codes.PRIORI_COLUMNS)].column.nunique()
     optional_names = _join_words([MISSINGNESS_FIELDS[c].lower() for c in OPTIONAL_FIELDS])
     captions["d1_missingness"] = _caption(
@@ -1172,16 +1175,17 @@ def _data_figures(figures_dir: Path, captions: dict[str, str]) -> None:
         f"{int(profile.year.max())}. A value is not applicable, and is left out, when it is 998 "
         "(not applicable), when the road is 'No inventariada' (no road number), when the "
         f"{empty_na[0]} field is empty, which DGT's dictionary defines as not applicable, and, "
-        f"for the junction type and the {priority} right-of-way flags, in a crash recorded away "
-        f"from a junction. An empty cell in the {' or '.join(presence)} field is the recorded "
-        "'no' and counts as recorded. A value is missing when it is 999 (not specified), an "
-        "explicit unknown "
-        "code, a placeholder (kilometre post 9999, and 1000 in 2019; municipality 00000) or any "
-        f"other empty cell, although in the {optional_names} field an empty cell may also mean "
-        "there was nothing to record. The right-of-way flags, recorded together, share one row. "
-        f"In {_join_words([str(y) for y in years])} the junction type and the right-of-way "
-        "flags are recorded less often because the records for the four Catalan provinces flag "
-        "crashes away from a junction as at one",
+        f"for the junction type, the {priority} right-of-way flags and the crossing road, when "
+        "the cell is empty or 999 in a crash recorded away from a junction; a value recorded there "
+        "still counts. In the records for the four Catalan provinces, whose junction flag is "
+        f"the wrong way round in {_join_words([str(y) for y in years])}, the flag is read the "
+        "other way round, as in the association analysis. An empty cell in the "
+        f"{' or '.join(presence)} field counts as recorded, as the 'no' of a field filled in "
+        "only when the condition was present. A value is missing when it is 999 (not "
+        "specified), an explicit unknown code, a placeholder (kilometre post 9999, and 1000 in "
+        "2019; municipality 00000) or any other empty cell, although in the "
+        f"{optional_names} fields an empty cell may also mean there was nothing to record. The "
+        "right-of-way flags, recorded together, share one row",
         MICRODATA_SOURCE,
         f"{int(profile.groupby('year').rows.first().sum()):,} crashes",
     )

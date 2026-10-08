@@ -220,12 +220,22 @@ def _policy_table(name: str):
 
 
 def _recording_by_year() -> pd.DataFrame:
-    """The DGT microdata audit's fields per year: crashes, crashes each applies to and those with
-    a value recorded (``dgt_audit.recording_by_year``), for the data page's missing-values chart.
-    Imported here so that reading the other summaries does not load the audit's model stack."""
+    """The DGT microdata audit's fields and the crossing road per year: crashes, crashes each
+    applies to and those with a value recorded (``dgt_audit.recording_by_year``), for the data
+    page's missing-values chart.
+
+    Whether a crash is at a junction, which decides where the junction fields and the crossing
+    road apply, is read as the association analysis reads it (``features.junction_codes``): the
+    other way round in the province-years whose flag is inverted, so that the chart shows how
+    often those fields are recorded rather than the inversion. Imported here so that reading the
+    other summaries does not load the audit's model stack."""
+    from dgt_stats import features
     from dgt_stats.microdata.validation import dgt_audit
 
-    return dgt_audit.recording_by_year()
+    columns = (*dgt_audit.CANDIDATES, dgt_audit.CROSSING_ROAD)
+    frame = pd.read_parquet(DGT_PROCESSED_CRASHES, columns=["ANYO", "COD_PROVINCIA", *columns])
+    frame["NUDO"] = features.junction_codes(frame)
+    return dgt_audit.recording_by_year(frame, columns=columns)
 
 
 # --------------------------------------------------------------------------- registry
