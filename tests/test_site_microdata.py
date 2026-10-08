@@ -240,7 +240,8 @@ def test_validation_page_keeps_population_differences_and_validation_apart(
     # of the retired original model, and how the populations differ, which qualifies it; then
     # the original model's own tests, labelled as such.
     headings = [
-        "<h2>The Catalan severity model: ranking holds, estimates miss in Barcelona</h2>",
+        "<h2>The Catalan severity model: ranking holds, estimates of the fatal share miss in "
+        "several provinces</h2>",
         "<h2>Spain outside Catalonia: a version of the original model holds its ranking</h2>",
         "<h2>Catalonia's serious crashes differ from Spain's in type and in recording</h2>",
         "<h2>The original Catalan model (retired), tested within Catalonia</h2>",

@@ -146,16 +146,29 @@ def test_reference_crashes_match_python(calculator) -> None:
     assert text.startswith(_percent(regional["probability"]))
     assert f"95% confidence interval: {_range(regional['low'], regional['high'])}" in text
     assert "within 24 hours" in text
-    # Beside the interval, what it leaves out.
+    # Beside the interval, what it leaves out, and what the estimate is: a share among crashes
+    # already recorded with a death or serious injury, not a chance per crash or per journey.
     assert "only the uncertainty in the model's coefficients" in text
     assert "not the differences between places and years" in text
+    assert "of crashes like this one with a death or serious injury" in text
+    assert "a share of crashes already recorded" in text
+    assert "not the chance of a crash or of a death on a journey" in text
     calculator.select_option("#calc-road", "urban_street")
     urban = sm.predict_exported(model, sm.URBAN_REFERENCE)
     assert _shown(calculator).startswith(_percent(urban["probability"]))
-    urban_here = model["zone_average"][f"urban|{sm.REFERENCE_SCENARIO['province']}"]
-    assert f"{_percent(urban_here)} of those on urban streets in the province of" in _shown(
-        calculator
-    )
+    key = f"urban|{sm.REFERENCE_SCENARIO['province']}"
+    shown = _shown(calculator)
+    assert f"{_percent(model['zone_average'][key])} of those on urban streets in the" in shown
+    # The averages are over the crashes the model was fitted on, with their count; the page
+    # says beside the calculator that those crashes leave out the roads whose owning network
+    # is not named.
+    crashes, fatal, _, _ = model["zone_counts"][key]
+    assert f"({fatal:,} of {crashes:,})" in shown
+    assert "of the crashes the model was fitted on" in shown
+    assert "of all such crashes in Catalonia" not in shown
+    left_out = f"{model['training']['excluded_owner_not_recorded']:,}"
+    intro = re.sub(r"\s+", " ", calculator.text_content("main"))
+    assert f"leave out the {left_out} on conventional roads whose owning network" in intro
 
 
 def test_the_engine_in_the_page_matches_python(calculator) -> None:
@@ -213,14 +226,23 @@ def test_a_refused_crash_shows_no_comparison(calculator) -> None:
     assert "type of crash (Side or angle collision)" in baseline
 
 
-def test_roads_through_towns_show_their_average(calculator) -> None:
+def test_roads_through_towns_follow_the_published_choice(calculator) -> None:
+    """Where the published choice gives roads through towns the average, the page shows it with
+    its count and 95% interval; otherwise it gives the model's estimate."""
     model = _model()
     calculator.select_option("#calc-road", "through_town")
-    calculator.select_option("#calc-province", "Tarragona")
+    calculator.select_option("#calc-province", "Lleida")
     text = _shown(calculator)
-    assert text.startswith(_percent(model["zone_average"]["through_town|Tarragona"]))
-    assert "in the province of Tarragona" in text
-    assert "cannot tell more and less deadly crashes apart" in text
+    if model["through_town"] != "average":
+        scenario = sm.REFERENCE_SCENARIO | {"road": "through_town", "province": "Lleida"}
+        assert text.startswith(_percent(sm.predict_exported(model, scenario)["probability"]))
+        return
+    assert text.startswith(_percent(model["zone_average"]["through_town|Lleida"]))
+    assert "in the province of Lleida" in text
+    crashes, fatal, low, high = model["zone_counts"]["through_town|Lleida"]
+    assert f"({fatal:,} of {crashes:,}, 95% interval {_range(low, high)})" in text
+    rule = next(r for r in model["rules"] if r["id"] == "through_town")
+    assert rule["text"] in text
     assert calculator.is_disabled("[data-keep]")
 
 

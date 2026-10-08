@@ -61,8 +61,8 @@ corrected (point 15). No calculation in a committed table was found to be wrong.
 | National extrapolation | Method A recomputed independently (above); Methods C and D as sensitivity and comparison | confirmed |
 | Crash-numerator compatibility | private cars only, public-service cars removed from both numerator and denominator; drivers of unknown age left out of the rates and the effect stated (2.3%) | confirmed; the wording of one document corrected (point 15) |
 | Uncertainty | bootstrap replicates paired with gamma draws for counts; intervals and sensitivity ranges reported separately throughout | confirmed |
-| Model performance | rolling-origin scores of every model against a table of the same records (`sev_rolling_scores`, `review_*`) | confirmed (points 1–3) |
-| Model calibration | predicted against observed in eight bands of predicted risk on unseen years (`sev_calibration`) | every band's mean prediction lies inside the observed 95% interval |
+| Model performance | rolling-origin scores of every model against a table of the same records (`sev_rolling_scores`, `review_*`); for the published model the evaluation is nested, every choice made on earlier years (`sev_choices`, `sev_nested_steps`) | confirmed (points 1–3) |
+| Model calibration | predicted against observed in ten groups of predicted risk on years that played no part in fitting or choosing the model (`sev_calibration`), and by year, zone and province (`sev_rolling_scores`) | nine of ten groups' mean predictions inside the observed 95% interval; outside it in 2016, on urban streets, and on interurban roads in Girona and Tarragona |
 | Frontend inference | the browser engine against the Python model on 302 scenarios under Node, and on 120 scenarios in Chromium on the built page, to 10⁻¹⁰; the comparison of two crashes against `compare_exported` | agree |
 | Website conclusions | every number in page prose is formatted from a table at build time; qualitative words are guarded by build checks; tests fail on a number or year typed into page code | the build and the tests pass |
 
@@ -86,27 +86,31 @@ Source: [`ML_MODEL_REVIEW.md`](ML_MODEL_REVIEW.md).
 ### 2. Strongest validated severity model
 
 The penalised logistic regression behind the calculator, trained on the Servei Català de Trànsit
-file (24,478 crashes with a death or serious injury, 2010–2023, 3,093 fatal). It was validated by
-rolling origin over eight years (each of 2016–2023 predicted from earlier years only; 12,961
-crashes, 1,627 fatal), by the stability of its contrasts across periods and areas, and by
-bootstrap refits. The transfer tests of the original Catalan model, on DGT and Barcelona records,
-bear on its reach: its probabilities describe Catalonia and are likely to be low elsewhere. Gradient-boosted trees rank slightly better (ROC-AUC 0.778
-against 0.772) but their probabilities are less well calibrated (slope 1.12 against 1.04), and the
-page shows probabilities. Source: [`SEVERITY_CALCULATOR.md`](SEVERITY_CALCULATOR.md).
+file (22,638 crashes with a death or serious injury, 2010–2023, 2,822 fatal; the 1,840 on
+conventional roads with no named owning network are left out). It was validated by
+nested rolling origin over eight years (each of 2016–2023 predicted by a model whose penalty,
+specification and through-town rule were chosen, and whose coefficients were fitted, on earlier
+years only; 11,611 crashes on the roads a reader can choose, 1,429 fatal), by the stability of its
+contrasts across periods and areas, and by bootstrap refits. The transfer tests of the original
+Catalan model, on DGT and Barcelona records, bear on its reach: its probabilities describe
+Catalonia and are likely to be low elsewhere. Gradient-boosted trees rank a little better
+(ROC-AUC 0.748 against 0.741) but give no interval for an estimate and cannot be read term by
+term. Source: [`SEVERITY_CALCULATOR.md`](SEVERITY_CALCULATOR.md).
 
 ### 3. Model performance against baseline
 
-| Model, rolling origin 2016–2023 | ROC-AUC (95% CI) | Brier skill | Log loss | Calibration slope | Mean predicted (observed 12.6%) |
+| Model, nested rolling origin 2016–2023 | ROC-AUC (95% CI) | Brier skill | Log loss | Calibration slope | Mean predicted (observed 12.3%) |
 |---|---|---|---|---|---|
-| Calculator model | 0.772 (0.759–0.784) | 0.137 | 0.321 | 1.04 | 12.5% |
-| Gradient-boosted trees | 0.778 (0.766–0.790) | 0.144 | 0.318 | 1.12 | 12.4% |
-| Fatal share of road × crash type | 0.745 (0.733–0.757) | 0.102 | 0.333 | 1.19 | 12.0% |
+| Calculator model | 0.741 (0.727–0.754) | 0.098 | 0.331 | 1.05 | 12.3% |
+| Gradient-boosted trees | 0.748 (0.734–0.761) | 0.102 | 0.329 | 1.08 | 12.3% |
+| Fatal share of road × crash type | 0.709 (0.694–0.723) | 0.069 | 0.342 | 1.08 | 12.2% |
 
-The model improves on the table by +0.027 ROC-AUC (paired interval +0.019 to +0.035) and lowers
-the log loss by 0.012. The improvement is real but modest: most of the information is in the
-road and the crash type. The model ranks crashes well on interurban roads (0.766), moderately on
-urban streets (0.673) and barely on roads through towns (0.596); the calculator warns in the last
-case and for rare combinations.
+The model improves on the table by +0.032 ROC-AUC (paired interval +0.022 to +0.042) and lowers
+the log loss by 0.011. The earlier, non-nested design, whose penalty was chosen on two of the test
+years and whose specification and through-town rule were decided on the test scores, gave 0.743
+and +0.034. The improvement is real but modest: most of the information is in the road and the
+crash type. The model ranks crashes moderately on interurban roads (0.701) and urban streets
+(0.660) and not on roads through towns, where the calculator shows the province's average.
 
 ### 4. EMEF years successfully imported
 

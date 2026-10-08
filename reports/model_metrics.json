@@ -3884,8 +3884,8 @@
    "stage": 1,
    "stage_name": "internal: held-out rows of the same source and domain",
    "status": "passed",
-   "value": 0.732326,
-   "evidence": "random 5-fold cross-validation 2010-2023: ROC-AUC 0.732 (0.723-0.742)",
+   "value": 0.73984,
+   "evidence": "random 5-fold cross-validation 2010-2023: ROC-AUC 0.740 (0.730-0.750)",
    "highest_consecutive_stage": 3,
    "verdict": "supported up to stage 3 (another region inside the training source)"
   },
@@ -3894,8 +3894,8 @@
    "stage": 2,
    "stage_name": "later years (or months) of the same source",
    "status": "passed",
-   "value": 0.742546,
-   "evidence": "rolling origin: each year 2016-2023 from the years before it: ROC-AUC 0.743 (0.730-0.755); temporal holdout: train 2010-2022, test 2023: ROC-AUC 0.755 (0.718-0.789), in-domain 0.732, gap +0.023",
+   "value": 0.740904,
+   "evidence": "rolling origin: each year 2016-2023 from the years before it, every choice nested: ROC-AUC 0.741 (0.728-0.754); temporal holdout: train 2010-2022, test 2023: ROC-AUC 0.757 (0.716-0.791), in-domain 0.725, gap +0.032",
    "highest_consecutive_stage": 3,
    "verdict": "supported up to stage 3 (another region inside the training source)"
   },
@@ -3904,8 +3904,8 @@
    "stage": 3,
    "stage_name": "another region inside the training source",
    "status": "passed",
-   "value": 0.646432,
-   "evidence": "leave out Barcelona demarcation: ROC-AUC 0.665 (0.651-0.680), in-domain 0.695, gap -0.030; leave out Girona demarcation: ROC-AUC 0.728 (0.704-0.749), in-domain 0.717, gap +0.011; leave out Lleida demarcation: ROC-AUC 0.703 (0.672-0.728), in-domain 0.701, gap +0.002; leave out Tarragona demarcation: ROC-AUC 0.774 (0.755-0.794), in-domain 0.771, gap +0.004; rest of Catalonia -> Barcelona municipality: ROC-AUC 0.646 (0.618-0.675), in-domain 0.677, gap -0.031",
+   "value": 0.661956,
+   "evidence": "leave out Barcelona demarcation: ROC-AUC 0.678 (0.663-0.693), in-domain 0.705, gap -0.027; leave out Girona demarcation: ROC-AUC 0.728 (0.705-0.748), in-domain 0.714, gap +0.014; leave out Lleida demarcation: ROC-AUC 0.714 (0.685-0.740), in-domain 0.699, gap +0.016; leave out Tarragona demarcation: ROC-AUC 0.771 (0.751-0.792), in-domain 0.773, gap -0.002; rest of Catalonia -> Barcelona municipality: ROC-AUC 0.662 (0.630-0.693), in-domain 0.678, gap -0.016",
    "highest_consecutive_stage": 3,
    "verdict": "supported up to stage 3 (another region inside the training source)"
   },

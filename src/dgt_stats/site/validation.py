@@ -92,6 +92,8 @@ OUTCOMES = {
 }
 # A value the tests do not give is left blank, and the table note says why.
 NOT_RECORDED = ""
+# A province's observed fatal share counts as far from the mean estimate beyond this gap.
+PROVINCE_GAP = 0.03
 
 
 def _variable(name: str) -> str:
@@ -134,6 +136,13 @@ def _test_label(row) -> str:
     experiment = row.experiment
     rules = (
         (r"temporal holdout.*test (\d{4})", lambda m: f"Later year ({m.group(1)})"),
+        (
+            r"rolling origin.*every choice nested",
+            lambda m: (
+                f"Each year {_years(row.test_domain)} from the years before it, every setting "
+                "chosen on earlier years"
+            ),
+        ),
         (
             r"rolling origin",
             lambda m: f"Each year {_years(row.test_domain)} from the years before it",
@@ -238,6 +247,23 @@ def _per_resident(rates: pd.DataFrame) -> dict[bool, pd.Series]:
     return {bool(key): row * 1e5 for key, row in per.iterrows()}
 
 
+def _outside(row) -> bool:
+    """The mean estimate lies outside the 95% interval of the observed share."""
+    return not float(row.observed_low) <= float(row.mean_predicted) <= float(row.observed_high)
+
+
+def _left_out_provinces(calculator: pd.DataFrame) -> pd.DataFrame:
+    """The Catalan severity model's tests with one province left out, named by province."""
+    provinces = calculator[calculator.experiment.str.match(r"leave out \w+ demarcation$")]
+    return provinces.assign(
+        name=provinces.experiment.str.extract(r"leave out (\w+) demarcation")[0]
+    ).set_index("name")
+
+
+def _direction(row) -> str:
+    return "too high" if float(row.mean_predicted) > float(row.observed_high) else "too low"
+
+
 def _calculator_section(calculator: pd.DataFrame, rolling_scores: pd.DataFrame) -> str:
     """The published model's tests: later years, provinces and Barcelona city left out."""
     tolerance = generalisability.MAX_TRANSFER_GAP
@@ -253,14 +279,27 @@ def _calculator_section(calculator: pd.DataFrame, rolling_scores: pd.DataFrame) 
     later = one("temporal holdout")
     later_label = re.search(r"test (\d{4})", later.experiment).group(1)
     city = one("rest of Catalonia -> Barcelona municipality")
-    provinces = calculator[calculator.experiment.str.match(r"leave out \w+ demarcation$")].assign(
-        name=lambda d: d.experiment.str.extract(r"leave out (\w+) demarcation")[0]
-    )
+    provinces = _left_out_provinces(calculator)
     held_out = pd.concat([provinces, city.to_frame().T])
-    lowest = provinces.loc[provinces.roc_auc.idxmin()]
-    highest = provinces.loc[provinces.roc_auc.idxmax()]
-    barcelona = provinces.set_index("name").loc["Barcelona"]
+    lowest_name = provinces.roc_auc.astype(float).idxmin()
+    highest_name = provinces.roc_auc.astype(float).idxmax()
+    missed = provinces[provinces.apply(_outside, axis=1)]
+    matched = provinces[~provinces.apply(_outside, axis=1)]
     tolerance_band = modelling.CALIBRATION_LARGE_TOLERANCE
+    cells = rolling_scores[
+        rolling_scores.subset.str.startswith("province and zone: ")
+        & rolling_scores.estimator.eq("calculator")
+    ]
+    cells = cells.assign(
+        province=cells.subset.str.extract(r": (\w+)\|")[0],
+        zone=cells.subset.str.extract(r"\|(\w+)$")[0],
+    )
+    cell_misses = cells[cells.apply(_outside, axis=1)]
+    zone_words = {
+        "urban": "urban streets",
+        "through_town": "roads through towns",
+        "interurban": "interurban roads",
+    }
 
     def calibrated(row) -> bool:
         return (
@@ -275,9 +314,12 @@ def _calculator_section(calculator: pd.DataFrame, rolling_scores: pd.DataFrame) 
         "every test of the Catalan severity model lies above chance",
     )
     _check(
-        rolling.roc_auc > rolling.table_roc_auc and calibrated(rolling),
+        rolling.roc_auc > rolling.table_roc_auc
+        and calibrated(rolling)
+        and "every choice nested" in rolling.experiment,
         PAGE,
-        "on later years the Catalan severity model ranks above the table and its estimates hold",
+        "on later years, every choice nested, the Catalan severity model ranks above the table "
+        "and its pooled estimates hold",
     )
     _check(
         later.transfer_gap > 0 and later.train_n > later.in_domain_train_n,
@@ -292,9 +334,9 @@ def _calculator_section(calculator: pd.DataFrame, rolling_scores: pd.DataFrame) 
         "fitted there and ranks above the table",
     )
     _check(
-        barcelona.mean_predicted > barcelona.observed_high and not calibrated(barcelona),
+        len(missed) >= 2 and not matched.empty,
         PAGE,
-        "with the province of Barcelona left out the estimates run too high",
+        "with a province left out, the estimates miss in more than one province, not in all",
     )
     _check(
         city.mean_predicted < city.observed_low and not calibrated(city),
@@ -310,8 +352,34 @@ def _calculator_section(calculator: pd.DataFrame, rolling_scores: pd.DataFrame) 
         PAGE,
         "with the city's earlier crashes in the fitting, the estimates for its streets are close",
     )
+    _check(
+        not cell_misses.empty,
+        PAGE,
+        "even with province terms, some province's estimates by kind of road miss",
+    )
+
+    def share(row) -> str:
+        return (
+            f"{_fmt_pct(row.mean_predicted)} estimated against {_fmt_pct(row.test_prevalence)} "
+            f"observed, {_fmt_pct(row.observed_low)} to {_fmt_pct(row.observed_high)}"
+        )
+
+    by_province = _join(
+        [f"{_direction(row)} for {name} ({share(row)})" for name, row in missed.iterrows()]
+    )
+    inside = _join([f"for {name} ({share(row)})" for name, row in matched.iterrows()])
+    cell_text = _join(
+        [
+            f"on {zone_words[row.zone]} in the province of {row.province} "
+            f"{_fmt_pct(row.mean_predicted)} "
+            f"estimated against {_fmt_pct(row.prevalence)} observed "
+            f"({_fmt_pct(row.observed_low)} to {_fmt_pct(row.observed_high)})"
+            for row in cell_misses.itertuples()
+        ]
+    )
     return (
-        "<h2>The Catalan severity model: ranking holds, estimates miss in Barcelona</h2>"
+        "<h2>The Catalan severity model: ranking holds, estimates of the fatal share miss in "
+        "several provinces</h2>"
         "<p>Every test on this page scores crashes that played no part in fitting the model. "
         "Ranking is measured by the ROC-AUC: given one fatal and one non-fatal crash, the share "
         "of pairs in which the fatal one gets the higher estimate, from 0.5 for chance to 1 for "
@@ -321,21 +389,27 @@ def _calculator_section(calculator: pd.DataFrame, rolling_scores: pd.DataFrame) 
         "reference, which a model fitted elsewhere on many more crashes can beat.</p>"
         "<p>The Catalan severity model is the one behind the calculator "
         '(<a href="severity-models.html">Severity model and calculator</a>). It has been tested '
-        "only within the Catalan file, on crashes on the roads a reader can choose. Predicting "
-        f"each year of {_years(rolling.test_domain)} with the model fitted on the years before "
-        f"it gives a ROC-AUC of {_auc(rolling.roc_auc)} (95% interval "
-        f"{_interval(rolling.roc_auc_low, rolling.roc_auc_high)}) over the "
-        f"{_fmt_int(rolling.test_n)} crashes, against {_auc(rolling.table_roc_auc)} for a table "
-        f"of fatal shares by road and crash type. On {later_label} alone it scores "
+        "only within the Catalan file, on crashes on the roads a reader can choose. Each year "
+        f"of {_years(rolling.test_domain)} was predicted by a model whose settings (penalty, "
+        "form and the rule for roads through towns) were chosen on the two years before it and "
+        "whose coefficients were fitted on all earlier years, so no choice saw the year it "
+        f"predicts. Over the {_fmt_int(rolling.test_n)} crashes this gives a ROC-AUC of "
+        f"{_auc(rolling.roc_auc)} (95% interval "
+        f"{_interval(rolling.roc_auc_low, rolling.roc_auc_high)}), against "
+        f"{_auc(rolling.table_roc_auc)} for a table of fatal shares by road and crash type, "
+        f"and a mean estimate of {_fmt_pct(rolling.mean_predicted)} where "
+        f"{_fmt_pct(rolling.test_prevalence)} were fatal. On {later_label} alone it scores "
         f"{_auc(later.roc_auc)}, against {_auc(later.in_domain_cv_roc_auc)} for the same model "
-        f"fitted and cross-validated on that year's {_fmt_int(later.test_n)} crashes.</p>"
-        "<p>With each province left out of the fitting in turn, it scores between "
-        f"{_auc(lowest.roc_auc)} ({lowest['name']}) and {_auc(highest.roc_auc)} "
-        f"({highest['name']}) on the province it did not see: in every province within "
-        f"{tolerance:g} of the same model fitted there, and above the table. Its estimates "
-        "carry over less well. With the province of Barcelona left out they run too high "
-        f"({_fmt_pct(barcelona.mean_predicted)} predicted against "
-        f"{_fmt_pct(barcelona.test_prevalence)} observed). Fitted on the rest of Catalonia, it "
+        f"fitted and cross-validated on that year's {_fmt_int(later.test_n)} crashes. By "
+        "province and kind of road the estimates were less close, even with each province's "
+        f"own terms fitted on earlier years: {cell_text}.</p>"
+        "<p>With each province left out of the fitting in turn, and the settings chosen on the "
+        f"other three, it scores between {_auc(provinces.loc[lowest_name].roc_auc)} "
+        f"({lowest_name}) and {_auc(provinces.loc[highest_name].roc_auc)} ({highest_name}) on "
+        f"the province it did not see: in every province within {tolerance:g} of the same "
+        "model fitted there, and above the table. Its estimates of the fatal share carry over "
+        f"less well. They were {by_province}; only {inside} did the estimate lie inside the "
+        "observed interval. Fitted on the rest of Catalonia, it "
         f"ranks Barcelona city's crashes at {_auc(city.roc_auc)}, against "
         f"{_auc(city.in_domain_cv_roc_auc)} for the same model fitted in the city, but it "
         f"estimates a fatal share of {_fmt_pct(city.mean_predicted)} where "
@@ -470,12 +544,15 @@ def page_validation(captions: dict[str, str]) -> str:
         "no fitting population resembles Spain's, so national use is not established",
     )
     used = mapping[mapping.enters_cross_source_tests]
+    left_out = _left_out_provinces(calculator)
+    missed_provinces = list(left_out[left_out.apply(_outside, axis=1)].index)
     body = summary(
         "The Catalan severity model, the one behind the calculator, has been tested only within "
         "Catalonia: no other source records its inputs. On later years and on provinces left "
         "out of its fitting it ranked crashes better than a table of fatal shares by road and "
-        "crash type, but its estimates of the fatal share were off for the province and for "
-        "the city of Barcelona. A harmonised version of the original Catalan model (retired) "
+        "crash type, but its estimates of the fatal share were off for "
+        f"{_join(missed_provinces)} when each was left out of its fitting, and for the city of "
+        "Barcelona. A harmonised version of the original Catalan model (retired) "
         "ranked crashes elsewhere in Spain about as well as a model fitted there. Because "
         "Catalonia's serious crashes differ from the rest of Spain's in the mix of crash types "
         "and in how several fields are recorded, national use of the models is not established."
@@ -564,6 +641,16 @@ def page_validation(captions: dict[str, str]) -> str:
         ]
         return part.set_index("level").loc[name]
 
+    shown_provinces = provinces[provinces.reported].assign(
+        gap=lambda d: d.prevalence - d.mean_predicted
+    )
+    off_provinces = shown_provinces[shown_provinces.gap.abs() > PROVINCE_GAP]
+    under = off_provinces.gap > 0
+    _check(
+        len(off_provinces) > len(shown_provinces) / 3,
+        PAGE,
+        "province by province the harmonised model's estimates often miss by more than the gap",
+    )
     weather_blank = level("weather", "not specified")
     surface_blank = level("surface", "not specified")
     same_score = _auc(national.roc_auc) == _auc(national.in_domain_cv_roc_auc)
@@ -589,8 +676,14 @@ def page_validation(captions: dict[str, str]) -> str:
             if same_score
             else f"against {_auc(national.in_domain_cv_roc_auc)} for "
         )
-        + "a model of the same kind fitted on DGT's records outside Catalonia. Its estimates "
-        "are close to calibrated. Fatal crashes are commoner in the test "
+        + "a model of the same kind fitted on DGT's records outside Catalonia. Taken "
+        "together, its estimates are close to calibrated, but not province by province: in "
+        f"{_count(len(off_provinces))} of the {_count(len(shown_provinces))} provinces shown "
+        "below, the observed fatal share differs from the mean estimate by more than "
+        f"{_fmt_dec(100 * PROVINCE_GAP, 0)} percentage points ({_count(int(under.sum()))} "
+        f"higher, {_count(int((~under).sum()))} lower; largest gap "
+        f"{_fmt_dec(100 * float(off_provinces.gap.abs().max()), 1)} points). Fatal crashes are "
+        "commoner in the test "
         f"({_fmt_pct(national.test_prevalence)}) than in the Catalan records it was fitted on "
         f"({_fmt_pct(national.train_prevalence)}); its mean estimate, "
         f"{_fmt_pct(national.mean_predicted)}, falls between the two. Its calibration slope, 1 "
@@ -613,7 +706,6 @@ def page_validation(captions: dict[str, str]) -> str:
         captions,
         title="Harmonised version of the original model on other sources, years and Spain",
     )
-    shown_provinces = provinces[provinces.reported]
     names = rates.drop_duplicates("province_code").set_index("province_code").province
     worst = shown_provinces.loc[shown_provinces.roc_auc.idxmin()]
     best = shown_provinces.loc[shown_provinces.roc_auc.idxmax()]

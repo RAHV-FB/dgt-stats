@@ -131,6 +131,27 @@
     return { urban: "urban streets", through_town: "roads through towns", interurban: "interurban roads" }[zone];
   }
 
+  function count(value) {
+    return Number(value).toLocaleString("en");
+  }
+
+  function years() {
+    return model.training.years[0] + "–" + model.training.years[1];
+  }
+
+  // An observed share with its count and 95% interval: "16 of 103, 95% interval 9.8–23.8%".
+  function observed(key) {
+    var counts = model.zone_counts[key];
+    return count(counts[1]) + " of " + count(counts[0]) + ", 95% interval " +
+      range(counts[2], counts[3]);
+  }
+
+  // An observed share's count alone: "1,234 of 6,140".
+  function counted(key) {
+    var counts = model.zone_counts[key];
+    return count(counts[1]) + " of " + count(counts[0]);
+  }
+
   // The comparison area when the current crash has no estimate: no numbers, but the kept crash
   // is still named so that the reader can return to a valid crash or clear it.
   function noComparison(message, scenario) {
@@ -171,9 +192,9 @@
       output.appendChild(
         text(
           "p",
-          "of crashes with a death or serious injury on " + place + " in " +
-            model.training.years[0] + "–" + model.training.years[1] +
-            " were fatal. " + ruleText("through_town"),
+          "of crashes with a death or serious injury on " + place + " in " + years() +
+            " were fatal (" + observed(zone + "|" + scenario.province) + "). " +
+            ruleText("through_town"),
           "calc-label"
         )
       );
@@ -190,7 +211,8 @@
       text(
         "p",
         "of crashes like this one with a death or serious injury in Catalonia are estimated to " +
-          "have been fatal (someone died within 24 hours). 95% confidence interval: " +
+          "have been fatal (someone died within 24 hours): a share of crashes already recorded, " +
+          "not the chance of a crash or of a death on a journey. 95% confidence interval: " +
           range(result.low, result.high) + ".",
         "calc-label"
       )
@@ -206,17 +228,19 @@
     output.appendChild(
       text(
         "p",
-        "For comparison, " + percent(averages.all) + " of all such crashes in Catalonia were " +
-          "fatal, and " + percent(local) + " of those on " + place + ".",
+        // Averages over the fitted crashes, which leave out the conventional roads whose owning
+        // network is not named (the page says so beside the calculator).
+        "For comparison, " + percent(averages.all) + " of the crashes the model was fitted on " +
+          "were fatal, and " + percent(local) + " of those on " + place + " (" +
+          counted(zone + "|" + scenario.province) + ").",
         "calc-note"
       )
     );
     output.appendChild(
       text(
         "p",
-        similar.crashes.toLocaleString("en") + " recorded crashes in " + model.training.years[0] +
-          "–" + model.training.years[1] + " share this zone, crash type, road users and number " +
-          "involved" +
+        count(similar.crashes) + " recorded crashes in " + years() +
+          " share this zone, crash type, road users and number involved" +
           (similar.crashes
             ? "; " + similar.fatal.toLocaleString("en") + " of them were fatal. Their other " +
               "inputs differ, so their share need not match the estimate."

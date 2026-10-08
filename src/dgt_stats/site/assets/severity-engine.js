@@ -7,6 +7,8 @@
  * dgt_stats.severity_model.design_matrix, the predicted probability expit(x'b) and its 95%
  * interval expit(x'b +- z sqrt(x'Vx)), z the normal quantile of a two-sided 95% interval.
  * Nothing here is estimated: every number comes from the exported coefficients and covariance.
+ * The probability is conditional: the share that were fatal among recorded crashes with a death
+ * or serious injury like the scenario, not the chance of a crash or of a death on a trip.
  */
 (function (root, factory) {
   "use strict";
@@ -81,14 +83,20 @@
       set("zone=" + zone);
       set("zone_province=" + zone + "|" + scenario.province);
       set("road=" + scenario.road);
+      // "all:" columns are common to every zone; "<zone>:" columns, present only when the model
+      // lets effects differ by zone, are the departure on that zone's roads.
       categorical.forEach(function (name) {
         var value = String(scenario[name]);
         var known = model.inputs[name].levels.some(function (level) { return level.value === value; });
         if (!known) throw new Error("unknown " + name + ": " + value);
         set("all:" + name + "=" + value);
+        set(zone + ":" + name + "=" + value);
       });
       users.forEach(function (user) {
-        if (scenario[user]) set("all:" + user);
+        if (scenario[user]) {
+          set("all:" + user);
+          set(zone + ":" + user);
+        }
       });
       ones.sort(function (a, b) { return a - b; });
       return ones;
@@ -179,7 +187,11 @@
         broken.push("collision_with_one_unit");
       }
       if (chosen.length === 1 && chosen[0] === "pedestrian") broken.push("pedestrian_without_vehicle");
-      if (zoneOf(scenario.road) === "through_town") broken.push("through_town");
+      // Roads through towns get the average instead of an estimate only when the published model
+      // was chosen that way (model.through_town, dgt_stats.severity_model.select).
+      if (model.through_town === "average" && zoneOf(scenario.road) === "through_town") {
+        broken.push("through_town");
+      }
       var errors = broken.filter(function (id) { return ERROR_RULES[id]; });
       var warnings = broken.filter(function (id) { return !ERROR_RULES[id]; });
       var rare = [];

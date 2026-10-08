@@ -818,39 +818,29 @@ def calculator_tests() -> pd.DataFrame:
     """The published calculator's model (:mod:`dgt_stats.severity_model`) on crashes it was not
     fitted on, with the same rule as every other test here.
 
-    The specification, the crashes (every road a reader can choose; the road-owner artefact
-    roads are left out) and the penalty are the calculator's own. Each held-out test sits beside
-    the same specification fitted and cross-validated inside the test population (5 folds), and
-    beside the table of fatal shares by road and crash type fitted on the same training crashes.
-    A province left out has no intercept of its own to learn, so those tests use the
-    specification without province intercepts; the other tests use the published one. No test
-    uses another source: no other file records the calculator's inputs (DGT's records lack the
-    road's owning network and the posted limit, and their road-type and junction codings
-    disagree with the Catalan file's on the same crashes).
+    The crashes are the calculator's own (every road a reader can choose; the road-owner artefact
+    roads are left out). Every choice the model depends on (the penalty, the specification and
+    the rule for roads through towns) is made by :func:`severity_model.select` on each test's
+    training crashes alone, as in the nested rolling-origin evaluation: the rolling and temporal
+    tests are that evaluation's years. Each held-out test sits beside the same choices fitted
+    and cross-validated inside the test population (5 folds), and beside the table of fatal
+    shares by road and crash type fitted on the same training crashes. A province left out has
+    no intercept of its own to learn, so those tests use the specification without province
+    intercepts; the other tests use the published one. The random cross-validation, the one
+    internal check, uses the published model's choices, made on the last two years of all the
+    crashes, so it is not nested. No test uses another source: no other file records the
+    calculator's inputs (DGT's records lack the road's owning network and the posted limit, and
+    their road-type and junction codings disagree with the Catalan file's on the same crashes).
     """
     from dgt_stats import severity_model as sev
 
-    frame, years, y = sev.load()
-    scenarios = sev.scenarios_from_records(frame)
-    c = sev.chosen_penalty()
-    designs = {
-        True: (sev.design_columns(), None),
-        False: (sev.design_columns(provinces=False), None),
-    }
-    designs = {
-        key: (columns, sev.design_matrix(scenarios, columns))
-        for key, (columns, _) in designs.items()
-    }
+    rec = sev.records()
+    y, years, frame = rec.y, rec.years, rec.frame
     city = (frame.municipality == "Barcelona").to_numpy()
     first, last = int(years.min()), int(years.max())
     rolling = sev.ROLLING_TEST_YEARS
 
-    def fitted(train: np.ndarray, test: np.ndarray, provinces: bool) -> np.ndarray:
-        columns, x = designs[provinces]
-        model = sev.fit_logistic(x[train], y[train], c, columns)
-        return sev.expit(x[test] @ model.coef)
-
-    def cross_validated(domain: np.ndarray, provinces: bool) -> np.ndarray:
+    def cross_validated(domain: np.ndarray, choice) -> np.ndarray:
         index = np.flatnonzero(domain)
         folds = StratifiedKFold(modelling.N_FOLDS, shuffle=True, random_state=modelling.SEED)
         out = np.zeros(len(index))
@@ -858,7 +848,7 @@ def calculator_tests() -> pd.DataFrame:
             train = np.zeros(len(y), dtype=bool)
             test = np.zeros(len(y), dtype=bool)
             train[index[a]], test[index[b]] = True, True
-            out[b] = fitted(train, test, provinces)
+            out[b] = sev.predict_chosen(rec, choice, train, test)
         return out
 
     rows = []
@@ -896,6 +886,7 @@ def calculator_tests() -> pd.DataFrame:
 
     everything = np.ones(len(y), dtype=bool)
     log.info("calculator: random cross-validation")
+    published, _ = sev.final_choice(rec)
     row(
         f"random 5-fold cross-validation {first}-{last}",
         "1 internal",
@@ -903,29 +894,44 @@ def calculator_tests() -> pd.DataFrame:
         "one fifth",
         None,
         everything,
-        cross_validated(everything, True),
+        cross_validated(everything, published),
         None,
     )
-    log.info("calculator: rolling origin")
+    log.info("calculator: nested rolling origin")
+    nested = sev.nested_rolling(rec, comparators=False)
+    predictions = nested.predictions.set_index("cat_crash_id")
     tested = np.isin(years, rolling)
-    p_rolling, t_rolling = np.zeros(len(y)), np.zeros(len(y))
-    for year in rolling:
-        train, test = years < year, years == year
-        p_rolling[test] = fitted(train, test, True)
-        t_rolling[test] = sev._table(scenarios[train], y[train], scenarios[test])
+    ids = frame.cat_crash_id.to_numpy()
     row(
-        f"rolling origin: each year {rolling[0]}-{rolling[-1]} from the years before it",
+        f"rolling origin: each year {rolling[0]}-{rolling[-1]} from the years before it, every "
+        "choice nested",
         "2 temporal",
         f"{first} to the year before each test year",
         f"{rolling[0]}-{rolling[-1]}",
         None,
         tested,
-        p_rolling[tested],
-        t_rolling[tested],
+        predictions.calculator.loc[ids[tested]].to_numpy(),
+        predictions.road_x_crash_table.loc[ids[tested]].to_numpy(),
     )
+    choices = nested.choices.set_index("test_year")
 
-    def held_out(experiment, kind, train_desc, test_desc, train, test, provinces):
+    def chosen(test_year: int):
+        """The nested choice of a rolling test year, as a :class:`severity_model.Choice`."""
+        part = choices.loc[test_year]
+        return sev.Choice(
+            specification=str(part.specification),
+            c=float(part.c),
+            through_town=str(part.through_town),
+            provinces=True,
+            train_years=tuple(int(v) for v in str(part.train_years).split("-")),
+            validation_years=tuple(int(v) for v in str(part.validation_years).split("-")),
+            c_bracketed=bool(part.c_bracketed),
+        )
+
+    def held_out(experiment, kind, train_desc, test_desc, train, test, provinces, choice=None):
         log.info("calculator: %s", experiment)
+        if choice is None:
+            choice, _ = sev.select(rec, train, provinces=provinces, label=experiment)
         row(
             experiment,
             kind,
@@ -933,9 +939,9 @@ def calculator_tests() -> pd.DataFrame:
             test_desc,
             train,
             test,
-            fitted(train, test, provinces),
-            sev._table(scenarios[train], y[train], scenarios[test]),
-            cross_validated(test, provinces),
+            sev.predict_chosen(rec, choice, train, test),
+            sev._table(rec.scenarios[train], y[train], rec.scenarios[test]),
+            cross_validated(test, choice),
         )
 
     held_out(
@@ -946,6 +952,7 @@ def calculator_tests() -> pd.DataFrame:
         years < last,
         years == last,
         True,
+        chosen(last),
     )
     for name in sorted(frame.demarcation.astype(str).unique()):
         test = (frame.demarcation.astype(str) == name).to_numpy()

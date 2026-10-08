@@ -1,0 +1,11 @@
+population,zone,crashes,fatal,fatal_share,fatal_share_low,fatal_share_high
+fitted (named owner network or not a conventional road),all zones,22638,2822,0.1246576553,0.1204180926,0.1290245852
+fitted (named owner network or not a conventional road),interurban roads,9186,1841,0.200413673,0.1923533321,0.2087244841
+excluded: owner recorded as other,all zones,1410,42,0.02978723404,0.02211179664,0.04001793558
+excluded: owner recorded as other,interurban roads,1410,42,0.02978723404,0.02211179664,0.04001793558
+excluded: owner blank,all zones,430,229,0.5325581395,0.4853187201,0.5792209644
+excluded: owner blank,interurban roads,430,229,0.5325581395,0.4853187201,0.5792209644
+excluded: both,all zones,1840,271,0.1472826087,0.1318247498,0.1642102241
+excluded: both,interurban roads,1840,271,0.1472826087,0.1318247498,0.1642102241
+all crashes in the file,all zones,24478,3093,0.1263583626,0.1222545743,0.1305794119
+all crashes in the file,interurban roads,11026,2112,0.1915472519,0.1843098292,0.1989995376

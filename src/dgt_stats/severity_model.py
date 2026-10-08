@@ -14,7 +14,7 @@ crash, grouped into categories a reader can choose:
 * *road*: the zone, the type of road and, for conventional roads, the network that owns it
   (State, regional, provincial, local). Crashes on conventional roads whose owner is recorded as
   "other" or left blank (``EXCLUDED_ROADS``) are left out of the model altogether: they were fatal
-  in 3% and 54% of cases against 15–26% for the named networks, so the field records how a crash
+  in 3% and 53% of cases against 15–26% for the named networks, so the field records how a crash
   was documented rather than the road, and a reader could not choose them anyway;
 * *crash type*, *lighting*, *weather*, *surface*, *junction*, *posted speed limit* (the signposted
   limit where the record has one: never a vehicle's speed), *time of day*;
@@ -26,22 +26,27 @@ Police judgements of what influenced the crash, whether a driver fled, the date 
 (recorded present in a tenth of urban crashes) are left out.
 
 **Model.** A logistic regression with one intercept per zone (urban street, road through a town,
-interurban road) and province, an effect for each interurban road type and one effect per input
-common to all zones, fitted with an L2 penalty whose strength is chosen on 2021–2022 after training
-on 2010–2020. Without the province intercepts the model's estimates were too high in the province
-of Barcelona and too low elsewhere. A version whose effects could differ by zone ranked crashes no
-better on later years and was worse calibrated within zones, so the common effects are used. It is compared, on the same rolling
-origins, with gradient-boosted trees on the same inputs and with the table of fatal shares by road
-and crash type. Its coefficients are exported to ``site/models/`` for the browser, with the
-covariance of the coefficients from a bootstrap of the training crashes. Every interval, in the
-browser and in the tables, is ``expit(x'b ± 1.96 √(x'Vx))`` or its delta-method extension to a
-ratio or difference of two scenarios, so a worked example and the calculator always agree.
+interurban road) and province, an effect for each interurban road type, and an effect for each
+other input, either common to all zones or allowed to differ on urban streets and on interurban
+roads. Three choices are made on data: the strength of the L2 penalty, which of the two
+specifications, and whether roads through towns get the model's estimate or the average fatal
+share of such roads in the province. :func:`select` makes all three with the crashes it is given
+only: it fits on all but their last two years and scores those two years by log loss, on a grid of
+penalties extended until the best value lies inside it. The evaluation is nested: each year
+2016-2023 is predicted by a model whose three choices were made, and whose coefficients were
+fitted, on the years before it (:func:`nested_rolling`), and the table of fatal shares by road
+and crash type is fitted on the same years. The published model is chosen by the same rule on
+every year (validation on the last two) and refitted on all of them (:func:`final_choice`). Its
+coefficients are exported to ``site/models/`` for the browser, with the covariance of the
+coefficients from a bootstrap of the training crashes. Every interval, in the browser and in the
+tables, is ``expit(x'b +- 1.96 sqrt(x'Vx))`` or its delta-method extension to a ratio or difference
+of two scenarios, so a worked example and the calculator always agree.
 """
 
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import numpy as np
 import pandas as pd
@@ -51,10 +56,22 @@ from dgt_stats.paths import FEATURES_DATA_DIR
 
 SEED = 20261008
 FEATURES_PATH = FEATURES_DATA_DIR / "catalonia_crash_severity.parquet"
-TRAIN_LAST_YEAR = 2020
-VALIDATION_YEARS = (2021, 2022)
-C_GRID: tuple[float, ...] = (0.1, 0.3, 1.0, 3.0, 10.0, 30.0)
+# The inner validation: the last two years of the crashes a choice may use.
+VALIDATION_SPAN = 2
+# The penalty grid: C = 10 ** (k / 2), half-decades from 0.001 to about 32. While the best value
+# is at either end, the grid is extended by a half-decade on that side, within C_LIMITS, so that
+# the chosen penalty is bracketed by worse ones.
+C_EXPONENTS: tuple[int, ...] = tuple(range(-6, 4))
+C_LIMITS = (1e-4, 1e3)
 N_BOOTSTRAP = 500
+# The design published before the nested evaluation, kept only to show what nesting changed: one
+# penalty from these six, chosen by fitting on 2010-2020 and scoring 2021-2022, common effects,
+# and the model's estimate on every road. Its rolling-origin score is not a test on untouched
+# years: 2021 and 2022 chose the penalty, and the specification and the through-town rule were
+# decided on the rolling scores themselves.
+PREVIOUS_C_GRID: tuple[float, ...] = (0.1, 0.3, 1.0, 3.0, 10.0, 30.0)
+PREVIOUS_TRAIN_LAST_YEAR = 2020
+PREVIOUS_VALIDATION_YEARS = (2021, 2022)
 
 # --------------------------------------------------------------------------- inputs
 
@@ -105,7 +122,7 @@ CRASH_TYPES: dict[str, str] = {
 }
 LIGHTING: dict[str, str] = {
     "day": "Daylight",
-    "overcast": "Daylight, dark sky",
+    "overcast": "Daylight, overcast",
     "dawn_dusk": "Dawn or dusk",
     "night_lit": "Night, adequate street lighting",
     "night_poorly_lit": "Night, poor street lighting",
@@ -312,10 +329,18 @@ def scenarios_from_records(frame: pd.DataFrame) -> pd.DataFrame:
 #   road          road=<road>                 interurban roads, against the regional network
 #   main          all:<input>=<level>, all:<user>
 #                                             every other input, the same in every zone
+#   zone effects  urban:<input>=<level>, interurban:<input>=<level>, urban:<user>, ...
+#                                             (specification "by_zone" only) how each input's
+#                                             association departs from the common one on urban
+#                                             streets and on interurban roads
 # The intercepts are barely penalised (INTERCEPT_SCALE); every other column takes the same L2
-# penalty. Letting each input's effect differ between urban streets and interurban roads (the
-# earlier specification, more than twice as many columns) ranked later years' crashes no better
-# and was no better calibrated within zones (sev_specification), so the simpler model is used.
+# penalty. Which specification is used is chosen on data (:func:`select`).
+
+SPECIFICATIONS: dict[str, str] = {
+    "common": "effects common to all zones",
+    "by_zone": "effects that may differ on urban streets and on interurban roads",
+}
+DEVIATION_ZONES = ("urban", "interurban")
 
 
 def zone_of(road: pd.Series) -> pd.Series:
@@ -353,7 +378,25 @@ def column_group(column: str) -> str:
         return "intercept"
     if column.startswith("zone_province="):
         return "province"
-    return "road" if column.startswith("road=") else "main"
+    if column.startswith("road="):
+        return "road"
+    return "main" if column.startswith("all:") else "zone effect"
+
+
+def specification_columns(specification: str = "common", provinces: bool = True) -> list[str]:
+    """The design of a specification: ``design_columns`` and, for "by_zone", every input's
+    departure on urban streets and on interurban roads."""
+    if specification not in SPECIFICATIONS:
+        raise ValueError(f"unknown specification: {specification}")
+    columns = design_columns(provinces)
+    if specification == "by_zone":
+        for zone in DEVIATION_ZONES:
+            for name, levels in CATEGORICAL.items():
+                columns += [
+                    f"{zone}:{name}={level}" for level in levels if level != REFERENCE[name]
+                ]
+            columns += [f"{zone}:{user}" for user in USERS]
+    return columns
 
 
 def design_matrix(scenarios: pd.DataFrame, columns: list[str] | None = None) -> np.ndarray:
@@ -403,32 +446,13 @@ def expit(z: np.ndarray) -> np.ndarray:
     return 1.0 / (1.0 + np.exp(-z))
 
 
-DEVIATION_ZONES = ("urban", "interurban")
+def column_scales(columns: list[str]) -> np.ndarray:
+    return np.array(
+        [INTERCEPT_SCALE if column_group(c) == "intercept" else 1.0 for c in columns], dtype=float
+    )
 
 
-def column_scales(columns: list[str], deviation_scale: float = 1.0) -> np.ndarray:
-    def scale(column: str) -> float:
-        if column_group(column) == "intercept":
-            return INTERCEPT_SCALE
-        return deviation_scale if column.startswith(DEVIATION_ZONES) else 1.0
-
-    return np.array([scale(c) for c in columns], dtype=float)
-
-
-def deviation_columns() -> list[str]:
-    """The rejected alternative's design: every input's effect may also differ on urban streets
-    and on interurban roads (kept only for :func:`specification_check`)."""
-    columns = design_columns()
-    for zone in DEVIATION_ZONES:
-        for name, levels in CATEGORICAL.items():
-            columns += [f"{zone}:{name}={level}" for level in levels if level != REFERENCE[name]]
-        columns += [f"{zone}:{user}" for user in USERS]
-    return columns
-
-
-def fit_logistic(
-    x: np.ndarray, y: np.ndarray, c: float, columns: list[str], deviation_scale: float = 1.0
-) -> Fitted:
+def fit_logistic(x: np.ndarray, y: np.ndarray, c: float, columns: list[str]) -> Fitted:
     """L2-penalised logistic regression whose intercepts are barely penalised.
 
     Multiplying a column by ``s`` before fitting and the fitted coefficient by ``s`` afterwards
@@ -436,7 +460,7 @@ def fit_logistic(
     intercepts (``s`` = 10) are shrunk hardly at all. The returned coefficients apply to the plain
     0/1 design.
     """
-    scales = column_scales(columns, deviation_scale)
+    scales = column_scales(columns)
     model = LogisticRegression(
         C=c, fit_intercept=False, solver="newton-cholesky", max_iter=1_000, tol=1e-10
     )
@@ -456,40 +480,278 @@ def load() -> tuple[pd.DataFrame, np.ndarray, np.ndarray]:
     return frame, frame.year.astype(int).to_numpy(), frame.fatal.to_numpy().astype(int)
 
 
-def choose_penalty() -> pd.DataFrame:
-    """Validation log loss of each penalty: fit 2010-2020, score 2021-2022."""
-    from sklearn.metrics import log_loss, roc_auc_score
+@dataclass
+class Records:
+    """The fitted crashes, recoded, with their design matrices built once per specification."""
 
+    frame: pd.DataFrame
+    scenarios: pd.DataFrame
+    years: np.ndarray
+    y: np.ndarray
+    _designs: dict[tuple[str, bool], np.ndarray] = field(default_factory=dict, repr=False)
+
+    @property
+    def zones(self) -> np.ndarray:
+        return zone_of(self.scenarios.road).to_numpy()
+
+    def design(self, specification: str, provinces: bool = True) -> tuple[list[str], np.ndarray]:
+        columns = specification_columns(specification, provinces)
+        key = (specification, provinces)
+        if key not in self._designs:
+            self._designs[key] = design_matrix(self.scenarios, columns)
+        return columns, self._designs[key]
+
+
+def records() -> Records:
     frame, years, y = load()
-    columns = design_columns()
-    x = design_matrix(scenarios_from_records(frame), columns)
-    train = years <= TRAIN_LAST_YEAR
-    valid = np.isin(years, VALIDATION_YEARS)
-    rows = []
-    for c in C_GRID:
-        fitted = fit_logistic(x[train], y[train], c, columns)
-        p = expit(x[valid] @ fitted.coef)
-        rows.append(
-            {
-                "c": c,
-                "validation_log_loss": log_loss(y[valid], p),
-                "validation_roc_auc": roc_auc_score(y[valid], p),
-            }
-        )
-    out = pd.DataFrame(rows)
-    out["chosen"] = out.validation_log_loss == out.validation_log_loss.min()
+    return Records(frame, scenarios_from_records(frame), years, y)
+
+
+def penalty(exponent: int) -> float:
+    """The penalty C of a grid point: 10 ** (exponent / 2)."""
+    return float(10.0 ** (exponent / 2))
+
+
+def _log_loss(y: np.ndarray, p: np.ndarray) -> float:
+    from sklearn.metrics import log_loss
+
+    return float(log_loss(y, np.clip(p, 1e-12, 1 - 1e-12), labels=[0, 1]))
+
+
+def zone_average_predictions(
+    rec: Records, train: np.ndarray, test: np.ndarray, provinces: bool = True
+) -> np.ndarray:
+    """Each test crash given the fatal share of the training crashes in its zone and, with
+    ``provinces``, its province (the zone's share where the training has none there)."""
+    zones = rec.zones
+    keys = pd.Series(zones)
+    if provinces:
+        keys = keys + "|" + rec.scenarios.province.astype(str).reset_index(drop=True)
+    by_key = pd.Series(rec.y[train]).groupby(keys[train].to_numpy()).mean()
+    by_zone = pd.Series(rec.y[train]).groupby(zones[train]).mean()
+    out = keys[test].map(by_key).to_numpy(dtype=float, copy=True)
+    missing = np.isnan(out)
+    out[missing] = pd.Series(zones[test][missing]).map(by_zone).fillna(rec.y[train].mean())
     return out
 
 
-def chosen_penalty() -> float:
-    grid = choose_penalty()
-    return float(grid[grid.chosen].iloc[0].c)
+# --------------------------------------------------------------------------- choices
+
+
+@dataclass(frozen=True)
+class Choice:
+    """The three choices made on data, and the years they were made with."""
+
+    specification: str  # a key of SPECIFICATIONS
+    c: float
+    through_town: str  # "average": roads through towns get the training average; "model"
+    provinces: bool
+    train_years: tuple[int, int]  # the inner fit
+    validation_years: tuple[int, int]  # the inner validation
+    c_bracketed: bool  # the chosen penalty has a worse value on each side in the grid
+
+    @property
+    def columns(self) -> list[str]:
+        return specification_columns(self.specification, self.provinces)
+
+
+def select(
+    rec: Records, rows: np.ndarray, provinces: bool = True, label: str = ""
+) -> tuple[Choice, pd.DataFrame]:
+    """The penalty, the specification and the through-town rule, chosen from ``rows`` alone.
+
+    Each specification is fitted on all but the last ``VALIDATION_SPAN`` years of ``rows`` at
+    every penalty of the grid (extended while its best value is at an end), and scored by log
+    loss on those last years. The specification and penalty with the lowest loss are chosen.
+    Roads through towns then get the average fatal share of the inner training crashes on such
+    roads in the same province if that average has a lower log loss on the validation crashes
+    on such roads than the chosen model's estimates; otherwise the model's estimates. Returns
+    the choice and every grid point's validation scores.
+    """
+    from sklearn.metrics import roc_auc_score
+
+    available = np.unique(rec.years[rows])
+    validation_years = available[-VALIDATION_SPAN:]
+    inner_train = rows & (rec.years < validation_years[0])
+    inner_valid = rows & np.isin(rec.years, validation_years)
+    y_valid = rec.y[inner_valid]
+    grid = []
+    best: dict[str, tuple[int, float, np.ndarray, bool]] = {}
+    for specification in SPECIFICATIONS:
+        columns, x = rec.design(specification, provinces)
+        scored: dict[int, tuple[float, float, np.ndarray]] = {}
+
+        def score(exponent: int) -> None:
+            fitted = fit_logistic(x[inner_train], rec.y[inner_train], penalty(exponent), columns)
+            p = expit(x[inner_valid] @ fitted.coef)
+            scored[exponent] = (_log_loss(y_valid, p), float(roc_auc_score(y_valid, p)), p)
+
+        for exponent in C_EXPONENTS:
+            score(exponent)
+        while True:
+            tried = sorted(scored)
+            winner = min(tried, key=lambda e: scored[e][0])
+            if winner == tried[0] and penalty(tried[0] - 1) >= C_LIMITS[0]:
+                score(tried[0] - 1)
+            elif winner == tried[-1] and penalty(tried[-1] + 1) <= C_LIMITS[1]:
+                score(tried[-1] + 1)
+            else:
+                break
+        tried = sorted(scored)
+        bracketed = tried[0] < winner < tried[-1]
+        best[specification] = (winner, scored[winner][0], scored[winner][2], bracketed)
+        for exponent in tried:
+            grid.append(
+                {
+                    "fit": label,
+                    "specification": specification,
+                    "c": penalty(exponent),
+                    "validation_log_loss": scored[exponent][0],
+                    "validation_roc_auc": scored[exponent][1],
+                    "best_for_specification": exponent == winner,
+                }
+            )
+    specification = min(best, key=lambda s: best[s][1])
+    exponent, _, p_valid, bracketed = best[specification]
+    town = rec.zones[inner_valid] == "through_town"
+    average = zone_average_predictions(rec, inner_train, inner_valid, provinces)
+    town_model = _log_loss(y_valid[town], p_valid[town]) if town.any() else np.nan
+    town_average = _log_loss(y_valid[town], average[town]) if town.any() else np.nan
+    through_town = "average" if town.any() and town_average <= town_model else "model"
+    first_train = int(rec.years[inner_train].min())
+    choice = Choice(
+        specification=specification,
+        c=penalty(exponent),
+        through_town=through_town,
+        provinces=provinces,
+        train_years=(first_train, int(validation_years[0]) - 1),
+        validation_years=(int(validation_years[0]), int(validation_years[-1])),
+        c_bracketed=bool(bracketed),
+    )
+    grid = pd.DataFrame(grid)
+    grid["chosen"] = (grid.specification == specification) & grid.best_for_specification
+    summary = {
+        "through_town_validation_crashes": int(town.sum()),
+        "through_town_validation_fatal": int(y_valid[town].sum()),
+        "through_town_log_loss_model": town_model,
+        "through_town_log_loss_average": town_average,
+    }
+    return choice, grid.assign(**{k: v for k, v in summary.items()})
+
+
+def at_weak_limit(grid: pd.DataFrame, specification: str) -> bool:
+    """The best penalty of a specification is the weakest the grid allows (C_LIMITS) and the
+    validation loss had stopped changing there (by less than FLAT_LOSS over the last
+    half-decade): the best model is, in effect, the unpenalised one, which no finite grid can
+    bracket."""
+    part = grid[grid.specification == specification].sort_values("c")
+    best = part[part.best_for_specification]
+    return bool(
+        float(best.c.iloc[0]) == float(part.c.max()) >= C_LIMITS[1] * (1 - 1e-9)
+        and abs(float(part.validation_log_loss.iloc[-1] - part.validation_log_loss.iloc[-2]))
+        < FLAT_LOSS
+    )
+
+
+FLAT_LOSS = 1e-5
+
+
+def choice_row(choice: Choice, grid: pd.DataFrame, label: str) -> dict[str, object]:
+    """One row of ``sev_choices``: what was chosen for a fit, on which years, and why."""
+    best = grid[grid.best_for_specification].set_index("specification")
+    tried = grid[grid.specification == choice.specification].c
+    return {
+        "fit": label,
+        "train_years": f"{choice.train_years[0]}-{choice.train_years[1]}",
+        "validation_years": f"{choice.validation_years[0]}-{choice.validation_years[1]}",
+        "specification": choice.specification,
+        "c": choice.c,
+        "c_bracketed": choice.c_bracketed,
+        "c_at_weak_limit": at_weak_limit(grid, choice.specification),
+        "c_lowest_tried": float(tried.min()),
+        "c_highest_tried": float(tried.max()),
+        **{
+            f"validation_log_loss_{spec}": float(best.loc[spec, "validation_log_loss"])
+            for spec in SPECIFICATIONS
+        },
+        **{f"c_best_{spec}": float(best.loc[spec, "c"]) for spec in SPECIFICATIONS},
+        **{
+            f"c_bracketed_{spec}": bool(
+                grid[grid.specification == spec].c.min()
+                < best.loc[spec, "c"]
+                < grid[grid.specification == spec].c.max()
+            )
+            for spec in SPECIFICATIONS
+        },
+        "through_town": choice.through_town,
+        **{
+            column: grid[column].iloc[0]
+            for column in (
+                "through_town_validation_crashes",
+                "through_town_validation_fatal",
+                "through_town_log_loss_model",
+                "through_town_log_loss_average",
+            )
+        },
+    }
+
+
+def fit_chosen(rec: Records, choice: Choice, train: np.ndarray) -> Fitted:
+    columns, x = rec.design(choice.specification, choice.provinces)
+    return fit_logistic(x[train], rec.y[train], choice.c, columns)
+
+
+def predict_chosen(rec: Records, choice: Choice, train: np.ndarray, test: np.ndarray) -> np.ndarray:
+    """What the calculator would show for each test crash, fitted on ``train`` with ``choice``:
+    the model's estimate, or on roads through towns the training average if the choice says so."""
+    _, x = rec.design(choice.specification, choice.provinces)
+    p = expit(x[test] @ fit_chosen(rec, choice, train).coef)
+    if choice.through_town == "average":
+        town = rec.zones[test] == "through_town"
+        p[town] = zone_average_predictions(rec, train, test, choice.provinces)[town]
+    return p
+
+
+def previous_choice(rec: Records) -> Choice:
+    """The design published before the nested evaluation (``PREVIOUS_C_GRID``): the penalty with
+    the lowest log loss on 2021-2022 after fitting 2010-2020, common effects, the model's estimate
+    on every road. Kept only to show what nesting changed."""
+    columns, x = rec.design("common")
+    train = rec.years <= PREVIOUS_TRAIN_LAST_YEAR
+    valid = np.isin(rec.years, PREVIOUS_VALIDATION_YEARS)
+    losses = {
+        c: _log_loss(
+            rec.y[valid], expit(x[valid] @ fit_logistic(x[train], rec.y[train], c, columns).coef)
+        )
+        for c in PREVIOUS_C_GRID
+    }
+    return Choice(
+        specification="common",
+        c=min(losses, key=losses.get),
+        through_town="model",
+        provinces=True,
+        train_years=(int(rec.years.min()), PREVIOUS_TRAIN_LAST_YEAR),
+        validation_years=(PREVIOUS_VALIDATION_YEARS[0], PREVIOUS_VALIDATION_YEARS[-1]),
+        c_bracketed=False,
+    )
 
 
 # --------------------------------------------------------------------------- evaluation
 
 ROLLING_TEST_YEARS: tuple[int, ...] = tuple(range(2016, 2024))
 TABLE_KEYS = ("road", "crash_type")
+# The steps from the previous design to the nested one, as columns of the rolling predictions:
+# each adds one choice made on the years before the test year.
+STEPS: dict[str, str] = {
+    "previous_design": "previous design: penalty chosen once on 2021-2022, common effects, the "
+    "model's estimate on roads through towns (not nested)",
+    "nested_penalty": "penalty chosen on the years before each test year; common effects; the "
+    "model's estimate on roads through towns",
+    "nested_penalty_specification": "penalty and specification chosen on the years before each "
+    "test year; the model's estimate on roads through towns",
+    "calculator": "nested: penalty, specification and through-town rule chosen on the years "
+    "before each test year (published)",
+}
 
 
 def _trees(seed: int = SEED):
@@ -530,128 +792,144 @@ def _table(train: pd.DataFrame, y: np.ndarray, test: pd.DataFrame) -> np.ndarray
     return merged.rate.fillna(prior).to_numpy()
 
 
-def rolling_predictions(c: float | None = None) -> pd.DataFrame:
-    """Each year 2016-2023 predicted from the years before it: the calculator's model, gradient-
-    boosted trees on the same inputs, and the fatal share of the crash's road and type."""
-    if c is None:
-        c = chosen_penalty()
-    frame, years, y = load()
-    scenarios = scenarios_from_records(frame)
-    columns = design_columns()
-    x = design_matrix(scenarios, columns)
-    pieces = []
+@dataclass(frozen=True)
+class Nested:
+    predictions: pd.DataFrame  # one row per test crash, one column per estimator or step
+    choices: pd.DataFrame  # sev_choices: one row per test year
+    grid: pd.DataFrame  # sev_penalty: every grid point of every test year's inner validation
+
+
+def nested_rolling(rec: Records | None = None, comparators: bool = True) -> Nested:
+    """Each year 2016-2023 predicted from the years before it, every choice nested.
+
+    For test year ``t`` the penalty, the specification and the through-town rule are chosen by
+    :func:`select` on the years before ``t`` (fit on all but the last two, score those two), the
+    model is refitted on all years before ``t`` and predicts ``t``. The table of fatal shares by
+    road and crash type is fitted on the same years. With ``comparators``, also gradient-boosted
+    trees on the same inputs (fixed settings, fitted on the same years) and the steps from the
+    previous design (``STEPS``)."""
+    rec = rec or records()
+    previous = previous_choice(rec) if comparators else None
+    pieces, choices, grids = [], [], []
     for year in ROLLING_TEST_YEARS:
-        train, test = years < year, years == year
-        calculator = fit_logistic(x[train], y[train], c, columns)
-        trees = _trees().fit(scenarios[train], y[train])
-        pieces.append(
-            pd.DataFrame(
-                {
-                    "cat_crash_id": frame.cat_crash_id[test].to_numpy(),
-                    "year": year,
-                    "road": scenarios.road[test].to_numpy(),
-                    "zone": zone_of(scenarios.road[test]).to_numpy(),
-                    "barcelona_city": (frame.municipality[test] == "Barcelona").to_numpy(),
-                    "fatal": y[test],
-                    "calculator": expit(x[test] @ calculator.coef),
-                    "boosted_trees": trees.predict_proba(scenarios[test])[:, 1],
-                    "road_x_crash_table": _table(scenarios[train], y[train], scenarios[test]),
-                }
+        train, test = rec.years < year, rec.years == year
+        choice, grid = select(rec, train, label=str(year))
+        choices.append(choice_row(choice, grid, str(year)) | {"test_year": year})
+        grids.append(grid.assign(test_year=year))
+        frame = {
+            "cat_crash_id": rec.frame.cat_crash_id[test].to_numpy(),
+            "year": year,
+            "road": rec.scenarios.road[test].to_numpy(),
+            "zone": rec.zones[test],
+            "province": rec.scenarios.province[test].astype(str).to_numpy(),
+            "barcelona_city": (rec.frame.municipality[test] == "Barcelona").to_numpy(),
+            "fatal": rec.y[test],
+            "calculator": predict_chosen(rec, choice, train, test),
+            "road_x_crash_table": _table(rec.scenarios[train], rec.y[train], rec.scenarios[test]),
+        }
+        if comparators:
+            best = grid[grid.best_for_specification].set_index("specification").c
+            common = Choice(
+                "common",
+                float(best["common"]),
+                "model",
+                True,
+                choice.train_years,
+                choice.validation_years,
+                choice.c_bracketed,
             )
-        )
-    return pd.concat(pieces, ignore_index=True)
+            frame["previous_design"] = predict_chosen(rec, previous, train, test)
+            frame["nested_penalty"] = predict_chosen(rec, common, train, test)
+            frame["nested_penalty_specification"] = predict_chosen(
+                rec,
+                Choice(
+                    choice.specification,
+                    choice.c,
+                    "model",
+                    True,
+                    choice.train_years,
+                    choice.validation_years,
+                    choice.c_bracketed,
+                ),
+                train,
+                test,
+            )
+            trees = _trees().fit(rec.scenarios[train], rec.y[train])
+            frame["boosted_trees"] = trees.predict_proba(rec.scenarios[test])[:, 1]
+        pieces.append(pd.DataFrame(frame))
+    return Nested(
+        predictions=pd.concat(pieces, ignore_index=True),
+        choices=pd.DataFrame(choices),
+        grid=pd.concat(grids, ignore_index=True),
+    )
 
 
 # --------------------------------------------------------------------------- final model
 
 
-def specification_check(c: float) -> pd.DataFrame:
-    """Why effects common to all zones: the published model against the earlier specification
-    whose effects could differ on urban streets and interurban roads (penalty C = 3, deviations
-    shrunk sixteen times harder), on the same rolling origins, overall and by zone."""
-    from dgt_stats.model_review import scores
-
-    frame, years, y = load()
-    scenarios = scenarios_from_records(frame)
-    zones = zone_of(scenarios.road).to_numpy()
-    city = (frame.municipality == "Barcelona").to_numpy() & (zones == "urban")
-    test = np.isin(years, ROLLING_TEST_YEARS)
-    specs = {
-        "effects common to all zones (published)": (design_columns(), c, 1.0),
-        "effects differing by zone": (deviation_columns(), 3.0, 0.25),
-    }
-    subsets = {
-        "2016-2023": test,
-        "urban streets": test & (zones == "urban"),
-        "interurban roads": test & (zones == "interurban"),
-        "roads through towns": test & (zones == "through_town"),
-        "Barcelona city, urban streets": test & city,
-    }
-    rows = []
-    for label, (columns, penalty, scale) in specs.items():
-        x = design_matrix(scenarios, columns)
-        p = np.full(len(y), np.nan)
-        for year in ROLLING_TEST_YEARS:
-            train = years < year
-            fitted = fit_logistic(x[train], y[train], penalty, columns, scale)
-            p[years == year] = expit(x[years == year] @ fitted.coef)
-        for subset, mask in subsets.items():
-            rows.append(
-                {"specification": label, "columns": len(columns), "subset": subset}
-                | scores(y[mask], p[mask])
-            )
-    return pd.DataFrame(rows)
-
-
-def geography(c: float) -> pd.DataFrame:
+def geography(rec: Records | None = None) -> pd.DataFrame:
     """How the calculator's model and the road x crash-type table hold in places they were not
     fitted on: each demarcation predicted from the other three, and Barcelona city's urban
-    streets predicted from the urban streets of the rest of Catalonia (all years)."""
-    from dgt_stats.model_review import scores
+    streets predicted from the urban streets of the rest of Catalonia (all years). Every choice
+    is made by :func:`select` on the training crashes alone."""
+    from dgt_stats.model_review import scores, wilson
 
-    frame, _, y = load()
-    scenarios = scenarios_from_records(frame)
-    # A province left out has no intercept of its own to learn, so the test uses none.
-    columns = design_columns(provinces=False)
-    x = design_matrix(scenarios, columns)
-    urban = (zone_of(scenarios.road) == "urban").to_numpy()
-    city = (frame.municipality == "Barcelona").to_numpy()
-    splits = {
-        f"{name} from the other demarcations": (frame.demarcation == name).to_numpy()
-        for name in sorted(frame.demarcation.unique())
-    }
-    rows = []
-    for label, test in splits.items():
-        rows.append((label, ~test, test))
+    rec = rec or records()
+    urban = rec.zones == "urban"
+    city = (rec.frame.municipality == "Barcelona").to_numpy()
+    rows = [
+        (f"{name} from the other demarcations", ~test, test)
+        for name, test in (
+            (name, (rec.frame.demarcation == name).to_numpy())
+            for name in sorted(rec.frame.demarcation.unique())
+        )
+    ]
     rows.append(
         ("Barcelona city's urban streets from the rest of Catalonia's", urban & ~city, urban & city)
     )
     out = []
     for label, train, test in rows:
-        fitted = fit_logistic(x[train], y[train], c, columns)
+        # A province left out has no intercept of its own to learn, so the test uses none.
+        choice, _ = select(rec, train, provinces=False, label=label)
         predictions = {
-            "calculator": expit(x[test] @ fitted.coef),
-            "road_x_crash_table": _table(scenarios[train], y[train], scenarios[test]),
+            "calculator": predict_chosen(rec, choice, train, test),
+            "road_x_crash_table": _table(rec.scenarios[train], rec.y[train], rec.scenarios[test]),
         }
+        low, high = wilson(rec.y[test].sum(), test.sum())
         for name, p in predictions.items():
-            out.append({"test": label, "estimator": name} | scores(y[test], p))
+            out.append(
+                {"test": label, "estimator": name}
+                | scores(rec.y[test], p)
+                | {
+                    "observed_low": low,
+                    "observed_high": high,
+                    "specification": choice.specification,
+                    "c": choice.c,
+                    "through_town": choice.through_town,
+                }
+            )
     return pd.DataFrame(out)
 
 
-def final_fit(c: float) -> tuple[Fitted, np.ndarray]:
-    """The calculator's model on every crash 2010-2023, and the training design matrix."""
-    frame, _, y = load()
-    columns = design_columns()
-    x = design_matrix(scenarios_from_records(frame), columns)
-    return fit_logistic(x, y, c, columns), x
+def final_choice(rec: Records | None = None) -> tuple[Choice, pd.DataFrame]:
+    """The published model's choices, by the rule of every test year: :func:`select` on all the
+    crashes, so the last two years validate a fit on the years before them."""
+    rec = rec or records()
+    return select(rec, np.ones(len(rec.y), dtype=bool), label="published model")
+
+
+def final_fit(choice: Choice, rec: Records | None = None) -> tuple[Fitted, np.ndarray]:
+    """The calculator's model on every crash, and the training design matrix."""
+    rec = rec or records()
+    columns, x = rec.design(choice.specification, choice.provinces)
+    return fit_logistic(x, rec.y, choice.c, columns), x
 
 
 def bootstrap_draws(
-    x: np.ndarray, y: np.ndarray, c: float, n_boot: int = N_BOOTSTRAP
+    x: np.ndarray, y: np.ndarray, c: float, columns: list[str], n_boot: int = N_BOOTSTRAP
 ) -> np.ndarray:
     """Coefficients refitted on crashes resampled with replacement, one row per draw."""
     rng = np.random.default_rng(SEED)
-    columns = design_columns()
     draws = np.empty((n_boot, x.shape[1]))
     for b in range(n_boot):
         index = rng.integers(0, len(y), len(y))
@@ -709,34 +987,53 @@ def level_support(scenarios: pd.DataFrame) -> dict[str, int]:
     return out
 
 
+def _zone_masks(scenarios: pd.DataFrame) -> dict[str, np.ndarray]:
+    zones = zone_of(scenarios.road).to_numpy()
+    provinces = scenarios.province.astype(str).to_numpy()
+    out = {zone: zones == zone for zone in ZONES}
+    for zone in ZONES:
+        for province in PROVINCES:
+            out[f"{zone}|{province}"] = (zones == zone) & (provinces == province)
+    return out | {"all": np.ones(len(scenarios), dtype=bool)}
+
+
 def zone_average(scenarios: pd.DataFrame, y: np.ndarray) -> dict[str, float]:
     """The share of the fitted crashes that were fatal: overall, in each zone, and in each zone of
     each province ("zone|province")."""
-    zones = zone_of(scenarios.road).to_numpy()
-    provinces = scenarios.province.astype(str).to_numpy()
-    out = {zone: float(y[zones == zone].mean()) for zone in ZONES}
-    for zone in ZONES:
-        for province in PROVINCES:
-            mask = (zones == zone) & (provinces == province)
-            out[f"{zone}|{province}"] = float(y[mask].mean())
-    return out | {"all": float(y.mean())}
+    return {key: float(y[mask].mean()) for key, mask in _zone_masks(scenarios).items()}
 
 
-def _broken_counts(scenarios: pd.DataFrame) -> dict[str, int]:
+def zone_counts(scenarios: pd.DataFrame, y: np.ndarray) -> dict[str, list[float]]:
+    """For the same keys as :func:`zone_average`: the fitted crashes, the fatal ones, and the
+    Wilson 95% interval of their fatal share, ``[crashes, fatal, low, high]``."""
+    from dgt_stats.model_review import wilson
+
+    out: dict[str, list[float]] = {}
+    for key, mask in _zone_masks(scenarios).items():
+        n, k = int(mask.sum()), int(y[mask].sum())
+        low, high = wilson(k, n)
+        out[key] = [n, k, round(float(low), EXPORT_DECIMALS), round(float(high), EXPORT_DECIMALS)]
+    return out
+
+
+def _broken_counts(scenarios: pd.DataFrame, through_town: str = "average") -> dict[str, int]:
     counts: dict[str, int] = {}
     for record in scenarios.to_dict("records"):
-        for rule in check_scenario(record):
+        for rule in check_scenario(record, through_town):
             counts[rule] = counts.get(rule, 0) + 1
     return counts
 
 
 def input_specification(
-    scenarios: pd.DataFrame | None = None, y: np.ndarray | None = None
+    scenarios: pd.DataFrame | None = None,
+    y: np.ndarray | None = None,
+    choice: Choice | None = None,
 ) -> dict[str, object]:
     """Every input, its type, its levels with labels, its default, and the rules between them.
 
-    With the training records, the rule texts quote how many records each rare combination has
-    and the share of fatal crashes on roads through towns."""
+    With the training records, the rule texts quote how many records each rare combination has.
+    With the published ``choice``, roads through towns get the "average" rule only if the choice
+    gives them the average, and its text names the years the choice was made on."""
     inputs: dict[str, object] = {
         "road": {
             "label": "Road",
@@ -778,8 +1075,9 @@ def input_specification(
         "levels": [{"value": u, "label": label} for u, label in USERS.items()],
         "default": ["light_vehicle"],
     }
+    through_town = choice.through_town if choice is not None else "average"
     total = len(scenarios) if scenarios is not None else None
-    counts = _broken_counts(scenarios) if scenarios is not None else {}
+    counts = _broken_counts(scenarios, through_town) if scenarios is not None else {}
 
     def records(rule: str) -> str:
         if total is None:
@@ -831,23 +1129,38 @@ def input_specification(
             "{input}: the estimate for it is extrapolated, and its interval does not show how "
             "few records there are.",
         },
-        {
-            "id": "through_town",
-            "kind": "average",
-            "text": "On roads through towns the model cannot tell more and less deadly crashes "
-            "apart: on later years its estimates varied widely while the observed share barely "
-            "changed, so the average for such roads is shown instead of an estimate.",
-        },
     ]
-    return {"inputs": inputs, "rules": rules, "collision_types": list(COLLISION_TYPES)}
+    if through_town == "average":
+        when = (
+            f", on {choice.validation_years[0]}–{choice.validation_years[1]} with the model "
+            f"fitted on {choice.train_years[0]}–{choice.train_years[1]}"
+            if choice is not None
+            else ""
+        )
+        rules.append(
+            {
+                "id": "through_town",
+                "kind": "average",
+                "text": "On roads through towns the average fatal share of such roads in the "
+                "province predicted later crashes better than the model's estimates did"
+                f"{when}, so the average is shown instead of an estimate.",
+            }
+        )
+    return {
+        "inputs": inputs,
+        "rules": rules,
+        "collision_types": list(COLLISION_TYPES),
+        "through_town": through_town,
+    }
 
 
 COLLISION_TYPES = ("head_on", "side_impact", "rear_end", "sideswipe", "pedestrian_struck")
 UNIT_COUNTS = {"1": 1, "2": 2, "3": 3, "4+": None}  # None: four or more, no upper bound
 
 
-def check_scenario(scenario: dict[str, object]) -> list[str]:
-    """The ids of the rules a scenario breaks (errors and the scenario-level warnings)."""
+def check_scenario(scenario: dict[str, object], through_town: str = "average") -> list[str]:
+    """The ids of the rules a scenario breaks (errors and the scenario-level warnings).
+    ``through_town`` is the published choice for roads through towns ("average" or "model")."""
     users = [u for u in USERS if scenario.get(u)]
     units = UNIT_COUNTS[str(scenario["units"])]
     broken = []
@@ -861,7 +1174,7 @@ def check_scenario(scenario: dict[str, object]) -> list[str]:
         broken.append("collision_with_one_unit")
     if users == ["pedestrian"]:
         broken.append("pedestrian_without_vehicle")
-    if ROADS[str(scenario["road"])][1] == "through_town":
+    if through_town == "average" and ROADS[str(scenario["road"])][1] == "through_town":
         broken.append("through_town")
     return broken
 
@@ -880,12 +1193,15 @@ def export(
     scenarios: pd.DataFrame,
     y: np.ndarray,
     evaluation: dict[str, object],
-    excluded: int,
+    excluded: dict[str, int],
     years: tuple[int, int],
+    choice: Choice,
 ) -> dict[str, object]:
     """Everything the page needs to reproduce :func:`prediction_interval` for any scenario.
 
-    ``years`` is the first and last year of the fitted crashes, read from the data."""
+    ``years`` is the first and last year of the fitted crashes, read from the data; ``excluded``
+    the crashes left out (``EXCLUDED_ROADS``) and how many of them were fatal; ``choice`` the
+    published model's choices."""
     k = len(fitted.columns)
     lower = [
         round(float(covariance[i, j]), EXPORT_DECIMALS + 2) for i in range(k) for j in range(i + 1)
@@ -903,19 +1219,29 @@ def export(
             "years": [int(years[0]), int(years[1])],
             "crashes": int(len(y)),
             "fatal": int(y.sum()),
-            "excluded_owner_not_recorded": int(excluded),
+            "excluded_owner_not_recorded": int(excluded["crashes"]),
+            "excluded_fatal": int(excluded["fatal"]),
         },
         "zone_average": zone_average(scenarios, y),
-        "estimator": "logistic regression, L2 penalty, one intercept per zone and effects "
-        "common to all zones",
+        "zone_counts": zone_counts(scenarios, y),
+        "estimator": "logistic regression, L2 penalty, one intercept per zone and province, "
+        f"{SPECIFICATIONS[choice.specification]}",
         "penalty": {"C": fitted.c},
+        "choice": {
+            "specification": choice.specification,
+            "C": choice.c,
+            "through_town": choice.through_town,
+            "train_years": list(choice.train_years),
+            "validation_years": list(choice.validation_years),
+            "c_bracketed": choice.c_bracketed,
+        },
         "columns": fitted.columns,
         "coefficients": coefficients,
         "covariance_lower": lower,
         "interval": "95% confidence interval for the share among crashes like this one: "
         "logit +- 1.96 * sqrt(x' V x), V the covariance of the coefficients over "
         f"{N_BOOTSTRAP} bootstrap refits",
-        **input_specification(scenarios, y),
+        **input_specification(scenarios, y, choice),
         "support": support_table(scenarios, y),
         "level_support": level_support(scenarios),
         "evaluation": evaluation,
@@ -1026,11 +1352,13 @@ def scenario_contrasts(
     return pd.DataFrame(rows)
 
 
-def marginal_and_adjusted(fitted: Fitted, draws: np.ndarray) -> pd.DataFrame:
+def marginal_and_adjusted(
+    fitted: Fitted, draws: np.ndarray, rec: Records | None = None
+) -> pd.DataFrame:
     """For each input level: the raw fatal share of the crashes with it, and the model's average
     predicted share when every crash is given that level (standardised to the observed mix)."""
-    frame, _, y = load()
-    scenarios = scenarios_from_records(frame)
+    rec = rec or records()
+    scenarios, y = rec.scenarios, rec.y
     rows = []
     for name in ("road", *CATEGORICAL):
         levels = list(ROADS) if name == "road" else list(CATEGORICAL[name])
@@ -1066,12 +1394,13 @@ def marginal_and_adjusted(fitted: Fitted, draws: np.ndarray) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-def stability(c: float) -> pd.DataFrame:
-    """Key contrasts from models fitted separately on two periods and on two areas."""
-    frame, years, y = load()
-    scenarios = scenarios_from_records(frame)
-    columns = design_columns()
-    x = design_matrix(scenarios, columns)
+def stability(choice: Choice, rec: Records | None = None) -> pd.DataFrame:
+    """Key contrasts from models fitted separately on two periods and on two areas, with the
+    published model's specification and penalty."""
+    rec = rec or records()
+    years, y, frame = rec.years, rec.y, rec.frame
+    columns, x = rec.design(choice.specification, choice.provinces)
+    c = choice.c
     splits = {
         "2010-2016": years <= 2016,
         "2017-2023": years >= 2017,
@@ -1081,7 +1410,7 @@ def stability(c: float) -> pd.DataFrame:
     rows = []
     for label, mask in splits.items():
         fitted = fit_logistic(x[mask], y[mask], c, columns)
-        covariance = np.cov(bootstrap_draws(x[mask], y[mask], c, n_boot=200), rowvar=False)
+        covariance = np.cov(bootstrap_draws(x[mask], y[mask], c, columns, n_boot=200), rowvar=False)
         for base_name, base in (("interurban", REFERENCE_SCENARIO), ("urban", URBAN_REFERENCE)):
             table = scenario_contrasts(fitted, covariance, base)
             table.insert(0, "base", base_name)

@@ -1,59 +1,137 @@
 column,group,coefficient,bootstrap_se
-zone=urban,intercept,-2.675693968,0.1254435807
-zone=through_town,intercept,-2.194643841,0.1474254432
-zone=interurban,intercept,-1.971804127,0.1247227598
-zone_province=urban|Girona,province,0.1906612675,0.100537639
-zone_province=urban|Lleida,province,-0.1540425484,0.1253230456
-zone_province=urban|Tarragona,province,-0.2302581983,0.1036067413
-zone_province=through_town|Girona,province,0.1340644214,0.148911287
-zone_province=through_town|Lleida,province,0.09584427238,0.1647195618
-zone_province=through_town|Tarragona,province,0.09543363852,0.1560686691
-zone_province=interurban|Girona,province,0.5250174416,0.06967428033
-zone_province=interurban|Lleida,province,0.4575674366,0.07775939325
-zone_province=interurban|Tarragona,province,0.6698841541,0.06774752863
-road=motorway,road,-0.08038238672,0.1391145939
-road=dual_carriageway,road,-0.2444195222,0.1056839188
-road=conventional_state,road,0.01320093136,0.06080731408
-road=conventional_provincial,road,-0.3023473437,0.07924234461
-road=conventional_local,road,-0.3331227304,0.1266589758
-road=rural_track,road,-0.3968620479,0.1407839216
-road=other_interurban,road,-0.3471333146,0.1001464778
-all:crash_type=pedestrian_struck,main,0.3076758785,0.1181669662
-all:crash_type=head_on,main,0.4734176964,0.06939888062
-all:crash_type=rear_end,main,-0.3752535916,0.08871929442
-all:crash_type=sideswipe,main,-0.4668048287,0.09293197347
-all:crash_type=run_off_road,main,0.4675607405,0.08930601489
-all:crash_type=fixed_object,main,0.4840068309,0.101670973
-all:crash_type=fall,main,-0.232182965,0.09962478483
-all:crash_type=other,main,0.02332606232,0.1039396156
-all:lighting=overcast,main,0.1038097293,0.09341212014
-all:lighting=dawn_dusk,main,0.2467607989,0.08532093746
-all:lighting=night_lit,main,0.1226269712,0.07950824961
-all:lighting=night_poorly_lit,main,0.2814894029,0.09171329051
-all:lighting=night_unlit,main,0.3536687403,0.07523756029
-all:weather=light_rain,main,-0.04792261005,0.1052656991
-all:weather=heavy_rain_snow,main,-0.2998381682,0.1365701491
-all:surface=wet,main,0.1507369983,0.1104761672
-all:surface=slippery,main,0.2318183003,0.1356276863
-all:junction=junction,main,-0.2126339068,0.05749372849
-all:junction=approach,main,-0.08922037066,0.09471834429
-all:speed_limit=10_30,main,-0.1402180856,0.1004374166
-all:speed_limit=40_50,main,-0.1321451816,0.07380486558
-all:speed_limit=60_70,main,0.08844212088,0.08133746545
-all:speed_limit=80_90,main,0.2092508671,0.0809078088
-all:speed_limit=100_120,main,0.2453578255,0.09825914203
-all:hour=00-05,main,0.3596537436,0.08951339159
-all:hour=06-09,main,0.09411843668,0.06465506002
-all:hour=14-17,main,0.08634795017,0.05703648767
-all:hour=18-21,main,0.04817834968,0.06347038291
-all:hour=22-23,main,0.3237336211,0.09754545019
-all:units=1,main,-0.08031340682,0.08992674188
-all:units=3,main,0.1052477028,0.07116419795
-all:units=4+,main,0.4425963359,0.1054321884
-all:pedestrian,main,-0.0299665565,0.1151119696
-all:bicycle,main,-0.3009166729,0.0970951583
-all:moped,main,-0.656314953,0.1098224208
-all:motorcycle,main,-0.04322682284,0.06161674316
-all:light_vehicle,main,-0.1305690085,0.07116351969
-all:heavy_vehicle,main,0.8283848093,0.06420196812
-all:other_unit,main,-0.03531100678,0.1214834162
+zone=urban,intercept,-2.948272541,0.1852595469
+zone=through_town,intercept,-2.231025077,0.1513586884
+zone=interurban,intercept,-2.008113178,0.1494761044
+zone_province=urban|Girona,province,0.1824998531,0.1011306987
+zone_province=urban|Lleida,province,-0.1347026017,0.127994717
+zone_province=urban|Tarragona,province,-0.2430170732,0.1049687287
+zone_province=through_town|Girona,province,0.1420858383,0.1437473528
+zone_province=through_town|Lleida,province,0.1104639472,0.1614423107
+zone_province=through_town|Tarragona,province,0.06623043536,0.1535143946
+zone_province=interurban|Girona,province,0.4789585383,0.07060824218
+zone_province=interurban|Lleida,province,0.4101959844,0.07793389022
+zone_province=interurban|Tarragona,province,0.6174028826,0.0680301255
+road=motorway,road,-0.05747961592,0.1377419434
+road=dual_carriageway,road,-0.1878733575,0.1049644002
+road=conventional_state,road,0.01822260205,0.06096877014
+road=conventional_provincial,road,-0.2874255058,0.07909979788
+road=conventional_local,road,-0.3406049757,0.125788065
+road=rural_track,road,-0.374720513,0.1441084586
+road=other_interurban,road,-0.3218604416,0.1037179599
+all:crash_type=pedestrian_struck,main,0.291016015,0.1138510219
+all:crash_type=head_on,main,0.1666254946,0.09512346752
+all:crash_type=rear_end,main,-0.2780515099,0.09371990189
+all:crash_type=sideswipe,main,-0.3003144636,0.08891886668
+all:crash_type=run_off_road,main,0.4568168523,0.1088858096
+all:crash_type=fixed_object,main,0.4699397379,0.1072458053
+all:crash_type=fall,main,-0.2530071571,0.08810645502
+all:crash_type=other,main,0.09619283457,0.09950857899
+all:lighting=overcast,main,0.006275638652,0.09280402291
+all:lighting=dawn_dusk,main,0.1807334646,0.08968175873
+all:lighting=night_lit,main,0.03490328296,0.1031912253
+all:lighting=night_poorly_lit,main,0.1866840022,0.08634505105
+all:lighting=night_unlit,main,0.3765263098,0.109861052
+all:weather=light_rain,main,-0.007454525552,0.09827021765
+all:weather=heavy_rain_snow,main,-0.2250764774,0.1034088058
+all:surface=wet,main,0.1281082642,0.09720036435
+all:surface=slippery,main,0.1822455486,0.1075285841
+all:junction=junction,main,-0.240780302,0.08413267285
+all:junction=approach,main,-0.01671083381,0.1020349167
+all:speed_limit=10_30,main,-0.1761416402,0.08543691097
+all:speed_limit=40_50,main,0.1546435591,0.1056989408
+all:speed_limit=60_70,main,0.4305843258,0.1113458144
+all:speed_limit=80_90,main,0.4570776605,0.1118267524
+all:speed_limit=100_120,main,0.06571230846,0.0519076609
+all:hour=00-05,main,0.2344207412,0.1004141164
+all:hour=06-09,main,0.1367767478,0.09269286114
+all:hour=14-17,main,0.004586926164,0.08787247276
+all:hour=18-21,main,-0.009948208718,0.09264824568
+all:hour=22-23,main,0.2052800726,0.09950582644
+all:units=1,main,0.0585548341,0.1033985111
+all:units=3,main,0.0831501422,0.09094520227
+all:units=4+,main,0.3109530066,0.09291839921
+all:pedestrian,main,-0.05545551087,0.1153567898
+all:bicycle,main,-0.2907848003,0.09179626006
+all:moped,main,-0.3994333617,0.1056423353
+all:motorcycle,main,0.01479988877,0.09269641734
+all:light_vehicle,main,-0.1033344326,0.09527311883
+all:heavy_vehicle,main,0.5590570831,0.08386239838
+all:other_unit,main,-0.0404420582,0.09099906565
+urban:crash_type=pedestrian_struck,zone effect,0.2345756882,0.1067514354
+urban:crash_type=head_on,zone effect,-0.2462668821,0.123424996
+urban:crash_type=rear_end,zone effect,-0.02153254893,0.1327229068
+urban:crash_type=sideswipe,zone effect,0.05521124258,0.1173830702
+urban:crash_type=run_off_road,zone effect,0.2594276644,0.1250621909
+urban:crash_type=fixed_object,zone effect,0.3047386501,0.1149703986
+urban:crash_type=fall,zone effect,-0.1218137292,0.1174000582
+urban:crash_type=other,zone effect,0.4841289292,0.1159997901
+urban:lighting=overcast,zone effect,-0.1493133695,0.1318708889
+urban:lighting=dawn_dusk,zone effect,-0.00759458086,0.1243943716
+urban:lighting=night_lit,zone effect,0.1385782134,0.1141043689
+urban:lighting=night_poorly_lit,zone effect,0.09679395878,0.1111926992
+urban:lighting=night_unlit,zone effect,0.07265440295,0.1445146112
+urban:weather=light_rain,zone effect,-0.03377278488,0.1304300065
+urban:weather=heavy_rain_snow,zone effect,-0.05958799923,0.1181311133
+urban:surface=wet,zone effect,0.04918377949,0.1265808792
+urban:surface=slippery,zone effect,0.1672896615,0.1263184722
+urban:junction=junction,zone effect,0.239978543,0.101294546
+urban:junction=approach,zone effect,0.00978239203,0.1359760849
+urban:speed_limit=10_30,zone effect,0.1530474143,0.0993900321
+urban:speed_limit=40_50,zone effect,0.300707445,0.1280846973
+urban:speed_limit=60_70,zone effect,0.5913384284,0.1541015684
+urban:speed_limit=80_90,zone effect,0.5199900541,0.1726539765
+urban:speed_limit=100_120,zone effect,-0.06400500738,0.02215738984
+urban:hour=00-05,zone effect,0.2138802129,0.1175397323
+urban:hour=06-09,zone effect,0.1093299349,0.1122548639
+urban:hour=14-17,zone effect,-0.06988715856,0.1075982938
+urban:hour=18-21,zone effect,-0.05030861869,0.1074179482
+urban:hour=22-23,zone effect,-0.02445528497,0.1194122703
+urban:units=1,zone effect,0.08999604163,0.1128574382
+urban:units=3,zone effect,0.1351163537,0.1174184048
+urban:units=4+,zone effect,0.2463319459,0.1290137419
+urban:pedestrian,zone effect,-0.01593051296,0.0978565653
+urban:bicycle,zone effect,-0.1554524477,0.124968144
+urban:moped,zone effect,-0.2285487142,0.1234718628
+urban:motorcycle,zone effect,0.0905329997,0.1110821248
+urban:light_vehicle,zone effect,-0.2170865222,0.1105422193
+urban:heavy_vehicle,zone effect,0.4381979141,0.1041815101
+urban:other_unit,zone effect,0.1476144599,0.1160105095
+interurban:crash_type=pedestrian_struck,zone effect,0.1466452881,0.1030191076
+interurban:crash_type=head_on,zone effect,0.2374547493,0.1034142184
+interurban:crash_type=rear_end,zone effect,-0.2328278283,0.09897325631
+interurban:crash_type=sideswipe,zone effect,-0.359702659,0.106694679
+interurban:crash_type=run_off_road,zone effect,0.0007048937632,0.1134863421
+interurban:crash_type=fixed_object,zone effect,-0.3100223394,0.1231216649
+interurban:crash_type=fall,zone effect,0.1764053863,0.1025302796
+interurban:crash_type=other,zone effect,-0.4741086546,0.1161260442
+interurban:lighting=overcast,zone effect,0.1405056104,0.1013199989
+interurban:lighting=dawn_dusk,zone effect,0.1231396363,0.10450753
+interurban:lighting=night_lit,zone effect,-0.07450735889,0.1223740174
+interurban:lighting=night_poorly_lit,zone effect,0.09136598555,0.1103723847
+interurban:lighting=night_unlit,zone effect,-0.03869525992,0.1160327332
+interurban:weather=light_rain,zone effect,-0.1034179979,0.1025071345
+interurban:weather=heavy_rain_snow,zone effect,-0.1307869228,0.1123270376
+interurban:surface=wet,zone effect,0.06075592474,0.1070030523
+interurban:surface=slippery,zone effect,-0.0580887625,0.1279471962
+interurban:junction=junction,zone effect,-0.07682158643,0.1052245527
+interurban:junction=approach,zone effect,-0.04893761227,0.1163195672
+interurban:speed_limit=10_30,zone effect,-0.1221143635,0.123273506
+interurban:speed_limit=40_50,zone effect,-0.6254015185,0.1153667312
+interurban:speed_limit=60_70,zone effect,-0.4810338003,0.1159836843
+interurban:speed_limit=80_90,zone effect,-0.3494670084,0.1112238546
+interurban:speed_limit=100_120,zone effect,0.1297173158,0.05438142375
+interurban:hour=00-05,zone effect,0.06988166424,0.1088223463
+interurban:hour=06-09,zone effect,-0.1410771174,0.0992909757
+interurban:hour=14-17,zone effect,0.1782553143,0.0964589595
+interurban:hour=18-21,zone effect,0.1311028454,0.1032225812
+interurban:hour=22-23,zone effect,0.2021244871,0.1091303205
+interurban:units=1,zone effect,-0.2526345711,0.1087980324
+interurban:units=3,zone effect,-0.06680453117,0.1017690374
+interurban:units=4+,zone effect,0.07812883268,0.1025289741
+interurban:pedestrian,zone effect,0.1036264407,0.1041487817
+interurban:bicycle,zone effect,0.2013901603,0.1139152378
+interurban:moped,zone effect,-0.2999613015,0.1266946926
+interurban:motorcycle,zone effect,-0.03751696814,0.09821518227
+interurban:light_vehicle,zone effect,0.246208815,0.1036625612
+interurban:heavy_vehicle,zone effect,0.2883037574,0.09835323368
+interurban:other_unit,zone effect,-0.08238666284,0.1219585138
