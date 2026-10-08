@@ -170,13 +170,18 @@ def _long_run() -> str:
         f"{_fmt_int(headline.loc[int(steep.end)])} in {int(steep.end)}, most of the fall coming "
         f"between {int(steep.start)} and {int(steep.end)}; since {int(flat.start)} the trend "
         f"shows no clear rise or fall, and {_fmt_int(deaths.loc['count', 'count'])} people died "
-        f"in {last}. Against {base}, the count and every rate changed by no more than ordinary "
-        "year-to-year variation. Against the falling trend of the 2010s, deaths per tonne of "
+        f"in {last}. Against {base}, the count of deaths and every death rate changed by no more "
+        "than ordinary year-to-year variation. Against the falling trend of the 2010s, deaths "
+        "per tonne of "
         f"road fuel in {last - 1} and {last} were higher than projected, by "
         f"{_fmt_pct(float(per_fuel_recent.min()) - 1, 0)} to "
         f"{_fmt_pct(float(per_fuel_recent.max()) - 1, 0)} depending on where that trend is "
         "taken to start.",
-        [("long-run", "Long-run trends"), ("trends", f"Since {base}")],
+        [
+            ("long-run", "Long-run trends"),
+            ("long-run#recent-years", "Recent years against the trend"),
+            ("trends", f"Since {base}"),
+        ],
     )
     severity_finding = _finding(
         "Deaths relative to traffic fell by three quarters, but the records cannot say how "
@@ -187,12 +192,7 @@ def _long_run() -> str:
         f"{_fmt_pct(1 - frequency, 0)}; counted by people admitted to hospital, deaths per "
         f"admission rose {_fmt_pct(per_admission - 1, 0)} and admissions per tonne fell "
         f"{_fmt_pct(1 - admitted, 0)}.",
-        [
-            (
-                f"long-run#crash-frequency-and-severity-{split_first}-{split_last}",
-                "Crash frequency and severity",
-            )
-        ],
+        [("long-run#frequency-and-severity", "Crash frequency and severity")],
     )
     return trend + severity_finding
 
@@ -237,11 +237,11 @@ def _drivers() -> str:
         "Per kilometre driven, car drivers aged 18–29 were involved in injury crashes about "
         f"{float(young.involved_ratio):.1f} times as often as drivers aged 45–64 in "
         f"{national_rates.YEAR} (95% interval {float(young.involved_ratio_low):.1f}–"
-        f"{float(young.involved_ratio_high):.1f}; from {float(ranges.loc['18-29', 'min']):.1f} to "
+        f"{float(young.involved_ratio_high):.1f}; {float(ranges.loc['18-29', 'min']):.1f}–"
         f"{float(ranges.loc['18-29', 'max']):.1f} under other assumptions about the kilometres), "
         f"and drivers aged 65 and over {float(older.involved_ratio):.2f} times as often (95% "
         f"interval {float(older.involved_ratio_low):.2f}–{float(older.involved_ratio_high):.2f}; "
-        f"{float(ranges.loc['65+', 'min']):.2f} to {float(ranges.loc['65+', 'max']):.2f} under "
+        f"{float(ranges.loc['65+', 'min']):.2f}–{float(ranges.loc['65+', 'max']):.2f} under "
         "the other assumptions). The kilometres by driver age are estimated from the "
         "Barcelona-area working-day travel survey applied to Spain's population.",
         [("drivers#involvement-in-crashes-per-kilometre-driven", "Drivers: crashes per kilometre")],
@@ -290,9 +290,7 @@ def _speed() -> str:
         "other crashes on the same kind of road, from "
         f"{float(lowest.rate_ratio):.1f} times on dual carriageways to "
         f"{float(highest.rate_ratio):.1f} times on urban streets, and about twice as many "
-        f"({float(adjusted.rate_ratio):.1f} times) with the road types taken together. This is "
-        "an association in police records, not an estimate of how many crashes or deaths "
-        "speeding caused.",
+        f"({float(adjusted.rate_ratio):.1f} times) with the road types taken together.",
         [("speed", "Speed"), ("factors", "Recorded factors")],
     )
 
@@ -324,7 +322,8 @@ def _models() -> str:
         },
     )
     return _finding(
-        "In Catalonia, a heavy vehicle doubles the share of severe crashes that are fatal.",
+        "In Catalonia, severe crashes with a heavy vehicle involved were fatal about twice as "
+        "often.",
         "Among crashes in Catalonia in which someone was killed or seriously injured, the same "
         "crash on a regional road was fatal "
         f"{float(heavy.ratio):.1f} times as often with a lorry or bus involved (95% interval "

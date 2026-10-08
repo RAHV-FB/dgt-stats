@@ -513,9 +513,33 @@ def test_trend_pages_show_every_denominator_and_the_projection(built: Path) -> N
         assert "mostly because crashes became less deadly" not in page
         assert "admitted to hospital" in page
     assert 'href="tables/longrun_projection_sensitivity.csv"' in long_run
-    assert "deaths per implied kilometre" in long_run
+    # The per-fuel excess is qualified by the extra growth in kilometres per tonne that would
+    # bring each of the last two years inside the trend's range, read from the drift table.
+    fit_end = int(series[series.period == "fitted"].year.max())
+    drifts = pd.read_csv(TABLES_DIR / "longrun_efficiency.csv")
+    at_pace = drifts[drifts.hypothetical_extra_annual_gain == 0].set_index("year")
+    for year in (int(fuel.year.max()) - 1, int(fuel.year.max())):
+        needed = float(at_pace.loc[year, "ratio_low"]) ** (1 / (year - fit_end)) - 1
+        assert f"{needed * 100:.1f}" in long_run, year
     assert "deaths per tonne of fuel would be" not in long_run
     assert "dual carriageways" not in long_run
+    # The two pages answer 'has it got worse?' side by side: each states the other's comparison
+    # and links to it, and the long-run page gives each year's count since the count's last
+    # turning point.
+    base = latest.loc[("deaths_30d", "road_fuel")]
+    assert f"{components._fmt_pct(float(base.ratio_to_base) - 1)} higher" in long_run
+    assert 'href="trends.html"' in long_run and 'href="long-run.html#recent-years"' in trends
+    excess = [
+        components._fmt_pct(float(ratio) - 1, 0)
+        for ratio in fuel[fuel.year >= fuel.year.max() - 1].sort_values("year").ratio
+    ]
+    assert f"{excess[0]} and {excess[1]} above the projected trend" in trends
+    counts = pd.read_csv(TABLES_DIR / "q1_annual_headline.csv").set_index("year").deaths_30d
+    plateau = int(
+        pd.read_csv(TABLES_DIR / "longrun_segments.csv").query("measure == 'count'").start.max()
+    )
+    for year in range(plateau, int(fuel.year.max()) + 1):
+        assert f'<td class="num">{components._fmt_int(counts.loc[year])}</td>' in long_run, year
     for page in (trends, (built / "vehicles.html").read_text(encoding="utf-8")):
         assert "cannot be joined" not in page and "different method" not in page
     assert "deaths per tonne of fuel would show" not in trends
@@ -528,7 +552,7 @@ def test_trend_pages_show_every_denominator_and_the_projection(built: Path) -> N
     fuel_effects = effects[effects.exposure == "road_fuel_tonnes"].set_index("month")
     for month in (7, 8):
         assert fuel_effects.loc[month, "low"] > 1
-        assert components._times(float(fuel_effects.loc[month, "rate_ratio"])) in seasons
+        assert f"{float(fuel_effects.loc[month, 'rate_ratio']):.2f} times" in seasons
     assert "per unit of petrol" not in seasons.lower()
 
 
@@ -617,7 +641,8 @@ def test_front_page_is_an_overview_of_the_study(built: Path) -> None:
         in (sections["Main findings"])
     )
     spread = pd.read_csv(TABLES_DIR / "risk_national_sensitivity.csv").groupby("group")
-    assert f"from {spread.involved_ratio.min()['18-29']:.1f} to" in sections["Main findings"]
+    span = f"{spread.involved_ratio.min()['18-29']:.1f}–{spread.involved_ratio.max()['18-29']:.1f}"
+    assert f"; {span} under other assumptions" in sections["Main findings"]
     assert "nearly seven" not in sections["Main findings"]
     # A reader can follow the front page without the modelling vocabulary of the deeper pages.
     visible = re.sub(r"<[^>]+>", " ", body)

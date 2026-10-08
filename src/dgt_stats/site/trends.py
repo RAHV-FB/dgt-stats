@@ -1,4 +1,5 @@
-"""Deaths, hospital admissions and injury crashes from the base year to the last, as counts and rates."""
+"""Deaths, hospital admissions and injury crashes in the last year against the base year, as counts
+and rates, with the per-fuel death rate also read against the long-run page's pre-pandemic trend."""
 
 from __future__ import annotations
 
@@ -19,8 +20,9 @@ from dgt_stats.site.components import (
     render_page,
     summary,
     table,
+    technical,
 )
-from dgt_stats.site.numbers import _risk_numbers
+from dgt_stats.site.numbers import _long_run_numbers, _risk_numbers
 
 # The words that follow a change under each denominator.
 PER = {
@@ -176,21 +178,63 @@ def page_trends(captions: dict[str, str]) -> str:
         "urban injury crashes stepped up early in the scatter window while interurban ones did not",
     )
 
+    # The same rate against the pre-pandemic trend, as the long-run page reads it: the main
+    # projection, and the one whose last segment starts with the count's.
+    long_run = _long_run_numbers()
+    fuel_projected = long_run["projected"].loc["road_fuel"]
+    fit_end = int(long_run["series"].query("period == 'fitted'").year.max())
+    fuel_trend = long_run["series"].query("measure == 'road_fuel' and period == 'projected'")
+    trend_start = int(fuel_trend.projection_start.iloc[0])
+    trend_slope = float(fuel_trend.projection_annual_change.iloc[0])
+    count_trend = long_run["segments"].query("measure == 'count'").start.max()
+    later = read_table("longrun_projection_sensitivity").set_index(["measure", "variant", "year"])
+    recent = (last - 1, last)
+    above = [fuel_projected.loc[year] for year in recent]
+    later_rows = [later.loc[("road_fuel", f"start_{int(count_trend)}", year)] for year in recent]
+    _check(
+        long_run["last"] == last and fit_end == base,
+        "the long-run projection ends in this page's last year and starts after its base year",
+    )
+    _check(
+        all(bool(row.outside_interval) and float(row.ratio) > 1 for row in above),
+        "per tonne of fuel, the last two years lie above the pre-pandemic trend's range",
+    )
+    _check(
+        trend_slope < 0 and int(count_trend) > trend_start,
+        "the per-fuel trend was falling, and a later start is the count's last turning point",
+    )
+    _check(
+        all(float(row.ratio) > 1 for row in later_rows)
+        and all(float(b.ratio) < float(a.ratio) for a, b in zip(above, later_rows)),
+        "a trend started later leaves smaller excesses, both still above the trend",
+    )
+    count_projection = long_run["series"].query("measure == 'count' and period == 'projected'")
+    _check(
+        abs(float(count_projection.projection_dispersion.iloc[0]) - dispersion["deaths_30d"]) < 1e-9
+        and int(count_projection.projection_start.iloc[0]) == scatter_first,
+        "the long-run projection of the count uses the same years and scatter for deaths",
+    )
+
     def interval(row: pd.Series) -> str:
         return f"{_change(float(row.ratio_low_yty))} to {_change(float(row.ratio_high_yty))}"
 
     def size(frame: pd.DataFrame, key: str) -> str:
         return _size(float(frame.loc[key, "ratio_to_base"]))
 
+    recent_link = '<a href="long-run.html#recent-years">Long-run trends</a>'
     body = summary(
         f"Spain recorded {_fmt_int(deaths.loc['count', 'count'])} road deaths in {last}, "
-        f"{size(deaths, 'count')} more than in {base}. As a rate, the change depends on what the "
-        f"deaths are divided by: per resident they fell {size(deaths, 'residents')}, and per "
-        f"tonne of road fuel sold they rose {size(deaths, 'road_fuel')}. Under every "
-        "denominator, including drivers per licence holder and vehicle occupants per registered "
-        "vehicle, the change lies within the ordinary year-to-year variation of the annual "
-        "count. The number of people admitted to hospital after a crash rose "
-        f"{size(hosp, 'count')} as a count, at the edge of that variation, and "
+        f"{size(deaths, 'count')} more than in {base}. Per resident they fell "
+        f"{size(deaths, 'residents')}, and per tonne of road fuel sold they rose "
+        f"{size(deaths, 'road_fuel')}. Under every denominator, the change from {base} lies "
+        "within the ordinary year-to-year variation of the annual count. Set against the trend "
+        f"of {trend_start}–{fit_end} instead, when deaths per tonne of fuel were falling about "
+        f"{_fmt_pct(-trend_slope, 0)} a year, the rate in {last - 1} and {last} was "
+        f"{_size(above[0].ratio, 0)} and {_size(above[1].ratio, 0)} above the projected trend, "
+        f"outside its range, or {_size(later_rows[0].ratio, 0)} and "
+        f"{_size(later_rows[1].ratio, 0)} for a trend started in {int(count_trend)} "
+        f"({recent_link}). The number of people admitted to hospital after a crash rose "
+        f"{size(hosp, 'count')} as a count, at the edge of ordinary variation, and "
         f"{size(hosp, 'road_fuel')} per tonne of road fuel, beyond it."
     )
     body += figure(
@@ -203,28 +247,18 @@ def page_trends(captions: dict[str, str]) -> str:
         captions,
     )
 
-    # Ordinary variation: explained before the table that uses it.
     crash_width = (dispersion["crashes"] ** 0.5) * quantile / NORMAL_QUANTILE
     body += (
-        "<h2>Ordinary year-to-year variation</h2>"
-        "<p>Annual counts move around their trend more than pure chance would make them. Over "
-        f"{scatter_years}, the last segment of the long-run trend before the pandemic, the "
-        f"variance around the trend was {_fmt_dec(dispersion['deaths_30d'])} times the "
-        "pure-chance (Poisson) variance for deaths, "
-        f"{_fmt_dec(dispersion['hospitalised_30d'])} times for hospital admissions and "
-        f"{_fmt_dec(dispersion['crashes'], 0)} times for injury crashes. Each interval in the "
-        "table is widened by the square root of its own count's factor, so that it spans an "
-        "ordinary year's movement: a change outside it is larger than the count usually moves "
-        "from one year to the next. Each factor rests on "
-        f"{WORDS[scatter_last - scatter_first + 1]} years and is itself uncertain: the 95% "
-        f"interval of the factor for deaths runs from {_fmt_dec(deaths_scatter.dispersion_low)} "
-        f"to {_fmt_dec(deaths_scatter.dispersion_high)}. The intervals therefore use Student's "
-        f"t distribution with the trend fit's {WORDS[df_resid]} residual degrees of freedom "
-        f"instead of the normal distribution, which widens them by {_fmt_pct(widening, 0)}.</p>"
+        "<h2>Deaths moved within ordinary variation, but hospital admissions per tonne of fuel "
+        "rose beyond it</h2>"
+        "<p>An ordinary year's variation is how far each annual count moved around its trend "
+        f"over {scatter_years}, the last segment of the long-run trend before the pandemic. A "
+        "change outside the interval in the table is larger than the count usually moves from "
+        "one year to the next.</p>"
     )
     rows = []
-    for frame in (deaths, hosp):
-        for key in PER:
+    for frame, keys in ((deaths, list(PER)), (hosp, list(PER)), (crashes, crash_keys)):
+        for key in keys:
             row = frame.loc[key]
             rows.append(
                 {
@@ -236,17 +270,17 @@ def page_trends(captions: dict[str, str]) -> str:
             )
     body += table(
         pd.DataFrame(rows),
-        f"Deaths and hospital admissions in {last} against {base}, under each denominator. The "
-        f"interval covers ordinary year-to-year variation around the {scatter_years} trend.",
+        f"Deaths, hospital admissions and injury crashes in {last} against {base}, under each "
+        "denominator. The interval covers ordinary year-to-year variation around the "
+        f"{scatter_years} trend.",
     )
-
     falls = "fall" if len(crash_poisson) == 1 else "falls"
     body += (
         "<p>Injury crashes fell "
         f"{_join([f'{size(crashes, k)} {PER[k]}' for k in crash_keys])}."
         + (
-            f" A pure Poisson interval would treat the {falls} "
-            f"{_join([PER[k] for k in crash_poisson])} as real changes; against the "
+            f" Judged against pure chance alone, the {falls} "
+            f"{_join([PER[k] for k in crash_poisson])} would be real changes; against the "
             f"{scatter_years} scatter none of them stands out."
             if crash_poisson
             else f" None of these falls stands out against the {scatter_years} scatter."
@@ -255,9 +289,10 @@ def page_trends(captions: dict[str, str]) -> str:
         f"{scatter_first} and {step_end} recorded urban injury crashes rose "
         f"{_fmt_pct(urban_step, 0)} while interurban ones fell {_fmt_pct(-interurban_step, 0)}, "
         "a step that a straight trend cannot follow, so the crash intervals are about "
-        f"{crash_width:.0f} times as wide as Poisson intervals and too wide to say whether the "
-        "falls are larger than an ordinary year. DGT's yearbook does not split injury crashes "
-        "by vehicle type, so they have no rate per licence holder or registered vehicle.</p>"
+        f"{crash_width:.0f} times as wide as pure-chance intervals and too wide to say whether "
+        "the falls are larger than an ordinary year. DGT's yearbook does not split injury "
+        "crashes by vehicle type, so they have no rate per licence holder or registered "
+        "vehicle.</p>"
         "<p>Per resident, and for drivers per licence holder and occupants per registered "
         "vehicle, the rise in hospital admissions stays within ordinary variation. Admissions "
         "rose while the number of injury crashes fell, so more people were admitted to "
@@ -265,31 +300,44 @@ def page_trends(captions: dict[str, str]) -> str:
         "admissions back to crashes, or both. A change in tracing would move the series without "
         "any change on the road, and the tables cannot separate the two.</p>"
     )
+    body += technical(
+        "How ordinary variation was measured",
+        "<p>Annual counts move around their trend more than pure chance would make them. Over "
+        f"{scatter_years} the variance around the trend was "
+        f"{_fmt_dec(dispersion['deaths_30d'])} times the pure-chance (Poisson) variance for "
+        f"deaths, {_fmt_dec(dispersion['hospitalised_30d'])} times for hospital admissions and "
+        f"{_fmt_dec(dispersion['crashes'], 0)} times for injury crashes. Each interval in the "
+        "table is widened by the square root of its own count's factor. Each factor rests on "
+        f"{WORDS[scatter_last - scatter_first + 1]} years and is itself uncertain: the 95% "
+        f"interval of the factor for deaths runs from {_fmt_dec(deaths_scatter.dispersion_low)} "
+        f"to {_fmt_dec(deaths_scatter.dispersion_high)}. The intervals therefore use Student's "
+        f"t distribution with the trend fit's {WORDS[df_resid]} residual degrees of freedom "
+        f"instead of the normal distribution, which widens them by {_fmt_pct(widening, 0)}. The "
+        f'factor for deaths is the one <a href="long-run.html">Long-run trends</a> uses to '
+        f"project the count from {fit_end + 1}.</p>",
+    )
 
-    # Why the same deaths read differently under each denominator, argued from the table above.
     body += (
-        "<h2>Denominators and what they measure</h2>"
-        "<p>Each denominator answers a different question. Residents measure a "
-        "population: deaths per resident describe the burden of road deaths on everyone living "
-        "in Spain, whether or not they travel. Licence holders and registered vehicles measure "
-        "who or what could be on the road, without saying how much each is used. Road fuel sold "
-        "comes closest to measuring traffic itself. A denominator can be set only against the "
-        "casualties it could contain: pedestrians and cyclists hold no licence for their journey "
-        "and travel in no registered vehicle, so licence holders divide only the deaths of "
-        "drivers, and the fleet only those of occupants, of motorcycles, cars, vans, trucks and "
-        "buses. Bicycles and personal mobility vehicles are left out of both because they need "
-        "neither a licence nor a registration. Mopeds are left out because it is not "
-        "established whether the fleet counts them, and the two numerators are kept to the same "
-        "vehicles. The yearbook's category of other vehicles is left out because it held "
-        "personal mobility vehicles until they were given their own category.</p>"
-        f"<p>Between {base} and {last} the denominators themselves moved apart: the population "
-        f"grew {_fmt_pct(moved['residents'] - 1)}, licence holders "
-        f"{_fmt_pct(moved['licence_holders'] - 1)} and the registered fleet "
+        "<h2>The rates part because the population grew while fuel sales fell</h2>"
+        f"<p>Between {base} and {last} the population grew {_fmt_pct(moved['residents'] - 1)}, "
+        f"licence holders {_fmt_pct(moved['licence_holders'] - 1)} and the registered fleet "
         f"{_fmt_pct(moved['vehicles'] - 1)}, while road fuel sold fell "
-        f"{_fmt_pct(1 - moved['road_fuel'])}. The same deaths therefore fall per resident and "
-        "rise per tonne of fuel. Both rates are correct, and they describe different things: "
-        "the burden on a population, and deaths in proportion to the traffic that fuel stands "
-        "for.</p>"
+        f"{_fmt_pct(1 - moved['road_fuel'])}. The same deaths therefore fall per resident, a "
+        "measure of the burden on everyone living in Spain whether or not they travel, and rise "
+        "per tonne of fuel, a measure against the traffic that fuel stands for. Licence holders "
+        "and registered vehicles measure who or what could be on the road, without saying how "
+        "much each is used, and each divides only the casualties it could contain: pedestrians "
+        "and cyclists hold no licence for their journey and travel in no registered vehicle.</p>"
+    )
+    body += technical(
+        "Which casualties each denominator divides",
+        "<p>Licence holders divide only the deaths and admissions of drivers, and the fleet "
+        "only those of occupants, of motorcycles, cars, vans, trucks and buses. Bicycles and "
+        "personal mobility vehicles are left out of both because they need neither a licence "
+        "nor a registration. Mopeds are left out because it is not established whether the "
+        "fleet counts them, and the two numerators are kept to the same vehicles. The "
+        "yearbook's category of other vehicles is left out because it held personal mobility "
+        "vehicles until they were given their own category.</p>",
     )
 
     last_rows = efficiency[(efficiency.year == last) & (efficiency.outcome == "deaths_30d")]
@@ -327,22 +375,23 @@ def page_trends(captions: dict[str, str]) -> str:
         "vehicle types use the first year of the kilometre series and driver age the last",
     )
     body += (
-        '<h2 id="road-fuel">Road fuel as a measure of traffic</h2>'
-        "<p>Deaths are best related to the kilometres travelled, but no Spanish source counts "
-        "vehicle-kilometres on all roads every year, and road fuel sold stands in for them. The "
-        "kilometres a tonne represents can change with fuel economy, electric driving, "
-        "the mix of freight and private travel, and fuel bought in Spain but burnt elsewhere, "
-        "and no available series measures that drift on all roads since "
-        f"{base}. The change per tonne of fuel therefore cannot be converted into a change per "
-        "kilometre. A hypothetical case shows how much depends on it: had kilometres per tonne "
-        f"grown {_fmt_pct(gains[0], 0)} a year since {base}, deaths per kilometre would show "
-        f"{_rise_or_fall(float(by_gain.loc[gains[0], 'ratio_to_base']))} where deaths per "
-        f"tonne of fuel show {_rise_or_fall(float(by_gain.loc[0.0, 'ratio_to_base']))}; at "
+        '<h2 id="road-fuel">Road fuel stands in for kilometres driven, which no source counts '
+        "on all roads</h2>"
+        "<p>No Spanish source counts vehicle-kilometres on all roads every year, and road fuel "
+        "sold stands in for them. The kilometres a tonne represents can change with fuel "
+        "economy, electric driving, the mix of freight and private travel, and fuel bought in "
+        "Spain but burnt elsewhere, and no available series measures that drift on all roads "
+        f"since {base}. The change per tonne of fuel therefore cannot be converted into a "
+        "change per kilometre. A hypothetical case shows how much depends on it: had kilometres "
+        f"per tonne grown {_fmt_pct(gains[0], 0)} a year since {base}, deaths per kilometre "
+        f"would show {_rise_or_fall(float(by_gain.loc[gains[0], 'ratio_to_base']))} where deaths "
+        f"per tonne of fuel show {_rise_or_fall(float(by_gain.loc[0.0, 'ratio_to_base']))}; at "
         f"{_fmt_pct(gains[1], 0)} a year, "
         f"{_rise_or_fall(float(by_gain.loc[gains[1], 'ratio_to_base']))}. These growth rates are "
-        'illustrative assumptions. <a href="long-run.html">Long-run trends</a> sets the latest '
-        "years against the pre-pandemic trend, per tonne of fuel and per measured interurban "
-        "kilometre.</p>"
+        "illustrative assumptions. The same drift bears on how far deaths per tonne of fuel lie "
+        f"above the pre-pandemic trend ({recent_link}). On interurban roads the Ministerio de "
+        'Transportes measures the kilometres, and <a href="long-run.html#interurban">Long-run '
+        "trends</a> sets deaths per measured kilometre against their trend.</p>"
         f"<p>DGT's kilometre release of {km_last} gives the mean distance driven per vehicle "
         f"for {_join([str(y) for y in km_years])} as one series, estimated from roadworthiness "
         f"inspections, and its {km_first} values are those of DGT's {km_first} release. By "
@@ -375,7 +424,7 @@ def page_trends(captions: dict[str, str]) -> str:
     )
     return render_page(
         "trends",
-        f"Road deaths and injuries, {base}–{last}",
+        f"Road deaths and injuries in {last} against {base}",
         f"Deaths, hospital admissions and injury crashes in Spain in {last} compared with "
         f"{base}, as counts and as rates per resident, licence holder, registered vehicle and "
         "tonne of road fuel sold.",
