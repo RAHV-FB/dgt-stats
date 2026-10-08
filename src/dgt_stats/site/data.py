@@ -35,7 +35,14 @@ from dgt_stats.site.components import (
     table,
 )
 from dgt_stats.site.long_run import _where
-from dgt_stats.site.numbers import FAIL, INTERMEDIATE, PASS, _driver_numbers, _older_numbers
+from dgt_stats.site.numbers import (
+    FAIL,
+    INTERMEDIATE,
+    PASS,
+    _driver_numbers,
+    _older_numbers,
+    joint_interval,
+)
 from dgt_stats.site.regional_common import _year_label
 
 TITLES = dict(ALL_PAGES)
@@ -1115,7 +1122,7 @@ def _assumption_rows() -> list[tuple[str, str, str]]:
             "Conditional. Licence holding falls alike in the three places, which is consistent "
             "with the assumption but does not test the kilometres. On the Madrid pattern, 75 and "
             f"over: {float(oldest.ratio_to_45_64):.2f} (95% sampling interval "
-            f"{float(oldest.ratio_low):.2f}–{float(oldest.ratio_high):.2f}). Sensitivity range "
+            f"{joint_interval(oldest)}). Sensitivity range "
             f"{oldest_range[0]:.2f}–{oldest_range[1]:.2f}; below about {oldest_clear:.1f} only "
             "with equal kilometres per licence holder, which Spanish surveys of men's driving "
             f"contradict; {oldest_tier}. Rising licence holding since {madrid_year} would lower "

@@ -9,6 +9,7 @@ from dgt_stats import site, summaries
 from dgt_stats.exposure_risk import national
 from dgt_stats.paths import FIGURES_DIR, PROJECT_ROOT, TABLES_DIR
 from dgt_stats.site import components
+from dgt_stats.site import numbers as site_numbers
 from dgt_stats.site.script import JS_FLAG
 
 # The national analysis pages in navigation order; then the regional, model, validation and
@@ -391,6 +392,8 @@ def test_drivers_page_separates_the_two_questions(built: Path) -> None:
     # estimate at one decimal, named by its assumption.
     full = f"{older_range.min():.2f} to {older_range.max():.2f}"
     assert f"the sensitivity range is {full} times the 45–64 rate" in opening
+    # Madrid's survey is a Spanish source that separates the ages, for Madrid only.
+    assert "no source for Spain separates" in opening and "no Spanish source" not in opening
     split = pd.read_csv(TABLES_DIR / "risk_older_split.csv")
     madrid = split[(split.assumption == national.REFERENCE_SPLIT) & (split.group == "75+")].iloc[0]
     conditional = (
@@ -402,12 +405,18 @@ def test_drivers_page_separates_the_two_questions(built: Path) -> None:
     extremes = pd.read_csv(TABLES_DIR / "risk_older_extremes.csv").set_index(["group", "end"])
     lowest = extremes.loc[("75+", "lowest unmarked")]
     unmarked = older_rows[~older_rows.at_odds_with_mens_driving].ratio_75_plus
+    # The opening gives one clause on what the range allows, worded so that no reader can take
+    # "not established under every assumption" for "established under none".
     if unmarked.min() > 1 and lowest.ratio_low <= 1:
-        assert "sampling error alone could bring them down to it" in opening
+        assert (
+            "so these data cannot show that they are involved more often per kilometre whatever "
+            "the assumption, nor by how much" in opening
+        )
     elif unmarked.min() > 1 and lowest.ratio_low > 1 and madrid.ratio_low > 1:
         assert "even allowing for sampling error" in opening
     else:
-        assert "Some combinations consistent with Spanish surveys" in opening
+        assert "whether they are involved more or less often per kilometre is not" in opening
+    assert "not established under every assumption" not in body
     # Counted results, the conditional estimate and the range are told apart for 75 and over.
     section = body[body.find('id="ages-75-and-over"') : body.find('id="men-and-women"')]
     for label in ("Counted.", "Conditional estimate.", "Across the assumptions."):
@@ -423,7 +432,14 @@ def test_drivers_page_separates_the_two_questions(built: Path) -> None:
     assert f"previously {madrid.ratio_low_split_fixed:.2f}–{madrid.ratio_high_split_fixed:.2f}" in (
         section
     )
-    assert f"({madrid.ratio_low:.2f}–{madrid.ratio_high:.2f})" in section
+    # The joint interval is printed to the decimals its Monte Carlo error supports.
+    digits = site_numbers.mc_digits(madrid.mc_se_low, madrid.mc_se_high)
+    assert digits < 2
+    assert f"(95% sampling interval {site_numbers.joint_interval(madrid)})" in section
+    assert f"{madrid.ratio_low:.2f}–{madrid.ratio_high:.2f}" not in body
+    # Table 5 explains its two puzzling rows.
+    assert "the fall in licence holding at 75 and over is counted a second time" in section
+    assert components.esc("upper limit is on men's kilometres") in section
     # Figure references are computed: Figures 1 and 3 are the per-km chart and its breakdown.
     numbers = re.findall(r'<span class="figure-label">Figure (\d+)\.</span>', body)
     names = re.findall(r'id="figure-([a-z0-9_]+)"', body)
@@ -442,8 +458,12 @@ def test_drivers_page_separates_the_two_questions(built: Path) -> None:
         (city_older.assumption == national.REFERENCE_SPLIT) & (city_older.age == "75+")
     ]
     assert f"With {int(city_madrid.drivers_involved.iloc[0])} drivers aged 75" in section
-    for row in city_madrid.itertuples():
-        assert f"{row.ratio_low:.2f}–{row.ratio_high:.2f}" in section
+    for _, row in city_madrid.iterrows():
+        assert site_numbers.joint_interval(row) in section
+    # The check is inconclusive because the figures disagree and some intervals reach 1, not
+    # because every interval is wide.
+    assert "include the 45–64 rate under" in section
+    assert "each figure has a wide 95% sampling interval" not in section
     # Table 1 names the rows of the published CSV it reproduces, and has no jargon column.
     assert f"method “{young.method}” and kilometre total “{young.km_total}”" in body
     assert "bootstrap replicates are not published" in body
@@ -805,6 +825,8 @@ def test_front_page_is_an_overview_of_the_study(built: Path) -> None:
     )
     if lowest.value > 1 >= lowest.ratio_low:
         assert "but the lowest not clearly so once sampling error is allowed for" in finding
+    # The 75+ figures link to the section that sets out their conditions.
+    assert 'href="drivers.html#ages-75-and-over"' in finding
     assert "nearly seven" not in sections["Main findings"]
     # While the 65-and-over range includes the 45-64 rate, no direction is claimed for it.
     if spread.involved_ratio.min()["65+"] < 1 < spread.involved_ratio.max()["65+"]:
@@ -899,8 +921,7 @@ def test_methodology_lists_every_assumption_the_methods_document_tests(built: Pa
     older_rows = pd.read_csv(TABLES_DIR / "risk_older_sensitivity.csv").ratio_75_plus
     assert "Conditional." in oldest and "contradict" in oldest
     assert (
-        f"{madrid.ratio_to_45_64:.2f} (95% sampling interval {madrid.ratio_low:.2f}–"
-        f"{madrid.ratio_high:.2f})"
+        f"{madrid.ratio_to_45_64:.2f} (95% sampling interval {site_numbers.joint_interval(madrid)})"
     ) in oldest
     assert f"{older_rows.min():.2f}–{older_rows.max():.2f}" in oldest
     # The rows added by the national corrections carry numbers from their tables.

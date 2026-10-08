@@ -31,6 +31,7 @@ from dgt_stats.site.numbers import (
     _older_numbers,
     _risk_numbers,
     _speed_numbers,
+    joint_interval,
 )
 
 NUMBER_WORDS = {0: "none", 1: "one", 2: "two", 3: "all three"}
@@ -297,11 +298,17 @@ def _drivers() -> str:
         f"{direction}. If people aged 75 and over drive as much less than those aged 65–74 as "
         f"in Madrid in {edm2018.SURVEY_YEAR}, they were involved about "
         f"{float(estimate.ratio_to_45_64):.1f} times as often (95% sampling interval "
-        f"{float(estimate.ratio_low):.1f}–{float(estimate.ratio_high):.1f}). The "
+        f"{joint_interval(estimate, 1)}). The "
         "kilometres by driver age are estimated from a Barcelona-area survey of working days, "
         "which accounts for about half of DGT's car kilometres. Involvement counts every driver "
         "in a crash, whoever caused it.",
-        [("drivers#involvement-in-crashes-per-kilometre-driven", "Drivers: crashes per kilometre")],
+        [
+            (
+                "drivers#involvement-in-crashes-per-kilometre-driven",
+                "Drivers: crashes per kilometre",
+            ),
+            ("drivers#ages-75-and-over", "Drivers: ages 75 and over"),
+        ],
     )
     return deaths + per_km
 
