@@ -17,6 +17,7 @@ from dgt_stats.site.components import (
     PAGE_QUESTIONS,
     _fmt_int,
     _fmt_pct,
+    definition_link,
     esc,
     read_table,
     render_page,
@@ -33,6 +34,7 @@ from dgt_stats.site.numbers import (
     _risk_numbers,
     _speed_numbers,
     joint_interval,
+    rate_interval,
 )
 
 NUMBER_WORDS = {0: "none", 1: "one", 2: "two", 3: "all three"}
@@ -277,14 +279,14 @@ def _drivers() -> str:
     direction = OLDER_CONCLUSION[tier]
     per_km = _finding(
         "Young drivers are in more crashes for the distance they drive.",
-        "Per kilometre driven, car drivers aged 18–29 were involved in injury crashes about "
-        f"{float(young.involved_ratio):.1f} times as often as drivers aged 45–64 in "
-        f"{national_rates.YEAR} (95% sampling interval {float(young.involved_ratio_low):.1f}–"
-        f"{float(young.involved_ratio_high):.1f}; sensitivity range "
-        f"{float(ranges.loc['18-29', 'min']):.1f}–{float(ranges.loc['18-29', 'max']):.1f}). "
+        "Per kilometre driven, car drivers aged 18–29 were involved in injury crashes "
+        f"{float(young.involved_ratio):.2f} times as often as drivers aged 45–64 in "
+        f"{national_rates.YEAR} (95% {definition_link('Sampling interval')} "
+        f"{rate_interval(young, 'involved_ratio')}; {definition_link('Sensitivity range')} "
+        f"{float(ranges.loc['18-29', 'min']):.2f}–{float(ranges.loc['18-29', 'max']):.2f}). "
         f"For drivers aged 65 and over the central estimate is {float(older.involved_ratio):.2f} "
-        f"times (95% sampling interval {float(older.involved_ratio_low):.2f}–"
-        f"{float(older.involved_ratio_high):.2f}), but the sensitivity range is "
+        f"times (95% sampling interval {rate_interval(older, 'involved_ratio')}), but the "
+        "sensitivity range is "
         f"{float(ranges.loc['65+', 'min']):.2f}–{float(ranges.loc['65+', 'max']):.2f}, so "
         "whether they are involved more or less often per kilometre is not established. For "
         "drivers aged 75 and over no source measures their kilometres apart from those at "
@@ -293,7 +295,8 @@ def _drivers() -> str:
         f"{direction}. If people aged 75 and over drive as much less than those aged 65–74 as "
         f"in Madrid in {edm2018.SURVEY_YEAR}, they were involved about "
         f"{float(estimate.ratio_to_45_64):.1f} times as often (95% sampling interval "
-        f"{joint_interval(estimate, 1)}). The "
+        f"{joint_interval(estimate, 1)}), a {definition_link('Conditional estimate')} that holds "
+        "only on that assumption. The "
         "kilometres by driver age come from a Barcelona-area survey of working days. Carried to "
         "Spain's population, the survey's working-day driving adds up to about half of DGT's car "
         "kilometres; the central estimate gives the rest the same age mix, and the sensitivity "

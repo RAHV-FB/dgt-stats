@@ -21,6 +21,7 @@ from dgt_stats.microdata.validation import dgt_audit, transport
 from dgt_stats.paths import RAW_DATA_DIR, TABLES_DIR
 from dgt_stats.site.components import (
     ALL_PAGES,
+    DEFINITION_IDS,
     DOCS_URL,
     REPO_URL,
     _fmt_dec,
@@ -208,8 +209,25 @@ def _definitions() -> str:
             "A model judged only on records not used to fit it, and kept only if it ranks those "
             "records better than a simple table of the same data.",
         ),
+        (
+            "Sampling interval",
+            "A 95% interval that allows only for chance: which people a survey happened to "
+            "sample, and chance in the counts of crashes. It takes every other choice of the "
+            "analysis as given, so the real uncertainty can be much wider.",
+        ),
+        (
+            "Sensitivity range",
+            "The span of an estimate across the alternative assumptions tested. It carries no "
+            "probability, and it is not a limit: assumptions not tested, or tested ones combined "
+            "differently, could fall outside it.",
+        ),
+        (
+            "Conditional estimate",
+            "An estimate that holds only if a stated assumption holds, and is always printed with "
+            "it; its sampling interval holds the assumption fixed.",
+        ),
     ]
-    return '<h2 id="definitions">Definitions</h2>' + facts(items, "Definitions")
+    return '<h2 id="definitions">Definitions</h2>' + facts(items, "Definitions", DEFINITION_IDS)
 
 
 # ----------------------------------------------------------------------------- rates

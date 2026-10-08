@@ -161,24 +161,70 @@ OLDER_CONCLUSION = {
 MC_MARGIN = 3
 
 
-def mc_digits(*standard_errors: float) -> int:
+def mc_digits(*standard_errors: float, coarsest: int = 0) -> int:
     """The decimals that Monte Carlo standard errors support: the unit of the last digit printed
-    is at least twice the largest error (two decimals need errors up to 0.005, one up to 0.05).
-    Another set of the surveys' replicates would then rarely change the printed figure by more
-    than one unit of its last digit."""
+    is at least twice the largest error (two decimals need errors up to 0.005, one up to 0.05,
+    whole numbers up to 0.5, tens, digits -1, up to 5). Another set of the surveys' replicates
+    would then rarely change the printed figure by more than one unit of its last digit. No
+    figure is printed coarser than ``coarsest`` decimals."""
     worst = max(float(se) for se in standard_errors)
-    for digits in (2, 1):
+    for digits in range(2, coarsest, -1):
         if 2 * worst <= 10.0**-digits:
             return digits
-    return 0
+    return coarsest
+
+
+def _fixed(value: float, digits: int) -> str:
+    """``value`` to ``digits`` decimals; negative digits round to tens, hundreds..."""
+    if digits >= 0:
+        return f"{float(value):,.{digits}f}"
+    return f"{round(float(value), digits):,.0f}"
+
+
+def mc_interval(
+    low: float,
+    high: float,
+    se_low: float,
+    se_high: float,
+    digits: int | None = None,
+    sep: str = "–",
+    coarsest: int = 0,
+) -> str:
+    """A sampling interval printed at the precision its Monte Carlo errors support
+    (:func:`mc_digits`), or at ``digits`` if that is coarser."""
+    supported = mc_digits(se_low, se_high, coarsest=coarsest)
+    shown = supported if digits is None else min(digits, supported)
+    return f"{_fixed(low, shown)}{sep}{_fixed(high, shown)}"
 
 
 def joint_interval(row: pd.Series, digits: int | None = None, sep: str = "–") -> str:
     """A joint sampling interval (``ratio_low``, ``ratio_high``) printed at the precision its Monte
     Carlo errors (``mc_se_low``, ``mc_se_high``) support, or at ``digits`` if that is coarser."""
-    supported = mc_digits(row["mc_se_low"], row["mc_se_high"])
-    shown = supported if digits is None else min(digits, supported)
-    return f"{float(row['ratio_low']):.{shown}f}{sep}{float(row['ratio_high']):.{shown}f}"
+    return mc_interval(
+        row["ratio_low"], row["ratio_high"], row["mc_se_low"], row["mc_se_high"], digits, sep
+    )
+
+
+def rate_interval(row: pd.Series, column: str, sep: str = "–", coarsest: int = 0) -> str:
+    """The interval of ``column`` in a row of ``risk_national_rates`` (``{column}_low``,
+    ``{column}_high``, with ``{column}_mc_se_low`` and ``_high``) at the precision its Monte Carlo
+    errors support. Rates per billion km pass ``coarsest=-2`` to round to tens if need be."""
+    return mc_interval(
+        row[f"{column}_low"],
+        row[f"{column}_high"],
+        row[f"{column}_mc_se_low"],
+        row[f"{column}_mc_se_high"],
+        sep=sep,
+        coarsest=coarsest,
+    )
+
+
+def side_of_one_shown(value: float, se: float, *standard_errors: float) -> bool:
+    """Whether a sentence may rest on which side of 1 an interval end lies: the end stands
+    :data:`MC_MARGIN` Monte Carlo standard errors clear of 1, and printed at the precision the
+    interval's errors (``standard_errors``, both ends') support it does not read as 1."""
+    digits = mc_digits(*standard_errors)
+    return abs(float(value) - 1) >= MC_MARGIN * float(se) and round(float(value), digits) != 1
 
 
 def _older_numbers() -> dict[str, object]:

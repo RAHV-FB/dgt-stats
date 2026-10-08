@@ -384,6 +384,37 @@ def test_severity_page_leads_with_the_adverse_finding(built: Path) -> None:
     assert "no fields for drivers" not in text
 
 
+def test_intervals_are_printed_at_the_precision_their_monte_carlo_error_supports() -> None:
+    # A unit of the last digit at least twice the larger error of the two ends.
+    assert site_numbers.mc_digits(0.004, 0.002) == 2
+    assert site_numbers.mc_digits(0.006, 0.002) == 1
+    assert site_numbers.mc_digits(0.06) == 0
+    assert site_numbers.mc_digits(3.8, coarsest=-2) == -1
+    assert site_numbers.mc_digits(0.49, coarsest=-2) == 0
+    assert site_numbers.mc_interval(2.2426, 2.8230, 0.0174, 0.0159) == "2.2–2.8"
+    assert site_numbers.mc_interval(585.06, 704.95, 3.81, 3.43, coarsest=-2) == "590–700"
+    assert site_numbers.mc_interval(1.6311, 2.6429, 0.019, 0.033, sep=" to ") == "1.6 to 2.6"
+    # A sentence may rest on an end's side of 1 only if the end stands three errors clear of it
+    # and does not print as 1.
+    assert site_numbers.side_of_one_shown(0.63, 0.01, 0.01, 0.01)
+    assert not site_numbers.side_of_one_shown(1.024, 0.0103, 0.0103, 0.0148)
+    assert not site_numbers.side_of_one_shown(0.98, 0.001, 0.02, 0.02)
+    assert site_numbers.side_of_one_shown(0.98, 0.001, 0.001, 0.002)
+    row = pd.Series(
+        {"ratio_low": 1.0242, "ratio_high": 1.362, "mc_se_low": 0.0103, "mc_se_high": 0.0148}
+    )
+    assert site_numbers.joint_interval(row) == "1.0–1.4"
+    rate = pd.Series(
+        {
+            "involved_ratio_low": 1.0242,
+            "involved_ratio_high": 1.362,
+            "involved_ratio_mc_se_low": 0.0103,
+            "involved_ratio_mc_se_high": 0.0148,
+        }
+    )
+    assert site_numbers.rate_interval(rate, "involved_ratio") == "1.0–1.4"
+
+
 def test_drivers_page_separates_the_two_questions(built: Path) -> None:
     text = (built / "drivers.html").read_text(encoding="utf-8")
     body = text[text.find("<main>") : text.find("</main>")]
@@ -395,7 +426,7 @@ def test_drivers_page_separates_the_two_questions(built: Path) -> None:
     # The page leads with involvement per km by driver age, quoted with its interval; the numbers
     # come from the tables, and no big-number callout repeats the summary.
     opening = re.search(r'<p class="summary">(.*?)</p>', body, re.S).group(1)
-    assert f"{young.involved_ratio_low:.2f}–{young.involved_ratio_high:.2f}" in opening
+    assert site_numbers.rate_interval(young, "involved_ratio") in opening
     assert f"{older.involved_ratio:.2f}" in opening
     assert f"{severity.loc['75+', 'killed_per_1000_involved']:.1f}" in opening
     assert 'class="key-result"' not in body
@@ -409,12 +440,16 @@ def test_drivers_page_separates_the_two_questions(built: Path) -> None:
     assert f"{spread.involved_ratio.max()['65+']:.2f}" in body
     assert f"{spread.involved_ratio.min()['18-29']:.2f}" in body
     assert (
-        f"(95% sampling interval {older.involved_ratio_low:.2f}–{older.involved_ratio_high:.2f}; "
+        f"(95% sampling interval {site_numbers.rate_interval(older, 'involved_ratio')}; "
         f"sensitivity range {spread.involved_ratio.min()['65+']:.2f}–"
         f"{spread.involved_ratio.max()['65+']:.2f})"
     ) in opening
-    # The sensitivity range is defined once, at its first use in the opening.
-    assert opening.count("sensitivity range, the span across the assumptions tested") == 1
+    # The sensitivity range is defined once, at its first use in the opening, which links to its
+    # definition on the methodology page, as the first uses of the sampling interval and the
+    # conditional estimate do.
+    assert opening.count("sensitivity range</a>, the span across the assumptions tested") == 1
+    for anchor in components.DEFINITION_IDS.values():
+        assert opening.count(f'href="data.html#{anchor}"') == 1, anchor
     assert "95% interval" not in opening
     # The opening says what involvement does not show: who caused the crash, or harm to others.
     assert "whoever caused it" in opening and "more dangerous to others" in opening
@@ -468,16 +503,45 @@ def test_drivers_page_separates_the_two_questions(built: Path) -> None:
         assert f"{licences.loc[group, 'involved_per_1000_licence_holders']:.2f}" in section
     assert "Drivers who drive few kilometres, at any age" in section
     assert "These rates are averages over everyone of an age" in section
-    assert f"previously {madrid.ratio_low_split_fixed:.2f}–{madrid.ratio_high_split_fixed:.2f}" in (
-        section
-    )
+    # The change note is written against the last deployed page (owner-age kilometres), not
+    # against versions that were never published.
+    assert f"{madrid.ratio_low_split_fixed:.2f}–{madrid.ratio_high_split_fixed:.2f}" not in body
+    assert "kilometres of cars registered to owners of each age" in section
+    assert "was not established and gave no figure" not in section
     # The joint interval is printed to the decimals its Monte Carlo error supports.
     digits = site_numbers.mc_digits(madrid.mc_se_low, madrid.mc_se_high)
     assert digits < 2
     assert f"(95% sampling interval {site_numbers.joint_interval(madrid)})" in section
     assert f"{madrid.ratio_low:.2f}–{madrid.ratio_high:.2f}" not in body
-    # Table 5 explains its two puzzling rows.
-    assert "the fall in licence holding at 75 and over is counted a second time" in section
+    # The closed sections the text sends readers to have ids, and the text links to them.
+    for anchor in ("sources-of-the-sensitivity-range", "what-dgts-kilometres"):
+        assert f'<details class="technical" id="{anchor}">' in body, anchor
+        assert f'href="#{anchor}"' in body, anchor
+    assert "table of sources below" not in body and "the table below gives each part" not in body
+    # The central estimate gives professionals' work driving the working-day mix (Table 2).
+    assert "their own age mix tested" in body
+    assert "professionals&#x27; work trips</td>" not in body
+    assert "which makes an interval too narrow;" not in body
+    # What the 75+ range crosses and what it varies one at a time, and the bounds left out of it,
+    # with their values from the tables.
+    assert "Each split was combined with every alternative" in section
+    assert "were varied one at a time" in section
+    scenarios = pd.read_csv(TABLES_DIR / "risk_coverage_scenarios.csv")
+    for mix, part in scenarios[~scenarios.credible].groupby("remainder_mix"):
+        span = f"{part.ratio_75_plus.min():.2f}–{part.ratio_75_plus.max():.2f}"
+        assert span in section, mix
+    assert "per 2024 DGT licence holder" in section
+    assert "among each survey&#x27;s own residents" in section or (
+        "among each survey's own residents" in section
+    )
+    # Figure 2's text names every age group's rate.
+    severity_rows = pd.read_csv(TABLES_DIR / "risk_severity_and_licences.csv").set_index("group")
+    alt = re.search(r'<img src="figures/dr2_killed_per_involved.svg" alt="([^"]*)"', body).group(1)
+    for group, label in (("18-29", "18–29"), ("30-44", "30–44"), ("45-64", "45–64")):
+        assert f"{severity_rows.loc[group, 'killed_per_1000_involved']:.1f} at {label}" in alt
+    # Table 5 explains its two puzzling rows; the licence split counts licence holders one way.
+    assert components.esc("counted on DGT's") in section
+    assert "counted a second time" not in section
     assert components.esc("upper limit is on men's kilometres") in section
     # Figure references are computed: Figures 1 and 3 are the per-km chart and its breakdown.
     numbers = re.findall(r'<span class="figure-label">Figure (\d+)\.</span>', body)
@@ -843,22 +907,30 @@ def test_front_page_is_an_overview_of_the_study(built: Path) -> None:
         & (rates.group == "18-29")
     ].iloc[0]
     # Involvement per km by the driver's age, from the table, with its interval and the span of
-    # the other assumptions.
+    # the other assumptions, printed as on the drivers page: the ratio and the range to two
+    # decimals, the sampling interval to the precision its Monte Carlo error supports.
     assert (
-        f"{young.involved_ratio:.1f} times as often as drivers aged 45–64"
+        f"{young.involved_ratio:.2f} times as often as drivers aged 45–64"
         in (sections["Main findings"])
     )
+    assert site_numbers.rate_interval(young, "involved_ratio") in sections["Main findings"]
     spread = pd.read_csv(TABLES_DIR / "risk_national_sensitivity.csv").groupby("group")
-    span = f"{spread.involved_ratio.min()['18-29']:.1f}–{spread.involved_ratio.max()['18-29']:.1f}"
-    assert f"; sensitivity range {span})" in sections["Main findings"]
+    span = f"{spread.involved_ratio.min()['18-29']:.2f}–{spread.involved_ratio.max()['18-29']:.2f}"
+    assert f"{span})" in sections["Main findings"]
+    drivers_page = (built / "drivers.html").read_text(encoding="utf-8")
+    assert span in drivers_page
+    methodology = (built / "data.html").read_text(encoding="utf-8")
+    for anchor in components.DEFINITION_IDS.values():
+        assert f'href="data.html#{anchor}"' in sections["Main findings"], anchor
+        assert f'<dt id="{anchor}">' in methodology, anchor
     assert "under other assumptions" not in sections["Main findings"]
     # Drivers aged 75 and over: the range, then the conditional estimate at one decimal.
     older_rows = pd.read_csv(TABLES_DIR / "risk_older_sensitivity.csv")
     split = pd.read_csv(TABLES_DIR / "risk_older_split.csv")
     madrid = split[(split.assumption == national.REFERENCE_SPLIT) & (split.group == "75+")].iloc[0]
-    full = f"{older_rows.ratio_75_plus.min():.2f}–{older_rows.ratio_75_plus.max():.2f}"
+    full = f"{older_rows.ratio_75_plus.min():.2f} to {older_rows.ratio_75_plus.max():.2f}"
     finding = sections["Main findings"]
-    assert f"For drivers aged 75 and over the sensitivity range is {full}" in finding
+    assert f"the sensitivity range is {full} times the 45–64 rate" in finding
     assert (
         f"about {madrid.ratio_to_45_64:.1f} times as often (95% sampling interval "
         f"{madrid.ratio_low:.1f}–{madrid.ratio_high:.1f})"
@@ -869,7 +941,7 @@ def test_front_page_is_an_overview_of_the_study(built: Path) -> None:
         .loc[("75+", "lowest unmarked")]
     )
     if lowest.value > 1 >= lowest.ratio_low:
-        assert "but the lowest not clearly so once sampling error is allowed for" in finding
+        assert site_numbers.OLDER_CONCLUSION[site_numbers.INTERMEDIATE] in finding
     # The 75+ figures link to the section that sets out their conditions.
     assert 'href="drivers.html#ages-75-and-over"' in finding
     assert "nearly seven" not in sections["Main findings"]
@@ -964,7 +1036,7 @@ def test_methodology_lists_every_assumption_the_methods_document_tests(built: Pa
     split = pd.read_csv(TABLES_DIR / "risk_older_split.csv")
     madrid = split[(split.assumption == national.REFERENCE_SPLIT) & (split.group == "75+")].iloc[0]
     older_rows = pd.read_csv(TABLES_DIR / "risk_older_sensitivity.csv").ratio_75_plus
-    assert "Conditional." in oldest and "contradict" in oldest
+    assert "Conditional." in oldest and "at odds with" in oldest
     assert (
         f"{madrid.ratio_to_45_64:.2f} (95% sampling interval {site_numbers.joint_interval(madrid)})"
     ) in oldest
@@ -1136,10 +1208,11 @@ def test_drivers_page_chains_crashes_and_deaths_per_crash(built: Path) -> None:
     ].set_index("group")
     older = central.loc["65+"]
     assert f"{older.killed_ratio:.2f} times as often per kilometre" in text
-    assert (
-        f"(95% sampling interval {older.killed_ratio_low:.2f}–{older.killed_ratio_high:.2f}; "
-        in text
-    )
+    # The interval is printed to the precision its Monte Carlo error supports.
+    shown = site_numbers.rate_interval(older, "killed_ratio")
+    assert f"(95% sampling interval {shown}; " in text
+    assert f"{older.killed_ratio_low:.2f}–{older.killed_ratio_high:.2f}" not in text
+    assert site_numbers.mc_digits(older.killed_ratio_mc_se_low, older.killed_ratio_mc_se_high) >= 1
 
 
 def test_vehicles_page_quotes_per_km_rates_for_all_roads_only(built: Path) -> None:

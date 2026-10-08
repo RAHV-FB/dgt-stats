@@ -846,8 +846,9 @@ def _driver_exposure_figures(figures_dir: Path, captions: dict[str, str]) -> Non
         "width, population and driving. Dots: estimates with 95% sampling intervals. Hollow "
         f"diamonds: also assume the Madrid {madrid} pattern; their intervals include that "
         "survey's sampling error and hold the assumption fixed. Grey bands: sensitivity ranges "
-        "(sources in the table of sources below), spans of the assumptions tested with no "
-        "probability attached; each end is itself an estimate with sampling error. Hatched: "
+        "(for their sources, open “Sources of the sensitivity range” further down), spans "
+        "of the assumptions tested with no probability attached; each end is itself an "
+        "estimate with sampling error. Hatched: "
         "reached only with equal km per licence holder at 65–74 and 75 and over",
         f"{TABLES_SOURCE}; {EMEF_SOURCE}; {EDM_SOURCE}; {MOVILIA_SOURCE}; {RACC_SOURCE}; "
         f"{KM_2024_SOURCE}; {POPULATION_SOURCE}",
@@ -935,6 +936,7 @@ def _driver_exposure_figures(figures_dir: Path, captions: dict[str, str]) -> Non
         reference_label="45–64 rate",
         keep_order=True,
         reference_row="45–64",
+        integer_ticks=True,
     )
     captions["dr2_killed_per_involved"] = _caption(
         "Private-car drivers who died within 30 days per 1,000 involved in an injury crash, by "
