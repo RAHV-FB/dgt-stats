@@ -23,7 +23,6 @@
   "cat2_fatal_by_speed_limit": "Fatal share by posted speed limit (the road's limit, not vehicle speed)",
   "cat3_fatal_by_unit": "Fatal share by type of road user or vehicle involved (a crash can involve several)",
   "cat4_fatal_by_crash_type": "Fatal share by crash type",
-  "cat6_crashes_by_year": "Crashes with a death or serious injury, by year",
   "bcn1_severity_by_road_user": "Serious or fatal injury by road user (role and vehicle type on the record)",
   "bcn2_severity_by_age": "Serious or fatal injury by age band",
   "bcn4_crash_severity_by_type": "Crashes with a serious or fatal injury, by crash type",
