@@ -40,7 +40,7 @@ No layer is merged into another and no record is linked across sources. Cross-so
 |---|---|---|
 | layer | National context | file |
 | who records | DGT (yearbook series, statistical tables, driver census, kilometre estimates from vehicle inspections); INE (resident population) | documentation |
-| unit of observation | published aggregates: a count for a year (and province, age, sex or vehicle type); 77 DGT files; INE residents by province, age and sex (149,460 rows) | measured |
+| unit of observation | published aggregates: a count for a year (and province, age, sex or vehicle type); 79 DGT files; INE residents by province, age and sex (149,460 rows) | measured |
 | inclusion rule | as published; the crash series reconcile with the crash microdata year by year | reconciled |
 | severity definition | deaths within 30 days (the monthly series is also published with deaths within 24 hours); hospitalised injuries | documentation |
 | geography | Spain and its 52 provinces | measured |

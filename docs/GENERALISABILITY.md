@@ -127,7 +127,7 @@ Severe crashes per resident, 2024 (DGT counts, INE residents): across the 52 pro
 | leave out Tarragona demarcation (DGT-common features) | logistic | 21,089 | 3,389 | 547 | 16.1% | 0.723 | 0.701 | 0.745 | 0.702 | 2,711 | 0.021 | 1.223 | reported |
 | leave out Tarragona demarcation (DGT-common features) | boosted_trees | 21,089 | 3,389 | 547 | 16.1% | 0.723 | 0.701 | 0.745 | 0.702 | 2,711 | 0.021 | 1.062 | reported |
 | same crashes, two sources: Catalan file | logistic | 11,517 | 12,961 | 1,627 | 12.6% | 0.699 | 0.685 | 0.712 | 0.701 | 10,368 | -0.003 | 1.021 | reported |
-| same crashes, two sources: Catalan file | boosted_trees | 11,517 | 12,961 | 1,627 | 12.6% | 0.693 | 0.680 | 0.708 | 0.701 | 10,368 | -0.008 | 0.858 | reported |
+| same crashes, two sources: Catalan file | boosted_trees | 11,517 | 12,961 | 1,627 | 12.6% | 0.693 | 0.680 | 0.709 | 0.701 | 10,368 | -0.008 | 0.858 | reported |
 | same crashes, two sources: DGT records | logistic | 11,517 | 12,957 | 1,627 | 12.6% | 0.697 | 0.685 | 0.711 | 0.704 | 10,365 | -0.007 | 1.020 | reported |
 | same crashes, two sources: DGT records | boosted_trees | 11,517 | 12,957 | 1,627 | 12.6% | 0.692 | 0.678 | 0.706 | 0.704 | 10,365 | -0.012 | 0.855 | reported |
 | Catalonia, a year the Catalan file does not have (DGT records) | logistic | 24,478 | 1,855 | 176 | 9.5% | 0.711 | 0.670 | 0.753 | 0.639 | 1,484 | 0.072 | 1.025 | reported |
@@ -165,9 +165,12 @@ are kept as a record. The published model is the calculator's
 
 The calculator's model on every road a reader can choose (the road-owner artefact
 roads left out). In every test but the random cross-validation, its penalty, its
-specification and its rule for roads through towns are chosen on the test's training
-crashes alone (fit on all but their last two years, score those two), so the rolling
-and temporal tests are the nested evaluation of `sev_rolling_scores`. Each test sits
+specification, its rule for roads through towns and its province intercepts are chosen
+on the test's training crashes alone (fit on all but their last two years, score those
+two), so the rolling and temporal tests are the nested evaluation of
+`sev_rolling_scores`; the temporal test is its last year, 2023, not a separate holdout.
+Their ROC-AUC intervals come from this document's own bootstrap and can differ in the
+third decimal from those of `sev_comparison` quoted in `SEVERITY_CALCULATOR.md`. Each test sits
 beside the same choices fitted and cross-validated inside the test population and
 beside the table of fatal shares by road and crash type fitted on the same training
 crashes (`table_roc_auc`). A province left out is scored without province intercepts.
@@ -177,7 +180,7 @@ other source records its inputs.
 | experiment | train_n | test_n | test_positives | roc_auc | roc_auc_low | roc_auc_high | in_domain_cv_roc_auc | transfer_gap | table_roc_auc | mean_predicted | test_prevalence | calibration_slope |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
 | random 5-fold cross-validation 2010-2023 |  | 22,638 | 2,822 | 0.740 | 0.730 | 0.750 |  |  |  | 12.5% | 12.5% | 0.985 |
-| rolling origin: each year 2016-2023 from the years before it, every choice nested |  | 11,611 | 1,429 | 0.741 | 0.728 | 0.754 |  |  | 0.709 | 12.3% | 12.3% | 1.045 |
+| rolling origin: each year 2016-2023 from the years before it, every choice nested |  | 11,611 | 1,429 | 0.739 | 0.727 | 0.752 |  |  | 0.709 | 12.4% | 12.3% | 1.033 |
 | temporal holdout: train 2010-2022, test 2023 | 21,111 | 1,527 | 182 | 0.757 | 0.716 | 0.791 | 0.725 | 0.032 | 0.708 | 11.5% | 11.9% | 1.152 |
 | leave out Barcelona demarcation | 8,645 | 13,993 | 1,334 | 0.678 | 0.663 | 0.693 | 0.705 | -0.027 | 0.650 | 11.2% | 9.5% | 0.619 |
 | leave out Girona demarcation | 19,453 | 3,185 | 547 | 0.728 | 0.705 | 0.748 | 0.714 | 0.014 | 0.700 | 14.3% | 17.2% | 0.936 |
@@ -357,8 +360,8 @@ Barcelona against the rest of Catalonia in the Catalan file, largest divergences
 | feature | jsd | psi | largest_difference_level | share_a | share_b |
 |---|---|---|---|---|---|
 | D_CARACT_ENTORN | 0.451 | 3.526 | Sense Especificar | 98.4% | 29.2% |
-| D_TRACAT_ALTIMETRIC | 0.450 | 3.278 | NA | 97.5% | 27.2% |
-| D_TITULARITAT_VIA | 0.297 | 2.296 | NA | 97.5% | 44.2% |
+| D_TRACAT_ALTIMETRIC | 0.450 | 3.278 |  | 97.5% | 27.2% |
+| D_TITULARITAT_VIA | 0.297 | 2.296 |  | 97.5% | 44.2% |
 | D_TIPUS_VIA | 0.243 | 1.662 | Via urbana( inclou carrer i carrer residencial) | 92.5% | 44.5% |
 | D_BOIRA | 0.239 | 2.119 | No n'hi ha | 57.3% | 99.5% |
 | D_SUBZONA | 0.216 | 1.346 | Zona urbana | 92.4% | 43.8% |
@@ -405,7 +408,7 @@ Evidence for every stage:
 | catalonia_crash_severity | 4 | not run | no other source records the full Catalan feature set |
 | catalonia_crash_severity | 5 | failed | Catalonia vs Spain outside Catalonia (crashes with a death or serious injury (24 h)): differs on alignment_recorded (JSD 0.070), crash_type (JSD 0.033), weather (JSD 0.032), surface (JSD 0.028); fatal share of severe crashes 12.2% against 15.4% |
 | calculator | 1 | passed | random 5-fold cross-validation 2010-2023: ROC-AUC 0.740 (0.730-0.750) |
-| calculator | 2 | passed | rolling origin: each year 2016-2023 from the years before it, every choice nested: ROC-AUC 0.741 (0.728-0.754); temporal holdout: train 2010-2022, test 2023: ROC-AUC 0.757 (0.716-0.791), in-domain 0.725, gap +0.032 |
+| calculator | 2 | passed | rolling origin: each year 2016-2023 from the years before it, every choice nested: ROC-AUC 0.739 (0.727-0.752); temporal holdout: train 2010-2022, test 2023: ROC-AUC 0.757 (0.716-0.791), in-domain 0.725, gap +0.032 |
 | calculator | 3 | passed | leave out Barcelona demarcation: ROC-AUC 0.678 (0.663-0.693), in-domain 0.705, gap -0.027; leave out Girona demarcation: ROC-AUC 0.728 (0.705-0.748), in-domain 0.714, gap +0.014; leave out Lleida demarcation: ROC-AUC 0.714 (0.685-0.740), in-domain 0.699, gap +0.016; leave out Tarragona demarcation: ROC-AUC 0.771 (0.751-0.792), in-domain 0.773, gap -0.002; rest of Catalonia -> Barcelona municipality: ROC-AUC 0.662 (0.630-0.693), in-domain 0.678, gap -0.016 |
 | calculator | 4 | not run | no other source records the calculator's inputs: DGT's records lack the road's owning network and the posted limit, and their road-type coding disagrees with the Catalan file's on the same crashes |
 | calculator | 5 | failed | Catalonia vs Spain outside Catalonia (crashes with a death or serious injury (24 h)): differs on alignment_recorded (JSD 0.070), crash_type (JSD 0.033), weather (JSD 0.032), surface (JSD 0.028); fatal share of severe crashes 12.2% against 15.4% |
