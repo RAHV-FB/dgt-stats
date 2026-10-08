@@ -41,6 +41,7 @@ SEVERITY_TABLES = (
     "q3_regime_sensitivity",
     "q3_junction_coding",
     "q3_junction_sensitivity",
+    "dgt_audit_junction_coding",
 )
 FORECAST_TABLES = (
     "forecast_selection",
@@ -491,6 +492,17 @@ def severity_card(tables: dict[str, pd.DataFrame] | None = None) -> str:
     catalan_coding = coding[coding.region == "Catalonia"].set_index("year")
     inverted_years = [int(y) for y in catalan_coding.index[catalan_coding.recoded > 0]]
     earlier = catalan_coding[catalan_coding.index < min(inverted_years)]
+    rest_coding = coding[coding.region != "Catalonia"].set_index("year")
+    # The earlier year whose Catalan records count only crashes within a junction at one (the
+    # Catalan file's codes show it), set apart from the range of the other earlier years.
+    from dgt_stats.microdata.validation import dgt_audit
+
+    matched = dgt_audit.catalan_junction_years(tables["dgt_audit_junction_coding"])
+    narrow_years = [
+        int(y) for y in matched[matched.dgt_at_junction_matches.eq("within a junction")].year
+    ]
+    earlier_wide = earlier.drop(index=narrow_years)
+    narrow_with_near = (earlier.flagged_at + earlier.near_junction_fields) / earlier.crashes
     junction_sens = tables["q3_junction_sensitivity"]
     junction_sens = junction_sens[
         (junction_sens.outcome == "fatal") & (junction_sens.fit == "full")
@@ -511,6 +523,12 @@ def severity_card(tables: dict[str, pd.DataFrame] | None = None) -> str:
         "the models beat the training base rate": bool((holdout.brier_skill > 0).all()),
         "a missing-value level is among the strongest terms": nuisance_rank <= 3,
         "wet and junction odds are below 1": float(wet.or_high) < 1 and float(junction.or_high) < 1,
+        "one earlier Catalan year counts only crashes within a junction, below the others": len(
+            narrow_years
+        )
+        == 1
+        and float(earlier.loc[narrow_years].share_at_junction.max())
+        < float(earlier_wide.share_at_junction.min()),
         "with the flag corrected the junction association is found in both periods": float(
             junction_before.or_high
         )
@@ -642,9 +660,22 @@ def severity_card(tables: dict[str, pd.DataFrame] | None = None) -> str:
         + " and ".join(
             f"{_pct(catalan_coding.loc[y, 'share_at_junction'])} in {y}" for y in inverted_years
         )
-        + f", against {_pct(earlier.share_at_junction.min())} to "
-        f"{_pct(earlier.share_at_junction.max())} in {int(earlier.index.min())}-"
-        f"{int(earlier.index.max())}. Fitted on each period, the fatal junction odds ratio is "
+        + ", against "
+        + " and ".join(_pct(rest_coding.loc[y, "share_at_junction"]) for y in inverted_years)
+        + " elsewhere in Spain, and "
+        + f"{_pct(earlier_wide.share_at_junction.min())} to "
+        f"{_pct(earlier_wide.share_at_junction.max())} in {int(earlier.index.min())}-"
+        f"{int(earlier.index.max())} apart from "
+        + " and ".join(str(y) for y in narrow_years)
+        + ", whose records count only crashes within a junction at one, not those within "
+        f"{dgt_audit.NEAR_JUNCTION_METRES} m of one ("
+        + " and ".join(
+            f"{_pct(earlier.loc[y, 'share_at_junction'])}, or {_pct(narrow_with_near.loc[y])} "
+            "with the crashes they flag away from a junction that carry a junction type or "
+            "right-of-way flag placed at one"
+            for y in narrow_years
+        )
+        + "). Fitted on each period, the fatal junction odds ratio is "
         f"{_or(junction_before.odds_ratio, junction_before.or_low, junction_before.or_high)} in "
         f"{int(junction_before.first_year)}-{int(junction_before.last_year)} and "
         f"{_or(junction_from.odds_ratio, junction_from.or_low, junction_from.or_high)} in "

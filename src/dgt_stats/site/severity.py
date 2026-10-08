@@ -17,6 +17,7 @@ import math
 import pandas as pd
 
 from dgt_stats import features
+from dgt_stats.microdata.validation import dgt_audit
 from dgt_stats.site.components import (
     _fmt_int,
     _fmt_pct,
@@ -54,6 +55,9 @@ CONDITION_LABELS = {
 PROFILE_TERMS = {"Autovía": "Dual carriageway"}
 
 NUMBER_WORDS = ("zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine")
+# Two shares at a junction closer than this are "close": the corrected Catalan share and the rest
+# of Spain's, or the earlier Catalan years'.
+CLOSE_SHARE = 0.02
 
 
 def _ci(odds: float, low: float, high: float) -> str:
@@ -190,6 +194,13 @@ def page_severity(captions: dict[str, str]) -> str:
     flipped = catalan_junctions[catalan_junctions.recoded > 0]
     flipped_years = [int(year) for year in flipped.index]
     earlier = catalan_junctions[catalan_junctions.index < junction_break]
+    # The earlier year whose Catalan records count only crashes within a junction at one, where
+    # the other years count those within 50 m of one too (the Catalan file's codes show which).
+    matched = dgt_audit.catalan_junction_years(read_table("dgt_audit_junction_coding"))
+    narrow_years = [
+        int(y) for y in matched[matched.dgt_at_junction_matches.eq("within a junction")].year
+    ]
+    earlier_wide = earlier.drop(index=narrow_years)
     recoded = int(junction_coding.recoded.sum())
     flagged_at = int(flipped.flagged_at.sum())
     flagged_at_fields = int(flipped.flagged_at_with_junction_fields.sum())
@@ -343,13 +354,19 @@ def page_severity(captions: dict[str, str]) -> str:
             flipped.share_flagged_at.min()
         )
         > float(earlier.share_flagged_at.max()) + 0.15,
-        "corrected, it lies among the earlier years' shares": float(corrected_shares.min())
-        >= float(earlier.share_at_junction.min())
-        and float(corrected_shares.max()) <= float(earlier.share_at_junction.max()),
+        "one earlier year counts only crashes within a junction, and its share lies below the "
+        "other earlier years'": len(narrow_years) == 1
+        and float(earlier.loc[narrow_years].share_at_junction.max())
+        < float(earlier_wide.share_at_junction.min()),
+        "corrected, it lies within two points of those other earlier years' shares": float(
+            corrected_shares.min()
+        )
+        >= float(earlier_wide.share_at_junction.min()) - CLOSE_SHARE
+        and float(corrected_shares.max()) <= float(earlier_wide.share_at_junction.max()),
         "and close to the rest of Spain's in the same years": float(
             (corrected_shares - elsewhere_shares).abs().max()
         )
-        < 0.02,
+        < CLOSE_SHARE,
         "the crashes flagged at a junction carry almost no junction field, those flagged away "
         "almost all one": flagged_at_fields < 0.001 * flagged_at and away_fields_share > 0.99,
         "as crashes at a junction do in the earlier years": bool((earlier_at_fields > 0.99).all()),
@@ -604,10 +621,19 @@ def page_severity(captions: dict[str, str]) -> str:
         f"{_fmt_int(recoded)} crashes ({_fmt_pct(recoded / numbers['n'])} of all). The share "
         "of Catalan crashes at a junction is then "
         + _join([f"{_fmt_pct(float(corrected_shares.loc[y]), 0)} in {y}" for y in flipped_years])
-        + f", against {_fmt_pct(float(earlier.share_at_junction.min()), 0)} to "
-        f"{_fmt_pct(float(earlier.share_at_junction.max()), 0)} a year in "
-        f"{span(junction_before)} and {_pct_span(elsewhere_shares)} elsewhere in "
-        f"{span(junction_from)}. Fitted on each period apart, crashes at a junction had "
+        + f", against {_pct_span(elsewhere_shares)} elsewhere in {span(junction_from)} and "
+        f"{_fmt_pct(float(earlier_wide.share_at_junction.min()), 0)} to "
+        f"{_fmt_pct(float(earlier_wide.share_at_junction.max()), 0)} a year in Catalonia in "
+        f"{span(junction_before)} ("
+        + _join(
+            [
+                f"{_fmt_pct(float(earlier.loc[y, 'share_at_junction']), 0)} in {y}"
+                for y in narrow_years
+            ]
+        )
+        + f", when the records count a crash within {dgt_audit.NEAR_JUNCTION_METRES} metres "
+        "of a junction away from it). "
+        "Fitted on each period apart, crashes at a junction had "
         f"{ci_of(junction_before)} times the odds of a death in {span(junction_before)} and "
         f"{ci_of(junction_from)} in {span(junction_from)}; outside Catalonia the later figure "
         f"is {ci_of(junction_from_outside)}. Read instead from the junction type alone, the "

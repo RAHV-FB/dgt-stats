@@ -39,6 +39,7 @@ national test, prevalence, coding, missingness, in-domain reference and transfer
 from __future__ import annotations
 
 import logging
+import re
 
 import numpy as np
 import pandas as pd
@@ -280,6 +281,8 @@ def presence_coding(frame: pd.DataFrame) -> pd.DataFrame:
 # between junctions ("En secció").
 CAT_WITHIN_JUNCTION = "Dintre intersecció"
 CAT_NEAR_JUNCTION = "Arribant o eixint intersecció fins 50m"
+# How far from a junction the Catalan file's approach zone reaches, read from its label.
+NEAR_JUNCTION_METRES = int(re.search(r"(\d+)\s*m$", CAT_NEAR_JUNCTION).group(1))
 CAT_BETWEEN_JUNCTIONS = "En secció"
 
 

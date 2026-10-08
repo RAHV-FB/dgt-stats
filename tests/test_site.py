@@ -838,6 +838,35 @@ def test_coding_breaks_describe_the_inverted_catalan_junction_flag(built: Path) 
     read = read[(read.region == "Catalonia") & (read.recoded > 0)]
     for row in read.itertuples():
         assert f"{components._fmt_pct(row.share_at_junction, 0)} in {row.year}" in block
+    # The year whose records count only crashes within a junction is named, and left out of the
+    # range given for the earlier years.
+    narrow = matched[matched.dgt_at_junction_matches == "within a junction"]
+    assert len(narrow) == 1
+    year = int(narrow.year.iloc[0])
+    assert f"In {year} the records use a narrower definition of a junction" in block
+    assert "under the narrower definition below" in block
+
+
+def test_coding_breaks_name_the_fog_and_wind_fields_coded_another_way(built: Path) -> None:
+    from dgt_stats.microdata.validation import dgt_audit
+
+    data = (built / "data.html").read_text(encoding="utf-8")
+    start = data.index('id="coding-breaks"')
+    block = components.html.unescape(data[start : data.index('id="models"', start)])
+    presence = pd.read_csv(TABLES_DIR / "dgt_audit_presence_coding.csv")
+    breaks = dgt_audit.presence_breaks(presence)
+    fog = breaks[breaks.field == "CONDICION_NIEBLA"].iloc[0]
+    assert fog.province_name == "Barcelona"
+    assert f"From {min(fog.years)} the records for the province of Barcelona code fog" in block
+    assert (
+        f"{components._fmt_pct(fog.share_low, 0)} to {components._fmt_pct(fog.share_high, 0)}"
+        in block
+    )
+    assert "neither a value nor a blank says whether there was fog or strong wind" in block
+    records = data[data.index('id="records"') : start]
+    assert "apart from a few province-years that code them another way" in components.html.unescape(
+        records
+    )
 
 
 def test_the_missing_values_figure_reads_the_audit_rule(built: Path) -> None:

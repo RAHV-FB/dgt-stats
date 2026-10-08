@@ -45,6 +45,9 @@ FIELD_LABELS = {"road_class": "road type", "hour_band": "hour"}
 MOSTLY_BLANK = 0.3
 # A field above that share by less than this is named as only just above it.
 JUST_ABOVE = 0.01
+# Two shares at a junction closer than this are "close" (the corrected Catalan share and the rest
+# of Spain's, as on the severity page).
+CLOSE_SHARE = 0.02
 # A field recorded in more than this share of crashes in every year counts as always recorded.
 ALWAYS_RECORDED = 0.99
 # Fields of DGT's records that describe every crash, named in the missing-values figure's text.
@@ -365,9 +368,19 @@ def _coding_breaks() -> str:
     matched = dgt_audit.catalan_junction_years(junctions)
     flipped = matched[matched.junction_flag_inverted.astype(bool)]
     compared = flipped.iloc[0]
+    # The years whose Catalan records count only crashes within a junction at one (2021), and the
+    # earlier years, which count those within 50 m of one too, as the Catalan file's codes show.
+    narrow = matched[matched.dgt_at_junction_matches.eq("within a junction")]
+    narrow_years = [int(year) for year in narrow.year]
+    wider = matched[~matched.junction_flag_inverted.astype(bool) & ~matched.year.isin(narrow_years)]
+    before = [year for year in cat_share.loc[: flip - 1].index if int(year) not in narrow_years]
     # How the association analysis reads those province-years (``features.junction_codes``).
     read = read_table("q3_junction_coding").set_index(["region", "year"])
     read_cat = read.loc["Catalonia"]
+    read_rest = read.loc["rest of Spain"]
+    near = read_cat.near_junction_fields
+    near_others = near.loc[: flip - 1].drop(index=narrow_years)
+    narrow_with_near = (read_cat.flagged_at + near) / read_cat.crashes
     _require(
         {
             "the junction flag is inverted in the four Catalan provinces only, every year from "
@@ -388,12 +401,26 @@ def _coding_breaks() -> str:
             "province-years": int(read.recoded.sum()) == int(inverted.crashes.sum())
             and int(read.crashes_in_inverted_province_years.sum()) == int(inverted.crashes.sum())
             and [int(y) for y in read_cat.index[read_cat.recoded > 0]] == after_years,
-            "read that way, the Catalan share at a junction lies among the earlier years'": float(
-                read_cat.loc[after_years].share_at_junction.max()
+            "read that way, the Catalan share at a junction is close to the rest of Spain's in "
+            "the same years": float(
+                (
+                    read_cat.loc[after_years].share_at_junction
+                    - read_rest.loc[after_years].share_at_junction
+                )
+                .abs()
+                .max()
             )
-            <= float(cat_share.loc[: flip - 1].max())
-            and float(read_cat.loc[after_years].share_at_junction.min())
-            >= float(cat_share.loc[: flip - 1].min()),
+            < CLOSE_SHARE,
+            "in one earlier year DGT's Catalan junction count matches the Catalan file's crashes "
+            "within a junction, in the others those within or near one": len(narrow_years) == 1
+            and not wider.empty
+            and bool((wider.dgt_at_junction_matches == "within or near a junction").all()),
+            "that year more Catalan crashes coded away from a junction carry junction fields than "
+            "in all the other years before the break together": float(near.loc[narrow_years].min())
+            > float(near_others.sum()),
+            "the share range named for the earlier years leaves that year out, and the year lies "
+            "below it": float(cat_share.loc[narrow_years].max())
+            < float(cat_share.loc[before].min()),
             "in the inverted years DGT's junction crashes are the Catalan file's crashes between "
             "junctions, and before them never": not flipped.empty
             and bool((flipped.dgt_at_junction_matches == "between junctions").all())
@@ -408,7 +435,7 @@ def _coding_breaks() -> str:
     severity = f'<a href="severity.html">{TITLES["severity"]}</a>'
     return (
         '<h3 id="coding-breaks">Coding breaks in DGT\'s records</h3>'
-        "<p>Three changes in DGT's coding affect series by road type and junction, and all three "
+        "<p>Four changes in DGT's coding affect series by road type and junction, and all four "
         "come from the records for the four Catalan provinces. Until "
         f"{switch - 1} those records code almost every crash on a conventional road as a "
         "conventional road with a dual carriageway "
@@ -425,9 +452,11 @@ def _coding_breaks() -> str:
         f"“other” itself, and {_fmt_int(cat_other)} of the {_fmt_int(all_other)} crashes with "
         f"that code in {later.period} are Catalan. From {flip} the same records code the junction "
         "flag the wrong way round. The share of their crashes coded at a junction goes from "
-        f"between {_fmt_pct(cat_share.loc[: flip - 1].min(), 0)} and "
-        f"{_fmt_pct(cat_share.loc[: flip - 1].max(), 0)} a year in {cat_share.index.min()}–"
-        f"{flip - 1} to "
+        f"between {_fmt_pct(cat_share.loc[before].min(), 0)} and "
+        f"{_fmt_pct(cat_share.loc[before].max(), 0)} a year in {cat_share.index.min()}–"
+        f"{flip - 1} ("
+        + _join([f"{_fmt_pct(cat_share.loc[y], 0)} in {y}" for y in narrow_years])
+        + ", under the narrower definition below) to "
         + _join([f"{_fmt_pct(cat_share.loc[y], 0)} in {y}" for y in after_years])
         + ", while elsewhere it stays between "
         f"{_fmt_pct(rest_share.min(), 0)} and {_fmt_pct(rest_share.max(), 0)}. From {flip}, "
@@ -443,7 +472,19 @@ def _coding_breaks() -> str:
         f"a death or serious injury: in {int(compared.year)} DGT codes "
         f"{_fmt_pct(compared.dgt_share_at_junction)} of the Catalan ones at a junction, and the "
         f"Catalan file places {_fmt_pct(compared.cat_share_between_junctions)} of them between "
-        "junctions. Road-type series are therefore read year by year and alongside zone, the "
+        "junctions. In "
+        + _join([str(y) for y in narrow_years])
+        + " the records use a narrower definition of a junction: DGT's count of these Catalan "
+        "crashes at a junction matches the Catalan file's crashes within a junction, where in "
+        + _runs(wider.year)
+        + " it matches those within or within "
+        + f"{dgt_audit.NEAR_JUNCTION_METRES} metres of one. That year "
+        + _join([_fmt_int(near.loc[y]) for y in narrow_years])
+        + " Catalan crashes coded away from a junction carry a junction type or a right-of-way "
+        f"flag, against {_fmt_int(near_others.sum())} in all the other years before {flip}; "
+        "counted at a junction, they bring that year's share to "
+        + _join([_fmt_pct(narrow_with_near.loc[y], 0) for y in narrow_years])
+        + ". Road-type series are therefore read year by year and alongside zone, the "
         "two kinds of conventional road form one group, and no road-type trend is drawn. "
         "Comparisons of Catalonia with the rest of Spain group every conventional road together "
         'for the same reason (<a href="validation.html">External validation</a>). Junction '
@@ -453,7 +494,9 @@ def _coding_breaks() -> str:
         + _join(
             [f"{_fmt_pct(read_cat.loc[y, 'share_at_junction'], 0)} in {y}" for y in after_years]
         )
-        + f" ({severity}).</p>"
+        + ", against "
+        + _pct_range(read_rest.loc[after_years].share_at_junction)
+        + f" elsewhere in Spain in the same years ({severity}).</p>"
         + _presence_breaks()
     )
 

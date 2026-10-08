@@ -811,8 +811,9 @@ associations.
 **The junction coding break** (`features.junction_codes`, `q3_junction_coding.csv`,
 `q3_junction_sensitivity.csv`, `models.period_refits`, `dgt_audit_junction_coding.csv`). In 2023
 and 2024 DGT's records for the four Catalan provinces code the junction flag (`NUDO`) the wrong
-way round. The share of their crashes coded at a junction goes from 35–42 % a year in 2016–2022
-to 62 % in 2023 and 63 % in 2024, while elsewhere it stays at 37–40 %. The rest of each record
+way round. The share of their crashes coded at a junction goes from 38–42 % a year in 2016–2022
+(35 % in 2021, under the narrower definition below) to 62 % in 2023 and 63 % in 2024, while
+elsewhere it stays at 37–40 %. The rest of each record
 shows the inversion crash by crash. The junction type (`NUDO_INFO`) and the right-of-way flags
 (`PRIORI_*`) describe a junction: in the Catalan records of 2016–2022, 99.7–100 % of the crashes
 coded at a junction carry one or the other and at most seven a year of those coded away from one
@@ -839,7 +840,9 @@ than half of the crashes it codes away from a junction carry a junction type, th
 (`junction_flag_inverted`), which picks out the four Catalan provinces in 2023 and 2024 and no
 other province-year (at most 12.4 % elsewhere); a test holds the two to the same province-years.
 The 47,705 crashes concerned (5.5 % of all) put the Catalan share at a junction at 37.9 % in 2023
-and 36.6 % in 2024, against 37.9 % and 37.6 % elsewhere.
+and 36.6 % in 2024, against 37.9 % and 37.6 % elsewhere. The comparison with the earlier Catalan
+years leaves 2021 out: in the other years of 2016–2022 the share is 37.7–42.0 %, and 38.3 % in
+2021 with the crashes near a junction that its records code away from one placed at one (below).
 
 With the flag corrected, the fatal junction odds ratio is 0.69 (0.65–0.73) in the full model
 (0.75, 0.69–0.81, with the flag as published, which pooled the inverted records with the rest and
