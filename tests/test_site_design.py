@@ -67,7 +67,7 @@ def test_internal_links_and_anchors_resolve(built: Path, pages: dict[str, str]) 
     ids = {slug: set(re.findall(r'\bid="([^"]+)"', text)) for slug, text in pages.items()}
     for slug, text in pages.items():
         for href in re.findall(r'href="([^"]+)"', text):
-            if href.startswith(("http://", "https://", "mailto:")):
+            if href.startswith(("http://", "https://", "mailto:", "data:")):
                 continue
             path, _, anchor = href.partition("#")
             target = path[: -len(".html")] if path.endswith(".html") else slug

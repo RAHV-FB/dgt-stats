@@ -773,7 +773,7 @@ def test_every_internal_link_and_anchor_resolves(built: Path) -> None:
     for page in sorted(built.glob("*.html")):
         text = page.read_text(encoding="utf-8")
         for href in re.findall(r'href="([^"]+)"', text):
-            if href.startswith(("http://", "https://", "mailto:")):
+            if href.startswith(("http://", "https://", "mailto:", "data:")):
                 continue
             target, _, anchor = href.partition("#")
             if target:
@@ -856,9 +856,9 @@ def test_front_page_is_an_overview_of_the_study(built: Path) -> None:
     older_rows = pd.read_csv(TABLES_DIR / "risk_older_sensitivity.csv")
     split = pd.read_csv(TABLES_DIR / "risk_older_split.csv")
     madrid = split[(split.assumption == national.REFERENCE_SPLIT) & (split.group == "75+")].iloc[0]
-    full = f"{older_rows.ratio_75_plus.min():.2f}–{older_rows.ratio_75_plus.max():.2f}"
+    full = f"{older_rows.ratio_75_plus.min():.2f} to {older_rows.ratio_75_plus.max():.2f}"
     finding = sections["Main findings"]
-    assert f"For drivers aged 75 and over the sensitivity range is {full}" in finding
+    assert f"the sensitivity range is {full} times the 45–64 rate" in finding
     assert (
         f"about {madrid.ratio_to_45_64:.1f} times as often (95% sampling interval "
         f"{madrid.ratio_low:.1f}–{madrid.ratio_high:.1f})"
@@ -868,8 +868,10 @@ def test_front_page_is_an_overview_of_the_study(built: Path) -> None:
         .set_index(["group", "end"])
         .loc[("75+", "lowest unmarked")]
     )
+    # The home page states the 75+ conclusion in the drivers page's words for the same tier.
     if lowest.value > 1 >= lowest.ratio_low:
-        assert "but the lowest not clearly so once sampling error is allowed for" in finding
+        assert site_numbers.OLDER_CONCLUSION[site_numbers.INTERMEDIATE] in finding
+        assert "consistent with Spanish surveys of men's driving" not in finding
     # The 75+ figures link to the section that sets out their conditions.
     assert 'href="drivers.html#ages-75-and-over"' in finding
     assert "nearly seven" not in sections["Main findings"]
@@ -964,7 +966,7 @@ def test_methodology_lists_every_assumption_the_methods_document_tests(built: Pa
     split = pd.read_csv(TABLES_DIR / "risk_older_split.csv")
     madrid = split[(split.assumption == national.REFERENCE_SPLIT) & (split.group == "75+")].iloc[0]
     older_rows = pd.read_csv(TABLES_DIR / "risk_older_sensitivity.csv").ratio_75_plus
-    assert "Conditional." in oldest and "contradict" in oldest
+    assert "Conditional." in oldest and "are at odds with" in oldest
     assert (
         f"{madrid.ratio_to_45_64:.2f} (95% sampling interval {site_numbers.joint_interval(madrid)})"
     ) in oldest

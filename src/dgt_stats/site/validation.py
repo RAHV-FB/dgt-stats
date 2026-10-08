@@ -1152,7 +1152,7 @@ def page_validation(captions: dict[str, str]) -> str:
     )
     body += "<h2>No model has passed every kind of test</h2>"
     body += technical(
-        "How each model's ranking held in each kind of test",
+        "Whether the ranking of each model held in each kind of test",
         table(
             pd.DataFrame(
                 {
@@ -1163,8 +1163,8 @@ def page_validation(captions: dict[str, str]) -> str:
                     },
                 }
             ),
-            "Whether each model's ranking held in each kind of test, from the records closest to "
-            "the fitting data to the comparison of the fitting crashes with Spain's.",
+            "Whether the ranking of each model held in each kind of test, from the records closest "
+            "to the fitting data to the comparison of the fitting crashes with those of Spain.",
         )
         + "<p>“Ranking held” means that the model ranks above chance with 95% confidence and, "
         "where a model fitted within the test population gives a reference, scores no more "
