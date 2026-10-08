@@ -77,3 +77,32 @@ jobs:
 
       - name: Test
         run: pytest
+
+  browser:
+    name: Build the site and test it in a browser
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: requirements.lock
+
+      - name: Install the locked dependencies and a browser
+        run: |
+          pip install --require-hashes -r requirements.lock
+          pip install "playwright==1.56.0"
+          python -m playwright install --with-deps chromium
+
+      # The site is built from the committed result tables and figures alone, so this job needs
+      # none of the data layers; the browser tests run the pages, the calculator and both themes.
+      - name: Build the site
+        run: python scripts/build_site.py
+
+      - name: Test the built site in a browser
+        env:
+          REQUIRE_BROWSER: "1"
+        run: pytest tests/test_site_browser.py

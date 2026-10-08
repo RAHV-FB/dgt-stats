@@ -3,7 +3,8 @@
 These tests serve ``site/`` (built by ``scripts/build_site.py``) over HTTP and drive it with
 Playwright's Chromium. They need the optional browser dependency
 (``pip install -e .[browser]``) and a Chromium build; they skip otherwise. Set
-``PLAYWRIGHT_CHROMIUM`` to use a Chromium executable that Playwright did not install itself.
+``PLAYWRIGHT_CHROMIUM`` to use a Chromium executable that Playwright did not install itself, and
+``REQUIRE_BROWSER`` to fail rather than skip when no browser can be launched (as CI does).
 
 What they check:
 
@@ -76,6 +77,8 @@ def browser():
                 executable_path=_executable(), args=["--no-sandbox"]
             )
         except Exception as error:  # no Chromium build available
+            if os.environ.get("REQUIRE_BROWSER"):
+                raise
             pytest.skip(f"Chromium could not be launched: {error}")
         yield launched
         launched.close()
@@ -243,15 +246,52 @@ def test_an_impossible_crash_is_refused(calculator) -> None:
     assert not calculator.is_disabled("[data-keep]")
 
 
-@pytest.mark.parametrize("slug", ["index", "drivers", "severity-models", "validation", "data"])
-def test_no_page_scrolls_sideways_on_a_phone(browser, server, slug: str) -> None:
-    page = browser.new_page(viewport=PHONE)
+PAGES = sorted(path.stem for path in SITE.glob("*.html"))
+CONTRAST = """() => {
+  const rgb = (value) => value.match(/[0-9.]+/g).slice(0, 3).map(Number);
+  const luminance = ([r, g, b]) => {
+    const f = (c) => { c /= 255; return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; };
+    return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
+  };
+  const body = getComputedStyle(document.body);
+  let background = body.backgroundColor;
+  if (background === "rgba(0, 0, 0, 0)") background = getComputedStyle(document.documentElement).backgroundColor;
+  const a = luminance(rgb(body.color)), b = luminance(rgb(background));
+  return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+}"""
+
+
+@pytest.mark.parametrize("scheme", ["light", "dark"])
+@pytest.mark.parametrize("slug", PAGES)
+def test_every_page_loads_cleanly_on_a_phone(browser, server, slug: str, scheme: str) -> None:
+    """No script error, no sideways scrolling at a phone's width, and body text that meets the
+    WCAG AA contrast ratio, in the light and the dark theme."""
+    page = browser.new_page(viewport=PHONE, color_scheme=scheme)
+    errors: list[str] = []
+    page.on("pageerror", lambda error: errors.append(str(error)))
+    page.on(
+        "console", lambda message: errors.append(message.text) if message.type == "error" else None
+    )
     page.goto(f"{server}/{slug}.html", wait_until="networkidle")
     overflow = page.evaluate(
         "document.documentElement.scrollWidth - document.documentElement.clientWidth"
     )
+    contrast = page.evaluate(CONTRAST)
     page.close()
-    assert overflow <= 1, (slug, overflow)
+    assert errors == [], (slug, scheme, errors)
+    assert overflow <= 1, (slug, scheme, overflow)
+    assert contrast >= 4.5, (slug, scheme, contrast)
+
+
+def test_the_theme_switch_overrides_the_system_and_is_remembered(browser, server) -> None:
+    page = browser.new_page(color_scheme="light")
+    page.goto(f"{server}/index.html", wait_until="networkidle")
+    switch = page.locator("[data-theme-toggle], button.theme-toggle").first
+    switch.click()
+    assert page.evaluate("document.documentElement.getAttribute('data-theme')") == "dark"
+    page.goto(f"{server}/drivers.html", wait_until="networkidle")
+    assert page.evaluate("document.documentElement.getAttribute('data-theme')") == "dark"
+    page.close()
 
 
 @pytest.mark.parametrize("broken", ["missing", "mismatched"])
