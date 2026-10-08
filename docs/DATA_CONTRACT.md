@@ -13,11 +13,17 @@ generated in [`DATA_QUALITY_MICRODATA.md`](DATA_QUALITY_MICRODATA.md),
 1. **The data define the analysis.** Every result comes from rows and columns of files under
    `data/raw`. External publications may define a variable or a method; they never supply an
    observation, a coefficient, a relative risk, a missing variable, a join or a confirmation.
-   One exception remains: the EMEF's road-to-straight-line distance ratio for driving trips
-   (1.45) and the 2021 distance benchmarks, typed into `src/dgt_stats/emef/distance.py` from
-   the EMEF 2021 distance report, the survey producer's measurement on the same survey's 2021
-   trips. The report is not archived and could not be found again, so these values rest on the
-   transcription ([`research/DRIVER_AGE_EXPOSURE.md`](research/DRIVER_AGE_EXPOSURE.md)).
+   Two exceptions remain. The first is the EMEF's road-to-straight-line distance ratio for
+   driving trips (1.45) and the 2021 distance benchmarks, typed into
+   `src/dgt_stats/emef/distance.py` from the EMEF 2021 distance report, the survey producer's
+   measurement on the same survey's 2021 trips. The report is not archived and could not be
+   found again, so these values rest on the transcription
+   ([`research/DRIVER_AGE_EXPOSURE.md`](research/DRIVER_AGE_EXPOSURE.md)). The second is the
+   Fundació RACC 2013 survey of licence holders aged 65 and over: the shares who do not drive
+   and the days a week the others drive, typed into `src/dgt_stats/exposure_risk/national.py`
+   from the published slide dossier and not archived, because RACC grants no reuse licence.
+   They set the upper limit on men's kilometres at 75 and over in one split of the 65-and-over
+   kilometres ([`data_sources.md`](data_sources.md)).
 2. **Raw files are immutable.** `data/raw/<source>/` holds files byte for byte, each listed in
    `data/raw/manifest.csv` with its SHA-256 (checked by `tests/test_paths.py`). Cleaning writes
    new files in `data/staging`, `data/processed` and `data/features`; nothing is edited by hand.

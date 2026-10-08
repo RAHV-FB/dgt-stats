@@ -36,7 +36,13 @@ from dgt_stats import severity_model as sm
 from dgt_stats.paths import PROJECT_ROOT, REPORTS_DIR
 from dgt_stats.site.components import FIGURE_SCALE
 
-sync_api = pytest.importorskip("playwright.sync_api")
+# With REQUIRE_BROWSER set (as in CI), a missing browser library or an unbuilt site is an error,
+# not a reason to skip.
+REQUIRED = bool(os.environ.get("REQUIRE_BROWSER"))
+if REQUIRED:
+    from playwright import sync_api
+else:
+    sync_api = pytest.importorskip("playwright.sync_api")
 
 SITE = PROJECT_ROOT / "site"
 MODEL = REPORTS_DIR / "models" / "severity_model.json"
@@ -44,6 +50,8 @@ PAGE = "severity-models.html"
 PHONE = {"width": 390, "height": 844}
 
 if not (SITE / PAGE).exists() or not (SITE / "models" / "severity_model.json").exists():
+    if REQUIRED:
+        raise RuntimeError("REQUIRE_BROWSER is set but the site is not built: run build_site.py")
     pytest.skip("run scripts/build_site.py first", allow_module_level=True)
 
 

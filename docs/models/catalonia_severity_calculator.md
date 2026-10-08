@@ -33,8 +33,10 @@ that were fatal vary with the recorded road, conditions and crash?
 ## Evidence
 
 - **Benchmark and ranking:** a table of road by crash type, scored on the same records; each year
-  2016–2023 predicted by a model fitted only on the years before it, and a later-year holdout
-  ("Choice of model" and "Validation" in `SEVERITY_CALCULATOR.md`; `reports/tables/sev_*.csv`).
+  2016–2023 predicted by a model whose settings were chosen, and whose coefficients were fitted,
+  only on the years before it. 2023 is the file's last year, so no later year is left for a
+  separate holdout ("Evaluation: nested rolling origin" and "Validation" in
+  `SEVERITY_CALCULATOR.md`; `reports/tables/sev_*.csv`).
 - **Calibration:** predicted against observed shares on years the model was not fitted on
   (`sev_calibration.csv`).
 - **How far it reaches:** later years and other provinces of Catalonia; no other source records its

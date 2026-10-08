@@ -80,8 +80,8 @@ CALCULATOR = {
     "source": "Servei Català de Trànsit, 2010-2023",
     "baseline": "road x crash type table, scored on the same years "
     "([`SEVERITY_CALCULATOR.md`](research/SEVERITY_CALCULATOR.md))",
-    "ml": "rolling origins and a later-year holdout "
-    "([`SEVERITY_CALCULATOR.md`](research/SEVERITY_CALCULATOR.md))",
+    "ml": "nested rolling origin, 2016-2023; 2023 is the file's last year, so no later year is "
+    "left for a separate holdout ([`SEVERITY_CALCULATOR.md`](research/SEVERITY_CALCULATOR.md))",
     "transfer_evidence": "[`GENERALISABILITY.md`](GENERALISABILITY.md)",
     "usefulness": "decided by the model review ([`ML_MODEL_REVIEW.md`](research/ML_MODEL_REVIEW.md))",
     "decision": "not run through these rules",

@@ -46,10 +46,10 @@ on every run, sets their role.
 
 | Section | Pages |
 |---|---|
-| **Spain** | [trends since 2019](https://rahv-fb.github.io/dgt-stats/trends.html), [long-run trends](https://rahv-fb.github.io/dgt-stats/long-run.html), [seasons](https://rahv-fb.github.io/dgt-stats/seasons.html), [drivers](https://rahv-fb.github.io/dgt-stats/drivers.html), [vehicles](https://rahv-fb.github.io/dgt-stats/vehicles.html), [speed](https://rahv-fb.github.io/dgt-stats/speed.html), [recorded factors](https://rahv-fb.github.io/dgt-stats/factors.html); supporting analyses: [crash circumstances](https://rahv-fb.github.io/dgt-stats/severity.html), [the 2006 points licence](https://rahv-fb.github.io/dgt-stats/policy.html) |
-| **Regional data** | [Catalonia](https://rahv-fb.github.io/dgt-stats/catalonia.html), [Barcelona](https://rahv-fb.github.io/dgt-stats/barcelona.html) |
-| **Models** | [severity model and calculator](https://rahv-fb.github.io/dgt-stats/severity-models.html), [external validation](https://rahv-fb.github.io/dgt-stats/validation.html) |
-| **Methods** | [data sources and scope](https://rahv-fb.github.io/dgt-stats/sources.html), [methodology](https://rahv-fb.github.io/dgt-stats/data.html) |
+| **Over time** | [long-run trends](https://rahv-fb.github.io/dgt-stats/long-run.html), [since 2019](https://rahv-fb.github.io/dgt-stats/trends.html), [seasons](https://rahv-fb.github.io/dgt-stats/seasons.html), [the 2006 points licence](https://rahv-fb.github.io/dgt-stats/policy.html) |
+| **Drivers, vehicles and factors** | [drivers](https://rahv-fb.github.io/dgt-stats/drivers.html), [vehicles](https://rahv-fb.github.io/dgt-stats/vehicles.html), [speed](https://rahv-fb.github.io/dgt-stats/speed.html), [recorded factors](https://rahv-fb.github.io/dgt-stats/factors.html) |
+| **Crash severity** | [crash circumstances in Spain](https://rahv-fb.github.io/dgt-stats/severity.html), [Catalonia](https://rahv-fb.github.io/dgt-stats/catalonia.html), [Barcelona](https://rahv-fb.github.io/dgt-stats/barcelona.html), [severity model and calculator](https://rahv-fb.github.io/dgt-stats/severity-models.html), [external validation](https://rahv-fb.github.io/dgt-stats/validation.html) |
+| **Data and methods** | [data sources and scope](https://rahv-fb.github.io/dgt-stats/sources.html), [methodology](https://rahv-fb.github.io/dgt-stats/data.html) |
 
 The research behind the rebuilt drivers and models pages, and the audit of every published
 claim, is in [`docs/research/`](docs/research/): the model review, the calculator, the EMEF

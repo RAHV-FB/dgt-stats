@@ -264,7 +264,27 @@ def _misses(scores: pd.DataFrame) -> pd.DataFrame:
     return cells[cells.apply(_outside, axis=1)]
 
 
-def _miss_text(row: pd.Series) -> str:
+def _coarse_misses(scores: pd.DataFrame) -> list[str]:
+    """The years, zones and provinces in which the nested test's mean estimate lies outside the
+    95% interval of the observed share, each as 'in 2016, x% estimated and y% observed (interval)'.
+    """
+    out = []
+    for row in scores[scores.estimator == "calculator"].itertuples():
+        subset = str(row.subset)
+        if subset.isdigit():
+            place = f"in {subset}"
+        elif subset.startswith("zone: "):
+            place = f"on {ZONE_WORDS[subset.removeprefix('zone: ')]} as a whole"
+        elif subset.startswith("province: "):
+            place = f"in the province of {subset.removeprefix('province: ')} as a whole"
+        else:
+            continue
+        if _outside(row):
+            out.append(_miss_text(row, place))
+    return out
+
+
+def _miss_text(row: pd.Series, place: str | None = None) -> str:
     """'on interurban roads in the province of Girona, x% estimated and y% observed (interval)',
     with a second decimal where one decimal would print the estimate at an end of the interval
     it falls outside."""
@@ -274,8 +294,9 @@ def _miss_text(row: pd.Series) -> str:
         round(100 * float(row.observed_high), 1),
     ):
         digits = 2
+    place = place or f"on {ZONE_WORDS[row.zone]} in the province of {row.province}"
     return (
-        f"on {ZONE_WORDS[row.zone]} in the province of {row.province}, "
+        f"{place}, "
         f"{_fmt_pct(row.mean_predicted, digits)} "
         f"estimated and {_fmt_pct(row.prevalence, digits)} observed "
         f"({_fmt_dec(100 * float(row.observed_low), digits)}–"
@@ -468,13 +489,17 @@ def page_severity_models(captions: dict[str, str]) -> str:
     _check(top > top_table and bottom < bottom_table, "the model separates the extremes better")
 
     miss_provinces = sorted(set(misses.province))
+    yearly_scores = scores[(scores.estimator == "calculator") & scores.subset.str.isdigit()]
+    miss_years = [str(row.subset) for row in yearly_scores.itertuples() if _outside(row)]
     body = summary(
         "Of the crashes in Catalonia in which someone was killed or seriously injured, the "
         "Catalan severity model estimates which were fatal (someone died within 24 hours) from "
         "the road, the conditions, the type of crash and who was involved. Each year from "
         f"{first_test} to {last_test} was predicted by a model whose settings and coefficients "
-        "came only from earlier years. Over those years its estimates matched the overall "
-        "fatal share, and it sorted crashes into more and less deadly groups somewhat better "
+        "came only from earlier years. Over those years together its estimates matched the "
+        "overall fatal share"
+        + (f" (though not in {_join(miss_years)})" if miss_years else "")
+        + ", and it sorted crashes into more and less deadly groups somewhat better "
         "than a table of fatal shares by road and crash type"
         + (
             f"; in the provinces of {_join(miss_provinces)} some of its estimates by kind of "
@@ -504,7 +529,12 @@ def page_severity_models(captions: dict[str, str]) -> str:
         captions,
     )
     group_text = (
-        f"In {_words(int(inside.sum()))} of the ten groups, from the crashes it rated least "
+        (
+            f"In all {_words(len(inside))} groups"
+            if bool(inside.all())
+            else f"In {_words(int(inside.sum()))} of the {_words(len(inside))} groups"
+        )
+        + ", from the crashes it rated least "
         "likely to be fatal to those it rated most likely, its mean estimate lies inside the "
         "95% interval of the share observed"
     )
@@ -540,6 +570,12 @@ def page_severity_models(captions: dict[str, str]) -> str:
         )
         + "</p>"
     )
+    coarse = _coarse_misses(scores)
+    if coarse:
+        body += (
+            "<p>By year, kind of road and province the mean estimate fell outside the 95% "
+            f"interval of the observed share {_join(coarse)}.</p>"
+        )
     if len(misses):
         body += (
             "<p>By province and kind of road the estimates were less close. The mean estimate "
