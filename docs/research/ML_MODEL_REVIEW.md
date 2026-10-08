@@ -10,13 +10,13 @@ and `reports/tables/sev_*.csv`.
 
 | Model | Target and unit | Benchmark | Model | Calibration | Decision |
 |---|---|---|---|---|---|
-| Catalan crash severity, original feature set (boosted trees) | fatal rather than serious; one Catalan crash with a death or serious injury | type × zone table: ROC-AUC 0.699 on 2016–2023 | 0.779 (rolling origins, 12,961 crashes, 1,627 fatal); 0.7475 on the 11,611 crashes on roads a reader can choose | slope 1.08 | **REBUILD** as the calculator model below; the original is retired from the site |
+| Catalan crash severity, original feature set (boosted trees) | fatal rather than serious; one Catalan crash with a death or serious injury | type × zone table: ROC-AUC 0.699 on 2016–2023 | 0.778 (rolling origins, 12,961 crashes, 1,627 fatal); 0.7475 on the 11,611 crashes on roads a reader can choose | slope 1.08 | **REBUILD** as the calculator model below; the original is retired from the site |
 | Catalan crash severity, calculator (penalised logistic regression) | same, without the 1,840 crashes whose road owner is an artefact | road × crash type table: 0.709 | 0.739 (nested rolling origins: every choice made on earlier years; 11,611 crashes, 1,429 fatal); boosted trees on the same inputs 0.748 | slope 1.03, mean predicted 12.4% against 12.3% observed; off in three zones of provinces | **KEEP**: the public model |
 | Catalan crash severity, "retrospective administrative" variant | same, adding police judgements of influence | the original model: 0.790 on 2023 | 0.796 | slope 0.91 | **REMOVE**: +0.006 from fields recorded after the event |
 | Barcelona person severity (boosted trees) | serious or fatal injury; one person in a 2025 Barcelona crash | role × vehicle table: 0.780 | 0.851 (months 10–12 of 2025, 4,049 people, 58 serious or fatal) | slope 0.91 here, 0.63 in the original run | **RESEARCH ONLY** |
 | Barcelona crash severity (logistic) | serious or fatal injury in the crash; one 2025 Barcelona crash | accident-type table: 0.734 | 0.737 (1,994 crashes, 58 positive) | slope 0.84 | **REMOVE**: no gain over the table |
 | Catalan model on DGT-common or Barcelona-common variables | fatal rather than serious | not a predictive model | transfer tests | — | **RESEARCH ONLY**: validation instruments |
-| DGT crash severity (logistic, association analysis) | a death within 30 days; one DGT injury crash, 2016–2024 | not compared | 0.801 on 2023–2024 (203,302 crashes, 3,336 fatal) | every decile within half a point | **RESEARCH ONLY**: recording artefacts (below) |
+| DGT crash severity (logistic, association analysis) | a death within 30 days; one DGT injury crash, 2016–2024 | not compared | 0.803 on 2023–2024 (203,302 crashes, 3,336 fatal; 0.801 before the Catalan 2023–2024 junction flag was read the right way round) | every decile within half a point | **RESEARCH ONLY**: recording artefacts (below) |
 | Monthly road deaths forecast (Poisson regression) | deaths in a month, Spain | last year's count: 5.9% error in ordinary held-out years | 6.6% | — | **WITHDRAWN**: its page is a withdrawal notice (below) |
 
 Read each row as follows. The benchmark is a table any analyst could make, scored on the same
@@ -30,7 +30,7 @@ exactly as far as the observed outcomes do.
 pipelines. Boosted trees with the originally chosen settings scored ROC-AUC 0.788 on 2023 (0.790
 published); the type × zone table 0.695 (0.695); logistic regression 0.769 (0.771). One test year
 holds only 209 fatal crashes, so the evaluation was extended: each year 2016–2023 was predicted by
-models fitted only on the years before it. On those 12,961 crashes the boosted trees scored 0.779
+models fitted only on the years before it. On those 12,961 crashes the boosted trees scored 0.778
 against 0.699 for the table, and the gain held in every year (smallest 2016: 0.749 against 0.655).
 Calibration was good on the pooled years (slope 1.08, mean prediction within 0.4 points of the
 observed 12.6%).
@@ -58,7 +58,8 @@ the descriptive table does not already show. It moves to research documentation.
 adds nothing to the accident-type table (0.737 against 0.734) and is removed.
 
 **DGT association model.** On 2023–2024 its predicted probabilities match observed shares decile
-by decile, and it ranks fatal crashes with ROC-AUC 0.801. It is not a predictive tool: the
+by decile, and it ranks fatal crashes with ROC-AUC 0.803 (0.801 before the inverted Catalan
+junction flag of 2023–2024 was read the right way round). It is not a predictive tool: the
 national file is filled differently by different police forces, and which circumstance fields
 were left unrecorded where they apply ranks fatal crashes with ROC-AUC 0.68 on its own
 (`dgt_audit_artefacts`). Its
@@ -94,12 +95,14 @@ rejected model. The page is withdrawn, and the investigation is kept here.
 The public result for the retained model is its calibration on years whose data played no part
 in fitting or choosing it (`reports/figures/sev1_predicted_observed.svg`,
 `reports/tables/sev_calibration.csv`). The evaluation is nested
-(`severity_model.nested_rolling`). For each year 2016–2023, three choices are made on the years
+(`severity_model.nested_rolling`). For each year 2016–2023, four choices are made on the years
 before it alone, by fitting on all but the last two of them and scoring those two by log loss:
 the penalty (half-decades of C from 0.001 to 32, extended while the best value is at an end),
-whether each input's association may differ on urban streets and interurban roads, and whether
+whether each input's association may differ on urban streets and interurban roads, whether
 roads through towns get the model's estimate or the average fatal share of such roads in the
-province. The model is then refitted on all the years before the test year, and the table of
+province, and whether the model has an intercept for each province and zone (the first three
+are made with and without those intercepts, and the design with the lower validation loss is
+kept). The model is then refitted on all the years before the test year, and the table of
 fatal shares by road and crash type is fitted on the same years. The choices for each year are
 in `sev_choices.csv`, every grid point in `sev_penalty.csv`.
 
@@ -150,12 +153,12 @@ ninth it is 0.1 points inside the lower end. The pooled calibration slope is 1.0
 intercept 0.05; the mean prediction is 12.4%, against 12.3% observed. Of the fifth of crashes the
 model rated most likely to be fatal, 30.0% were; of the fifth rated least likely, 3.4% (the
 table: 27.4% and 4.4%). The model's probabilities can be read as estimates for groups of similar
-recorded crashes, with exceptions. In 2016 it predicted 12.9% and 11.0% were fatal (9.6–12.6%).
+recorded crashes, with exceptions. In 2016 it predicted 13.0% and 11.0% were fatal (9.6–12.6%).
 On urban streets it predicted 7.3% against 6.6% (6.0–7.2%). By province and zone, the mean
-prediction falls outside the observed interval on interurban roads in Girona (23.5% against
-26.8%, 23.8–30.1%) and Tarragona (27.2% against 31.0%, 27.8–34.4%) and on urban streets in the
-province of Barcelona (7.5% against 6.7%, 6.0–7.5%). Within the urban zone the model ranks
-crashes less well (ROC-AUC 0.660) than on interurban roads (0.701), and on roads through towns it
-does not rank them (0.544, 86 fatal crashes, partly scored with the average). The calculator
+prediction falls outside the observed interval on interurban roads in Girona (23.2% against
+26.8%, 23.8–30.1%) and Tarragona (26.7% against 31.0%, 27.8–34.4%) and on urban streets in the
+province of Barcelona (7.54% against 6.70%, 6.02–7.45%). Within the urban zone the model ranks
+crashes less well (ROC-AUC 0.660) than on interurban roads (0.697), and on roads through towns it
+does not rank them (0.546, 86 fatal crashes, partly scored with the average). The calculator
 shows the average for roads through towns because the published model's own choice, made on
 2022–2023, gave them the average.

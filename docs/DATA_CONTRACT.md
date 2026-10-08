@@ -122,8 +122,11 @@ hand from publications: not source data, see below).
 - **Kilometres**: vehicle-kilometres by vehicle type (2022), by the **owner's** age band (2024)
   and by class of service (2024), from ITV odometer readings. Owner age is not driver age, so the
   owner-age kilometres are never the denominator of a per-km rate by driver age: they are the
-  comparison Method D and one of the assumptions of the 75-and-over split. The car total by class
-  of service, less taxis and ride-hailing cars, sets the level of the driver-age rates (Method B).
+  comparison Method D, a bound for the age mix of the kilometres the travel survey does not
+  cover (reported with its values and left out of the sensitivity ranges) and diagnostics of the
+  75-and-over checks; since October 2026 no split of the 65-and-over kilometres takes its 75+
+  share from them. The car total by class of service, less taxis and ride-hailing cars, sets the
+  level of the driver-age rates (Method B).
 
 ### INE population (`ine/ine_poblacion_provincias_edad_sexo.csv`, `ine/ine_poblacion_edad_simple_sexo.csv`)
 
@@ -157,7 +160,9 @@ hand from publications: not source data, see below).
   municipal roads), toll-motorway traffic, monthly road fuel by product, and survey tables.
 - A traffic series is a denominator only for deaths on the network it measures; national fuel is
   not a denominator for interurban deaths, and toll-motorway traffic is not one for all roads.
-  Survey tables are context and cannot stand in for missing variables.
+  Survey tables are context and cannot stand in for missing variables. MOVILIA 2006 and 2007
+  tables, and the fuel and toll-motorway series, enter the driver-age rates only as alternative
+  age mixes and coverage settings in the sensitivity analysis, never as a denominator.
 
 ### Compiled registers (`compiled/`)
 

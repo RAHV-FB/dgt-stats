@@ -33,8 +33,10 @@ tests therefore describe crashes on roads with a named owning network or of anot
 crashes left out were fatal in 14.7% of cases, so with them the fatal share of all crashes would
 be 12.6% rather than 12.5%, and of interurban crashes 19.2% rather than 20.0%. The calculator's
 comparison figures say that they are averages over the fitted crashes. An earlier version kept
-the artefact roads as two categories used only in training; its pooled score then included them,
-and they made its ranking look better than it was on the roads a reader can choose.
+the artefact roads as two categories used only in training; its pooled score then included them
+(as first published, ROC-AUC 0.772 against 0.745 for the table on all 12,961 crashes of
+2016–2023, not nested), and they made its ranking look better than it was on the roads a reader
+can choose.
 
 ## Inputs
 
@@ -171,7 +173,7 @@ chosen on 2015–2016 ranked 2017 less well (0.726 against 0.731). The by-zone s
 in six of the eight years, ranked about as well and brought the slope closer to 1. The average on
 roads through towns, chosen in 2016, 2022 and 2023, predicted those years' through-town crashes
 less well than the model would have. The original model (boosted trees on the original feature
-set, including the road owner's artefact values) scored ROC-AUC 0.779 on all 12,961 crashes of
+set, including the road owner's artefact values) scored ROC-AUC 0.778 on all 12,961 crashes of
 the same years. On the 11,611 crashes on the roads a reader can choose it scores 0.7475, the same
 as the trees here (0.7476). Its apparent advantage came from the artefact.
 
@@ -212,8 +214,8 @@ holds:
 - the columns and coefficients, and the lower triangle of the bootstrap covariance;
 - a `model_id` (a hash of the columns and coefficients), which the page also carries, so that the
   page refuses a model file from another build;
-- the published choices (`choice`: specification, C, the through-town rule and the years they
-  were made on);
+- the published choices (`choice`: specification, C, the through-town rule, whether the model has
+  province intercepts, and the years they were made on);
 - the input specification with labels, defaults and rules;
 - the number of training crashes (and fatal ones) for each combination of zone, crash type, road
   users and number involved, the number per road and input level, and the observed fatal share
@@ -328,4 +330,4 @@ results, or ages are recorded. A predicted fatal share describes recorded crashe
 scenario. It is not anyone's chance of dying in a crash, because the model conditions on someone
 having been killed or seriously injured. The intervals reflect the uncertainty of the
 coefficients, not the differences between periods and places shown above, nor the uncertainty of
-the choices of penalty, specification and through-town rule.
+the choices of penalty, specification, through-town rule and province intercepts.

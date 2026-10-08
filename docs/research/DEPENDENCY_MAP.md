@@ -1,6 +1,6 @@
 # dgt-stats: dependency map, from raw source to published claim
 
-Audit of the repository at commit `d111da8` (the `main` head when the rebuild began), made before any analysis was changed. Line numbers refer to that commit.
+Audit of the repository at commit `d111da8` (the `main` head when the rebuild began), made before any analysis was changed. Line numbers refer to that commit. Every number quoted below is the one published at `d111da8`, and many have since been revised or superseded, so none should be cited from this map as a current result: the current figures are in `reports/tables/`, on the pages and in [`FINAL_REPORT.md`](FINAL_REPORT.md).
 
 **How the map was built.**
 - Every page builder in `site.PAGE_BUILDERS` (`src/dgt_stats/site/__init__.py:94`) was run into a scratch directory. During the run, `pd.read_csv`, `components.figure` and `components.downloads` were instrumented, so the table lists below show what each page actually reads at run time, not what a grep suggests.

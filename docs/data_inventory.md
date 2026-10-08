@@ -86,8 +86,8 @@ A second copy of the series workbook (`...2024(1).xlsx`, byte-identical, same MD
 | `crtm/edm2018/edm2018_individuos.csv` | 2018 | CRTM, EDM2018: 85,064 respondents (household and person id, sex, exact age, licence, activity, weekday Monday–Thursday, reason for not travelling, person weight); extract written by `scripts/fetch_edm.py` | `EDM2018INDIVIDUOS.xlsx` |
 | `crtm/edm2018/edm2018_viajes_conductor.csv` | 2018 | CRTM, EDM2018: the 67,975 trips whose main mode is car driver (private, company or rental car), with distance and trip weight | `EDM2018VIAJES.xlsx` |
 | `crtm/edm2018/edm2018_codebook.csv` | 2018 | the codebook sheets of both workbooks | both workbooks |
-| `transportes/movilia_2006.xls` | 2006 | MOVILIA 2006 daily-mobility tables (168 sheets). Tables 63–64 give trips by main mode × sex × age; the mode is "coche o moto" with **no driver/passenger split**, so it yields a car-travel intensity curve by age, not a driver share. Not read by any code: the sex travel bracket built from it was withdrawn | `Movilia2006.xls` |
-| `transportes/movilia_2007.xls` | 2007 | MOVILIA 2007 long-distance tables (134 sheets): trips over 50 km by mode, purpose, age and sex. Not read by any code | `Movilia2007.xls` |
+| `transportes/movilia_2006.xls` | 2006 | MOVILIA 2006 daily-mobility tables (168 sheets). Tables 63–64 give trips by main mode × sex × age; the mode is "coche o moto" with **no driver/passenger split**, so it yields a car-travel intensity curve by age, not a driver share. The sex travel bracket once built from it was withdrawn. Read for sensitivity tests of the driver-age rates only: table 64 gives one weekend age mix (`exposure_risk/national.py`), and tables 9, 61 and 72 the car trips per resident of the province of Barcelona against Spain's, and the trips and their duration on a weekend day against a working day (`exposure_risk/coverage.py`) | `Movilia2006.xls` |
+| `transportes/movilia_2007.xls` | 2007 | MOVILIA 2007 long-distance tables (134 sheets): trips over 50 km by mode, purpose, age and sex. Tables 13 and 18 are read for one age mix of the kilometres the EMEF does not cover and the summer share of car journeys (`exposure_risk/coverage.py`); journeys of drivers and passengers, not kilometres | `Movilia2007.xls` |
 | `comunidad_madrid/movilia_madrid/movilia07t0{1..5}.xls` | 2006/07 | Madrid statistical office extract of MOVILIA daily mobility (Madrid and Spain); no driver status by age. Not read by any code | `movilia07t0N.xls` |
 | `ine/ine_ecepov_2021_55378.xlsx` | 2021 | INE ECEPOV table 55378: persons 16+ by main vehicle used to commute to work or study, by sex and age group; commuters only. Not read by any code | INE table export |
 | `ine/ine_ehma_2008_1001{6,9}.csv` | 2008 | INE household survey: mean annual km per household vehicle by sex, age and nationality of the reference person, by fuel (10016) and by vehicle age (10019). Not read by any code | INE px CSV export |
@@ -258,7 +258,10 @@ No duplicate identifiers were found in any year.
   (`NUM_PERMISOS_B` in the 2024 census text file), it does not hold as a stand-in for the driver's
   at either end: there are 0.23 cars per B-permit holder at 18–24, 0.56 at 25–34 and 1.14 at 75+
   (`q7_owner_age_check.csv`). The owner-age kilometres were the denominator of the former
-  driver-age figure; they are now kept only as a comparison (Method D), and the per-km rates by
+  driver-age figure; they are now never a driver-age denominator: they are kept as a comparison
+  (Method D), as a bound for the age mix of the kilometres the travel survey does not cover
+  (reported with its values and left out of the sensitivity ranges since October 2026) and as
+  diagnostics of the 75-and-over checks, and the per-km rates by
   driver age divide by kilometres measured in the EMEF and EDM2018 travel surveys
   ([`methodology.md`](methodology.md), section 7;
   [`research/DRIVER_AGE_EXPOSURE.md`](research/DRIVER_AGE_EXPOSURE.md)).
@@ -318,8 +321,9 @@ No duplicate identifiers were found in any year.
   distraction and alcohol-and-drug models and the enforcement comparison, all three **withdrawn**
   because their results came from external-study coefficients: external studies may define
   variables or methods but never supply observations, coefficients or effect sizes
-  ([`DATA_CONTRACT.md`](DATA_CONTRACT.md), which states the one exception: the EMEF 2021
-  distance report's values in `emef/distance.py`). The files stay in `data/raw/`, which is never edited,
+  ([`DATA_CONTRACT.md`](DATA_CONTRACT.md), which states the two exceptions: the EMEF 2021
+  distance report's values in `emef/distance.py` and the Fundació RACC 2013 survey's figures in
+  `exposure_risk/national.py`). The files stay in `data/raw/`, which is never edited,
   as a record; no code reads them, and `tests/test_withdrawn.py` checks that none does.
 - How they were compiled, kept as a record only: the Baseline speed figures were read in the
   report's tables 9–11 and 12a and, for autovías, the Annex 1 text introducing tables 12a–12c
@@ -341,7 +345,7 @@ No duplicate identifiers were found in any year.
 | Person-level severity and recorded causes, Barcelona 2025 | Yes, for one city and one year | the Guàrdia Urbana crash, person and cause tables, which share `Numero_expedient`; a cause is what the police recorded, not an established cause |
 | Province comparisons per resident, per licensed driver, per registered vehicle | Per resident and per licence holder, yes; per registered vehicle, only for Spain as a whole | INE residents and the census files give population and drivers by province; the fleet is only national in the series |
 | Vulnerable road users (pedestrians, cyclists, moped riders, motorcyclists, VMP) fatality shares and trends | Yes | `TOT_*_MU30DF` columns |
-| Older road users, per unit of driving | Yes for 65 and over; for 75 and over as a range with a conditional estimate (2024) | the EMEF (Barcelona area, 2014–2024) measures car-driver kilometres by driver age up to 65+, and EDM2018 (Madrid, exact ages) gives the profile above 65; transferred to Spain's population and DGT's car kilometres, they divide the driver tables' car drivers involved and killed by age. The EMEF's public files merge 65–74 and 75+, so the 75+ rate is given as a sensitivity range (0.97–3.28 times the 45–64 rate) beside a conditional estimate on Madrid's 2018 age pattern (2.06, 95% sampling interval 1.6–2.6) ([`research/DRIVER_AGE_EXPOSURE.md`](research/DRIVER_AGE_EXPOSURE.md)). Deaths per driver involved need no kilometres |
+| Older road users, per unit of driving | Yes for 65 and over; for 75 and over as a range with a conditional estimate (2024) | the EMEF (Barcelona area, 2014–2024) measures car-driver kilometres by driver age up to 65+, and EDM2018 (Madrid, exact ages) gives the profile above 65; transferred to Spain's population and DGT's car kilometres, they divide the driver tables' car drivers involved and killed by age. The EMEF's public files merge 65–74 and 75+, so the 75+ rate is given as a sensitivity range (0.97–3.20 times the 45–64 rate) beside a conditional estimate on Madrid's 2018 age pattern (2.06, 95% sampling interval 1.6–2.6) ([`research/DRIVER_AGE_EXPOSURE.md`](research/DRIVER_AGE_EXPOSURE.md)). Deaths per driver involved need no kilometres |
 | Heavy vehicles and buses per vehicle-km | Only for 2022, and only occupant deaths | involvement not in microdata; km by vehicle type only for 2022 (the Ministry's table 1.2.14 gives only the share of heavy vehicles on interurban roads, as one group) |
 | Alcohol, distraction, drugs, speed and illegal manoeuvres as recorded concurrent factors, year to year | Partly | DGT's speed report counts injury crashes with each factor, 2014–2023, for Spain without Cataluña and País Vasco; comparable only within runs of years without a recording break (urban distraction breaks in 2016 and 2019, urban alcohol in 2016, drugs throughout); deaths by factor are published for speed only |
 | Speed as a severity factor | Yes, as an association | the speed report's speed-related crashes and deaths by road type against microdata totals for the same provinces. The microdata restricted to the report's provinces reproduce its totals by year and zone exactly (`speed_report_scope`); the report gives no totals by road type, so the mapping of the microdata to its road types is not reconciled |

@@ -920,7 +920,8 @@ pigeonhole Monte Carlo errors are 0.006–0.065, so at most one decimal of each 
   1 (0.989) is the same structure with the EMEF overnight-stay proxy for the non-working days.
 * Lowest unmarked, 1.214: the same structure with the RACC split. Interval 0.91–1.76, which
   reaches 1. Its implied 65–74/45–64 km per holder is 0.995. The edge is set by how the RACC split
-  is built and is not stable under fuller crossing (exploratory 1.15–1.19), so the site prints
+  is built and is not stable under fuller crossing (exploratory 1.15–1.19, computed before the
+  October 2026 corrections), so the site prints
   "about 1.2" and says what sets it.
 * Maximum, 3.199: Madrid's profile (standardised), the working-day mix for non-working days,
   MOVILIA 2007's over-50-km journeys for the unexplained km, the Madrid km per DGT licence holder
@@ -931,7 +932,9 @@ pigeonhole Monte Carlo errors are 0.006–0.065, so at most one decimal of each 
 composition are varied one at a time; crossing them would move both ends and the unmarked
 minimum. Exploratory crossings, not reproduced by the pipeline and not on the site, gave
 0.92–3.53 with survey years pooled, 0.78–3.59 with single-year area cells, and an unmarked
-minimum of about 1.15–1.19 with four splits.
+minimum of about 1.15–1.19 with four splits. They were computed before the October 2026
+corrections (below) and have not been recomputed, so their ends are not current figures; they
+show only that crossing moves both ends.
 
 **Two top-end biases of opposite sign, both corrected in October 2026** instead of being left to
 cancel. (1) The licence split's definitional mismatch (above): about +7–9% at the top (3.28
@@ -1050,7 +1053,8 @@ narrows the range. Values not computed in the pipeline are marked *quoted* or *e
 * MOVILIA microdata: availability not verified.
 * INE ECEPOV: no km.
 * EHMA 2008 (disability survey): no driving km.
-* Idescat EUT 2023–24: confidential microdata; a tabulation is requested.
+* Idescat EUT 2023–24: confidential microdata, usable only through a tabulation by Idescat. No
+  tabulation has been requested; it is a candidate request (item 2 of the list below).
 * Basque Encuesta de Movilidad 2016 and Estudio de Movilidad 2021: candidate, not yet obtained.
 
 ### Missing data that would help

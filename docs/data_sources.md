@@ -192,7 +192,7 @@ published in the records held for 2016–2023, and the record gives the dictiona
 | `ine/ine_poblacion_provincias_edad_sexo.csv` | 2002–2025 | residents by province, five-year age group and sex, 1 January and 1 July | 2019–2024, age and sex, Catalonia and how far the results reach (severe crashes per resident by province) |
 | `dgt/km_itv_2022/media_km_antiguedad_tipo_2022.xlsx` | 2022 | circulating fleet ("parque circulante": vehicles with an ITV, insurance, ownership-change, re-registration or fine record in the previous ten years) and mean annual km by vehicle type and age | vehicles, 2019–2024 (DGT's kilometre series beside fuel; its 2022 means equal table 6's) |
 | `dgt/km_itv_2022/km_recorridos_estimados_2022.xlsx` | 2022 | km per vehicle by stratum (type, Euro class, age, engine, fuel) | parsed; not on the site |
-| `dgt/km_itv_2024/km_edad_propietario_2024.xlsx` | 2024 | vehicles, total and mean annual km by vehicle category **and by the age band of the registered owner**; the denominator of the former driver-age figure, now the comparison Method D, one of the age mixes for the uncovered kilometres, and the owner-km diagnostics of the 75-and-over checks (`risk_older_sensitivity.csv`, `risk_older_reference_checks.csv`); never a driver-age denominator | drivers (former figure, Method D) |
+| `dgt/km_itv_2024/km_edad_propietario_2024.xlsx` | 2024 | vehicles, total and mean annual km by vehicle category **and by the age band of the registered owner**; the denominator of the former driver-age figure, now the comparison Method D, a bound for the age mix of the uncovered kilometres (reported with its values and, since October 2026, left out of the sensitivity ranges), and the owner-km diagnostics of the 75-and-over checks (`risk_older_sensitivity.csv`, `risk_older_reference_checks.csv`); never a driver-age denominator | drivers (former figure, Method D) |
 | `dgt/km_itv_2024/km_medios_tipo_2024.xlsx` | 2022–2024 | the release's table 6, mean annual km by category for 2022, 2023 and 2024 as one series (its 2022 values equal the 2022 release's), and the 2024 detail sheet of vehicles and total km, used to reconcile the owner-age table against the published fleet; set beside fuel and deaths on the 2019–2024 page | age and sex (check), 2019–2024 |
 | `dgt/km_itv_2024/km_servicio_2024.xlsx` | 2024 | vehicles and total and mean annual km by category and class of service (private; public: taxi, car hire with and without driver, driving school...): the national car-km total of the driver-age rates, less taxis and ride-hailing cars | drivers (driver-age exposure, Method B) |
 | `dgt/km_itv_2024/km_comunidades_2024.xlsx` | 2024 | the release's table 9: mean annual km by category and the owner's autonomous community, with vehicles and total km in the 2024 detail sheet; read for the regional level of the coverage of DGT's kilometres: car km and cars per resident in Spain, Spain without Madrid and Catalonia (`exposure_risk/coverage.py`, `regional_evidence`) | drivers (coverage of DGT's kilometres, sensitivity range) |
@@ -259,12 +259,14 @@ finer than 65 and over), is set out in
 Three files hold values typed by hand from publications, each row with its source. They are not
 source data: external studies may define a variable or a method in this project but never supply
 an observation, a coefficient or an effect size, so **no code reads them** (`tests/test_withdrawn.py`
-checks that for the two evidence registers). The one exception to that rule, the EMEF 2021
-distance report's road-to-straight-line ratio and benchmarks typed into `emef/distance.py`, is
-set out in [`DATA_CONTRACT.md`](DATA_CONTRACT.md), rule 1. They are kept, unmodified and hashed, as the record
-of what was searched and of what the withdrawn analyses used: the speed-law simulator, the
-distraction and alcohol-and-drug models and the enforcement comparison were withdrawn because
-their results came from external-study coefficients, and their pages are now withdrawal notices.
+checks that for the two evidence registers). The two exceptions to that rule, the EMEF 2021
+distance report's road-to-straight-line ratio and benchmarks typed into `emef/distance.py` and
+the Fundació RACC 2013 survey's figures typed into `exposure_risk/national.py` (reuse terms
+above), are set out in [`DATA_CONTRACT.md`](DATA_CONTRACT.md), rule 1. The three files are
+kept, unmodified and hashed, as the record of what was searched and of what the withdrawn
+analyses used: the speed-law simulator, the distraction and alcohol-and-drug models and the
+enforcement comparison were withdrawn because their results came from external-study
+coefficients, and their pages are now withdrawal notices.
 
 | File | Content | Page |
 |---|---|---|

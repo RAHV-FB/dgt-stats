@@ -7,10 +7,13 @@ work that waits on external data (the last section).
 
 The final audit that followed this review changed several results: the distance corrections
 moved the per-km ratios (18–29 from 2.57 to 2.53, 65 and over from 1.16 to 1.19), the coverage of
-DGT's kilometres widened their sensitivity ranges, the 75+ figures were constrained, and the
+DGT's kilometres widened their sensitivity ranges, the 75+ figures were constrained, the method
+fixes of October 2026 (the Madrid profile standardised to Spain's older population, the licence
+split counted one way, DGT's owner-age kilometres made a bound, and every sampling interval
+printed to the precision its Monte Carlo error supports) moved the ends of those ranges, and the
 severity model was re-evaluated with every choice nested. The figures below are the current ones;
-where a first-published figure differed, it is given and labelled as such. The acceptance report
-of that audit is [`ACCEPTANCE_REPORT.md`](ACCEPTANCE_REPORT.md).
+where a first-published or later superseded figure differed, it is given and labelled as such. The
+acceptance report of that audit is [`ACCEPTANCE_REPORT.md`](ACCEPTANCE_REPORT.md).
 
 The work is on the branch `cl/inspiring-wozniak-uqpemm`, in pull request
 [RAHV-FB/dgt-stats#25](https://github.com/RAHV-FB/dgt-stats/pull/25). The site at
@@ -62,12 +65,12 @@ corrected (point 15). No calculation in a committed table was found to be wrong.
 | Raw-source reconciliation | the 482 reconciliation checks against DGT's published totals (`validate.run_all`), rerun by CI on every push; the SHA-256 of every raw file against `data/raw/manifest.csv` (`pytest -m slow`) | all pass |
 | EMEF ingestion and weighting | 154 structural checks (`emef_checks.csv`; 142 when first published): sample sizes and weighted totals equal the survey's technical tables every year; fifteen published 2024 figures reproduced to their rounding (`emef_reproduction.csv`); independent recount above | all pass |
 | Car driver against passenger | code 12 (car driver) and 13 (car passenger) read from every year's dictionary and tested; a passenger stage never makes a driving trip | confirmed |
-| Distance estimation | the 2021 distance report's benchmarks reproduced (8.94 against 8.9 km for a driving trip; road km per mobile person within 8% by age); the imputation of unbanded trips checked against banded trips (1.03 overall, within 10% in every year and age group) | confirmed, with the treatment of long and unbanded trips carried into the sensitivity ranges |
+| Distance estimation | the 2021 distance report's benchmarks reproduced (8.95 against 8.9 km for a driving trip, 8.94 as first published; road km per mobile person within 8% by age); the duration-only treatment of unbanded trips checked against banded trips under 100 km (1.05 times the band-based total overall, within 14% in every duration class up to two hours, 1.82 times at 120–180 minutes; as first published, with the bound at 100 km/h and an earlier version of the check, 1.03 overall and within 10% in every year and age group) | confirmed up to two hours; the treatment of long and unbanded trips is carried into the sensitivity ranges |
 | Age-group handling | `age4` collapses exactly onto `age3` (tested); the 16–29 group matched to drivers aged 18–29; INE single ages summed without the file's overlapping aggregates (tested) | confirmed |
 | Workday exposure | working days only in the EMEF; Barcelona's 2025 calendar of 248 working days built from the Catalan and local holidays and tested | confirmed |
 | National extrapolation | Method A recomputed independently (above); Methods C and D as sensitivity and comparison | confirmed |
 | Crash-numerator compatibility | private cars only, public-service cars removed from both numerator and denominator; drivers of unknown age left out of the rates and the effect stated (2.3%) | confirmed; the wording of one document corrected (point 15) |
-| Uncertainty | bootstrap replicates paired with gamma draws for counts; intervals and sensitivity ranges reported separately throughout | confirmed |
+| Uncertainty | bootstrap replicates crossed with gamma draws of the counts (50 per replicate for the national and Barcelona rates since October 2026, one per replicate when first published); the Monte Carlo error of every interval end estimated, and the ends printed to the precision it supports; intervals and sensitivity ranges reported separately throughout | confirmed |
 | Model performance | rolling-origin scores of every model against a table of the same records (`sev_rolling_scores`, `review_*`); for the published model the evaluation is nested, every choice made on earlier years (`sev_choices`, `sev_nested_steps`) | confirmed (points 1–3) |
 | Model calibration | predicted against observed in ten groups of predicted risk on years that played no part in fitting or choosing the model (`sev_calibration`), and by year, zone and province (`sev_rolling_scores`) | all ten groups' mean predictions inside the observed 95% interval (nine of ten before the province intercepts were nested); outside it in 2016, on urban streets, and on interurban roads in Girona and Tarragona |
 | Frontend inference | the browser engine against the Python model on 302 scenarios under Node, and on 120 scenarios in Chromium on the built page, to 10⁻¹⁰; the comparison of two crashes against `compare_exported` | agree |
@@ -116,9 +119,14 @@ term. Source: [`SEVERITY_CALCULATOR.md`](SEVERITY_CALCULATOR.md).
 The model improves on the table by +0.030 ROC-AUC (paired interval +0.021 to +0.040) and lowers
 the log loss by 0.010. The earlier, non-nested design, whose penalty was chosen on two of the test
 years and whose specification, through-town rule and province intercepts were decided on the test
-scores, gave 0.743 and +0.034; nesting all but the province intercepts gave 0.741. The improvement is real but modest: most of the information is in the road and the
-crash type. The model ranks crashes moderately on interurban roads (0.697) and urban streets
-(0.660) and not on roads through towns, where the calculator shows the province's average.
+scores, gave 0.743 and +0.034; nesting all but the province intercepts gave 0.741 and +0.032
+(slope 1.05, nine of the ten calibration groups inside the observed interval). As first
+published, on all 12,961 crashes of 2016–2023 with the road-owner artefact and without nesting,
+the figures were 0.772 against 0.745 for the table (+0.027), slope 1.04, 12.5% predicted against
+12.6% observed; all are superseded. The improvement is real but modest: most of the information
+is in the road and the crash type. The model ranks crashes moderately on interurban roads (0.697)
+and urban streets (0.660) and not on roads through towns, where the calculator shows the
+province's average.
 
 ### 4. EMEF years successfully imported
 
@@ -156,9 +164,12 @@ respondent's age group and year, fitted by maximum likelihood with interval cens
 model never contradicts a band. Each trip takes the mean of the fitted distribution truncated to
 its band. The EMEF 2021 distance report's ratio of road to straight-line distance for driving
 trips (12.9 / 8.9 km = 1.45) converts it to road kilometres; as a common factor it changes
-absolute rates but no ratio between ages. Trips without a band take the model's mean given
-duration, bounded at 100 km/h. Trips combining driving with another vehicle count for half their
-distance (0% and 100% tested). The method reproduces the report's benchmarks
+absolute rates, and the ratios between ages only slightly, because trips without a band are
+bounded by a door-to-door speed whatever the ratio. Trips without a band take the model's mean
+given duration, bounded at 80 km/h door to door (100 km/h as first published; bounds of 60 and
+100 km/h, durations capped at four hours, the unbounded mean and leaving the trips out are
+tested). Trips combining driving with another vehicle count for half their distance (0% and 100%
+tested). The method reproduces the report's benchmarks
 ([`DRIVER_AGE_EXPOSURE.md`](DRIVER_AGE_EXPOSURE.md), From distance bands to road kilometres).
 
 ### 8. Workday exposure findings
@@ -192,10 +203,13 @@ published 13.4%, 11.6–15.3%), more than in the province because Spain's popula
 ### 10. Treatment of weekend and holiday driving
 
 The EMEF covers working days. The central estimate spreads DGT's annual kilometres with the
-working-day age mix. The sensitivity analysis gives non-working days the age mix of the EMEF 2023
-weekend question, with 22% or 32% of annual kilometres. The 65-and-over ratio falls from 1.19 to
-1.11 or 1.08, and the 18–29 ratio from 2.53 to 2.42 or 2.38 (first published: from 1.16 to 1.09
-or 1.06, and from 2.57 to 2.45 or 2.41). Barcelona's crashes by type of day
+working-day age mix. The sensitivity analysis gives non-working days, with 22% or 32% of annual
+kilometres, one of two age mixes: the EMEF 2023 weekend question (a proxy) and MOVILIA 2006's car
+trips on a weekend day against a working day. The 65-and-over ratio falls from 1.19 to 1.11 or
+1.08 with the first and to 1.09 or 1.05 with the second, and the 18–29 ratio from 2.53 to 2.38–2.47
+(first published, with the EMEF proxy only: from 1.16 to 1.09 or 1.06, and from 2.57 to 2.45 or
+2.41). The coverage scenarios apply the same mixes to all the kilometres the survey does not
+cover (point 14). Barcelona's crashes by type of day
 show the older group's weekend pattern resembling the middle-aged group's. No source measures
 weekend kilometres by age, so this remains a sensitivity range.
 
@@ -208,25 +222,32 @@ sent** ([`EMEF_DATA_REQUEST.md`](EMEF_DATA_REQUEST.md)). The figure first publis
 now gives a conditional estimate for 75 and over (2.06 times the 45–64 rate if people aged 75 and
 over drive as much less than those aged 65–74 as in Madrid in 2018; 95% sampling interval
 1.6–2.6, whose second decimal is within Monte Carlo error) beside the sensitivity range
-(0.97–3.28). See
+(0.97–3.20; 0.97–3.28 before the October 2026 method fixes). See
 [75+ exposure: constraining the estimate](#75-exposure-constraining-the-estimate).
 
 ### 12. Revised crash-involvement rates
 
 Car drivers involved in injury crashes in Spain in 2024, per billion km driven by drivers of the
-same age (Methods A and B):
+same age (Methods A and B; `risk_national_rates.csv`, kilometre total less taxis and
+ride-hailing). Interval ends are printed to the precision their Monte Carlo errors support: one
+decimal for the ratios, whole numbers or tens for the rates.
 
 | Age | Involved per bn km (95% CI) | Ratio to 45–64 (95% CI) | Sensitivity range of the ratio (every alternative) | Driver deaths, ratio to 45–64 (95% CI) |
 |---|---:|---:|---:|---:|
-| 18–29 | 643 (587–707) | 2.53 (2.25–2.82) | 1.49–3.75 | 2.26 (1.71–2.92) |
-| 30–44 | 356 (337–375) | 1.40 (1.30–1.53) | 1.12–1.72 | 1.19 (0.91–1.51) |
+| 18–29 | 643 (590–700) | 2.53 (2.2–2.8) | 1.49–3.63 | 2.26 (1.7–3.0) |
+| 30–44 | 356 (340–380) | 1.40 (1.3–1.5) | 1.12–1.72 | 1.19 (0.9–1.5) |
 | 45–64 | 254 (245–264) | 1 | | 1 |
-| 65+ | 302 (267–341) | 1.19 (1.03–1.36) | 0.85–1.75 | 2.92 (2.21–3.82) |
+| 65+ | 302 (270–340) | 1.19 (1.0–1.4) | 0.85–1.82 | 2.92 (2.3–3.9) |
 
 As first published, before the final audit corrected the distances of unbanded trips and added
 the age mix of the kilometres the survey's working days do not cover, the ratios were 2.57
 (2.28–2.86), 1.42 and 1.16 (1.00–1.35), and the regional profiles alone gave the ranges (18–29
-1.64–3.65, 65+ 1.00–1.70).
+1.64–3.65, 65+ 1.00–1.70). After that audit and before the October 2026 method fixes (the Madrid
+profile standardised to Spain's older population, DGT's owner-age kilometres made a bound, 50
+count draws per survey replicate), this table gave the ranges as 1.49–3.75 and 0.85–1.75 and the
+intervals to two decimals (2.25–2.82, 1.30–1.53 and 1.03–1.36; deaths 1.71–2.92, 0.91–1.51 and
+2.21–3.82; the rates 587–707, 337–375 and 267–341), a precision their Monte Carlo errors do not
+support; those figures are superseded.
 
 The check on Barcelona's drivers in crashes with victims on the working days of 2025, against the
 EMEF's driving inside the city, puts drivers aged 65 and over at 0.80–1.11 times the 45–64 rate
@@ -258,7 +279,8 @@ DGT's owner bands.
 
 *Superseded for 65–74 and 75 and over (October 2026).* The first-published sentence said that at
 75 and over the rate moved "from level (1.02) to above it". The 75+ figures are now a sensitivity
-range of 0.97–3.28 (65–74: 0.66–1.63) and, on its stated Madrid condition, a conditional estimate
+range of 0.97–3.20 (65–74: 0.67–1.70; 0.97–3.28 and 0.66–1.63 before the October 2026 method
+fixes) and, on its stated Madrid condition, a conditional estimate
 of 2.06 (95% sampling interval 1.6–2.6; 65–74 0.94, 0.8–1.1). Below about 1.2 the range is reached
 only with equal km per licence holder, at odds with Spanish surveys of men's driving, and the
 lowest other combination, 1.21, has a sampling interval of 0.9–1.8, so these data cannot show
@@ -267,11 +289,15 @@ much. See [75+ exposure: constraining the estimate](#75-exposure-constraining-th
 
 ### 14. Main sensitivity findings
 
-- **Regional profile** dominates: the 65+ ratio runs from 0.99 to 1.65 and the 18–29 ratio from
+- **Regional profile** dominates: the 65+ ratio runs from 0.99 to 1.74 and the 18–29 ratio from
   1.64 to 3.63 across the five profiles, because Madrid's older residents drive less than the
-  EMEF's and Barcelona city's young residents rarely drive. Combined with other age mixes for the
-  kilometres the survey's working days do not cover (about half of DGT's total), the ranges become
-  0.85–1.75 and 1.49–3.75 (first published, regional profile alone: 1.00–1.70 and 1.64–3.65).
+  EMEF's and Barcelona city's young residents rarely drive (the Madrid profile's 1.74 is
+  standardised to Spain's older population; 1.65 before October 2026). Combined with other age
+  mixes for the kilometres the survey's working days do not cover (about half of DGT's total),
+  they give the sensitivity ranges, 0.85–1.82 at 65 and over and 1.49–3.63 at 18–29, whose top is
+  Barcelona city's profile alone (before the October 2026 method fixes, when DGT's owner-age
+  kilometres still counted as a credible mix: 0.85–1.75 and 1.49–3.75; first published, regional
+  profile alone: 1.00–1.70 and 1.64–3.65).
 - **Non-working days** move the 65+ ratio down modestly (1.05–1.11; first published 1.06–1.16).
 - **Distance treatment** (years, area, multimodal trips, unbanded trips, fixed points in bands,
   speed bound) moves the 65+ share of kilometres between 11.0% and 13.8% (first published 10.9%
@@ -279,11 +305,14 @@ much. See [75+ exposure: constraining the estimate](#75-exposure-constraining-th
 - **Kilometre total** (Method B variants) changes absolute rates (65+: 299–315 per bn km; first
   published 292–308) but no ratio.
 - **75 and over** (superseded, October 2026): first published as "the split assumption dominates
-  (1.32–2.19), so only a range is given". Now the four splits give 1.36–2.24 under the central
-  structure and, with every other choice, the sensitivity range 0.97–3.28; one at a time, the
-  regional profile (1.71–2.85) and the split move the figure most, then the age mix of the
-  unexplained km (1.73–2.27). The Madrid split is published as a conditional estimate, 2.06 (95%
-  sampling interval 1.6–2.6), beside the range.
+  (1.32–2.19), so only a range is given". Now the four splits give 1.36–2.09 under the central
+  structure and, with every other choice, the sensitivity range 0.97–3.20; one at a time, the
+  regional profile (1.71–3.01) and the split (1.36–2.09) move the figure most, then, about
+  equally, the trip-distance conversion (1.95–2.43) and the age mix of the unexplained km
+  (1.82–2.27) (`risk_older_decomposition.csv`). Before the October 2026 method fixes the four
+  splits gave 1.36–2.24, the range was 0.97–3.28, the regional profile gave 1.71–2.85 and the age
+  mix of the unexplained km 1.73–2.27; those figures are superseded. The Madrid split is
+  published as a conditional estimate, 2.06 (95% sampling interval 1.6–2.6), beside the range.
 
 ### 15. Corrected statistical errors
 
@@ -313,9 +342,11 @@ Found in this final review and corrected:
   any more; it was removed.
 - The independent recomputation found, and the documents now correct:
   - the mean predictions of the trees and of the table in `SEVERITY_CALCULATOR.md` (12.4% and
-    12.0%, not 12.6%);
+    12.0%, not 12.6%, on the evaluation published then; on the nested evaluation that replaced it
+    they are 12.3% and 12.2%);
   - the largest calibration gap in `ML_MODEL_REVIEW.md` (2.5 points in the highest band, not 2.0
-    in the 15–20% band);
+    in the 15–20% band, on the evaluation published then; the document now gives the nested
+    evaluation by tenth, whose largest gap is 2.3 points, in the ninth tenth);
   - four roundings in `DRIVER_AGE_EXPOSURE.md` (0.48, 27.6%, 0.62 and 2.45);
   - the description of how years are pooled ("equal weight" where each year counts in proportion
     to its population; the difference is below 0.001);
@@ -333,10 +364,11 @@ Found in this final review and corrected:
   1.43 times as often as drivers aged 65–74": **withdrawn**. The replacement first published here,
   "on every assumption examined, drivers aged 75 and over are involved more often per km than
   drivers aged 45–64 (1.32–2.19)", is itself **superseded** (October 2026): the sensitivity range is
-  0.97–3.28 and two combinations are at or below 1 (0.975 and 0.989), so a higher rate per km is
-  not shown whatever the assumption. On the Madrid condition the conditional estimate is 2.06 (95%
-  sampling interval 1.6–2.6); drivers aged 65–74 are at 0.94 (0.8–1.1) on that condition and
-  0.66–1.63 across the range.
+  0.97–3.20 (0.97–3.28 before the October 2026 method fixes) and two combinations are at or below 1
+  (0.975 and 0.989), so a higher rate per km is not shown whatever the assumption. On the Madrid
+  condition the conditional estimate is 2.06 (95% sampling interval 1.6–2.6); drivers aged 65–74
+  are at 0.94 (0.8–1.1) on that condition and 0.67–1.70 across the range (0.66–1.63 before those
+  fixes).
 - Drivers aged 65–74 at 0.71 times the middle-aged rate per km (owner kilometres): **revised** to
   about level.
 - The kilometres young drivers "would have to drive" to match the middle-aged rate, computed from
@@ -400,14 +432,20 @@ Found in this final review and corrected:
 
 ### 20. Final test and deployment status
 
-| Check | Status |
+The final status is the one measured at the end of the work, on the final commit: the test counts,
+the raw-file hashes, lint and format, the clean rebuild, CI and deployment are recorded in
+[`ACCEPTANCE_REPORT.md`](ACCEPTANCE_REPORT.md), with the commit they were measured on. They are
+not repeated here, where they could drift. The table names each check and gives only the earlier
+measurements, labelled with when they were taken; none of them is the final status.
+
+| Check | Earlier measurements (superseded by the acceptance report) |
 |---|---|
-| Full test suite, local (Python 3.13 with the library versions of `requirements.lock`) | 359 passed, none skipped, when this review was first written; after the final audit, 547 passed, none skipped, at 3af96b3 (see [`ACCEPTANCE_REPORT.md`](ACCEPTANCE_REPORT.md) for the final commit) |
-| Raw-file hashes against the manifest (`pytest -m slow`) | passed |
-| Lint and format (`ruff check`, `ruff format --check`) | clean |
-| Clean rebuild of the EMEF tables, driver-age rates, figures and site from the raw files | every committed output reproduced byte for byte |
-| CI on the pull request (Python 3.11, locked dependencies, national and regional layers rebuilt from the raw files, `pytest`) | passed on all five pushes of this rebuild before the review; the result for the review's own push is shown on the pull request |
-| Deployment | **not yet deployed.** The Pages workflow publishes the site from `main`; the rebuilt pages go live when the pull request is merged |
+| Full test suite, local (Python 3.13 with the library versions of `requirements.lock`) | 359 passed, none skipped, when this review was first written; 547 passed, none skipped, at 3af96b3, during the final audit |
+| Raw-file hashes against the manifest (`pytest -m slow`) | passed when this review was first written |
+| Lint and format (`ruff check`, `ruff format --check`) | clean when this review was first written |
+| Clean rebuild of the EMEF tables, driver-age rates, figures and site from the raw files | every committed output reproduced byte for byte when this review was first written |
+| CI on the pull request (Python 3.11, locked dependencies, national and regional layers rebuilt from the raw files, `pytest`) | passed on all five pushes of the rebuild before this review; the result for each later push is shown on the pull request |
+| Deployment | not deployed by this work: the Pages workflow publishes the site from `main`, so the rebuilt pages go live only when the pull request is merged |
 
 The browser tests need the optional `browser` dependencies (`pip install -e .[browser]`) and skip
 without them locally. CI runs them in a job of its own (`browser` in `.github/workflows/ci.yml`),
@@ -430,8 +468,9 @@ corrections; the rebuilt site.
 ## 75+ exposure: constraining the estimate
 
 October 2026, after the coverage and stress tests. The question was whether the 75+ figure per
-kilometre could be better constrained than the sensitivity range of 0.97–3.28 times the 45–64
-rate without adding false precision. The full account, with every number and its table, is in
+kilometre could be better constrained than the sensitivity range, then 0.97–3.28 times the 45–64
+rate (0.97–3.20 since the method fixes recorded later in this section), without adding false
+precision. The full account, with every number and its table, is in
 [`DRIVER_AGE_EXPOSURE.md`](DRIVER_AGE_EXPOSURE.md#ages-75-and-over).
 
 **What was examined.** The CRTM Encuesta Sintética de Movilidad 2024 (ages 14–80 only, one 65–80
@@ -466,10 +505,12 @@ validation, context or, for RACC and the routing, to build one split and one bou
   estimate (hollow diamond), its sampling interval, and the sensitivity range with the part
   reached only by the equal split hatched. A new Figure 3 shows what moves the 75+ figure.
 
-**What did not change.** The envelope, 0.97–3.28 at 75 and over and 0.66–1.63 at 65–74. No
-scenario was dropped: the equal split, at odds with surveys of men's driving, stays in the range,
-hatched. The 65+ range (0.85–1.75) is unchanged. Counts or shares of combinations are never used
-as a probability or as weight of evidence; "403 of 405" and "most combinations" were removed.
+**What did not change in that step.** The envelope, then 0.97–3.28 at 75 and over and 0.66–1.63
+at 65–74 (0.97–3.20 and 0.67–1.70 since the method fixes recorded below). No scenario was
+dropped: the equal split, at odds with surveys of men's driving, stays in the range, hatched. The
+65+ range was unchanged by that step (then 0.85–1.75; 0.85–1.82 since those fixes). Counts or
+shares of combinations are never used as a probability or as weight of evidence; "403 of 405"
+and "most combinations" were removed.
 
 **The guard.** The pages choose between three wordings from the tables. The lowest combination
 not at odds with men's driving is 1.21, above the 45–64 rate, but its 95% sampling interval is
@@ -489,7 +530,8 @@ and over are involved more often per kilometre whatever the assumption, nor by h
   contrast), and a hollow diamond instead of a filled one, which could not be told from the dots
   on a phone.
 * Rejected: marking that the equal split's whole span lies in the hatched part; its rows span
-  0.97–1.98, and only the part below 1.21 is reached by marked rows alone.
+  0.97–2.05 (0.97–1.98 before the October 2026 method fixes), and only the part below 1.21 is
+  reached by marked rows alone.
 * Rejected: dating the RACC survey 2012; the fieldwork dates are not stated and the 2012–2013
   fieldwork belongs to another survey (RACE–Liberty), so "published in 2013" is used.
 * Rejected: showing no interval for the RACC and equal splits; all four rows show one, and the
@@ -501,7 +543,8 @@ and over are involved more often per kilometre whatever the assumption, nor by h
   would turn assumption counts into probabilities or rest on a rule adopted after seeing results.
 * Not added, documented: women at 0.5 in the RACC split (about 1.83), and the exploratory crossed
   envelopes (0.92–3.53; 0.78–3.59; an unmarked minimum of about 1.15), which stay off the site
-  until the pipeline reproduces them.
+  until the pipeline reproduces them. The crossed envelopes were computed before the October 2026
+  method fixes and have not been recomputed, so their ends are not current figures.
 
 **The final audit (October 2026).** An independent audit of this section found the following,
 and each was corrected:
@@ -538,6 +581,27 @@ Not changed: text in the charts falls to about 10–11 px at some phone and tabl
 and 641–767 px, where the wide chart is shown). That follows from the figure scales and the
 breakpoint shared by every chart on the site, not from these figures, and is left to a site-wide
 change.
+
+**The method fixes (October 2026).** A later independent review found three faults of method, and
+each was corrected (the full account is in the change log of
+[`DRIVER_AGE_EXPOSURE.md`](DRIVER_AGE_EXPOSURE.md#change-log)):
+
+* The Madrid profile's 65+ km per resident was Madrid's own 65+ mean, although Madrid's residents
+  aged 65 and over are younger than Spain's. It is now standardised to Spain's older population
+  from the survey's exact ages, which raises the Madrid profile's 65+ ratio from 1.65 to 1.74.
+* The licence split divided by the survey's self-reported licence holders and so counted the fall
+  in licence holding at 75 and over twice. It now carries Madrid's km per DGT licence holder to
+  Spain's DGT licence holders: 2.09 at 75 and over, against 2.24 before.
+* DGT's kilometres by the owner's age were counted as a credible age mix for the unexplained km.
+  They are now a bound, reported with their values and left out of the ranges, and their 84 rows
+  left the 75+ table (460 rows, 544 before). The national, Barcelona and men-against-women
+  intervals now cross each survey replicate with 50 count draws, and every interval is printed to
+  the precision its Monte Carlo error supports.
+
+The ranges moved: 18–29 from 1.49–3.75 to 1.49–3.63, 65 and over from 0.85–1.75 to 0.85–1.82,
+65–74 from 0.66–1.63 to 0.67–1.70 and 75 and over from 0.97–3.28 to 0.97–3.20. The conditional
+estimate, 2.06 (1.6–2.6), and the lowest combination not at odds with men's driving, 1.21
+(0.9–1.8), did not change.
 
 **What would materially improve it.** The EMEF's own aggregates for 65–74 and 75+ (or finer) with
 design-based errors, and the true age × routing table, from Institut Metròpoli or the ATM, would

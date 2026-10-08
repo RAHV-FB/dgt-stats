@@ -55,7 +55,7 @@ records exist only in the Barcelona files (sections 20 and 21).
 | yearbook series | year, month or province totals | 1993–2024 | 2019–2024 risk, the long run, seasonality, the monthly deaths of the forecasting model, the 2006 case study, reference totals |
 | yearly statistical tables | aggregate cells | 2014–2024 | vehicles involved by type, driver deaths and involvements by age and vehicle, drivers by recorded infraction |
 | ITV kilometre estimates 2022 | fleet and mean km by vehicle type and age | 2022 | vehicle rates per km |
-| ITV kilometre estimates 2024 | vehicles and km by category, service class and owner age band | 2024 | the national car-km total for the driver-age rates (by service class, less taxis and ride-hailing; section 7) and the former owner-age figure, kept as a comparison |
+| ITV kilometre estimates 2024 | vehicles and km by category, service class and owner age band | 2024 | the national car-km total for the driver-age rates (by service class, less taxis and ride-hailing; section 7) and the former owner-age figure, kept as a comparison and, since October 2026, as a bound for the age mix of the kilometres the travel survey does not cover, left out of the sensitivity ranges |
 | driver census | licence holders by province, sex, age; B-permit holders by age | 2014–2025 | driver casualties per licence holder, sex rates; B-permit holders (2024 text file) for the owner-age check and the contrast denominators |
 | INE population | residents by province, age, sex | 2002–2025 | rates per resident (a population rate, not a risk), contrast denominators |
 | CORES road fuel | month | 1996– | the all-road traffic denominator or offset of the risk, long-run and seasonality analyses; the traffic input of the forecasting model; a covariate in the 2006 case study; the biofuel share of road fuel |
@@ -1355,12 +1355,13 @@ and its results are kept as a record. The reverse Barcelona test trains the spec
 Barcelona city alone, so it tests a model of the city and no stage of the outward path counts it.
 The published calculator's model is tested inside the Catalan file the same way
 (`transport.calculator_tests`, `gen_calculator_transfer.csv`): each year 2016–2023 from the years
-before it, the last year, each demarcation left out (without province intercepts) and Barcelona
-city from the rest of Catalonia, every choice of penalty, specification and through-town rule made
-on the test's training crashes alone, each beside the same choices cross-validated inside the
-test population and beside the road × crash-type table fitted on the same training crashes. No
-other source records its inputs (the road's owning network, the posted limit), so it has no
-cross-source test. Every transfer
+before it and the last year, which are the nested evaluation of section 20, every choice, the
+province intercepts included, made on earlier years; each demarcation left out (without province
+intercepts) and Barcelona city from the rest of Catalonia (with them), the penalty, specification
+and through-town rule chosen on the test's training crashes alone. Each test sits beside the same
+choices cross-validated inside the test population and beside the road × crash-type table fitted
+on the same training crashes. No other source records its inputs (the road's owning network, the
+posted limit), so it has no cross-source test. Every transfer
 score sits beside an in-domain reference (the same kind of model cross-validated inside the
 target domain, including the test year of the temporal holdouts: the target domain's native
 score) and the transfer gap, transferred minus native, is reported with the sample size, the

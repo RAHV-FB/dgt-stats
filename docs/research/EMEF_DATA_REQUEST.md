@@ -17,8 +17,9 @@ The public EMEF files publish age only as 16–29, 30–64 and 65 and over (2014
 group mixes them with drivers aged 65–74, who drive more and probably differently. Without a
 split, the figure per kilometre at 75 and over is a conditional estimate: it assumes that people
 aged 75 and over drive as much less than those aged 65–74 as in Madrid in 2018 (EDM2018), and its
-sampling error comes mostly from that survey. Three other splits widen the sensitivity range to
-0.97–3.28 times the 45–64 rate.
+sampling error comes mostly from that survey. Three other splits, with every other choice tested,
+widen the sensitivity range to 0.97–3.20 times the 45–64 rate (0.97–3.28 before the October 2026
+method fixes in [`DRIVER_AGE_EXPOSURE.md`](DRIVER_AGE_EXPOSURE.md)).
 
 The split exists in the data holders' records. From 2008 to 2016, 65–74 and 75 and over were
 separate sampling strata (methodology report 2003–2018, Table 5). The strata were merged from
@@ -233,4 +234,4 @@ English one.
 | Fundació RACC, *Mayores al volante* (2013; 3,003 licence holders aged 65+, Spain) | Yes, 65–69, 70–74, 75+, but days, not km, and frequency not by sex | the men's limit of the RACC split (quoted, not archived) |
 | EMQ 2006 (Catalonia) via Fundació RACC/CED 2011 | Five-year bands, driving frequency only | validation; microdata on request through the Generalitat |
 | MOVILIA 2006–2007 (Ministry of Transport; national, `data/raw/transportes/`) | Published tables only; no driver status by age and sex | too old and too coarse for the split; MOVILIA 2006 table 64 (car or motorcycle trips on weekend and working days, by age) gives one weekend age mix in a sensitivity analysis |
-| DGT kilometres by owner age, 2024 | Yes, but by registered owner, not by driver | the former owner-age figure, kept as a comparison; no longer used to split the 65 and over kilometres, because owner kilometres credit too much driving to older owners |
+| DGT kilometres by owner age, 2024 | Yes, but by registered owner, not by driver | the former owner-age figure, kept as a comparison, and since October 2026 a bound for the age mix of the kilometres the survey does not cover, reported but left out of the sensitivity ranges; no longer used to split the 65 and over kilometres, because owner kilometres credit too much driving to older owners |
