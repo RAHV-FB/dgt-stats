@@ -22,7 +22,8 @@ The raw sources:
 | `raw/dgt/census/` | DGT | driver census by class and by age (text extracts 2023–2025) and published census tables 2014–2025 |
 | `raw/dgt/km_itv_2022/`, `raw/dgt/km_itv_2024/` | DGT | kilometre estimates from ITV inspections |
 | `raw/dgt/reports/` | DGT | thematic reports and yearbook errata (PDF) |
-| `raw/ine/` | INE | residents by province, age and sex 2002–2025 (extract written by `scripts/fetch_ine.py`); ECEPOV and EHMA survey tables |
+| `raw/ine/` | INE | residents by province, age and sex, and of Spain by single year of age and sex, 2002–2025 (extracts written by `scripts/fetch_ine.py`); ECEPOV and EHMA survey tables |
+| `raw/crtm/edm2018/` | Consorcio Regional de Transportes de Madrid (CRTM) | Madrid household travel survey 2018: respondents, car-driver trips and codebook (extracts written by `scripts/fetch_edm.py`; CRTM open-data licence, "Powered by CRTM") |
 | `raw/transportes/` | Ministerio de Transportes (and former Fomento) | yearbook roads chapter 2023 (vehicle-km by road type), toll-motorway traffic, MOVILIA 2006–2007 |
 | `raw/comunidad_madrid/` | Comunidad de Madrid | MOVILIA 2006 extract for Madrid (files named `movilia07t0N`); read by no code |
 | `raw/cores/` | CORES | monthly road fuel by product |
