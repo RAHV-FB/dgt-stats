@@ -702,7 +702,9 @@ def test_vehicles_page_quotes_per_km_rates_for_all_roads_only(built: Path) -> No
         truck.fatal_involvement_per_100k_vehicles / car.fatal_involvement_per_100k_vehicles
     )
     per_km = truck.fatal_involvement_per_bn_km / car.fatal_involvement_per_bn_km
-    assert f"{per_vehicle:.1f}×" in text and f"{per_km:.1f}×" in text
+    assert f"{per_vehicle:.1f} times" in text and f"{per_km:.1f} times" in text
+    # The weight class of a vehicle label never breaks across lines.
+    assert "3,500\u00a0kg" in text and "3,500 kg" not in text
     # The occupant shares are computed, not typed.
     assert f"{bike.occupant_deaths_per_fatal_involvement:.2f} for a motorcycle" in text
     assert f"a figure of {truck.occupant_deaths_per_fatal_involvement:.2f}" in text
