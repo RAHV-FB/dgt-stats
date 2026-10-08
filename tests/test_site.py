@@ -248,10 +248,26 @@ def test_severity_page_leads_with_the_adverse_finding(built: Path) -> None:
     for period in ("before", "from"):
         assert f"({junction.loc[period, 'odds_ratio']:.2f}" in opening
     assert "in every model variant, and so does that of the junction" not in text
-    # The ranking is quoted with what the missing-value levels contribute to it.
-    assert f"{holdout.loc['fatal', 'auc_recorded_only']:.2f}" in text
-    assert f"{holdout.loc['fatal', 'auc_missing_only']:.2f}" in text
+    # The ranking is quoted with what the missing-value levels contribute to it, in "times in
+    # 100" as on the severity model's page.
+    recorded_only = round(100 * holdout.loc["fatal", "auc_recorded_only"])
+    missing_only = round(100 * holdout.loc["fatal", "auc_missing_only"])
+    assert f"does so {recorded_only} times in 100" in text
+    assert f"on their own {missing_only} times" in text
     assert "the two regressions keep their ordering" in text
+    assert "ROC-AUC" not in text
+    # The page leads with what the records show: the results come first, then what the records
+    # cannot show, and only then the description of the records and the regressions.
+    main = text[text.find("<main>") : text.find("</main>")]
+    headings = re.findall(r"<h2[^>]*>(.*?)</h2>", main, re.S)
+    assert headings[0] == "Crash type and location go most strongly with a death"
+    assert headings[1].startswith("Lower odds of a death on wet roads")
+    assert headings.index("The records and the regressions") > 2
+    assert main.find("s1_forest_fatal") < main.find("s2_adverse_conditions")
+    # The opening paragraph names the other two pages on severity, once each, with their
+    # populations and definitions.
+    assert opening.count('href="catalonia.html"') == opening.count('href="barcelona.html"') == 1
+    assert "within 30 days" in opening and "within 24 hours" in opening
     # The weekend is defined, and the file's per-crash counts are not called absent.
     assert "from 20:00 on Friday" in text
     assert "no fields for drivers" not in text

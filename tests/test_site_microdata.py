@@ -80,7 +80,67 @@ def test_catalonia_headline_numbers_come_from_the_tables(pages: dict[str, str]) 
     assert _fmt_int(overall.n) in text
     assert _fmt_pct(overall.share) in text
     comparison = _table("cat_vs_dgt_province_year")
-    assert f"{int((comparison.ratio_fatal_24h == 1).sum())} of {len(comparison)}" in text
+    assert bool((comparison.ratio_fatal_24h == 1).all())
+    assert f"in all {len(comparison)} province-years" in text
+
+
+def _summary(text: str) -> str:
+    return re.search(r'<p class="summary">(.*?)</p>', text, re.S).group(1)
+
+
+def _headings(text: str) -> list[str]:
+    main = text[text.find("<main>") : text.find("</main>")]
+    return re.findall(r"<h2[^>]*>(.*?)</h2>", main, re.S)
+
+
+def test_regional_pages_state_their_population_and_link_the_other_two(
+    pages: dict[str, str],
+) -> None:
+    # Spain's, Catalonia's and Barcelona's pages answer related questions for different crashes
+    # and definitions: each says so in its first paragraph and links the other two once.
+    others = {"catalonia": ("severity", "barcelona"), "barcelona": ("severity", "catalonia")}
+    for slug, linked in others.items():
+        opening = _summary(pages[slug])
+        for other in linked:
+            assert opening.count(f'href="{other}.html"') == 1, (slug, other)
+        assert "within 30 days" in opening and "within 24 hours" in opening, slug
+        assert '<p class="scope">' not in pages[slug], slug
+
+
+def test_catalonia_leads_with_its_results_and_links_the_calculator(
+    pages: dict[str, str],
+) -> None:
+    text = pages["catalonia"]
+    headings = _headings(text)
+    # The checks on the file are technical notes after the results, not sections of the page;
+    # the agreement with DGT keeps its anchor for the pages that cite it.
+    assert "Agreement with DGT's national records" not in headings
+    assert "Fields recorded unevenly" not in headings
+    assert '<details class="technical" id="dgt-agreement">' in text
+    main = text[text.find("<main>") : text.find("</main>")]
+    sections = [match.start() for match in re.finditer(r"<h2", main)]
+    assert headings[-1] == "Data and method"
+    assert sections[-2] < main.find('id="dgt-agreement"') < sections[-1]
+    # Where it shows fatal shares by circumstance, the page sends the reader to the calculator
+    # before its first chart.
+    first = main.find("<h2")
+    calculator = main.find('href="severity-models.html#calculator"')
+    assert first < calculator < main.find("cat1_fatal_by_road")
+
+
+def test_barcelona_tables_name_each_breakdown_once(pages: dict[str, str]) -> None:
+    text = pages["barcelona"]
+    for prefix in ("Road user: ", "Age: ", "Sex: "):
+        assert f">{prefix}" not in text, prefix
+    for column in ("Road user", "Age", "Sex"):
+        assert re.search(rf'<th scope="col"[^>]*>{column}</th>', text), column
+    # The road users are listed as in their figure, from the highest share.
+    people = _table("bcn_person_severity_share")
+    road_users = people[(people.dimension == "road user") & (people.n >= 30)]
+    top = road_users.sort_values("share", ascending=False).iloc[0]
+    block = text[re.search(r'<th scope="col"[^>]*>Road user</th>', text).end() :]
+    first = re.search(r'<th scope="row"[^>]*>([^<]+)</th>', block).group(1)
+    assert first.lower() == top.label
 
 
 def test_barcelona_headline_numbers_come_from_the_tables(pages: dict[str, str]) -> None:
