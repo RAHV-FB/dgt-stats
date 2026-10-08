@@ -68,9 +68,21 @@ def test_crash_level_causes_are_never_person_features_in_the_primary_model() -> 
     assert not any(c.startswith(("mediate_", "driver_cause_")) for c in primary)
 
 
-def test_cross_source_models_use_only_validated_or_exact_fields() -> None:
+def test_every_cross_source_field_has_a_known_status() -> None:
     for field in harmonise.DGT_FIELDS + harmonise.BCN_FIELDS:
         assert field.status in ("exact", "defensible", "approximate", "unusable")
+
+
+# The DGT fields that enter the cross-source models are chosen by validating the harmonised
+# tables, which exist only once the regional layers are built.
+needs_harmonised = pytest.mark.skipif(
+    not (harmonise.CAT_COMMON_PATH.exists() and harmonise.DGT_COMMON_PATH.exists()),
+    reason="run `python scripts/microdata.py build` first",
+)
+
+
+@needs_harmonised
+def test_cross_source_models_use_only_validated_or_exact_fields() -> None:
     for table in features.common_tables():
         for feature in table.catalogue:
             name = feature.column.split("_", 1)[1]

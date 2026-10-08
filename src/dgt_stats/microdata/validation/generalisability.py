@@ -35,6 +35,7 @@ import pandas as pd
 from dgt_stats import derive, io_population
 from dgt_stats.microdata import catalonia
 from dgt_stats.microdata.common import wilson
+from dgt_stats.microdata.crosssource import RESIDENTS_REFERENCE
 from dgt_stats.microdata.validation import harmonise
 from dgt_stats.paths import DGT_PROCESSED_CRASHES, DOCS_DIR, REPORTS_DIR, TABLES_DIR
 
@@ -228,7 +229,9 @@ def province_rates() -> pd.DataFrame:
     )
     population = io_population.read_population()
     population = population[
-        population.all_ages & population.sex.eq("total") & population.reference.eq("1 January")
+        population.all_ages
+        & population.sex.eq("total")
+        & population.reference.eq(RESIDENTS_REFERENCE)
     ].copy()
     population["province_code"] = pd.to_numeric(population.province_code, errors="coerce")
     population = population.dropna(subset=["province_code"])[
@@ -253,6 +256,8 @@ def province_rates() -> pd.DataFrame:
 
 
 def population_context() -> pd.DataFrame:
+    """The age structure on the latest date INE has published (1 January of the latest year): a
+    snapshot of who lives where, not the denominator of a rate."""
     population = io_population.read_population()
     year = int(population.year.max())
     frame = population[
@@ -312,7 +317,7 @@ CROSS_SOURCE_REGISTER = pd.DataFrame(
             "unit_before": "one crash; one INE population row",
             "unit_after": "one province-year",
             "dgt_definition": "-",
-            "other_definition": "INE table 56947, residents on 1 January, all ages, both sexes",
+            "other_definition": "INE table 56947, residents on 1 July, all ages, both sexes",
             "transformation": "crashes / residents x 100,000",
             "denominator": "residents of the province (not exposure: no trips or kilometres)",
             "exclusions": "none",
@@ -325,7 +330,7 @@ CROSS_SOURCE_REGISTER = pd.DataFrame(
             "unit_before": "one DGT crash; one INE population row",
             "unit_after": "one province-year",
             "dgt_definition": "crashes with a death or serious injury within 24 h",
-            "other_definition": "INE residents on 1 January",
+            "other_definition": "INE residents on 1 July",
             "transformation": "crashes / residents x 100,000",
             "denominator": "residents of the province where the crash happened (residents and "
             "crash-involved people are different populations)",

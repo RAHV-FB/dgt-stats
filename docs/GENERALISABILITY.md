@@ -81,14 +81,14 @@ Residents (2025, INE):
 | 2,025 | Catalonia (4 provinces) | 8,124,126 | 19.7% | 9.9% | 24.7% |
 | 2,025 | Spain outside Catalonia | 41,004,171 | 20.9% | 10.3% | 23.7% |
 
-Severe crashes per resident, 2024 (DGT counts, INE residents): across the 52 provinces the rate per 100,000 residents ranges 13.2-40.5; outside Catalonia its median is 22.4. A rate per resident is not a risk per trip or kilometre.
+Severe crashes per resident, 2024 (DGT counts, INE residents): across the 52 provinces the rate per 100,000 residents ranges 13.2-40.6; outside Catalonia its median is 22.3. A rate per resident is not a risk per trip or kilometre.
 
 | province | severe_crashes | population | severe_per_100k_residents | rank_severe_per_resident | fatal_share_of_severe |
 |---|---|---|---|---|---|
-| Barcelona | 1,230 | 5,877,672 | 20.927 | 30 | 6.9% |
-| Girona | 182 | 821,108 | 22.165 | 27 | 13.2% |
-| Lleida | 177 | 451,707 | 39.185 | 3 | 15.8% |
-| Tarragona | 266 | 861,744 | 30.868 | 8 | 14.7% |
+| Barcelona | 1,230 | 5,913,312 | 20.801 | 30 | 6.9% |
+| Girona | 182 | 825,989 | 22.034 | 28 | 13.2% |
+| Lleida | 177 | 454,102 | 38.978 | 3 | 15.8% |
+| Tarragona | 266 | 867,716 | 30.655 | 8 | 14.7% |
 
 ## B. Transportability (held-out records)
 
@@ -388,8 +388,8 @@ Every place two sources meet, with the key, definitions and what was validated:
 | comparison | key | cardinality | unit_before | unit_after | dgt_definition | other_definition | transformation | denominator | exclusions | definition_compatibility |
 |---|---|---|---|---|---|---|---|---|---|---|
 | Catalan file vs DGT microdata, crash counts | province (INE code 08, 17, 25, 43 = demarcation) x calendar year, 2016-2023 | one-to-one province-years (32) | one crash in each source | one province-year | crashes with TOTAL_MU24H > 0 (death within 24 h) / TOTAL_MU24H + TOTAL_HG24H > 0; also the 30-day columns | Catalan file: D_GRAVETAT 'Accident mortal' / every row (death or serious injury); window not stated in the file | count crashes per province-year on both sides | none (counts compared) | years outside 2016-2023; no record-level matching | validated: Catalan counts equal DGT 24-hour counts (fatal: every province-year; fatal-or-serious: within one crash); they do not match the 30-day counts |
-| Catalan file per resident | province x year, 2010-2023 | one-to-one province-years (56) | one crash; one INE population row | one province-year | - | INE table 56947, residents on 1 January, all ages, both sexes | crashes / residents x 100,000 | residents of the province (not exposure: no trips or kilometres) | none | same geography and year; a rate per resident, not a risk |
-| DGT severe crashes per resident, all provinces | province x year, 2016-2024 | one-to-one province-years | one DGT crash; one INE population row | one province-year | crashes with a death or serious injury within 24 h | INE residents on 1 January | crashes / residents x 100,000 | residents of the province where the crash happened (residents and crash-involved people are different populations) | rows without a province code | same source for every province |
+| Catalan file per resident | province x year, 2010-2023 | one-to-one province-years (56) | one crash; one INE population row | one province-year | - | INE table 56947, residents on 1 July, all ages, both sexes | crashes / residents x 100,000 | residents of the province (not exposure: no trips or kilometres) | none | same geography and year; a rate per resident, not a risk |
+| DGT severe crashes per resident, all provinces | province x year, 2016-2024 | one-to-one province-years | one DGT crash; one INE population row | one province-year | crashes with a death or serious injury within 24 h | INE residents on 1 July | crashes / residents x 100,000 | residents of the province where the crash happened (residents and crash-involved people are different populations) | rows without a province code | same source for every province |
 | Catalan model on DGT crashes (cross-source tests) | none: no record is matched; the model is applied to DGT rows | - | one crash | one crash | crashes with a death or serious injury within 24 h; target death within 24 h | Catalan file inclusion rule (24 h, validated) | ten harmonised variables (harmonise.DGT_FIELDS), each validated on the 2016-2023 crashes both sources hold | - | road class and junction (failed the overlap check), speed limit and unit types (absent or outcome counts in DGT) | validated field by field (ml_common_feature_validation.csv) |
 | Catalan model on Barcelona 2025 | none: no record is matched | - | one crash | one crash | - | Barcelona crashes with Numero_morts (24 h) or Numero_lesionats_greus (hospitalised over 24 h) > 0, both checked against the person table | eight harmonised variables (harmonise.BCN_FIELDS) | - | crashes with only minor injuries or none | inclusion rule consistent with the 24 h definitions; too few fatal crashes for a discrimination test |
 
