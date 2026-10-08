@@ -632,3 +632,92 @@ def test_ratio_panels_and_line_panels(tmp_path: Path) -> None:
             focal="Total",
         )
     )
+
+
+# Colour-vision deficiency simulation (Machado, Oliveira and Fernandes 2009, full severity) in
+# linear sRGB; distances in OKLab, times 100.
+_CVD = {
+    "normal": ((1, 0, 0), (0, 1, 0), (0, 0, 1)),
+    "protan": (
+        (0.152286, 1.052583, -0.204868),
+        (0.114503, 0.786281, 0.099216),
+        (-0.003882, -0.048116, 1.051998),
+    ),
+    "deutan": (
+        (0.367322, 0.860646, -0.227968),
+        (0.280085, 0.672501, 0.047413),
+        (-0.011820, 0.042940, 0.968881),
+    ),
+    "tritan": (
+        (1.255528, -0.076749, -0.178779),
+        (-0.078411, 0.930809, 0.147602),
+        (0.004733, 0.691367, 0.303900),
+    ),
+}
+_LMS = (
+    (0.4122214708, 0.5363325363, 0.0514459929),
+    (0.2119034982, 0.6806995451, 0.1073969566),
+    (0.0883024619, 0.2817188376, 0.6299787005),
+)
+_LAB = (
+    (0.2104542553, 0.7936177850, -0.0040720468),
+    (1.9779984951, -2.4285922050, 0.4505937099),
+    (0.0259040371, 0.7827717662, -0.8086757660),
+)
+
+
+def _oklab(colour: str, vision: str):
+    import numpy as np
+    from matplotlib.colors import to_rgb
+
+    srgb = np.array(to_rgb(colour))
+    linear = np.where(srgb <= 0.04045, srgb / 12.92, ((srgb + 0.055) / 1.055) ** 2.4)
+    linear = np.clip(np.array(_CVD[vision]) @ linear, 0, 1)
+    return np.array(_LAB) @ np.cbrt(np.array(_LMS) @ linear)
+
+
+def test_the_season_series_differ_in_colour_and_marker() -> None:
+    import itertools
+
+    import numpy as np
+
+    looks = [{"color": plots.ACCENT, "marker": "o"}, *figures.SEASON_STYLES.values()]
+    assert len({look["marker"] for look in looks}) == len(looks)
+    assert len({look["linestyle"] for look in figures.SEASON_STYLES.values()}) == 3
+    # Every pair, deaths included, at least 15 apart with full colour vision and at least 10
+    # under each colour-vision deficiency; the three greys these replace were 11 apart.
+    for vision, floor in (("normal", 15), ("protan", 10), ("deutan", 10), ("tritan", 10)):
+        for a, b in itertools.combinations([look["color"] for look in looks], 2):
+            distance = 100 * np.linalg.norm(_oklab(a, vision) - _oklab(b, vision))
+            assert distance >= floor, (vision, a, b, distance)
+
+
+@pytest.mark.skipif(not _TABLES_PRESENT, reason="run `python scripts/analyse.py tables` first")
+def test_season_long_run_and_sex_ratio_charts(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    drawn = _capture_axes(monkeypatch)
+    frames = {name: pd.read_csv(TABLES_DIR / f"{name}.csv") for name in summaries.SUMMARIES}
+
+    def summary(name: str) -> pd.DataFrame:
+        return frames[name].copy()
+
+    captions: dict[str, str] = {}
+    figures._season_figures(tmp_path, captions, summary)
+    figures._sex_figures(tmp_path, captions, summary)
+    figures._long_run_figures(tmp_path, captions, summary)
+    season_profile, _, lockdown, sex_ratios, trend = drawn[:5]
+    # The road-use series in both season charts take their own colour and marker.
+    for axes in (season_profile, lockdown):
+        lines = {line.get_label(): line for line in axes[0].get_lines()}
+        for name, look in figures.SEASON_STYLES.items():
+            assert lines[name].get_color() == look["color"], name
+            assert lines[name].get_marker() == look["marker"], name
+    # Ratios of men's to women's rates on a log axis, the same in every panel, and labelled so.
+    assert all(axis.get_xscale() == "log" for axis in sex_ratios)
+    assert "log scale" in sex_ratios[0].figure.get_supxlabel()
+    # Each long-run panel names what it counts and the measure its trend was fitted to.
+    titles = [axis.get_title(loc="left").replace("\n", " ") for axis in trend]
+    assert titles == list(figures.LONG_RUN_PANELS.values())
+    assert all("deaths a year" in title for title in titles)
+    assert "per registered vehicle" in titles[1] and "per tonne of road fuel" in titles[2]

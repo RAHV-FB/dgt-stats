@@ -226,11 +226,15 @@ def _trend_figures(figures_dir: Path, captions: dict[str, str], summary) -> None
     )
 
 
-# Panel titles short enough to sit on one line over a third of the figure. The middle panel counts
-# only the occupant deaths of the vehicles in the fleet, and its title says so.
+# Panel titles of the trend chart. Every panel plots a count of deaths a year, the middle one only
+# the occupant deaths of the vehicles in the fleet; what differs is the measure the trend was
+# fitted to, so each title names what is counted and that measure.
 LONG_RUN_PANELS = {
-    "Vehicle occupant deaths per registered vehicle": "Occupant deaths (per-vehicle trend)",
-    "Deaths per tonne of road fuel": "Deaths (per-fuel trend)",
+    "Deaths": "All deaths a year; trend fitted to the count",
+    "Vehicle occupant deaths per registered vehicle": (
+        "Vehicle occupant deaths a year; trend fitted per registered vehicle"
+    ),
+    "Deaths per tonne of road fuel": "All deaths a year; trend fitted per tonne of road fuel",
 }
 # The same measures in the ratio chart, where every panel is a ratio.
 LONG_RUN_RATIO_PANELS = {
@@ -244,6 +248,11 @@ RATIO_ZOOM_YEARS = 10
 
 def _long_run_figures(figures_dir: Path, captions: dict[str, str], summary) -> None:
     raw = summary("longrun_series")
+    # Each panel title says what the panel counts, so every measure needs one, and each panel
+    # must plot a count of deaths (the rates' trends converted back into deaths).
+    untitled = set(raw.measure_label) - set(LONG_RUN_PANELS)
+    if untitled or not set(raw.numerator) <= {"deaths_30d", "occupants_deaths_30d"}:
+        raise ValueError(f"l1 panel titles: untitled {untitled} or a panel that is not a count")
     fit_end = int(raw[raw.period == "fitted"].year.max())
     first_projected = fit_end + 1
     series = raw.assign(measure_label=raw.measure_label.replace(LONG_RUN_PANELS))
@@ -260,7 +269,7 @@ def _long_run_figures(figures_dir: Path, captions: dict[str, str], summary) -> N
         "Road deaths against the pre-pandemic trend, under three measures",
         last_fitted=fit_end,
         order=order,
-        ylabel="Deaths (30 days)",
+        ylabel="Deaths within 30 days, a year",
     )
     zoom_first = fit_end - RATIO_ZOOM_YEARS + 1
     zoom = raw[raw.year >= zoom_first].assign(
@@ -381,6 +390,42 @@ def _long_run_figures(figures_dir: Path, captions: dict[str, str], summary) -> N
 # --------------------------------------------------------------------------- forecasts
 
 
+# The three measures of road use drawn beside deaths on the seasons page, the same in both of its
+# line charts. Greys alone left them hard to tell apart, so each has its own colour (near-black,
+# orange, purple: every pair, and each with the accent of deaths, stays apart under red-green and
+# blue-yellow colour-vision deficiency on the charts' white ground), its own marker shape and its
+# own dash.
+SEASON_STYLES = {
+    "Road fuel sold (petrol + diesel)": {
+        "color": "#2b2b2b",
+        "linestyle": (0, (5, 2)),
+        "marker": "s",
+        "markersize": 3.2,
+    },
+    "Petrol sold only": {
+        "color": plots.CATEGORICAL[1],
+        "linestyle": (0, (5, 2, 1, 2)),
+        "marker": "^",
+        "markersize": 3.8,
+    },
+    "Toll-motorway traffic per km": {
+        "color": plots.CATEGORICAL[2],
+        "linestyle": (0, (1, 1.6)),
+        "marker": "D",
+        "markersize": 3.2,
+    },
+}
+
+
+def _season_styles(frame: pd.DataFrame) -> dict[str, dict[str, object]]:
+    """The fixed look of each road-use series; the build fails on a series without one."""
+    names = list(dict.fromkeys(frame.series_label))[1:]
+    unstyled = set(names) - set(SEASON_STYLES)
+    if unstyled:
+        raise ValueError(f"season charts: no style for {sorted(unstyled)}")
+    return {name: SEASON_STYLES[name] for name in names}
+
+
 def _season_figures(figures_dir: Path, captions: dict[str, str], summary) -> None:
     profile = summary("season_profile_long")
     plots.month_lines(
@@ -392,6 +437,7 @@ def _season_figures(figures_dir: Path, captions: dict[str, str], summary) -> Non
         order=list(dict.fromkeys(profile.series_label)),
         reference=100,
         focal=profile.series_label.iloc[0],
+        styles=_season_styles(profile),
     )
     effects = summary("season_month_effects")
     pooled = [int(year) for year in str(effects.years.iloc[0]).split()]
@@ -441,6 +487,7 @@ def _season_figures(figures_dir: Path, captions: dict[str, str], summary) -> Non
         reference=0,
         percent=True,
         focal=lockdown.series_label.iloc[0],
+        styles=_season_styles(lockdown),
     )
     captions["m3_lockdown"] = _caption(
         "Change in deaths within 30 days and in three measures of road use (road fuel sold, petrol "
@@ -469,8 +516,12 @@ def _sex_figures(figures_dir: Path, captions: dict[str, str], summary) -> None:
         "Men against women, private-car drivers: crashing, and dying (2022–2024)",
         order=list(dict.fromkeys(cars.band_label)),
         panel_order=list(short.values()),
-        xlabel="Ratio, men to women (dotted line: the same rate)",
+        # Ratios on a log scale, where a ratio of 2 and one of 1/2 are the same distance from 1.
+        xlabel="Ratio, men to women, log scale (dotted line: the same rate)",
         reference=1.0,
+        from_zero=False,
+        shared=True,
+        log=True,
     )
     rates_table = summary("drivers_sex_rates")
     adults = rates_table[(rates_table.scope == "car") & (rates_table.band == "18+")]

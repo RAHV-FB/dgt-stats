@@ -1917,13 +1917,15 @@ def month_lines(
     ylabel: str = "",
     zero_based: bool = False,
     focal: str | None = None,
+    styles: dict[str, dict[str, object]] | None = None,
 ) -> Path:
     """One line per series across the twelve months (``month`` column, 1–12), on one axis.
 
     Used for seasonal indices, where ``reference`` (100 for an index, 0 for a change) is the
     average month, and for month-by-month changes. With ``focal`` that series is drawn in the
     accent and the others in greys, each labelled at its December end; otherwise the series
-    take the categorical colours and a legend.
+    take the categorical colours and a legend. ``styles`` fixes a series' colour, dash, marker
+    and marker size by name, for context series that must be told apart from each other.
     """
     apply_style()
     names = order or list(dict.fromkeys(frame[series]))
@@ -1937,14 +1939,13 @@ def month_lines(
         look = dict(looks[name])
         look.pop("marker", None)
         look.pop("markersize", None)
-        axis.plot(
-            group["month"],
-            group[value],
-            label=str(name),
-            marker="o",
-            markersize=3.5 if name == focal or focal is None else 2.8,
+        look = {
+            "marker": "o",
+            "markersize": 3.5 if name == focal or focal is None else 2.8,
             **look,
-        )
+            **(styles or {}).get(str(name), {}),
+        }
+        axis.plot(group["month"], group[value], label=str(name), **look)
         last = group.iloc[-1]
         entries.append((last["month"], last[value], str(name), look["color"]))
     if reference is not None:
