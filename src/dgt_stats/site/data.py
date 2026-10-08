@@ -6,9 +6,10 @@ import re
 
 import pandas as pd
 
-from dgt_stats import io_exposure, risk_trends
+from dgt_stats import io_exposure, risk_trends, severity_model
 from dgt_stats.microdata.ml import modelling, recording, rules
-from dgt_stats.paths import TABLES_DIR
+from dgt_stats.microdata.validation import transport
+from dgt_stats.paths import RAW_DATA_DIR, TABLES_DIR
 from dgt_stats.site.components import (
     ALL_PAGES,
     DOCS_URL,
@@ -43,6 +44,8 @@ RULE_LABELS = {
 }
 # Harmonised variables, in words.
 FIELD_LABELS = {"road_class": "road type", "hour_band": "hour"}
+# A circumstance field left blank in more than this share of crashes counts as often blank.
+MOSTLY_BLANK = 0.3
 NUMBER_WORDS = {
     1: "one",
     2: "two",
@@ -54,10 +57,6 @@ NUMBER_WORDS = {
     8: "eight",
     9: "nine",
 }
-
-# The year DGT moved crashes on dual-carriageway conventional roads to the single-carriageway code
-# (road-type codes 5 and 6; see ``dgt_stats.road_class``). No result table records it.
-DUAL_CARRIAGEWAY_RECODE_YEAR = 2021
 
 
 def _fail(claim: str) -> None:
@@ -81,6 +80,9 @@ def _words(number: int) -> str:
 
 # ----------------------------------------------------------------------------- definitions
 def _definitions() -> str:
+    semantics = read_table("mq_bcn_count_semantics").set_index("check").value
+    no_victim = int(semantics["blank cells in Numero_victimes"])
+    _require({"some Barcelona crashes record no victim": no_victim > 0})
     victims = read_table("validation")
     victims = victims[victims.check == "victim_total"].pivot_table(
         index="year", columns="unit", values="actual"
@@ -91,7 +93,10 @@ def _definitions() -> str:
         (
             "Injury crash",
             "a crash on a public road in which at least one person is killed or injured. DGT's "
-            "national records and series count only injury crashes.",
+            "national records and series count only injury crashes, and a slight injury there "
+            "needs medical care. Barcelona's crash table also holds crashes the Guàrdia Urbana "
+            f"attended in which nobody was hurt ({_fmt_int(no_victim)} in its year), and it counts "
+            "people who refused medical care as slightly injured.",
         ),
         (
             "Death",
@@ -105,14 +110,17 @@ def _definitions() -> str:
         (
             "Serious injury",
             "admission to hospital for more than 24 hours; any other injury is slight. The "
-            "Catalan file holds crashes with a death or serious injury (serious and fatal "
-            "crashes); those in which nobody died are non-fatal.",
+            "Catalan file and Barcelona's crash table classify at 24 hours, so a person who "
+            "died later counts there as seriously injured. The Catalan file holds crashes with "
+            "a death or serious injury (serious and fatal crashes); those in which nobody died "
+            "within 24 hours are non-fatal.",
         ),
         (
             "Fatal share",
-            "among the serious and fatal crashes in Catalonia, the share in which someone died; "
-            "for people in Barcelona, the share of those recorded who were seriously or fatally "
-            "injured.",
+            "among the serious and fatal crashes in Catalonia, the share in which someone died "
+            "within 24 hours. For Barcelona the site gives a serious-or-fatal share instead: of "
+            "the people whose outcome was recorded, or of the crashes the police attended, the "
+            "share with a serious or fatal injury.",
         ),
         (
             "Zone",
@@ -287,22 +295,69 @@ def _coding_breaks() -> str:
             < JUNCTION_OBSERVED_TOLERANCE,
         }
     )
+    coding = read_table("gen_coding_by_region").set_index(["region", "year"]).sort_index()
+    cat, rest = coding.loc["Catalonia"], coding.loc["Spain outside Catalonia"]
+    switch = int(cat[cat.road_type_5_dual_carriageway.eq(0)].index.min())
+    cat_before = cat.loc[switch - 1]
+    rest_dual = rest.road_type_5_dual_carriageway
+    other_year = int(later.period)
+    cat_other = int(cat.loc[other_year, "road_type_14_other"])
+    all_other = cat_other + int(rest.loc[other_year, "road_type_14_other"])
+    cat_blank = cat.junction_type_blank / cat.crashes
+    rest_blank = rest.junction_type_blank / rest.crashes
+    cat_unspecified = cat.junction_type_not_specified / cat.crashes
+    _require(
+        {
+            "until the switch the Catalan records use the dual-carriageway code for conventional "
+            "roads": bool(
+                (
+                    cat.loc[: switch - 1].road_type_6_single_carriageway
+                    < 0.01 * cat.loc[: switch - 1].road_type_5_dual_carriageway
+                ).all()
+            )
+            and bool((cat.loc[switch:].road_type_5_dual_carriageway == 0).all()),
+            "elsewhere the dual-carriageway code holds steady": float(
+                rest_dual.max() / rest_dual.min()
+            )
+            < 1.5,
+            "the later 'other' road-type crashes are mostly Catalan": cat_other > 0.75 * all_other,
+            "the junction-field change is Catalan": float(
+                cat_blank.loc[junction - 1] - cat_blank.loc[junction]
+            )
+            > 0.5
+            and float(abs(rest_blank.loc[junction] - rest_blank.loc[junction - 1]))
+            < JUNCTION_OBSERVED_TOLERANCE,
+        }
+    )
     return (
-        "<h3>Coding breaks</h3>"
-        "<p>Three changes in DGT's coding affect series by road type and junction. In "
-        f"{later.period} many crashes on urban streets begin to be coded as road type “other”: "
-        f"{_fmt_pct(later.street_share, 0)} of that year's “other” crashes are on urban streets, "
-        f"against {_fmt_pct(earlier.street_share, 0)} in "
-        f"{str(earlier.period).replace('-', '–')}. In {DUAL_CARRIAGEWAY_RECODE_YEAR} most crashes "
-        "on conventional roads with a dual carriageway move to the code for single-carriageway "
-        f"conventional roads. In {junction} the junction-type field changes how it marks a "
-        f"missing value: blank cells fall from {_fmt_pct(before.share_empty, 0)} to "
+        '<h3 id="coding-breaks">Coding breaks</h3>'
+        "<p>Three changes in DGT's coding affect series by road type and junction, and all three "
+        "come from the records for the four Catalan provinces. Until "
+        f"{switch - 1} those records code almost every crash on a conventional road as a "
+        "conventional road with a dual carriageway "
+        f"({_fmt_int(cat_before.road_type_5_dual_carriageway)} such crashes in {switch - 1}, "
+        f"{_fmt_int(cat_before.road_type_6_single_carriageway)} on single carriageways); from "
+        f"{switch} they use the single-carriageway code instead. Elsewhere the dual-carriageway "
+        f"code holds between {_fmt_int(rest_dual.min())} and {_fmt_int(rest_dual.max())} crashes "
+        f"a year. In {later.period} many crashes on urban streets begin to be coded as road "
+        f"type “other”: {_fmt_pct(later.street_share, 0)} of that year's “other” crashes are on "
+        f"urban streets, against {_fmt_pct(earlier.street_share, 0)} in "
+        f"{str(earlier.period).replace('-', '–')}, and {_fmt_int(cat_other)} of the "
+        f"{_fmt_int(all_other)} crashes with the code for another kind of road are Catalan. In "
+        f"{junction} the junction-type field changes how it marks a missing value: in Spain as a "
+        f"whole blank cells fall from {_fmt_pct(before.share_empty, 0)} to "
         f"{_fmt_pct(after.share_empty, 0)} of crashes and “not specified” rises from "
         f"{_fmt_pct(before.share_not_specified, 0)} to {_fmt_pct(after.share_not_specified, 0)}, "
         "while the share with a recorded junction type barely changes "
-        f"({_fmt_pct(before.share_observed)} and {_fmt_pct(after.share_observed)}). Road-type "
-        "series are therefore read year by year and alongside zone, the two kinds of "
-        "conventional road form one group, and no road-type trend is drawn.</p>"
+        f"({_fmt_pct(before.share_observed)} and {_fmt_pct(after.share_observed)}). In the "
+        f"Catalan records blank cells fall from {_fmt_pct(cat_blank.loc[junction - 1], 0)} to "
+        f"{_fmt_pct(cat_blank.loc[junction], 0)} and “not specified” rises from "
+        f"{_fmt_pct(cat_unspecified.loc[junction - 1], 0)} to "
+        f"{_fmt_pct(cat_unspecified.loc[junction], 0)}; elsewhere the field does not change. "
+        "Road-type series are therefore read year by year and alongside zone, the two kinds of "
+        "conventional road form one group, and no road-type trend is drawn. Comparisons of "
+        "Catalonia with the rest of Spain group every conventional road together for the same "
+        'reason (<a href="validation.html">External validation</a>).</p>'
     )
 
 
@@ -344,6 +399,28 @@ def _records(captions: dict[str, str]) -> str:
         }
     )
     levels, fields = len(catalan), catalan.column.nunique()
+    # The right-of-way flags answer one question (who had priority) in 13 columns that are blank
+    # together, so they count as one question here.
+    priority = regional.field.str.startswith("PRIORI_")
+    questions = pd.concat(
+        [
+            regional[~priority].set_index("field").unrecorded_share,
+            pd.Series({"right of way": regional[priority].unrecorded_share.max()}),
+        ]
+    )
+    mostly_blank = int((questions > MOSTLY_BLANK).sum())
+    _require(
+        {
+            "the right-of-way flags are blank together": float(
+                regional[priority].unrecorded_share.max()
+                - regional[priority].unrecorded_share.min()
+            )
+            < 0.01,
+            "blank shares split into fields nearly always filled and fields often blank": 0
+            < mostly_blank
+            < len(questions) / 2,
+        }
+    )
     return (
         '<h2 id="records">Reading police crash records</h2>'
         "<p>Crash records contain only the crashes the police recorded, and the Catalan file "
@@ -365,9 +442,13 @@ def _records(captions: dict[str, str]) -> str:
         "vehicle's speed.</p>"
         "<p>Missing values keep their own categories. “Not specified”, “not applicable”, a "
         "field's own “unknown” code and an empty cell are four different states, and none is "
-        "read as zero or as “no”. In DGT's records the median circumstance field is blank in "
-        f"{_fmt_pct(regional.unrecorded_share.median())} of crashes, and blank shares differ "
-        "widely between provinces, which keeps the national file out of model training "
+        "read as zero or as “no”, except where DGT's dictionary itself codes an absence as an "
+        "empty cell, as in the field for strong wind. Of the "
+        f"{_fmt_int(len(questions))} fields of DGT's records that the audit examines (the "
+        f"{_fmt_int(int(priority.sum()))} right-of-way flags counted as one), "
+        f"{_words(mostly_blank)} are left blank in more than {_fmt_pct(MOSTLY_BLANK, 0)} of "
+        "crashes, and blank shares differ widely between provinces, which keeps the national "
+        "file out of model training "
         '(<a href="sources.html">Data sources and scope</a>). In Barcelona\'s crash table, by '
         "contrast, a blank count means zero: no cell holds an explicit zero, and with blanks "
         "read as zero the victims add up in every crash.</p>"
@@ -381,7 +462,10 @@ def _records(captions: dict[str, str]) -> str:
         f"fatal ones. In the Catalan file, {_words(levels)} placeholder levels in "
         f"{_words(fields)} fields (“not specified” or an unexplained blank) are recorded at "
         f"least {_fmt_dec(limit)} times as often in non-fatal crashes as in fatal ones; these "
-        "fields are left out of the Catalonia crash-severity model. In DGT's records, "
+        "fields are left out of every published model. The road owner is the reverse case, "
+        "blank far more often on fatal records, and the calculator leaves out the crashes it "
+        f'affects (<a href="{DOCS_URL}/research/ML_MODEL_REVIEW.md">model review</a>). In '
+        "DGT's records, "
         f"{_words(dependent.field.nunique())} fields are left blank at rates that differ by a "
         f"factor of {_fmt_dec(limit)} or more between fatal and other crashes in at least one "
         "region.</p>"
@@ -401,6 +485,15 @@ def _models() -> str:
     catalogue = read_table("ml_feature_catalogue")
     cat_checks = read_table("mq_cat_checks").set_index("check").value
     bcn_year = _year_label(read_table("bcn_person_severity_share"))
+    scores = read_table("sev_rolling_scores")
+    pooled = scores[scores.subset.str.fullmatch(r"\d{4}-\d{4}")]
+    rolling = _span(pd.Series([int(y) for y in re.findall(r"\d{4}", pooled.subset.iloc[0])]))
+    pooled = pooled.set_index("estimator")
+    calc, lookup = pooled.loc["calculator"], pooled.loc["road_x_crash_table"]
+    gaps = read_table("sev_comparison").set_index(["estimator", "metric"])
+    against = gaps.loc[("road_x_crash_table", "roc_auc_minus_calculator")]
+    gain_low, gain_high = -float(against.high), -float(against.low)
+    catalan_years = read_table("cat_frequency").year
     cat_years = re.findall(r"\d{4}", split.loc["catalonia_crash_severity", "design"])
     bcn_numbers = re.findall(r"\d+", split.loc["barcelona_person_severity", "design"])
     candidates = common[common.a_priori_status.isin(["exact", "defensible"])]
@@ -409,20 +502,30 @@ def _models() -> str:
     bcn_pair = shared[shared.pair.str.contains("Barcelona")]
     bcn_shared = bcn_pair[bcn_pair.enters_cross_source_tests.astype(bool)]
     mappable = bcn_pair.status.isin(["exact", "defensible"])
-    catalan_last = int(read_table("cat_frequency").year.max())
+    catalan_last = int(catalan_years.max())
     main_sets = catalogue.feature_sets.str.contains("context")
     adds = comparison.model_adds_signal_over_table.astype(bool)
+    low, high = modelling.CALIBRATION_SLOPE_RANGE
+    tolerance = modelling.CALIBRATION_LARGE_TOLERANCE
     _require(
         {
-            "the Catalan design names training, choice and test years": len(cat_years) == 5,
+            "the calculator's model beats its table by the rule": float(
+                calc.roc_auc - lookup.roc_auc
+            )
+            >= rules.MIN_GAIN
+            and gain_low > 0,
+            "the calculator's estimates pass the calibration rule": low
+            <= float(calc.calibration_slope)
+            <= high
+            and abs(float(calc.mean_predicted - calc.prevalence)) <= tolerance * calc.prevalence,
+            "the original Catalan design names training, choice and test years": len(cat_years)
+            == 5,
             "the Barcelona design names months and folds": len(bcn_numbers) == 5,
             "no crash or group straddles a split": bool(
                 (split.shared_ids == 0).all() and (split.shared_groups == 0).all()
             ),
-            "the two featured models beat their tables and the Barcelona crash model does not": (
-                bool(adds["catalonia_crash_severity"])
-                and bool(adds["barcelona_person_severity"])
-                and not bool(adds["barcelona_crash_severity"])
+            "the Barcelona crash model does not beat its table": not bool(
+                adds["barcelona_crash_severity"]
             ),
             "the Barcelona person-severity model is for ranking only": not bool(
                 primary.loc["barcelona_person_severity", "probabilities_shown_as_estimates"]
@@ -441,27 +544,30 @@ def _models() -> str:
             > catalan_last,
         }
     )
-    groupings = {
-        model: " × ".join(RULE_LABELS[column] for column in columns)
-        for model, columns in rules.RULES.items()
-    }
-    low, high = modelling.CALIBRATION_SLOPE_RANGE
     provinces = int(cat_checks["demarcations"])
     excluded = _join([FIELD_LABELS.get(field, field.replace("_", " ")) for field in dropped.field])
     overlap = read_table("cat_vs_dgt_province_year").year
     validation = '<a href="validation.html">External validation</a>'
+    calculator = f'<a href="severity-models.html">{TITLES["severity-models"]}</a>'
+    review = f'<a href="{DOCS_URL}/research/ML_MODEL_REVIEW.md">model review</a>'
+    report = f'<a href="{DOCS_URL}/research/SEVERITY_CALCULATOR.md">calculator report</a>'
+    choice = _join([str(year) for year in severity_model.VALIDATION_YEARS])
     return (
         '<h2 id="models">How the models were built and judged</h2>'
-        "<p>The records are split by time, so that a model is always tested on later records "
-        "than those it was trained on. The Catalonia crash-severity model was trained on the crashes of "
-        f"{cat_years[0]}–{cat_years[1]}, its settings were chosen on {cat_years[2]}–"
-        f"{cat_years[3]}, and it was tested once on {cat_years[4]}. The Barcelona models were "
-        f"trained on months {bcn_numbers[0]}–{bcn_numbers[1]} of {bcn_year}, with settings "
-        f"chosen by {bcn_numbers[2]}-fold cross-validation that keeps the people of one crash "
-        f"in the same fold, and tested on months {bcn_numbers[3]}–{bcn_numbers[4]}; no crash "
-        "appears on both sides of a split. For each model a regularised logistic regression "
-        "and gradient-boosted trees were compared, and the choice between them was made "
-        "without the test records.</p>"
+        "<p>The published model is the calculator's: a penalised logistic regression of whether "
+        "a crash with a death or serious injury in Catalonia was fatal, with a death within 24 "
+        f"hours, given circumstances a reader can describe ({calculator}). It is tested by "
+        f"rolling origin: each year of {rolling} is predicted by the model fitted only on the "
+        "years before it, beside a table of fatal shares by road and crash type fitted on the "
+        "same years. The strength of its penalty was chosen from "
+        f"{_words(len(severity_model.C_GRID))} values by fitting on "
+        f"{int(catalan_years.min())}–{severity_model.TRAIN_LAST_YEAR} and scoring {choice}, "
+        "years that are also tested. Its intervals come from "
+        f"{_fmt_int(severity_model.N_BOOTSTRAP)} refits on resampled crashes. Crashes on "
+        "conventional roads whose owner is recorded as “other” or left blank are left out, "
+        f"because that field records how a crash was documented ({review}). The model is also "
+        f"tested on each province and on Barcelona city left out of its fitting ({validation}), "
+        f"and its method is set out in the {report}.</p>"
         "<p>ROC-AUC measures how well a model ranks: it is the probability that the model "
         "places a randomly chosen case with the outcome above a randomly chosen case without "
         "it. A value of 0.5 is no better than chance and 1 is a perfect ranking. When the "
@@ -470,42 +576,56 @@ def _models() -> str:
         "highest-ranked cases have the outcome; a model with no information scores the "
         "outcome's prevalence.</p>"
         "<p>A model that ranks well may still add nothing to what a simple table shows. Each "
-        "model was therefore compared, on the same test records, with a table fixed before the "
-        "test: the share of severe outcomes in each group of the training records, for the "
-        "grouping a descriptive analysis would lead with "
-        f"({groupings['catalonia_crash_severity']} for Catalonia, "
-        f"{groupings['barcelona_person_severity']} for Barcelona's people, "
-        f"{groupings['barcelona_crash_severity']} for Barcelona's crashes). A model is retained "
-        f"only if its ROC-AUC exceeds the table's by at least {rules.MIN_GAIN:.2f} and the 95% "
-        "interval of the difference excludes zero. The Catalonia crash-severity model and the "
-        "Barcelona person-severity model meet this rule. The Barcelona crash-severity model ranked "
-        "unseen crashes no better than its table of shares by accident type, so the study "
-        "reports the table instead.</p>"
+        "model is therefore compared, on the same test records, with a table fixed before the "
+        "test: the share of severe outcomes in each group of the training records. A model is "
+        f"kept only if its ROC-AUC exceeds the table's by at least {rules.MIN_GAIN:.2f} and the "
+        "95% interval of the difference excludes zero. Over "
+        f"{rolling} the calculator's model scores {calc.roc_auc:.3f} against "
+        f"{lookup.roc_auc:.3f} for its table, a gain of {calc.roc_auc - lookup.roc_auc:.3f} "
+        f"(95% interval {gain_low:.3f}–{gain_high:.3f}).</p>"
         "<p>A model can rank well and still give probabilities that are too high or too low. "
         "Calibration compares the predicted probabilities with the observed shares in groups "
         "of test records; its slope is 1 when the predictions spread exactly as widely as the "
-        f"outcomes. Probabilities are shown as estimates only if the slope lies between {low} "
-        f"and {high} and the mean predicted probability is within "
-        f"{_fmt_pct(modelling.CALIBRATION_LARGE_TOLERANCE, 0)} of the observed share, a rule "
-        "fixed in advance. Otherwise the model is used for ranking only, as the Barcelona "
-        "person-severity model is. Intervals for the scores come from "
-        f"{_fmt_int(modelling.N_BOOT)} bootstrap resamples of the test records.</p>"
-        "<p>The Catalonia crash-severity model is also tested on places left out of its training (each "
-        f"of the {_words(provinces)} provinces left out in turn, and Barcelona city against the "
-        "rest of Catalonia), and the Barcelona models on one district at a time, each beside a "
-        "model trained in the test population. For DGT's records elsewhere in Spain, the model "
-        f"is refitted on the {len(used)} of {len(candidates)} candidate variables whose mapped "
-        f"distributions match on the Catalan crashes of {_span(overlap)}, which both files "
-        f"contain ({excluded} do not). Barcelona's records share no crash with the Catalan "
-        f"file, so the {_words(len(bcn_shared))} variables used for Barcelona were chosen only "
-        "because their codings map exactly or defensibly; there were no shared crashes to "
-        f"check them on ({validation}).</p>"
+        "outcomes, and above 1 when they are not spread widely enough. Probabilities are shown "
+        f"as estimates only if the slope lies between {low} and {high} and the mean predicted "
+        f"probability is within {_fmt_pct(tolerance, 0)} of the observed share, a rule fixed in "
+        "advance. The calculator's model passes it (slope "
+        f"{_fmt_dec(calc.calibration_slope, 2)}, mean prediction "
+        f"{_fmt_pct(calc.mean_predicted)} against {_fmt_pct(calc.prevalence)} observed). Intervals "
+        f"for the scores come from {_fmt_int(modelling.N_BOOT)} bootstrap resamples of the test "
+        f"records, {_fmt_int(transport.N_BOOT_TRANSPORT)} in the external tests.</p>"
+        "<p>The project's earlier models used a single split by time. The original Catalan "
+        f"model was trained on the crashes of {cat_years[0]}–{cat_years[1]}, its settings were "
+        f"chosen on {cat_years[2]}–{cat_years[3]}, it was refitted on {cat_years[0]}–"
+        f"{cat_years[3]} and tested once on {cat_years[4]}. It was replaced by the calculator's "
+        "model, because its strongest predictor was the road's owner. The Barcelona models were "
+        f"trained on months {bcn_numbers[0]}–{bcn_numbers[1]} of {bcn_year}, with settings "
+        f"chosen by {bcn_numbers[2]}-fold cross-validation that keeps the people of one crash "
+        f"in the same fold, and tested on months {bcn_numbers[3]}–{bcn_numbers[4]}; no crash "
+        "appears on both sides of a split. The Barcelona crash-severity model ranked unseen "
+        "crashes no better than its table of shares by accident type, so the study reports the "
+        "table instead; the Barcelona person-severity model ranks people without giving "
+        f"probabilities and is kept for research. Every model was re-evaluated in the {review}."
+        "</p>"
+        "<p>The external tests set each model beside a model of the same kind trained in the "
+        f"test population: the original Catalan model with each of the {_words(provinces)} "
+        "provinces left out in turn and with Barcelona city against the rest of Catalonia, and "
+        "the Barcelona models on one district at a time. For DGT's records elsewhere in Spain, "
+        f"the original model's specification is refitted on the {len(used)} of "
+        f"{len(candidates)} candidate variables whose mapped distributions match on the Catalan "
+        f"crashes of {_span(overlap)}, which both files contain ({excluded} do not). Barcelona's "
+        f"records share no crash with the Catalan file, so the {_words(len(bcn_shared))} "
+        "variables used for Barcelona were chosen only because their codings map exactly or "
+        f"defensibly; there were no shared crashes to check them on ({validation}).</p>"
         "<p>Before fitting, each variable was classified by how far the outcome could shape "
-        "it. The main models use only circumstances recorded about the crash or the person. "
+        "it. The models use only circumstances recorded about the crash or the person. "
         "Variables the outcome may shape, such as police causes and the Catalan influence "
-        "fields, enter only separate comparison versions of the models, and variables that "
-        "encode the outcome enter none "
-        f'(<a href="{DOCS_URL}/ML_LEAKAGE_AUDIT.md">audit of the variables</a>).</p>'
+        "fields, enter only separate comparison versions of the original models, and variables "
+        "that encode the outcome enter none "
+        f'(<a href="{DOCS_URL}/ML_LEAKAGE_AUDIT.md">audit of the variables</a>). The check for '
+        "fields recorded differently when a crash was fatal looked only for placeholders rarer "
+        "among fatal crashes, pooled over zones, and did not catch the road-owner field; the "
+        "re-evaluation found it.</p>"
     )
 
 
@@ -638,7 +758,31 @@ def _reproduce() -> str:
     )
 
 
+def _manifest_note(path_prefix: str, pattern: str) -> str:
+    """A date or phrase the source register records in the manifest description of a file."""
+    manifest = pd.read_csv(RAW_DATA_DIR / "manifest.csv")
+    rows = manifest[manifest.path.str.startswith(path_prefix)]
+    found = sorted({m for text in rows.description for m in re.findall(pattern, str(text))})
+    _require({f"the manifest records {pattern!r} for {path_prefix}": len(found) >= 1})
+    return found[-1]
+
+
 def _reuse() -> str:
+    catalan_update = _manifest_note(
+        "catalonia/", r"rows last updated on the portal (\d{4}-\d{2}-\d{2})"
+    )
+    barcelona_update = _manifest_note("barcelona/", r"last modified (\d{4}-\d{2}-\d{2})")
+    manifest = pd.read_csv(RAW_DATA_DIR / "manifest.csv")
+    emef_years = sorted(
+        {int(y) for y in manifest.path.str.extract(r"^emef/(\d{4})/", expand=False).dropna()}
+    )
+    _require(
+        {
+            "the EMEF files cover consecutive years": emef_years
+            == list(range(emef_years[0], emef_years[-1] + 1))
+        }
+    )
+    emef_span = f"{emef_years[0]}–{emef_years[-1]}"
     return (
         '<h2 id="reuse">Reuse</h2>'
         f'<p>The code is under the <a href="{REPO_URL}/blob/main/LICENSE">MIT licence</a>. The '
@@ -646,9 +790,26 @@ def _reuse() -> str:
         "public-sector information under Ley 37/2007 on the reuse of public-sector "
         "information, with the datos.gob.es conditions applied: the source is named, the "
         "meaning is not distorted, the dates are kept and no endorsement is implied. INE's "
-        "population data are under CC BY 4.0. Every published figure is an aggregate, and "
-        "nothing identifies a person. The file-by-file terms are in the "
-        f'<a href="{DOCS_URL}/data_sources.md">source register</a>.</p>'
+        "population data are under CC BY 4.0.</p>"
+        "<p>The Catalan crash file is reused under the "
+        '<a href="https://administraciodigital.gencat.cat/ca/dades/dades-obertes/informacio-'
+        "practica/llicencies/\">Llicència oberta d'ús d'informació - Catalunya</a>. Source: "
+        "Generalitat de Catalunya. Departament d'Interior i Seguretat Pública. Servei Català "
+        f"de Trànsit; data last updated {catalan_update}. The Barcelona crash records are "
+        "published by the Ajuntament de Barcelona on Open Data BCN under the "
+        '<a href="https://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution '
+        f"4.0</a> licence (2025 files last modified {barcelona_update}); the site reads them "
+        "into its own tables and does not alter the files. The EMEF figures are this study's "
+        "own calculations from the public-use microdata (ATM, Idescat and Institut Metròpoli, "
+        f"Enquesta de mobilitat en dia feiner {emef_span}, Autoritat del Transport "
+        "Metropolità), reused under the open-data clause of the Observatori de la Mobilitat de "
+        "Catalunya; they are not official results. The Madrid survey figures use the "
+        "Consorcio Regional de Transportes de Madrid's EDM2018 data "
+        '(<a href="https://www.crtm.es">Powered by CRTM</a>), and the tables derived from them '
+        "are distributed under the CRTM's licence, as it requires.</p>"
+        "<p>Every published figure is an aggregate, and nothing identifies a person. The "
+        f'file-by-file terms are in the <a href="{DOCS_URL}/data_sources.md">source '
+        "register</a>.</p>"
     )
 
 
