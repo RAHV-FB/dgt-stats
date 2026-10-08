@@ -11,15 +11,23 @@ SVG embeds the glyphs it uses, so a chart reads the same on every system.
 A chart's title is not drawn into the SVG: it is recorded in ``TITLES`` and printed above the
 figure on the page, so that the title, the chart and the caption below it read as three parts.
 The SVG is written without a timestamp, so an unchanged figure does not churn on rebuild.
+
+Every chart is drawn twice: at ``FIGURE_WIDTH`` for a desktop column, and inside ``narrow()``
+for a phone's. The narrow drawing is not the wide one shrunk: the same data, labels and
+annotations are laid out for a column about 3.6 inches wide at the same text sizes, so side-by-side
+panels are stacked, long category labels wrap, legends move below the plot and crowded category
+ticks are thinned.
 """
 
 from __future__ import annotations
 
 import base64
+import contextlib
 import html
 import io
 import re
 import textwrap
+from collections.abc import Iterator
 from pathlib import Path
 
 import matplotlib
@@ -106,9 +114,31 @@ FONT_SIZE = 9.5
 TICK_SIZE = 9.0
 NOTE_SIZE = 8.5
 
+# The narrow drawing (``narrow``). A phone of 390 CSS px has a column of 358 px, 334 px inside
+# the dark theme's white chart box; a chart at most ``NARROW_MAX_POINTS`` wide fills it at 1.22
+# px a point or more, so the 9-point text is at least 11 px. Notes are set at the tick size.
+NARROW_WIDTH = 3.6
+NARROW_MAX_POINTS = 273.0
+# Category labels in a narrow chart wrap at about this many characters, axis labels at about
+# twice that.
+NARROW_LABEL_CHARS = 22
+NARROW = False
+
 # The title of every chart drawn since the registry was last cleared, by file stem. The site
 # prints it above the figure.
 TITLES: dict[str, str] = {}
+
+
+@contextlib.contextmanager
+def narrow(width: float = NARROW_WIDTH) -> Iterator[None]:
+    """Draw every chart inside the block for a phone's column, ``width`` inches wide."""
+    global FIGURE_WIDTH, NOTE_SIZE, NARROW
+    saved = FIGURE_WIDTH, NOTE_SIZE, NARROW
+    FIGURE_WIDTH, NOTE_SIZE, NARROW = width, TICK_SIZE, True
+    try:
+        yield
+    finally:
+        FIGURE_WIDTH, NOTE_SIZE, NARROW = saved
 
 
 def _title(path: Path, title: str) -> None:
@@ -118,6 +148,77 @@ def _title(path: Path, title: str) -> None:
 
 def _wrap(text: str, width: int) -> str:
     return textwrap.fill(str(text), width=max(width, 8), break_long_words=False)
+
+
+def _fit(text: object, width: int = NARROW_LABEL_CHARS) -> str:
+    """A category label as a narrow chart sets it: wrapped at about ``width`` characters between
+    words (never at a hyphen), with a closing note in brackets on a line of its own where it
+    fits there. Unchanged in a wide chart."""
+    text = str(text)
+    if not NARROW or len(text) <= width:
+        return text
+    head, gap, tail = text.partition("  (")
+    if not gap:
+        head, gap, tail = text.rpartition(" (")
+    if head and gap and tail.endswith(")") and len(tail) < width:
+        return f"{_fit(head, width)}\n({tail}"
+    return textwrap.fill(text, width=width, break_long_words=False, break_on_hyphens=False)
+
+
+def _fit_name(text: object, width: int = 15) -> str:
+    """A field name such as ``CONDICION_NIVEL_CIRCULA`` in a narrow chart: broken after the
+    underscore nearest its middle when it is longer than ``width``. Unchanged in a wide chart."""
+    text = str(text)
+    if not NARROW or len(text) <= width or "_" not in text[1:-1]:
+        return text
+    cuts = [i + 1 for i, char in enumerate(text[:-1]) if char == "_" and i > 0]
+    cut = min(cuts, key=lambda i: abs(i - len(text) / 2))
+    return f"{text[:cut]}\n{text[cut:]}"
+
+
+def _axis_text(text: str) -> str:
+    """An axis label or legend entry, wrapped to a narrow chart's width."""
+    return _fit(text, 2 * NARROW_LABEL_CHARS) if text else text
+
+
+def _lines(texts: list[str]) -> int:
+    """The most lines any of ``texts`` takes."""
+    return max((str(text).count("\n") + 1 for text in texts), default=1)
+
+
+def _row_positions(labels: list[object]) -> np.ndarray:
+    """The height of each row of a chart with one row per label, the first at the top and the
+    last at 0: one unit apart, and further apart around a label that a narrow chart wraps onto
+    several lines, so that only those rows take more room."""
+    sizes = [1.0 + (0.55 * str(label).count("\n") if NARROW else 0.0) for label in labels]
+    tops = np.cumsum([0.0] + [(a + b) / 2 for a, b in zip(sizes, sizes[1:])])
+    return tops[-1] - tops
+
+
+def _legend_below(axis: plt.Axes, offset: float, ncol: int, **kwargs: object) -> None:
+    """A legend under the plot: ``offset`` (a fraction of the axes' height) below a wide chart's
+    axes in ``ncol`` columns, or under everything else in a narrow chart, one entry a line."""
+    if not NARROW:
+        axis.legend(loc="upper left", bbox_to_anchor=(0, offset), ncol=ncol, **kwargs)
+        return
+    if "handles" not in kwargs:
+        handles, labels = axis.get_legend_handles_labels()
+        kwargs.update(handles=handles, labels=labels)
+    axis.figure.legend(loc="outside lower left", ncol=1, **kwargs)
+
+
+def _subplots(*args: int, **kwargs: object) -> tuple[plt.Figure, object]:
+    """``plt.subplots``, with constrained layout in a narrow chart, so that every label and
+    legend fits inside the width instead of widening the saved figure."""
+    if NARROW and "constrained_layout" not in kwargs and "layout" not in kwargs:
+        kwargs["layout"] = "constrained"
+    return plt.subplots(*args, **kwargs)
+
+
+def _tight(fig: plt.Figure, **kwargs: object) -> None:
+    """``tight_layout`` for a wide chart; a narrow one is already laid out by constraint."""
+    if not NARROW:
+        fig.tight_layout(**kwargs)
 
 
 def _series_style(index: int) -> dict[str, object]:
@@ -178,8 +279,36 @@ def apply_style() -> None:
     )
 
 
+def _thin_crowded_ticks(fig: plt.Figure) -> None:
+    """Label every second tick on an x axis whose labels would touch, such as eleven years
+    under the bars of a narrow chart; the ticks themselves stay."""
+    renderer = fig.canvas.get_renderer()
+    fig.draw_without_rendering()
+    for axis in fig.axes:
+        ticks = axis.get_xticks()
+        labels = axis.xaxis.get_major_ticks()[: len(ticks)]
+        texts = [tick.label1.get_text() for tick in labels]
+        left, right = sorted(axis.get_xlim())
+        shown = [
+            tick.label1
+            for tick, at in zip(labels, ticks)
+            if tick.label1.get_visible() and tick.label1.get_text() and left <= at <= right
+        ]
+        if len(shown) < 3 or any(label.get_rotation() for label in shown):
+            continue
+        boxes = sorted((label.get_window_extent(renderer) for label in shown), key=lambda b: b.x0)
+        gap = TICK_SIZE * 0.4 * fig.dpi / 72
+        if all(a.x1 + gap <= b.x0 for a, b in zip(boxes, boxes[1:])):
+            continue
+        limits = axis.get_xlim()
+        axis.set_xticks(ticks, [t if i % 2 == 0 else "" for i, t in enumerate(texts)])
+        axis.set_xlim(limits)
+
+
 def save(fig: plt.Figure, path: Path) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
+    if NARROW:
+        _thin_crowded_ticks(fig)
     buffer = io.StringIO()
     fig.savefig(buffer, format="svg", metadata={"Date": None}, bbox_inches="tight", pad_inches=0.08)
     plt.close(fig)
@@ -290,10 +419,12 @@ def _end_labels(
 
     ``entries`` are ``(x, y, text, colour)`` at each line's last point. Labels are placed in
     display space, at least one line of text apart, and kept as close to their lines as that
-    allows; the text is wrapped at ``width`` characters.
+    allows; the text is wrapped at ``width`` characters (at most 13 in a narrow chart).
     """
     if not entries:
         return
+    if NARROW:
+        width = min(width, 13)
     figure = axis.figure
     transform = axis.transData
     texts = [_wrap(text, width) for _, _, text, _ in entries]
@@ -381,7 +512,7 @@ def line_series(
     for one line, as thin dotted bounds for several.
     """
     apply_style()
-    fig, axis = plt.subplots(figsize=(FIGURE_WIDTH, height))
+    fig, axis = _subplots(figsize=(FIGURE_WIDTH, height))
     groups = [(None, frame)] if series is None else list(frame.groupby(series, sort=False))
     if len(groups) > len(CATEGORICAL):
         raise ValueError("more series than fixed colours; fold to 'Other' or facet")
@@ -437,12 +568,12 @@ def line_series(
         _thousands(axis)
     _integer_x(axis)
     _title(path, title)
-    axis.set_ylabel(ylabel)
+    axis.set_ylabel(_axis_text(ylabel))
     axis.set_xlabel("")
     if labelled:
         _end_labels(axis, entries)
     elif len(groups) >= 2:
-        axis.legend(loc="upper left", bbox_to_anchor=(0, -0.1), ncol=min(len(groups), 3))
+        _legend_below(axis, -0.1, min(len(groups), 3))
     return save(fig, path)
 
 
@@ -469,7 +600,7 @@ def bar_shares(
     if wide.shape[1] > len(palette):
         raise ValueError("more series than fixed colours; fold to 'Other'")
     shares = wide.div(wide.sum(axis=1), axis=0)
-    fig, axis = plt.subplots(figsize=(FIGURE_WIDTH, height))
+    fig, axis = _subplots(figsize=(FIGURE_WIDTH, height))
     bottom = np.zeros(len(shares))
     positions = np.arange(len(shares))
     for index, column in enumerate(shares.columns):
@@ -485,7 +616,7 @@ def bar_shares(
             # A pale fill gets an outline, so its segment and legend key stay visible on white.
             edgecolor=NEUTRAL if outlined else SURFACE,
             linewidth=0.8 if outlined else 1.2,
-            label=str(column),
+            label=_axis_text(str(column)),
         )
         bottom = bottom + values
     axis.set_xticks(positions, [str(v) for v in shares.index])
@@ -493,7 +624,7 @@ def bar_shares(
     axis.set_ylim(0, 1)
     _percent(axis)
     _title(path, title)
-    axis.legend(loc="upper left", bbox_to_anchor=(0, -0.08), ncol=2)
+    _legend_below(axis, -0.08, 2)
     return save(fig, path)
 
 
@@ -511,13 +642,22 @@ def heatmap(
     """Sequential one-hue heatmap of a rows × columns matrix; cells annotated when there are few."""
     apply_style()
     rows, cols = matrix.shape
+    row_labels = [_fit_name(r) for r in matrix.index]
     height = height or max(2.5, 0.28 * rows + 1.6)
-    fig, axis = plt.subplots(figsize=(FIGURE_WIDTH, height))
+    if NARROW:
+        # Room for the wrapped row labels and for the colour scale under the cells.
+        height = max(height, (0.08 + 0.13 * _lines(row_labels)) * rows + 2.0)
+    fig, axis = _subplots(figsize=(FIGURE_WIDTH, height))
     values = matrix.to_numpy(dtype=float)
     image = axis.imshow(values, cmap=SEQUENTIAL_CMAP, aspect="auto")
     axis.grid(False)
-    axis.set_xticks(range(cols), [str(c) for c in matrix.columns], fontsize=NOTE_SIZE)
-    axis.set_yticks(range(rows), [str(r) for r in matrix.index], fontsize=NOTE_SIZE)
+    axis.set_xticks(
+        range(cols),
+        [str(c) for c in matrix.columns],
+        fontsize=NOTE_SIZE,
+        rotation=90 if NARROW and cols > 6 else 0,
+    )
+    axis.set_yticks(range(rows), row_labels, fontsize=NOTE_SIZE)
     axis.tick_params(length=0)
     for spine in axis.spines.values():
         spine.set_visible(False)
@@ -543,7 +683,11 @@ def heatmap(
                     fontsize=NOTE_SIZE,
                     color=SURFACE if cell >= threshold else TEXT_PRIMARY,
                 )
-    bar = fig.colorbar(image, ax=axis, fraction=0.03, pad=0.02)
+    if NARROW:
+        # The scale goes under the cells, where it does not take width from them.
+        bar = fig.colorbar(image, ax=axis, location="bottom", fraction=0.025, pad=0.02, aspect=25)
+    else:
+        bar = fig.colorbar(image, ax=axis, fraction=0.03, pad=0.02)
     bar.outline.set_visible(False)
     bar.ax.tick_params(length=0)
     if percent:
@@ -556,8 +700,8 @@ def heatmap(
         bar.formatter = matplotlib.ticker.FuncFormatter(_tick)
     bar.update_ticks()
     _title(path, title)
-    axis.set_xlabel(xlabel)
-    axis.set_ylabel(ylabel)
+    axis.set_xlabel(_axis_text(xlabel))
+    axis.set_ylabel(_axis_text(ylabel))
     return save(fig, path)
 
 
@@ -703,9 +847,11 @@ def dot_interval(
         if kinds[index] == "reference" and reference_row is not None:
             text += " (reference)"
         rows.append((text, index))
-    height = max(2.4, 0.27 * len(rows) + 1.0)
-    fig, axis = plt.subplots(figsize=(FIGURE_WIDTH, height))
-    positions = np.arange(len(rows))[::-1]
+    rows = [(_fit(text), index) for text, index in rows]
+    positions = _row_positions([text for text, _ in rows])
+    top = positions[0]
+    height = max(2.4, 0.27 * (top + 1) + 1.0)
+    fig, axis = _subplots(figsize=(FIGURE_WIDTH, height))
     for kind in DOT_STYLES:
         picked = [
             (pos, i) for pos, (_, i) in zip(positions, rows) if i is not None and kinds[i] == kind
@@ -727,7 +873,7 @@ def dot_interval(
         if reference_label:
             axis.annotate(
                 reference_label,
-                (reference, len(rows) - 0.55),
+                (reference, top + 0.45),
                 xytext=(4, 0),
                 textcoords="offset points",
                 fontsize=NOTE_SIZE,
@@ -775,9 +921,9 @@ def dot_interval(
         axis.xaxis.set_major_formatter(
             matplotlib.ticker.FuncFormatter(lambda v, _: _percent_text(v, signed=signed))
         )
-    axis.set_ylim(-0.7, len(rows) - 0.3)
+    axis.set_ylim(-0.7, top + 0.7)
     _title(path, title)
-    axis.set_xlabel(xlabel)
+    axis.set_xlabel(_axis_text(xlabel))
     return save(fig, path)
 
 
@@ -806,9 +952,11 @@ def dot_range(
     """
     apply_style()
     ordered = frame.reset_index(drop=True)
-    height = max(2.6, 0.36 * len(ordered) + 1.5)
-    fig, axis = plt.subplots(figsize=(FIGURE_WIDTH, height))
-    positions = np.arange(len(ordered))[::-1]
+    labels = [_fit(v) for v in ordered[label]]
+    positions = _row_positions(labels)
+    top = positions[0]
+    height = max(2.6, 0.36 * (top + 1) + 1.5)
+    fig, axis = _subplots(figsize=(FIGURE_WIDTH, height))
     for position, (_, row) in zip(positions, ordered.iterrows()):
         a, b = float(row[value]), float(row[alternative])
         if not np.isclose(a, b, rtol=1e-6):
@@ -839,7 +987,7 @@ def dot_range(
         if reference_label:
             axis.annotate(
                 reference_label,
-                (reference, len(ordered) - 0.55),
+                (reference, top + 0.45),
                 xytext=(4, 0),
                 textcoords="offset points",
                 fontsize=NOTE_SIZE,
@@ -853,12 +1001,12 @@ def dot_range(
         )
         axis.xaxis.set_minor_locator(matplotlib.ticker.NullLocator())
         axis.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(_tick))
-    axis.set_yticks(positions, [str(v) for v in ordered[label]], fontsize=TICK_SIZE)
+    axis.set_yticks(positions, labels, fontsize=TICK_SIZE)
     axis.tick_params(axis="y", length=0)
     axis.spines["left"].set_visible(False)
     axis.grid(True, axis="x")
     axis.grid(False, axis="y")
-    axis.set_ylim(-0.7, len(ordered) - 0.3)
+    axis.set_ylim(-0.7, top + 0.7)
     handles = [
         matplotlib.lines.Line2D(
             [],
@@ -868,7 +1016,7 @@ def dot_range(
             markersize=6.5,
             markeredgecolor=SURFACE,
             linewidth=1.6,
-            label=value_label,
+            label=_axis_text(value_label),
         ),
         matplotlib.lines.Line2D(
             [],
@@ -879,15 +1027,15 @@ def dot_range(
             markerfacecolor=SURFACE,
             markeredgewidth=1.4,
             linestyle="none",
-            label=alternative_label,
+            label=_axis_text(alternative_label),
         ),
         matplotlib.lines.Line2D(
             [], [], color=NEUTRAL_LIGHT, linewidth=8, alpha=0.6, label="Range between the two"
         ),
     ]
-    axis.legend(handles=handles, loc="upper left", bbox_to_anchor=(0, -0.16), ncol=1)
+    _legend_below(axis, -0.16, 1, handles=handles)
     _title(path, title)
-    axis.set_xlabel(xlabel)
+    axis.set_xlabel(_axis_text(xlabel))
     return save(fig, path)
 
 
@@ -913,16 +1061,19 @@ def estimate_and_range(
     """
     apply_style()
     ordered = frame.reset_index(drop=True)
-    height = max(2.6, 0.36 * len(ordered) + 1.6)
-    fig, axis = plt.subplots(figsize=(FIGURE_WIDTH, height))
-    positions = np.arange(len(ordered))[::-1]
-    labels = []
+    labels = [
+        _fit(
+            f"{row['label']} (reference)" if bool(row.get("reference_row", False)) else row["label"]
+        )
+        for _, row in ordered.iterrows()
+    ]
+    positions = _row_positions(labels)
+    top = positions[0]
+    height = max(2.6, 0.36 * (top + 1) + 1.6)
+    fig, axis = _subplots(figsize=(FIGURE_WIDTH, height))
     for position, (_, row) in zip(positions, ordered.iterrows()):
-        text = str(row["label"])
         if bool(row.get("reference_row", False)):
-            labels.append(text + " (reference)")
             continue
-        labels.append(text)
         if pd.notna(row.get("range_low")) and pd.notna(row.get("range_high")):
             axis.hlines(
                 position,
@@ -940,7 +1091,7 @@ def estimate_and_range(
     if reference_label:
         axis.annotate(
             reference_label,
-            (reference, len(ordered) - 0.55),
+            (reference, top + 0.45),
             xytext=(4, 0),
             textcoords="offset points",
             fontsize=NOTE_SIZE,
@@ -957,7 +1108,7 @@ def estimate_and_range(
     axis.spines["left"].set_visible(False)
     axis.grid(True, axis="x")
     axis.grid(False, axis="y")
-    axis.set_ylim(-0.7, len(ordered) - 0.3)
+    axis.set_ylim(-0.7, top + 0.7)
     handles = [
         matplotlib.lines.Line2D(
             [],
@@ -967,15 +1118,15 @@ def estimate_and_range(
             markersize=6.5,
             markeredgecolor=SURFACE,
             linewidth=1.6,
-            label=estimate_label,
+            label=_axis_text(estimate_label),
         ),
         matplotlib.lines.Line2D(
-            [], [], color=NEUTRAL_LIGHT, linewidth=8, alpha=0.6, label=range_label
+            [], [], color=NEUTRAL_LIGHT, linewidth=8, alpha=0.6, label=_axis_text(range_label)
         ),
     ]
-    axis.legend(handles=handles, loc="upper left", bbox_to_anchor=(0, -0.16), ncol=1)
+    _legend_below(axis, -0.16, 1, handles=handles)
     _title(path, title)
-    axis.set_xlabel(xlabel)
+    axis.set_xlabel(_axis_text(xlabel))
     return save(fig, path)
 
 
@@ -1004,12 +1155,13 @@ def forest(
     frame = frame[estimable]
     rows: list[tuple[str, pd.Series | None]] = []
     for name, block in frame.groupby(group, sort=False):
-        rows.append((str(name), None))
+        rows.append((_fit(name), None))
         for _, row in block.iterrows():
-            rows.append((str(row[label]), row))
-    height = max(3.5, 0.24 * len(rows) + 1.2)
-    fig, axis = plt.subplots(figsize=(FIGURE_WIDTH, height))
-    positions = np.arange(len(rows))[::-1]
+            rows.append((_fit(row[label]), row))
+    positions = _row_positions([text for text, _ in rows])
+    top = positions[0]
+    height = max(3.5, 0.24 * (top + 1) + 1.2)
+    fig, axis = _subplots(figsize=(FIGURE_WIDTH, height))
     tick_labels = []
     for position, (text, row) in zip(positions, rows):
         if row is None:
@@ -1037,9 +1189,9 @@ def forest(
     axis.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(lambda v, _: f"{v:g}"))
     axis.grid(True, axis="x")
     axis.grid(False, axis="y")
-    axis.set_ylim(-0.7, len(rows) - 0.3)
+    axis.set_ylim(-0.7, top + 0.7)
     _title(path, title)
-    axis.set_xlabel(xlabel)
+    axis.set_xlabel(_axis_text(xlabel))
     return save(fig, path)
 
 
@@ -1055,7 +1207,7 @@ def calibration(
     """Observed share against mean predicted probability by bin (deciles by default), with the
     diagonal on which the two are equal."""
     apply_style()
-    fig, axis = plt.subplots(figsize=(FIGURE_WIDTH, 4.8))
+    fig, axis = _subplots(figsize=(FIGURE_WIDTH, 4.8 if not NARROW else FIGURE_WIDTH))
     groups = [(None, frame)] if series is None else list(frame.groupby(series, sort=False))
     top = 0.0
     for index, (name, group) in enumerate(groups):
@@ -1090,7 +1242,7 @@ def calibration(
     _percent(axis, 1)
     axis.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(lambda v, _: f"{v * 100:.1f}%"))
     _title(path, title)
-    axis.set_xlabel(xlabel)
+    axis.set_xlabel(_axis_text(xlabel))
     axis.set_ylabel("Observed share")
     # Each series is named at its last point, to the left of it near the top right corner.
     for index, (name, group) in enumerate(groups):
@@ -1123,7 +1275,7 @@ def calibration_intervals(
     with its 95% interval (``observed_low``, ``observed_high``) and its number of records (``n``)
     written below and to the right of it, on equal axes with the diagonal on which prediction equals observation."""
     apply_style()
-    fig, axis = plt.subplots(figsize=(FIGURE_WIDTH, 5.2))
+    fig, axis = _subplots(figsize=(FIGURE_WIDTH, 5.2 if not NARROW else FIGURE_WIDTH + 0.4))
     frame = frame.sort_values("mean_predicted")
     top = float(frame[["mean_predicted", "observed_high"]].max().max()) * 1.08
     axis.plot([0, top], [0, top], color=REFERENCE, linewidth=1.1, linestyle=":", zorder=1)
@@ -1172,8 +1324,8 @@ def calibration_intervals(
     _percent(axis, 0)
     axis.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(lambda v, _: f"{v * 100:.0f}%"))
     _title(path, title)
-    axis.set_xlabel(xlabel)
-    axis.set_ylabel(ylabel)
+    axis.set_xlabel(_axis_text(xlabel))
+    axis.set_ylabel(_axis_text(ylabel))
     return save(fig, path)
 
 
@@ -1190,7 +1342,8 @@ def calibration_comparison(
     the second as hollow dots, both labelled directly at their highest group. Equal axes, with the
     diagonal on which prediction equals observation."""
     apply_style()
-    fig, axis = plt.subplots(figsize=(5.4, 5.4))
+    side = min(5.4, FIGURE_WIDTH)
+    fig, axis = _subplots(figsize=(side, side))
     top = float(frame[["mean_predicted", "observed_high"]].max().max()) * 1.06
     axis.plot([0, top], [0, top], color=REFERENCE, linewidth=1.1, linestyle=":", zorder=1)
     axis.annotate(
@@ -1243,8 +1396,8 @@ def calibration_comparison(
     _percent(axis, 0)
     axis.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(lambda v, _: f"{v * 100:.0f}%"))
     _title(path, title)
-    axis.set_xlabel(xlabel)
-    axis.set_ylabel(ylabel)
+    axis.set_xlabel(_axis_text(xlabel))
+    axis.set_ylabel(_axis_text(ylabel))
     return save(fig, path)
 
 
@@ -1294,22 +1447,26 @@ def dot_interval_panels(
     has the same scale and ticks, for panels of one measure. ``reference`` draws the same dotted
     vertical line on every panel, the null value a ratio is read against, and is always inside
     the scale. A row a panel has no value for says so. The axis label is written once, under
-    the middle panel.
+    the middle panel. A narrow chart stacks the panels, each with its labels and scale.
     """
     apply_style()
     labels_order = order or list(dict.fromkeys(frame[label]))
     panels = panel_order or list(dict.fromkeys(frame[panel]))
-    height = max(2.8, 0.34 * len(labels_order) + 1.6)
+    row_labels = [_fit(v) for v in labels_order]
+    if NARROW:
+        panel_height = 0.3 * (_row_positions(row_labels)[0] + 1) + 0.75
+        shape, size = (len(panels), 1), (FIGURE_WIDTH, panel_height * len(panels) + 0.4)
+    else:
+        shape, size = (1, len(panels)), (FIGURE_WIDTH, max(2.8, 0.34 * len(labels_order) + 1.6))
     fig, axes = plt.subplots(
-        1,
-        len(panels),
-        figsize=(FIGURE_WIDTH, height),
+        *shape,
+        figsize=size,
         sharey=True,
         sharex=shared,
         constrained_layout=True,
     )
     axes = np.atleast_1d(axes)
-    positions = np.arange(len(labels_order))[::-1]
+    positions = _row_positions(row_labels)
     for axis, name in zip(axes, panels):
         block = frame[frame[panel] == name].set_index(label).reindex(labels_order)
         _dots(axis, block[value], positions, block[low], block[high], "focal")
@@ -1325,11 +1482,13 @@ def dot_interval_panels(
                     fontsize=NOTE_SIZE,
                     color=TEXT_SECONDARY,
                 )
-        _panel_title(axis, str(name), len(panels))
+        _panel_title(axis, str(name), shape[1])
         axis.grid(True, axis="x")
         axis.grid(False, axis="y")
         axis.spines["left"].set_visible(False)
         axis.tick_params(axis="y", length=0)
+        # Stacked panels each keep their scale's numbers.
+        axis.tick_params(axis="x", labelbottom=True)
         if from_zero:
             axis.set_xlim(left=0)
         if reference is not None and not shared:
@@ -1338,7 +1497,8 @@ def dot_interval_panels(
             axis.set_xlim(min(left, reference - pad), max(right, reference + pad))
         axis.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(_tick))
         axis.xaxis.set_major_locator(
-            matplotlib.ticker.MaxNLocator(nbins=4, steps=[1, 2, 2.5, 5, 10])
+            # A stacked panel is the full width of a narrow chart, with room for more numbers.
+            matplotlib.ticker.MaxNLocator(nbins=6 if NARROW else 4, steps=[1, 2, 2.5, 5, 10])
         )
         axis.tick_params(labelsize=NOTE_SIZE)
         if reference is not None:
@@ -1357,9 +1517,9 @@ def dot_interval_panels(
         pad = 0.05 * (right - left)
         axes[0].set_xlim(left if from_zero else left - pad, right + pad)
     if xlabel:
-        fig.supxlabel(xlabel, fontsize=NOTE_SIZE, color=TEXT_SECONDARY)
-    axes[0].set_yticks(positions, [str(v) for v in labels_order], fontsize=TICK_SIZE)
-    axes[0].set_ylim(-0.7, len(labels_order) - 0.3)
+        fig.supxlabel(_axis_text(xlabel), fontsize=NOTE_SIZE, color=TEXT_SECONDARY)
+    axes[0].set_yticks(positions, row_labels, fontsize=TICK_SIZE)
+    axes[0].set_ylim(-0.7, positions[0] + 0.7)
     _title(path, title)
     return save(fig, path)
 
@@ -1387,7 +1547,11 @@ def slope(
     left_rank = frame[left].rank(ascending=False, method="first")
     right_rank = frame[right].rank(ascending=False, method="first")
     picked = set(highlight or [])
-    fig, axis = plt.subplots(figsize=(FIGURE_WIDTH, max(3.0, 0.42 * n + 1.4)))
+    fig, axis = _subplots(figsize=(FIGURE_WIDTH, max(3.0, 0.42 * n + 1.4)))
+    # A narrow chart wraps the names, which are written on both sides, at 14 characters.
+    names = [_fit(row[label], 14) for _, row in frame.iterrows()]
+    # The gap between a dot and its text, in data units: the same few points at either width.
+    gap = 0.08 if NARROW else 0.04
     for index, (_, row) in enumerate(frame.iterrows()):
         y0, y1 = n - left_rank.iloc[index], n - right_rank.iloc[index]
         focal = str(row[label]) in picked
@@ -1404,9 +1568,9 @@ def slope(
         )
         weight = HEADING_WEIGHT if focal else "normal"
         axis.text(
-            -0.04,
+            -gap,
             y0,
-            f"{row[label]}  {value_format.format(row[left])}",
+            f"{names[index]}  {value_format.format(row[left])}",
             ha="right",
             va="center",
             fontsize=TICK_SIZE,
@@ -1414,9 +1578,9 @@ def slope(
             fontweight=weight,
         )
         axis.text(
-            1.04,
+            1 + gap,
             y1,
-            f"{value_format.format(row[right])}  {row[label]}",
+            f"{value_format.format(row[right])}  {names[index]}",
             ha="left",
             va="center",
             fontsize=TICK_SIZE,
@@ -1429,7 +1593,7 @@ def slope(
     axis.text(
         1, n - 0.2, right_title, ha="center", va="bottom", fontsize=TICK_SIZE, color=TEXT_SECONDARY
     )
-    axis.set_xlim(-0.9, 1.9)
+    axis.set_xlim(*((-1.0, 2.0) if NARROW else (-0.9, 1.9)))
     axis.set_ylim(-0.6, n + 0.4)
     axis.axis("off")
     _title(path, title)
@@ -1464,7 +1628,7 @@ def intervention(
     apply_style()
     facets = [None] if facet is None else (facet_order or list(dict.fromkeys(frame[facet])))
     height = height or (3.8 if facet is None else 2.6 * len(facets) + 0.8)
-    fig, axes = plt.subplots(
+    fig, axes = _subplots(
         len(facets), 1, figsize=(FIGURE_WIDTH, height), sharex=True, sharey=facet is not None
     )
     axes = np.atleast_1d(axes)
@@ -1498,14 +1662,14 @@ def intervention(
                 color=NEUTRAL,
                 linewidth=1.7,
                 linestyle=(0, (1, 1.4)),
-                label=alt_label,
+                label=_axis_text(alt_label),
             )
         axis.axvline(break_date, color=TEXT_PRIMARY, linewidth=0.9)
         for start, end, _ in shaded or []:
             axis.axvspan(start, end, color=GRID, alpha=0.8, linewidth=0)
         axis.set_ylim(bottom=0)
         _thousands(axis)
-        axis.set_ylabel(ylabel)
+        axis.set_ylabel(_axis_text(ylabel))
         if name is not None:
             _panel_title(axis, str(name), 1)
     # Period labels go in once every panel is drawn, so they hang from the final (shared) top,
@@ -1530,12 +1694,32 @@ def intervention(
         color=TEXT_PRIMARY,
         va="top",
     )
-    axes[-1].legend(
-        loc="upper left", bbox_to_anchor=(0, -0.12), ncol=3 if alternative is None else 2
-    )
+    _legend_below(axes[-1], -0.12, 3 if alternative is None else 2)
     _title(path, title)
-    fig.tight_layout()
+    _tight(fig)
     return save(fig, path)
+
+
+def _facet_row(n: int, height: float, narrow_height: float) -> tuple[plt.Figure, np.ndarray]:
+    """``n`` panels sharing both scales: side by side, ``height`` inches tall, or in a narrow
+    chart stacked, each ``narrow_height`` inches tall with the numbers of its own axes."""
+    if NARROW:
+        shape, size = (n, 1), (FIGURE_WIDTH, narrow_height * n + 0.3)
+    else:
+        shape, size = (1, n), (FIGURE_WIDTH, height)
+    fig, axes = plt.subplots(
+        *shape, figsize=size, sharey=True, sharex=True, constrained_layout=True
+    )
+    axes = np.atleast_1d(axes)
+    for axis in axes:
+        axis.tick_params(axis="x", labelbottom=True)
+    return fig, axes
+
+
+def _facet_ylabel(axes: np.ndarray, ylabel: str) -> None:
+    """The value axis label: once, on the first of panels side by side, or on each stacked one."""
+    for axis in axes if NARROW else axes[:1]:
+        axis.set_ylabel(_axis_text(ylabel))
 
 
 def trend_projection(
@@ -1560,15 +1744,7 @@ def trend_projection(
     """
     apply_style()
     facets = order or list(dict.fromkeys(frame[facet]))
-    fig, axes = plt.subplots(
-        1,
-        len(facets),
-        figsize=(FIGURE_WIDTH, 3.6),
-        sharey=True,
-        sharex=True,
-        constrained_layout=True,
-    )
-    axes = np.atleast_1d(axes)
+    fig, axes = _facet_row(len(facets), 3.6, 2.3)
     for axis, name in zip(axes, facets):
         panel = frame[frame[facet] == name].sort_values(x)
         fitted = panel[panel[x] <= last_fitted]
@@ -1594,12 +1770,12 @@ def trend_projection(
             label="Observed",
         )
         axis.axvline(last_fitted + 0.5, color=AXIS, linewidth=0.9, linestyle=":")
-        _panel_title(axis, str(name), len(facets))
+        _panel_title(axis, str(name), 1 if NARROW else len(facets))
         axis.set_ylim(bottom=0)
         _thousands(axis)
         _integer_x(axis, nbins=4)
         axis.tick_params(labelsize=NOTE_SIZE)
-    axes[0].set_ylabel(ylabel)
+    _facet_ylabel(axes, ylabel)
     axes[0].legend(loc="lower left", fontsize=NOTE_SIZE)
     _title(path, title)
     return save(fig, path)
@@ -1629,15 +1805,7 @@ def ratio_panels(
     """
     apply_style()
     facets = order or list(dict.fromkeys(frame[facet]))
-    fig, axes = plt.subplots(
-        1,
-        len(facets),
-        figsize=(FIGURE_WIDTH, 3.4),
-        sharey=True,
-        sharex=True,
-        constrained_layout=True,
-    )
-    axes = np.atleast_1d(axes)
+    fig, axes = _facet_row(len(facets), 3.4, 2.1)
     for axis, name in zip(axes, facets):
         panel = frame[frame[facet] == name].sort_values(x)
         after = panel[panel[x] > last_fitted]
@@ -1661,10 +1829,10 @@ def ratio_panels(
         )
         _reference_line(axis, 1.0)
         axis.axvline(last_fitted + 0.5, color=AXIS, linewidth=0.9, linestyle=":")
-        _panel_title(axis, str(name), len(facets))
+        _panel_title(axis, str(name), 1 if NARROW else len(facets))
         _integer_x(axis, nbins=4)
         axis.tick_params(labelsize=NOTE_SIZE)
-    axes[0].set_ylabel(ylabel)
+    _facet_ylabel(axes, ylabel)
     axes[0].legend(loc="lower left", fontsize=NOTE_SIZE)
     _title(path, title)
     return save(fig, path)
@@ -1691,7 +1859,7 @@ def line_panels(
     """
     apply_style()
     facets = order or list(dict.fromkeys(frame[facet]))
-    fig, axes = plt.subplots(
+    fig, axes = _subplots(
         len(facets), 1, figsize=(FIGURE_WIDTH, 2.9 * len(facets) + 0.3), sharex=True, sharey=True
     )
     axes = np.atleast_1d(axes)
@@ -1727,10 +1895,10 @@ def line_panels(
         _thousands(axis)
         _integer_x(axis)
         axis.set_title(str(name), fontsize=FONT_SIZE, loc="left")
-        axis.set_ylabel(ylabel)
+        axis.set_ylabel(_axis_text(ylabel))
         _end_labels(axis, entries)
     _title(path, title)
-    fig.tight_layout()
+    _tight(fig)
     return save(fig, path)
 
 
@@ -1762,7 +1930,7 @@ def month_lines(
     if len(names) > len(CATEGORICAL):
         raise ValueError("more series than fixed colours; fold to 'Other' or facet")
     looks = _line_look(names, focal, None)
-    fig, axis = plt.subplots(figsize=(FIGURE_WIDTH, 3.9))
+    fig, axis = _subplots(figsize=(FIGURE_WIDTH, 3.9))
     entries = []
     for name in names:
         group = frame[frame[series] == name].sort_values("month")
@@ -1791,11 +1959,11 @@ def month_lines(
     axis.set_xticks(range(1, 13), MONTH_TICKS)
     axis.set_xlim(0.6, 12.4)
     _title(path, title)
-    axis.set_ylabel(ylabel)
+    axis.set_ylabel(_axis_text(ylabel))
     if focal is not None:
         _end_labels(axis, entries, width=20)
     else:
-        axis.legend(loc="upper left", bbox_to_anchor=(0, -0.1), ncol=min(len(names), 2))
+        _legend_below(axis, -0.1, min(len(names), 2))
     return save(fig, path)
 
 
@@ -1821,8 +1989,10 @@ def segmented_small_multiples(
     apply_style()
     facets = order or list(dict.fromkeys(frame[facet]))
     names = series_order or list(dict.fromkeys(frame[series]))
+    if NARROW:
+        ncols = min(ncols, 2)
     nrows = int(np.ceil(len(facets) / ncols))
-    fig, axes = plt.subplots(nrows, ncols, figsize=(FIGURE_WIDTH, 2.4 * nrows + 0.7), sharex=True)
+    fig, axes = _subplots(nrows, ncols, figsize=(FIGURE_WIDTH, 2.4 * nrows + 0.7), sharex=True)
     axes = np.atleast_1d(axes).ravel()
     for index, facet_name in enumerate(facets):
         axis = axes[index]
@@ -1853,6 +2023,9 @@ def segmented_small_multiples(
             axes[index].tick_params(labelbottom=True)
     _title(path, title)
     handles, labels = axes[0].get_legend_handles_labels()
-    fig.legend(handles, labels, loc="lower left", bbox_to_anchor=(0.01, 0.0), ncol=len(names))
-    fig.tight_layout(rect=(0, 0.07, 1, 1))
+    if NARROW:
+        fig.legend(handles, labels, loc="outside lower left", ncol=len(names))
+    else:
+        fig.legend(handles, labels, loc="lower left", bbox_to_anchor=(0.01, 0.0), ncol=len(names))
+    _tight(fig, rect=(0, 0.07, 1, 1))
     return save(fig, path)

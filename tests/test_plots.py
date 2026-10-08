@@ -422,6 +422,19 @@ def test_build_all_writes_every_registered_figure(tmp_path: Path) -> None:
     assert {p.stem for p in tmp_path.glob("*.svg")} == expected
     for name in expected:
         _svg_ok(tmp_path / f"{name}.svg")
+    # Every figure is also drawn for a phone's column, no wider than the column allows, with
+    # every piece of text at the size of the tick labels or larger.
+    narrow = tmp_path / "narrow"
+    assert {p.stem for p in narrow.glob("*.svg")} == expected
+    for name in expected:
+        _svg_ok(narrow / f"{name}.svg")
+        width, smallest = _svg_width_and_smallest_text(narrow / f"{name}.svg")
+        assert width <= plots.NARROW_MAX_POINTS, name
+        assert smallest >= plots.TICK_SIZE, name
+        # Shown 334 px wide (a 390 px phone, inside the dark theme's chart box), the smallest
+        # text is 11 px or more.
+        assert smallest * 334 / width >= 11, name
+        assert width < figures.svg_width(tmp_path / f"{name}.svg"), name
     saved = json.loads((tmp_path / "captions.json").read_text(encoding="utf-8"))
     assert saved == captions
     # n is counted from the frame each figure draws and says what it counts.
@@ -441,9 +454,134 @@ def test_build_all_writes_every_registered_figure(tmp_path: Path) -> None:
 def test_build_all_removes_a_figure_that_is_no_longer_registered(tmp_path: Path) -> None:
     stale = tmp_path / "q9_report_day_hour.svg"
     stale.write_text("<svg></svg>", encoding="utf-8")
+    (tmp_path / "narrow").mkdir()
+    stale_narrow = tmp_path / "narrow" / "ml9_withdrawn.svg"
+    stale_narrow.write_text("<svg></svg>", encoding="utf-8")
     frames = {name: pd.read_csv(TABLES_DIR / f"{name}.csv") for name in summaries.SUMMARIES}
     figures.build_all(tmp_path, frames=frames)
-    assert not stale.exists()
+    assert not stale.exists() and not stale_narrow.exists()
+
+
+def _svg_width_and_smallest_text(path: Path) -> tuple[float, float]:
+    """A chart's width in points and the size of its smallest text, in the same units."""
+    import re
+
+    text = path.read_text(encoding="utf-8")
+    sizes = [float(size) for size in re.findall(r"font-size: ([\d.]+)px", text)]
+    return figures.svg_width(path), min(sizes)
+
+
+def _capture_axes(monkeypatch: pytest.MonkeyPatch) -> list[list]:
+    """The axes of every chart drawn from now on, captured as it is saved."""
+    drawn: list[list] = []
+    save = plots.save
+
+    def keep(fig, path):
+        drawn.append(list(fig.axes))
+        return save(fig, path)
+
+    monkeypatch.setattr(plots, "save", keep)
+    return drawn
+
+
+def test_narrow_sets_and_restores_the_drawing_width() -> None:
+    wide = (plots.FIGURE_WIDTH, plots.NOTE_SIZE, plots.NARROW)
+    with plots.narrow():
+        assert plots.FIGURE_WIDTH == plots.NARROW_WIDTH and plots.NARROW
+        # Notes are set at the tick size, the smallest text a phone shows.
+        assert plots.NOTE_SIZE == plots.TICK_SIZE
+    assert (plots.FIGURE_WIDTH, plots.NOTE_SIZE, plots.NARROW) == wide
+    with pytest.raises(RuntimeError), plots.narrow():
+        raise RuntimeError("a chart failed")
+    assert (plots.FIGURE_WIDTH, plots.NOTE_SIZE, plots.NARROW) == wide
+
+
+def test_narrow_labels_wrap_and_wide_ones_do_not() -> None:
+    label = "generic limit for the road (value not recorded)  (n=17,969)"
+    assert plots._fit(label) == label
+    assert plots._fit_name("CONDICION_NIVEL_CIRCULA") == "CONDICION_NIVEL_CIRCULA"
+    with plots.narrow():
+        lines = plots._fit(label).split("\n")
+        assert lines[-1] == "(n=17,969)" and lines[-2] == "(value not recorded)"
+        assert all(len(line) <= plots.NARROW_LABEL_CHARS for line in lines)
+        # Never broken at a hyphen; a short label is left alone.
+        assert plots._fit("75 and over (model-dependent)") == "75 and over\n(model-dependent)"
+        assert plots._fit("Per resident") == "Per resident"
+        assert plots._fit_name("CONDICION_NIVEL_CIRCULA") == "CONDICION_\nNIVEL_CIRCULA"
+        assert plots._fit_name("DIA_SEMANA") == "DIA_SEMANA"
+
+
+def test_narrow_charts_fit_a_phone_column(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    drawn = _capture_axes(monkeypatch)
+    rows = pd.DataFrame(
+        {
+            "name": [
+                "personal mobility vehicle rider  (n=528)",
+                "van or light truck passenger  (n=40)",
+                "car driver  (n=4,671)",
+            ],
+            "v": [0.02, 0.01, 0.001],
+            "lo": [0.01, 0.0, 0.0005],
+            "hi": [0.03, 0.09, 0.002],
+        }
+    )
+    panels = pd.concat([rows.assign(panel=p) for p in ("First", "Second", "Third")])
+    wide_out = plots.dot_interval_panels(
+        panels, "panel", "name", "v", "lo", "hi", tmp_path / "wide.svg", "Wide", xlabel="Share"
+    )
+    with plots.narrow():
+        dots = plots.dot_interval(
+            rows,
+            "name",
+            "v",
+            "lo",
+            "hi",
+            tmp_path / "dots.svg",
+            "Dots",
+            xlabel="Share of people in recorded crashes with a long axis label",
+            reference=0.016,
+            reference_label="all",
+            percent=True,
+        )
+        stacked = plots.dot_interval_panels(
+            panels, "panel", "name", "v", "lo", "hi", tmp_path / "panels.svg", "P", xlabel="Share"
+        )
+    for out in (dots, stacked):
+        _svg_ok(out)
+        width, smallest = _svg_width_and_smallest_text(out)
+        assert width <= plots.NARROW_MAX_POINTS and smallest >= plots.TICK_SIZE, out.name
+    assert figures.svg_width(wide_out) > 2 * plots.NARROW_MAX_POINTS
+    # The long labels wrap, their counts on a line of their own.
+    labels = [tick.get_text() for tick in drawn[1][0].get_yticklabels()]
+    assert "personal mobility\nvehicle rider\n(n=528)" in labels
+    # Side by side when wide, stacked when narrow, each stacked panel with its own numbers.
+    wide_axes, narrow_axes = drawn[0], drawn[2]
+    assert len({round(axis.get_position().y0, 3) for axis in wide_axes}) == 1
+    assert len({round(axis.get_position().x0, 3) for axis in narrow_axes}) == 1
+    assert len({round(axis.get_position().y0, 3) for axis in narrow_axes}) == 3
+    assert all(axis.xaxis.get_tick_params()["labelbottom"] for axis in narrow_axes)
+
+
+def test_narrow_bars_thin_crowded_year_labels(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    drawn = _capture_axes(monkeypatch)
+    years = pd.DataFrame(
+        {
+            "year": [y for y in range(2010, 2025) for _ in range(2)],
+            "group": ["a", "b"] * 15,
+            "v": [1, 2] * 15,
+        }
+    )
+    plots.bar_shares(years, "year", "group", "v", tmp_path / "wide.svg", "Bars")
+    with plots.narrow():
+        out = plots.bar_shares(years, "year", "group", "v", tmp_path / "narrow.svg", "Bars")
+    assert figures.svg_width(out) <= plots.NARROW_MAX_POINTS
+    wide = [label.get_text() for label in drawn[0][0].get_xticklabels()]
+    narrow = [label.get_text() for label in drawn[1][0].get_xticklabels()]
+    assert all(wide) and len(narrow) == len(wide)
+    # Every second year is named, so the names do not run into each other; every bar stays.
+    assert narrow[::2] == wide[::2] and not any(narrow[1::2])
 
 
 def test_ratio_panels_and_line_panels(tmp_path: Path) -> None:

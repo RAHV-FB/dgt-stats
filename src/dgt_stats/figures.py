@@ -20,7 +20,7 @@ import pandas as pd
 
 from dgt_stats import factors, plots, policy, summaries
 from dgt_stats.microdata import charts as microdata_charts
-from dgt_stats.paths import FIGURES_DIR, TABLES_DIR
+from dgt_stats.paths import FIGURES_DIR, NARROW_FIGURES_DIR, TABLES_DIR
 
 CAPTIONS_PATH = FIGURES_DIR / "captions.json"
 # The title the page prints above each figure; the SVGs carry none (``plots.TITLES``).
@@ -71,6 +71,10 @@ def build_all(
     """Write every figure as SVG and return ``{figure name: caption}``; also saves captions.json
     and titles.json, the title the page prints above each figure.
 
+    Every figure is drawn twice from the same data: for a desktop column, and into ``narrow/``
+    for a phone's (``plots.narrow``). The build fails if the two passes disagree on the figures,
+    their captions or their titles, or if a narrow figure comes out too wide for a phone.
+
     ``frames`` are the summaries by registry name; when omitted they are computed here.
     """
     frames = frames if frames is not None else {}
@@ -83,6 +87,50 @@ def build_all(
     figures_dir.mkdir(parents=True, exist_ok=True)
     captions: dict[str, str] = {}
     plots.TITLES.clear()
+    _draw_all(figures_dir, captions, summary)
+    titles = dict(plots.TITLES)
+    narrow_dir = figures_dir / NARROW_FIGURES_DIR.name
+    narrow_captions: dict[str, str] = {}
+    with plots.narrow():
+        _draw_all(narrow_dir, narrow_captions, summary)
+    if narrow_captions != captions or plots.TITLES != titles:
+        raise ValueError("the narrow figures differ from the wide ones")
+    widths = {name: svg_width(narrow_dir / f"{name}.svg") for name in captions}
+    too_wide = {name: width for name, width in widths.items() if width > plots.NARROW_MAX_POINTS}
+    if too_wide:
+        raise ValueError(f"narrow figures wider than a phone's column (points): {too_wide}")
+
+    target = figures_dir / CAPTIONS_PATH.name
+    target.write_text(json.dumps(captions, indent=2, ensure_ascii=False), encoding="utf-8")
+    missing = sorted(set(captions) - set(titles))
+    if missing:
+        raise ValueError(f"figures drawn without a title: {missing}")
+    (figures_dir / TITLES_PATH.name).write_text(
+        json.dumps({name: titles[name] for name in captions}, indent=2, ensure_ascii=False),
+        encoding="utf-8",
+    )
+    for directory in (figures_dir, narrow_dir):
+        for path in sorted(directory.glob("*.svg")):
+            if path.stem not in captions:
+                path.unlink()
+                log.info("removed stale figure %s", path.relative_to(figures_dir))
+    return captions
+
+
+_SVG_WIDTH = re.compile(r'<svg[^>]*?\swidth="([\d.]+)pt"')
+
+
+def svg_width(path: Path) -> float:
+    """A chart's width in points, from its SVG."""
+    match = _SVG_WIDTH.search(path.read_text(encoding="utf-8")[:2000])
+    if not match:
+        raise ValueError(f"no width in {path}")
+    return float(match.group(1))
+
+
+def _draw_all(figures_dir: Path, captions: dict[str, str], summary) -> None:
+    """Every figure, into ``figures_dir``, with its caption added to ``captions``."""
+    figures_dir.mkdir(parents=True, exist_ok=True)
     _trend_figures(figures_dir, captions, summary)
     _long_run_figures(figures_dir, captions, summary)
     _season_figures(figures_dir, captions, summary)
@@ -101,21 +149,6 @@ def build_all(
     # when the microdata tables are not built.
     microdata_charts.build(figures_dir, captions)
     _severity_calculator_figures(figures_dir, captions)
-
-    target = figures_dir / CAPTIONS_PATH.name
-    target.write_text(json.dumps(captions, indent=2, ensure_ascii=False), encoding="utf-8")
-    missing = sorted(set(captions) - set(plots.TITLES))
-    if missing:
-        raise ValueError(f"figures drawn without a title: {missing}")
-    titles = {name: plots.TITLES[name] for name in captions}
-    (figures_dir / TITLES_PATH.name).write_text(
-        json.dumps(titles, indent=2, ensure_ascii=False), encoding="utf-8"
-    )
-    stale = sorted(path.name for path in figures_dir.glob("*.svg") if path.stem not in captions)
-    for name in stale:
-        (figures_dir / name).unlink()
-        log.info("removed stale figure %s", name)
-    return captions
 
 
 # --------------------------------------------------------------------------- context
