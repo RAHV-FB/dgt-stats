@@ -190,7 +190,10 @@ validation, context or, for RACC and the routing, to build one split and one bou
   less than those aged 65–74 as in Madrid in 2018"). It is the one split that uses km measured by
   exact age without a bridge between two definitions of a licence holder.
 * Its 95% sampling interval crosses all 300 EMEF replicates with all 300 EDM2018 replicates and
-  is 1.63–2.64. The earlier 1.78–2.35 held the Madrid ratio fixed and was too narrow.
+  is 1.63–2.64 in the table. The earlier 1.78–2.35 held the Madrid ratio fixed and was too narrow.
+  The Monte Carlo errors of its ends are 0.019 and 0.033 (pigeonhole bootstrap; the batch figures
+  first reported, 0.006 and 0.010, ignored the replicates the blocks share), so the pages print
+  it to one decimal, 1.6–2.6.
 * A fourth split, an upper limit for men from RACC's driving days with women equal, gives 1.69.
 * The marking rule now uses men's implied km per licence holder (marks exactly the equal split,
   for any threshold in (0.68, 1]); the 65–74 ≥ 45–64 rule became a diagnostic.
@@ -209,10 +212,11 @@ as a probability or as weight of evidence; "403 of 405" and "most combinations" 
 
 **The guard.** The pages choose between three wordings from the tables. The lowest combination
 not at odds with men's driving is 1.21, above the 45–64 rate, but its 95% sampling interval is
-0.91–1.76, which reaches it. The intermediate wording is printed: among those combinations every
-one puts drivers aged 75 and over above the 45–64 rate, but at the lowest sampling error alone
-could bring them down to it, so a higher rate per kilometre is not established under every
-assumption, and how much higher is not established.
+0.9–1.8, which reaches it (Monte Carlo errors 0.017 and 0.040; the guard refuses to choose a
+wording when an end lies within three of them of 1). The intermediate wording is printed: among
+those combinations every one puts drivers aged 75 and over above the 45–64 rate, but at the lowest
+sampling error alone could bring them down to it, so these data cannot show that drivers aged 75
+and over are involved more often per kilometre whatever the assumption, nor by how much.
 
 **The critiques, accepted and rejected.**
 
@@ -224,7 +228,7 @@ assumption, and how much higher is not established.
   contrast), and a hollow diamond instead of a filled one, which could not be told from the dots
   on a phone.
 * Rejected: marking that the equal split's whole span lies in the hatched part; its rows span
-  0.98–1.98, and only the part below 1.21 is reached by marked rows alone.
+  0.97–1.98, and only the part below 1.21 is reached by marked rows alone.
 * Rejected: dating the RACC survey 2012; the fieldwork dates are not stated and the 2012–2013
   fieldwork belongs to another survey (RACE–Liberty), so "published in 2013" is used.
 * Rejected: showing no interval for the RACC and equal splits; all four rows show one, and the
@@ -237,6 +241,39 @@ assumption, and how much higher is not established.
 * Not added, documented: women at 0.5 in the RACC split (about 1.83), and the exploratory crossed
   envelopes (0.92–3.53; 0.78–3.59; an unmarked minimum of about 1.15), which stay off the site
   until the pipeline reproduces them.
+
+**The final audit (October 2026).** An independent audit of this section found the following,
+and each was corrected:
+
+* The Monte Carlo errors of the joint intervals were understated several times by a batch method
+  whose blocks share replicates. A pigeonhole bootstrap now estimates them (Madrid split at 75 and
+  over: 0.019 and 0.033), the pages print the ends to the precision these support (one decimal),
+  and no wording rests on an end within three of them of 1. The interval values did not change.
+* Figure 3 labelled the age mix of the unexplained km "Km outside working days", which reads as
+  including the weekends of a separate bar. Its bars are now named by the assumption they change,
+  its title says the bars show how the estimate changes, and its caption says the top bar spans
+  every combination tested, not every possible one.
+* The key 75+ sentence, "a higher rate per kilometre is not established under every assumption",
+  could be read as "established under none". It now reads "these data cannot show that drivers
+  aged 75 and over are involved more often per kilometre whatever the assumption, nor by how
+  much", and the drivers page's opening was shortened, with the detail moved to the 75+ section.
+* The Barcelona check blamed its inconclusiveness on wide intervals, although some exclude 1. It
+  now says the figures disagree and that the Madrid split's intervals include 1 under two of the
+  three ways of counting crossing trips.
+* The table of possible biases left out the women's implied km per licence holder under the
+  Madrid split (1.08), which points higher. It is now listed (exploratory: +1% to +17%).
+* The licence trend at 75 and over was labelled as B licences; it is the any-class series, and
+  the cohort update (1.88) is now computed in the pipeline.
+* The questionnaire filter and the sampling strata were cited from sources not in the
+  repository. The 2014–2016 and 2022–2023 questionnaires and the methodology report 2003–2018 are
+  now archived in `data/raw/emef/` with manifest rows.
+* Points 13, 14, 16 and 19 of the final report and two claim-ledger rows still gave the
+  first-published 75+ range as a finding; they are marked superseded.
+
+Not changed: text in the charts falls to about 10–11 px at some phone and tablet widths (360 px,
+and 641–767 px, where the wide chart is shown). That follows from the figure scales and the
+breakpoint shared by every chart on the site, not from these figures, and is left to a site-wide
+change.
 
 **What would materially improve it.** The EMEF's own aggregates for 65–74 and 75+ (or finer) with
 design-based errors, and the true age × routing table, from Institut Metròpoli or the ATM, would

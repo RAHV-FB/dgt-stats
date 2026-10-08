@@ -707,14 +707,24 @@ province of Barcelona's 65-and-over age mix from the EMEF's 65+ km per resident 
 Spain's, everything else as in the central estimate (Method A, DGT's 289.8 bn car km less taxis
 and ride-hailing, the central distance treatment). It never changes the 65-and-over total. Drivers
 aged 75 and over were involved **2.06 times** as often per km as drivers aged 45–64 (95% sampling
-interval **1.63–2.64**), and drivers aged 65–74 0.94 times (0.80–1.10) (`risk_older_split.csv`).
+interval **1.63–2.64** in the table, 1.6–2.6 to the precision its Monte Carlo error supports), and
+drivers aged 65–74 0.94 times (0.80–1.10, printed 0.8–1.1) (`risk_older_split.csv`).
 On the site it is "the Madrid-pattern estimate", always printed with its condition; "reference"
 there means the 45–64 group.
 
 **The interval.** The EMEF and the EDM are independent samples, so the interval crosses all 300
 EMEF Rao–Wu replicates with all 300 EDM household replicates (90,000 cells), each cell with its
-own gamma draws of the three counts. The Monte Carlo standard error of each endpoint, by 5 × 5
-batches of 60 replicates per survey, is 0.006 (lower) and 0.010 (upper). An exploratory
+own gamma draws of the three counts. The Monte Carlo standard error of each endpoint is 0.019
+(lower) and 0.033 (upper) (`mc_se_low`, `mc_se_high`). It comes from a pigeonhole bootstrap
+(Owen 2007, *Annals of Applied Statistics* 1:386–411), which resamples the EMEF replicates and
+the EDM replicates independently and so respects the crossed design. The batch estimate first
+published (0.006 and 0.010, from 5 × 5 blocks that share rows and columns) was several times too
+small: eight independent sets of 300 × 300 replicates gave endpoints of 1.62–1.65 and 2.57–2.70,
+standard deviations 0.012 and 0.039 (an independent check found 0.018 and 0.045). The second
+decimal of the ends is therefore not stable, and the pages print them to one decimal, 1.6–2.6;
+the same holds for every joint interval in `risk_older_split.csv` and `risk_older_extremes.csv`,
+whose ends the pages print to the decimals their standard errors support (`site.numbers.
+joint_interval`). The page wordings never rest on an end within three standard errors of 1. An exploratory
 decomposition, not reproduced by the pipeline, put the log half-widths at about 0.18 from the
 EDM, 0.14 from the EMEF and 0.03 from the counts. The earlier published interval, 1.78–2.35
 (kept as `ratio_low_split_fixed`, `ratio_high_split_fixed`), held the Madrid ratio at its point
@@ -751,10 +761,11 @@ ratio to each sex is mis-specified (it gives 2.19) and is not used.
 
 | Source of bias | Direction for the 75+ figure | Size | Status |
 |---|---|---|---|
-| Time and cohort: licence holding at 75+ has risen since 2018 (any class per resident, 2024 over 2018: men 1.08, women 1.68 in `risk_older_reference_checks.csv`; B licences men +7%, women +29% in the 2018 census tables) | down | about 1.9 if driving per holder were stable (exploratory) | documented |
+| Time and cohort: licence holding at 75+ has risen since 2018. Holders of any class per resident, Spain, 2024 over 2018 (DGT census tables 2018 and text file 2024, INE; `risk_older_reference_checks.csv`): at 75 and over, men 1.08, women 1.68; against 65–74, men 1.07, women 1.30. The 2018 tables give licences by age only for all classes together, so no B-licence trend is used | down | 1.88 if km per licence holder at each age stayed as in Madrid in 2018 (the Madrid ratios times the change against 65–74; computed, an extrapolation) | documented |
 | International gradients (Netherlands ODiN 0.50–0.58 per resident; England NTS 70+/60–69 0.56–0.58; Germany MiD 70–79/60–69 about 0.55) are gentler than Madrid's | down | context only | quoted, docs only |
 | EDM2004 to EDM2018: Madrid's own 75+/65–74 ratio rose from 0.20 (0.11–0.30) to 0.30 | down | direction only | exploratory (P3) |
 | EMEF 65+ sample composition: calibration is on sex × 65+ only, and the methodology report notes lower response at 75+ | up | at most about +11% (2.28) | a bound in the range |
+| Women's implied km per DGT licence holder, 75+ over 65–74, is 1.08 under the Madrid split, while RACC's non-driving shares for women (about 0.5 in days) and the EMEF 2016 licence question (0.32, 0.10–0.71) point lower per holder; the EDM like-for-like 0.99 (0.56–1.58) does not rule out 1 | up | 2.08, 2.30 or 2.40 with the women's ratio at 0.99, 0.5 or 0.32 and the men's as in Madrid: about +1%, +12% and +17% (exploratory) | documented |
 | Monday–Thursday window: in INE's EET 2009–10 the weekend 75+/65–74 car-time ratio (0.36) is below the weekday one (0.42) | if anything the working-day split overstates weekend driving at 75+, so up | small | exploratory (P3) |
 | Proxy or under-reported trips of the oldest respondents | unknown | unknown | documented |
 
@@ -856,7 +867,8 @@ split's share without the equal split from 6% (the earlier 315-cell table) to 32
 used to rank data priorities and are not on the site.
 
 **The ends** (`risk_older_extremes.csv`, joint 95% sampling intervals with the mixes' external
-weights, the coverage weights and the RACC constant held fixed, so too narrow if anything):
+weights, the coverage weights and the RACC constant held fixed, so too narrow if anything; their
+pigeonhole Monte Carlo errors are 0.006–0.055, so at most one decimal of each end is firm):
 
 * Minimum, 0.975: Barcelona city's profile, MOVILIA 2006's weekend mix for both the non-working
   days and the unexplained km, equal split; marked. Interval 0.74–1.42. The second row at or below
@@ -932,9 +944,15 @@ on the site.
 
 In the city, 120 of the 344 car drivers aged 65 and over with a recorded age were 75 or over.
 Splitting the city's 65+ km with the four splits gives 0.80–1.82 at 75 and over across the three
-denominators (`risk_barcelona_older.csv`). Each has a wide 95% sampling interval (EMEF city
-replicates, crossed with the EDM's for the Madrid splits, and gamma draws): for the Madrid split
-0.83–1.79, 1.22–2.29 and 1.00–1.99. The check neither confirms nor rules out a rate above 45–64.
+denominators (`risk_barcelona_older.csv`), below the 45–64 rate in some combinations and above
+it in others. The 95% sampling intervals (EMEF city replicates, crossed with the EDM's for the
+Madrid splits, and gamma draws; Monte Carlo errors 0.01–0.03, so the page prints one decimal)
+are wide, but not every one includes 1: for the Madrid split they are 0.83–1.79, 1.22–2.29 and
+1.00–1.99, and with crossing trips counted at an internal trip's
+length the licence and RACC splits' intervals (1.33–2.51, 1.07–1.78) exclude 1 too. The check
+neither confirms nor rules out a rate above 45–64 because the splits and the ways of counting
+crossing trips disagree, and the intervals include 1 under two of the three ways of counting,
+not because every interval is wide.
 
 ### Validation and context sources
 
@@ -1005,6 +1023,17 @@ In order of what they would resolve, with the holder and the route (details in
   ends of the range and the Barcelona intervals were added. The envelope (0.97–3.28) is unchanged
   and no row was dropped. The statements "403 of 405 combinations" and "each of these choices is
   credible, so the combination is credible too" were removed.
+* 2026-10-08, after the final audit: the Monte Carlo standard errors of the joint intervals are
+  re-estimated by a pigeonhole bootstrap (0.019 and 0.033 for the Madrid split at 75 and over,
+  against 0.006 and 0.010 by batches, which ignored the shared replicates); the interval values
+  are unchanged, and the pages print their ends to one decimal. The licence trend is the archived
+  any-class series (the "+7% and +29% in B licences" were the change against 65–74 of all classes,
+  mislabelled), and the cohort update, 1.88, is now computed in `reference_checks`. A row on
+  women's implied km per holder joins the table of possible biases. Figure 3's bars are labelled
+  by the assumption they change ("Age mix of the unexplained km" replaces "Km outside working
+  days", which read as including weekends). The Barcelona check's reason is corrected. The EMEF
+  questionnaires of 2014–2016 and 2022–2023 and the methodology report 2003–2018 are archived in
+  `data/raw/emef/`.
 
 ## The crash numerator
 
@@ -1204,15 +1233,16 @@ taken together would widen them.
 4. **Ages 75 and over** (conditional, beside the sensitivity range). If people aged 75 and over
    drive as much less than those aged 65–74 as in Madrid in 2018, with everything else central,
    drivers aged 75 and over were involved 2.06 times as often per km as drivers aged 45–64 (95%
-   sampling interval 1.63–2.64, which includes both surveys' sampling error) and drivers aged
-   65–74 0.94 times (0.80–1.10). Across four splits and every other choice the sensitivity range is
-   0.97–3.28 (65–74: 0.66–1.63); below about 1.2 it is reached only with equal km per licence
-   holder, at odds with Spanish surveys of men's driving. The lowest other combination, 1.21, has
-   a sampling interval of 0.91–1.76, so a higher rate per km at 75 and over is not established
-   under every assumption, and how much higher is not established. Involvement per licence holder
-   at 75 and over is 0.95 times the 45–64 rate. In Barcelona the four splits give 0.80–1.82, each
-   with a wide interval. The EMEF's own aggregates for 65–74 and 75 and over would replace the
-   Madrid transfer ([`EMEF_DATA_REQUEST.md`](EMEF_DATA_REQUEST.md)).
+   sampling interval 1.6–2.6, which includes both surveys' sampling error; its second decimal is
+   within Monte Carlo error) and drivers aged 65–74 0.94 times (0.8–1.1). Across four splits and
+   every other choice the sensitivity range is 0.97–3.28 (65–74: 0.66–1.63); below about 1.2 it is
+   reached only with equal km per licence holder, at odds with Spanish surveys of men's driving.
+   The lowest other combination, 1.21, has a sampling interval of 0.9–1.8, so these data cannot
+   show that drivers aged 75 and over are involved more often per km whatever the assumption, nor
+   by how much. Involvement per licence holder at 75 and over is 0.95 times the 45–64 rate. In
+   Barcelona the four splits give 0.80–1.82 and disagree with each other. The EMEF's own aggregates
+   for 65–74 and 75 and over would replace the Madrid transfer
+   ([`EMEF_DATA_REQUEST.md`](EMEF_DATA_REQUEST.md)).
 5. **Severity once involved** (counted). Car drivers aged 65 and over were killed in 11.4 of every
    1,000 involvements in 2024 (9.5–13.4), against 4.6 (4.0–5.4) at 45–64; drivers aged 75 and over
    in 15.9 (12.6–19.8). This needs no kilometres. Driver deaths per kilometre at 65 and over are

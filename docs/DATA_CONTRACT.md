@@ -141,7 +141,9 @@ hand from publications: not source data, see below).
   households (EDM2018).
 - **Forbidden**: attaching respondents to crashes or people; publishing an EMEF estimate that
   rests on fewer than 20 sample observations (the data holders' rule); splitting the EMEF's 65+
-  group, which no public file allows, except as a labelled model-dependent estimate.
+  group, which no public file allows, except under a stated assumption (the conditional estimate
+  beside its sensitivity range) or, for one bound and one validation, through the questionnaire's
+  P1b routing, as aggregates under the 20-observation rule (`emef/older_routing.py`).
 
 ### Traffic and fuel (`transportes/`, `cores/`) and surveys (`ine/` EHMA, ECEPOV; MOVILIA)
 
