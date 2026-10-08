@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import html
 import json
+import math
 import re
 from pathlib import Path
 
@@ -12,6 +13,7 @@ import pandas as pd
 from dgt_stats.paths import FIGURES_DIR, NARROW_FIGURES_DIR, TABLES_DIR
 from dgt_stats.risk_trends import BASE_YEAR
 from dgt_stats.site.script import CONTENT_SECURITY_POLICY, JS_FLAG
+from dgt_stats.site.style import FIGURE_SWITCH_REMS
 
 REPO_URL = "https://github.com/RAHV-FB/dgt-stats"
 
@@ -299,14 +301,34 @@ def mark_spanish(text: str) -> str:
 
 
 # Charts are shown at one fixed multiple of their own size, so that their text is the same size on
-# every chart, and never wider than the column. They shrink with the column down to a smaller
-# multiple that keeps their text near 11px, and below that scroll sideways inside the figure
-# rather than shrinking further. A phone (``NARROW_MEDIA``, the stylesheet's phone width) is
-# served instead the chart drawn for its column (``figures/narrow/``), at most at the same
-# multiple and otherwise the column's width, so that nothing scrolls sideways.
+# every chart, and never wider than the column. Each is drawn twice, wide and for a phone's column
+# (``figures/narrow/``). The wide drawing shrinks with the column, but only while its smallest
+# text stays at ``MIN_TEXT_PX`` or more; where the column is narrower than that, at any viewport,
+# zoom or layout, the figure shows the narrow drawing, whose text reaches that size in a 288 px
+# column. The switch is a container query on the figure, in whole rems (``FIGURE_SWITCH_REMS``,
+# the stylesheet's rules), so nothing scrolls sideways and no chart text falls below 11 px.
 FIGURE_SCALE = 1.45
 SMALL_SCALE = 1.2
-NARROW_MEDIA = "(max-width: 40rem)"
+MIN_TEXT_PX = 11.0
+# The dark theme's chart frame on wide screens takes this much of the column (both sides).
+FRAME_PX = 24
+_SVG_FONT = re.compile(r"font-size: ([\d.]+)px")
+
+
+def figure_switch_rem(name: str) -> int | None:
+    """The column width, in whole rems, below which the figure shows its narrow drawing: the
+    width at which the wide drawing's smallest text would fall below ``MIN_TEXT_PX`` (or the
+    drawing would stop shrinking), plus the dark frame. None when there is no narrow drawing."""
+    size = _svg_size(name)
+    if size is None or _svg_size(name, NARROW_FIGURES_DIR) is None:
+        return None
+    text = (FIGURES_DIR / f"{name}.svg").read_text(encoding="utf-8")
+    smallest = min(float(value) for value in _SVG_FONT.findall(text))
+    needed = size[0] * max(MIN_TEXT_PX / smallest, SMALL_SCALE) + FRAME_PX
+    rem = math.ceil(needed / 16)
+    if rem not in FIGURE_SWITCH_REMS:
+        raise ValueError(f"figure {name}: switch width {rem}rem outside the stylesheet's rules")
+    return rem
 
 
 def _split_source(caption: str) -> tuple[str, str]:
@@ -320,23 +342,27 @@ def _split_source(caption: str) -> tuple[str, str]:
 
 def figure(name: str, alt: str, captions: dict[str, str], title: str | None = None) -> str:
     """A figure in three parts: a title stating what is shown, the chart, and a caption giving
-    the denominator, period, interval and source. The chart links to its SVG at full size; a
-    phone loads the same chart drawn for its column, when there is one."""
+    the denominator, period, interval and source. The chart links to its SVG at full size; where
+    the column is too narrow for its text (``figure_switch_rem``), the figure shows the same
+    chart drawn for a phone's column instead. Only the drawing shown is loaded."""
     heading = title or read_titles().get(name, "")
     shown, source = _split_source(captions.get(name, ""))
     size = _svg_size(name)
     narrow = _svg_size(name, NARROW_FIGURES_DIR)
-    dims = source_tag = ""
+    switch = figure_switch_rem(name)
+    dims = narrow_img = figure_attrs = ""
     if size:
         width, height = size
         sizes = f"--w: {width * FIGURE_SCALE:.0f}px; --w-small: {width * SMALL_SCALE:.0f}px"
         if narrow:
             sizes += f"; --w-narrow: {narrow[0] * FIGURE_SCALE:.0f}px"
-        dims = f' width="{width:.0f}" height="{height:.0f}" style="{sizes}"'
-    if narrow:
-        source_tag = (
-            f'<source media="{NARROW_MEDIA}" srcset="figures/narrow/{name}.svg"'
-            f' width="{narrow[0]:.0f}" height="{narrow[1]:.0f}">'
+        dims = f' width="{width:.0f}" height="{height:.0f}"'
+        figure_attrs = f' style="{sizes}"'
+    if narrow and switch:
+        figure_attrs = f' class="figure-switch-{switch}"' + figure_attrs
+        narrow_img = (
+            f'<img class="figure-narrow" src="figures/narrow/{name}.svg" alt="{esc(alt)}"'
+            f' width="{narrow[0]:.0f}" height="{narrow[1]:.0f}" loading="lazy" decoding="async">'
         )
     title_html = (
         f'<p class="figure-title" id="figure-{name}">{mark_spanish(esc(heading))}</p>'
@@ -346,13 +372,13 @@ def figure(name: str, alt: str, captions: dict[str, str], title: str | None = No
     labelled = f' aria-labelledby="figure-{name}"' if heading else ""
     source_html = f'<p class="figure-source">{mark_spanish(esc(source))}</p>' if source else ""
     return (
-        f"<figure{labelled}>{title_html}"
+        f"<figure{figure_attrs}{labelled}>{title_html}"
         '<p class="figure-tools">Scroll sideways to see the whole chart, or '
         f'<a href="figures/{name}.svg">open it at full size</a>.</p>'
         f'<div class="figure-media" role="region" tabindex="0" aria-label="Chart: {esc(heading or alt)}">'
-        f'<a href="figures/{name}.svg"><picture>{source_tag}'
-        f'<img src="figures/{name}.svg" alt="{esc(alt)}"{dims}'
-        ' loading="lazy" decoding="async"></picture></a></div>'
+        f'<a href="figures/{name}.svg">'
+        f'<img class="figure-wide" src="figures/{name}.svg" alt="{esc(alt)}"{dims}'
+        f' loading="lazy" decoding="async">{narrow_img}</a></div>'
         f"<figcaption><p>{mark_spanish(esc(shown))}</p>{source_html}</figcaption></figure>"
     )
 

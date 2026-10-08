@@ -429,13 +429,17 @@ def test_every_page_loads_cleanly_on_a_phone(browser, server, slug: str, scheme:
 FIGURE_PAGES = sorted(
     path.stem
     for path in SITE.glob("*.html")
-    if '<img src="figures/' in path.read_text(encoding="utf-8")
+    if 'class="figure-wide" src="figures/' in path.read_text(encoding="utf-8")
 )
-# Every figure on the page, brought into view so that its lazy image loads, then measured.
+assert FIGURE_PAGES
+# Every figure on the page, brought into view so that the drawing it shows loads, then measured:
+# the drawing shown (wide or narrow), how many are shown, and every figure the page fetched.
 FIGURES = """async () => {
   const out = [];
   for (const figure of document.querySelectorAll('main figure')) {
-    const img = figure.querySelector('img');
+    const shown = [...figure.querySelectorAll('img')].filter(
+      (img) => getComputedStyle(img).display !== 'none');
+    const img = shown[0];
     const media = figure.querySelector('.figure-media');
     figure.scrollIntoView();
     if (!img.complete || !img.naturalWidth) {
@@ -449,7 +453,8 @@ FIGURES = """async () => {
     }
     const box = img.getBoundingClientRect();
     out.push({
-      name: img.getAttribute('src').replace('figures/', '').replace('.svg', ''),
+      name: img.getAttribute('src').replace(/^figures\/(narrow\/)?/, '').replace('.svg', ''),
+      shown: shown.length,
       source: img.currentSrc,
       loaded: img.complete && img.naturalWidth > 0,
       width: box.width,
@@ -459,7 +464,9 @@ FIGURES = """async () => {
       scrolls: media.scrollWidth - media.clientWidth,
     });
   }
-  return out;
+  const fetched = performance.getEntriesByType('resource').map((entry) => entry.name)
+    .filter((url) => url.includes('/figures/'));
+  return { figures: out, fetched };
 }"""
 
 
@@ -470,25 +477,56 @@ def _svg_text(path: Path) -> tuple[float, float]:
     return width, min(float(size) for size in re.findall(r"font-size: ([\d.]+)px", text))
 
 
-@pytest.mark.parametrize("scheme", ["light", "dark"])
-@pytest.mark.parametrize("slug", FIGURE_PAGES)
-def test_every_figure_fits_a_phone_column(browser, server, slug: str, scheme: str) -> None:
-    """At 390 px every figure loads the chart drawn for a phone's column, is no wider than its
-    column, does not scroll sideways, and shows its smallest text at 11 px or more."""
-    page = browser.new_page(viewport=PHONE, color_scheme=scheme)
+def _measure(browser, server, slug: str, size: dict, scheme: str = "light") -> list[dict]:
+    """The figures of a page at one size, with the check that each shows one drawing and that
+    the page fetched only the drawings it shows."""
+    page = browser.new_page(viewport=size, color_scheme=scheme)
     page.goto(f"{server}/{slug}.html", wait_until="networkidle")
-    figures = page.evaluate(FIGURES)
+    measured = page.evaluate(FIGURES)
     page.close()
+    figures = measured["figures"]
     assert figures, slug
     for figure in figures:
-        name = figure["name"]
-        assert figure["loaded"], (slug, scheme, name)
-        assert figure["source"].endswith(f"/figures/narrow/{name}.svg"), (slug, scheme, figure)
-        assert figure["width"] <= figure["column"] + 0.5, (slug, scheme, figure)
-        assert figure["right"] <= figure["columnRight"] + 0.5, (slug, scheme, figure)
-        assert figure["scrolls"] <= 1, (slug, scheme, figure)
-        width, smallest = _svg_text(SITE / "figures" / "narrow" / f"{name}.svg")
-        assert smallest * figure["width"] / width >= 11, (slug, scheme, name)
+        assert figure["shown"] == 1 and figure["loaded"], (slug, size, scheme, figure)
+    names = [re.sub(r"^.*/figures/(narrow/)?", "", url) for url in measured["fetched"]]
+    assert len(names) == len(set(names)), (slug, size, scheme, sorted(names))
+    return figures
+
+
+def _legible(figure: dict, slug: str, size: dict, scheme: str) -> None:
+    """No wider than its column, no sideways scrolling, and its smallest text at 11 px or more."""
+    name = figure["name"]
+    folder = SITE / "figures" / ("narrow" if "/figures/narrow/" in figure["source"] else "")
+    width, smallest = _svg_text(folder / f"{name}.svg")
+    assert figure["width"] <= figure["column"] + 0.5, (slug, size, scheme, figure)
+    assert figure["right"] <= figure["columnRight"] + 0.5, (slug, size, scheme, figure)
+    assert figure["scrolls"] <= 1, (slug, size, scheme, figure)
+    assert smallest * figure["width"] / width >= 11, (slug, size, scheme, name, figure["width"])
+
+
+@pytest.mark.parametrize("width", [320, 390])
+@pytest.mark.parametrize("scheme", ["light", "dark"])
+@pytest.mark.parametrize("slug", FIGURE_PAGES)
+def test_every_figure_fits_a_phone_column(browser, server, slug: str, scheme: str, width) -> None:
+    """On the narrowest phone served and a common one, every figure shows the chart drawn for a
+    phone's column, no wider than the column and without scrolling, its text at 11 px or more."""
+    size = {"width": width, "height": 844}
+    for figure in _measure(browser, server, slug, size, scheme):
+        assert figure["source"].endswith(f"/figures/narrow/{figure['name']}.svg"), figure
+        _legible(figure, slug, size, scheme)
+
+
+@pytest.mark.parametrize("scheme", ["light", "dark"])
+@pytest.mark.parametrize("slug", FIGURE_PAGES)
+def test_every_figure_is_legible_on_tablets_and_laptops(
+    browser, server, slug: str, scheme: str
+) -> None:
+    """Between a phone and a wide screen, each figure shows whichever drawing keeps its text at
+    11 px or more in the column it has (the wide one where it fits), and nothing scrolls."""
+    for width in (700, 820, 960, 1152):
+        size = {"width": width, "height": 900}
+        for figure in _measure(browser, server, slug, size, scheme):
+            _legible(figure, slug, size, scheme)
 
 
 @pytest.mark.parametrize("size", [{"width": 360, "height": 740}, {"width": 768, "height": 1024}])
@@ -498,10 +536,8 @@ def test_the_dark_frame_shrinks_no_figure(browser, server, slug: str, size: dict
     figure is as wide in dark as in light and scrolls sideways in dark only if it does in light."""
     shown = {}
     for scheme in ("light", "dark"):
-        page = browser.new_page(viewport=size, color_scheme=scheme)
-        page.goto(f"{server}/{slug}.html", wait_until="networkidle")
-        shown[scheme] = {figure["name"]: figure for figure in page.evaluate(FIGURES)}
-        page.close()
+        figures = _measure(browser, server, slug, size, scheme)
+        shown[scheme] = {figure["name"]: figure for figure in figures}
     assert shown["light"].keys() == shown["dark"].keys(), slug
     for name, light in shown["light"].items():
         dark = shown["dark"][name]
@@ -510,11 +546,7 @@ def test_the_dark_frame_shrinks_no_figure(browser, server, slug: str, size: dict
 
 
 def test_a_desktop_loads_the_full_figures(browser, server) -> None:
-    page = browser.new_page(viewport={"width": 1280, "height": 900})
-    page.goto(f"{server}/seasons.html", wait_until="networkidle")
-    figures = page.evaluate(FIGURES)
-    page.close()
-    assert figures
+    figures = _measure(browser, server, "seasons", {"width": 1280, "height": 900})
     for figure in figures:
         name = figure["name"]
         assert figure["source"].endswith(f"/figures/{name}.svg"), figure

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" standalone="no"?>
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
   "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
-<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="264.71952pt" height="525.61152pt" viewBox="0 0 264.71952 525.61152" xmlns="http://www.w3.org/2000/svg" version="1.1">
+<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="223.867416pt" height="627.18552pt" viewBox="0 0 223.867416 627.18552" xmlns="http://www.w3.org/2000/svg" version="1.1">
  <metadata>
   <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
    <cc:Work>
@@ -20,28 +20,28 @@
  </defs>
  <g id="figure_1">
   <g id="patch_1">
-   <path d="M 0 525.61152 
-L 264.71952 525.61152 
-L 264.71952 0 
+   <path d="M 0 627.18552 
+L 223.867416 627.18552 
+L 223.867416 0 
 L 0 0 
 z
 " style="fill: #ffffff"/>
   </g>
   <g id="axes_1">
    <g id="patch_2">
-    <path d="M 96.822969 490.85152 
-L 258.95952 490.85152 
-L 258.95952 5.76 
-L 96.822969 5.76 
+    <path d="M 78.623281 592.42552 
+L 215.75952 592.42552 
+L 215.75952 5.76 
+L 78.623281 5.76 
 z
 " style="fill: #ffffff"/>
    </g>
    <g id="matplotlib.axis_1">
     <g id="xtick_1">
      <g id="line2d_1">
-      <path d="M 96.822969 490.85152 
-L 96.822969 5.76 
-" clip-path="url(#p72a9729eaf)" style="fill: none; stroke: #ebebe8; stroke-width: 0.8; stroke-linecap: round"/>
+      <path d="M 78.623281 592.42552 
+L 78.623281 5.76 
+" clip-path="url(#pd80e15a561)" style="fill: none; stroke: #ebebe8; stroke-width: 0.8; stroke-linecap: round"/>
      </g>
      <g id="line2d_2">
       <defs>
@@ -50,298 +50,308 @@ L 0 3
 " style="stroke: #b5b5b0; stroke-width: 0.8"/>
       </defs>
       <g>
-       <use xlink:href="#md614d822b1" x="96.822969" y="490.85152" style="fill: #b5b5b0; stroke: #b5b5b0; stroke-width: 0.8"/>
+       <use xlink:href="#md614d822b1" x="78.623281" y="592.42552" style="fill: #b5b5b0; stroke: #b5b5b0; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_1">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: middle; fill: #555555" x="96.822969" y="504.20952" transform="rotate(-0 96.822969 504.20952)">0%</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: middle; fill: #555555" x="78.623281" y="605.78352" transform="rotate(-0 78.623281 605.78352)">0%</text>
      </g>
     </g>
     <g id="xtick_2">
      <g id="line2d_3">
-      <path d="M 132.067852 490.85152 
-L 132.067852 5.76 
-" clip-path="url(#p72a9729eaf)" style="fill: none; stroke: #ebebe8; stroke-width: 0.8; stroke-linecap: round"/>
+      <path d="M 108.433652 592.42552 
+L 108.433652 5.76 
+" clip-path="url(#pd80e15a561)" style="fill: none; stroke: #ebebe8; stroke-width: 0.8; stroke-linecap: round"/>
      </g>
      <g id="line2d_4">
       <g>
-       <use xlink:href="#md614d822b1" x="132.067852" y="490.85152" style="fill: #b5b5b0; stroke: #b5b5b0; stroke-width: 0.8"/>
+       <use xlink:href="#md614d822b1" x="108.433652" y="592.42552" style="fill: #b5b5b0; stroke: #b5b5b0; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_2">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: middle; fill: #555555" x="132.067852" y="504.20952" transform="rotate(-0 132.067852 504.20952)">2%</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: middle; fill: #555555" x="108.433652" y="605.78352" transform="rotate(-0 108.433652 605.78352)">2%</text>
      </g>
     </g>
     <g id="xtick_3">
      <g id="line2d_5">
-      <path d="M 167.312735 490.85152 
-L 167.312735 5.76 
-" clip-path="url(#p72a9729eaf)" style="fill: none; stroke: #ebebe8; stroke-width: 0.8; stroke-linecap: round"/>
+      <path d="M 138.244023 592.42552 
+L 138.244023 5.76 
+" clip-path="url(#pd80e15a561)" style="fill: none; stroke: #ebebe8; stroke-width: 0.8; stroke-linecap: round"/>
      </g>
      <g id="line2d_6">
       <g>
-       <use xlink:href="#md614d822b1" x="167.312735" y="490.85152" style="fill: #b5b5b0; stroke: #b5b5b0; stroke-width: 0.8"/>
+       <use xlink:href="#md614d822b1" x="138.244023" y="592.42552" style="fill: #b5b5b0; stroke: #b5b5b0; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_3">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: middle; fill: #555555" x="167.312735" y="504.20952" transform="rotate(-0 167.312735 504.20952)">4%</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: middle; fill: #555555" x="138.244023" y="605.78352" transform="rotate(-0 138.244023 605.78352)">4%</text>
      </g>
     </g>
     <g id="xtick_4">
      <g id="line2d_7">
-      <path d="M 202.557618 490.85152 
-L 202.557618 5.76 
-" clip-path="url(#p72a9729eaf)" style="fill: none; stroke: #ebebe8; stroke-width: 0.8; stroke-linecap: round"/>
+      <path d="M 168.054394 592.42552 
+L 168.054394 5.76 
+" clip-path="url(#pd80e15a561)" style="fill: none; stroke: #ebebe8; stroke-width: 0.8; stroke-linecap: round"/>
      </g>
      <g id="line2d_8">
       <g>
-       <use xlink:href="#md614d822b1" x="202.557618" y="490.85152" style="fill: #b5b5b0; stroke: #b5b5b0; stroke-width: 0.8"/>
+       <use xlink:href="#md614d822b1" x="168.054394" y="592.42552" style="fill: #b5b5b0; stroke: #b5b5b0; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_4">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: middle; fill: #555555" x="202.557618" y="504.20952" transform="rotate(-0 202.557618 504.20952)">6%</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: middle; fill: #555555" x="168.054394" y="605.78352" transform="rotate(-0 168.054394 605.78352)">6%</text>
      </g>
     </g>
     <g id="xtick_5">
      <g id="line2d_9">
-      <path d="M 237.802501 490.85152 
-L 237.802501 5.76 
-" clip-path="url(#p72a9729eaf)" style="fill: none; stroke: #ebebe8; stroke-width: 0.8; stroke-linecap: round"/>
+      <path d="M 197.864764 592.42552 
+L 197.864764 5.76 
+" clip-path="url(#pd80e15a561)" style="fill: none; stroke: #ebebe8; stroke-width: 0.8; stroke-linecap: round"/>
      </g>
      <g id="line2d_10">
       <g>
-       <use xlink:href="#md614d822b1" x="237.802501" y="490.85152" style="fill: #b5b5b0; stroke: #b5b5b0; stroke-width: 0.8"/>
+       <use xlink:href="#md614d822b1" x="197.864764" y="592.42552" style="fill: #b5b5b0; stroke: #b5b5b0; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_5">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: middle; fill: #555555" x="237.802501" y="504.20952" transform="rotate(-0 237.802501 504.20952)">8%</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: middle; fill: #555555" x="197.864764" y="605.78352" transform="rotate(-0 197.864764 605.78352)">8%</text>
      </g>
     </g>
     <g id="text_6">
-     <text style="font-size: 9.5px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: middle; fill: #555555" x="177.891244" y="517.59052" transform="rotate(-0 177.891244 517.59052)">Share of people in recorded crashes</text>
+     <text style="font-size: 9.5px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: middle; fill: #555555" x="147.191401" y="619.16452" transform="rotate(-0 147.191401 619.16452)">Share of people in recorded crashes</text>
     </g>
    </g>
    <g id="matplotlib.axis_2">
     <g id="ytick_1">
      <g id="line2d_11"/>
      <g id="text_7">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="93.322969" y="23.669344" transform="rotate(-0 93.322969 23.669344)">pedestrian  (n=1,032)</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #555555" transform="translate(35.206875 18.44789)">pedestrian</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #555555" transform="translate(37.261406 29.69789)">(n=1,032)</text>
      </g>
     </g>
     <g id="ytick_2">
      <g id="line2d_12"/>
      <g id="text_8">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #555555" transform="translate(46.45125 44.981756)">motorcyclist</text>
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #555555" transform="translate(55.461094 56.231756)">(n=4,040)</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #555555" transform="translate(28.251563 50.15954)">motorcyclist</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #555555" transform="translate(37.261406 61.40954)">(n=4,040)</text>
      </g>
     </g>
     <g id="ytick_3">
      <g id="line2d_13"/>
      <g id="text_9">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #555555" transform="translate(5.76 77.045375)">bus or coach passenger</text>
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #555555" transform="translate(62.121094 88.295375)">(n=677)</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #555555" transform="translate(27.296719 81.87245)">bus or coach</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #555555" transform="translate(37.501875 93.12245)">passenger</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #555555" transform="translate(43.921406 104.37245)">(n=677)</text>
      </g>
     </g>
     <g id="ytick_4">
      <g id="line2d_14"/>
      <g id="text_10">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="93.322969" y="108.482787" transform="rotate(-0 93.322969 108.482787)">other driver  (n=85)</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #555555" transform="translate(30.040313 124.83536)">other driver</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #555555" transform="translate(48.376406 136.08536)">(n=85)</text>
      </g>
     </g>
     <g id="ytick_5">
      <g id="line2d_15"/>
      <g id="text_11">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="93.322969" y="129.168992" transform="rotate(-0 93.322969 129.168992)">moped rider  (n=324)</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #555555" transform="translate(28.418906 156.54701)">moped rider</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #555555" transform="translate(43.921406 167.79701)">(n=324)</text>
      </g>
     </g>
     <g id="ytick_6">
      <g id="line2d_16"/>
      <g id="text_12">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #555555" transform="translate(26.694844 150.545111)">personal mobility</text>
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #555555" transform="translate(45.819844 161.795111)">vehicle rider</text>
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #555555" transform="translate(62.121094 173.045111)">(n=528)</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #555555" transform="translate(8.495156 188.25992)">personal mobility</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #555555" transform="translate(27.620156 199.50992)">vehicle rider</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #555555" transform="translate(43.921406 210.75992)">(n=528)</text>
      </g>
     </g>
     <g id="ytick_7">
      <g id="line2d_17"/>
      <g id="text_13">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="93.322969" y="193.296229" transform="rotate(-0 93.322969 193.296229)">taxi passenger  (n=65)</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #555555" transform="translate(21.355313 231.22283)">taxi passenger</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #555555" transform="translate(48.376406 242.47283)">(n=65)</text>
      </g>
     </g>
     <g id="ytick_8">
      <g id="line2d_18"/>
      <g id="text_14">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="93.322969" y="213.982435" transform="rotate(-0 93.322969 213.982435)">cyclist  (n=819)</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="75.123281" y="262.37072" transform="rotate(-0 75.123281 262.37072)">cyclist  (n=819)</text>
      </g>
     </g>
     <g id="ytick_9">
      <g id="line2d_19"/>
      <g id="text_15">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #555555" transform="translate(11.493281 235.294847)">motorcycle passenger</text>
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #555555" transform="translate(62.121094 246.544847)">(n=414)</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #555555" transform="translate(33.03 283.394869)">motorcycle</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #555555" transform="translate(37.501875 294.644869)">passenger</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #555555" transform="translate(43.921406 305.894869)">(n=414)</text>
      </g>
     </g>
     <g id="ytick_10">
      <g id="line2d_20"/>
      <g id="text_16">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #555555" transform="translate(23.959688 267.358466)">heavy truck driver</text>
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #555555" transform="translate(62.121094 278.608466)">(n=154)</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #555555" transform="translate(5.76 326.35778)">heavy truck driver</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #555555" transform="translate(43.921406 337.60778)">(n=154)</text>
      </g>
     </g>
     <g id="ytick_11">
      <g id="line2d_21"/>
      <g id="text_17">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="93.322969" y="298.795878" transform="rotate(-0 93.322969 298.795878)">car passenger  (n=694)</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #555555" transform="translate(23.633438 358.069429)">car passenger</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #555555" transform="translate(43.921406 369.319429)">(n=694)</text>
      </g>
     </g>
     <g id="ytick_12">
      <g id="line2d_22"/>
      <g id="text_18">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #555555" transform="translate(27.46125 320.171996)">van or light truck</text>
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #555555" transform="translate(70.606406 331.421996)">driver</text>
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #555555" transform="translate(55.461094 342.671996)">(n=1,061)</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #555555" transform="translate(31.653281 389.782339)">van or light</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #555555" transform="translate(30.015 401.032339)">truck driver</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #555555" transform="translate(37.261406 412.282339)">(n=1,061)</text>
      </g>
     </g>
     <g id="ytick_13">
      <g id="line2d_23"/>
      <g id="text_19">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="93.322969" y="362.923115" transform="rotate(-0 93.322969 362.923115)">car driver  (n=4,671)</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #555555" transform="translate(38.538281 432.74525)">car driver</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #555555" transform="translate(37.261406 443.99525)">(n=4,671)</text>
      </g>
     </g>
     <g id="ytick_14">
      <g id="line2d_24"/>
      <g id="text_20">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #555555" transform="translate(27.430312 384.235527)">moped passenger</text>
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #555555" transform="translate(66.576094 395.485527)">(n=56)</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #555555" transform="translate(9.230625 464.456899)">moped passenger</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #555555" transform="translate(48.376406 475.706899)">(n=56)</text>
      </g>
     </g>
     <g id="ytick_15">
      <g id="line2d_25"/>
      <g id="text_21">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #555555" transform="translate(20.664844 416.299145)">bus or coach driver</text>
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #555555" transform="translate(62.121094 427.549145)">(n=652)</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #555555" transform="translate(27.296719 496.169809)">bus or coach</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #555555" transform="translate(52.406719 507.419809)">driver</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #555555" transform="translate(43.921406 518.669809)">(n=652)</text>
      </g>
     </g>
     <g id="ytick_16">
      <g id="line2d_26"/>
      <g id="text_22">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="93.322969" y="447.736558" transform="rotate(-0 93.322969 447.736558)">taxi driver  (n=462)</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #555555" transform="translate(36.260156 539.13272)">taxi driver</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #555555" transform="translate(43.921406 550.38272)">(n=462)</text>
      </g>
     </g>
     <g id="ytick_17">
      <g id="line2d_27"/>
      <g id="text_23">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #555555" transform="translate(27.46125 469.112676)">van or light truck</text>
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #555555" transform="translate(55.701563 480.362676)">passenger</text>
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #555555" transform="translate(66.576094 491.612676)">(n=40)</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #555555" transform="translate(31.653281 570.84563)">van or light</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #555555" transform="translate(15.110156 582.09563)">truck passenger</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; fill: #555555" transform="translate(48.376406 593.34563)">(n=40)</text>
      </g>
     </g>
    </g>
    <g id="line2d_28">
-    <path d="M 125.734092 490.85152 
-L 125.734092 5.76 
+    <path d="M 103.076513 592.42552 
+L 103.076513 5.76 
 " style="fill: none; stroke-dasharray: 1.1,1.815; stroke-dashoffset: 0; stroke: #4f4f4f; stroke-width: 1.1"/>
    </g>
    <g id="LineCollection_1">
-    <path d="M 187.481091 20.240344 
-L 240.670377 20.240344 
+    <path d="M 155.30256 20.08139 
+L 200.290434 20.08139 
 " style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
-    <path d="M 145.4958 46.615256 
-L 164.871498 46.615256 
+    <path d="M 119.791105 51.79304 
+L 136.179207 51.79304 
 " style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
-    <path d="M 122.549443 78.678875 
-L 163.86649 78.678875 
+    <path d="M 100.382914 89.13095 
+L 135.329165 89.13095 
 " style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
-    <path d="M 108.235932 105.053787 
-L 240.954451 105.053787 
+    <path d="M 88.276446 126.46886 
+L 200.530706 126.46886 
 " style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
-    <path d="M 115.333405 125.739992 
-L 174.216326 125.739992 
+    <path d="M 94.279539 158.18051 
+L 144.083129 158.18051 
 " style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
-    <path d="M 117.391706 157.803611 
-L 161.879736 157.803611 
+    <path d="M 96.020465 195.51842 
+L 133.648754 195.51842 
 " style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
-    <path d="M 101.617806 189.867229 
-L 241.56454 189.867229 
+    <path d="M 82.678788 232.85633 
+L 201.046723 232.85633 
 " style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
-    <path d="M 110.067767 210.553435 
-L 138.921924 210.553435 
+    <path d="M 89.825825 258.94172 
+L 114.230875 258.94172 
 " style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
-    <path d="M 105.932626 236.928347 
-L 146.090205 236.928347 
+    <path d="M 86.328293 290.653369 
+L 120.293857 290.653369 
 " style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
-    <path d="M 98.844527 268.991966 
-L 160.020745 268.991966 
+    <path d="M 80.33313 327.99128 
+L 132.076406 327.99128 
 " style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
-    <path d="M 98.216278 295.366878 
-L 115.2319 295.366878 
+    <path d="M 79.801752 359.702929 
+L 94.193685 359.702929 
 " style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
-    <path d="M 97.11619 327.430496 
-L 106.197227 327.430496 
+    <path d="M 78.87129 397.040839 
+L 86.552095 397.040839 
 " style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
-    <path d="M 97.207924 359.494115 
-L 100.147936 359.494115 
+    <path d="M 78.948879 434.37875 
+L 81.435562 434.37875 
 " style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
-    <path d="M 96.822969 385.869027 
-L 209.952171 385.869027 
+    <path d="M 78.623281 466.090399 
+L 174.308758 466.090399 
 " style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
-    <path d="M 96.822969 417.932645 
-L 107.145332 417.932645 
+    <path d="M 78.623281 503.428309 
+L 87.354008 503.428309 
 " style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
-    <path d="M 96.822969 444.307558 
-L 111.355456 444.307558 
+    <path d="M 78.623281 540.76622 
+L 90.914962 540.76622 
 " style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
-    <path d="M 96.822969 476.371176 
-L 251.238732 476.371176 
+    <path d="M 78.623281 578.10413 
+L 209.229223 578.10413 
 " style="fill: none; stroke: #1a8eab; stroke-opacity: 0.8; stroke-width: 1.6"/>
    </g>
    <g id="patch_3">
-    <path d="M 96.822969 490.85152 
-L 258.95952 490.85152 
+    <path d="M 78.623281 592.42552 
+L 215.75952 592.42552 
 " style="fill: none; stroke: #b5b5b0; stroke-width: 0.8; stroke-linejoin: miter; stroke-linecap: square"/>
    </g>
    <g id="line2d_29">
     <defs>
-     <path id="m6d4e557dfc" d="M 0 3.25 
-C 0.86191 3.25 1.688635 2.907559 2.298097 2.298097 
-C 2.907559 1.688635 3.25 0.86191 3.25 0 
-C 3.25 -0.86191 2.907559 -1.688635 2.298097 -2.298097 
-C 1.688635 -2.907559 0.86191 -3.25 0 -3.25 
-C -0.86191 -3.25 -1.688635 -2.907559 -2.298097 -2.298097 
-C -2.907559 -1.688635 -3.25 -0.86191 -3.25 0 
-C -3.25 0.86191 -2.907559 1.688635 -2.298097 2.298097 
-C -1.688635 2.907559 -0.86191 3.25 0 3.25 
+     <path id="maea72046ca" d="M 0 2.6 
+C 0.689528 2.6 1.350908 2.326048 1.838478 1.838478 
+C 2.326048 1.350908 2.6 0.689528 2.6 0 
+C 2.6 -0.689528 2.326048 -1.350908 1.838478 -1.838478 
+C 1.350908 -2.326048 0.689528 -2.6 0 -2.6 
+C -0.689528 -2.6 -1.350908 -2.326048 -1.838478 -1.838478 
+C -2.326048 -1.350908 -2.6 -0.689528 -2.6 0 
+C -2.6 0.689528 -2.326048 1.350908 -1.838478 1.838478 
+C -1.350908 2.326048 -0.689528 2.6 0 2.6 
 z
 " style="stroke: #ffffff"/>
     </defs>
     <g>
-     <use xlink:href="#m6d4e557dfc" x="211.232265" y="20.240344" style="fill: #1a8eab; stroke: #ffffff"/>
-     <use xlink:href="#m6d4e557dfc" x="154.401301" y="46.615256" style="fill: #1a8eab; stroke: #ffffff"/>
-     <use xlink:href="#m6d4e557dfc" x="138.471318" y="78.678875" style="fill: #1a8eab; stroke: #ffffff"/>
-     <use xlink:href="#m6d4e557dfc" x="138.287516" y="105.053787" style="fill: #1a8eab; stroke: #ffffff"/>
-     <use xlink:href="#m6d4e557dfc" x="134.896078" y="125.739992" style="fill: #1a8eab; stroke: #ffffff"/>
-     <use xlink:href="#m6d4e557dfc" x="133.53633" y="157.803611" style="fill: #1a8eab; stroke: #ffffff"/>
-     <use xlink:href="#m6d4e557dfc" x="123.93439" y="189.867229" style="fill: #1a8eab; stroke: #ffffff"/>
-     <use xlink:href="#m6d4e557dfc" x="120.49167" y="210.553435" style="fill: #1a8eab; stroke: #ffffff"/>
-     <use xlink:href="#m6d4e557dfc" x="118.10612" y="236.928347" style="fill: #1a8eab; stroke: #ffffff"/>
-     <use xlink:href="#m6d4e557dfc" x="108.266119" y="268.991966" style="fill: #1a8eab; stroke: #ffffff"/>
-     <use xlink:href="#m6d4e557dfc" x="101.901474" y="295.366878" style="fill: #1a8eab; stroke: #ffffff"/>
-     <use xlink:href="#m6d4e557dfc" x="98.483896" y="327.430496" style="fill: #1a8eab; stroke: #ffffff"/>
-     <use xlink:href="#m6d4e557dfc" x="97.954789" y="359.494115" style="fill: #1a8eab; stroke: #ffffff"/>
-     <use xlink:href="#m6d4e557dfc" x="96.822969" y="385.869027" style="fill: #1a8eab; stroke: #ffffff"/>
-     <use xlink:href="#m6d4e557dfc" x="96.822969" y="417.932645" style="fill: #1a8eab; stroke: #ffffff"/>
-     <use xlink:href="#m6d4e557dfc" x="96.822969" y="444.307558" style="fill: #1a8eab; stroke: #ffffff"/>
-     <use xlink:href="#m6d4e557dfc" x="96.822969" y="476.371176" style="fill: #1a8eab; stroke: #ffffff"/>
+     <use xlink:href="#maea72046ca" x="175.391471" y="20.08139" style="fill: #1a8eab; stroke: #ffffff"/>
+     <use xlink:href="#maea72046ca" x="127.323441" y="51.79304" style="fill: #1a8eab; stroke: #ffffff"/>
+     <use xlink:href="#maea72046ca" x="113.849749" y="89.13095" style="fill: #1a8eab; stroke: #ffffff"/>
+     <use xlink:href="#maea72046ca" x="113.694288" y="126.46886" style="fill: #1a8eab; stroke: #ffffff"/>
+     <use xlink:href="#maea72046ca" x="110.825785" y="158.18051" style="fill: #1a8eab; stroke: #ffffff"/>
+     <use xlink:href="#maea72046ca" x="109.675701" y="195.51842" style="fill: #1a8eab; stroke: #ffffff"/>
+     <use xlink:href="#maea72046ca" x="101.554313" y="232.85633" style="fill: #1a8eab; stroke: #ffffff"/>
+     <use xlink:href="#maea72046ca" x="98.642436" y="258.94172" style="fill: #1a8eab; stroke: #ffffff"/>
+     <use xlink:href="#maea72046ca" x="96.624721" y="290.653369" style="fill: #1a8eab; stroke: #ffffff"/>
+     <use xlink:href="#maea72046ca" x="88.301978" y="327.99128" style="fill: #1a8eab; stroke: #ffffff"/>
+     <use xlink:href="#maea72046ca" x="82.918717" y="359.702929" style="fill: #1a8eab; stroke: #ffffff"/>
+     <use xlink:href="#maea72046ca" x="80.028105" y="397.040839" style="fill: #1a8eab; stroke: #ffffff"/>
+     <use xlink:href="#maea72046ca" x="79.580583" y="434.37875" style="fill: #1a8eab; stroke: #ffffff"/>
+     <use xlink:href="#maea72046ca" x="78.623281" y="466.090399" style="fill: #1a8eab; stroke: #ffffff"/>
+     <use xlink:href="#maea72046ca" x="78.623281" y="503.428309" style="fill: #1a8eab; stroke: #ffffff"/>
+     <use xlink:href="#maea72046ca" x="78.623281" y="540.76622" style="fill: #1a8eab; stroke: #ffffff"/>
+     <use xlink:href="#maea72046ca" x="78.623281" y="578.10413" style="fill: #1a8eab; stroke: #ffffff"/>
     </g>
    </g>
    <g id="text_24">
-    <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: start; fill: #555555" x="129.734092" y="13.289551" transform="rotate(-0 129.734092 13.289551)">all</text>
+    <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: start; fill: #555555" x="107.076513" y="13.232782" transform="rotate(-0 107.076513 13.232782)">all</text>
    </g>
   </g>
  </g>
  <defs>
-  <clipPath id="p72a9729eaf">
-   <rect x="96.822969" y="5.76" width="162.136551" height="485.09152"/>
+  <clipPath id="pd80e15a561">
+   <rect x="78.623281" y="5.76" width="137.136239" height="586.66552"/>
   </clipPath>
  </defs>
 </svg>

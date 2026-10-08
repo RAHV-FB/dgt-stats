@@ -235,7 +235,9 @@ def test_figures_are_copied_and_captioned(built: Path) -> None:
     shown = {
         name
         for page in built.glob("*.html")
-        for name in re.findall(r'<img src="figures/([^"/]+)\.svg"', page.read_text("utf-8"))
+        for name in re.findall(
+            r'<img class="figure-wide" src="figures/([^"/]+)\.svg"', page.read_text("utf-8")
+        )
     }
     published = {p.stem for p in (built / "figures").glob("*.svg")}
     assert published == shown and len(shown) > 25
@@ -545,7 +547,9 @@ def test_drivers_page_separates_the_two_questions(built: Path) -> None:
     )
     # Figure 2's text names every age group's rate.
     severity_rows = pd.read_csv(TABLES_DIR / "risk_severity_and_licences.csv").set_index("group")
-    alt = re.search(r'<img src="figures/dr2_killed_per_involved.svg" alt="([^"]*)"', body).group(1)
+    alt = re.search(
+        r'<img class="figure-wide" src="figures/dr2_killed_per_involved.svg" alt="([^"]*)"', body
+    ).group(1)
     for group, label in (("18-29", "18–29"), ("30-44", "30–44"), ("45-64", "45–64")):
         assert f"{severity_rows.loc[group, 'killed_per_1000_involved']:.1f} at {label}" in alt
     # Table 5 explains its two puzzling rows; the licence split counts licence holders one way.
@@ -562,8 +566,8 @@ def test_drivers_page_separates_the_two_questions(built: Path) -> None:
     )
     assert f"(Figure {order['dr2_killed_per_involved']})" in section
     assert "[[figure:" not in body
-    assert 'srcset="figures/narrow/dr1_involved_per_km.svg"' in body
-    assert 'srcset="figures/narrow/dr3_older_range_sources.svg"' in body
+    assert 'class="figure-narrow" src="figures/narrow/dr1_involved_per_km.svg"' in body
+    assert 'class="figure-narrow" src="figures/narrow/dr3_older_range_sources.svg"' in body
     # Barcelona's check carries sampling intervals and its count.
     city_older = pd.read_csv(TABLES_DIR / "risk_barcelona_older.csv")
     city_madrid = city_older[
