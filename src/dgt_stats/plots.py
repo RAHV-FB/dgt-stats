@@ -165,17 +165,6 @@ def _fit(text: object, width: int = NARROW_LABEL_CHARS) -> str:
     return textwrap.fill(text, width=width, break_long_words=False, break_on_hyphens=False)
 
 
-def _fit_name(text: object, width: int = 15) -> str:
-    """A field name such as ``CONDICION_NIVEL_CIRCULA`` in a narrow chart: broken after the
-    underscore nearest its middle when it is longer than ``width``. Unchanged in a wide chart."""
-    text = str(text)
-    if not NARROW or len(text) <= width or "_" not in text[1:-1]:
-        return text
-    cuts = [i + 1 for i, char in enumerate(text[:-1]) if char == "_" and i > 0]
-    cut = min(cuts, key=lambda i: abs(i - len(text) / 2))
-    return f"{text[:cut]}\n{text[cut:]}"
-
-
 def _axis_text(text: str) -> str:
     """An axis label or legend entry, wrapped to a narrow chart's width."""
     return _fit(text, 2 * NARROW_LABEL_CHARS) if text else text
@@ -587,19 +576,25 @@ def bar_shares(
     order: list[str] | None = None,
     height: float = 4.6,
     colors: list[str] | None = None,
+    hidden: tuple[str, ...] = (),
 ) -> Path:
-    """Stacked 100 % bars, one colour per series in fixed order, thin surface gaps between them."""
+    """Stacked 100 % bars, one colour per series in fixed order, thin surface gaps between them.
+
+    ``hidden`` names series too small to see: they count in each bar's total, so the drawn
+    shares are shares of everything, but they are neither drawn nor given a legend entry.
+    """
     apply_style()
     wide = frame.pivot_table(index=x, columns=series, values=value, aggfunc="sum").fillna(0)
     if order:
-        unknown = sorted(set(map(str, wide.columns)) - set(order))
+        unknown = sorted(set(map(str, wide.columns)) - set(order) - set(hidden))
         if unknown:
             raise ValueError(f"series not in order: {unknown}")
-        wide = wide.reindex(columns=[c for c in order if c in wide.columns])
-    palette = list(colors) if colors else list(CATEGORICAL)
-    if wide.shape[1] > len(palette):
-        raise ValueError("more series than fixed colours; fold to 'Other'")
+        wide = wide.reindex(columns=[c for c in [*order, *hidden] if c in wide.columns])
     shares = wide.div(wide.sum(axis=1), axis=0)
+    shares = shares.drop(columns=[c for c in hidden if c in shares.columns])
+    palette = list(colors) if colors else list(CATEGORICAL)
+    if shares.shape[1] > len(palette):
+        raise ValueError("more series than fixed colours; fold to 'Other'")
     fig, axis = _subplots(figsize=(FIGURE_WIDTH, height))
     bottom = np.zeros(len(shares))
     positions = np.arange(len(shares))
@@ -638,18 +633,34 @@ def heatmap(
     height: float | None = None,
     xlabel: str = "",
     ylabel: str = "",
+    bins: tuple[float, ...] | None = None,
 ) -> Path:
-    """Sequential one-hue heatmap of a rows × columns matrix; cells annotated when there are few."""
+    """Sequential one-hue heatmap of a rows × columns matrix; cells annotated when there are few.
+
+    ``bins`` (ascending edges, at most six bands) draws a binned scale instead of a continuous
+    one: one shade of the ramp a band, darkest at the top, with every edge labelled on the
+    colour bar. Cells are parted by thin lines of the background, and an empty cell is left
+    blank.
+    """
     apply_style()
     rows, cols = matrix.shape
-    row_labels = [_fit_name(r) for r in matrix.index]
+    row_labels = [_fit(r) for r in matrix.index]
     height = height or max(2.5, 0.28 * rows + 1.6)
     if NARROW:
         # Room for the wrapped row labels and for the colour scale under the cells.
         height = max(height, (0.08 + 0.13 * _lines(row_labels)) * rows + 2.0)
     fig, axis = _subplots(figsize=(FIGURE_WIDTH, height))
     values = matrix.to_numpy(dtype=float)
-    image = axis.imshow(values, cmap=SEQUENTIAL_CMAP, aspect="auto")
+    if bins is not None:
+        if len(bins) - 1 > len(SEQUENTIAL) or list(bins) != sorted(bins):
+            raise ValueError("heatmap bins: ascending edges of at most six bands")
+        cmap = matplotlib.colors.ListedColormap(SEQUENTIAL[len(SEQUENTIAL) - len(bins) + 1 :])
+        norm = matplotlib.colors.BoundaryNorm(bins, cmap.N)
+    else:
+        cmap, norm = SEQUENTIAL_CMAP, None
+    image = axis.imshow(
+        values, cmap=cmap.with_extremes(bad=SURFACE), norm=norm, aspect="auto", interpolation="none"
+    )
     axis.grid(False)
     axis.set_xticks(
         range(cols),
@@ -658,7 +669,11 @@ def heatmap(
         rotation=90 if NARROW and cols > 6 else 0,
     )
     axis.set_yticks(range(rows), row_labels, fontsize=NOTE_SIZE)
-    axis.tick_params(length=0)
+    # Thin background lines between the cells, so a row can be followed across the columns.
+    axis.set_xticks(np.arange(cols + 1) - 0.5, minor=True)
+    axis.set_yticks(np.arange(rows + 1) - 0.5, minor=True)
+    axis.grid(True, which="minor", axis="both", color=SURFACE, linewidth=1.0)
+    axis.tick_params(which="both", length=0)
     for spine in axis.spines.values():
         spine.set_visible(False)
     if annotate is None:
@@ -690,6 +705,9 @@ def heatmap(
         bar = fig.colorbar(image, ax=axis, fraction=0.03, pad=0.02)
     bar.outline.set_visible(False)
     bar.ax.tick_params(length=0)
+    if bins is not None:
+        # Every band's edges, the lowest included, so each colour reads as a range.
+        bar.set_ticks(list(bins))
     if percent:
         # One decimal on every tick as soon as one tick is not a whole percentage, otherwise a
         # bar with ticks every half point would print the same label three times.
@@ -819,7 +837,9 @@ def dot_interval(
     row the others are compared with, drawn hollow and grey and labelled as the reference.
     ``style`` names a column giving each row's kind (a key of ``DOT_STYLES``), and ``group`` a
     column whose values head blocks of rows (implies ``keep_order``). ``xlim`` fixes the value
-    axis; a row whose value lies beyond its right end is written out at that end instead.
+    axis; a row whose value lies beyond its right end is written out at that end instead. A row
+    with no value is a note: its label is written with nothing drawn beside it, so that a gap in
+    a sequence (years left out, say) shows on the axis.
     """
     apply_style()
     if keep_order or group is not None:
@@ -852,9 +872,12 @@ def dot_interval(
     top = positions[0]
     height = max(2.4, 0.27 * (top + 1) + 1.0)
     fig, axis = _subplots(figsize=(FIGURE_WIDTH, height))
+    notes = {i for i in ordered.index if pd.isna(ordered.loc[i, value])}
     for kind in DOT_STYLES:
         picked = [
-            (pos, i) for pos, (_, i) in zip(positions, rows) if i is not None and kinds[i] == kind
+            (pos, i)
+            for pos, (_, i) in zip(positions, rows)
+            if i is not None and i not in notes and kinds[i] == kind
         ]
         if not picked:
             continue
@@ -892,7 +915,7 @@ def dot_interval(
     if xlim is not None:
         axis.set_xlim(*xlim)
         for pos, (_, i) in zip(positions, rows):
-            if i is None or float(ordered.loc[i, value]) <= xlim[1]:
+            if i is None or i in notes or float(ordered.loc[i, value]) <= xlim[1]:
                 continue
             shown = (
                 _percent_text(float(ordered.loc[i, value]), 1)
@@ -1054,7 +1077,7 @@ def estimate_and_range(
     interval where ``value`` is given, and a sensitivity range (``range_low`` to ``range_high``)
     drawn as a broad light band behind it. A row with a range but no estimate, such as a
     model-dependent figure, shows the band alone. ``reference_row`` marks the row every other is
-    compared with; it carries no mark.
+    compared with; it carries a hollow grey marker at ``reference``, as in the other charts.
 
     The band and the whisker answer different questions, so they never share a look: the whisker
     is sampling error, the band is how far the estimate moves under other analytic choices.
@@ -1073,6 +1096,7 @@ def estimate_and_range(
     fig, axis = _subplots(figsize=(FIGURE_WIDTH, height))
     for position, (_, row) in zip(positions, ordered.iterrows()):
         if bool(row.get("reference_row", False)):
+            _dots(axis, [reference], [position], [reference], [reference], "reference")
             continue
         if pd.notna(row.get("range_low")) and pd.notna(row.get("range_high")):
             axis.hlines(
@@ -1401,17 +1425,23 @@ def calibration_comparison(
     return save(fig, path)
 
 
-def missingness_heatmap(profile: pd.DataFrame, path: Path, title: str) -> Path:
-    """Year × column share of observed (non-missing) values."""
-    matrix = profile.pivot(index="column", columns="year", values="share_observed")
+# The bands of the missing-values chart: most fields are recorded in nearly every crash, so the
+# top bands are narrow and the bottom ones wide.
+RECORDED_BINS = (0.0, 0.2, 0.5, 0.8, 0.95, 1.0)
+
+
+def missingness_heatmap(matrix: pd.DataFrame, path: Path, title: str) -> Path:
+    """Field × year share of crashes with a value recorded, one row per field in the matrix's
+    order (first at the top), on a binned scale."""
     return heatmap(
         matrix,
         path,
         title,
         percent=True,
         annotate=False,
-        height=max(4.0, 0.22 * len(matrix) + 1.5),
+        height=max(4.0, 0.24 * len(matrix) + 1.5),
         xlabel="Year",
+        bins=RECORDED_BINS,
     )
 
 
@@ -1600,6 +1630,14 @@ def slope(
     return save(fig, path)
 
 
+# The legend names of the lines of an interrupted-series chart, unless the caller names them.
+INTERVENTION_NAMES = {
+    "observed": "Observed",
+    "fitted": "Fitted",
+    "counterfactual": "Counterfactual (no change)",
+}
+
+
 def intervention(
     frame: pd.DataFrame,
     x: str,
@@ -1616,6 +1654,9 @@ def intervention(
     ylabel: str = "",
     height: float | None = None,
     alternative: tuple[str, str] | None = None,
+    names: dict[str, str] | None = None,
+    zero_based: bool = True,
+    zoom_from: pd.Timestamp | None = None,
 ) -> Path:
     """Observed monthly counts, the fitted line and the dashed counterfactual around a break.
 
@@ -1623,36 +1664,64 @@ def intervention(
     groups a difference-in-differences design compares sit on one vertical scale. ``shaded``
     marks periods (for example a confounding change or the pandemic) with a labelled grey band.
     ``alternative`` is ``(column, label)`` for a second counterfactual drawn dotted beside the
-    first, which is how two trend specifications are compared on one picture.
+    first, which is how two trend specifications are compared on one picture. ``names`` gives
+    the legend names of the observed, fitted and counterfactual lines (``INTERVENTION_NAMES``).
+
+    ``zero_based`` False starts the value axis near the lowest value, so the lines fill the
+    panel. ``zoom_from`` (one panel only) adds a second panel under the first that enlarges the
+    months from that date to the end, where the observed counts are read against the
+    counterfactuals; the first panel shades those months.
     """
     apply_style()
+    if zoom_from is not None and facet is not None:
+        raise ValueError("intervention: a zoom panel goes with one panel only")
+    names = {**INTERVENTION_NAMES, **(names or {})}
     facets = [None] if facet is None else (facet_order or list(dict.fromkeys(frame[facet])))
-    height = height or (3.8 if facet is None else 2.6 * len(facets) + 0.8)
-    fig, axes = _subplots(
-        len(facets), 1, figsize=(FIGURE_WIDTH, height), sharex=True, sharey=facet is not None
-    )
+    frame = frame.sort_values(x)
+    if zoom_from is not None:
+        height = height or (5.6 if NARROW else 6.2)
+        fig, axes = _subplots(
+            2, 1, figsize=(FIGURE_WIDTH, height), gridspec_kw={"height_ratios": (1, 1.45)}
+        )
+        panels = [frame, frame[frame[x] >= zoom_from]]
+    else:
+        height = height or (3.8 if facet is None else 2.6 * len(facets) + 0.8)
+        fig, axes = _subplots(
+            len(facets), 1, figsize=(FIGURE_WIDTH, height), sharex=True, sharey=facet is not None
+        )
+        panels = [frame if name is None else frame[frame[facet] == name] for name in facets]
     axes = np.atleast_1d(axes)
-    for axis, name in zip(axes, facets):
-        panel = frame if name is None else frame[frame[facet] == name]
-        panel = panel.sort_values(x)
+    for index, (axis, panel) in enumerate(zip(axes, panels)):
+        enlarged = zoom_from is not None and index == 1
+        post = panel[panel[x] >= break_date]
+        # Observed counts are drawn on top; with a zoom panel the fitted line is thinner than
+        # the counterfactuals, so the comparison the chart is for is not hidden under it.
         axis.plot(
             panel[x],
             panel[observed],
             color=NEUTRAL,
             linewidth=0.9,
             marker="o",
-            markersize=2.6,
-            label="Observed",
+            markersize=3.6 if enlarged else 2.6,
+            label=_axis_text(names["observed"]),
+            zorder=4,
         )
-        axis.plot(panel[x], panel[fitted], color=ACCENT, linewidth=2, label="Fitted")
-        post = panel[panel[x] >= break_date]
+        axis.plot(
+            panel[x],
+            panel[fitted],
+            color=ACCENT,
+            linewidth=1.4 if zoom_from is not None else 2,
+            label=_axis_text(names["fitted"]),
+            zorder=2,
+        )
         axis.plot(
             post[x],
             post[counterfactual],
             color=TEXT_PRIMARY,
             linewidth=1.7,
             linestyle=(0, (5, 2)),
-            label="Counterfactual (no change)",
+            label=_axis_text(names["counterfactual"]),
+            zorder=3,
         )
         if alternative is not None:
             column, alt_label = alternative
@@ -1663,37 +1732,55 @@ def intervention(
                 linewidth=1.7,
                 linestyle=(0, (1, 1.4)),
                 label=_axis_text(alt_label),
+                zorder=3,
             )
         axis.axvline(break_date, color=TEXT_PRIMARY, linewidth=0.9)
         for start, end, _ in shaded or []:
             axis.axvspan(start, end, color=GRID, alpha=0.8, linewidth=0)
-        axis.set_ylim(bottom=0)
+        if zero_based:
+            axis.set_ylim(bottom=0)
         _thousands(axis)
         axis.set_ylabel(_axis_text(ylabel))
-        if name is not None:
-            _panel_title(axis, str(name), 1)
-    # Period labels go in once every panel is drawn, so they hang from the final (shared) top,
-    # one step below the break label so the two never run into each other.
+        if facets[0] is not None:
+            _panel_title(axis, str(facets[index]), 1)
+    if zoom_from is not None:
+        first, last = frame[x].min(), frame[x].max()
+        overview, zoom = axes
+        _panel_title(overview, f"{first:%B %Y} to {last:%B %Y}", 1)
+        _panel_title(zoom, f"{zoom_from:%B %Y} to {last:%B %Y}, enlarged", 1)
+        # The enlarged months are shaded in the first panel; the second panel's title names them.
+        overview.axvspan(zoom_from, last, color=GRID, alpha=0.8, linewidth=0, zorder=0)
+        pad = pd.Timedelta(days=12)
+        zoom.set_xlim(zoom_from - pad, last + pad)
+        for axis in axes:
+            axis.xaxis.set_major_locator(matplotlib.dates.YearLocator())
+            axis.xaxis.set_major_formatter(matplotlib.dates.DateFormatter("%Y"))
+        zoom.xaxis.set_minor_locator(matplotlib.dates.MonthLocator())
+        zoom.tick_params(axis="x", which="minor", length=2, color=AXIS)
+    # Period labels go in once every panel is drawn, one step below the break label so the two
+    # never run into each other; both hang from the top of their panel.
     for axis in axes:
-        top = axis.get_ylim()[1]
         for index, (start, _, label) in enumerate(shaded or []):
             axis.text(
                 start,
-                top * (0.86 - 0.12 * index),  # stagger neighbouring labels
+                0.86 - 0.12 * index,  # stagger neighbouring labels
                 f" {label}",
+                transform=axis.get_xaxis_transform(),
                 fontsize=NOTE_SIZE,
                 color=TEXT_SECONDARY,
                 va="top",
             )
-    axes[0].annotate(
-        break_label,
-        (break_date, axes[0].get_ylim()[1] * 0.98),
-        xytext=(4, 0),
-        textcoords="offset points",
-        fontsize=NOTE_SIZE,
-        color=TEXT_PRIMARY,
-        va="top",
-    )
+    for axis in axes if zoom_from is not None else axes[:1]:
+        axis.annotate(
+            break_label,
+            (break_date, 0.98),
+            xycoords=("data", "axes fraction"),
+            xytext=(4, 0),
+            textcoords="offset points",
+            fontsize=NOTE_SIZE,
+            color=TEXT_PRIMARY,
+            va="top",
+        )
     _legend_below(axes[-1], -0.12, 3 if alternative is None else 2)
     _title(path, title)
     _tight(fig)
@@ -1984,8 +2071,10 @@ def segmented_small_multiples(
     """Small multiples of shares whose lines break wherever ``segment`` changes.
 
     Each (series, segment) run is drawn as its own line in the series colour, so a recording
-    break shows as a gap: the eye is not invited to read a trend across it. Each panel has its
-    own percentage scale from zero.
+    break shows as a gap: the eye is not invited to read a trend across it. A short vertical
+    mark in the series colour stands in each gap, so that a break does not read as a missing
+    year; a series that breaks at every year is drawn as unjoined points with no marks. Each
+    panel has its own percentage scale from zero.
     """
     apply_style()
     facets = order or list(dict.fromkeys(frame[facet]))
@@ -2000,8 +2089,8 @@ def segmented_small_multiples(
         panel = frame[frame[facet] == facet_name]
         for colour_index, name in enumerate(names):
             group = panel[panel[series] == name]
-            for run_index, (_, run) in enumerate(group.groupby(segment, sort=True)):
-                run = run.sort_values(x)
+            runs = [run.sort_values(x) for _, run in group.groupby(segment, sort=True)]
+            for run_index, run in enumerate(runs):
                 axis.plot(
                     run[x],
                     run[y],
@@ -2011,6 +2100,20 @@ def segmented_small_multiples(
                     linewidth=1.6,
                     label=str(name) if run_index == 0 else None,
                     **{k: v for k, v in _series_style(colour_index).items() if k == "linestyle"},
+                )
+            if len(runs) == len(group):
+                continue
+            # A mark halfway between the two sides of each break, at their mean height.
+            for before, after in zip(runs, runs[1:]):
+                left, right = before.iloc[-1], after.iloc[0]
+                axis.plot(
+                    [(float(left[x]) + float(right[x])) / 2],
+                    [(float(left[y]) + float(right[y])) / 2],
+                    marker="|",
+                    markersize=9,
+                    markeredgewidth=1.4,
+                    color=CATEGORICAL[colour_index],
+                    linestyle="none",
                 )
         _panel_title(axis, str(facet_name), ncols)
         axis.set_ylim(bottom=0)

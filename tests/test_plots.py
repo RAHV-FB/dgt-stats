@@ -1,6 +1,8 @@
+import contextlib
 import json
 from pathlib import Path
 
+import matplotlib.dates
 import pandas as pd
 import pytest
 
@@ -82,15 +84,77 @@ def test_bar_shares_and_heatmap(tmp_path: Path) -> None:
     _svg_ok(plots.heatmap(matrix, tmp_path / "heat.svg", "Heat", percent=True))
 
 
-def test_missingness_heatmap(tmp_path: Path) -> None:
-    profile = pd.DataFrame(
-        {
-            "year": [2016, 2017, 2016, 2017],
-            "column": ["A", "A", "B", "B"],
-            "share_observed": [0.9, 0.8, 0.5, 0.4],
-        }
+def test_missingness_heatmap(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    drawn = _capture_axes(monkeypatch)
+    matrix = pd.DataFrame(
+        [[1.0, 0.97], [0.9, 0.8], [0.5, None]], index=["A", "B", "C"], columns=[2016, 2017]
     )
-    _svg_ok(plots.missingness_heatmap(profile, tmp_path / "miss.svg", "Missing"))
+    _svg_ok(plots.missingness_heatmap(matrix, tmp_path / "miss.svg", "Missing"))
+    heat, bar = drawn[0]
+    # The rows keep the matrix's order, the first at the top.
+    assert [label.get_text() for label in heat.get_yticklabels()] == ["A", "B", "C"]
+    # A binned scale with every band's edges labelled, 0% included.
+    labels = [label.get_text() for label in bar.get_yticklabels()]
+    assert labels == ["0%", "20%", "50%", "80%", "95%", "100%"]
+    image = heat.get_images()[0]
+    colours = {tuple(image.cmap(image.norm(v))) for v in (0.96, 1.0)}
+    assert len(colours) == 1  # 96% and 100% fall in the same band
+    assert image.cmap(image.norm(0.94)) != image.cmap(image.norm(0.96))
+
+
+def _profile(rows: list[tuple[str, dict[str, float]]]) -> pd.DataFrame:
+    """A missing-values table (``missingness_by_year``) for one year from per-field shares."""
+    records = []
+    for column, shares in rows:
+        record = {"year": 2020, "column": column, "rows": 1000}
+        for state in ("empty", "not_specified", "not_applicable", "unknown"):
+            record[f"share_{state}"] = shares.get(state, 0.0)
+        record["share_observed"] = 1 - sum(shares.values())
+        records.append(record)
+    return pd.DataFrame(records)
+
+
+def test_the_missing_values_chart_leaves_not_applicable_out() -> None:
+    from dgt_stats import codes
+
+    flags = [
+        (column, {"not_specified": 0.6 + 0.0001 * i})
+        for i, column in enumerate(codes.PRIORI_COLUMNS)
+    ]
+    profile = _profile(
+        [
+            ("DIA_SEMANA", {}),
+            # 998: left out of the denominator.
+            ("ACERA", {"not_applicable": 0.8, "not_specified": 0.05}),
+            # The dictionary defines the island's empty cell as "No aplica".
+            ("ISLA", {"empty": 0.9, "not_specified": 0.02}),
+            # ... and codes the absence of strong wind as an empty cell.
+            ("CONDICION_VIENTO", {"empty": 0.95}),
+            # An empty cell the dictionary does not define stays missing.
+            ("CONDICION_NIEBLA", {"empty": 0.9}),
+            *flags,
+        ]
+    )
+    shown = figures.recorded_where_applicable(profile)[2020]
+    names = figures.MISSINGNESS_FIELDS
+    assert shown[names["ACERA"]] == pytest.approx(0.15 / 0.2)
+    assert shown[names["ISLA"]] == pytest.approx(0.08 / 0.1)
+    assert shown[names["CONDICION_VIENTO"]] == pytest.approx(1.0)
+    assert shown[names["CONDICION_NIEBLA"]] == pytest.approx(0.1)
+    # The right-of-way flags share one row, and no raw field name is left.
+    row = figures.priority_row(len(codes.PRIORI_COLUMNS))
+    assert shown[row] == pytest.approx(0.4, abs=0.01)
+    assert not any("_" in label for label in shown.index)
+    # Most completely recorded first.
+    assert list(shown) == sorted(shown, reverse=True)
+    # Flags that are no longer recorded together stop the build.
+    apart = profile.copy()
+    apart.loc[apart.column == "PRIORI_OTRA", ["share_not_specified", "share_observed"]] = [0.1, 0.9]
+    with pytest.raises(ValueError):
+        figures.recorded_where_applicable(apart)
+    # So does a field without an English name.
+    with pytest.raises(ValueError):
+        figures.recorded_where_applicable(_profile([("NEW_FIELD", {})]))
 
 
 def test_caption_format() -> None:
@@ -403,6 +467,177 @@ def test_intervention_and_placebo_dots(tmp_path: Path) -> None:
     _svg_ok(out)
 
 
+def test_intervention_enlarges_the_months_after_the_break(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    drawn = _capture_axes(monkeypatch)
+    periods = pd.date_range("2000-01-01", "2007-11-01", freq="MS")
+    frame = pd.DataFrame(
+        {
+            "period": periods,
+            "deaths": [400 + (i % 12) * 10 for i in range(len(periods))],
+            "fitted": [400.0] * len(periods),
+            "cf": [410.0] * len(periods),
+            "alt": [420.0] * len(periods),
+        }
+    )
+    names = {"observed": "Observed deaths", "fitted": "Fitted model", "counterfactual": "Main"}
+    for narrow in (False, True):
+        with plots.narrow() if narrow else contextlib.nullcontext():
+            _svg_ok(
+                plots.intervention(
+                    frame,
+                    "period",
+                    "deaths",
+                    "fitted",
+                    "cf",
+                    tmp_path / f"zoom_{narrow}.svg",
+                    "Zoom",
+                    pd.Timestamp("2006-07-01"),
+                    "1 July 2006",
+                    alternative=("alt", "Straight"),
+                    names=names,
+                    zero_based=False,
+                    zoom_from=pd.Timestamp("2005-01-01"),
+                )
+            )
+    for axes in drawn:
+        overview, zoom = axes[:2]
+        # The value axes start near the data, not at zero.
+        assert overview.get_ylim()[0] > 300 and zoom.get_ylim()[0] > 300
+        # The second panel holds the enlarged months only.
+        left, right = zoom.get_xlim()
+        assert matplotlib.dates.num2date(left).year == 2004
+        assert matplotlib.dates.num2date(right) < matplotlib.dates.num2date(overview.get_xlim()[1])
+        # One name for each line, as given.
+        legend = axes[0].figure.legends or [axes[1].get_legend()]
+        texts = [text.get_text().replace("\n", " ") for text in legend[0].get_texts()]
+        assert texts == ["Observed deaths", "Fitted model", "Main", "Straight"]
+    with pytest.raises(ValueError):
+        plots.intervention(
+            frame.assign(group="a"),
+            "period",
+            "deaths",
+            "fitted",
+            "cf",
+            tmp_path / "bad.svg",
+            "Bad",
+            pd.Timestamp("2006-07-01"),
+            "July",
+            facet="group",
+            zoom_from=pd.Timestamp("2005-01-01"),
+        )
+
+
+def test_hidden_bar_series_count_in_the_total_but_are_not_drawn(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    drawn = _capture_axes(monkeypatch)
+    frame = pd.DataFrame({"year": [2023] * 3, "status": ["a", "b", "rare"], "drivers": [50, 49, 1]})
+    plots.bar_shares(
+        frame,
+        "year",
+        "status",
+        "drivers",
+        tmp_path / "bars.svg",
+        "Bars",
+        order=["a", "b"],
+        hidden=("rare",),
+    )
+    axis = drawn[0][0]
+    assert [text.get_text() for text in axis.get_legend().get_texts()] == ["a", "b"]
+    tops = [patch.get_y() + patch.get_height() for patch in axis.patches]
+    assert max(tops) == pytest.approx(0.99)
+
+
+def test_dot_rows_without_a_value_are_notes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    drawn = _capture_axes(monkeypatch)
+    frame = pd.DataFrame(
+        {
+            "label": ["2004", "2005: left out", "2006"],
+            "v": [0.01, None, -0.1],
+            "lo": [-0.02, None, -0.15],
+            "hi": [0.04, None, -0.05],
+            "is_true": [False, False, True],
+        }
+    )
+    plots.dot_interval(
+        frame,
+        "label",
+        "v",
+        "lo",
+        "hi",
+        tmp_path / "notes.svg",
+        "Notes",
+        percent=True,
+        reference=0.0,
+        highlight="is_true",
+        keep_order=True,
+    )
+    axis = drawn[0][0]
+    assert [label.get_text() for label in axis.get_yticklabels()] == [
+        "2004",
+        "2005: left out",
+        "2006",
+    ]
+    # Two markers, none at the note's row.
+    points = [
+        (x, y)
+        for line in axis.get_lines()
+        if line.get_marker() not in (None, "None", "")
+        for x, y in zip(line.get_xdata(), line.get_ydata())
+    ]
+    assert len(points) == 2 and all(y != 1 for _, y in points)
+
+
+def test_breaks_are_marked_and_a_series_that_always_breaks_is_unjoined(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    drawn = _capture_axes(monkeypatch)
+    years = list(range(2014, 2020))
+    frame = pd.DataFrame(
+        {
+            "factor": ["A"] * 12,
+            "zone": ["x"] * 6 + ["y"] * 6,
+            "year": years * 2,
+            "share": [0.1] * 12,
+            # x breaks once, after 2016; y breaks at every year.
+            "segment": [0, 0, 0, 1, 1, 1] + list(range(6)),
+        }
+    )
+    plots.segmented_small_multiples(
+        frame, "factor", "year", "share", "zone", "segment", tmp_path / "f.svg", "F"
+    )
+    marks = [line for line in drawn[0][0].get_lines() if line.get_marker() == "|"]
+    assert len(marks) == 1 and marks[0].get_xdata()[0] == pytest.approx(2016.5)
+
+
+def test_the_reference_row_has_a_hollow_marker(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    drawn = _capture_axes(monkeypatch)
+    frame = pd.DataFrame(
+        {
+            "label": ["young", "middle"],
+            "reference_row": [False, True],
+            "value": [2.0, None],
+            "low": [1.5, None],
+            "high": [2.5, None],
+            "range_low": [1.4, None],
+            "range_high": [3.0, None],
+        }
+    )
+    plots.estimate_and_range(frame, tmp_path / "range.svg", "Range")
+    hollow = [
+        line
+        for line in drawn[0][0].get_lines()
+        if line.get_marker() == "o" and line.get_markerfacecolor() == plots.SURFACE
+    ]
+    assert len(hollow) == 1 and list(hollow[0].get_xdata()) == [1.0]
+
+
 @pytest.mark.skipif(not _TABLES_PRESENT, reason="run `python scripts/analyse.py tables` first")
 def test_build_all_writes_every_registered_figure(tmp_path: Path) -> None:
     frames = {name: pd.read_csv(TABLES_DIR / f"{name}.csv") for name in summaries.SUMMARIES}
@@ -499,7 +734,6 @@ def test_narrow_sets_and_restores_the_drawing_width() -> None:
 def test_narrow_labels_wrap_and_wide_ones_do_not() -> None:
     label = "generic limit for the road (value not recorded)  (n=17,969)"
     assert plots._fit(label) == label
-    assert plots._fit_name("CONDICION_NIVEL_CIRCULA") == "CONDICION_NIVEL_CIRCULA"
     with plots.narrow():
         lines = plots._fit(label).split("\n")
         assert lines[-1] == "(n=17,969)" and lines[-2] == "(value not recorded)"
@@ -507,8 +741,6 @@ def test_narrow_labels_wrap_and_wide_ones_do_not() -> None:
         # Never broken at a hyphen; a short label is left alone.
         assert plots._fit("75 and over (model-dependent)") == "75 and over\n(model-dependent)"
         assert plots._fit("Per resident") == "Per resident"
-        assert plots._fit_name("CONDICION_NIVEL_CIRCULA") == "CONDICION_\nNIVEL_CIRCULA"
-        assert plots._fit_name("DIA_SEMANA") == "DIA_SEMANA"
 
 
 def test_narrow_charts_fit_a_phone_column(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

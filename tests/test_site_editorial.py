@@ -152,11 +152,9 @@ def test_no_raw_field_names_outside_the_methodology(built: dict[str, str]) -> No
 
 
 def test_no_figure_shows_a_raw_field_name() -> None:
-    allowed = {"d1_missingness"}  # the methodology figure documents the source fields
-    # Every figure, and its drawing for a phone's column in narrow/.
+    # Every figure, and its drawing for a phone's column in narrow/; the missing-values figure
+    # names DGT's fields in English too.
     for path in sorted(FIGURES_DIR.rglob("*.svg")):
-        if path.stem in allowed:
-            continue
         labels = re.findall(r"<text[^>]*>([^<]+)</text>", path.read_text(encoding="utf-8"))
         found = sorted({m for label in labels for m in RAW_FIELD.findall(label)})
         assert not found, (path.name, found)
@@ -258,9 +256,9 @@ def test_the_validation_page_does_not_claim_national_transferability(
     assert "fitted on the Catalan file alone" in visible
     assert re.search(r"fitted (in|within) the test population", visible)
     assert "the Catalan severity model" in visible and "original Catalan model (retired)" in visible
-    # (Figure captions are written with the charts.)
-    prose = re.sub(r"<figcaption>.*?</figcaption>", "", built["validation"], flags=re.S)
-    assert "calculator's model" not in _visible(prose)
+    # The figure titles and captions, written with the charts, use the same names.
+    for old in ("calculator's model", "Catalonia model", "Catalonia crash-severity", "trained"):
+        assert old not in visible, old
     assert visible.count("the share of pairs in which the fatal one gets the higher") == 1
     # No pair of headline numbers without intervals.
     assert 'class="compare"' not in built["validation"]
