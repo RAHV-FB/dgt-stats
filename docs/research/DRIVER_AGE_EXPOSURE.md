@@ -1,12 +1,17 @@
 # Car-driving exposure by driver age
 
-This document estimates how far people of each age drive a car, as the denominator of crash
-involvement per kilometre driven. The primary source is the EMEF working-day mobility survey,
-2014–2024 ([`EMEF_INVENTORY.md`](EMEF_INVENTORY.md)). The code is
-`src/dgt_stats/emef/distance.py` (kilometres from distance bands) and
-`src/dgt_stats/emef/exposure.py` (estimates, intervals and sensitivity analyses).
-`python scripts/emef.py validate exposure` writes every table cited here to
-`reports/tables/emef_*.csv`.
+This document estimates how far people of each age drive a car, and then how often drivers of
+each age are involved in injury crashes per kilometre driven (Tasks 10–20). The primary source of
+exposure is the EMEF working-day mobility survey, 2014–2024
+([`EMEF_INVENTORY.md`](EMEF_INVENTORY.md)), with the Madrid household travel survey of 2018 for
+ages above 65. The code is `src/dgt_stats/emef/` (kilometres from distance bands, exposure
+estimates, intervals and sensitivity analyses), `src/dgt_stats/edm2018.py` (the Madrid survey) and
+`src/dgt_stats/exposure_risk/` (the Barcelona design, the national methods and the rates).
+`python scripts/emef.py validate exposure` writes the `reports/tables/emef_*.csv` tables cited
+here, and `python scripts/exposure_risk.py all` writes the `risk_*.csv` and `edm_*.csv` tables.
+
+The Madrid survey data are © Consorcio Regional de Transportes de Madrid, reused under its
+open-data licence. Powered by CRTM (<https://www.crtm.es>).
 
 ## What is measured
 
@@ -186,3 +191,264 @@ share of habitual drivers is reproduced to its rounding). Over half of residents
 never drive, against 28.7% of those aged 45–64. Only 13.4% drive every day or almost, against
 38.0%. Among those who drive every day, between 79% and 86% drove on their reference day in every
 age group, which confirms that the reference day captures regular driving as intended.
+
+## A working-day design matched in place: Barcelona city
+
+The national comparison below transfers a regional age profile to Spain and spreads it over every
+day of the year. Barcelona allows one comparison that needs neither step, because the Guàrdia
+Urbana's 2025 person table records the exact age of every driver involved, uninjured drivers
+included, and the date of the crash (`src/dgt_stats/exposure_risk/barcelona.py`;
+`risk_barcelona_*.csv`).
+
+**Numerator.** The numerator is car drivers involved in crashes in the city with at least one
+casualty on the 248 working days of 2025. The calendar has the thirteen Catalan holidays of Ordre
+EMT/85/2024 and Barcelona's local holidays of 9 June and 24 September; taxis are excluded. Of
+3,486 such drivers, 205 (5.9%) have no recorded age. The police do not record where drivers live,
+so the numerator also includes drivers from outside the province and people who drive ordinary
+cars for work.
+
+**Denominator.** The denominator is EMEF 2022–2024 car-driver kilometres inside the city on a
+working day, multiplied by 248. A trip with both ends in Barcelona lies inside the city in full. A
+trip with one end in the city lies inside it only in part. The public files have neither
+coordinates nor the municipality at the other end, so that part cannot be measured, and trips
+passing through cannot be identified at all. Three denominators therefore bracket the truth:
+internal trips only (the smallest possible total); crossing trips counted at the mean length of an
+internal trip (4.7 km by road) or their own length if shorter; and crossing trips in full (far more
+than the city holds). The absolute rates differ about twentyfold between the first and the last, so only
+the ratios between ages are informative:
+
+| Age | Drivers involved, working days | Ratio to 45–64: internal trips only | crossing at an internal trip's length | crossing in full |
+|---|---:|---:|---:|---:|
+| 16–29 | 652 | 2.56 (1.78–4.20) | 2.19 (1.85–2.68) | 2.11 (1.74–2.67) |
+| 30–44 | 981 | 1.15 (0.86–1.45) | 1.20 (1.04–1.36) | 1.05 (0.90–1.24) |
+| 45–64 | 1,294 | 1 | 1 | 1 |
+| 65+ | 354 | 0.78 (0.58–1.03) | 1.07 (0.87–1.31) | 0.91 (0.69–1.14) |
+
+Each ratio is shown with its 95% interval, which combines the EMEF sampling error and Poisson error
+in the count.
+
+On working days in Barcelona, drivers aged 65 and over were involved in injury crashes at about the
+same rate per kilometre as drivers aged 45–64, and drivers under 30 at about twice that rate,
+whichever denominator is used. The internal-trip estimate rests on few young respondents (49
+respondents aged 16–29 made a car trip inside the city), hence its wide interval.
+
+## Weekends and public holidays
+
+The EMEF describes working days only. Any annual rate assumes something about the other 117 days of
+the year. Three pieces of evidence bear on it.
+
+* **The EMEF 2023 weekend question.** In 2023 the survey asked whether respondents had spent any of
+  the last four weekends away from home, and by what means (`emef_weekend_2023.csv`). Residents aged
+  65 and over were about 1.26 times as likely to have driven away for a weekend as their working-day
+  driving would suggest. The factor was 0.95 for those aged 45–64, 0.90 for those aged 30–44 and
+  1.15 for those aged 16–29, each relative to all residents (`national.weekend_weights`). Older
+  residents' driving is therefore somewhat less concentrated on working days.
+* **Barcelona crashes by type of day** (`risk_barcelona_day_type.csv`). For drivers aged 65 and over,
+  involvements per Saturday were 0.59 times those per working day, against 0.63 for drivers aged
+  45–64. Per Sunday or holiday the figures were 0.55 against 0.51. Drivers aged 16–29 were involved
+  as often on a Saturday as on a working day (1.04). Crash counts mix exposure and risk, so these
+  figures show only that the older group's weekend pattern resembles the middle-aged group's.
+* **No source measures weekend kilometres by age.** The share of annual kilometres driven on
+  non-working days is itself unknown. It is 32% if a non-working day carries as much driving as a
+  working day, and 22% if it carries 60% as much.
+
+The central estimate spreads DGT's annual kilometres with the working-day age mix. The sensitivity
+analysis gives non-working days the EMEF 2023 weekend mix, with 22% or 32% of annual kilometres
+(`risk_weekend_sensitivity.csv`). The ratio of the 65-and-over rate to the 45–64 rate falls from
+1.16 to 1.09 or 1.06, and the 16–29 ratio from 2.57 to 2.46 or 2.41. Weekends are a modest source
+of uncertainty and move the older group's ratio downward.
+
+## Spain: four ways to put kilometres on ages
+
+No national source measures kilometres by the driver's age. Four methods are compared
+(`src/dgt_stats/exposure_risk/national.py`; `risk_national_shares.csv`).
+
+* **A, demographic calibration.** The EMEF's working-day kilometres per resident by age group and
+  sex are applied to the population of Spain on 1 July 2024 (INE, single years of age, so the
+  groups start exactly at 16, 30, 45 and 65). This assumes that, within each age group and sex,
+  residents of Spain drive in the same proportion to one another as residents of the province of
+  Barcelona.
+* **B, kilometre scale.** Method A's shares are applied to DGT's 2024 car kilometres from
+  inspection odometer readings: 289.8 billion km once the 3.2 billion km of taxis and ride-hailing
+  cars are removed (their drivers drive for a living and are excluded from both the survey and the
+  numerator). Two variants keep all 293.0 billion km, or also remove car hire without driver and
+  driving schools (278.1 billion). B sets the level of the rates but not their ratios. As a scale
+  check, Method A's working-day kilometres times 248 days come to 150 billion km, 52% of the DGT
+  total. The rest is non-working days, professional and company driving, and the higher mileage
+  of cars outside the Barcelona area (11,861 km per car registered in Catalonia, against 14,670 in
+  Madrid).
+* **C, regional calibration.** Method A is repeated with the age profile of each part of the
+  province and with the Madrid household travel survey of 2018 (EDM2018), which has exact ages.
+  The spread across these profiles shows how much the answer depends on which region's profile is
+  transferred.
+* **D, registered owners.** DGT's kilometres by the age of the car's registered owner were the
+  denominator of the former driver-age figure. Cars are driven by people other than their owners,
+  and company cars carry no age, so D is kept as a comparison only.
+
+| Share of car-driver km | 16–29 | 30–44 | 45–64 | 65+ |
+|---|---:|---:|---:|---:|
+| A: EMEF profile, province of Barcelona (95% CI) | 11.3% (10.3–12.4) | 27.7% (26.1–29.3) | 47.7% (46.0–49.5) | 13.4% (11.6–15.3) |
+| C: Barcelona city profile | 8.3% | 25.2% | 50.1% | 16.4% |
+| C: rest of the metropolitan area | 10.4% | 25.9% | 49.9% | 13.9% |
+| C: rest of the metropolitan region | 11.5% | 30.1% | 45.7% | 12.8% |
+| C: rest of the province | 15.7% | 30.4% | 42.5% | 11.5% |
+| C: Madrid survey 2018 | 11.2% | 34.0% | 46.0% | 8.8% |
+| D: registered owners (DGT bands 18–24, 25–34, 35–54, 55–64, 65+) | 2.1% / 11.6% | 47.7% | 22.4% | 16.3% |
+
+Spain's older population makes the 65-and-over share larger nationally (13.4%) than in the province
+(12.5%). The profiles disagree most about the oldest and youngest groups. In the Madrid survey of
+2018, residents aged 65 and over drove 0.26 times as far per resident as those aged 30–64, against
+0.39 in the EMEF of the same year. This is the largest single source of uncertainty in the national
+rates for older drivers, and the main reason those rates are given as ranges.
+
+## Ages 75 and over
+
+The EMEF cannot separate 65–74 from 75 and over ([`EMEF_INVENTORY.md`](EMEF_INVENTORY.md)), and a
+request for that split has been prepared but not sent ([`EMEF_DATA_REQUEST.md`](EMEF_DATA_REQUEST.md)).
+The Madrid survey has exact ages (`edm_profile.csv`, `edm_older_split.csv`):
+
+| Age (Madrid, 2018) | 45–64 | 65–69 | 70–74 | 75–79 | 80–84 | 85+ |
+|---|---:|---:|---:|---:|---:|---:|
+| Car-driver km per resident, weekday | 11.84 | 5.58 | 3.67 | 2.31 | 1.41 | 0.33 |
+| Hold a car licence | 81% | 70% | 60% | 50% | 35% | 20% |
+| Km per licence holder | 14.7 | 8.0 | 6.1 | 4.6 | 4.1 | 1.7 |
+
+In Madrid, residents aged 75 and over drove 0.30 times (0.24–0.39) the distance per resident of
+those aged 65–74. Men's ratio was 0.34 and women's 0.28. Residents aged 75 and over were 43% of the
+65-and-over population but drove 19% (15–23%) of that group's kilometres.
+
+Dividing the EMEF's 65-and-over kilometres between 65–74 and 75 and over requires one of those
+ratios. It is therefore a *model-dependent* estimate, not a measurement. `national.older_split`
+applies each assumption by sex, using the population of each age in the province of Barcelona (to
+take the EMEF's 65+ average apart) and in Spain (to put it back together). It never changes the
+measured 65-and-over total (`risk_older_split.csv`):
+
+| Assumption | 75+ share of 65+ km | 65–74: involved per bn km (ratio to 45–64) | 75+: involved per bn km (ratio to 45–64) |
+|---|---:|---:|---:|
+| Madrid km per resident, by sex (central) | 23% | 233 (0.92) | 509 (2.01) |
+| Madrid km per licence holder, applied to Spain's licence holders | 21% | 227 (0.90) | 554 (2.19) |
+| Registered owners' split of the 65+ km | 31% | 260 (1.02) | 375 (1.48) |
+| Equal km per licence holder at 65–74 and 75+ (an upper bound for 75+ km) | 34% | 274 (1.08) | 336 (1.32) |
+
+On every assumption, drivers aged 65–74 are involved at about the middle-aged rate per kilometre
+(0.9–1.1). Drivers aged 75 and over are involved at 1.3 to 2.2 times that rate. The range is wide
+because the oldest drivers' kilometres are small and poorly measured. The evidence supports a
+statement of direction: the per-kilometre involvement of drivers aged 75 and over is higher than
+that of middle-aged drivers, and that of drivers aged 65–74 is not. It does not support a single
+precise rate, so none is published.
+
+## The crash numerator
+
+The numerator is car drivers involved in injury crashes in Spain in 2024, and car drivers killed
+within 30 days (DGT, tables 4.2 I/U and 4.1.1 I/U), drivers of private cars with or without a
+trailer (`risk_national_numerator.csv`). The 1,852 drivers of public-service cars (taxi and
+ride-hailing) are excluded to match the denominator. The EMEF group 16–29 is matched to drivers
+aged 18–29: residents aged 16 and 17 count in the EMEF population but cannot hold a car licence,
+and the 41 drivers aged 15–17 in the tables are excluded. The tables give age by sex and by urban or
+interurban road, but not age by day of the week or by province. A national working-day design would
+therefore need DGT's own cross-tabulation, which no public table provides, and none is inferred
+here from the margins. 2,234 drivers (2.2%) have no recorded age. They are allocated in proportion
+for absolute rates, which raises every rate by 2.3%; ratios between ages are unaffected.
+
+| Age | Drivers involved | Drivers killed | Killed per 1,000 involved (95% CI) | Involved per 1,000 car-licence holders |
+|---|---:|---:|---:|---:|
+| 18–29 | 21,234 | 88 | 4.1 (3.4–5.1) | 6.2 |
+| 30–44 | 28,775 | 113 | 3.9 (3.3–4.7) | 4.0 |
+| 45–64 | 35,092 | 163 | 4.6 (4.0–5.4) | 3.0 |
+| 65+ | 11,425 | 130 | 11.4 (9.5–13.4) | 2.4 |
+| 65–74 | 6,970 | 59 | 8.5 (6.5–10.8) | 2.1 |
+| 75+ | 4,455 | 71 | 15.9 (12.6–19.8) | 2.8 |
+
+(`risk_severity_and_licences.csv`)
+
+## Involvement per kilometre by age
+
+Under Methods A and B, the central estimate for 2024 is shown below (`risk_national_rates.csv`). The
+95% intervals combine sampling error in the exposure shares with Poisson error in the counts.
+
+| Age | Billion km | Involved per bn km (95% CI) | Ratio to 45–64 (95% CI) | Driver deaths per bn km | Ratio to 45–64 (95% CI) |
+|---|---:|---:|---:|---:|---:|
+| 18–29 | 32.6 | 651 (593–716) | 2.57 (2.28–2.86) | 2.70 | 2.29 (1.73–2.95) |
+| 30–44 | 80.1 | 359 (338–380) | 1.42 (1.30–1.55) | 1.41 | 1.20 (0.92–1.53) |
+| 45–64 | 138.3 | 254 (244–264) | 1 | 1.18 | 1 |
+| 65+ | 38.7 | 295 (260–338) | 1.16 (1.00–1.35) | 3.36 | 2.85 (2.12–3.74) |
+
+**Sensitivity ranges** (not confidence intervals) for the ratio to 45–64:
+
+| Source of variation | 18–29 | 30–44 | 65+ |
+|---|---|---|---|
+| Regional profile (Method C, five profiles) | 1.64–3.65 | 1.11–1.63 | 1.00–1.70 |
+| Non-working days (age mix and share) | 2.41–2.57 | 1.42–1.44 | 1.06–1.16 |
+| Kilometre total (Method B variants) | none: a common factor | none | none |
+| Barcelona city, working days, matched in place | 2.11–2.56 | 1.05–1.20 | 0.78–1.07 |
+
+The absolute rates move with the kilometre total, from 292 (all cars) to 308 (no hire cars or
+driving schools) per billion km for the 65-and-over group, but the ratios do not.
+
+**Against the former figure.** The former figure divided the same drivers by the kilometres of cars
+registered to owners of each age (`risk_owner_age_comparison.csv`). It put drivers aged 18–24 at
+6.75 times the rate of those aged 35–54, and those aged 65–74 at 0.71 times. Young drivers largely
+drive cars registered to their parents, and older owners' cars are partly driven by others. Owner
+kilometres therefore understate young drivers' driving, which inflates their rate, and overstate
+older drivers' driving, which deflates theirs. Measured by the driver's age, the young drivers'
+excess is about two and a half times rather than nearly seven times. The older drivers' rate is
+about the middle-aged rate or slightly above it, rather than well below it.
+
+## Quasi-induced exposure
+
+Quasi-induced exposure estimates each group's share of driving from its share of the not-at-fault
+drivers in two-vehicle crashes. It needs one record per driver in each crash, with the driver's age
+and an indicator of fault, such as the presumed infraction the police record. None of the available
+public sources has that:
+
+* DGT's public microdata (`data/raw/dgt/microdata/`) have one row per crash, with no driver records
+  and no ages.
+* DGT's published tables give infractions by vehicle type (table 6.1), not by driver age.
+* The Guàrdia Urbana's driver-cause table for Barcelona has no key to the person or vehicle
+  concerned.
+* The Catalan crash file has one row per crash.
+
+The method is therefore not applied. It would become feasible with DGT's driver-level records,
+which DGT's road-safety observatory holds, for two-vehicle crashes with one driver at fault. It
+would answer a different question from the per-kilometre rates: how often drivers of each age are
+judged responsible, relative to how often they are on the road.
+
+## Uncertainty
+
+The intervals above are 95% confidence intervals for sampling and count error. They pair 300 EMEF
+bootstrap replicates (respondents resampled within year and comarca), or household replicates for
+the Madrid survey, with gamma draws for each count. They are narrower than the honest uncertainty in
+two respects:
+
+* The public EMEF files carry no fieldwork clusters.
+* The intervals take the analytic choices as given.
+
+Those choices are covered by the sensitivity ranges, which are reported separately and never merged
+into the intervals: the regional profile, non-working days, distance imputation and band treatment
+(above, in the EMEF sections) and, for 75 and over, the split assumption. For drivers aged 65 and
+over, the regional profile dominates. For drivers aged 75 and over, the split assumption dominates,
+and no interval is attached to a figure that is itself an assumption.
+
+## Conclusions
+
+1. **Involvement per kilometre.** Per kilometre driven, drivers aged 18–29 were involved in injury
+   crashes about two and a half times as often as drivers aged 45–64 (2.57; 95% CI 2.28–2.86;
+   range across methods 1.6–3.7). Drivers aged 30–44 were involved 1.4 times as often. Drivers aged
+   65 and over were involved about as often as the middle-aged, or modestly more (1.16; CI
+   1.00–1.35; range 1.0–1.7). The matched working-day comparison in Barcelona, which needs no
+   national transfer, gives 0.78–1.07 for the older group.
+2. **Ages 75 and over.** The available evidence places drivers aged 65–74 at the middle-aged rate
+   (0.9–1.1) and drivers aged 75 and over above it (1.3–2.2, model-dependent). A precise 75+ rate
+   would need the EMEF's confidential ages or a national survey with exact ages.
+3. **Severity once involved.** Older drivers are far more likely than others to die once in a
+   crash. Car drivers aged 65 and over were killed in 11.4 of every 1,000 involvements, against
+   4.6 at 45–64; drivers aged 75 and over in 15.9. Driver deaths per kilometre are therefore 2.9
+   times the middle-aged rate at 65 and over, although involvement is only 1.2 times. The excess
+   in deaths reflects frailty more than crash involvement.
+4. **Responsibility** cannot be assessed with public data (see above). Involvement counts every
+   driver in an injury crash, whoever caused it.
+5. **Per licence holder.** Older licence holders are involved less often than middle-aged ones (2.4
+   against 3.0 per 1,000 a year) because many drive little. Rates per licence holder or per
+   resident describe the burden on a population, not the risk of a kilometre driven.
+6. **The former owner-age figure** exaggerated young drivers' excess risk and understated older
+   drivers' risk, because a car's owner is often not its driver.

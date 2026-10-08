@@ -1,7 +1,7 @@
 # Scripts
 
-The command-line entry points. `fetch_ine.py` and `build_fonts.py` stand outside the build; the
-rest run in the order below:
+The command-line entry points. `fetch_ine.py`, `fetch_edm.py` and `build_fonts.py` stand outside
+the build; the rest run in the order below:
 
 - `ingest.py {microdata,tables,exposure,reports,validate,all} [--years Y ...] [--force] [-v]`: the
   DGT, INE, traffic and fuel files under `data/raw/` parsed into `data/staging/dgt/`, the speed
@@ -16,15 +16,27 @@ rest run in the order below:
   tests, Barcelona diagnosis, DGT microdata audit, generalisability, model decisions) and the
   generated documents; `documents` re-renders the documents from saved tables, and `organise`
   files loose downloads under `data/raw/<source>/`;
+- `severity_calculator.py {review,calculator,all}`: the independent re-evaluation of every model
+  (`reports/tables/review_*.csv`) and the crash-severity calculator model, its validation tables
+  (`sev_*.csv`) and its export for the browser (`reports/models/severity_model.json`);
+- `emef.py {build,validate,exposure,all}`: the EMEF 2014–2024 microdata read, harmonised and
+  checked, the published figures and the distance report reproduced, and working-day car-driving
+  exposure by age (`emef_*.csv`);
+- `exposure_risk.py {barcelona,madrid,national,all}`: the Barcelona working-day design, the Madrid
+  survey's age profile, the national exposure methods and car drivers involved per kilometre by
+  age (`risk_*.csv`, `edm_*.csv`);
 - `analyse.py {tables,figures,cards,all}`: the national result tables, every figure and its
   caption, and the cards of the two national models;
 - `build_site.py`: `site/`;
 - `build_fonts.py <source font directory>`: stands outside the build too; it cuts the committed
   font subsets (the site's web fonts and the charts' serif) from the open fonts in the
   google/fonts repository, and is needed only to change the character set or update a font;
-- `fetch_ine.py [--from-file CSV]`: rebuilds the committed INE population extract
-  (`data/raw/ine/ine_poblacion_provincias_edad_sexo.csv`) from INE table 56947, or filters an
-  already downloaded copy.
+- `fetch_ine.py [--table provinces|single_age] [--from-file CSV]`: rebuilds the committed INE
+  population extracts (`data/raw/ine/ine_poblacion_provincias_edad_sexo.csv` from table 56947,
+  `data/raw/ine/ine_poblacion_edad_simple_sexo.csv` from table 56934), or filters an already
+  downloaded copy;
+- `fetch_edm.py [--from-dir DIR]`: rebuilds the committed extracts of the Madrid household travel
+  survey 2018 (`data/raw/crtm/edm2018/`) from the CRTM's workbooks.
 
 Scripts are thin orchestration layers. Reusable logic belongs in `src/dgt_stats/` and is covered by
 tests.

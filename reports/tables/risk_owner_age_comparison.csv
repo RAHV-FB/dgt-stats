@@ -1,0 +1,11 @@
+denominator,group,involved,billion_km,involved_per_bn_km,ratio_to_reference,reference
+km of cars registered to owners of this age (former figure),18-24,12198,5.187891636,2351.244177,6.750553953,35-54
+km of cars registered to owners of this age (former figure),25-34,18561,29.12579783,637.2700966,1.829638203,35-54
+km of cars registered to owners of this age (former figure),35-54,41902,120.302993,348.3038864,1,35-54
+km of cars registered to owners of this age (former figure),55-64,14234,56.58595739,251.5465083,0.7222041387,35-54
+km of cars registered to owners of this age (former figure),65-74,7018,28.39608107,247.1467799,0.7095722718,35-54
+km of cars registered to owners of this age (former figure),75+,4456,12.587693,353.9965584,1.016343981,35-54
+"km driven by drivers of this age (EMEF profile, DGT total)",16-29,21234,32.6200817,650.9487068,2.566134313,45-64
+"km driven by drivers of this age (EMEF profile, DGT total)",30-44,28775,80.11848126,359.1555849,1.415843462,45-64
+"km driven by drivers of this age (EMEF profile, DGT total)",45-64,35092,138.337759,253.6689929,1,45-64
+"km driven by drivers of this age (EMEF profile, DGT total)",65+,11425,38.70550677,295.1776363,1.163633099,45-64

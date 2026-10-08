@@ -1,0 +1,22 @@
+age,day_type,drivers,per_day,per_day_relative_to_working_day
+16-29,working day,652,2.629032258,1
+16-29,Saturday,137,2.74,1.042208589
+16-29,Sunday or holiday,126,1.880597015,0.71531911
+30-44,working day,981,3.955645161,1
+30-44,Saturday,130,2.6,0.6572884811
+30-44,Sunday or holiday,138,2.059701493,0.520699256
+45-64,working day,1294,5.217741935,1
+45-64,Saturday,163,3.26,0.6247913447
+45-64,Sunday or holiday,179,2.671641791,0.512030266
+65+,working day,354,1.427419355,1
+65+,Saturday,42,0.84,0.5884745763
+65+,Sunday or holiday,53,0.7910447761,0.5541782612
+65-74,working day,234,0.9435483871,1
+65-74,Saturday,25,0.5,0.5299145299
+65-74,Sunday or holiday,33,0.4925373134,0.5220053578
+75+,working day,120,0.4838709677,1
+75+,Saturday,17,0.34,0.7026666667
+75+,Sunday or holiday,20,0.2985074627,0.6169154229
+not recorded,working day,205,0.8266129032,1
+not recorded,Saturday,34,0.68,0.8226341463
+not recorded,Sunday or holiday,40,0.5970149254,0.7222424463
