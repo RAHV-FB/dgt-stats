@@ -171,7 +171,7 @@ def _examples_table(contrasts: pd.DataFrame, base: float) -> str:
     return table(
         pd.DataFrame(rows),
         "Estimated share of crashes that were fatal, among crashes with a death or serious "
-        "injury. The reference crash is a side collision between two cars or "
+        "injury. The reference crash is a side or angle collision between two cars or "
         "vans on a conventional regional road in the province of Barcelona, between junctions, "
         "in daylight, fine weather and "
         "on a dry surface, between 10:00 and 13:59, with no posted limit recorded; each row "

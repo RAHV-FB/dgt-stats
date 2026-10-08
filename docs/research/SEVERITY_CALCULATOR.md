@@ -187,7 +187,7 @@ The figures are predicted fatal shares from the final model with 95% intervals (
 Each is for a reference crash and that crash with one circumstance changed. The raw and
 standardised shares are in `sev_marginal_adjusted`. The reference crash:
 
-- a side collision between two cars or vans;
+- a side or angle collision between two cars or vans;
 - on a regional conventional road in the province of Barcelona, between junctions;
 - in daylight, fine weather and on a dry surface, between 10:00 and 13:59;
 - with no posted limit recorded.
