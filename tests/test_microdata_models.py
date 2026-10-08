@@ -95,10 +95,11 @@ def test_the_harmonised_junction_reads_the_inverted_flag_the_other_way_round() -
 
 
 # The DGT fields that enter the cross-source models are chosen by validating the harmonised
-# tables, which exist only once the regional layers are built.
+# tables, which the source models' step writes (``features.build_common``); CI does not refit
+# the source models, so it skips this check.
 needs_harmonised = pytest.mark.skipif(
     not (harmonise.CAT_COMMON_PATH.exists() and harmonise.DGT_COMMON_PATH.exists()),
-    reason="run `python scripts/microdata.py build` first",
+    reason="run `python scripts/microdata.py models` first (it writes the harmonised tables)",
 )
 
 

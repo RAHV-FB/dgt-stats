@@ -208,11 +208,15 @@ def mc_interval(
     coarsest: int = 0,
 ) -> str:
     """A sampling interval printed at the precision its Monte Carlo errors support
-    (:func:`mc_digits`), or at ``digits`` if that is coarser. Where an end stands clear of 1 but
-    would print as 1, both ends get the decimals that end needs (:func:`_clear_of_one`)."""
+    (:func:`mc_digits`), or at ``digits`` if that is coarser. An interval that lies wholly on
+    one side of 1, with its nearer end standing clear of 1 but printing as 1, gets the decimals
+    that end needs on both ends (:func:`_clear_of_one`), so it is not shown reaching 1."""
     supported = mc_digits(se_low, se_high, coarsest=coarsest)
     shown = supported if digits is None else min(digits, supported)
-    shown = max(_clear_of_one(low, se_low, shown), _clear_of_one(high, se_high, shown))
+    if float(low) > 1:
+        shown = _clear_of_one(low, se_low, shown)
+    elif float(high) < 1:
+        shown = _clear_of_one(high, se_high, shown)
     return f"{_fixed(low, shown)}{sep}{_fixed(high, shown)}"
 
 

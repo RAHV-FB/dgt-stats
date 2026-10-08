@@ -372,7 +372,7 @@ times between the first and the last denominator, so only the ratios between age
 | Age | Drivers involved, working days | Ratio to 45–64: internal trips only | crossing trips at an internal trip's length | crossing trips in full |
 |---|---:|---:|---:|---:|
 | 18–29 | 624 | 2.61 (2–4) | 2.23 (1.8–2.7) | 2.14 (1.7–2.7) |
-| 30–44 | 933 | 1.16 (0.9–1.5) | 1.21 (1.0–1.4) | 1.07 (0.9–1.3) |
+| 30–44 | 933 | 1.16 (0.9–1.5) | 1.21 (1.04–1.39) | 1.07 (0.9–1.3) |
 | 45–64 | 1,216 | 1 | 1 | 1 |
 | 65+ | 344 | 0.80 (0.6–1.1) | 1.11 (0.9–1.4) | 0.94 (0.7–1.2) |
 | Age not recorded | 204 | | | |
@@ -1103,7 +1103,7 @@ In order of what they would resolve, with the holder and the route (details in
   days", which read as including weekends). The Barcelona check's reason is corrected. The EMEF
   questionnaires of 2014–2016 and 2022–2023 and the methodology report 2003–2018 are archived in
   `data/raw/emef/`.
-* October 2026, after a fourth independent review (three methodological findings):
+* October 2026, after the third independent review (three methodological findings):
   1. *The Madrid profile is age-standardised.* Its 65+ km per resident was Madrid's own 65+
      mean, applied to Spain's older population and, for the 75+ split, taken apart with the
      province of Barcelona's; it is now built from the EDM's exact-age cells weighted by Spain's
@@ -1242,7 +1242,7 @@ The EMEF profile is by sex as well as age, so the same transfer to Spain gives e
 car-driver kilometres (`national.sex_per_km`; `risk_sex_per_km.csv`). On that estimate, men drove
 66% of car-driver kilometres in Spain in 2024, about two thirds. Per kilometre, male private-car
 drivers aged 18 and over were involved in injury crashes 0.91 times as often as female drivers
-(95% CI 0.86–0.98 in the table, 0.9–1.0 at the precision its Monte Carlo error supports;
+(95% sampling interval 0.86–0.98, printed with a second decimal because it lies wholly below 1;
 62,064 men and 34,257 women involved) and were killed 2.65 times as often (2.1–3.4; 414 men and
 79 women killed). Under the licence-calibrated transfer and the other
 regional profiles (EMEF areas and Madrid) the involvement ratio runs from 0.60 to 1.23 and the
@@ -1301,7 +1301,9 @@ per replicate until October 2026, which left the death ratios' ends with Monte C
 up to 0.07), and one per cell of the 300 × 300 arrays of the 75+ intervals. Each end carries the
 Monte Carlo standard error of a pigeonhole bootstrap over the crossed array (`national._interval`),
 and every interval is printed to the last digit that error supports (a unit of at least twice
-the error; `site.numbers.mc_digits`). With 300 EMEF replicates the involvement ratios' ends keep
+the error; `site.numbers.mc_digits`), except that an interval wholly on one side of 1 that would
+print as reaching it, with its nearer end three errors clear of 1, gets a second decimal
+(`site.numbers._clear_of_one`). With 300 EMEF replicates the involvement ratios' ends keep
 errors of up to about 0.02, which come from the replicates rather than the count draws, so they
 are printed to one decimal; more count draws brought the death ratios' errors from up to 0.07 to
 up to 0.03. They are narrower than the honest uncertainty in three respects:
@@ -1352,9 +1354,9 @@ taken together would widen them.
    within Monte Carlo error) and drivers aged 65–74 0.94 times (0.8–1.1). Across four splits and
    every other choice the sensitivity range is 0.97–3.20 (65–74: 0.67–1.70); below about 1.2 it is
    reached only with equal km per licence holder, at odds with Spanish surveys of men's driving.
-   The lowest other combination, 1.21, has a sampling interval of 0.9–1.8, so these data cannot
-   show that drivers aged 75 and over are involved more often per km whatever the assumption, nor
-   by how much. Involvement per licence holder at 75 and over is 0.95 times the 45–64 rate. In
+   The lowest other combination, 1.21, has a sampling interval of 0.9–1.8, so the data do not
+   establish that drivers aged 75 and over are involved more often per km than drivers aged
+   45–64, or by how much. Involvement per licence holder at 75 and over is 0.95 times the 45–64 rate. In
    Barcelona the four splits give 0.80–1.70 and disagree with each other. The EMEF's own aggregates
    for 65–74 and 75 and over would replace the Madrid transfer
    ([`EMEF_DATA_REQUEST.md`](EMEF_DATA_REQUEST.md)).
@@ -1373,7 +1375,7 @@ taken together would widen them.
    resident describe the burden on a population, not the risk of a kilometre driven.
 8. **Men and women.** On the same transfer, men drove about two thirds of car-driver kilometres in
    2024. Per kilometre, male private-car drivers were involved 0.91 times as often as female
-   drivers (0.9–1.0; 0.60–1.23 under the other profiles), so neither sex is shown to be involved
+   drivers (0.86–0.98; 0.60–1.23 under the other profiles), so neither sex is shown to be involved
    more often per km, and killed 2.65 times as often (2.1–3.4; 1.75–3.55).
 9. **The former owner-age figure.** Compared like for like (drivers aged 18–29, 30–44 and 65 and
    over against 45–64), owner kilometres gave 4.62, 1.51 and 1.00, against 2.53, 1.40 and 1.19 by

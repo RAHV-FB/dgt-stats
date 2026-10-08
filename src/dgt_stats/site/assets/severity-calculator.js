@@ -263,14 +263,14 @@
         (similar.crashes === 1
           ? "1 recorded crash in " + years() +
             " shares this zone, crash type, road users and number involved; it was " +
-            (similar.fatal ? "" : "not ") + "fatal. Its other inputs differ, so it says " +
-            "little about the estimate."
+            (similar.fatal ? "" : "not ") + "fatal. Its other inputs may differ, and one " +
+            "crash says little about the estimate."
           : count(similar.crashes) + " recorded crashes in " + years() +
             " share this zone, crash type, road users and number involved" +
             (similar.crashes
               ? "; " + similar.fatal.toLocaleString("en") + " of them " +
-                (similar.fatal === 1 ? "was" : "were") + " fatal. Their other inputs differ, " +
-                "so their share need not match the estimate."
+                (similar.fatal === 1 ? "was" : "were") + " fatal. Their other inputs may " +
+                "differ, so their share need not match the estimate."
               : ".")),
         "calc-note"
       )
@@ -285,16 +285,21 @@
       output.appendChild(list2);
     }
     var comparison = renderComparison(scenario, result);
+    var warned = !warnings.length
+      ? ""
+      : warnings.length === 1
+        ? "with a warning"
+        : "with " + warnings.length + " warnings";
     // With a crash kept, the line also gives the comparison, which otherwise changes out of view.
     pin(
       "Estimate " + percent(result.probability) + " fatal (" + range(result.low, result.high) +
-        ")" + (warnings.length ? ", with a warning" : "") +
+        ")" + (warned ? ", " + warned : "") +
         (comparison ? "; " + comparison.replace(/\.$/, "") : "") + ": details below."
     );
     announce(
       "Estimate " + percent(result.probability) + ", interval " + percent(result.low) + " to " +
         percent(result.high) + "." + (comparison ? " " + comparison : "") +
-        (warnings.length ? " With a warning." : "")
+        (warned ? " " + warned.charAt(0).toUpperCase() + warned.slice(1) + "." : "")
     );
   }
 
@@ -348,6 +353,9 @@
     engine = window.SeverityEngine.create(model);
     root.hidden = false;
     if (fallback) fallback.hidden = true;
+    // A link to #calculator arrives while the section is still hidden, so the browser's jump to
+    // it finds nothing; jump once it is shown.
+    if (window.location.hash === "#" + root.id) root.scrollIntoView();
     form.addEventListener("change", render);
     form.addEventListener("submit", function (event) {
       event.preventDefault();

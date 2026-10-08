@@ -23,7 +23,11 @@ generated in [`DATA_QUALITY_MICRODATA.md`](DATA_QUALITY_MICRODATA.md),
    and the days a week the others drive, typed into `src/dgt_stats/exposure_risk/national.py`
    from the published slide dossier and not archived, because RACC grants no reuse licence.
    They set the upper limit on men's kilometres at 75 and over in one split of the 65-and-over
-   kilometres ([`data_sources.md`](data_sources.md)).
+   kilometres ([`data_sources.md`](data_sources.md)). Definitions taken from documents are not
+   observations and are cited where the code holds them: the 2025 public holidays of Catalonia
+   and Barcelona (`src/dgt_stats/exposure_risk/calendar.py`, from Ordre EMT/85/2024 and the
+   city's decree) and the fourteen public holidays a year of the Estatuto de los Trabajadores
+   (`src/dgt_stats/exposure_risk/national.py`), which separate working days from the rest.
 2. **Raw files are immutable.** `data/raw/<source>/` holds files byte for byte, each listed in
    `data/raw/manifest.csv` with its SHA-256 (checked by `tests/test_paths.py`). Cleaning writes
    new files in `data/staging`, `data/processed` and `data/features`; nothing is edited by hand.

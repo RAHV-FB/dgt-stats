@@ -1422,10 +1422,12 @@ def _reproduce() -> str:
     return (
         '<h2 id="reproduce">Reproducing the results</h2>'
         "<p>Every result in the study is computed by the code in the repository from the raw "
-        "published files, with two exceptions: the road-to-straight-line ratio and benchmarks "
-        "of the EMEF's 2021 distance report and the figures of the Fundació RACC's 2013 survey "
-        "of older drivers are transcribed into the code from documents that are not archived. "
-        "The raw files are kept with their checksums and, "
+        "published files. The code also holds a few values typed from documents, each cited "
+        "where it is used: definitions, such as the public-holiday calendars that separate "
+        "working days; figures read from archived files; and two sets of measurements whose "
+        "documents are not archived, the road-to-straight-line ratio and benchmarks of the "
+        "EMEF's 2021 distance report and the figures of the Fundació RACC's 2013 survey of "
+        "older drivers. The raw files are kept with their checksums and, "
         "where recorded, their download addresses, and one command sequence in the "
         f'<a href="{REPO_URL}#reproduce">README</a> rebuilds the checks, tables, models, '
         "figures and pages in order. Each page reads its numbers from the result tables, and "

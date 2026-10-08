@@ -400,6 +400,8 @@ def test_intervals_are_printed_at_the_precision_their_monte_carlo_error_supports
     assert site_numbers.mc_interval(0.8559, 0.9802, 0.0061, 0.0036) == "0.86–0.98"
     assert site_numbers.mc_interval(1.0242, 1.362, 0.0103, 0.0148) == "1.0–1.4"
     assert site_numbers.mc_interval(0.9988, 1.82, 0.012, 0.03) == "1.0–1.8"
+    # An interval that includes 1 keeps the supported precision.
+    assert site_numbers.mc_interval(0.9501, 1.2626, 0.0088, 0.012) == "1.0–1.3"
     # A sentence may rest on an end's side of 1 only if the end stands three errors clear of it
     # and, as printed, does not read as 1.
     assert site_numbers.side_of_one_shown(0.63, 0.01, 0.01, 0.01)

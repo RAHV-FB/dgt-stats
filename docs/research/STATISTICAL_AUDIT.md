@@ -206,8 +206,8 @@ kept at the rebuild; the last column of the verdict table gives each claim's fin
 
 October 2026, after the coverage and stress tests. The question was whether the 75+ figure per
 kilometre could be better constrained than the sensitivity range then published, 0.97–3.28 times
-the 45–64 rate, without adding false precision. The range is now 0.97–3.20, after the fourth
-review's method fixes (below). The full account, with every number and its table, is in
+the 45–64 rate, without adding false precision. The range is now 0.97–3.20, after the October
+2026 method fixes (below). The full account, with every number and its table, is in
 [`DRIVER_AGE_EXPOSURE.md`](DRIVER_AGE_EXPOSURE.md#ages-75-and-over).
 
 **What was examined.** The CRTM Encuesta Sintética de Movilidad 2024 (ages 14–80 only, one 65–80
@@ -319,10 +319,12 @@ and each was corrected:
 * Points 13, 14, 16 and 19 of the final report and two claim-ledger rows still gave the
   first-published 75+ range as a finding; they are marked superseded.
 
-Not changed: text in the charts falls to about 10–11 px at some phone and tablet widths (360 px,
-and 641–767 px, where the wide chart is shown). That follows from the figure scales and the
-breakpoint shared by every chart on the site, not from these figures, and is left to a site-wide
-change.
+Not changed: text in the charts falls below 11 px at some widths. Measured in the final check at
+4735d9d, it does for every chart at 320 px (down to about 9.6 px), for one at 360 px (10.9 px),
+and for most of the wide charts from 641 px to about 960 px, where the wide drawing is shown (down
+to about 10.2 px); at 768 px nine of them also scroll sideways. That follows from the figure
+scales and the breakpoint shared by every chart on the site, not from these figures, and is left
+to a site-wide change.
 
 **The third review's method fixes (October 2026).** Three changes to the exposure method
 (`eb7b70f`, tables regenerated in `316a52f`, merged in `0370825`) moved the sensitivity ranges:

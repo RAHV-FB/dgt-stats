@@ -283,8 +283,8 @@ range of 0.97–3.20 (65–74: 0.67–1.70; 0.97–3.28 and 0.66–1.63 before t
 fixes) and, on its stated Madrid condition, a conditional estimate
 of 2.06 (95% sampling interval 1.6–2.6; 65–74 0.94, 0.8–1.1). Below about 1.2 the range is reached
 only with equal km per licence holder, at odds with Spanish surveys of men's driving, and the
-lowest other combination, 1.21, has a sampling interval of 0.9–1.8, so these data cannot show
-that drivers aged 75 and over are involved more often per km whatever the assumption, nor by how
+lowest other combination, 1.21, has a sampling interval of 0.9–1.8, so the data do not establish
+that drivers aged 75 and over are involved more often per km than drivers aged 45–64, or by how
 much. See [75+ exposure: constraining the estimate](#75-exposure-constraining-the-estimate).
 
 ### 14. Main sensitivity findings
@@ -365,7 +365,7 @@ Found in this final review and corrected:
   "on every assumption examined, drivers aged 75 and over are involved more often per km than
   drivers aged 45–64 (1.32–2.19)", is itself **superseded** (October 2026): the sensitivity range is
   0.97–3.20 (0.97–3.28 before the October 2026 method fixes) and two combinations are at or below 1
-  (0.975 and 0.989), so a higher rate per km is not shown whatever the assumption. On the Madrid
+  (0.975 and 0.989), so not every combination tested shows a higher rate per km. On the Madrid
   condition the conditional estimate is 2.06 (95% sampling interval 1.6–2.6); drivers aged 65–74
   are at 0.94 (0.8–1.1) on that condition and 0.67–1.70 across the range (0.66–1.63 before those
   fixes).
@@ -412,6 +412,12 @@ Found in this final review and corrected:
   model describes Catalonia and is likely to understate fatal shares elsewhere in Spain.
 
 ### 19. Website changes
+
+This list describes the pages as the rebuild left them. The final audit later removed the drivers
+page's section on why the former figure differed (it is compared like for like at the end of the
+section on crashes per kilometre) and the models page's table of every model fitted (now in
+[`ML_MODEL_REVIEW.md`](ML_MODEL_REVIEW.md), which the page links); the claim ledger records each
+change.
 
 - **Drivers page** rebuilt: involvement per km by driver age with intervals and sensitivity ranges
   (new figure), the Barcelona check, the 75+ section (counted measures, the conditional estimate
@@ -515,10 +521,12 @@ and "most combinations" were removed.
 **The guard.** The pages choose between three wordings from the tables. The lowest combination
 not at odds with men's driving is 1.21, above the 45–64 rate, but its 95% sampling interval is
 0.9–1.8, which reaches it (Monte Carlo errors 0.017 and 0.040; the guard refuses to choose a
-wording when an end lies within three of them of 1). The intermediate wording is printed: among
-those combinations every one puts drivers aged 75 and over above the 45–64 rate, but at the lowest
-sampling error alone could bring them down to it, so these data cannot show that drivers aged 75
-and over are involved more often per kilometre whatever the assumption, nor by how much.
+wording when an end lies within three of them of 1). The intermediate wording is printed, in the
+same words on the home and drivers pages since 4f8ac06: the sensitivity range is 0.97 to 3.20
+times the 45–64 rate, "so the data do not establish that they are involved more often per
+kilometre than drivers aged 45–64, or by how much". The wording printed before it, "these data
+cannot show that drivers aged 75 and over are involved more often per kilometre whatever the
+assumption, nor by how much", could be read as "under no assumption" and is superseded.
 
 **The critiques, accepted and rejected.**
 
@@ -558,9 +566,11 @@ and each was corrected:
   its title says the bars show how the estimate changes, and its caption says the top bar spans
   every combination tested, not every possible one.
 * The key 75+ sentence, "a higher rate per kilometre is not established under every assumption",
-  could be read as "established under none". It now reads "these data cannot show that drivers
-  aged 75 and over are involved more often per kilometre whatever the assumption, nor by how
-  much", and the drivers page's opening was shortened, with the detail moved to the 75+ section.
+  could be read as "established under none". It was changed to "these data cannot show that
+  drivers aged 75 and over are involved more often per kilometre whatever the assumption, nor by
+  how much" (bd444f3), and the drivers page's opening was shortened, with the detail moved to the
+  75+ section. Because "whatever the assumption" could still be read as "under no assumption",
+  the printed wording is now the one under "The guard" (4f8ac06).
 * The Barcelona check blamed its inconclusiveness on wide intervals, although some exclude 1. It
   now says the figures disagree. Of the Madrid split's three intervals, one includes 1, one lies
   above it and one ends within its Monte Carlo error of 1 (0.999, standard error 0.012), and the
@@ -577,10 +587,12 @@ and each was corrected:
 * Points 13, 14, 16 and 19 of the final report and two claim-ledger rows still gave the
   first-published 75+ range as a finding; they are marked superseded.
 
-Not changed: text in the charts falls to about 10–11 px at some phone and tablet widths (360 px,
-and 641–767 px, where the wide chart is shown). That follows from the figure scales and the
-breakpoint shared by every chart on the site, not from these figures, and is left to a site-wide
-change.
+Not changed: text in the charts falls below 11 px at some widths. Measured in the final check at
+4735d9d, it does for every chart at 320 px (down to about 9.6 px), for one at 360 px (10.9 px),
+and for most of the wide charts from 641 px to about 960 px, where the wide drawing is shown (down
+to about 10.2 px); at 768 px nine of them also scroll sideways. That follows from the figure
+scales and the breakpoint shared by every chart on the site, not from these figures, and is left
+to a site-wide change.
 
 **The method fixes (October 2026).** A later independent review found three faults of method, and
 each was corrected (the full account is in the change log of

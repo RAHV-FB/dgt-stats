@@ -366,6 +366,19 @@ def test_the_pinned_estimate_never_covers_the_focused_control(browser, server, s
     page.close()
 
 
+@pytest.mark.parametrize("size", [PHONE, LAPTOP])
+def test_a_link_to_the_calculator_lands_on_it(browser, server, size) -> None:
+    """The calculator is hidden until its model loads, so the browser's own jump to
+    #calculator finds nothing; the page jumps once it is shown."""
+    page = browser.new_page(viewport=size, reduced_motion="reduce")
+    page.goto(f"{server}/{PAGE}#calculator", wait_until="networkidle")
+    page.wait_for_selector("#calculator:not([hidden])")
+    page.wait_for_function(
+        "Math.abs(document.querySelector('#calculator').getBoundingClientRect().top) < 2"
+    )
+    page.close()
+
+
 def test_an_impossible_crash_is_refused(calculator) -> None:
     calculator.select_option("#calc-crash_type", "pedestrian_struck")
     text = _shown(calculator)

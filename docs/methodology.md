@@ -450,7 +450,9 @@ was revised in October 2026 after an independent audit.
   Carlo standard error from a pigeonhole bootstrap over the crossed array (`national._interval`;
   columns `*_mc_se_low`, `*_mc_se_high`), and the pages print each end to the last digit that
   error supports, a unit of at least twice the error (`site.numbers.mc_digits`, `mc_interval`,
-  `joint_interval`, `rate_interval`); no sentence rests on which side of 1 an end lies unless the
+  `joint_interval`, `rate_interval`), except that an interval wholly on one side of 1 that would
+  print as reaching it, with its nearer end three errors clear of 1, gets a second decimal
+  (`site.numbers._clear_of_one`); no sentence rests on which side of 1 an end lies unless the
   printed end shows it and stands three errors clear of 1 (`site.numbers.side_of_one_shown`).
   With 300 EMEF replicates the ends of the involvement ratios keep Monte Carlo errors of up to
   about 0.02, set by the replicates rather than the count draws, so they are printed to one
@@ -532,8 +534,9 @@ was revised in October 2026 after an independent audit.
   (`risk_older_reference_checks.csv`). The pages choose one of three wordings by a guard
   (`site.numbers._older_numbers`): a higher rate per km at 75+ is claimed only if the lowest
   unmarked row is above 1 even at the bottom of its sampling interval; it is above 1 only at its
-  point value, so the intermediate wording is printed (these data cannot show a higher rate per km
-  at 75+ whatever the assumption, nor by how much); below 1, the direction is not established. No
+  point value, so the intermediate wording is printed (the data do not establish that drivers aged
+  75 and over are involved more often per kilometre than drivers aged 45–64, or by how much;
+  `site.numbers.OLDER_CONCLUSION`); below 1, the direction is not established. No
   wording rests on an interval end within three Monte Carlo standard errors of 1. In the Barcelona
   check (`barcelona.older_ratios`, `risk_barcelona_older.csv`) the four splits give 0.80–1.70 at
   75+, each with a sampling interval. Deaths once involved are counted and need no kilometres.
@@ -605,7 +608,7 @@ combined the last two into a "travel-weighted driver" denominator; it is withdra
 not kilometres, it gave 65–74 and 75+ the same assumed intensity, and it applied a 2006 travel
 profile to 2014–2024.
 
-**Changed in October 2026, after a fourth independent review.** (1) The Madrid profile's 65+ km
+**Changed in October 2026, after the third independent review.** (1) The Madrid profile's 65+ km
 per resident is standardised to Spain's older population from the survey's exact ages, and taken
 apart with Spain's population for the 65–74/75+ split; it had been Madrid's own 65+ mean, applied
 to Spain and taken apart with the province of Barcelona's population (the Madrid profile's 65+
@@ -640,7 +643,7 @@ for every year from 2014. `national.sex_per_km` adds a comparison per kilometre 
 national car kilometres by sex with the same EMEF transfer as for age (`risk_sex_per_km.csv`). On
 that estimate men drove about two thirds (66 %) of car-driver kilometres, and per kilometre male
 private-car drivers aged 18 and over were involved 0.91 times as often as female drivers
-(0.9–1.0 at the precision its Monte Carlo error supports; 0.86–0.98 in the table) and killed
+(0.86–0.98, printed with a second decimal because the interval lies wholly below 1) and killed
 2.6 times as often (2.1–3.4); under the other regional profiles the two
 ratios run from 0.60 to 1.23 and from 1.75 to 3.55. The MOVILIA 2006 bracket that used to sit beside the comparison was withdrawn: it divided a
 2022–2024 crash ratio by a 2006 car-or-motorcycle trip ratio that counts passengers. Only the

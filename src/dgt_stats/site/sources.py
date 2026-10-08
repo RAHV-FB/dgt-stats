@@ -555,7 +555,7 @@ def _audit() -> str:
         "points across the provinces with at least "
         f"{_fmt_int(dgt_audit.MIN_PROVINCE_CRASHES)} crashes, counting only the crashes each "
         "field applies to. The junction type is among them only because of the Catalan "
-        f"provinces' records from {inverted_from}, described next: without them its unrecorded "
+        f"provinces' records from {inverted_from}: without them its unrecorded "
         f"share varies by {junction_without * 100:.0f} points. Among crashes recorded at a "
         "junction, the share with the right-of-way "
         f"fields unrecorded runs from {_fmt_pct(priority.province_min.min(), 0)} in one province "

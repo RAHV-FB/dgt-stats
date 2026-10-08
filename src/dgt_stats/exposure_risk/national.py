@@ -280,11 +280,15 @@ def edm_profile() -> dict:
     replicate. Madrid's own 65+ mean would carry the age mix of Madrid's 65-and-over residents,
     fewer of them aged 75 and over than Spain's, to Spain's older population. The EMEF profiles
     are not standardised: the survey's public files group everyone aged 65 and over, so their
-    65+ km per resident is a mean over the province of Barcelona's residents of those ages,
-    slightly older than Spain's, and is carried to Spain as it stands. Standardising it would
-    need the 75+/65-74 ratio that each split assumes and would no longer give 65-74 and 75+
-    km that add up to the unsplit 65+ km; under the Madrid split it would lower the 65+ and
-    75+ ratios by under 1%. The drivers page says which profile is standardised."""
+    65+ km per resident is a mean over the residents of those ages in the profile's area (the
+    province of Barcelona for profiles A and A2, slightly older than Spain's), carried to Spain
+    as it stands. Standardising it would need the 75+/65-74 ratio that each split assumes and
+    would no longer give 65-74 and 75+ km that add up to the unsplit 65+ km; for profile A,
+    under the Madrid split, it would lower the 65+, 65-74 and 75+ ratios by under 1%. The
+    four sub-area profiles are split between 65-74 and 75+ with the province's population
+    (:func:`_older_mean_population`), an approximation: no population by single age is
+    archived for Barcelona city or the other sub-areas. The drivers page says which profile is
+    standardised."""
     frame = edm2018.person_day()
     factors = edm2018.replicate_factors()
     spain = population_by_group().set_index(["sex", "group"]).population

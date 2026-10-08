@@ -67,8 +67,8 @@ The pages' build checks now guard each corrected claim; the build stops if a tab
 supports the sentence.
 
 The ledger describes the site as audited. Claims added later by the editorial pass are numbers
-formatted from the same tables and are covered by the same build checks. They are not rows of
-this ledger.
+formatted from the same tables and are covered by the same build checks; they are not rows of
+this ledger, except the principal ones listed in section E (below).
 
 **Later revisions (October 2026).** The 75+ investigation revised rows ledger-B|4, 9 and 10 and
 added rows 94–98 for the conditional estimate, the counts per licence holder, the men's marking
@@ -109,4 +109,6 @@ calibration misses, the junction correction, three trend statements, the lowest 
 not at odds with men's driving, two points-licence results and the zone × road contrast. They
 were checked against the committed tables at `0370825`, not recomputed from the raw files.
 The ledger's `audit_note` column keeps what each reviewer found at the time, including figures
-since superseded.
+since superseded. Rows whose pages changed again after `0370825` (ledger-B|21, ledger-D|51 and
+ledger-E|1, E|2 and E|6) were rechecked against the final pages after the final check of
+`4735d9d` (`reviews/FINAL_CHECK_4735d9d.md`).

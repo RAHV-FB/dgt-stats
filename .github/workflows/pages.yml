@@ -25,6 +25,7 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -40,8 +41,9 @@ jobs:
       - run: python scripts/build_site.py
       # Deploy only pages that match the committed ones, with no page the build writes that is
       # not committed, and that pass the site's own tests, the calculator's engine against the
-      # model and the pages in a browser: a push straight to main cannot publish a page the
-      # checks would reject.
+      # exported model and the pages in a browser: a push straight to main cannot publish a page
+      # the checks would reject. Four engine tests need the regional feature layer, which this
+      # job does not build; they skip here and run in the Checks workflow.
       - run: |
           git diff --exit-code -- site
           test -z "$(git status --porcelain -- site)" || { git status --porcelain -- site; exit 1; }
