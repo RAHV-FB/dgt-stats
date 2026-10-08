@@ -100,6 +100,9 @@ def test_moved_pages_point_to_their_successors(built: Path) -> None:
         text = (built / f"{old}.html").read_text(encoding="utf-8")
         assert f'content="0; url={new}.html"' in text
         assert f'href="{new}.html">' in text
+        # Kept out of search indexes, with no canonical link to contradict that.
+        assert '<meta name="robots" content="noindex">' in text, old
+        assert 'rel="canonical"' not in text, old
     # No live page links to a moved slug: the pointers are for old bookmarks, not navigation.
     for slug, _ in site.ALL_PAGES:
         text = (built / f"{slug}.html").read_text(encoding="utf-8")
@@ -123,6 +126,11 @@ def test_withdrawn_pages_say_why_and_nothing_links_to_them(built: Path) -> None:
         else:
             assert site.esc("less accurately than last year's count") in text
         assert site.esc(reason) in body, slug
+        # The reason is stated once, in the lead; the body says what the page published.
+        assert body.count("withdrawn because") == 1, slug
+        assert "holds no" not in body and "so it was withdrawn" not in body, slug
+        if slug == "forecast":
+            assert body.count("less accurately") == 1
         assert 'href="data.html"' in body, slug
         assert '<div class="conclusion">' not in body and "<table>" not in body, slug
         assert len(body) < 4000, slug

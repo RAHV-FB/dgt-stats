@@ -120,11 +120,12 @@ WITHDRAWN_REASON = (
     "This analysis was withdrawn because its results came from coefficients published in "
     "external studies rather than from data in this repository."
 )
-# A withdrawn page whose reason differs from ``WITHDRAWN_REASON``.
+# A withdrawn page whose reason differs from ``WITHDRAWN_REASON``. The lead states the reason; the
+# notice's body says only what the page published and where the data-only work is.
 WITHDRAWN_LEADS = {
     "forecast": (
-        "This analysis was withdrawn because, re-evaluated on years it had not been fitted on, "
-        "the model forecast ordinary years less accurately than last year's count."
+        "This analysis was withdrawn because the model forecast a year's deaths less accurately "
+        "than last year's count."
     ),
 }
 # What each withdrawn page was, as its notice names it.
@@ -135,39 +136,34 @@ WITHDRAWN_TITLES = {
     "alcohol-drugs": "Deaths attributed to alcohol and drugs",
     "enforcement": "Ranking of enforcement measures",
 }
+# What each withdrawn page published. The reason is in its lead and is not repeated here.
 WITHDRAWN_PAGES = {
     "forecast": (
         "This page published a model of Spain's monthly road deaths and, from its forecast "
-        "errors, the smallest change in a year's deaths that the counts could reveal. Scored on "
-        "the ordinary years that played no part in choosing it, the model forecast less "
-        "accurately than simply repeating last year's count, so it was withdrawn, and with it "
-        "the detectable change computed from its errors."
+        "errors, the smallest change in a year's deaths that the counts could reveal. Both are "
+        "withdrawn."
     ),
     "simulator": (
         "This page simulated what new speed limits, and drivers keeping to them, would do to "
         "deaths and injuries. It started from free-flow speeds measured in Spain for the EU "
         "Baseline project, and took from studies in other countries both how speeds follow a "
-        "new limit and how casualties respond to speed. The Spanish crash records carry no "
-        "speeds, so none of those links could be estimated or checked here."
+        "new limit and how casualties respond to speed."
     ),
     "distraction": (
         "This page estimated how many deaths a year distraction causes, by combining the share "
         "of fatal crashes in which the police recorded distraction with a crash risk measured "
-        "in a driving study in the United States. The repository holds no Spanish data on how "
-        "much distraction raises the risk of a crash."
+        "in a driving study in the United States."
     ),
     "alcohol-drugs": (
         "This page estimated how many deaths a year alcohol and drugs cause, by applying "
         "relative risks from a European study to the share of fatal crashes in which the police "
-        "recorded alcohol. The repository holds no Spanish data on how much alcohol or drugs "
-        "raise the risk of a crash."
+        "recorded alcohol."
     ),
     "enforcement": (
         "This page ranked enforcement against speeding, drink- and drug-driving and distraction "
         "by the deaths each would avoid, combining the three withdrawn models with published "
         "evaluations of enforcement, all from other countries but one study of Barcelona's "
-        "fixed speed cameras. The repository holds no data on the effect of enforcement in "
-        "Spain."
+        "fixed speed cameras."
     ),
 }
 
