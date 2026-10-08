@@ -33,11 +33,15 @@ is bounded by car hire without driver.
 
 **Age mixes** (:func:`mixes`). The covered part keeps the EMEF working-day mix. Each other part
 takes an explicit mix, labelled as an assumption. A mix is *credible* when it comes from a
-measured age pattern of driving or car travel (the EMEF, DGT's kilometres by owner's age, MOVILIA
-2006 and 2007), and a *bound* when it is constructed: equal km per B-licence holder at every age,
-or no driving at 65 and over. Every measured pattern gives licence holders aged 65 and over less
-driving than those aged 45-64, and gives residents aged 65 and over some, so both bounds lie
-outside the evidence; they are reported, not used in the published ranges.
+measured age pattern of driving or car travel by the traveller's own age (the EMEF, MOVILIA 2006
+and 2007), and a *bound* otherwise. Two bounds are constructed: equal km per B-licence holder at
+every age, and no driving at 65 and over. Every measured pattern gives licence holders aged 65 and
+over less driving than those aged 45-64, and gives residents aged 65 and over some, so both lie
+outside the evidence. The third bound is DGT's kilometres by the age of the car's private owner:
+measured, but by the owner's age, and a car's owner is often not its driver (young people drive
+cars registered to their parents; older owners' cars are partly driven by others), which is why
+the former owner-age figure was withdrawn. All three are reported, with their values, and left
+out of the published ranges.
 
 **Scenarios** (:func:`scenario_km`). The components are set to explain least: that gives the
 remainder its largest share, and the non-working days and the remainder together, the two parts
@@ -46,8 +50,10 @@ scenario gives the non-working days one of three mixes and
 the remainder one of seven, and is computed with Method A's profile and with each other profile
 of :func:`dgt_stats.exposure_risk.national.exposure_profiles` for the covered part, because the
 regional profile and the uncovered half are separate uncertainties. The 65+ km are split between
-65-74 and 75 and over under each assumption of :func:`national.older_split`, except in the mixes
-that measure the two groups themselves (owners' km, licence holders).
+65-74 and 75 and over under each assumption of :func:`national.older_split`, in every part and
+every mix except the licence-holder bound, whose definition (equal km per holder at every age)
+fixes its own split. The owner-age bound takes each scenario's split too: owner km never say how
+far drivers aged 75 and over drive.
 """
 
 from __future__ import annotations
@@ -95,21 +101,29 @@ MOVILIA_BANDS = {
 
 WORKING_DAY_MIX = "working-day mix (EMEF)"
 PROFESSIONAL_MIX = "professionals' work trips (EMEF)"
-OWNER_MIX = "km of cars by the private owner's age (DGT 2024)"
+OWNER_MIX = "km of cars by the private owner's age, DGT 2024 (owner, not driver: bound)"
 LONG_DISTANCE_MIX = "car journeys over 50 km per resident (MOVILIA 2007, Spain)"
 LICENCE_MIX = "B-licence holders: equal km per holder at every age (bound)"
 UNDER_65_MIX = "under 65 only: working-day mix without 65 and over (bound)"
 NON_WORKING_MIXES = (WORKING_DAY_MIX, national.EMEF_WEEKEND_PROXY, national.MOVILIA_WEEKEND)
 REMAINDER_MIXES = (
     WORKING_DAY_MIX,
-    OWNER_MIX,
     LONG_DISTANCE_MIX,
     national.EMEF_WEEKEND_PROXY,
     national.MOVILIA_WEEKEND,
+    OWNER_MIX,
     LICENCE_MIX,
     UNDER_65_MIX,
 )
-BOUNDS = (LICENCE_MIX, UNDER_65_MIX)
+# The two allocations no source supports, and the mix measured by the owner's age instead of the
+# driver's: reported with their values, left out of the published ranges.
+CONSTRUCTED_BOUNDS = (LICENCE_MIX, UNDER_65_MIX)
+BOUNDS = (OWNER_MIX, *CONSTRUCTED_BOUNDS)
+MIX_STATUS = {
+    OWNER_MIX: "bound: owner's age, not the driver's",
+    LICENCE_MIX: "bound: constructed",
+    UNDER_65_MIX: "bound: constructed",
+}
 
 
 # ----------------------------------------------------------------------------- evidence
@@ -518,14 +532,16 @@ def long_distance_rates() -> pd.Series:
 @cache
 def _absolute_mixes() -> dict[str, tuple[pd.Series, float | None]]:
     """Mixes that are national km shares by group in their own right, with the 75+ share of their
-    65+ km when they measure it."""
+    65+ km when their definition fixes it (equal km per licence holder at every age). The owner
+    mix brings none: the age of a car's owner says nothing of how far drivers aged 75 and over
+    drive, so its 65+ km are split by the scenario's own assumption."""
     owner = national.owner_km_by_group()
     licences = national.licence_holders()
     people = national.population_by_group().groupby("group").population.sum()
     distance = long_distance_rates() * people[list(GROUPS)]
     groups = list(GROUPS)
     return {
-        OWNER_MIX: (owner[groups] / owner[groups].sum(), float(owner["75+"] / owner["65+"])),
+        OWNER_MIX: (owner[groups] / owner[groups].sum(), None),
         LONG_DISTANCE_MIX: (distance / distance.sum(), None),
         LICENCE_MIX: (
             licences[groups] / licences[groups].sum(),
@@ -558,7 +574,8 @@ def mix_shares(name: str, base: pd.Series) -> tuple[pd.Series, float | None]:
 
 def mixes() -> pd.DataFrame:
     """Each mix with Method A's profile as the covered part: km shares by group, km per resident
-    and per B-licence holder relative to 45-64, and whether it is credible or a bound."""
+    and per B-licence holder relative to 45-64, and whether it is credible or a bound (and which
+    kind of bound)."""
     km, professional = _daily_km()
     base = km / km.sum()
     people = national.population_by_group().groupby("group").population.sum()
@@ -582,6 +599,7 @@ def mixes() -> pd.DataFrame:
                     "mix": name,
                     "role": roles.get(name, "remainder"),
                     "credible": name not in BOUNDS,
+                    "status": MIX_STATUS.get(name, "credible"),
                     "group": group,
                     "share_of_km": float(shares[group]),
                     "km_per_resident_relative_to_45_64": float(
@@ -624,9 +642,9 @@ def structure_shares(
 
     ``base`` is the covered part's km shares: a Series indexed by group, or an array whose first
     axis follows :data:`GROUPS` (replicates along the others). ``older_share`` is the split's 75+
-    share of the covered part's 65+ km. The covered part, the professionals' work driving and the
-    non-working days keep that share; a remainder mix that measures the two ages itself (owners'
-    km) brings its own. ``professional_mix`` is :data:`PROFESSIONAL_MIX`, the professionals' own
+    share of the covered part's 65+ km. Every part keeps that share, except a remainder mix whose
+    definition fixes its own (the licence-holder bound; never the owner-age bound, since owner km
+    do not say who drove). ``professional_mix`` is :data:`PROFESSIONAL_MIX`, the professionals' own
     age mix as measured, or :data:`WORKING_DAY_MIX`, the covered part's, which varies one choice
     at a time (:func:`dgt_stats.exposure_risk.national.older_decomposition`)."""
     weights = scenario_weights()
