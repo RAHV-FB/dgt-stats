@@ -378,12 +378,13 @@ def test_speed_page_carries_severity_and_the_recording_discontinuity(built: Path
     assert f"{pooled.loc['urban', 'rate_ratio']:.1f} times on urban streets" in home
     assert "Over 2016–2023, those crashes" in home
     # The summary says plainly that a recorded factor is an association, not a cause.
-    assert (
-        "Police-recorded inappropriate speed is associated with greater crash severity" in opening
+    assert "These are associations in police records, not estimates of what speed causes" in (
+        opening
     )
-    assert "This is not an estimate of causation." in opening
-    # The two biases are named, in both directions.
+    # The two biases are named, in both directions, and what a recorded factor is is explained
+    # once, on the factors page, which this page links to.
     assert "which would raise it" in text and "which would lower it" in text
+    assert 'href="factors.html#recorded-factors"' in text
     shares = pd.read_csv(TABLES_DIR / "q9_infraction_shares.csv")
     all_roads = shares[shares.zone == "all"].set_index("year")
     for year in (2014, 2016, int(all_roads.index.max())):
@@ -425,6 +426,8 @@ def test_factors_page_reads_trends_only_within_comparable_runs(built: Path) -> N
     for zone in ("interurban", "urban", "all"):
         assert f"{speed.loc[zone, 'share_last'] * 100:.1f}%" in opening
     assert "recording is consistent" not in opening and "point to changes in recording" not in text
+    # The driver tables' break is set out once, on the speed page, which this page links to.
+    assert 'href="speed.html#driver-tables"' in text
 
 
 def test_trend_pages_show_every_denominator_and_the_projection(built: Path) -> None:
