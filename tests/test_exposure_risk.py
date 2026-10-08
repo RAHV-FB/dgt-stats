@@ -15,7 +15,7 @@ import pandas as pd
 import pytest
 
 from dgt_stats import edm2018, io_tables
-from dgt_stats.exposure_risk import barcelona, calendar, national
+from dgt_stats.exposure_risk import barcelona, calendar, coverage, national
 
 
 def test_barcelona_2025_calendar() -> None:
@@ -126,6 +126,8 @@ def test_sensitivity_holds_the_central_estimate_and_every_source() -> None:
         "professionals' work driving",
         "older sample",
         "non-working days",
+        national.COVERAGE_SOURCE,
+        national.COVERAGE_PROFILE_SOURCE,
     } <= set(table.source)
     assert np.allclose(table[table.group == national.REFERENCE].involved_ratio, 1.0)
     # Professionals' work driving adds kilometres mostly at working ages, so it raises 65+.
@@ -148,6 +150,119 @@ def test_older_ranges_cover_the_central_split() -> None:
     assert ranges.ratio_75_plus.min() <= split.xs("75+", level="group").min() + 1e-9
     assert ranges.ratio_75_plus.max() >= split.xs("75+", level="group").max() - 1e-9
     assert "registered owners' split of the 65+ km" not in set(ranges.assumption)
+
+
+def test_spanish_calendar_and_non_working_shares() -> None:
+    # 2024: 262 weekdays less the fourteen public holidays the law allows; 366 days.
+    assert national.working_days(2024) == (248, 118)
+    low, high = national.NON_WORKING_SHARES
+    assert high == pytest.approx(118 / 366)
+    assert low == pytest.approx(118 * 0.6 / (248 + 118 * 0.6))
+
+
+def test_coverage_components_add_up_to_dgt_total() -> None:
+    parts = coverage.components().set_index("component")
+    total = national.dgt_car_km()["less taxi and ride-hailing"]
+    additive = parts[parts.additive]
+    for setting in ("least_explained", "most_explained"):
+        assert additive[f"bn_km_{setting}"].sum() * 1e9 == pytest.approx(total)
+        assert additive[f"share_{setting}"].sum() == pytest.approx(1.0)
+    # The working days are Method A's km per working day times the working days of the year.
+    km, _ = national.national_km(national.emef_profile())
+    working, _ = national.working_days()
+    assert parts.loc["working days", "bn_km_least_explained"] * 1e9 == pytest.approx(
+        km.sum() * working
+    )
+    # The setting that explains least leaves the largest remainder, and each measured part is
+    # larger at the setting that explains most (the months outside the fieldwork may be negative).
+    remainder = parts.loc["remainder (not explained)"]
+    assert remainder.bn_km_least_explained > remainder.bn_km_most_explained
+    for name in ("professionals' work driving", "regional level", "non-working days"):
+        assert (
+            0 < parts.loc[name, "bn_km_least_explained"] < parts.loc[name, "bn_km_most_explained"]
+        )
+    # Company cars and hire cars overlap the parts and are not added.
+    assert not parts.loc[["cars registered to companies", "car hire without driver"]].additive.any()
+    low, high = coverage.regional_factors()
+    assert 1 < low < high
+    low, high = coverage.seasonal_factors()
+    assert low < 1 < high
+
+
+def test_scenario_weights_match_the_components() -> None:
+    weights = coverage.scenario_weights()
+    parts = coverage.components().set_index("component")
+    assert sum(weights.values()) == pytest.approx(1.0)
+    assert weights["remainder"] == pytest.approx(
+        parts.loc["remainder (not explained)", "share_least_explained"]
+    )
+    # Covered, professional and non-working parts carry the regional level and the season.
+    measured = parts.loc[
+        [
+            "working days",
+            "professionals' work driving",
+            "regional level",
+            "non-working days",
+            "months outside the fieldwork",
+        ],
+        "share_least_explained",
+    ].sum()
+    assert weights["covered"] + weights["professional"] + weights["non_working"] == pytest.approx(
+        measured
+    )
+
+
+def test_coverage_mixes_and_scenarios() -> None:
+    km, _ = national.national_km(national.emef_profile())
+    base = km / km.sum()
+    same, older = coverage.mix_shares(coverage.WORKING_DAY_MIX, base)
+    assert np.allclose(same, base) and older is None
+    # A weekend mix is the same weights on the covered part as in the weekend sensitivity.
+    weekend = national.weekend_sensitivity()
+    movilia = weekend[weekend.non_working_age_mix == national.MOVILIA_WEEKEND]
+    weights = movilia.drop_duplicates("group").set_index("group").weekend_weight
+    shares, _ = coverage.mix_shares(national.MOVILIA_WEEKEND, base)
+    expected = weights.reindex(base.index) * base
+    assert np.allclose(shares, expected / expected.sum())
+    # The under-65 bound gives no km at 65 and over; every mix's shares add up to one.
+    under, _ = coverage.mix_shares(coverage.UNDER_65_MIX, base)
+    assert under["65+"] == 0
+    mixes = coverage.mixes()
+    assert np.allclose(mixes.groupby("mix").share_of_km.sum(), 1.0)
+    assert set(mixes[~mixes.credible].mix) == set(coverage.BOUNDS)
+    # With every part at the working-day mix, a scenario differs from the central estimate only
+    # through professionals' work driving.
+    scenario = next(
+        s
+        for s in coverage.scenario_km()
+        if s["profile"] == national.CENTRAL_METHOD
+        and s["non_working_mix"] == s["remainder_mix"] == coverage.WORKING_DAY_MIX
+    )
+    _, professional = coverage._daily_km()
+    w = coverage.scenario_weights()["professional"]
+    expected = (1 - w) * base + w * professional / professional.sum()
+    assert np.allclose(scenario["shares"], expected)
+    for s in coverage.scenario_km():
+        assert s["shares"].sum() == pytest.approx(1.0)
+        assert all(0 < q < 1 for q in s["share_75_plus_of_65_plus"].values())
+
+
+def test_sensitivity_carries_credible_coverage_scenarios_only() -> None:
+    table = national.sensitivity()
+    assert {national.COVERAGE_SOURCE, national.COVERAGE_PROFILE_SOURCE} <= set(table.source)
+    assert not table.variant.str.contains("(bound)", regex=False).any()
+    older = national.older_sensitivity()
+    assert {national.COVERAGE_SOURCE, national.COVERAGE_PROFILE_SOURCE} <= set(older.source)
+    assert not older.variant.str.contains("(bound)", regex=False).any()
+    # The scenarios table holds the bounds too, flagged as not credible, and the published range
+    # is the span of the credible ones and the other alternatives.
+    scenarios = coverage.scenarios()
+    assert set(scenarios[~scenarios.credible].remainder_mix) == set(coverage.BOUNDS)
+    credible = scenarios[scenarios.credible]
+    assert older.ratio_75_plus.min() <= credible.ratio_75_plus.min() + 1e-9
+    groups = table.groupby("group").involved_ratio
+    assert groups.min()["65+"] <= credible.ratio_65_plus.min() + 1e-9
+    assert groups.max()["16-29"] >= credible.ratio_18_29.max() - 1e-9
 
 
 def test_madrid_survey_reading() -> None:

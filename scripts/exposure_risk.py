@@ -3,7 +3,8 @@
 Usage:
     python scripts/exposure_risk.py barcelona   # the working-day design matched to Barcelona city
     python scripts/exposure_risk.py madrid      # the Madrid household survey's age profile
-    python scripts/exposure_risk.py national    # Spain: exposure methods A-D, rates, 65-74/75+
+    python scripts/exposure_risk.py national    # Spain: exposure methods A-D, rates, 65-74/75+,
+                                                # the coverage of DGT's km and its scenarios
     python scripts/exposure_risk.py all
 
 Needs the EMEF tables (``scripts/emef.py build``), the Barcelona crash layer
@@ -24,7 +25,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 import pandas as pd  # noqa: E402
 
 from dgt_stats import edm2018  # noqa: E402
-from dgt_stats.exposure_risk import barcelona, national  # noqa: E402
+from dgt_stats.exposure_risk import barcelona, coverage, national  # noqa: E402
 from dgt_stats.paths import TABLES_DIR  # noqa: E402
 
 log = logging.getLogger("exposure_risk")
@@ -98,6 +99,10 @@ def run_national() -> None:
         "risk_licence_prevalence",
     )
     write(national.owner_age_comparison(), "risk_owner_age_comparison")
+    write(coverage.components(), "risk_coverage")
+    write(coverage.evidence(), "risk_coverage_evidence")
+    write(coverage.mixes(), "risk_coverage_mixes")
+    write(coverage.scenarios(), "risk_coverage_scenarios")
 
 
 def main() -> None:

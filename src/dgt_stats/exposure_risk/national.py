@@ -27,9 +27,12 @@ No national source measures kilometres by the driver's age, so four methods are 
 **Sensitivity.** :func:`sensitivity` recomputes the ratios under every alternative: the regional
 profiles (C), the licence-calibrated transfer (A2), the distance treatments of
 :data:`dgt_stats.emef.exposure.TRIP_VARIANTS` and the band midpoints, the survey years,
-professionals' unrecorded work driving, the older sample's employment set to the census, and the
-age mix of non-working days. The spread is reported as a sensitivity range beside the sampling
-interval, never as a confidence interval.
+professionals' unrecorded work driving, the older sample's employment set to the census, the
+age mix of non-working days, and the credible age mixes of the half of DGT's kilometres that the
+survey's working days do not cover (:mod:`dgt_stats.exposure_risk.coverage`), alone and combined
+with each regional profile. The spread is reported as a sensitivity range beside the sampling
+interval, never as a confidence interval. It is not a bound: other choices taken together would
+widen it further.
 
 **Numerator.** Car drivers involved in injury crashes in Spain in 2024 (DGT, tables 4.2 I and U),
 private cars with and without trailer; drivers of public-service cars (taxi and ride-hailing) are
@@ -584,8 +587,9 @@ def older_split(km_variant: str = "less taxi and ride-hailing") -> pd.DataFrame:
 def older_sensitivity() -> pd.DataFrame:
     """The 65-74 and 75+ ratios under every split assumption and every 65+ variant of
     :func:`sensitivity`: the profiles (EMEF areas, Madrid, licence-calibrated), the distance
-    treatments, survey years, professionals' work driving, the older sample's employment and the
-    weekend mixes."""
+    treatments, survey years, professionals' work driving, the older sample's employment, the
+    weekend mixes, and the credible age mixes of the kilometres the survey does not cover
+    (:mod:`dgt_stats.exposure_risk.coverage`), alone and with each other profile."""
     variants = [
         (source, variant, profile, km) for source, variant, profile, km in _variant_profiles()
     ]
@@ -618,16 +622,71 @@ def older_sensitivity() -> pd.DataFrame:
                     "ratio_75_plus": ratio["75+"],
                 }
             )
+    # The kilometres the survey does not cover, given credible age mixes, with every profile.
+    from dgt_stats.exposure_risk import coverage
+
+    for scenario in coverage.scenario_km():
+        if not scenario["credible"]:
+            continue
+        source, variant = _coverage_source(scenario)
+        for assumption, share in scenario["share_75_plus_of_65_plus"].items():
+            ratio = _older_ratios_to_reference(scenario["shares"], share)
+            rows.append(
+                {
+                    "source": source,
+                    "variant": variant,
+                    "assumption": assumption,
+                    "ratio_65_74": ratio["65-74"],
+                    "ratio_75_plus": ratio["75+"],
+                }
+            )
     return pd.DataFrame(rows)
+
+
+COVERAGE_SOURCE = "uncovered kilometres"
+COVERAGE_PROFILE_SOURCE = "regional profile with the uncovered kilometres"
+
+
+def _coverage_source(scenario: dict) -> tuple[str, str]:
+    """The sensitivity source and variant of a coverage scenario: Method A's profile alone, or
+    another profile combined with the scenario."""
+    from dgt_stats.exposure_risk import coverage
+
+    label = coverage.scenario_label(scenario)
+    if scenario["profile"] == CENTRAL_METHOD:
+        return COVERAGE_SOURCE, label
+    return COVERAGE_PROFILE_SOURCE, f"{scenario['profile'].split(': ', 1)[1]}; {label}"
 
 
 # ----------------------------------------------------------------------------- weekends
 
 
-# Non-working days (weekends and public holidays) are about 117 of 365 days. If a non-working
-# day carries as much car driving as a working day they hold 32% of annual km; if it carries 60%
-# as much, 22%. The two values bound the sensitivity analysis; neither is a measurement.
-NON_WORKING_SHARES = (0.22, 0.32)
+# Estatuto de los Trabajadores, art. 37.2: at most fourteen paid public holidays a year, two of
+# them local. Holidays that fall on a Sunday are usually moved to a weekday, so the working days
+# of a year are its weekdays less fourteen.
+PUBLIC_HOLIDAYS = 14
+# A non-working day's resident car driving relative to a working day's: 60% or as much. The two
+# values bound the sensitivity analysis; neither is a measurement (MOVILIA 2006 counts 0.83
+# times as many car trips on a weekend day, drivers and passengers, and longer trips).
+NON_WORKING_RATIOS = (0.6, 1.0)
+
+
+def working_days(year: int = YEAR) -> tuple[int, int]:
+    """Working and non-working days of ``year`` in Spain."""
+    weekdays = int(np.busday_count(f"{year}-01-01", f"{year + 1}-01-01"))
+    days = int((pd.Timestamp(f"{year + 1}-01-01") - pd.Timestamp(f"{year}-01-01")).days)
+    working = weekdays - PUBLIC_HOLIDAYS
+    return working, days - working
+
+
+def non_working_shares(year: int = YEAR) -> tuple[float, ...]:
+    """Share of annual km driven on non-working days if each carries each ratio of
+    :data:`NON_WORKING_RATIOS` of a working day's driving (about 22% and 32%)."""
+    working, other = working_days(year)
+    return tuple(other * r / (working + other * r) for r in NON_WORKING_RATIOS)
+
+
+NON_WORKING_SHARES = non_working_shares()
 
 
 EMEF_WEEKEND_PROXY = "overnight weekend stays away, driving (EMEF 2023, proxy)"
@@ -775,7 +834,10 @@ def _variant_profiles():
 
 def sensitivity() -> pd.DataFrame:
     """Every group's ratio to 45-64 (involved and killed per km) under each alternative choice,
-    beside the central Method A; the weekend mixes come from :func:`weekend_sensitivity`."""
+    beside the central Method A; the weekend mixes come from :func:`weekend_sensitivity`, and the
+    credible age mixes of the kilometres the survey does not cover from
+    :func:`dgt_stats.exposure_risk.coverage.scenario_km`, with Method A's profile and with each
+    other profile (the two largest uncertainties, taken together)."""
     counts = drivers_involved().set_index("group")
     central_km, _ = national_km(emef_profile())
     rows = []
@@ -799,6 +861,11 @@ def sensitivity() -> pd.DataFrame:
     for (mix, share), part in weekend.groupby(["non_working_age_mix", "non_working_share_of_km"]):
         km = part.set_index("group").share_of_km
         record("non-working days", f"{mix}, {share:.0%} of km", km)
+    from dgt_stats.exposure_risk import coverage
+
+    for scenario in coverage.scenario_km():
+        if scenario["credible"]:
+            record(*_coverage_source(scenario), scenario["shares"])
     return pd.DataFrame(rows)
 
 

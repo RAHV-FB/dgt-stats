@@ -23,7 +23,8 @@ the build; the rest run in the order below:
   checked, the published figures and the distance report reproduced, and working-day car-driving
   exposure by age (`emef_*.csv`);
 - `exposure_risk.py {barcelona,madrid,national,all}`: the Barcelona working-day design, the Madrid
-  survey's age profile, the national exposure methods and car drivers involved per kilometre by
+  survey's age profile, the national exposure methods, the share of DGT's car kilometres the
+  survey covers and the age-mix scenarios for the rest, and car drivers involved per kilometre by
   age (`risk_*.csv`, `edm_*.csv`);
 - `analyse.py {tables,figures,cards,all}`: the national result tables, every figure and its
   caption, and the cards of the two national models;
