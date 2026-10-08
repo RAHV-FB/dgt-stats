@@ -26,6 +26,7 @@ from dgt_stats.exposure_risk import calendar as day_calendar
 from dgt_stats.exposure_risk import coverage as coverage_design
 from dgt_stats.exposure_risk import national
 from dgt_stats.site.components import (
+    DOCS_URL,
     _fmt_dec,
     _fmt_pct,
     _join,
@@ -1508,6 +1509,17 @@ def page_drivers(captions: dict[str, str]) -> str:
         f"Madrid split's 95% sampling intervals ({', '.join(madrid_intervals[:-1])} and "
         f"{madrid_intervals[-1]}) are wide: {_join(clauses)}. The figures disagree with each "
         "other, so the check neither confirms nor rules out a rate above the 45–64 rate.</p>"
+    )
+    # What would narrow the range: the owner asked the page to name the missing data.
+    body += (
+        "<p>Two kinds of data would narrow this range. The EMEF's own records hold each "
+        "respondent's exact age, so its kilometres at 65–74 and at 75 and over, tabulated by "
+        "the Institut Metròpoli or the ATM, would replace the transfer of Madrid's pattern; a "
+        "request for those tables has been prepared but not sent "
+        f'(<a href="{DOCS_URL}/research/EMEF_DATA_REQUEST.md">the data request</a>). A survey '
+        "of driving on every day of the week across Spain, by exact age, would replace the "
+        "assumptions about weekends and about the kilometres the working-day survey does not "
+        "cover.</p>"
     )
     body += (
         "<p>Drivers who drive few kilometres, at any age, tend to have more crashes per "
