@@ -8,7 +8,7 @@ fatal,road,Road type,conventional,False,0.0207327,0.0105231,False
 fatal,road,Road type,autovía,False,0.0211307,0.0109211,False
 fatal,road,Road type,motorway,False,0.0226595,0.0124499,False
 fatal,road,Road type,other road,False,0.0178643,0.0076547,False
-fatal,crash_type,Crash type,side collision,True,0.00978981,0,False
+fatal,crash_type,Crash type,side or front-side collision,True,0.00978981,0,False
 fatal,crash_type,Crash type,rear-end or chain collision,False,0.00506269,-0.00472712,False
 fatal,crash_type,Crash type,pedestrian struck,False,0.0562944,0.0465046,False
 fatal,crash_type,Crash type,run-off or overturn,False,0.0201498,0.0103599,False
@@ -66,7 +66,7 @@ serious,road,Road type,conventional,False,0.109401,0.0237602,False
 serious,road,Road type,autovía,False,0.0888812,0.00324069,False
 serious,road,Road type,motorway,False,0.102336,0.0166955,False
 serious,road,Road type,other road,False,0.107299,0.0216589,False
-serious,crash_type,Crash type,side collision,True,0.0862741,0,False
+serious,crash_type,Crash type,side or front-side collision,True,0.0862741,0,False
 serious,crash_type,Crash type,rear-end or chain collision,False,0.0415977,-0.0446764,False
 serious,crash_type,Crash type,pedestrian struck,False,0.181299,0.0950246,False
 serious,crash_type,Crash type,run-off or overturn,False,0.0964538,0.0101797,False

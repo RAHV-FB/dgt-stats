@@ -180,6 +180,8 @@ MODEL_TABLES = (
     "q3_calibration",
     "q3_holdout_summary",
     "q3_year_stability",
+    "q3_period_refits",
+    "q3_location_contrasts",
     "q3_profiles",
     "q3_adverse_conditions",
     "q3_adverse_composition",

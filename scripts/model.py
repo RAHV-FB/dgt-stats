@@ -34,12 +34,15 @@ def main() -> int:
 
     fits: dict[str, models.Fit] = {}
     coefficients, effects, calibrations, summaries, stability = [], [], [], [], []
+    periods, locations = [], []
     for outcome in features.OUTCOMES:
         fit = models.fit_severity(frame, outcome)
         fits[outcome] = fit
         log.info("%s: fitted on %s crashes, %s events", outcome, f"{fit.n:,}", f"{fit.events:,}")
         coefficients.append(models.coefficient_table(frame, fit))
         effects.append(models.marginal_effects(frame, fit))
+        locations.append(models.location_contrasts(frame, fit))
+        periods.append(models.period_refits(frame, outcome))
         calibration, summary = models.holdout_check(frame, outcome)
         calibrations.append(calibration)
         summaries.append(summary)
@@ -71,6 +74,8 @@ def main() -> int:
         "q3_calibration": pd.concat(calibrations, ignore_index=True),
         "q3_holdout_summary": pd.concat(summaries, ignore_index=True),
         "q3_year_stability": pd.concat(stability, ignore_index=True),
+        "q3_period_refits": pd.concat(periods, ignore_index=True),
+        "q3_location_contrasts": pd.concat(locations, ignore_index=True),
         "q3_profiles": models.profiles(frame, fits),
         "q3_adverse_conditions": adverse,
         "q3_adverse_composition": composition,

@@ -225,7 +225,34 @@ def test_severity_page_leads_with_the_adverse_finding(built: Path) -> None:
     assert components._fmt_pct(float(holdout.loc["fatal", "brier_skill"])) in text
     # The full coefficient table is linked, not printed.
     assert 'href="tables/q3_model_coefficients.csv"' in text
-    assert text.count("<table>") <= 3
+    assert text.count("<table>") <= 4
+    # The summary names location beside crash type, from the joint zone and road-type contrast,
+    # and gives the junction association by coding period, not pooled across the change.
+    opening = re.search(r'<p class="summary">(.*?)</p>', text, re.S).group(1)
+    locations = pd.read_csv(TABLES_DIR / "q3_location_contrasts.csv")
+    conventional = locations[
+        (locations.outcome == "fatal")
+        & (locations.zone == "interurban road")
+        & (locations.road == "conventional")
+    ].iloc[0]
+    assert f"{conventional.odds_ratio:.2f} times the odds" in opening
+    assert "side or front-side collision" in opening
+    periods = pd.read_csv(TABLES_DIR / "q3_period_refits.csv")
+    junction = periods[
+        (periods.outcome == "fatal")
+        & (periods.level == "at a junction")
+        & (periods.scope == "all provinces")
+    ].set_index("period")
+    for period in ("before", "from"):
+        assert f"({junction.loc[period, 'odds_ratio']:.2f}" in opening
+    assert "in every model variant, and so does that of the junction" not in text
+    # The ranking is quoted with what the missing-value levels contribute to it.
+    assert f"{holdout.loc['fatal', 'auc_recorded_only']:.2f}" in text
+    assert f"{holdout.loc['fatal', 'auc_missing_only']:.2f}" in text
+    assert "the two regressions keep their ordering" in text
+    # The weekend is defined, and the file's per-crash counts are not called absent.
+    assert "from 20:00 on Friday" in text
+    assert "no fields for drivers" not in text
 
 
 def test_drivers_page_separates_the_two_questions(built: Path) -> None:

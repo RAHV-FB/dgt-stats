@@ -35,6 +35,8 @@ SEVERITY_TABLES = (
     "q3_adverse_conditions",
     "q3_adverse_exclusions",
     "q3_year_stability",
+    "q3_period_refits",
+    "q3_location_contrasts",
     "q3_recording_regime",
     "q3_regime_sensitivity",
 )
@@ -417,6 +419,8 @@ def severity_card(tables: dict[str, pd.DataFrame] | None = None) -> str:
                 "test events": f"{int(row.test_events):,}",
                 "training base rate": _pct(row.base_rate_train, 2),
                 "AUC": f"{row.auc:.3f}",
+                "AUC, recorded values only": f"{row.auc_recorded_only:.3f}",
+                "AUC, missing states only": f"{row.auc_missing_only:.3f}",
                 "Brier": f"{row.brier:.5f}",
                 "Brier, training base rate": f"{row.brier_train_rate:.5f}",
                 "Brier skill": _pct(row.brier_skill),
@@ -464,6 +468,24 @@ def severity_card(tables: dict[str, pd.DataFrame] | None = None) -> str:
     junction = adverse.loc[("full", "at a junction")]
     fatal_stability = stability[stability.outcome == "fatal"]
     outside = int((~fatal_stability.within_full_interval.astype(bool)).sum())
+    extra_terms = fatal_stability[~fatal_stability.is_largest.astype(bool)]
+    extra_labels = list(
+        dict.fromkeys(
+            f"{label.lower()} '{level}'"
+            for label, level in zip(extra_terms.predictor_label, extra_terms.level)
+        )
+    )
+    varying = fatal_stability.drop_duplicates(["predictor", "level"])
+    varying = varying[varying.heterogeneity_p < 0.05]
+    periods = tables["q3_period_refits"]
+    periods = periods[(periods.outcome == "fatal") & (periods.level == "at a junction")]
+    periods = periods.set_index(["period", "scope"])
+    junction_before = periods.loc[("before", "all provinces")]
+    junction_from = periods.loc[("from", "all provinces")]
+    junction_from_outside = periods.loc[("from", "outside Catalonia")]
+    locations = tables["q3_location_contrasts"]
+    locations = locations[(locations.outcome == "fatal") & ~locations.is_reference.astype(bool)]
+    strongest_location = locations.loc[locations.odds_ratio.idxmax()]
     ranked = fatal[
         (fatal.predictor != "year") & ~fatal.is_reference.astype(bool) & fatal.odds_ratio.notna()
     ]
@@ -476,6 +498,16 @@ def severity_card(tables: dict[str, pd.DataFrame] | None = None) -> str:
         "the models beat the training base rate": bool((holdout.brier_skill > 0).all()),
         "a missing-value level is among the strongest terms": nuisance_rank <= 3,
         "wet and junction odds are below 1": float(wet.or_high) < 1 and float(junction.or_high) < 1,
+        "the junction association is found before the recoding and not after": float(
+            junction_before.or_high
+        )
+        < 1
+        < float(junction_from.or_high)
+        and float(junction_from.or_low) < 1,
+        "outside Catalonia it is still found after the recoding": float(
+            junction_from_outside.or_high
+        )
+        < 1,
     }
     failed = [claim for claim, holds in checks.items() if not holds]
     if failed:
@@ -534,7 +566,10 @@ def severity_card(tables: dict[str, pd.DataFrame] | None = None) -> str:
         "the regressions are fitted on the training years with every predictor but the year "
         "and scored on the held-out years, which play no part in the fit or in the level "
         "merges. The Brier skill is the improvement on giving every held-out crash the training "
-        "years' share of the outcome.",
+        "years' share of the outcome. Part of the ranking comes from how the form was filled "
+        "in: the AUC with every missing-state level folded into its reference (recorded values "
+        "only), and with nothing but which fields were left unrecorded (missing states only), "
+        "are given beside it.",
         "",
         _markdown(pd.DataFrame(metric_rows)),
         "",
@@ -580,12 +615,36 @@ def severity_card(tables: dict[str, pd.DataFrame] | None = None) -> str:
         "variants (`q3_adverse_conditions`): wet surface without the weather predictor "
         f"{_or(wet.odds_ratio, wet.or_low, wet.or_high)}, at a junction "
         f"{_or(junction.odds_ratio, junction.or_low, junction.or_high)} (fatal).",
+        "- The junction odds ratio by coding period (`q3_period_refits`): "
+        f"{_or(junction_before.odds_ratio, junction_before.or_low, junction_before.or_high)} in "
+        f"{int(junction_before.first_year)}-{int(junction_before.last_year)}, "
+        f"{_or(junction_from.odds_ratio, junction_from.or_low, junction_from.or_high)} in "
+        f"{int(junction_from.first_year)}-{int(junction_from.last_year)}, after the junction "
+        "coding changed, mostly in Cataluña, where the share of crashes coded at a junction "
+        f"went from {_pct(junction_before.share_at_level_inside)} to "
+        f"{_pct(junction_from.share_at_level_inside)}; outside Cataluña "
+        f"{_or(junction_from_outside.odds_ratio, junction_from_outside.or_low, junction_from_outside.or_high)} "
+        "in the later period. The full model's junction odds ratio pools the two regimes.",
+        "- Zone and road type split one location between them; their joint contrasts against an "
+        "urban street, with the covariance of the two terms (`q3_location_contrasts`), run up to "
+        f"{_or(strongest_location.odds_ratio, strongest_location.or_low, strongest_location.or_high)} "
+        f"({strongest_location.zone}, {strongest_location.road}).",
         f"- Hail or snow with the {int(exclusions.n_excluded.max())} provinces that record most "
         f"of it removed: {_or(*exclusions.iloc[-1][['odds_ratio', 'or_low', 'or_high']])} "
         "(`q3_adverse_exclusions`).",
         f"- Year-by-year refits (`q3_year_stability`): {outside} of {len(fatal_stability)} "
-        f"estimates of the {models.STABILITY_TERMS} largest non-nuisance terms fall outside the "
-        "full model's interval.",
+        f"estimates of the {models.STABILITY_TERMS} largest non-nuisance terms and of "
+        f"{' and '.join(extra_labels)} fall outside the full model's interval. Of the "
+        f"{fatal_stability.drop_duplicates(['predictor', 'level']).shape[0]} terms, those whose "
+        "yearly estimates vary by more than their yearly errors allow (Cochran's Q, p < 0.05): "
+        + (
+            "; ".join(
+                f"{label.lower()} '{level}'"
+                for label, level in zip(varying.predictor_label, varying.level)
+            )
+            or "none"
+        )
+        + ".",
         "",
         "## Valid interpretation",
         "",
@@ -607,8 +666,9 @@ def severity_card(tables: dict[str, pd.DataFrame] | None = None) -> str:
         "",
         "## Limitations",
         "",
-        "- DGT's national microdata have one row per crash and no driver, vehicle, person or "
-        "speed fields.",
+        "- DGT's national microdata have one row per crash, with counts of the people killed "
+        "and injured, and no record of individual drivers, vehicles or people and no speed "
+        "field.",
         "- Recording practice differs between forces and years: the missing states concentrate "
         "in some provinces and years, and coding changes (urban road types in 2024, junctions "
         "from 2023, road-type codes 5 and 6 in 2021) move crashes between levels.",

@@ -563,7 +563,8 @@ listed with their results on the data page.
 ## 13. Supporting analysis: associations in DGT crash records (not a predictive model) (`features.py`, `models.py`, `scripts/model.py`)
 
 Listed under "Spain: supporting" in the navigation, with a note that says why. DGT's national crash
-microdata carry no driver, vehicle or speed records, and their audit
+microdata carry one row per crash, with counts of the people killed and injured but no record of
+individual drivers, vehicles or people and no speed field, and their audit
 ([`DGT_MICRODATA_AUDIT.md`](DGT_MICRODATA_AUDIT.md), section 21) keeps them out of model training:
 the DGT microdata do not train a predictive model. This analysis describes which recorded
 circumstances go with a fatal or serious outcome, given an injury crash. The model card is
@@ -571,8 +572,11 @@ circumstances go with a fatal or serious outcome, given an injury crash. The mod
 
 Two logistic regressions on all 875,013 crashes: the odds that a crash is fatal, and that it is
 serious. Predictors are the circumstances the crash record carries: zone, road type, crash type,
-junction, lighting, weather, surface, alignment, time of day, weekend, number of vehicles and year.
-Road type comes from the road-type code itself (`TIPO_VIA`), with codes 4 to 6 as conventional
+junction, lighting, weather, surface, alignment, time of day, weekend (Friday from 20:00 to the end
+of Sunday, section 3), number of vehicles and year. The crash-type reference level holds DGT codes
+2 (front-side, "fronto-lateral") and 3 (side, "lateral") and is labelled "side or front-side
+collision"; the regional pages keep the two apart. Road type comes from the road-type code itself
+(`TIPO_VIA`), with codes 4 to 6 as conventional
 roads. DGT recoded most code-5 crashes as code 6 from 2021; grouping the two keeps that recoding
 inside one level, and the model card states it. Each predictor is an ordered categorical whose
 reference is its most common level. Missing states are separate levels, as in section 3, never
@@ -586,12 +590,46 @@ The fit is main effects only, by iteratively reweighted least squares in `numpy`
 cluster-robust sandwich covariance by province. It reports odds ratios with 95 % intervals, average
 marginal effects, predicted probabilities for six named crash profiles, and three checks: a holdout
 (fit on 2016–2022 with every predictor but the year, scored on 2023–2024), year-by-year stability
-of the ten largest effects, and separation. The holdout checks that the associations carry across
-years; it does not measure a predictive tool. Small levels are merged on the training years alone,
-so the held-out years decide nothing about the model scored on them (lighting and surface "not
-specified" are the levels merged). The Brier skill is measured against giving every held-out
-crash the training years' share of the outcome (1.6 % fatal, 9.4 % serious): it is 0.042 for the
-fatal outcome and 0.053 for the serious one (`q3_holdout_summary.csv`).
+of the ten largest effects and of the junction and wet-surface terms, and separation. The holdout
+checks that the associations carry across years; it does not measure a predictive tool. Small
+levels are merged on the training years alone, so the held-out years decide nothing about the
+model scored on them (lighting and surface "not specified" are the levels merged). The Brier skill
+is measured against giving every held-out crash the training years' share of the outcome (1.6 %
+fatal, 9.4 % serious): it is 0.042 for the fatal outcome and 0.053 for the serious one
+(`q3_holdout_summary.csv`). The fatal ROC-AUC of 0.80 is partly recording: refitted with every
+missing-state level folded into its reference it is 0.78, and the missing-state levels alone give
+0.54 (`auc_recorded_only`, `auc_missing_only`); over the audit's wider set of 30 fields, which
+fields were left blank gives 0.72 on its own (`dgt_audit_artefacts.csv`). The page states this
+beside the AUC.
+
+**Zone and road type together** (`models.location_contrasts`). The two predictors describe one
+location between them, so each odds ratio is read against the other's reference. The joint
+contrast of every zone and road-type combination with at least 500 crashes against a street-zone
+urban street adds the two log odds ratios and takes its variance from their covariance
+(`q3_location_contrasts.csv`): a conventional interurban road has 6.69 (4.96–9.02) times the odds
+of a death, of the same size as a head-on collision (5.66) or a pedestrian struck (6.44); the four
+interurban road types run from 5.72 to 7.34, and a conventional road through a town (zone "urban
+crossing") reaches 8.74. The page names crash type and location together as the strongest
+associations.
+
+**The junction coding change** (`models.period_refits`). From 2023 DGT's records code junctions
+differently (the junction-type field stops being empty when the crash is not at a junction), and
+the at-junction share rises from 38 % to 44 % nationally, almost all of it in Catalonia (40 % of
+Catalan crashes in 2016–2022, 63 % in 2023–2024, against 39 % and 38 % elsewhere). Refitted
+on each period, with every predictor, the fatal junction odds ratio is 0.69 (0.65–0.72) in
+2016–2022 and 0.98 (0.76–1.28) in 2023–2024; outside Catalonia it is 0.69 and 0.74 (0.66–0.83).
+The full model's 0.75 pools the two regimes, and the page reads the junction result from the
+earlier years. None of the adverse-condition variants (section 13.1) splits the years.
+
+**Year-by-year refits** (`models.year_stability`). Each yearly estimate has its own sampling
+error, so a yearly odds ratio outside the full model's interval is expected now and then. The
+table also says whether the full model's value lies inside the year's own interval, and gives
+Cochran's Q for each term across years with its chi-squared p-value. For the fatal outcome 39 of
+the 108 yearly estimates fall outside the full interval, 20 of them road-type terms, whose odds
+ratios swing from year to year against the zone odds ratio (the two split one location contrast);
+by Q, only the junction term varies by more than its yearly errors allow (p = 0.005), at 0.63 to
+0.79 in every year to 2022 and 1.00 in 2023 and 2024. No other departure is tied to a coding
+change.
 
 **Nuisance levels and the recording regime** (`features.is_nuisance`, `models.recording_regime`,
 `models.regime_sensitivity`). The missing states record how a police force fills in the form,

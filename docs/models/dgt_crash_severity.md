@@ -21,7 +21,7 @@ Every predictor is a circumstance the police record on the crash form. Levels wi
 |---|---|---|---|
 | Zone | `ZONA` | street | interurban road; urban crossing; urban motorway or dual carriageway |
 | Road type | `TIPO_VIA` | urban street | conventional; autovía; motorway; other road |
-| Crash type | `TIPO_ACCIDENTE` | side collision | rear-end or chain collision; pedestrian struck; run-off or overturn; head-on collision; fall; object or animal struck; other crash type |
+| Crash type | `TIPO_ACCIDENTE` | side or front-side collision | rear-end or chain collision; pedestrian struck; run-off or overturn; head-on collision; fall; object or animal struck; other crash type |
 | Junction | `NUDO` | not at a junction | at a junction |
 | Lighting | `CONDICION_ILUMINACION` | daylight | dusk or dawn; dark, street lighting; dark, no lighting; not specified (nuisance) |
 | Weather | `CONDICION_METEO` | clear | cloudy; rain; hail or snow; unknown (nuisance); not specified (nuisance) |
@@ -34,12 +34,12 @@ Every predictor is a circumstance the police record on the crash form. Levels wi
 
 ## Holdout check
 
-A check that the associations carry across years, not a measure of a predictive tool: the regressions are fitted on the training years with every predictor but the year and scored on the held-out years, which play no part in the fit or in the level merges. The Brier skill is the improvement on giving every held-out crash the training years' share of the outcome.
+A check that the associations carry across years, not a measure of a predictive tool: the regressions are fitted on the training years with every predictor but the year and scored on the held-out years, which play no part in the fit or in the level merges. The Brier skill is the improvement on giving every held-out crash the training years' share of the outcome. Part of the ranking comes from how the form was filled in: the AUC with every missing-state level folded into its reference (recorded values only), and with nothing but which fields were left unrecorded (missing states only), are given beside it.
 
-| target | train years | test years | test crashes | test events | training base rate | AUC | Brier | Brier, training base rate | Brier skill |
-|---|---|---|---|---|---|---|---|---|---|
-| fatal | 2016-2022 | 2023-2024 | 203,302 | 3,336 | 1.64% | 0.801 | 0.01547 | 0.01614 | 4.2% |
-| serious | 2016-2022 | 2023-2024 | 203,302 | 19,820 | 9.40% | 0.693 | 0.08338 | 0.08800 | 5.3% |
+| target | train years | test years | test crashes | test events | training base rate | AUC | AUC, recorded values only | AUC, missing states only | Brier | Brier, training base rate | Brier skill |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| fatal | 2016-2022 | 2023-2024 | 203,302 | 3,336 | 1.64% | 0.801 | 0.783 | 0.538 | 0.01547 | 0.01614 | 4.2% |
+| serious | 2016-2022 | 2023-2024 | 203,302 | 19,820 | 9.40% | 0.693 | 0.671 | 0.537 | 0.08338 | 0.08800 | 5.3% |
 
 In the top decile of fitted probability the observed share is fatal 7.2% against 7.6% predicted; serious 24.6% against 25.2% predicted (`q3_calibration`).
 
@@ -85,8 +85,10 @@ The fatal model refitted without provinces 8, 17, 25, 43: 32 of the 32 odds rati
 ## Other checks
 
 - Adverse conditions under 8 model variants (`q3_adverse_conditions`): wet surface without the weather predictor 0.56 (0.49 to 0.64), at a junction 0.75 (0.69 to 0.81) (fatal).
+- The junction odds ratio by coding period (`q3_period_refits`): 0.69 (0.65 to 0.72) in 2016-2022, 0.98 (0.76 to 1.28) in 2023-2024, after the junction coding changed, mostly in Cataluña, where the share of crashes coded at a junction went from 39.6% to 62.8%; outside Cataluña 0.74 (0.66 to 0.83) in the later period. The full model's junction odds ratio pools the two regimes.
+- Zone and road type split one location between them; their joint contrasts against an urban street, with the covariance of the two terms (`q3_location_contrasts`), run up to 8.74 (6.52 to 11.71) (urban crossing, conventional).
 - Hail or snow with the 3 provinces that record most of it removed: 0.66 (0.46 to 0.93) (`q3_adverse_exclusions`).
-- Year-by-year refits (`q3_year_stability`): 32 of 90 estimates of the 10 largest non-nuisance terms fall outside the full model's interval.
+- Year-by-year refits (`q3_year_stability`): 39 of 108 estimates of the 10 largest non-nuisance terms and of junction 'at a junction' and road surface 'wet' fall outside the full model's interval. Of the 12 terms, those whose yearly estimates vary by more than their yearly errors allow (Cochran's Q, p < 0.05): junction 'at a junction'.
 
 ## Valid interpretation
 
@@ -103,7 +105,7 @@ The fatal model refitted without provinces 8, 17, 25, 43: 32 of the 32 odds rati
 
 ## Limitations
 
-- DGT's national microdata have one row per crash and no driver, vehicle, person or speed fields.
+- DGT's national microdata have one row per crash, with counts of the people killed and injured, and no record of individual drivers, vehicles or people and no speed field.
 - Recording practice differs between forces and years: the missing states concentrate in some provinces and years, and coding changes (urban road types in 2024, junctions from 2023, road-type codes 5 and 6 in 2021) move crashes between levels.
 - Standard errors are clustered by province; with 4 provinces removed the clustering changes too.
 - The holdout check scores later years with a model that has no year term, so a change in recording between the training and test years counts as model error.

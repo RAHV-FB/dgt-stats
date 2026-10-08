@@ -69,22 +69,17 @@ def _count(value: int) -> str:
     return NUMBER_WORDS[value] if 0 <= value < len(NUMBER_WORDS) else _fmt_int(value)
 
 
-def _coding_break_years() -> tuple[int, int]:
-    """The year the junction fields were first coded differently, and the year most crashes coded
-    as road type "other" became urban, both read from the tables behind data.html's coding breaks."""
+def _junction_break_year() -> int:
+    """The year the junction fields were first coded differently, read from the table behind
+    data.html's coding breaks: the one year in which the junction-type field stops being empty
+    for a large share of crashes."""
     missing = read_table("missingness_by_year")
     info = missing[missing.column == "NUDO_INFO"].set_index("year").share_empty.sort_index()
     drops = info.diff()
     junction = [int(year) for year in drops[drops < -JUNCTION_BREAK_DROP].index]
-    other = read_table("q2_other_road_by_period")
-    earlier, later = other.iloc[0], other.iloc[-1]
-    if (
-        len(junction) != 1
-        or not str(later.period).isdigit()
-        or not float(later.street_share) > 0.5 > float(earlier.street_share)
-    ):
-        raise ValueError("severity page: the coding breaks are no longer one year each")
-    return junction[0], int(later.period)
+    if len(junction) != 1:
+        raise ValueError("severity page: the junction coding break is no longer one year")
+    return junction[0]
 
 
 def page_severity(captions: dict[str, str]) -> str:
@@ -101,6 +96,13 @@ def page_severity(captions: dict[str, str]) -> str:
     stability = stability[stability.outcome == "fatal"]
     exclusions = read_table("q3_adverse_exclusions")
     composition = read_table("q3_adverse_composition")
+    periods = read_table("q3_period_refits")
+    periods = periods[periods.outcome == "fatal"].set_index(
+        ["period", "scope", "predictor", "level"]
+    )
+    locations = read_table("q3_location_contrasts")
+    locations = locations[locations.outcome == "fatal"]
+    artefacts = read_table("dgt_audit_artefacts")
     audit = read_table("dgt_audit_checks")
     selected = read_table("ml_selected")
     catalonia_model = selected[selected.primary].set_index("model").loc["catalonia_crash_severity"]
@@ -111,7 +113,6 @@ def page_severity(captions: dict[str, str]) -> str:
 
     wet_alone = float(adverse.loc[("no_weather", "wet"), "odds_ratio"])
     wet_full = float(adverse.loc[("full", "wet"), "odds_ratio"])
-    junction_full = float(adverse.loc[("full", "at a junction"), "odds_ratio"])
     first_year, last_year = int(holdout.first_train_year.min()), int(holdout.last_test_year.max())
     train_span = f"{int(holdout.first_train_year.min())}–{int(holdout.last_train_year.max())}"
     test_span = f"{int(holdout.first_test_year.min())}–{int(holdout.last_test_year.max())}"
@@ -126,17 +127,56 @@ def page_severity(captions: dict[str, str]) -> str:
     biggest = largest.iloc[0]
     n_excluded = int(kept.n.iloc[0] - kept.n_without.iloc[0])
 
-    # The yearly refits: which years depart most from the full model, and the coding breaks.
-    outside_by_year = (~stability.within_full_interval.astype(bool)).groupby(stability.year).sum()
-    top_years = sorted(int(year) for year in outside_by_year.nlargest(2).index)
-    rest_of_years = outside_by_year.drop(index=top_years)
-    outside = int(outside_by_year.sum())
+    # The yearly refits: how many estimates leave the full model's interval, which terms vary
+    # between years by more than their yearly errors allow, and the junction coding break.
+    outside = int((~stability.within_full_interval.astype(bool)).sum())
+    full_outside_year = int((~stability.full_within_year_interval.astype(bool)).sum())
     outside_by_term = (
         (~stability.within_full_interval.astype(bool)).groupby(stability.predictor_label).sum()
     )
-    terms = stability[["predictor", "level"]].drop_duplicates()
-    term_labels = list(dict.fromkeys(stability.predictor_label.str.lower().str.replace(" ", "-")))
-    junction_break, road_type_break = _coding_break_years()
+    terms = stability[["predictor", "level", "is_largest", "heterogeneity_p"]].drop_duplicates(
+        ["predictor", "level"]
+    )
+    largest_terms = terms[terms.is_largest.astype(bool)]
+    largest_labels = list(
+        dict.fromkeys(stability[stability.is_largest.astype(bool)].predictor_label.str.lower())
+    )
+    hyphenated = [label.replace(" ", "-") for label in largest_labels]
+    kinds = ", ".join(hyphenated[:-1]) + " or " + hyphenated[-1]
+    varying = terms[terms.heterogeneity_p < 0.05]
+    junction_years = stability[stability.level == "at a junction"].set_index("year").odds_ratio
+    yearly = stability.pivot_table(index="year", columns=["predictor", "level"], values="log_odds")
+    zone_road = float(yearly[("zone", "interurban road")].corr(yearly[("road", "conventional")]))
+    junction_break = _junction_break_year()
+    junction_before_years = junction_years[junction_years.index < junction_break]
+    junction_after_years = junction_years[junction_years.index >= junction_break]
+    after_values = {f"{value:.2f}" for value in junction_after_years}
+    after_text = (
+        f"{after_values.pop()} in {_join([str(year) for year in junction_after_years.index])}"
+        if len(after_values) == 1
+        else _join([f"{value:.2f} in {year}" for year, value in junction_after_years.items()])
+    )
+
+    # The junction association before and after the coding break, and outside Catalonia.
+    junction_key = ("junction", "at a junction")
+    junction_before = periods.loc[("before", "all provinces", *junction_key)]
+    junction_from = periods.loc[("from", "all provinces", *junction_key)]
+    junction_from_outside = periods.loc[("from", "outside Catalonia", *junction_key)]
+    junction_before_outside = periods.loc[("before", "outside Catalonia", *junction_key)]
+
+    # Zone and road type read together: the joint contrasts against an urban street.
+    shown_locations = locations[~locations.is_reference.astype(bool)]
+    conventional = shown_locations[
+        (shown_locations.zone == "interurban road") & (shown_locations.road == "conventional")
+    ].iloc[0]
+    interurban_locations = shown_locations[shown_locations.zone == "interurban road"]
+    crossings = shown_locations[
+        (shown_locations.zone == "urban crossing") & (shown_locations.road == "conventional")
+    ]
+    strongest_location = shown_locations.loc[shown_locations.odds_ratio.idxmax()]
+
+    # How much of the holdout ranking the missing-value levels carry.
+    artefact = artefacts[artefacts.target.str.startswith("death within 30 days")].iloc[0]
 
     # Where crashes in the rain happen, against all crashes.
     rain_zone = composition[(composition.level == "rain") & (composition.dimension == "zone")]
@@ -165,6 +205,23 @@ def page_severity(captions: dict[str, str]) -> str:
     top_nuisance = strongest[strongest.is_nuisance.astype(bool)].iloc[0]
     fatal_holdout, serious_holdout = holdout.loc["fatal"], holdout.loc["serious"]
 
+    # The strongest single terms outside zone and road type, by distance from 1.
+    single = strength[
+        ~strength.is_nuisance.astype(bool)
+        & ~strength.index.get_level_values("predictor").isin(["zone", "road"])
+    ]
+    single = single.reindex(
+        single.odds_ratio.map(lambda v: abs(math.log(v))).sort_values(ascending=False).index
+    )
+    head_on_row = fatal.loc[("crash_type", "head-on collision")]
+    pedestrian_row = fatal.loc[("crash_type", "pedestrian struck")]
+    strongest_three = min(
+        abs(math.log(float(row.odds_ratio))) for row in (head_on_row, pedestrian_row, conventional)
+    )
+
+    def overlaps(a: pd.Series, b: pd.Series) -> bool:
+        return float(a.or_low) <= float(b.or_high) and float(b.or_low) <= float(a.or_high)
+
     checks = {
         "the audit keeps DGT's file out of model training": not str(
             audit.decision.iloc[0]
@@ -173,6 +230,25 @@ def page_severity(captions: dict[str, str]) -> str:
             zip(ranked.predictor.iloc[:2], ranked.level.iloc[:2], strict=True)
         )
         == {("crash_type", "head-on collision"), ("crash_type", "pedestrian struck")},
+        # The summary names crash type and location together as the strongest associations.
+        "outside zone and road type the two strongest terms are the same two crash types": set(
+            single.index[:2]
+        )
+        == {("crash_type", "head-on collision"), ("crash_type", "pedestrian struck")},
+        "the conventional interurban contrast is as large as the crash-type terms": overlaps(
+            conventional, head_on_row
+        )
+        and overlaps(conventional, pedestrian_row),
+        "no other single term outside zone and road type comes close": bool(
+            single.iloc[2:].odds_ratio.map(lambda v: abs(math.log(v))).max() < strongest_three / 2
+        ),
+        "every interurban road type goes with higher odds than an urban street": bool(
+            (interurban_locations.or_low > 1).all()
+        )
+        and len(interurban_locations) == 4,
+        "a conventional road through a town has the largest location contrast": len(crossings) == 1
+        and strongest_location.zone == "urban crossing"
+        and strongest_location.road == "conventional",
         "leaving out surface strengthens rain, and leaving out weather strengthens wet": float(
             adverse.loc[("no_surface", "rain"), "odds_ratio"]
         )
@@ -194,6 +270,29 @@ def page_severity(captions: dict[str, str]) -> str:
         "the junction association is present in every variant": bool(
             (adverse.xs("at a junction", level="level").or_high < 1).all()
         ),
+        "the period refits split at the junction coding break": int(junction_from.first_year)
+        == junction_break
+        and int(junction_before.last_year) == junction_break - 1,
+        "a junction goes with lower odds of a death before the break": float(
+            junction_before.or_high
+        )
+        < 1,
+        "and not after it": float(junction_from.or_low) < 1 < float(junction_from.or_high),
+        "outside Catalonia the junction association is found in both periods": float(
+            junction_from_outside.or_high
+        )
+        < 1
+        and float(junction_before_outside.or_high) < 1,
+        "the share of Catalan crashes coded at a junction jumps at the break": float(
+            junction_from.share_at_level_inside
+        )
+        - float(junction_before.share_at_level_inside)
+        > 0.15,
+        "while elsewhere it barely moves": abs(
+            float(junction_from_outside.share_at_level)
+            - float(junction_before_outside.share_at_level)
+        )
+        < 0.03,
         "crashes in the rain lie on interurban roads more often than crashes overall": float(
             rain_interurban.share_of_level
         )
@@ -246,13 +345,30 @@ def page_severity(captions: dict[str, str]) -> str:
         "the fitted probabilities improve little on the base rate": float(fatal_holdout.brier_skill)
         < 0.1
         and float(serious_holdout.brier_skill) < 0.1,
-        "the two years with most departures each have more than any other year": int(
-            outside_by_year.loc[top_years].min()
+        "the largest terms are all crash type, zone or road type": set(largest_terms.predictor)
+        <= {"crash_type", "zone", "road"},
+        "road type accounts for most departures from the full model's interval": str(
+            outside_by_term.idxmax()
         )
-        > int(rest_of_years.max()),
-        "those are the years of the junction and road-type coding breaks": top_years
-        == sorted({junction_break, road_type_break})
-        and len(top_years) == 2,
+        == "Road type",
+        "zone and road-type odds ratios move against each other from year to year": zone_road
+        < -0.5,
+        "only the junction term varies between years by more than its errors allow": list(
+            zip(varying.predictor, varying.level, strict=True)
+        )
+        == [junction_key],
+        "the yearly junction odds ratio is below 0.85 in every year before the break": bool(
+            (junction_before_years < 0.85).all()
+        ),
+        "and about 1 in every year from it": bool(junction_after_years.between(0.9, 1.1).all()),
+        "the missing-value levels rank a little on their own and add a little": 0.5
+        < float(fatal_holdout.auc_missing_only)
+        < float(fatal_holdout.auc_recorded_only)
+        < float(fatal_holdout.auc),
+        "the audit's blank fields rank fatal crashes well on their own": float(
+            artefact.roc_auc_unrecorded_flags_only
+        )
+        > 0.65,
     }
     failed = [claim for claim, holds in checks.items() if not holds]
     if failed:
@@ -260,33 +376,46 @@ def page_severity(captions: dict[str, str]) -> str:
 
     head_on = fatal.loc[("crash_type", "head-on collision")]
     pedestrian = fatal.loc[("crash_type", "pedestrian struck")]
+    reference_crash = str(features.PREDICTORS["crash_type"]["levels"][0])  # type: ignore[index]
+
+    def span(row: pd.Series) -> str:
+        return f"{int(row.first_year)}–{int(row.last_year)}"
 
     body = summary(
-        "Among the injury crashes in DGT's national records, a death was most strongly "
-        "associated with the type of crash: compared with a side collision, a head-on "
-        f"collision had {float(head_on.odds_ratio):.2f} times the odds of a death and a "
-        f"pedestrian struck {float(pedestrian.odds_ratio):.2f} times, other recorded "
-        "circumstances held equal. Crashes in wet conditions and at junctions were less often "
-        f"fatal than otherwise similar crashes: {wet_alone:.2f} times the odds of a death for "
-        f"wet conditions and {junction_full:.2f} times at a junction. An odds ratio of 1 would "
-        "mean no difference. These are associations in police records of crashes that "
-        "happened, given that an injury crash occurred. They say nothing about how often crashes "
-        "happen, and they do not show why some crashes are deadlier."
+        "Among the injury crashes in DGT's national records, the odds of a death went most "
+        "strongly with the type of crash and with where it happened. Compared with a "
+        f"{reference_crash}, a head-on collision had {float(head_on.odds_ratio):.2f} times the "
+        f"odds of a death and a pedestrian struck {float(pedestrian.odds_ratio):.2f} times; "
+        "compared with a crash on an urban street, a crash on a conventional interurban road "
+        f"had {float(conventional.odds_ratio):.2f} times the odds (95% interval "
+        f"{float(conventional.or_low):.2f}–{float(conventional.or_high):.2f}), other recorded "
+        "circumstances held equal. Crashes in wet conditions were less often fatal than "
+        f"otherwise similar crashes, at {wet_alone:.2f} times the odds of a death. So were "
+        f"crashes at junctions in {span(junction_before)} "
+        f"({float(junction_before.odds_ratio):.2f} times), but not in {span(junction_from)} "
+        f"({float(junction_from.odds_ratio):.2f}), after DGT began to code junctions "
+        "differently, mostly in Catalonia. An odds ratio of 1 would mean no difference. These "
+        "are associations in police records of crashes that happened, given that an injury "
+        "crash occurred. They say nothing about how often crashes happen, and they do not show "
+        "why some crashes are deadlier."
     )
 
     body += "<h2>The records and the regression</h2>"
     body += (
         f"<p>DGT's national records hold {_fmt_int(numbers['n'])} injury crashes for "
         f"{first_year}–{last_year}, of which {_fmt_pct(numbers['fatal_share'])} had at least "
-        "one death within 30 days. The file has one row per crash and no fields for drivers, "
-        "vehicles or people. Its fields are recorded too unevenly between provinces to train a "
+        "one death within 30 days. The file has one row per crash, with counts of the people "
+        "killed and injured, but no record of individual drivers, vehicles or people. Its "
+        "fields are recorded too unevenly between provinces to train a "
         'predictive model (<a href="sources.html">data sources and scope</a>), but they can '
         "describe associations. Two logistic regressions are fitted, one for at least one death "
         "within 30 days and one for a death or a hospitalisation; an odds ratio compares the "
         "odds of the outcome with a circumstance present and without it, holding the other "
         "circumstances equal. The circumstances are those the police record: zone, "
         "road type, crash type, junction, lighting, weather, road surface, alignment, time of "
-        "day, weekend, number of vehicles and year. A missing value is kept as a level of its "
+        "day, weekend (from 20:00 on Friday to the end of Sunday), number of vehicles and year. "
+        "Zone and road type describe one location between them, so they are read together. A "
+        "missing value is kept as a level of its "
         "own, so no crash is dropped, and levels with fewer than "
         f"{_fmt_int(features.MIN_LEVEL_CRASHES)} crashes are merged into their reference "
         "category. The intervals are 95% confidence intervals, with standard errors clustered "
@@ -311,8 +440,25 @@ def page_severity(captions: dict[str, str]) -> str:
         "crashes. Fitting interurban roads and urban streets separately holds that context "
         f"fixed: the wet-surface odds ratio is {orr('interurban', 'wet')} on interurban roads "
         f"and {orr('street', 'wet')} on urban streets. Its interval lies below 1 in every model "
-        "variant, and so does that of the junction association, "
-        f"{orr('full', 'at a junction')} in the full model.</p>"
+        "variant.</p>"
+        "<p>The junction association is below 1 in every variant too, at "
+        f"{orr('full', 'at a junction')} in the full model, but that figure pools two ways of "
+        "recording junctions, and no variant separates the years. From "
+        f"{junction_break} DGT's records code junctions differently, and almost all of the "
+        "change is in Catalonia, where the share of crashes recorded at a junction went from "
+        f"{_fmt_pct(float(junction_before.share_at_level_inside), 0)} in "
+        f"{span(junction_before)} to {_fmt_pct(float(junction_from.share_at_level_inside), 0)} "
+        f"in {span(junction_from)}, against "
+        f"{_fmt_pct(float(junction_before_outside.share_at_level), 0)} and "
+        f"{_fmt_pct(float(junction_from_outside.share_at_level), 0)} elsewhere. Fitted on each "
+        "period apart, crashes at a junction had "
+        f"{_ci(float(junction_before.odds_ratio), float(junction_before.or_low), float(junction_before.or_high))} "
+        f"times the odds of a death in {span(junction_before)} and "
+        f"{_ci(float(junction_from.odds_ratio), float(junction_from.or_low), float(junction_from.or_high))} "
+        f"in {span(junction_from)}. Outside Catalonia the later figure is "
+        f"{_ci(float(junction_from_outside.odds_ratio), float(junction_from_outside.or_low), float(junction_from_outside.or_high))}, "
+        "so the association disappears only where the coding changed. The results for "
+        "junctions are read from the earlier years.</p>"
     )
     body += figure(
         "s2_adverse_conditions",
@@ -444,6 +590,41 @@ def page_severity(captions: dict[str, str]) -> str:
         "with 95% intervals.",
         captions,
     )
+    body += (
+        "<p>Zone and road type describe one location between them, so the figure's zone and "
+        "road-type odds ratios are each read against the other's reference. Added together, "
+        "with the "
+        "covariance of the two estimates, they give the odds of a death on each kind of road "
+        "against a crash on an urban street: from "
+        f"{float(interurban_locations.odds_ratio.min()):.2f} to "
+        f"{float(interurban_locations.odds_ratio.max()):.2f} on the four interurban road types, "
+        f"and {float(strongest_location.odds_ratio):.2f} on conventional roads where they run "
+        "through a town (the zone DGT calls an urban crossing).</p>"
+    )
+    location_rows = pd.DataFrame(
+        {
+            "Zone": shown_locations.zone.str.capitalize(),
+            "Road type": shown_locations.road.map(
+                lambda v: PROFILE_TERMS.get(v.capitalize(), v.capitalize())
+            ),
+            "Crashes": shown_locations.crashes,
+            "Odds ratio of a death (95% interval)": [
+                _ci(float(r.odds_ratio), float(r.or_low), float(r.or_high))
+                for r in shown_locations.itertuples()
+            ],
+        }
+    )
+    body += technical(
+        "Zone and road type together",
+        table(
+            location_rows,
+            "Odds ratio of a death for each combination of zone and road type with at least "
+            f"{_fmt_int(features.MIN_LEVEL_CRASHES)} crashes, against a crash on an urban street "
+            "in the street zone, from the full model with the covariance of the two terms; 95% "
+            "intervals clustered by province.",
+            {"Crashes": "int"},
+        ),
+    )
     profiles = profiles.rename(
         columns={
             "profile": "Crash profile",
@@ -461,9 +642,16 @@ def page_severity(captions: dict[str, str]) -> str:
     body += technical(
         "How stable the associations are over time",
         f"<p>Fitted on {train_span} without a year term and applied to the crashes of "
-        f"{test_span}, the fatal-outcome regression keeps its ordering of crashes: ROC-AUC "
+        f"{test_span}, the two regressions keep their ordering of crashes: ROC-AUC "
         f"{numbers['auc_fatal']:.2f} for a death and {numbers['auc_serious']:.2f} for a death "
-        "or a hospitalisation (0.5 is chance and 1 a perfect ranking). This is not the task of "
+        "or a hospitalisation (0.5 is chance and 1 a perfect ranking). Part of that ordering "
+        "comes from how the form was filled in rather than from the crash: refitted with every "
+        "level that records a missing value folded into its reference, the regression for a "
+        f"death reaches {float(fatal_holdout.auc_recorded_only):.2f}, and those levels on their "
+        f"own reach {float(fatal_holdout.auc_missing_only):.2f}. Across the wider set of fields "
+        "the DGT microdata audit examines, which fields were left blank ranks fatal crashes "
+        f"with a ROC-AUC of {float(artefact.roc_auc_unrecorded_flags_only):.2f} on its own, one "
+        "reason the file is not used to train a predictive model. This is not the task of "
         'the <a href="severity-models.html">Catalonia crash-severity model</a>, whose ROC-AUC of '
         f"{float(catalonia_model.roc_auc):.2f} picks out deaths among crashes already selected "
         "for a death or serious injury; here the deaths are picked out among all injury "
@@ -474,14 +662,19 @@ def page_severity(captions: dict[str, str]) -> str:
         f"{_fmt_pct(float(serious_holdout.brier_skill))} lower for a death or a "
         "hospitalisation.</p>"
         "<p>Refitted one year at a time, "
-        f"{outside} of the {len(stability)} yearly estimates for the regression's {len(terms)} "
-        f"{_join(term_labels)} terms fall outside the full model's interval, more in "
-        f"{_join([str(year) for year in top_years])} than in any other year ("
-        f"{_join([str(int(outside_by_year.loc[year])) for year in top_years])}): the years in "
-        "which the coding of junctions and of urban road types changed "
-        '(<a href="data.html#records">coding breaks</a>). '
-        f"Road type accounts for {int(outside_by_term.get('Road type', 0))} of the {outside}."
-        "</p>",
+        f"{outside} of the {len(stability)} yearly estimates for the regression's "
+        f"{len(largest_terms)} largest terms (each a {kinds} term) and its junction "
+        "and wet-surface terms fall outside the full model's interval. Each year's estimate has "
+        "its own sampling error, so some departures are expected: the full model's value lies "
+        f"outside the year's own interval for {full_outside_year}. Road type accounts for "
+        f"{int(outside_by_term.get('Road type', 0))} of the {outside}; its odds ratios swing from "
+        "year to year against the zone odds ratios, the two splitting one location contrast "
+        "between them. Tested against their yearly errors (Cochran's Q), only the junction term "
+        "varies between years by more than chance: its odds ratio lies between "
+        f"{float(junction_before_years.min()):.2f} and {float(junction_before_years.max()):.2f} "
+        f"in every year to {junction_break - 1} and is {after_text}, the years of the new "
+        "junction coding "
+        '(<a href="data.html#records">coding breaks</a>).</p>',
     )
 
     body += "<h2>Limits of these associations</h2>"
@@ -489,8 +682,8 @@ def page_severity(captions: dict[str, str]) -> str:
         "<p>A circumstance can raise the number of crashes and lower the share that are fatal "
         "at the same time, and these records observe only the fatal share: they contain no "
         "measure of how much driving takes place on wet roads or through junctions. Why the "
-        "fatal share is lower is also untested, since the file has no data on speed, vehicles "
-        "or drivers.</p>"
+        "fatal share is lower is also untested, since the file has no data on speed or on the "
+        "drivers.</p>"
     )
     body += downloads(
         [
@@ -504,6 +697,8 @@ def page_severity(captions: dict[str, str]) -> str:
             ("q3_holdout_summary", "scores on later years"),
             ("q3_calibration", "calibration on later years"),
             ("q3_year_stability", "year-by-year refits"),
+            ("q3_period_refits", "refits before and after the junction coding change"),
+            ("q3_location_contrasts", "zone and road type together"),
             ("q3_profiles", "crash profiles"),
             ("q3_groupings", "how DGT's codes map to these levels"),
         ],

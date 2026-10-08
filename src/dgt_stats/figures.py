@@ -521,7 +521,8 @@ def _severity_figures(figures_dir: Path, captions: dict[str, str]) -> None:
     captions["s1_forest_fatal"] = _caption(
         "Odds ratios for at least one death in an injury crash, by crash circumstance, from a "
         "logistic regression that also includes the year, against reference levels (hollow "
-        f"markers), with 95% intervals, Spain, {years.min()}–{years.max()}"
+        f"markers), with 95% intervals, Spain, {years.min()}–{years.max()}; zone and road "
+        "type describe one location between them and are read together"
         + note
         + (
             "; levels that record a missing value are in the model but not drawn"
