@@ -216,9 +216,13 @@ def _drivers() -> str:
     young, older = central.loc["18-29"], central.loc["65+"]
     oldest, reference = severity.loc["75+"], severity.loc["45-64"]
     ratio = float(oldest.killed_per_1000_involved) / float(reference.killed_per_1000_involved)
+    covered = read_table("risk_coverage").set_index("component")
     _require(
         "drivers",
         {
+            "the survey's working days cover about half of DGT's car km": 0.45
+            < float(covered.loc["working days", "share_least_explained"])
+            < 0.55,
             "drivers aged 75 and over die more once involved": float(
                 oldest.killed_per_1000_involved_low
             )
@@ -226,12 +230,11 @@ def _drivers() -> str:
             "the youngest drivers are involved more per km on every assumption": float(
                 ranges.loc["18-29", "min"]
             )
-            > 1.5
+            > 1.2
             and float(young.involved_ratio_low) > 2,
-            "drivers aged 65 and over slightly more often per km than 45-64 centrally": 1
-            < float(older.involved_ratio)
-            < 1.35
-            and float(older.involved_ratio_low) > 0.95,
+            "drivers aged 65 and over above 45-64 per km centrally, on either side of it under "
+            "the other assumptions": 1 < float(older.involved_ratio) < 1.35
+            and float(ranges.loc["65+", "min"]) < 1 < float(ranges.loc["65+", "max"]),
         },
     )
     deaths = _finding(
@@ -239,9 +242,9 @@ def _drivers() -> str:
         f"In {national_rates.YEAR}, car drivers aged 75 and over who were involved in an injury "
         f"crash died {ratio:.1f} times as often as drivers aged 45–64 "
         f"({float(oldest.killed_per_1000_involved):.1f} against "
-        f"{float(reference.killed_per_1000_involved):.1f} per 1,000 involved), a result that "
-        "needs no estimate of kilometres. Involvement counts every driver in the crash, so "
-        "neither this nor the rate per kilometre says who caused it.",
+        f"{float(reference.killed_per_1000_involved):.1f} per 1,000 involved), a count that "
+        "needs no estimate of kilometres. It measures how often a crash kills the driver, not "
+        "how often older drivers are in crashes or who caused them.",
         [("drivers#deaths-once-a-crash-has-happened", "Drivers: deaths once a crash has happened")],
     )
     per_km = _finding(
@@ -250,12 +253,15 @@ def _drivers() -> str:
         f"{float(young.involved_ratio):.1f} times as often as drivers aged 45–64 in "
         f"{national_rates.YEAR} (95% interval {float(young.involved_ratio_low):.1f}–"
         f"{float(young.involved_ratio_high):.1f}; {float(ranges.loc['18-29', 'min']):.1f}–"
-        f"{float(ranges.loc['18-29', 'max']):.1f} under other assumptions about the kilometres), "
-        f"and drivers aged 65 and over {float(older.involved_ratio):.2f} times as often (95% "
-        f"interval {float(older.involved_ratio_low):.2f}–{float(older.involved_ratio_high):.2f}; "
-        f"{float(ranges.loc['65+', 'min']):.2f}–{float(ranges.loc['65+', 'max']):.2f} under "
-        "the other assumptions). The kilometres by driver age are estimated from the "
-        "Barcelona-area working-day travel survey applied to Spain's population.",
+        f"{float(ranges.loc['18-29', 'max']):.1f} under other assumptions about the kilometres). "
+        f"For drivers aged 65 and over the central estimate is {float(older.involved_ratio):.2f} "
+        f"times (95% interval {float(older.involved_ratio_low):.2f}–"
+        f"{float(older.involved_ratio_high):.2f}), but the other assumptions give "
+        f"{float(ranges.loc['65+', 'min']):.2f}–{float(ranges.loc['65+', 'max']):.2f}, so "
+        "whether they are involved more or less often per kilometre is not established. The "
+        "kilometres by driver age are estimated from a Barcelona-area survey of working days, "
+        "which accounts for about half of DGT's car kilometres. Involvement counts every driver "
+        "in a crash, whoever caused it.",
         [("drivers#involvement-in-crashes-per-kilometre-driven", "Drivers: crashes per kilometre")],
     )
     return deaths + per_km

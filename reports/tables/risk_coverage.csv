@@ -1,0 +1,9 @@
+component,additive,bn_km_least_explained,bn_km_most_explained,share_least_explained,share_most_explained,mix,mix_share_18_29,mix_share_65_plus,dgt_total_bn_km
+working days,True,146.5322926,146.5322926,0.5056641863,0.5056641863,working-day mix (EMEF),0.1139076658,0.1303574179,289.7818287
+professionals' work driving,True,9.43146207,18.86292414,0.03254676841,0.06509353683,professionals' work trips (EMEF),0.1664558223,0.02382013255,289.7818287
+regional level,True,7.615121904,40.83176599,0.02627881098,0.1409051981,working-day mix (EMEF),0.1139076658,0.1303574179,289.7818287
+non-working days,True,43.8751345,86.9333095,0.1514074733,0.2999957239,working-day mix (EMEF),0.1139076658,0.1303574179,289.7818287
+months outside the fieldwork,True,-2.63835919,5.910634178,-0.009104639863,0.02039684201,working-day mix (EMEF),0.1139076658,0.1303574179,289.7818287
+remainder (not explained),True,84.96617682,-9.289097694,0.2932074009,-0.03205548717,unknown: see the scenarios,,,289.7818287
+cars registered to companies,False,40.42682704,40.42682704,0.1395078056,0.1395078056,no age recorded,,,289.7818287
+car hire without driver,False,11.05397424,11.05397424,0.03814585022,0.03814585022,no age recorded,,,289.7818287

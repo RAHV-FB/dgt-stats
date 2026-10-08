@@ -22,8 +22,10 @@ survey area. A car-driver trip is a trip with at least one stage driven as a car
 respondent "drove" if they made at least one such trip on their reference day, which is the
 working day before the interview. Every rate per resident divides by all residents of the group,
 including those who made no trip. Weekends, public holidays, non-residents and the in-work driving
-of mobility professionals are outside the survey; later sections address weekends, professionals
-and the national scale. The reference days fall in the fieldwork months. In 2024 these were
+of mobility professionals are outside the survey. Carried to Spain, the survey's working days
+account for about half of DGT's car kilometres; [The kilometres the survey does not
+cover](#the-kilometres-the-survey-does-not-cover) sizes each missing part and tests other age
+mixes for it. The reference days fall in the fieldwork months. In 2024 these were
 1 April to 21 June and 26 September to 27 November, so July and August are not covered; the
 archived sources give the months for 2024 only.
 
@@ -382,8 +384,10 @@ predicts.
 
 ## Weekends and public holidays
 
-The EMEF describes working days only. Any annual rate assumes something about the other 117 days of
-the year. Three pieces of evidence bear on it. None measures weekend kilometres by age.
+The EMEF describes working days only. Any annual rate assumes something about the other 118 days of
+2024 (366 days less 248 working days: the 262 weekdays less the fourteen paid public holidays a
+year that Spanish law allows, two of them local; `national.working_days`). Three pieces of
+evidence bear on it. None measures weekend kilometres by age.
 
 * **The EMEF 2023 module on overnight weekend stays (V11).** Asked in both waves, it counts how many
   of the last four weekends the respondent spent Saturday night away from their municipality (long
@@ -408,7 +412,11 @@ the year. Three pieces of evidence bear on it. None measures weekend kilometres 
   middle-aged group's.
 
 The share of annual kilometres driven on non-working days is itself unknown. It is 32% if a
-non-working day carries as much driving as a working day, and 22% if it carries 60% as much.
+non-working day carries as much driving as a working day, and 22% if it carries 60% as much
+(`national.NON_WORKING_RATIOS`, an assumption). MOVILIA 2006 (tables 61 and 72, Spain) counted
+0.83 times as many car or motorcycle trips, drivers and passengers together, on an average
+weekend day as on a working day, and weekend trips of all modes lasted 1.24 times as long; both
+measure trips, not kilometres, and neither separates drivers.
 
 The central estimate spreads DGT's annual kilometres with the working-day age mix. The sensitivity
 analysis gives non-working days each of the two mixes above, with 22% or 32% of annual kilometres
@@ -424,9 +432,11 @@ analysis gives non-working days each of the two mixes above, with 22% or 32% of 
 
 Values are ratios of involvement per kilometre to that of drivers aged 45–64. Both mixes give the
 65+ group a larger weight on non-working days than on working days, which lowers its ratio to
-1.05–1.11. Neither measures kilometres, so the size of this effect rests on assumptions.
-Seasonality adds a further unknown: the 2024 fieldwork left out July and August, and DGT's annual
-total is spread with the age mix of spring and autumn working days.
+1.05–1.11. Neither measures kilometres, so the size of this effect rests on assumptions. The 2024
+fieldwork left out July and August. Fuel sales and toll-motorway traffic put the mean day of 2024
+within 1.3% below and 2.0% above the mean fieldwork day, so the months outside the fieldwork
+change DGT's total little; the age mix of their driving is unknown. The next section takes the
+weekend mixes further, applying them to every part of DGT's total that the survey does not cover.
 
 ## Spain: methods for putting kilometres on ages
 
@@ -452,13 +462,11 @@ No national source measures kilometres by the driver's age. Five methods are com
   odometer readings: 289.8 billion km once the 3.2 billion km of taxis and ride-hailing cars are
   removed (their drivers drive for a living and are excluded from both the survey and the
   numerator). Two variants keep all 293.0 billion km, or also remove car hire without driver and
-  driving schools (278.1 billion). B sets the level of the rates but not their ratios. As a scale
-  check, Method A's working-day kilometres (591 million a day) times 248 working days come to
-  147 billion km, about half (51%) of the DGT total. The rest is driving on non-working days,
-  professional and company driving that the survey does not record, and any excess of driving per
-  resident in Spain over the province. Method A uses only the age shares, so the gap matters for
-  the ratios only if the missing driving has a different age mix. The weekend, professional and
-  regional variants test that.
+  driving schools (278.1 billion). B sets the level of the rates but not their ratios. Method A's
+  working-day kilometres (591 million a day) times the 248 working days of 2024 come to 146.5
+  billion km, 51% of the DGT total. Method A uses only the age shares, so the other half matters
+  for the ratios only if it has a different age mix; [the next
+  section](#the-kilometres-the-survey-does-not-cover) sizes it and tests that.
 * **C, regional calibration.** Method A is repeated with the age profile of each part of the
   province and with the Madrid household travel survey of 2018 (EDM2018), which has exact ages. In
   the Madrid survey, eight car-driver trips record 4,199 to 4,517 km, more than a day's drive (the
@@ -488,7 +496,160 @@ survey of 2018, residents aged 65 and over drove about 0.27 times as far per res
 modelled from duration. This is the largest single source of uncertainty in the national rates for
 older drivers.
 
+## The kilometres the survey does not cover
+
+`src/dgt_stats/exposure_risk/coverage.py`; `risk_coverage.csv` (the parts),
+`risk_coverage_evidence.csv` (every measured value behind them), `risk_coverage_mixes.csv` (the
+age mixes tested) and `risk_coverage_scenarios.csv` (the ratios under each scenario).
+
+Method A carries the survey's working-day kilometres per resident to Spain's population. Over the
+248 working days of 2024 that is 146.5 billion km, 51% of DGT's 289.8 billion car kilometres less
+taxis and ride-hailing cars; over all 262 weekdays it would be 53%. The central estimate spreads
+DGT's whole total with the working-day age mix, so it assumes that the other half has the same
+age mix as the working days. This section measures what the other half is made of, with the data
+in the repository, and tests how the ratios move if it has another age mix. Every allocation below
+is an explicit assumption; none is a measurement of kilometres by age.
+
+### What the other half is made of
+
+The parts are added in the order of the table, each at the setting that explains least and at the
+one that explains most. The regional level scales the working days and professionals' driving;
+the non-working days are a ratio of the regional-level working day; the months outside the
+fieldwork scale everything before them.
+
+| Part | Billion km | Share of DGT's total | Evidence | Age mix | Uncertainty |
+|---|---:|---:|---|---|---|
+| Working days (Method A) | 146.5 | 50.6% | EMEF 2022–2024 km per resident by age and sex, times Spain's population, times 248 working days | EMEF working day: 11.4% at 18–29, 13.0% at 65+ | sampling, and the distance and transfer choices above |
+| Professionals' work driving | 9.4–18.9 | 3.3%–6.5% | EMEF counts of the work trips of people making eight or more a day (`V02C_3`, `V02D1`), 25% or 50% taken as car trips of the group's mean length | EMEF professionals: 16.6% at 18–29, 2.4% at 65+ | their car share and length are not recorded; all of them by car would add 37.7 billion (13%) |
+| Regional level | 7.6–40.8 | 2.6%–14.1% | Spain over the province: 1.05 times the car or motorcycle trips per resident (MOVILIA 2006, five working days and two weekend days); Spain over Catalonia: 1.18 (without Madrid) to 1.25 times the car km per resident aged 15+ (DGT 2024, by the owner's community) | working-day mix | trips against km, 2006 against 2024, province against Catalonia; Madrid's figure carries fleets registered there; the difference is in cars per resident (1.20 times), not km per car (1.00) |
+| Non-working days | 43.9–86.9 | 15.1%–30.0% | 118 days, each carrying 60% to 100% of a working day's resident driving | working-day mix (central); two weekend mixes tested | the ratio is an assumption; MOVILIA 2006: 0.83 times the car trips on a weekend day, and longer trips (1.24 times the duration) |
+| Months outside the fieldwork | −2.6 to 5.9 | −0.9% to 2.0% | the mean day of 2024 over the mean fieldwork day: petrol sales 1.00, petrol and diesel 0.99, toll-motorway vehicle-km 1.02 | working-day mix | fuel includes foreign vehicles and lorries; toll motorways over-represent holiday traffic; long-distance car journeys bunch in July and August (20.7% of the year's in MOVILIA 2007) |
+| Not explained | −9.3 to 85.0 | −3.2% to 29.3% | DGT's total less the parts above | unknown: the scenarios below | the sum of all the uncertainties above |
+| Cars registered to companies (not added) | 40.4 | 14.0% | DGT's 2024 owner-age file, company row | no age recorded | overlaps every part: residents drive company and leased cars on working days |
+| Car hire without driver (not added) | 11.1 | 3.8% | DGT's 2024 km by class of service (A01) | no age recorded | the upper bound of visitors' driving in Spanish cars; residents hire cars too |
+
+What can be explained:
+
+* **Weekends and public holidays** are the largest part, 15% to 30% of the total, and its size
+  depends on an assumed ratio. The data say only that weekend days have fewer car trips and
+  longer ones.
+* **The regional level** adds 3% to 14%. The two sources disagree: car trips per resident in
+  MOVILIA 2006 put Spain only 5% above the province (7% on working days, level at weekends), while
+  DGT's 2024 kilometres per resident put Spain 18% to 25% above Catalonia. DGT's figure is by the
+  owner's community, so company and leasing fleets count where they are registered; the province's
+  own kilometres are not published, and the province is more urban than Catalonia.
+* **Professionals' unrecorded work driving** adds 3% to 7%, almost all under 65.
+* **The months outside the fieldwork** change the total by −1% to 2%: fuel sales and toll traffic
+  on an average day of 2024 are close to their average over the fieldwork days.
+* **Long-distance driving** is not a separate part. Residents' long trips on working days are in
+  the survey (trips of 100 km or more carry 12.6% of the 65+ kilometres); those on other days
+  fall in the non-working days and the months outside the fieldwork. MOVILIA 2007 gives their age
+  mix: residents aged 65 and over made 0.26 times as many car journeys over 50 km as those aged
+  45–64.
+* **Non-residents** drive Spanish-registered cars mainly as hire cars, 3.8% of the total at most.
+  Foreign-registered cars are outside DGT's total, but their drivers are in the crash count.
+* **Company vehicles** (2.2 million cars, 40.4 billion km, 18,573 km a car) carry no age and
+  overlap every part, so they bound nothing.
+
+What cannot be explained: at their lowest, the measured parts leave 29% of DGT's total
+unexplained; at their highest they exceed it by 3%. The size of the remainder therefore ranges
+from nothing to over a quarter of the total, and its content (survey under-reporting of trips,
+company driving beyond professionals', the province's own level against Catalonia's) cannot be
+told apart with these data. Its age mix is unknown.
+
+### Age mixes for the uncovered kilometres
+
+Each mix is a set of shares of national kilometres by age (`risk_coverage_mixes.csv`). The weekend
+mixes are weights on the covered part's own mix; the others are national shares in their own
+right.
+
+| Mix | 18–29 share | 65+ share | 65+ km per resident, against 45–64 | 65+ km per B-licence holder, against 45–64 | Status |
+|---|---:|---:|---:|---:|---|
+| EMEF working day (central) | 11.4% | 13.0% | 0.41 | 0.67 | measured |
+| DGT km of cars by the private owner's age, 2024 | 6.5% | 16.3% | 0.48 | 0.79 | measured |
+| Car journeys over 50 km per resident, MOVILIA 2007 | 19.8% | 7.6% | 0.26 | 0.43 | measured |
+| EMEF 2023 overnight weekend stays, driving (weights) | 13.1% | 16.4% | 0.54 | 0.88 | measured proxy |
+| MOVILIA 2006 weekend car trips (weights) | 12.3% | 18.1% | 0.59 | 0.96 | measured proxy |
+| EMEF professionals' work trips (that part only) | 16.6% | 2.4% | 0.07 | 0.11 | measured |
+| Equal km per B-licence holder at every age | 12.7% | 17.8% | 0.61 | 1.00 | bound |
+| Under 65 only (working-day mix without 65+) | 13.1% | 0% | 0 | 0 | bound |
+
+A mix is treated as **credible** when it comes from a measured age pattern of driving or car
+travel, and as a **bound** when it is constructed. Every measured mix tested for the remainder
+gives licence holders aged 65 and over less driving than those aged 45–64 (0.43 to 0.96 of their
+kilometres per licence holder) and gives residents aged 65 and over some (0.26 to 0.59 of the
+45–64 kilometres per resident). Equal kilometres per licence holder lies beyond the first range
+and no driving at 65 and over beyond the second, so both are reported as bounds and left out of
+the published ranges. "Under 65 only" would need the whole remainder, up to 85 billion km, to be
+driving like professionals' work driving, which at most (every work trip by car) is 37.7 billion.
+The owners' mix and the licence mix measure 75 and over themselves (30.7% and 32.4% of their 65+
+kilometres); the others take the split assumptions of the next section.
+
+### Scenarios
+
+The scenarios take the setting that explains least: the covered working days hold 52.4% of the
+total, professionals' work driving 3.4%, the non-working days 14.9% and the remainder 29.3%. That
+gives the remainder its largest share, and the non-working days and the remainder together, the
+two parts that take other age mixes, 44% of the total, more than any other setting. Each scenario
+gives the non-working days one of three mixes (working day, EMEF 2023 proxy, MOVILIA 2006) and the
+remainder one of seven. With Method A's profile for the covered part
+(ratios to 45–64; each cell spans the three non-working-day mixes and, for 65–74 and 75 and over,
+the three split assumptions):
+
+| Remainder's age mix | 18–29 | 30–44 | 65+ | 65–74 | 75+ |
+|---|---:|---:|---:|---:|---:|
+| Working-day mix | 2.43–2.50 | 1.41–1.43 | 1.15–1.23 | 0.89–1.14 | 1.31–2.31 |
+| DGT km by owner's age | 2.80–2.90 | 1.44–1.46 | 1.09–1.16 | 0.88–1.06 | 1.29–1.87 |
+| MOVILIA 2007 journeys over 50 km | 1.95–2.00 | 1.34–1.36 | 1.27–1.36 | 0.98–1.26 | 1.45–2.56 |
+| EMEF 2023 weekend proxy | 2.29–2.36 | 1.43–1.45 | 1.06–1.12 | 0.81–1.04 | 1.21–2.11 |
+| MOVILIA 2006 weekend car trips | 2.35–2.42 | 1.45–1.47 | 1.03–1.09 | 0.79–1.01 | 1.17–2.04 |
+| **All credible** | **1.95–2.90** | **1.34–1.47** | **1.03–1.36** | **0.79–1.26** | **1.17–2.56** |
+| Bound: equal km per licence holder | 2.29–2.36 | 1.39–1.41 | 1.02–1.08 | 0.83–0.99 | 1.18–1.68 |
+| Bound: under 65 only | 2.43–2.51 | 1.41–1.43 | 1.68–1.84 | 1.30–1.70 | 1.92–3.45 |
+
+The same scenarios are computed with every other profile for the covered part (the licence-
+calibrated transfer, the four parts of the province and the Madrid survey), because the regional
+profile and the uncovered half are separate uncertainties. The credible combinations give 1.49–3.75
+at 18–29, 1.13–1.72 at 30–44, 0.85–1.75 at 65 and over, 0.66–1.63 at 65–74 and 0.97–3.28 at 75 and
+over. The lowest values at 65 and over and at 75 and over combine Barcelona city's profile with
+a weekend mix for both the non-working days and the remainder; the highest combine the Madrid
+profile with the MOVILIA 2007 long-distance mix.
+
+### Do the published ranges widen?
+
+With Method A's profile, the credible scenarios lie inside the ranges published before this
+section was added (1.64–3.63 at 18–29, 0.99–1.65 at 65 and over, 0.76–1.54 at 65–74, 1.13–3.09 at
+75 and over), because the regional profiles set both ends of those ranges. On their own they
+would widen nothing. Taken together with another region's profile they do, and nothing in the
+data ties the age profile of the covered half to the age mix of the uncovered half. The published
+sensitivity ranges therefore include the combinations of each profile with each credible scenario
+(source "regional profile with the uncovered kilometres" in `risk_national_sensitivity.csv` and
+`risk_older_sensitivity.csv`), and they widen:
+
+| Group | Before | Now |
+|---|---:|---:|
+| 18–29 | 1.64–3.63 | 1.49–3.75 |
+| 30–44 | 1.12–1.64 | 1.12–1.72 |
+| 65+ | 0.99–1.65 | 0.85–1.75 |
+| 65–74 (model-dependent) | 0.76–1.54 | 0.66–1.63 |
+| 75+ (model-dependent) | 1.13–3.09 | 0.97–3.28 |
+
+The two bounds stay out. Other choices taken together, such as a distance treatment with a
+regional profile, would widen the ranges further, so the ranges are not bounds either. The
+direction at 18–29 holds under every combination. At 65 and over and at 75 and over the ranges
+include the 45–64 rate, so no direction is claimed for them nationally.
+
 ## Ages 75 and over
+
+Three kinds of result are kept apart here. **Counted**: in 2024, 4,455 car drivers aged 75 and over
+and 6,970 aged 65–74 were involved in injury crashes in Spain, and 71 and 59 of them died within 30
+days, 15.9 and 8.5 per 1,000 involved against 4.6 at 45–64 ([the crash
+numerator](#the-crash-numerator)). These need no kilometres; they describe how often a crash kills
+the driver, not how often drivers crash or who caused the crash. **Modelled**: involvement per
+kilometre at 65–74 and at 75 and over, from a split of the measured 65-and-over kilometres under a
+stated assumption, with a 95% interval that holds the assumption fixed. **Assumed**: the range of
+those ratios across the split assumptions combined with every alternative for the 65-and-over
+kilometres, the weekend mixes and the age mixes of the kilometres the survey does not cover.
 
 The EMEF cannot separate 65–74 from 75 and over ([`EMEF_INVENTORY.md`](EMEF_INVENTORY.md)), and a
 request for that split has been prepared but not sent ([`EMEF_DATA_REQUEST.md`](EMEF_DATA_REQUEST.md)).
@@ -521,21 +682,36 @@ kilometres at 75 and over.
 | Equal km per licence holder at 65–74 and 75+ (an upper bound for 75+ km) | 34% | 1.10 (0.95–1.27) | 1.36 (1.17–1.55) |
 
 The intervals hold the assumption fixed and combine the sampling error of the 65+ kilometres with
-Poisson error in the counts. Repeating the split under every 65+ variant (the licence-calibrated transfer, the four parts of
-the province, the Madrid profile, the distance treatments, the survey years, professionals' work
-driving, the older sample's employment and the weekend mixes; `risk_older_sensitivity.csv`) gives
-0.76–1.54 for 65–74 and 1.13–3.09 for 75 and over. The Madrid profile, which gives the highest 65+
-ratio (1.65), sets the upper end.
+Poisson error in the counts. Under the three assumptions alone, with everything else central,
+drivers aged 75 and over are involved above the 45–64 rate per kilometre (1.36–2.24) and those
+aged 65–74 at about it (0.92–1.10).
+
+**Stress test.** Repeating the split under every 65+ variant one at a time (the licence-calibrated
+transfer, the four parts of the province, the Madrid profile, the distance treatments, the survey
+years, professionals' work driving, the older sample's employment and the weekend mixes) gives
+0.76–1.54 for 65–74 and 1.13–3.09 for 75 and over. Adding the age mixes of the kilometres the
+survey does not cover, with Method A's profile and with each other profile
+([previous section](#the-kilometres-the-survey-does-not-cover)), gives 0.66–1.63 and 0.97–3.28
+(`risk_older_sensitivity.csv`, 405 combinations). In 403 of them 75 and over is above the 45–64
+rate. The two others combine Barcelona city's profile, equal kilometres per licence holder at
+65–74 and 75 and over (the split that gives 75 and over the most kilometres), and the MOVILIA 2006
+weekend mix for the unexplained kilometres, with either weekend mix for the non-working days:
+0.97 and 0.99. Each of these choices is one the sensitivity analysis treats as credible, so the
+combination is credible too, though it sits at the extreme of all three.
 
 In the Barcelona working-day check, 120 of the 344 car drivers aged 65 and over with a recorded age
 were 75 or over. Splitting the city's 65+ kilometres with the same three assumptions gives ratios
 to 45–64 of 0.80 to 1.82 at 75 and over and 0.66 to 1.11 at 65–74, across the three denominators
-(`risk_barcelona_older.csv`). There the direction is not established.
+(`risk_barcelona_older.csv`). There too the direction is not established.
 
-Nationally, on every assumption and every variant, drivers aged 75 and over are involved above
-the middle-aged rate per kilometre (1.13–3.09), and drivers aged 65–74 at about it (0.76–1.54). The range is wide because the oldest drivers' kilometres are small and rest on an
-assumption. The national evidence supports a statement of direction for 75 and over but not a
-single rate, so none is published.
+Most combinations put drivers aged 75 and over above the middle-aged rate of involvement per
+kilometre, but not all, nationally or in Barcelona; whether they are involved more often per
+kilometre than drivers aged 45–64 is therefore not established, and no single rate is published.
+The range is wide because the oldest drivers' kilometres are few and rest on assumptions. These
+are rates of involvement in injury crashes, whoever caused them; responsibility is not measured
+(see [quasi-induced exposure](#quasi-induced-exposure)). The clear difference at 75 and over is
+counted, not modelled: a driver of that age involved in an injury crash dies 3.4 times as often
+as one aged 45–64.
 
 ## The crash numerator
 
@@ -583,7 +759,7 @@ The billion kilometres carry the intervals of the shares in the methods table ab
 
 **Sensitivity ranges** (not confidence intervals) for the ratio of involvement per kilometre to
 that of drivers aged 45–64 (`risk_national_sensitivity.csv`; every variant is listed in the
-kilometre sensitivity and weekend tables above):
+kilometre sensitivity, weekend and coverage tables above, and in `risk_coverage_scenarios.csv`):
 
 | Source of variation | 18–29 | 30–44 | 65+ |
 |---|---|---|---|
@@ -594,17 +770,21 @@ kilometre sensitivity and weekend tables above):
 | Professionals' unrecorded work driving (25% or 50% of work trips by car) | 2.44–2.48 | 1.41–1.42 | 1.26–1.33 |
 | Older sample's employed share set to the census | 2.53 | 1.40 | 1.23 |
 | Non-working days (two age mixes, 22% or 32% of annual km) | 2.38–2.47 | 1.42–1.45 | 1.05–1.11 |
-| **All of the above** (the sensitivity range on the site) | **1.64–3.63** | **1.12–1.64** | **0.99–1.65** |
+| Age mixes of the kilometres the survey does not cover (five credible mixes, Method A's profile) | 1.95–2.90 | 1.34–1.47 | 1.03–1.36 |
+| Those mixes with each other regional profile | 1.49–3.75 | 1.13–1.72 | 0.85–1.75 |
+| **All of the above** (the sensitivity range on the site) | **1.49–3.75** | **1.12–1.72** | **0.85–1.75** |
 | Kilometre total (Method B variants) | none: a common factor | none | none |
 
-The regional profile sets both ends of every range. Without it, the alternatives span 2.24–2.85
-at 18–29, 1.27–1.54 at 30–44 and 1.05–1.41 at 65 and over. For 65 and over, most alternatives
-raise the ratio: the distance treatments (up to 1.41), professionals' driving (1.26–1.33), the
-census employment share (1.23) and the licence-calibrated transfer (1.23). The weekend mixes lower
-it (1.05–1.11), and so does the Barcelona city profile (0.99). Under the same alternatives the
-ratio of driver deaths per kilometre to 45–64 ranges from 1.46 to 3.24 at 18–29 and from 2.43 to
-4.04 at 65 and over. The absolute rates move with the kilometre total, from 299 (all cars) to 315
-(no hire cars or driving schools) per billion km for the 65-and-over group, but the ratios do not.
+The regional profile, combined with the age mixes of the uncovered kilometres, sets both ends of
+the ranges at 18–29 and 65 and over. Without the regional profiles and the uncovered kilometres,
+the alternatives span 2.24–2.85 at 18–29, 1.27–1.54 at 30–44 and 1.05–1.41 at 65 and over. For 65
+and over, most of those alternatives raise the ratio: the distance treatments (up to 1.41),
+professionals' driving (1.26–1.33), the census employment share (1.23) and the licence-calibrated
+transfer (1.23). The weekend mixes lower it (1.05–1.11), and so does the Barcelona city profile
+(0.99). Under all the alternatives the ratio of driver deaths per kilometre to 45–64 ranges from
+1.33 to 3.35 at 18–29 and from 2.09 to 4.29 at 65 and over. The absolute rates move with the
+kilometre total, from 299 (all cars) to 315 (no hire cars or driving schools) per billion km for
+the 65-and-over group, but the ratios do not.
 
 **Barcelona, separately.** In Barcelona city on the working days of 2025, the ratios to 45–64 were
 2.14–2.61 at 18–29, 1.07–1.21 at 30–44 and 0.80–1.11 at 65 and over, across the three
@@ -696,47 +876,62 @@ in three respects:
 * The road ratio of 1.45 and the 2021 benchmarks come from a report that is not archived.
 
 The analytic choices are covered by the sensitivity ranges, which are reported separately and
-never merged into the intervals. For drivers aged 18–29 the regional profile dominates
-(1.64–3.63). For drivers aged 65 and over the regional profile (0.99–1.65) and the distance
-treatment (1.13–1.41) dominate. For drivers aged 75 and over the split assumption dominates, and
-the intervals in the split table hold that assumption fixed.
+never merged into the intervals. For drivers aged 18–29 and 65 and over the regional profile
+(1.64–3.63 and 0.99–1.65 alone) and the age mix of the half of DGT's kilometres that the survey
+does not cover dominate; together they give 1.49–3.75 and 0.85–1.75. The distance treatment
+(1.13–1.41 at 65 and over) comes next. For drivers aged 75 and over the split assumption dominates,
+and the intervals in the split table hold that assumption fixed. The sensitivity ranges are not
+bounds: they combine only the regional profile with the uncovered kilometres, and other choices
+taken together would widen them.
 
 ## Conclusions
 
-1. **Involvement per kilometre.** Per kilometre driven in Spain in 2024, car drivers aged 18–29
-   were involved in injury crashes 2.53 times as often as drivers aged 45–64 (95% CI 2.25–2.82;
-   sensitivity range 1.64–3.63; 2.24 with the licence-calibrated transfer). The direction holds
-   under every alternative; the size does not. Drivers aged 30–44 were involved 1.40 times as
-   often (1.30–1.53; range 1.12–1.64). Drivers aged 65 and over were involved 1.19 times as often
-   (1.03–1.36; range 0.99–1.65). For 65 and over, most of the alternatives, which the interval
-   does not cover, raise the ratio, among them the distance treatments (1.13–1.41) and
-   professionals' unrecorded driving (1.26–1.33); the weekend mixes lower it (1.05–1.11).
-2. **Barcelona, a different population.** In Barcelona city on the working days of 2025, drivers
+1. **Coverage.** Carried to Spain, the survey's working days account for 51% of DGT's 2024 car
+   kilometres less taxis and ride-hailing cars. Weekends and holidays (15–30%), Spain's higher
+   driving per resident (3–14%), professionals' unrecorded work driving (3–7%) and the months
+   outside the fieldwork (−1% to 2%) can account for the rest, or leave up to 29% unexplained. No
+   source gives the age mix of that half; the ratios below assume the working-day mix and test
+   others.
+2. **Involvement per kilometre** (modelled). Per kilometre driven in Spain in 2024, car drivers
+   aged 18–29 were involved in injury crashes 2.53 times as often as drivers aged 45–64 (95% CI
+   2.25–2.82; sensitivity range 1.49–3.75; 2.24 with the licence-calibrated transfer). The
+   direction holds under every alternative; the size does not. Drivers aged 30–44 were involved
+   1.40 times as often (1.30–1.53; range 1.12–1.72). Drivers aged 65 and over were involved 1.19
+   times as often on the central estimate (1.03–1.36), but the alternatives give 0.85–1.75, so
+   whether they are involved more or less often per kilometre than drivers aged 45–64 is not
+   established. Most alternatives taken one at a time raise their ratio, among them the distance
+   treatments (1.13–1.41) and professionals' unrecorded driving (1.26–1.33); the weekend mixes
+   and the more urban profiles lower it.
+3. **Barcelona, a different population.** In Barcelona city on the working days of 2025, drivers
    aged 65 and over were involved at about the 45–64 rate per kilometre driven inside the city by
    residents (0.80–1.11 across three denominators; every interval includes 1), with a downward
    bias from drivers counted only in the numerator. Drivers aged 18–29 were involved at 2.14–2.61
    times that rate.
-3. **Ages 75 and over.** Under three split assumptions, drivers aged 65–74 are involved at
-   0.92–1.10 times the 45–64 rate and drivers aged 75 and over at 1.36–2.24 times it; across every
-   65+ variant, 0.76–1.54 and 1.13–3.09. In Barcelona the same splits give 0.80–1.82
-   at 75 and over, so the direction is not established there. A precise 75+ rate would need the
+4. **Ages 75 and over** (modelled, then stress-tested). Under three split assumptions alone,
+   drivers aged 65–74 are involved at 0.92–1.10 times the 45–64 rate and drivers aged 75 and over
+   at 1.36–2.24 times it. Across every 65+ variant, the age mixes of the uncovered kilometres and
+   the regional profiles combined, the ranges are 0.66–1.63 and 0.97–3.28; in Barcelona the splits
+   give 0.80–1.82 at 75 and over. Most combinations put 75 and over above the 45–64 rate, but not
+   all, so the direction is not established nationally or in Barcelona. A 75+ rate would need the
    EMEF's confidential ages or a national survey with exact ages.
-4. **Severity once involved.** Car drivers aged 65 and over were killed in 11.4 of every 1,000
-   involvements in 2024 (9.5–13.4), against 4.6 (4.0–5.4) at 45–64; drivers aged 75 and over in
-   15.9 (12.6–19.8). Driver deaths per kilometre at 65 and over are therefore 2.92 times the
-   middle-aged rate (2.21–3.82; sensitivity range 2.43–4.04), although involvement is 1.19 times. The excess
-   in deaths comes from the outcome once a crash has happened, not from being in more crashes;
-   these data cannot say why older drivers fare worse.
-5. **Responsibility** cannot be assessed with public data (see above). Involvement counts every
-   driver in an injury crash, whoever caused it.
-6. **Per licence holder.** Older licence holders are involved less often than middle-aged ones
+5. **Severity once involved** (counted). Car drivers aged 65 and over were killed in 11.4 of every
+   1,000 involvements in 2024 (9.5–13.4), against 4.6 (4.0–5.4) at 45–64; drivers aged 75 and over
+   in 15.9 (12.6–19.8). This needs no kilometres. Driver deaths per kilometre at 65 and over are
+   2.92 times the middle-aged rate on the central estimate (2.21–3.82; sensitivity range
+   2.09–4.29), against 1.19 for involvement (range 0.85–1.75). Under every alternative the death
+   ratio exceeds the involvement ratio, so the excess in deaths per kilometre comes mainly from the
+   outcome once a crash has happened; these data cannot say why older drivers fare worse.
+6. **Responsibility** cannot be assessed with public data (see above). Involvement counts every
+   driver in an injury crash, whoever caused it, so no rate here says that drivers of any age
+   cause more crashes.
+7. **Per licence holder.** Older licence holders are involved less often than middle-aged ones
    (2.4 against 3.0 per 1,000 in 2024) because many drive little. Rates per licence holder or per
    resident describe the burden on a population, not the risk of a kilometre driven.
-7. **Men and women.** On the same transfer, men drove about two thirds of car-driver kilometres in
+8. **Men and women.** On the same transfer, men drove about two thirds of car-driver kilometres in
    2024. Per kilometre, male private-car drivers were involved 0.91 times as often as female
    drivers (0.85–0.98; 0.60–1.23 under the other profiles), so neither sex is shown to be involved more often per km, and killed 2.65 times
    as often (2.10–3.38; 1.75–3.55).
-8. **The former owner-age figure.** Compared like for like (drivers aged 18–29, 30–44 and 65 and
+9. **The former owner-age figure.** Compared like for like (drivers aged 18–29, 30–44 and 65 and
    over against 45–64), owner kilometres gave 4.62, 1.51 and 1.00, against 2.53, 1.40 and 1.19 by
    the driver's age. The former figure's 6.75 compared owners aged 18–24 with 35–54. A car's owner
    is often not its driver, so owner kilometres overstated young drivers' excess and understated

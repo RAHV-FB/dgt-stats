@@ -325,6 +325,19 @@ def test_drivers_page_separates_the_two_questions(built: Path) -> None:
     ) in opening
     # The opening says what involvement does not show: who caused the crash, or harm to others.
     assert "whoever caused it" in opening and "more dangerous to others" in opening
+    # It says how much of DGT's kilometres the survey covers, and claims no direction for older
+    # drivers per km while their sensitivity ranges include 1.
+    covered = pd.read_csv(TABLES_DIR / "risk_coverage.csv").set_index("component")
+    share = covered.loc["working days", "share_least_explained"]
+    assert f"accounts for {components._fmt_pct(share, 0)} of DGT's car kilometres" in opening
+    older_range = pd.read_csv(TABLES_DIR / "risk_older_sensitivity.csv").ratio_75_plus
+    if spread.involved_ratio.min()["65+"] < 1 or older_range.min() <= 1:
+        assert "is not established" in opening
+        assert "slightly more often" not in opening
+    # Counted results, modelled estimates and assumptions are told apart for 75 and over.
+    for label in ("Counted.", "Modelled.", "Assumed."):
+        assert f"<strong>{label}</strong>" in body
+    assert f"puts it at {older_range.min():.2f}" in body
     # Table 1 names the rows of the published CSV it reproduces, and has no jargon column.
     assert f"method “{young.method}” and kilometre total “{young.km_total}”" in body
     assert "bootstrap replicates are not published" in body
@@ -668,6 +681,9 @@ def test_front_page_is_an_overview_of_the_study(built: Path) -> None:
     span = f"{spread.involved_ratio.min()['18-29']:.1f}–{spread.involved_ratio.max()['18-29']:.1f}"
     assert f"; {span} under other assumptions" in sections["Main findings"]
     assert "nearly seven" not in sections["Main findings"]
+    # While the 65-and-over range includes the 45-64 rate, no direction is claimed for it.
+    if spread.involved_ratio.min()["65+"] < 1 < spread.involved_ratio.max()["65+"]:
+        assert "is not established" in sections["Main findings"]
     # A reader can follow the front page without the modelling vocabulary of the deeper pages.
     visible = re.sub(r"<[^>]+>", " ", body)
     for jargon in ("ROC-AUC", "calibration slope", "Jensen", "transportab", "odds ratio"):
