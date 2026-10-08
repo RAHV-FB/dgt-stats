@@ -766,7 +766,7 @@ GROUP_LABELS = {
 # Figure 3 of the drivers page shows the six choices that move the 75+ figure most; the caption
 # names the rest. Its labels wrap shorter on a phone than other charts' labels.
 DR3_FACTORS = 6
-DR3_LABEL_CHARS = 13
+DR3_LABEL_CHARS = 15
 
 
 def _driver_exposure_figures(figures_dir: Path, captions: dict[str, str]) -> None:
@@ -880,8 +880,8 @@ def _driver_exposure_figures(figures_dir: Path, captions: dict[str, str]) -> Non
     plots.estimate_and_range(
         pd.DataFrame(bars),
         figures_dir / "dr3_older_range_sources.svg",
-        "Car drivers aged 75 and over: what moves their involvement per kilometre against "
-        "45–64 (2024)",
+        "Car drivers aged 75 and over: how the estimate of involvement per kilometre against "
+        "45–64 changes with each assumption about kilometres (2024)",
         xlabel="Rate ratio per km against drivers aged 45–64 (log scale)",
         reference_label="45–64 rate",
         range_label="Sensitivity range: all combinations tested",
@@ -901,13 +901,15 @@ def _driver_exposure_figures(figures_dir: Path, captions: dict[str, str]) -> Non
     captions["dr3_older_range_sources"] = _caption(
         "Car drivers aged 75 and over involved in injury crashes in Spain in 2024 per kilometre "
         "driven, as ratios to drivers aged 45–64 (log scale). Each bar below the top changes one "
-        "choice and keeps the others as in the Madrid-pattern estimate "
-        f"({estimate:.2f}); the top bar combines all choices tested and is the whole "
-        f"sensitivity range ({float(whole.low):.2f}–{float(whole.high):.2f}). Bar lengths "
-        "depend on which alternatives were tried, not on how likely they are, and bars carry no "
-        "sampling error. Hatched: reached only with equal kilometres per licence holder at "
-        "65–74 and 75 and over. Not shown, each moving the figure less from the Madrid-pattern "
-        f"estimate: {_join_words(others)}",
+        "assumption about the kilometres and keeps the others as in the Madrid-pattern estimate "
+        f"({estimate:.2f}); the bars show how the estimate moves, not what changes crash "
+        "involvement. The top bar spans every combination tested (not every possible "
+        "combination of the choices) and is the whole sensitivity range "
+        f"({float(whole.low):.2f}–{float(whole.high):.2f}). Bar lengths depend on which "
+        "alternatives were tried, not on how likely they are, and bars carry no sampling error. "
+        "Hatched: reached only with equal kilometres per licence holder at 65–74 and 75 and "
+        "over. Not shown, each moving the figure less from the Madrid-pattern estimate: "
+        f"{_join_words(others)}",
         f"{TABLES_SOURCE}; {EMEF_SOURCE}; {EDM_SOURCE}; {KM_2024_SOURCE}; {POPULATION_SOURCE}",
         f"{int(counts['75+']):,} drivers aged 75 and over involved",
     )
