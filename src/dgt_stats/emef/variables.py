@@ -35,16 +35,20 @@ UNIVERSE: dict[int, tuple[int, int]] = {
     2024: (5_019_771, 11_420),
 }
 
-# The survey area changed twice (technical document, Table 1).
+# The survey area changed three times (technical document, Table 1, and the weighted population of
+# zone 5): the whole of Osona joined in 2015, the Berguedà and the Moianès in 2017, and in 2019 the
+# area became the province of Barcelona, which also took out the Baix Penedès and the Selva (in
+# other provinces). A "survey area" series before 2019 is therefore not on a constant area.
 AREA: dict[int, str] = {
-    **{y: "STI (Integrated Fare System area)" for y in (2014, 2015, 2016)},
-    **{y: "STI and Berguedà" for y in (2017, 2018)},
+    2014: "STI (Integrated Fare System area)",
+    **{y: "STI with the whole of Osona" for y in (2015, 2016)},
+    **{y: "STI with Osona, the Berguedà and the Moianès" for y in (2017, 2018)},
     **{y: "SIMMB (province of Barcelona)" for y in range(2019, 2025)},
 }
 
 # Residence zone (``CAMB``), identical codes in every year. Zones 1-4 make up the seven-comarca
 # Barcelona Metropolitan Region (RMB), the only area every edition covers in full; zone 5 is the
-# rest of the survey area, which grew in 2017 and 2019.
+# rest of the survey area, which grew in 2015 and 2017 and shrank in 2019.
 ZONES: dict[int, str] = {
     1: "Barcelona city",
     2: "Rest of first ring",

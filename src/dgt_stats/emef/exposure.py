@@ -386,6 +386,9 @@ def series() -> pd.DataFrame:
         pieces.append(table)
     out = pd.concat(pieces, ignore_index=True)
     out["km_source"] = np.where(out.year >= v.DISTANCE_FROM, "measured band", "modelled")
+    out["area_definition"] = np.where(
+        out.area == "RMB", "constant (seven comarques)", out.year.map(v.AREA)
+    )
     return out
 
 
