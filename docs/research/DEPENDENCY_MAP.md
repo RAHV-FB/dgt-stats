@@ -9,7 +9,7 @@ Audit of the repository at commit `d111da8` (the `main` head when the rebuild be
 
 ## 0. Pipeline and legend
 
-**Chain.** `data/raw/**` → readers (`io_*.py`, `microdata/*.py`) → `data/staging/**` → `data/processed/**` (and `data/features/**`) → analysis functions → `reports/tables/*.csv` and `reports/figures/*.svg` → `site/<slug>.html`. The site build is `scripts/build_site.py` → `site.build()` (`site/__init__.py:170`). It also copies **all** 131 CSVs to `site/tables/` and all 40 SVGs to `site/figures/`. Both directories are gitignored and are filled by `.github/workflows/pages.yml`.
+**Chain.** `data/raw/**` → readers (`io_*.py`, `microdata/*.py`) → `data/staging/**` → `data/processed/**` (and `data/features/**`) → analysis functions → `reports/tables/*.csv` and `reports/figures/*.svg` → `site/<slug>.html`. The site build is `scripts/build_site.py` → `site.build()` (`site/__init__.py:170`). It also copies **all** 131 CSVs to `site/tables/`, and to `site/figures/` only the SVGs a page shows, each with its drawing for phones from `reports/figures/narrow/` (copied to `site/figures/narrow/`). Both directories are gitignored and are filled by `.github/workflows/pages.yml`.
 
 **Writer scripts (column "W" in the tables below).**
 - **A** = `scripts/analyse.py:run_tables` (l.32). It loops over `summaries.SUMMARIES` (`summaries.py:220`).
@@ -250,7 +250,6 @@ Claims:
 
 Figures:
 - `cat1_fatal_by_road`, `cat2_fatal_by_speed_limit`, `cat3_fatal_by_unit` and `cat4_fatal_by_crash_type`, from cat_fatal_share
-- `cat6_crashes_by_year`, from cat_frequency
 - all from md/charts.py:317 `catalonia_figures`
 
 | Result tables | Producing function(s) | W | Raw |
@@ -286,7 +285,7 @@ Claims:
 - Barcelona person model: "58 of 4,049 people (1.4%)"; table "0.78; the model reaches 0.84 (95% interval 0.81–0.87)"
 - Barcelona crash model "dropped and the table is reported instead"
 
-Figures (all from md/charts.py:464 `model_figures`):
+Figures (all from md/charts.py:464 `model_figures`; drawn, but no page shows them, so the site does not publish them):
 - `ml1_test_auc`, from ml_selected and ml_variants
 - `ml2_calibration`, from ml_calibration
 - `ml3_importance_catalonia_crash_severity` and `ml3_importance_barcelona_person_severity`, from ml_importance

@@ -942,7 +942,12 @@ where they exist, direct labels where a legend would be ambiguous, colour never 
 `figures.build_all` writes the national figures and then the regional crash-record figures
 (Catalonia, Barcelona, models, generalisability; `microdata/charts.py`, skipped when the microdata
 tables are not built), and deletes any SVG in its output directory that no longer has a caption, so
-a removed figure cannot linger.
+a removed figure cannot linger. It draws every figure twice from the same data: 8 inches wide for a
+desktop column, and 3.6 inches wide into `reports/figures/narrow/` for a phone's (`plots.narrow`),
+with stacked panels, wrapped category labels and legends below the plot, so that a 390-pixel phone
+shows the whole chart with its smallest text at 11 pixels or more. The build fails if a narrow
+figure comes out wider than that allows. The site serves the narrow drawing to screens up to 40rem
+wide and publishes only the figures its pages show.
 
 The navigation (`NAV_GROUPS` in `src/dgt_stats/site/components.py`) follows the source hierarchy of
 `layers.py`:
