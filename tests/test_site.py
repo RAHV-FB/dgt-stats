@@ -6,7 +6,7 @@ import pandas as pd
 import pytest
 
 from dgt_stats import site, summaries
-from dgt_stats.paths import FIGURES_DIR, TABLES_DIR
+from dgt_stats.paths import FIGURES_DIR, PROJECT_ROOT, TABLES_DIR
 from dgt_stats.site import components
 from dgt_stats.site.script import JS_FLAG
 
@@ -143,6 +143,38 @@ def test_withdrawn_pages_say_why_and_nothing_links_to_them(built: Path) -> None:
         text = (built / f"{slug}.html").read_text(encoding="utf-8")
         for withdrawn in site.WITHDRAWN_PAGES:
             assert f'href="{withdrawn}.html"' not in text, (slug, withdrawn)
+
+
+def test_reuse_names_each_provider_its_terms_and_its_dates(built: Path) -> None:
+    text = (built / "data.html").read_text(encoding="utf-8")
+    reuse = text[text.find('id="reuse"') : text.find('id="data-and-method"')]
+    for terms in (
+        "https://datos.gob.es/avisolegal",
+        "https://creativecommons.org/licenses/by/4.0/",
+        "https://www.ine.es/aviso_legal/",
+        "https://www.transportes.gob.es/ministerio/aviso-legal",
+        "https://www.omc.cat/ca/avis-legal",
+        "https://www.idescat.cat/institut/web/?lang=en",
+    ):
+        assert f'href="{terms}"' in reuse, terms
+    assert "CORES" in reuse and "Idescat" in reuse
+    # The dates of last update are the source register's; where none is published, the text
+    # gives the download dates and says so.
+    manifest = pd.read_csv(PROJECT_ROOT / "data/raw/manifest.csv")
+    described = " ".join(manifest.description.astype(str))
+    for pattern, dayfirst in (
+        (r"last updated (\d{4}-\d{2}-\d{2})", False),
+        (r"Actualizado el (\d{2}-\d{2}-\d{4})", True),
+        (r"por última vez el (\d{2}-\d{2}-\d{4})", True),
+    ):
+        for found in re.findall(pattern, described):
+            stamp = pd.to_datetime(found, dayfirst=dayfirst)
+            assert f"{stamp.day} {stamp:%B %Y}" in reuse, found
+    assert reuse.count("carry no date of last update") == 2
+    # Every provider is named in the footer of every page.
+    for page in built.glob("*.html"):
+        footer = page.read_text(encoding="utf-8").split('<footer class="site-footer">')[1]
+        assert "Idescat" in footer and "CORES" in footer, page.name
 
 
 def test_referenced_assets_exist(built: Path) -> None:

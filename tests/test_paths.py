@@ -88,3 +88,34 @@ def test_chapter_years_require_a_chapter() -> None:
     assert tables_raw_path(2014, 4).suffix == ".xls"
     assert tables_raw_path(2015, 4).suffix == ".xlsx"
     assert tables_raw_path(2024, 4) == tables_raw_path(2024)
+
+
+def test_the_manifest_records_the_update_date_the_cores_file_states() -> None:
+    import pandas as pd
+
+    path = RAW_DATA_DIR / "cores" / "cores_consumos_pp.xlsx"
+    stated = {
+        str(pd.read_excel(path, sheet_name=sheet, header=None, nrows=5).iat[3, 0])
+        for sheet in ("Gasolinas", "Gasoleos")
+    }
+    row = next(r for r in _manifest_rows() if r["path"] == "cores/cores_consumos_pp.xlsx")
+    assert len(stated) == 1
+    assert stated.pop() in row["description"]
+
+
+def test_the_manifest_records_the_dates_the_yearbook_pdf_carries() -> None:
+    import re
+
+    data = (RAW_DATA_DIR / "transportes" / "anuario_carreteras_2023.pdf").read_bytes()
+    created = {m.decode() for m in re.findall(rb"CreationDate\s*\(D:(\d{8})", data)}
+    modified = max(m.decode() for m in re.findall(rb"ModDate\s*\(D:(\d{8})", data))
+    row = next(
+        r for r in _manifest_rows() if r["path"] == "transportes/anuario_carreteras_2023.pdf"
+    )
+
+    def dmy(stamp: str) -> str:
+        return f"{stamp[6:8]}-{stamp[4:6]}-{stamp[:4]}"
+
+    assert len(created) == 1
+    assert f"creado el {dmy(created.pop())}" in row["description"]
+    assert f"por última vez el {dmy(modified)}" in row["description"]

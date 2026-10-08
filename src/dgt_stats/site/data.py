@@ -1034,18 +1034,48 @@ def _reproduce() -> str:
 
 def _manifest_note(path_prefix: str, pattern: str) -> str:
     """A date or phrase the source register records in the manifest description of a file."""
+    return _manifest_notes(path_prefix, pattern)[-1]
+
+
+def _manifest_notes(path_prefix: str, pattern: str) -> list:
+    """Every distinct match of ``pattern`` (a tuple if it has several groups) in the manifest
+    descriptions under ``path_prefix``, sorted."""
     manifest = _manifest()
     rows = manifest[manifest.path.str.startswith(path_prefix)]
     found = sorted({m for text in rows.description for m in re.findall(pattern, str(text))})
     _require({f"the manifest records {pattern!r} for {path_prefix}": len(found) >= 1})
-    return found[-1]
+    return found
+
+
+def _date(text: str, dayfirst: bool = False) -> str:
+    """A date as the page writes it: 5 November 2025."""
+    stamp = pd.to_datetime(text, dayfirst=dayfirst)
+    return f"{stamp.day} {stamp:%B %Y}"
+
+
+def _downloaded(paths: tuple[str, ...]) -> str:
+    """When the files under ``paths`` (path prefixes) were downloaded, from the manifest's
+    ``added`` column: one date, or the first and the last. A file recorded only as added before a
+    date counts as added on it, and the text then says the first date may be earlier."""
+    manifest = _manifest()
+    added = manifest[manifest.path.str.startswith(paths)].added.astype(str)
+    _require({f"the manifest dates the files {paths}": len(added) >= 1})
+    dates = pd.to_datetime(added.str.removeprefix("before "))
+    first, last = dates.min(), dates.max()
+    earlier = bool((dates[added.str.startswith("before ")] == first).any())
+    if first == last and not earlier:
+        return f"on {_date(str(first))}"
+    or_earlier = " or earlier" if earlier else ""
+    return f"from {_date(str(first))}{or_earlier} to {_date(str(last))}"
 
 
 def _reuse() -> str:
-    catalan_update = _manifest_note(
-        "catalonia/", r"rows last updated on the portal (\d{4}-\d{2}-\d{2})"
+    from dgt_stats.emef import publication
+
+    catalan_update = _date(
+        _manifest_note("catalonia/", r"rows last updated on the portal (\d{4}-\d{2}-\d{2})")
     )
-    barcelona_update = _manifest_note("barcelona/", r"last modified (\d{4}-\d{2}-\d{2})")
+    barcelona_update = _date(_manifest_note("barcelona/", r"last modified (\d{4}-\d{2}-\d{2})"))
     barcelona_year = _year_label(read_table("bcn_person_severity_share"))
     manifest = _manifest()
     emef_years = sorted(
@@ -1058,32 +1088,91 @@ def _reuse() -> str:
         }
     )
     emef_span = f"{emef_years[0]}–{emef_years[-1]}"
+    emef_dates = _manifest_notes("emef/", r"file date on omc\.cat (\d{4}-\d{2}-\d{2})")
+    microdata_year, microdata_update = _manifest_notes(
+        "dgt/microdata/", r"víctimas (\d{4}), last updated (\d{4}-\d{2}-\d{2})"
+    )[-1]
+    dgt_downloaded = _downloaded(("dgt/",))
+    ine_downloaded = _downloaded(
+        ("ine/ine_poblacion_provincias_edad_sexo.csv", "ine/ine_poblacion_edad_simple_sexo.csv")
+    )
+    yearbook_modified = _date(
+        _manifest_note("transportes/anuario_", r"por última vez el (\d{2}-\d{2}-\d{4})"),
+        dayfirst=True,
+    )
+    transport_downloaded = _downloaded(("transportes/peaje_", "transportes/movilia_2006"))
+    cores_update = _date(
+        _manifest_note("cores/", r"Actualizado el (\d{2}-\d{2}-\d{4})"), dayfirst=True
+    )
+    idescat_release = _date(_manifest_note("idescat/", r"\((\d{1,2} [A-Z][a-z]+ \d{4})\)"))
     return (
         '<h2 id="reuse">Reuse</h2>'
         f'<p>The code is under the <a href="{REPO_URL}/blob/main/LICENSE">MIT licence</a>. The '
-        "data keep the terms of the bodies that publish them. DGT's statistics are reused as "
-        "public-sector information under Ley 37/2007 on the reuse of public-sector "
-        "information, with the datos.gob.es conditions applied: the source is named, the "
-        "meaning is not distorted, the dates are kept and no endorsement is implied. INE's "
-        "population data are under CC BY 4.0.</p>"
+        "data keep the terms of the bodies that publish them, and most of those terms require "
+        "the date of the data's last update to be given. Where a provider publishes that date, "
+        "it is given below. Where it does not, the date given is the one the file itself "
+        "records or, failing that, the day it was downloaded, as the source register records "
+        "it, and the text says which.</p>"
+        "<p>DGT's crash microdata are catalogued on datos.gob.es, whose "
+        '<a href="https://datos.gob.es/avisolegal">legal notice</a> allows reuse if the source '
+        "is named, the meaning is not distorted, the date of last update is kept, no "
+        "endorsement is implied and the metadata are kept. DGT's other statistics name no "
+        "licence. They are reused as public-sector information under Ley 37/2007 on the reuse "
+        "of public-sector information, on the same conditions. Source: Dirección General de "
+        f"Tráfico. The crash microdata of {microdata_year} were last updated on "
+        f"{_date(microdata_update)}. DGT publishes no date of last update for the earlier "
+        "microdata or its other files, so the register gives the date each was downloaded, "
+        f"{dgt_downloaded}.</p>"
+        "<p>INE's population tables are under the "
+        '<a href="https://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution '
+        '4.0</a> licence (<a href="https://www.ine.es/aviso_legal/">INE legal notice</a>): '
+        '<span lang="es">Elaboración propia con datos extraídos del sitio web del INE: '
+        "www.ine.es</span>. The tables as downloaded carry no date of last update; they were "
+        f"downloaded {ine_downloaded}.</p>"
+        "<p>The files of the Ministerio de Transportes y Movilidad Sostenible are reused under "
+        'its <a href="https://www.transportes.gob.es/ministerio/aviso-legal">legal notice</a>, '
+        "which allows commercial and non-commercial reuse if the origin is cited, the date of "
+        "last update is kept, the content is not distorted, no endorsement is implied and the "
+        'metadata are kept: <span lang="es">Origen de los datos: Ministerio de Transportes y '
+        "Movilidad Sostenible</span>. The roads chapter of its statistical yearbook carries no "
+        "published date of last update; by its own metadata the file was last modified on "
+        f"{yearbook_modified}. The toll-motorway series and "
+        "the MOVILIA tables carry no date of last update; they were downloaded "
+        f"{transport_downloaded}.</p>"
+        "<p>CORES, the corporation of public law that publishes Spain's petroleum statistics, "
+        "names no licence for them. They are reused as public-sector information under Ley "
+        "37/2007, on the datos.gob.es conditions above. Source: Corporación de Reservas "
+        "Estratégicas de Productos Petrolíferos; the file states that it was updated on "
+        f"{cores_update}.</p>"
         "<p>The Catalan crash file is reused under the "
         '<a href="https://administraciodigital.gencat.cat/ca/dades/dades-obertes/informacio-'
         "practica/llicencies/\">Llicència oberta d'ús d'informació - Catalunya</a>. Source: "
         "Generalitat de Catalunya. Departament d'Interior i Seguretat Pública. Servei Català "
-        f"de Trànsit; data last updated {catalan_update}. The Barcelona crash records are "
+        f"de Trànsit; data last updated on {catalan_update}. The Barcelona crash records are "
         "published by the Ajuntament de Barcelona on Open Data BCN under the "
         '<a href="https://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution '
-        f"4.0</a> licence ({barcelona_year} files last modified {barcelona_update}); the site "
-        "reads them into its own tables and does not alter the files. The EMEF figures are this "
-        "study's own calculations from the public-use microdata (ATM, Idescat and Institut "
-        f"Metròpoli, Enquesta de mobilitat en dia feiner {emef_span}, Autoritat del Transport "
-        "Metropolità), reused under the open-data clause of the Observatori de la Mobilitat de "
-        "Catalunya; they are not official results. The Madrid survey figures use the "
-        "Consorcio Regional de Transportes de Madrid's EDM2018 data "
-        '(<a href="https://www.crtm.es">Powered by CRTM</a>), and the tables derived from them '
-        "are distributed under the CRTM's licence, as it requires.</p>"
+        f"4.0</a> licence ({barcelona_year} files last modified on {barcelona_update}); the "
+        "site reads them into its own tables and does not alter the files.</p>"
+        "<p>The EMEF figures are this study's own calculations from the public-use microdata "
+        f"(ATM, Idescat and Institut Metròpoli, Enquesta de mobilitat en dia feiner {emef_span}, "
+        "Autoritat del Transport Metropolità); they are not official results. They are reused "
+        'under the open-data clause of the <a href="https://www.omc.cat/ca/avis-legal">legal '
+        "notice</a> of the Observatori de la Mobilitat de Catalunya, which requires the rights "
+        "holder, the Consorci de l'Autoritat del Transport Metropolità, and the source to be "
+        "cited and the date of last update to be given: the files were last updated on "
+        f"omc.cat between {_date(emef_dates[0])} and {_date(emef_dates[-1])}, and the register "
+        "gives each file's date. As the survey's dictionaries require, no estimate resting on "
+        f"fewer than {publication.MIN_SAMPLE_OBSERVATIONS} sample observations is published. The "
+        "census count of employed people aged 65 and over in Catalonia comes from Idescat's "
+        f"release of {idescat_release}, reused under Idescat's "
+        '<a href="https://www.idescat.cat/institut/web/?lang=en">legal notice</a>, which allows '
+        "reuse if the source is cited, the content is not altered and the date of the latest "
+        "update is given. Source: created upon the basis of Idescat's own data.</p>"
+        "<p>The Madrid survey figures use the Consorcio Regional de Transportes de Madrid's "
+        'EDM2018 data (<a href="https://www.crtm.es">Powered by CRTM</a>), and the tables '
+        "derived from them are distributed under the CRTM's licence, as it requires.</p>"
         "<p>Every published figure is an aggregate, and nothing identifies a person. The "
-        f'file-by-file terms are in the <a href="{DOCS_URL}/data_sources.md">source '
+        f'file-by-file terms and dates are in the <a href="{DOCS_URL}/data_sources.md">source '
         "register</a>.</p>"
     )
 
