@@ -432,18 +432,20 @@ def _factor_figures(figures_dir: Path, captions: dict[str, str], summary) -> Non
         "ratio_high",
         figures_dir / "f1_speed_severity.svg",
         "Deaths per crash when speed is recorded, against other crashes",
-        xlabel="Ratio of deaths per 100 crashes (dotted line: the same)",
+        xlabel="Ratio of deaths per 100 crashes, log scale (dotted line: the same)",
         reference=1.0,
         style="kind",
         group="block",
+        log=True,
     )
     captions["f1_speed_severity"] = _caption(
         "Deaths within 30 days per 100 injury crashes in which the police recorded "
         "inappropriate speed, as a ratio to the same rate in the other injury crashes on the "
         "same type of road, Spain outside Catalonia and the Basque Country, 2016–2023 pooled, "
-        "with 95% intervals",
+        "with 95% intervals that allow for year-to-year variation (for the adjusted ratio, also "
+        "for the differences between road types)",
         f"{SPEED_REPORT_SOURCE}; {MICRODATA_SOURCE}",
-        f"{int(pooled.speed_crashes.sum()):,} speed-related crashes",
+        f"{int(pooled.speed_crashes.sum()):,} crashes with inappropriate speed recorded",
     )
 
     shares = summary("factor_shares")
@@ -551,10 +553,11 @@ def _severity_figures(figures_dir: Path, captions: dict[str, str]) -> None:
             for level in ("wet", "rain", "hail or snow", "at a junction")
             if level.capitalize() in set(fatal.level.map(str.capitalize))
         ],
-        xlabel="Odds ratio against the reference level (dotted line: no difference)",
+        xlabel="Odds ratio against the reference level, log scale (dotted line: no difference)",
         reference=1.0,
         from_zero=False,
         shared=True,
+        log=True,
     )
     captions["s2_adverse_conditions"] = _caption(
         "Odds ratios for at least one death in an injury crash under each adverse condition "

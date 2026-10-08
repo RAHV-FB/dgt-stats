@@ -424,11 +424,17 @@ microdata restricted to the report's provinces, which reproduce the report's zon
 (`speed_report_scope`). The road types map from the microdata's zone and road-type code (motorways
 1–2, dual carriageways 3, every other interurban code to the rest). The mapping is not reconciled
 by road type, because `speed_report_scope` checks year by zone only, and the ratio adjusted for
-road type and year (2.00, `speed_severity_pooled.csv`) rests on it. Rate ratios carry log-normal
-intervals; `speed_severity_pooled` pools 2016–2023 by road type and fits a quasi-Poisson model of
-deaths with the log of crashes as offset and road type and year as factors, whose speed
-coefficient is the ratio on the same kind of road.
-The crude ratio is reported beside it. The ratio is an association open to two biases the data
+road type and year (2.00, `speed_severity_pooled.csv`) rests on it. Yearly rate ratios carry
+log-normal Poisson intervals; `speed_severity_pooled` pools 2016–2023 by road type, widening each
+road type's Poisson interval by the square root of the Pearson dispersion (1.9 to 2.4) of a Poisson
+model of its deaths with speed and year as terms, and fits a quasi-Poisson model of deaths with the
+log of crashes as offset and road type and year as factors, whose speed coefficient is the ratio on
+the same kind of road. That model assumes one ratio for every road type, which the data reject: the
+ratios run from 1.22 (dual carriageways) to 5.90 (urban streets), letting them differ improves the
+fit by a likelihood-ratio statistic of 446 on 3 degrees of freedom, and the Pearson dispersion
+falls from 13.5 to 2.0 once they may. The 2.00 is therefore a weighted summary, dominated by other
+interurban roads, and its wide interval mostly reflects the differences between road types; the
+pages give the range by road type with it. The crude ratio is reported beside it. The ratio is an association open to two biases the data
 cannot measure: differential recording (if speed is more often found when a crash is fatal, the
 ratio is inflated) and unrecorded speed in the comparison group (which deflates it).
 
@@ -462,7 +468,14 @@ rule splits runs at a jump and at an untestable change.
 
 The rule finds the breaks the report's own tables show on inspection: urban distraction in 2016
 and 2019, urban alcohol in 2016, and drugs throughout. Interurban alcohol, inappropriate speed in
-both zones and interurban distraction run unbroken across the decade.
+both zones and interurban distraction run unbroken across the decade. An unbroken run is not proof
+of consistent recording: the rule only rules out single-year jumps. Interurban alcohol rose 11 % in
+2016, the year the urban series broke and the driver tables' unrecorded speed status jumped, and 30
+% from 2016 to 2023; the page gives both. The all-roads share of crashes with speed recorded fell
+31 % from 2014 to 2023, but about 24 % within each zone (18.6 % to 14.3 % interurban, 4.1 % to 3.1 %
+urban): the rest is the shift of crashes towards urban streets (40.6 % of crashes were interurban
+in 2014, 34.2 % in 2023), and at the 2014 zone mix the 2023 share would be 7.6 %, not 6.9 %. The
+page leads with the within-zone falls.
 
 ## 11. Predicting deaths, and what a before-and-after comparison can see (`forecast.py`; withdrawn)
 

@@ -357,6 +357,14 @@ def test_speed_page_carries_severity_and_the_recording_discontinuity(built: Path
     assert f"{adjusted.rate_ratio:.2f} times" in opening
     assert f"{adjusted.ratio_low:.2f}–{adjusted.ratio_high:.2f}" in opening
     assert f"{adjusted.crude_ratio:.2f}" in opening  # the unadjusted ratio is shown beside it
+    # The road-type ratios differ, so the summary gives their range and calls the adjusted ratio
+    # a weighted summary; the home page says the same, with the pooled years.
+    assert f"{pooled.loc['dual_carriageway', 'rate_ratio']:.2f} times on dual" in opening
+    assert f"{pooled.loc['urban', 'rate_ratio']:.2f} times on urban streets" in opening
+    assert "weighted summary" in opening
+    home = (built / "index.html").read_text(encoding="utf-8")
+    assert f"{pooled.loc['urban', 'rate_ratio']:.1f} times on urban streets" in home
+    assert "Over 2016–2023, those crashes" in home
     # The summary says plainly that a recorded factor is an association, not a cause.
     assert (
         "Police-recorded inappropriate speed is associated with greater crash severity" in opening
@@ -397,6 +405,14 @@ def test_factors_page_reads_trends_only_within_comparable_runs(built: Path) -> N
     assert "break in comparability" in text and "Drugs" in text
     # A break is a threshold, never an explanation of what changed.
     assert "cannot say whether a break" in text and "from recording or from both" in text
+    # The summary gives the fall in recorded speed within each kind of road, not only the
+    # all-roads fall that the shift towards urban crashes enlarges, and makes no claim that the
+    # recording is consistent.
+    opening = re.search(r'<p class="summary">(.*?)</p>', text, re.S).group(1)
+    speed = windows[windows.factor == "Inappropriate speed"].set_index("zone")
+    for zone in ("interurban", "urban", "all"):
+        assert f"{speed.loc[zone, 'share_last'] * 100:.1f}%" in opening
+    assert "recording is consistent" not in opening and "point to changes in recording" not in text
 
 
 def test_trend_pages_show_every_denominator_and_the_projection(built: Path) -> None:

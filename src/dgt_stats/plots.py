@@ -608,6 +608,26 @@ DOT_STYLES: dict[str, dict[str, object]] = {
 }
 
 
+def _log_ratio_axis(axis: plt.Axes, lows, highs, reference: float | None = None) -> None:
+    """A logarithmic value axis for ratios: the range of the intervals (and the reference line)
+    with a little room, labelled at each doubling, or also at 0.75, 1.5, 3 and so on when the
+    range holds fewer than three doublings."""
+    values = [float(v) for v in [*lows, *highs] if pd.notna(v) and float(v) > 0]
+    if reference is not None:
+        values.append(float(reference))
+    left, right = min(values) / 1.15, max(values) * 1.15
+    axis.set_xscale("log")
+    axis.set_xlim(left, right)
+    doublings = [2.0**power for power in range(-4, 5)]
+    ticks = [tick for tick in doublings if left <= tick <= right]
+    if len(ticks) < 3:
+        extended = sorted({*doublings, *(1.5 * tick for tick in doublings if tick >= 0.5)})
+        ticks = [tick for tick in extended if left <= tick <= right]
+    axis.xaxis.set_major_locator(matplotlib.ticker.FixedLocator(ticks))
+    axis.xaxis.set_minor_locator(matplotlib.ticker.NullLocator())
+    axis.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(lambda v, _: f"{v:g}"))
+
+
 def _dots(axis: plt.Axes, xs, ys, lows, highs, kind: str) -> None:
     look = DOT_STYLES[kind]
     axis.hlines(ys, lows, highs, color=look["line"], linewidth=1.6, alpha=look["alpha"], zorder=2)
@@ -642,8 +662,12 @@ def dot_interval(
     style: str | None = None,
     group: str | None = None,
     xlim: tuple[float, float] | None = None,
+    log: bool = False,
 ) -> Path:
     """Dots with interval whiskers, one row per label, highest value at the top.
+
+    ``log`` draws the value axis on a logarithmic scale, for ratios, with labelled ticks at each
+    doubling (as in ``forest``), so that a halving and a doubling look the same size.
 
     ``keep_order`` keeps the frame's own order (first row at the top) instead of ranking.
     ``highlight`` names a boolean column: its rows are drawn as filled accent dots and the
@@ -741,6 +765,8 @@ def dot_interval(
                 color=TEXT_PRIMARY,
                 arrowprops={"arrowstyle": "->", "color": TEXT_PRIMARY, "lw": 0.8, "shrinkA": 3},
             )
+    elif log:
+        _log_ratio_axis(axis, ordered[low], ordered[high], reference)
     elif float(ordered[low].min()) >= -1e-9:
         axis.set_xlim(left=0)
     if percent:
@@ -1257,8 +1283,11 @@ def dot_interval_panels(
     reference: float | None = None,
     from_zero: bool = True,
     shared: bool = False,
+    log: bool = False,
 ) -> Path:
     """Side-by-side dot-and-whisker panels sharing one row order (``order``, top to bottom).
+
+    ``log`` (with ``shared``) puts every panel on one logarithmic scale, for ratios.
 
     Each panel has its own x scale, from zero unless ``from_zero`` is False (ratios read against
     ``reference``), so the panels compare rankings, not magnitudes; with ``shared`` every panel
@@ -1314,7 +1343,12 @@ def dot_interval_panels(
         axis.tick_params(labelsize=NOTE_SIZE)
         if reference is not None:
             _reference_line(axis, reference, vertical=True)
-    if shared:
+    if shared and log:
+        # One logarithmic scale for every panel (the axes share x), set once all are drawn.
+        _log_ratio_axis(axes[0], frame[low], frame[high], reference)
+        for axis in axes:
+            axis.tick_params(labelsize=NOTE_SIZE)
+    elif shared:
         # One scale for every panel, set once all of them are drawn.
         left = 0.0 if from_zero else float(frame[low].min())
         right = float(frame[high].max())
