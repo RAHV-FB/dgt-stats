@@ -1,0 +1,111 @@
+outcome,treatment,treatment_label,used,fit,first_year,last_year,n,n_at_junction,recoded,unrecorded,share_at_junction_catalonia,odds_ratio,or_low,or_high,heterogeneity_q,heterogeneity_p
+fatal,flip,flag read the other way round,True,full,2016,2024,875013,337477,47705,0,0.390703,0.690431,0.654392,0.728455,,
+fatal,flip,flag read the other way round,True,from break,2023,2024,203302,76462,47705,0,0.372204,0.717817,0.649818,0.792932,,
+fatal,flip,flag read the other way round,True,year,2016,2016,102362,40207,0,0,0.420294,0.707232,0.639013,0.782734,10.5897,0.226046
+fatal,flip,flag read the other way round,True,year,2017,2017,102233,38509,0,0,0.406439,0.681178,0.602138,0.770594,10.5897,0.226046
+fatal,flip,flag read the other way round,True,year,2018,2018,102299,40376,0,0,0.40365,0.632688,0.541031,0.739873,10.5897,0.226046
+fatal,flip,flag read the other way round,True,year,2019,2019,104080,41351,0,0,0.40721,0.655352,0.592675,0.724658,10.5897,0.226046
+fatal,flip,flag read the other way round,True,year,2020,2020,72959,28860,0,0,0.394679,0.670136,0.57249,0.784436,10.5897,0.226046
+fatal,flip,flag read the other way round,True,year,2021,2021,89862,34187,0,0,0.350811,0.656935,0.556667,0.775262,10.5897,0.226046
+fatal,flip,flag read the other way round,True,year,2022,2022,97916,37525,0,0,0.376556,0.794131,0.710253,0.887914,10.5897,0.226046
+fatal,flip,flag read the other way round,True,year,2023,2023,101306,38350,23590,0,0.378593,0.685783,0.601255,0.782196,10.5897,0.226046
+fatal,flip,flag read the other way round,True,year,2024,2024,101996,38112,24115,0,0.365955,0.761647,0.658552,0.880881,10.5897,0.226046
+serious,flip,flag read the other way round,True,full,2016,2024,875013,337477,47705,0,0.390703,0.861703,0.817415,0.908391,,
+serious,flip,flag read the other way round,True,from break,2023,2024,203302,76462,47705,0,0.372204,0.889646,0.841176,0.940908,,
+serious,flip,flag read the other way round,True,year,2016,2016,102362,40207,0,0,0.420294,0.885851,0.828724,0.946917,14.775,0.0636703
+serious,flip,flag read the other way round,True,year,2017,2017,102233,38509,0,0,0.406439,0.865616,0.73945,1.01331,14.775,0.0636703
+serious,flip,flag read the other way round,True,year,2018,2018,102299,40376,0,0,0.40365,0.83311,0.766257,0.905796,14.775,0.0636703
+serious,flip,flag read the other way round,True,year,2019,2019,104080,41351,0,0,0.40721,0.824543,0.778745,0.873035,14.775,0.0636703
+serious,flip,flag read the other way round,True,year,2020,2020,72959,28860,0,0,0.394679,0.845359,0.759607,0.940792,14.775,0.0636703
+serious,flip,flag read the other way round,True,year,2021,2021,89862,34187,0,0,0.350811,0.79963,0.735399,0.869471,14.775,0.0636703
+serious,flip,flag read the other way round,True,year,2022,2022,97916,37525,0,0,0.376556,0.921692,0.875696,0.970104,14.775,0.0636703
+serious,flip,flag read the other way round,True,year,2023,2023,101306,38350,23590,0,0.378593,0.902494,0.833789,0.97686,14.775,0.0636703
+serious,flip,flag read the other way round,True,year,2024,2024,101996,38112,24115,0,0.365955,0.880597,0.834271,0.929496,14.775,0.0636703
+fatal,junction type,at a junction when the record carries a junction type,False,full,2016,2024,875013,336419,46647,0,0.385849,0.687023,0.650201,0.725931,,
+fatal,junction type,at a junction when the record carries a junction type,False,from break,2023,2024,203302,75404,46647,0,0.350026,0.702095,0.631526,0.78055,,
+fatal,junction type,at a junction when the record carries a junction type,False,year,2016,2016,102362,40207,0,0,0.420294,0.707232,0.639013,0.782734,10.428,0.236262
+fatal,junction type,at a junction when the record carries a junction type,False,year,2017,2017,102233,38509,0,0,0.406439,0.681178,0.602138,0.770594,10.428,0.236262
+fatal,junction type,at a junction when the record carries a junction type,False,year,2018,2018,102299,40376,0,0,0.40365,0.632688,0.541031,0.739873,10.428,0.236262
+fatal,junction type,at a junction when the record carries a junction type,False,year,2019,2019,104080,41351,0,0,0.40721,0.655352,0.592675,0.724658,10.428,0.236262
+fatal,junction type,at a junction when the record carries a junction type,False,year,2020,2020,72959,28860,0,0,0.394679,0.670136,0.57249,0.784436,10.428,0.236262
+fatal,junction type,at a junction when the record carries a junction type,False,year,2021,2021,89862,34187,0,0,0.350811,0.656935,0.556667,0.775262,10.428,0.236262
+fatal,junction type,at a junction when the record carries a junction type,False,year,2022,2022,97916,37525,0,0,0.376556,0.794131,0.710253,0.887914,10.428,0.236262
+fatal,junction type,at a junction when the record carries a junction type,False,year,2023,2023,101306,37829,23069,0,0.356507,0.665628,0.578496,0.765885,10.428,0.236262
+fatal,junction type,at a junction when the record carries a junction type,False,year,2024,2024,101996,37575,23578,0,0.343687,0.75013,0.647149,0.869498,10.428,0.236262
+serious,junction type,at a junction when the record carries a junction type,False,full,2016,2024,875013,336419,46647,0,0.385849,0.858377,0.812045,0.907352,,
+serious,junction type,at a junction when the record carries a junction type,False,from break,2023,2024,203302,75404,46647,0,0.350026,0.875473,0.817369,0.937708,,
+serious,junction type,at a junction when the record carries a junction type,False,year,2016,2016,102362,40207,0,0,0.420294,0.885851,0.828724,0.946917,13.687,0.0902976
+serious,junction type,at a junction when the record carries a junction type,False,year,2017,2017,102233,38509,0,0,0.406439,0.865616,0.73945,1.01331,13.687,0.0902976
+serious,junction type,at a junction when the record carries a junction type,False,year,2018,2018,102299,40376,0,0,0.40365,0.83311,0.766257,0.905796,13.687,0.0902976
+serious,junction type,at a junction when the record carries a junction type,False,year,2019,2019,104080,41351,0,0,0.40721,0.824543,0.778745,0.873035,13.687,0.0902976
+serious,junction type,at a junction when the record carries a junction type,False,year,2020,2020,72959,28860,0,0,0.394679,0.845359,0.759607,0.940792,13.687,0.0902976
+serious,junction type,at a junction when the record carries a junction type,False,year,2021,2021,89862,34187,0,0,0.350811,0.79963,0.735399,0.869471,13.687,0.0902976
+serious,junction type,at a junction when the record carries a junction type,False,year,2022,2022,97916,37525,0,0,0.376556,0.921692,0.875696,0.970104,13.687,0.0902976
+serious,junction type,at a junction when the record carries a junction type,False,year,2023,2023,101306,37829,23069,0,0.356507,0.885231,0.805586,0.97275,13.687,0.0902976
+serious,junction type,at a junction when the record carries a junction type,False,year,2024,2024,101996,37575,23578,0,0.343687,0.869144,0.818826,0.922555,13.687,0.0902976
+fatal,unrecorded,junction unrecorded,False,full,2016,2024,875013,319721,48061,48061,0.309241,0.700167,0.663033,0.73938,,
+fatal,unrecorded,junction unrecorded,False,from break,2023,2024,203302,58706,47771,47771,0,0.772607,0.679697,0.878216,,
+fatal,unrecorded,junction unrecorded,False,year,2016,2016,102362,40207,0,0,0.420294,0.707232,0.639013,0.782734,11.7729,0.161629
+fatal,unrecorded,junction unrecorded,False,year,2017,2017,102233,38509,0,0,0.406439,0.681178,0.602138,0.770594,11.7729,0.161629
+fatal,unrecorded,junction unrecorded,False,year,2018,2018,102299,40376,0,0,0.40365,0.632688,0.541031,0.739873,11.7729,0.161629
+fatal,unrecorded,junction unrecorded,False,year,2019,2019,104080,41351,257,257,0.40721,0.655352,0.592675,0.724658,11.7729,0.161629
+fatal,unrecorded,junction unrecorded,False,year,2020,2020,72959,28860,33,33,0.394679,0.670136,0.57249,0.784436,11.7729,0.161629
+fatal,unrecorded,junction unrecorded,False,year,2021,2021,89862,34187,0,0,0.350811,0.656935,0.556667,0.775262,11.7729,0.161629
+fatal,unrecorded,junction unrecorded,False,year,2022,2022,97916,37525,0,0,0.376556,0.794131,0.710253,0.887914,11.7729,0.161629
+fatal,unrecorded,junction unrecorded,False,year,2023,2023,101306,29419,23623,23623,0,0.751922,0.64246,0.880035,11.7729,0.161629
+fatal,unrecorded,junction unrecorded,False,year,2024,2024,101996,29287,24148,24148,0,0.784164,0.662642,0.927972,11.7729,0.161629
+serious,unrecorded,junction unrecorded,False,full,2016,2024,875013,319721,48061,48061,0.309241,0.873392,0.831815,0.917048,,
+serious,unrecorded,junction unrecorded,False,from break,2023,2024,203302,58706,47771,47771,0,0.963646,0.874626,1.06173,,
+serious,unrecorded,junction unrecorded,False,year,2016,2016,102362,40207,0,0,0.420294,0.885851,0.828724,0.946917,20.3703,0.00902221
+serious,unrecorded,junction unrecorded,False,year,2017,2017,102233,38509,0,0,0.406439,0.865616,0.73945,1.01331,20.3703,0.00902221
+serious,unrecorded,junction unrecorded,False,year,2018,2018,102299,40376,0,0,0.40365,0.83311,0.766257,0.905796,20.3703,0.00902221
+serious,unrecorded,junction unrecorded,False,year,2019,2019,104080,41351,257,257,0.40721,0.823564,0.777651,0.872188,20.3703,0.00902221
+serious,unrecorded,junction unrecorded,False,year,2020,2020,72959,28860,33,33,0.394679,0.845359,0.759607,0.940792,20.3703,0.00902221
+serious,unrecorded,junction unrecorded,False,year,2021,2021,89862,34187,0,0,0.350811,0.79963,0.735399,0.869471,20.3703,0.00902221
+serious,unrecorded,junction unrecorded,False,year,2022,2022,97916,37525,0,0,0.376556,0.921692,0.875696,0.970104,20.3703,0.00902221
+serious,unrecorded,junction unrecorded,False,year,2023,2023,101306,29419,23623,23623,0,0.99279,0.884251,1.11465,20.3703,0.00902221
+serious,unrecorded,junction unrecorded,False,year,2024,2024,101996,29287,24148,24148,0,0.908536,0.850366,0.970685,20.3703,0.00902221
+fatal,as published,flag as DGT publishes it,False,full,2016,2024,875013,349670,0,0,0.446643,0.748769,0.691837,0.810385,,
+fatal,as published,flag as DGT publishes it,False,from break,2023,2024,203302,88655,0,0,0.627796,0.984373,0.759341,1.27609,,
+fatal,as published,flag as DGT publishes it,False,year,2016,2016,102362,40207,0,0,0.420294,0.707232,0.639013,0.782734,21.8673,0.00516765
+fatal,as published,flag as DGT publishes it,False,year,2017,2017,102233,38509,0,0,0.406439,0.681178,0.602138,0.770594,21.8673,0.00516765
+fatal,as published,flag as DGT publishes it,False,year,2018,2018,102299,40376,0,0,0.40365,0.632688,0.541031,0.739873,21.8673,0.00516765
+fatal,as published,flag as DGT publishes it,False,year,2019,2019,104080,41351,0,0,0.40721,0.655352,0.592675,0.724658,21.8673,0.00516765
+fatal,as published,flag as DGT publishes it,False,year,2020,2020,72959,28860,0,0,0.394679,0.670136,0.57249,0.784436,21.8673,0.00516765
+fatal,as published,flag as DGT publishes it,False,year,2021,2021,89862,34187,0,0,0.350811,0.656935,0.556667,0.775262,21.8673,0.00516765
+fatal,as published,flag as DGT publishes it,False,year,2022,2022,97916,37525,0,0,0.376556,0.794131,0.710253,0.887914,21.8673,0.00516765
+fatal,as published,flag as DGT publishes it,False,year,2023,2023,101306,44078,0,0,0.621407,1.00069,0.749883,1.33537,21.8673,0.00516765
+fatal,as published,flag as DGT publishes it,False,year,2024,2024,101996,44577,0,0,0.634045,0.995392,0.764718,1.29565,21.8673,0.00516765
+serious,as published,flag as DGT publishes it,False,full,2016,2024,875013,349670,0,0,0.446643,0.905086,0.86076,0.951695,,
+serious,as published,flag as DGT publishes it,False,from break,2023,2024,203302,88655,0,0,0.627796,1.08083,0.909331,1.28468,,
+serious,as published,flag as DGT publishes it,False,year,2016,2016,102362,40207,0,0,0.420294,0.885851,0.828724,0.946917,25.8256,0.00112493
+serious,as published,flag as DGT publishes it,False,year,2017,2017,102233,38509,0,0,0.406439,0.865616,0.73945,1.01331,25.8256,0.00112493
+serious,as published,flag as DGT publishes it,False,year,2018,2018,102299,40376,0,0,0.40365,0.83311,0.766257,0.905796,25.8256,0.00112493
+serious,as published,flag as DGT publishes it,False,year,2019,2019,104080,41351,0,0,0.40721,0.824543,0.778745,0.873035,25.8256,0.00112493
+serious,as published,flag as DGT publishes it,False,year,2020,2020,72959,28860,0,0,0.394679,0.845359,0.759607,0.940792,25.8256,0.00112493
+serious,as published,flag as DGT publishes it,False,year,2021,2021,89862,34187,0,0,0.350811,0.79963,0.735399,0.869471,25.8256,0.00112493
+serious,as published,flag as DGT publishes it,False,year,2022,2022,97916,37525,0,0,0.376556,0.921692,0.875696,0.970104,25.8256,0.00112493
+serious,as published,flag as DGT publishes it,False,year,2023,2023,101306,44078,0,0,0.621407,1.10539,0.927931,1.31679,25.8256,0.00112493
+serious,as published,flag as DGT publishes it,False,year,2024,2024,101996,44577,0,0,0.634045,1.06884,0.890619,1.28272,25.8256,0.00112493
+fatal,flip and near junctions,"flag read the other way round, and Catalan crashes flagged away from a junction with a junction type or a right-of-way flag placed at one",False,full,2016,2024,875013,338199,48427,0,0.394016,0.692163,0.656484,0.72978,,
+fatal,flip and near junctions,"flag read the other way round, and Catalan crashes flagged away from a junction with a junction type or a right-of-way flag placed at one",False,from break,2023,2024,203302,76462,47705,0,0.372204,0.717817,0.649818,0.792932,,
+fatal,flip and near junctions,"flag read the other way round, and Catalan crashes flagged away from a junction with a junction type or a right-of-way flag placed at one",False,year,2016,2016,102362,40208,1,0,0.420331,0.707228,0.639006,0.782733,10.2472,0.248103
+fatal,flip and near junctions,"flag read the other way round, and Catalan crashes flagged away from a junction with a junction type or a right-of-way flag placed at one",False,year,2017,2017,102233,38509,0,0,0.406439,0.681178,0.602138,0.770594,10.2472,0.248103
+fatal,flip and near junctions,"flag read the other way round, and Catalan crashes flagged away from a junction with a junction type or a right-of-way flag placed at one",False,year,2018,2018,102299,40376,0,0,0.40365,0.632688,0.541031,0.739873,10.2472,0.248103
+fatal,flip and near junctions,"flag read the other way round, and Catalan crashes flagged away from a junction with a junction type or a right-of-way flag placed at one",False,year,2019,2019,104080,41353,2,0,0.407285,0.655339,0.592662,0.724644,10.2472,0.248103
+fatal,flip and near junctions,"flag read the other way round, and Catalan crashes flagged away from a junction with a junction type or a right-of-way flag placed at one",False,year,2020,2020,72959,28867,7,0,0.395073,0.669978,0.572254,0.78439,10.2472,0.248103
+fatal,flip and near junctions,"flag read the other way round, and Catalan crashes flagged away from a junction with a junction type or a right-of-way flag placed at one",False,year,2021,2021,89862,34899,712,0,0.38333,0.674293,0.570076,0.797561,10.2472,0.248103
+fatal,flip and near junctions,"flag read the other way round, and Catalan crashes flagged away from a junction with a junction type or a right-of-way flag placed at one",False,year,2022,2022,97916,37525,0,0,0.376556,0.794131,0.710253,0.887914,10.2472,0.248103
+fatal,flip and near junctions,"flag read the other way round, and Catalan crashes flagged away from a junction with a junction type or a right-of-way flag placed at one",False,year,2023,2023,101306,38350,23590,0,0.378593,0.685783,0.601255,0.782196,10.2472,0.248103
+fatal,flip and near junctions,"flag read the other way round, and Catalan crashes flagged away from a junction with a junction type or a right-of-way flag placed at one",False,year,2024,2024,101996,38112,24115,0,0.365955,0.761647,0.658552,0.880881,10.2472,0.248103
+serious,flip and near junctions,"flag read the other way round, and Catalan crashes flagged away from a junction with a junction type or a right-of-way flag placed at one",False,full,2016,2024,875013,338199,48427,0,0.394016,0.864746,0.821982,0.909735,,
+serious,flip and near junctions,"flag read the other way round, and Catalan crashes flagged away from a junction with a junction type or a right-of-way flag placed at one",False,from break,2023,2024,203302,76462,47705,0,0.372204,0.889646,0.841176,0.940908,,
+serious,flip and near junctions,"flag read the other way round, and Catalan crashes flagged away from a junction with a junction type or a right-of-way flag placed at one",False,year,2016,2016,102362,40208,1,0,0.420331,0.885837,0.828709,0.946905,12.6982,0.122662
+serious,flip and near junctions,"flag read the other way round, and Catalan crashes flagged away from a junction with a junction type or a right-of-way flag placed at one",False,year,2017,2017,102233,38509,0,0,0.406439,0.865616,0.73945,1.01331,12.6982,0.122662
+serious,flip and near junctions,"flag read the other way round, and Catalan crashes flagged away from a junction with a junction type or a right-of-way flag placed at one",False,year,2018,2018,102299,40376,0,0,0.40365,0.83311,0.766257,0.905796,12.6982,0.122662
+serious,flip and near junctions,"flag read the other way round, and Catalan crashes flagged away from a junction with a junction type or a right-of-way flag placed at one",False,year,2019,2019,104080,41353,2,0,0.407285,0.824502,0.778694,0.873005,12.6982,0.122662
+serious,flip and near junctions,"flag read the other way round, and Catalan crashes flagged away from a junction with a junction type or a right-of-way flag placed at one",False,year,2020,2020,72959,28867,7,0,0.395073,0.845015,0.758986,0.940795,12.6982,0.122662
+serious,flip and near junctions,"flag read the other way round, and Catalan crashes flagged away from a junction with a junction type or a right-of-way flag placed at one",False,year,2021,2021,89862,34899,712,0,0.38333,0.830645,0.776449,0.888624,12.6982,0.122662
+serious,flip and near junctions,"flag read the other way round, and Catalan crashes flagged away from a junction with a junction type or a right-of-way flag placed at one",False,year,2022,2022,97916,37525,0,0,0.376556,0.921692,0.875696,0.970104,12.6982,0.122662
+serious,flip and near junctions,"flag read the other way round, and Catalan crashes flagged away from a junction with a junction type or a right-of-way flag placed at one",False,year,2023,2023,101306,38350,23590,0,0.378593,0.902494,0.833789,0.97686,12.6982,0.122662
+serious,flip and near junctions,"flag read the other way round, and Catalan crashes flagged away from a junction with a junction type or a right-of-way flag placed at one",False,year,2024,2024,101996,38112,24115,0,0.365955,0.880597,0.834271,0.929496,12.6982,0.122662

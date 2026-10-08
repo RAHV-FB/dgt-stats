@@ -15,6 +15,8 @@ A field is unrecorded in a crash when it is 999 ("Sin especificar"), its own "un
 
 Share of crashes each such field applies to: the junction type 42.1%, the right-of-way flags 46.2%, the pavement field 13.1% and the road alignment 37.5%.
 
+A presence field is read that way only where it records the condition in few crashes: elsewhere fog or strong wind is recorded in at most 7.6% of a province-year's crashes. A field records its condition in more than 10% of crashes in these province-years: fog in the records for Barcelona in 2017-2024 (33%-45%); strong wind in the records for Barcelona, Girona, Lleida and Tarragona in 2021 (100%); strong wind in the records for Sevilla in 2017-2018 (19%-22%) (`dgt_audit_presence_coding.csv`). There the field is coded another way: neither a value nor a blank says whether the condition was present. The Servei Català de Trànsit's file shows the same fog coding: of the crashes with a death or serious injury within 24 hours in those province-years that it holds, DGT records fog in 1,378 and the Catalan file in 1,378, the same number every year.
+
 ## Checks on the file
 
 | check | criterion | evidence | passed |
@@ -100,9 +102,9 @@ The Catalan common-feature model is scored on DGT crashes outside Catalonia. The
 | inclusion equivalence | the Catalan file holds the crashes DGT records with a death or serious injury within 24 hours (counts within 2% in every province-year) | Catalan / DGT count ratio 1.000 to 1.005 | yes |
 | no Catalan records in the national test | test rows exclude the four Catalan provinces; the model is trained on the Catalan file only | 0 test rows in a Catalan province, 0 without a province, of 67,971 | yes |
 | prevalence | reported, not a pass/fail: a shift moves calibration, not ranking | training 12.6%, national test 15.4%; mean predicted 14.2% | yes |
-| feature coding | only fields whose two codings agree on the crashes both sources hold (Jensen-Shannon divergence at most 0.005) | 10 fields used, largest divergence 0.00032; excluded: road_class, junction, speed_limit, unit_types, geography | yes |
-| missingness | reported: mean share 'not specified' over the fields used | Catalan file 0.0%; DGT Catalonia 0.0%; DGT outside Catalonia 0.8% | yes |
-| in-domain reference and transfer gap | a model trained on DGT crashes outside Catalonia, same fields (5-fold CV), against the transferred Catalan model on the same crashes | target-domain native ROC-AUC 0.712, transferred 0.708 (0.702-0.712); gap (transferred minus native) -0.004; n=67,971, positives=10,457, calibration slope 1.10 | yes |
+| feature coding | only fields whose two codings agree on the crashes both sources hold (Jensen-Shannon divergence at most 0.005) | 11 fields used, largest divergence 0.00032; excluded: road_class, speed_limit, unit_types, geography | yes |
+| missingness | reported: mean share 'not specified' over the fields used | Catalan file 0.0%; DGT Catalonia 0.0%; DGT outside Catalonia 0.7% | yes |
+| in-domain reference and transfer gap | a model trained on DGT crashes outside Catalonia, same fields (5-fold CV), against the transferred Catalan model on the same crashes | target-domain native ROC-AUC 0.721, transferred 0.709 (0.704-0.714); gap (transferred minus native) -0.012; n=67,971, positives=10,457, calibration slope 1.04 | yes |
 
 ## What this means
 

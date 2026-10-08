@@ -172,7 +172,7 @@ def licence_share_by_age(years: tuple[int, ...] = (2014, 2019, 2024)) -> pd.Data
     return out.astype({"sex": "string"})
 
 
-# Written by scripts/model.py (the fits take a minute and a half); analyse.py and the site only
+# Written by scripts/model.py (the fits take about fifteen minutes); analyse.py and the site only
 # read them.
 MODEL_TABLES = (
     "q3_model_coefficients",
@@ -189,6 +189,8 @@ MODEL_TABLES = (
     "q3_recording_regime",
     "q3_regime_sensitivity",
     "q3_groupings",
+    "q3_junction_coding",
+    "q3_junction_sensitivity",
 )
 
 
@@ -215,6 +217,25 @@ _speed_limit = cache(policy.speed_limit_fits)
 def _policy_table(name: str):
     source = _points_licence if name.startswith("q8_points") else _speed_limit
     return lambda: source()[name].copy()
+
+
+def _recording_by_year() -> pd.DataFrame:
+    """The DGT microdata audit's fields and the crossing road per year: crashes, crashes each
+    applies to and those with a value recorded (``dgt_audit.recording_by_year``), for the data
+    page's missing-values chart.
+
+    Whether a crash is at a junction, which decides where the junction fields and the crossing
+    road apply, is read as the association analysis reads it (``features.junction_codes``): the
+    other way round in the province-years whose flag is inverted, so that the chart shows how
+    often those fields are recorded rather than the inversion. Imported here so that reading the
+    other summaries does not load the audit's model stack."""
+    from dgt_stats import features
+    from dgt_stats.microdata.validation import dgt_audit
+
+    columns = (*dgt_audit.CANDIDATES, dgt_audit.CROSSING_ROAD)
+    frame = pd.read_parquet(DGT_PROCESSED_CRASHES, columns=["ANYO", "COD_PROVINCIA", *columns])
+    frame["NUDO"] = features.junction_codes(frame)
+    return dgt_audit.recording_by_year(frame, columns=columns)
 
 
 # --------------------------------------------------------------------------- registry
@@ -262,6 +283,8 @@ SUMMARIES = {
     "q2_night_share": night_share_by_year_zone,
     "q2_other_road_by_period": other_road_by_period,
     "q9_infraction_shares": speed.infraction_shares,
+    # The data page's missing-values chart: the audited fields by the audit's applicability rule
+    "missingness_where_applicable": _recording_by_year,
     # Age and driving exposure
     "q7_km_by_owner_age": driver_risk.car_kilometres,
     "q7_km_rates": driver_risk.km_rates,

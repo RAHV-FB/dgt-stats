@@ -73,6 +73,27 @@ def test_every_cross_source_field_has_a_known_status() -> None:
         assert field.status in ("exact", "defensible", "approximate", "unusable")
 
 
+def test_the_harmonised_junction_reads_the_inverted_flag_the_other_way_round() -> None:
+    """DGT's junction flag enters the cross-source tests as the national model reads it: the
+    other way round in a province-year whose crashes away from a junction mostly carry a junction
+    type, as published elsewhere. The Catalan file's approach zone counts as a junction."""
+    rows = []
+    for province, year, inverted in ((8, 2023, True), (28, 2023, False)):
+        for i in range(10):
+            at = i < 4
+            # Inverted: crashes flagged away from a junction carry the junction type.
+            typed = (not at) if inverted else at
+            rows.append((year, province, 1 if at else 2, 4 if typed else np.nan))
+    frame = pd.DataFrame(rows, columns=["ANYO", "COD_PROVINCIA", "NUDO", "NUDO_INFO"])
+    read = harmonise.dgt_junction_codes(frame).map(harmonise.DGT_JUNCTION)
+    inverted = frame.COD_PROVINCIA.eq(8)
+    published = frame.NUDO.map(harmonise.DGT_JUNCTION)
+    assert (read[~inverted] == published[~inverted]).all()
+    assert (read[inverted] != published[inverted]).all()
+    assert harmonise.CAT_JUNCTION["Arribant o eixint intersecció fins 50m"] == "junction"
+    assert harmonise.CAT_JUNCTION["En secció"] == "section"
+
+
 # The DGT fields that enter the cross-source models are chosen by validating the harmonised
 # tables, which exist only once the regional layers are built.
 needs_harmonised = pytest.mark.skipif(

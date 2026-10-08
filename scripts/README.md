@@ -9,7 +9,8 @@ the build; the rest run in the order below:
 - `build_tables.py [--force]`: `data/staging/dgt/` to `data/processed/dgt_accidentes.parquet`
   (derived fields and labels);
 - `model.py`: the supporting association analysis of the DGT crash records, its
-  adverse-conditions sensitivity fits and the holdout, written to `reports/tables/q3_*.csv`;
+  adverse-conditions and junction-coding sensitivity fits and the holdout, written to
+  `reports/tables/q3_*.csv` (about fifteen minutes);
 - `microdata.py {inventory,build,quality,features,analyse,models,validate,sources,all}`: the
   Catalan and Barcelona layers, from the raw files to staging, processed and feature tables, then
   the descriptive tables, the source models and their rule baselines, the validation (transfer

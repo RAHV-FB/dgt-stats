@@ -128,6 +128,92 @@ def test_junction_fields_do_not_apply_away_from_a_junction() -> None:
     assert (dgt_audit.statuses(frame).CONDICION_METEO == "not_specified").all()
 
 
+def test_recording_by_year_counts_what_applies_and_what_is_recorded() -> None:
+    """The table the data page's missing-values chart draws: per year and field, the crashes
+    the audit's rule says a field applies to and those with a value recorded."""
+    from dgt_stats.microdata.validation import dgt_audit
+
+    rows = [
+        # ANYO, NUDO, NUDO_INFO, CONDICION_NIEBLA
+        (2022, 1, 4, np.nan),  # at a junction, type recorded; no fog
+        (2022, 1, 999, 1),  # at a junction, type not specified; light fog
+        (2022, 2, np.nan, np.nan),  # away from a junction: the type does not apply
+        (2023, 2, 4, np.nan),  # away, but a type recorded: recorded
+    ]
+    frame = pd.DataFrame({c: ["1"] * len(rows) for c in dgt_audit.CANDIDATES})
+    frame["ANYO"], frame["NUDO"], frame["NUDO_INFO"], frame["CONDICION_NIEBLA"] = zip(*rows)
+    out = dgt_audit.recording_by_year(frame).set_index(["column", "year"])
+    assert set(out.index.get_level_values("column")) == set(dgt_audit.CANDIDATES)
+    info = out.loc["NUDO_INFO"]
+    assert list(info.applies) == [2, 1] and list(info.recorded) == [1, 1]
+    assert info.loc[2022, "share_recorded_where_applies"] == pytest.approx(0.5)
+    fog = out.loc["CONDICION_NIEBLA"]
+    assert list(fog.applies) == [3, 1] and list(fog.recorded) == [3, 1]
+    assert list(out.loc["DIA_SEMANA"].rows) == [3, 1]
+
+
+def test_the_crossing_road_follows_the_junction_rule_where_it_is_read() -> None:
+    """The crossing road is not a candidate, so the audit's own tables never read it; read for the
+    missing-values chart, it does not apply away from a junction, like the junction fields."""
+    from dgt_stats.microdata.validation import dgt_audit
+
+    assert dgt_audit.CROSSING_ROAD not in dgt_audit.CANDIDATES
+    assert not dgt_audit.presence_field(dgt_audit.CROSSING_ROAD)
+    rows = [
+        # ANYO, NUDO, CARRETERA_CRUCE
+        (2022, 1, "N-340"),  # at a junction, recorded
+        (2022, 1, np.nan),  # at a junction, empty: unrecorded
+        (2022, 2, np.nan),  # away from a junction: does not apply
+    ]
+    columns = (*dgt_audit.CANDIDATES, dgt_audit.CROSSING_ROAD)
+    frame = pd.DataFrame({c: ["1"] * len(rows) for c in columns})
+    frame["ANYO"], frame["NUDO"], frame[dgt_audit.CROSSING_ROAD] = zip(*rows)
+    status = dgt_audit.statuses(frame, columns)
+    assert list(status[dgt_audit.CROSSING_ROAD]) == ["observed", "empty", "not_applicable"]
+    assert dgt_audit.CROSSING_ROAD not in dgt_audit.statuses(frame).columns
+    out = dgt_audit.recording_by_year(frame, columns=columns).set_index("column")
+    assert out.loc[dgt_audit.CROSSING_ROAD, "applies"] == 2
+    assert out.loc[dgt_audit.CROSSING_ROAD, "recorded"] == 1
+
+
+def test_presence_coding_flags_a_province_that_codes_fog_its_own_way(monkeypatch, tmp_path) -> None:
+    """A presence field given to more than a tenth of a province-year's crashes is coded another
+    way; the wind field's "." (no strong wind) does not count as the condition."""
+    from dgt_stats.microdata.validation import dgt_audit
+
+    cat = pd.DataFrame(
+        {"year": [2020] * 4, "province_code": [8] * 4, "D_BOIRA": ["Si", "Si", "No n'hi ha", "Si"]}
+    )
+    path = tmp_path / "catalonia.parquet"
+    cat.to_parquet(path)
+    monkeypatch.setattr(dgt_audit.catalonia, "PROCESSED", path)
+    n = 20
+    frame = pd.DataFrame(
+        {
+            "ANYO": [2020] * (2 * n),
+            "COD_PROVINCIA": [8] * n + [28] * n,
+            # Barcelona: light fog in 3 of 20 crashes; Madrid: in 1 of 20.
+            "CONDICION_NIEBLA": [1, 1, 2] + [np.nan] * (n - 3) + [1] + [np.nan] * (n - 1),
+            # Wind's "." is the recorded "no", never the condition.
+            "CONDICION_VIENTO": ["."] * n + ["1"] + [np.nan] * (n - 1),
+            "TOTAL_MU24H": [1, 1, 0, 1] + [0] * (n - 4) + [0] * n,
+            "TOTAL_HG24H": [0] * (2 * n),
+        }
+    )
+    out = dgt_audit.presence_coding(frame).set_index("province")
+    assert out.loc[8, "CONDICION_NIEBLA_recorded"] == 3
+    assert out.loc[8, "CONDICION_VIENTO_recorded"] == 0
+    assert out.loc[28, "CONDICION_VIENTO_recorded"] == 1
+    assert bool(out.loc[8, "CONDICION_NIEBLA_coding_break"])
+    assert not bool(out.loc[28, "CONDICION_NIEBLA_coding_break"])
+    # Fog among the severe crashes, beside the Catalan file's count for the same province-year.
+    assert out.loc[8, "severe_CONDICION_NIEBLA_recorded"] == 2
+    assert out.loc[8, "cat_file_fog"] == 3 and pd.isna(out.loc[28, "cat_file_fog"])
+    breaks = dgt_audit.presence_breaks(out.reset_index())
+    assert list(zip(breaks.field, breaks.province)) == [("CONDICION_NIEBLA", 8)]
+    assert breaks.iloc[0].years == [2020]
+
+
 def test_unrecorded_shares_are_taken_over_the_crashes_a_field_applies_to(monkeypatch) -> None:
     from dgt_stats.microdata.validation import dgt_audit
 

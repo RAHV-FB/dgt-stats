@@ -1,7 +1,7 @@
 """Fit the crash-severity models and write their result tables.
 
 Usage:
-    python scripts/model.py            # reports/tables/q3_*.csv (about two minutes)
+    python scripts/model.py            # reports/tables/q3_*.csv (about fifteen minutes)
 
 The site build never refits: scripts/analyse.py and scripts/build_site.py read these tables.
 """
@@ -29,8 +29,13 @@ def main() -> int:
     )
     started = time.perf_counter()
     TABLES_DIR.mkdir(parents=True, exist_ok=True)
-    frame = features.model_frame()
+    crashes = features.read_crashes()
+    frame = features.model_frame(crashes)
     log.info("model frame: %s crashes, %d predictors", f"{len(frame):,}", len(features.PREDICTORS))
+    log.info(
+        "junction flag read the other way round in %s",
+        features.province_years(frame.attrs["junction_inverted"]) or "no province-year",
+    )
 
     fits: dict[str, models.Fit] = {}
     coefficients, effects, calibrations, summaries, stability = [], [], [], [], []
@@ -67,6 +72,8 @@ def main() -> int:
     regime = models.recording_regime(frame)
     regime_fits = models.regime_sensitivity(frame, fits)
     log.info("recording regime: refitted without %s", ", ".join(features.CATALAN_PROVINCES))
+    junction = models.junction_sensitivity(crashes)
+    log.info("junction: %d treatments refitted", junction.treatment.nunique())
 
     outputs = {
         "q3_model_coefficients": pd.concat(coefficients, ignore_index=True),
@@ -83,6 +90,8 @@ def main() -> int:
         "q3_recording_regime": regime,
         "q3_regime_sensitivity": regime_fits,
         "q3_groupings": features.grouping_table(frame),
+        "q3_junction_coding": features.junction_coding_table(crashes),
+        "q3_junction_sensitivity": junction,
     }
     for name, table in outputs.items():
         target = TABLES_DIR / f"{name}.csv"

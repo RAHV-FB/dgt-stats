@@ -39,6 +39,9 @@ SEVERITY_TABLES = (
     "q3_location_contrasts",
     "q3_recording_regime",
     "q3_regime_sensitivity",
+    "q3_junction_coding",
+    "q3_junction_sensitivity",
+    "dgt_audit_junction_coding",
 )
 FORECAST_TABLES = (
     "forecast_selection",
@@ -488,6 +491,28 @@ def severity_card(tables: dict[str, pd.DataFrame] | None = None) -> str:
     junction_before = periods.loc[("before", "all provinces")]
     junction_from = periods.loc[("from", "all provinces")]
     junction_from_outside = periods.loc[("from", "outside Catalonia")]
+    # The junction flag of the inverted province-years, read the other way round, and the
+    # alternatives fitted beside it.
+    coding = tables["q3_junction_coding"]
+    catalan_coding = coding[coding.region == "Catalonia"].set_index("year")
+    inverted_years = [int(y) for y in catalan_coding.index[catalan_coding.recoded > 0]]
+    earlier = catalan_coding[catalan_coding.index < min(inverted_years)]
+    rest_coding = coding[coding.region != "Catalonia"].set_index("year")
+    # The earlier year whose Catalan records count only crashes within a junction at one (the
+    # Catalan file's codes show it), set apart from the range of the other earlier years.
+    from dgt_stats.microdata.validation import dgt_audit
+
+    matched = dgt_audit.catalan_junction_years(tables["dgt_audit_junction_coding"])
+    narrow_years = [
+        int(y) for y in matched[matched.dgt_at_junction_matches.eq("within a junction")].year
+    ]
+    earlier_wide = earlier.drop(index=narrow_years)
+    narrow_with_near = (earlier.flagged_at + earlier.near_junction_fields) / earlier.crashes
+    junction_sens = tables["q3_junction_sensitivity"]
+    junction_sens = junction_sens[
+        (junction_sens.outcome == "fatal") & (junction_sens.fit == "full")
+    ].set_index("treatment")
+    used = junction_sens[junction_sens.used.astype(bool)].iloc[0]
     locations = tables["q3_location_contrasts"]
     locations = locations[(locations.outcome == "fatal") & ~locations.is_reference.astype(bool)]
     strongest_location = locations.loc[locations.odds_ratio.idxmax()]
@@ -503,16 +528,25 @@ def severity_card(tables: dict[str, pd.DataFrame] | None = None) -> str:
         "the models beat the training base rate": bool((holdout.brier_skill > 0).all()),
         "a missing-value level is among the strongest terms": nuisance_rank <= 3,
         "wet and junction odds are below 1": float(wet.or_high) < 1 and float(junction.or_high) < 1,
-        "the junction association is found before the recoding and not after": float(
+        "one earlier Catalan year counts only crashes within a junction, below the others": len(
+            narrow_years
+        )
+        == 1
+        and float(earlier.loc[narrow_years].share_at_junction.max())
+        < float(earlier_wide.share_at_junction.min()),
+        "with the flag corrected the junction association is found in both periods": float(
             junction_before.or_high
         )
         < 1
-        < float(junction_from.or_high)
-        and float(junction_from.or_low) < 1,
-        "outside Catalonia it is still found after the recoding": float(
-            junction_from_outside.or_high
+        and float(junction_from.or_high) < 1,
+        "and outside Catalonia after the recoding": float(junction_from_outside.or_high) < 1,
+        "the corrected flag is the model's": abs(
+            float(used.odds_ratio) - float(junction.odds_ratio)
         )
-        < 1,
+        < 1e-9
+        and int(used.recoded) == int(catalan_coding.recoded.sum()),
+        "the inverted years are the period refits' later period": inverted_years
+        == list(range(int(junction_from.first_year), int(junction_from.last_year) + 1)),
     }
     failed = [claim for claim, holds in checks.items() if not holds]
     if failed:
@@ -561,7 +595,10 @@ def severity_card(tables: dict[str, pd.DataFrame] | None = None) -> str:
         f"fewer than {features.MIN_LEVEL_CRASHES:,} crashes are merged into the reference: on "
         "all years for the full models, on the training years alone for the holdout check. "
         "Road-type codes 5 and 6 (conventional roads with one or two carriageways) are one "
-        "level, because DGT recoded most code-5 crashes as code 6 from 2021.",
+        "level, because DGT recoded most code-5 crashes as code 6 from 2021. The junction flag "
+        "(`NUDO`) of DGT's records for Cataluña is the wrong way round in "
+        f"{'-'.join(str(y) for y in (inverted_years[0], inverted_years[-1]))}; the model reads it "
+        f"the other way round there ({int(used.recoded):,} crashes, `q3_junction_coding`).",
         "",
         _markdown(pd.DataFrame(feature_rows)),
         "",
@@ -620,19 +657,49 @@ def severity_card(tables: dict[str, pd.DataFrame] | None = None) -> str:
         "variants (`q3_adverse_conditions`): wet surface without the weather predictor "
         f"{_or(wet.odds_ratio, wet.or_low, wet.or_high)}, at a junction "
         f"{_or(junction.odds_ratio, junction.or_low, junction.or_high)} (fatal).",
-        "- The junction odds ratio by coding period (`q3_period_refits`): "
+        "- The junction flag (`q3_junction_coding`, `q3_period_refits`, "
+        "`q3_junction_sensitivity`): DGT's records for Cataluña code it the wrong way round in "
+        f"{'-'.join(str(y) for y in (inverted_years[0], inverted_years[-1]))} (crashes between "
+        "junctions as at a junction and the reverse; `dgt_audit_junction_coding`). Read the "
+        "other way round there, the share of Catalan crashes at a junction is "
+        + " and ".join(
+            f"{_pct(catalan_coding.loc[y, 'share_at_junction'])} in {y}" for y in inverted_years
+        )
+        + ", against "
+        + " and ".join(_pct(rest_coding.loc[y, "share_at_junction"]) for y in inverted_years)
+        + " elsewhere in Spain, and "
+        + f"{_pct(earlier_wide.share_at_junction.min())} to "
+        f"{_pct(earlier_wide.share_at_junction.max())} in {int(earlier.index.min())}-"
+        f"{int(earlier.index.max())} apart from "
+        + " and ".join(str(y) for y in narrow_years)
+        + ", whose records count only crashes within a junction at one, not those within "
+        f"{dgt_audit.NEAR_JUNCTION_METRES} m of one ("
+        + " and ".join(
+            f"{_pct(earlier.loc[y, 'share_at_junction'])}, or {_pct(narrow_with_near.loc[y])} "
+            "with the crashes they flag away from a junction that carry a junction type or "
+            "right-of-way flag placed at one"
+            for y in narrow_years
+        )
+        + "). Fitted on each period, the fatal junction odds ratio is "
         f"{_or(junction_before.odds_ratio, junction_before.or_low, junction_before.or_high)} in "
-        f"{int(junction_before.first_year)}-{int(junction_before.last_year)}, "
+        f"{int(junction_before.first_year)}-{int(junction_before.last_year)} and "
         f"{_or(junction_from.odds_ratio, junction_from.or_low, junction_from.or_high)} in "
-        f"{int(junction_from.first_year)}-{int(junction_from.last_year)}, after DGT's records "
-        "for Cataluña began to code the junction flag the wrong way round (crashes between "
-        "junctions as at a junction and the reverse; `dgt_audit_junction_coding`), so the share "
-        "of Catalan crashes coded at a junction "
-        f"went from {_pct(junction_before.share_at_level_inside)} to "
-        f"{_pct(junction_from.share_at_level_inside)}; outside Cataluña "
+        f"{int(junction_from.first_year)}-{int(junction_from.last_year)}; outside Cataluña "
         f"{_or(junction_from_outside.odds_ratio, junction_from_outside.or_low, junction_from_outside.or_high)} "
-        "in the later period. The full model's junction odds ratio pools the inverted rows with "
-        "the rest.",
+        "in the later period. The full model's fatal junction odds ratio with those crashes' "
+        "junction read from the junction type alone is "
+        + _or(*junction_sens.loc["junction type", ["odds_ratio", "or_low", "or_high"]])
+        + ", with it unrecorded "
+        + _or(*junction_sens.loc["unrecorded", ["odds_ratio", "or_low", "or_high"]])
+        + ", with the flag as published "
+        + _or(*junction_sens.loc["as published", ["odds_ratio", "or_low", "or_high"]])
+        + ", and with the "
+        + f"{int(catalan_coding.near_junction_fields.sum()):,} Catalan crashes flagged away from "
+        "a junction that carry a junction type or right-of-way flag also placed at one ("
+        + f"{int(catalan_coding.near_junction_fields.max()):,} of them in "
+        + f"{int(catalan_coding.near_junction_fields.idxmax())}) "
+        + _or(*junction_sens.loc["flip and near junctions", ["odds_ratio", "or_low", "or_high"]])
+        + ".",
         "- Zone and road type split one location between them; their joint contrasts against an "
         "urban street, with the covariance of the two terms (`q3_location_contrasts`), run up to "
         f"{_or(strongest_location.odds_ratio, strongest_location.or_low, strongest_location.or_high)} "
@@ -678,9 +745,11 @@ def severity_card(tables: dict[str, pd.DataFrame] | None = None) -> str:
         "and injured, and no record of individual drivers, vehicles or people and no speed "
         "field.",
         "- Recording practice differs between forces and years: the missing states concentrate "
-        "in some provinces and years, and coding changes (urban road types in 2024, the junction "
-        "flag of Cataluña's records, inverted from 2023, road-type codes 5 and 6 in 2021) move "
-        "crashes between levels.",
+        "in some provinces and years, and coding changes (urban road types in 2024, road-type "
+        "codes 5 and 6 in 2021) move crashes between levels. The junction flag of Cataluña's "
+        "records, inverted from 2023, is read the other way round; its correction rests on the "
+        "rest of each record and on counts matched with the Catalan file, not on a crash-level "
+        "link between the two files.",
         "- Standard errors are clustered by province; with "
         f"{len(excluded.split(','))} provinces removed the clustering changes too.",
         "- The holdout check scores later years with a model that has no year term, so a "

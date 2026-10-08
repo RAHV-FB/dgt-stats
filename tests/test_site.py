@@ -1,3 +1,4 @@
+import json
 import re
 from pathlib import Path
 
@@ -298,7 +299,7 @@ def test_severity_page_leads_with_the_adverse_finding(built: Path) -> None:
     assert 'href="tables/q3_model_coefficients.csv"' in text
     assert text.count("<table>") <= 4
     # The summary names location beside crash type, from the joint zone and road-type contrast,
-    # and gives the junction association by coding period, not pooled across the change.
+    # and gives the junction association with the inverted Catalan flag read the other way round.
     opening = re.search(r'<p class="summary">(.*?)</p>', text, re.S).group(1)
     locations = pd.read_csv(TABLES_DIR / "q3_location_contrasts.csv")
     conventional = locations[
@@ -308,15 +309,31 @@ def test_severity_page_leads_with_the_adverse_finding(built: Path) -> None:
     ].iloc[0]
     assert f"{conventional.odds_ratio:.2f} times the odds" in opening
     assert "side or front-side collision" in opening
+    junction = coefficients[
+        (coefficients.outcome == "fatal") & (coefficients.level == "at a junction")
+    ].iloc[0]
+    assert f"({junction.odds_ratio:.2f}, {junction.or_low:.2f}–{junction.or_high:.2f})" in opening
+    assert "read the other way round" in opening
+    assert "in every model variant, and so does that of the junction" not in text
+    # The junction section states the coding problem, how it was corrected, the period refits
+    # and the alternatives, every number from the tables.
+    sensitivity = pd.read_csv(TABLES_DIR / "q3_junction_sensitivity.csv")
+    full = sensitivity[(sensitivity.outcome == "fatal") & (sensitivity.fit == "full")]
+    full = full.set_index("treatment")
+    for treatment in ("junction type", "unrecorded", "as published"):
+        assert f"{full.loc[treatment, 'odds_ratio']:.2f}" in text, treatment
+    recoded = int(pd.read_csv(TABLES_DIR / "q3_junction_coding.csv").recoded.sum())
+    assert f"{recoded:,} crashes" in text
     periods = pd.read_csv(TABLES_DIR / "q3_period_refits.csv")
-    junction = periods[
+    later = periods[
         (periods.outcome == "fatal")
         & (periods.level == "at a junction")
         & (periods.scope == "all provinces")
-    ].set_index("period")
-    for period in ("before", "from"):
-        assert f"({junction.loc[period, 'odds_ratio']:.2f}" in opening
-    assert "in every model variant, and so does that of the junction" not in text
+        & (periods.period == "from")
+    ].iloc[0]
+    assert f"{later.odds_ratio:.2f} ({later.or_low:.2f}–{later.or_high:.2f})" in text
+    assert 'href="tables/q3_junction_sensitivity.csv"' in text
+    assert "until the coding changed" not in text and "only the junction term" not in text
     # The ranking is quoted with what the missing-value levels contribute to it, as ROC-AUC to
     # two decimals, the scale of the severity model and validation pages.
     recorded_only = holdout.loc["fatal", "auc_recorded_only"]
@@ -325,6 +342,17 @@ def test_severity_page_leads_with_the_adverse_finding(built: Path) -> None:
     assert f"on their own {missing_only:.2f}" in text
     assert "the two regressions keep their ordering" in text
     assert "times in 100" not in text
+    # The yearly refits are the regression for a death's; the term of the other regression that
+    # does vary between years is named with its p-value.
+    assert "the regression for a death gives" in text
+    stability = pd.read_csv(TABLES_DIR / "q3_year_stability.csv")
+    serious = stability[stability.outcome == "serious"].drop_duplicates(["predictor", "level"])
+    varying = serious[serious.heterogeneity_p < 0.05]
+    assert not varying.empty
+    for row in varying.itertuples():
+        assert f"“{row.level}” (p = {row.heterogeneity_p:.3f}) does vary" in text
+    # The earlier Catalan junction shares are given without the year of the narrower definition.
+    assert "metres of a junction away from it" in text
     # The page leads with what the records show: the results come first, then what the records
     # cannot show, and only then the description of the records and the regressions.
     main = text[text.find("<main>") : text.find("</main>")]
@@ -862,6 +890,69 @@ def test_coding_breaks_describe_the_inverted_catalan_junction_flag(built: Path) 
     assert components._fmt_pct(first.cat_share_between_junctions) in block
     # The "other" road group and code 14 are named apart.
     assert "“other” road group" in block and "code 14" in block
+    # How the association analysis treats the inverted years, from the table it reads.
+    assert "reads the flag the other way round in those province-years" in block
+    assert "read from the years before it" not in block
+    read = pd.read_csv(TABLES_DIR / "q3_junction_coding.csv")
+    read = read[(read.region == "Catalonia") & (read.recoded > 0)]
+    for row in read.itertuples():
+        assert f"{components._fmt_pct(row.share_at_junction, 0)} in {row.year}" in block
+    # The year whose records count only crashes within a junction is named, and left out of the
+    # range given for the earlier years.
+    narrow = matched[matched.dgt_at_junction_matches == "within a junction"]
+    assert len(narrow) == 1
+    year = int(narrow.year.iloc[0])
+    assert f"In {year} the records use a narrower definition of a junction" in block
+    assert "under the narrower definition below" in block
+
+
+def test_coding_breaks_name_the_fog_and_wind_fields_coded_another_way(built: Path) -> None:
+    from dgt_stats.microdata.validation import dgt_audit
+
+    data = (built / "data.html").read_text(encoding="utf-8")
+    start = data.index('id="coding-breaks"')
+    block = components.html.unescape(data[start : data.index('id="models"', start)])
+    presence = pd.read_csv(TABLES_DIR / "dgt_audit_presence_coding.csv")
+    breaks = dgt_audit.presence_breaks(presence)
+    fog = breaks[breaks.field == "CONDICION_NIEBLA"].iloc[0]
+    assert fog.province_name == "Barcelona"
+    assert f"From {min(fog.years)} the records for the province of Barcelona code fog" in block
+    assert (
+        f"{components._fmt_pct(fog.share_low, 0)} to {components._fmt_pct(fog.share_high, 0)}"
+        in block
+    )
+    assert "neither a value nor a blank says whether there was fog or strong wind" in block
+    records = data[data.index('id="records"') : start]
+    assert "apart from a few province-years that code them another way" in components.html.unescape(
+        records
+    )
+
+
+def test_the_missing_values_figure_reads_the_audit_rule(built: Path) -> None:
+    """The records section's figure and its text judge the junction fields where they apply and
+    read a blank fog or wind field as the recorded "no", as the DGT microdata audit does."""
+    data = (built / "data.html").read_text(encoding="utf-8")
+    block = data[data.index('id="records"') : data.index('id="coding-breaks"')]
+    block = components.html.unescape(block)
+    assert "figure reads the fields the audit examines by the same rule" in block
+    assert "In the figure an empty fog or strong-wind field counts as recorded" in block
+    applicability = pd.read_csv(TABLES_DIR / "missingness_where_applicable.csv")
+    junction_type = applicability[applicability.column == "NUDO_INFO"]
+    away = 1 - junction_type.applies.sum() / junction_type.rows.sum()
+    assert f"the junction type in {components._fmt_pct(away, 0)}" in block
+    captions = json.loads((FIGURES_DIR / "captions.json").read_text(encoding="utf-8"))
+    caption = captions["d1_missingness"]
+    assert "in a crash recorded away from a junction" in caption
+    assert "fog or strong wind field counts as recorded" in caption
+    # The crossing road follows the junction rule, and is named with the kilometre post as a
+    # field whose empty cell may mean there was nothing to record.
+    assert "the crossing road, when the cell is empty or 999" in caption
+    assert "kilometre post and crossing road fields" in caption
+    # The inverted Catalan junction flag is read the other way round, not shown as a drop.
+    assert "the flag is read the other way round" in caption
+    assert "recorded less often" not in caption
+    assert "optional fields (fog" not in caption
+    assert "right-of-way flags and the junction type in under half" not in block
 
 
 def test_forecast_page_is_withdrawn_and_says_why(built: Path) -> None:

@@ -830,7 +830,7 @@ def calculator_tests() -> pd.DataFrame:
     internal check, uses the published model's choices, made on the last two years of all the
     crashes, so it is not nested. No test uses another source: no other file records the
     calculator's inputs (DGT's records lack the road's owning network and the posted limit, and
-    their road-type and junction codings disagree with the Catalan file's on the same crashes).
+    their road-type coding disagrees with the Catalan file's on the same crashes).
     """
     from dgt_stats import severity_model as sev
 

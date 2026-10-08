@@ -33,6 +33,7 @@ from dataclasses import dataclass
 import numpy as np
 import pandas as pd
 
+from dgt_stats import features
 from dgt_stats.microdata import barcelona, catalonia
 from dgt_stats.microdata.common import write_parquet
 from dgt_stats.paths import DGT_PROCESSED_CRASHES, FEATURES_DATA_DIR
@@ -156,8 +157,10 @@ DGT_FIELDS: tuple[CommonField, ...] = (
         "D_INTER_SECCIO",
         "NUDO",
         "at a junction or on a road section",
-        "Dintre intersecció / 1 -> junction; En secció and 'Arribant o eixint fins 50m' / "
-        "2 -> section (the choice for the approach zone is validated on the overlap)",
+        "Dintre intersecció and 'Arribant o eixint fins 50m' / 1 -> junction; En secció / 2 "
+        "-> section; DGT's flag read the other way round where it is inverted (Catalan "
+        "provinces 2023-2024, features.junction_codes); the approach zone is validated on the "
+        "overlap",
         "defensible",
     ),
     CommonField(
@@ -397,10 +400,13 @@ CAT_SURFACE = {
     "Nevat": "slippery, icy or snowy",
     "Sense especificar": NOT_SPECIFIED,
 }
+# The Catalan file's approach zone (within 50 m of a junction) is a junction: DGT's flag counts
+# those crashes at one in every year the two sources share except 2021, when the Catalan
+# provinces' records flag them away from one (``dgt_audit.catalan_junction_years``).
 CAT_JUNCTION = {
     "Dintre intersecció": "junction",
     "En secció": "section",
-    "Arribant o eixint intersecció fins 50m": "section",
+    "Arribant o eixint intersecció fins 50m": "junction",
 }
 BCN_CRASH = {
     "pedestrian struck": "pedestrian struck",
@@ -523,11 +529,24 @@ DGT_COLUMNS = [
     "CONDICION_METEO",
     "CONDICION_FIRME",
     "NUDO",
+    features.JUNCTION_TYPE,
     "TOTAL_VEHICULOS",
     "TOTAL_MU24H",
     "TOTAL_HG24H",
     "TOTAL_MU30DF",
 ]
+DGT_JUNCTION = {1: "junction", 2: "section"}
+
+
+def dgt_junction_codes(crashes: pd.DataFrame) -> pd.Series:
+    """DGT's junction flag (NUDO codes) as the national association model reads it: as published,
+    except in the province-years whose flag is inverted (the four Catalan provinces in 2023 and
+    2024), where it is read the other way round (:func:`dgt_stats.features.junction_codes`).
+
+    ``crashes`` must hold every injury crash of a province-year, since the inversion is judged on
+    them all; it needs ``ANYO``, ``COD_PROVINCIA``, ``NUDO`` and ``NUDO_INFO``.
+    """
+    return features.junction_codes(crashes, features.JUNCTION_TREATMENT)
 
 
 def dgt_common() -> pd.DataFrame:
@@ -537,6 +556,9 @@ def dgt_common() -> pd.DataFrame:
     reconciliation); the target is a death within 24 hours.
     """
     dgt = pd.read_parquet(DGT_PROCESSED_CRASHES, columns=DGT_COLUMNS)
+    # The junction flag as the national association model reads it, judged on every injury
+    # crash of a province-year before the severe ones are kept.
+    dgt["NUDO"] = dgt_junction_codes(dgt)
     deaths = pd.to_numeric(dgt.TOTAL_MU24H, errors="coerce").fillna(0)
     serious = pd.to_numeric(dgt.TOTAL_HG24H, errors="coerce").fillna(0)
     dgt = dgt[(deaths + serious) > 0].copy()
@@ -572,7 +594,7 @@ def dgt_common() -> pd.DataFrame:
     out["dgt_lighting"] = code("CONDICION_ILUMINACION").map(DGT_LIGHT).fillna(NOT_SPECIFIED)
     out["dgt_weather"] = code("CONDICION_METEO").map(DGT_WEATHER).fillna(NOT_SPECIFIED)
     out["dgt_surface"] = code("CONDICION_FIRME").map(DGT_SURFACE).fillna(NOT_SPECIFIED)
-    out["dgt_junction"] = code("NUDO").map({1: "junction", 2: "section"}).fillna(NOT_SPECIFIED)
+    out["dgt_junction"] = code("NUDO").map(DGT_JUNCTION).fillna(NOT_SPECIFIED)
     out["dgt_vehicles"] = _vehicles_band(code("TOTAL_VEHICULOS"))
     return out.reset_index(drop=True)
 

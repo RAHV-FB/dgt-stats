@@ -12,7 +12,7 @@ import re
 
 import pandas as pd
 
-from dgt_stats import codes, io_exposure, risk_trends, severity_model
+from dgt_stats import codes, features, io_exposure, risk_trends, severity_model
 from dgt_stats import figures as figure_data
 from dgt_stats.derive import ROAD_GROUP_BY_TYPE
 from dgt_stats.microdata.ml import modelling, recording, rules
@@ -45,6 +45,9 @@ FIELD_LABELS = {"road_class": "road type", "hour_band": "hour"}
 MOSTLY_BLANK = 0.3
 # A field above that share by less than this is named as only just above it.
 JUST_ABOVE = 0.01
+# Two shares at a junction closer than this are "close" (the corrected Catalan share and the rest
+# of Spain's, as on the severity page).
+CLOSE_SHARE = 0.02
 # A field recorded in more than this share of crashes in every year counts as always recorded.
 ALWAYS_RECORDED = 0.99
 # Fields of DGT's records that describe every crash, named in the missing-values figure's text.
@@ -82,6 +85,17 @@ def _require(checks: dict[str, bool]) -> None:
 
 def _span(years: pd.Series) -> str:
     return f"{int(years.min())}–{int(years.max())}"
+
+
+def _runs(years) -> str:
+    """Years as runs: '2016–2020 and 2022'."""
+    runs: list[list[int]] = []
+    for year in sorted({int(y) for y in years}):
+        if runs and year == runs[-1][-1] + 1:
+            runs[-1].append(year)
+        else:
+            runs.append([year])
+    return _join([f"{r[0]}–{r[-1]}" if len(r) > 1 else str(r[0]) for r in runs])
 
 
 def _words(number: int) -> str:
@@ -354,6 +368,19 @@ def _coding_breaks() -> str:
     matched = dgt_audit.catalan_junction_years(junctions)
     flipped = matched[matched.junction_flag_inverted.astype(bool)]
     compared = flipped.iloc[0]
+    # The years whose Catalan records count only crashes within a junction at one (2021), and the
+    # earlier years, which count those within 50 m of one too, as the Catalan file's codes show.
+    narrow = matched[matched.dgt_at_junction_matches.eq("within a junction")]
+    narrow_years = [int(year) for year in narrow.year]
+    wider = matched[~matched.junction_flag_inverted.astype(bool) & ~matched.year.isin(narrow_years)]
+    before = [year for year in cat_share.loc[: flip - 1].index if int(year) not in narrow_years]
+    # How the association analysis reads those province-years (``features.junction_codes``).
+    read = read_table("q3_junction_coding").set_index(["region", "year"])
+    read_cat = read.loc["Catalonia"]
+    read_rest = read.loc["rest of Spain"]
+    near = read_cat.near_junction_fields
+    near_others = near.loc[: flip - 1].drop(index=narrow_years)
+    narrow_with_near = (read_cat.flagged_at + near) / read_cat.crashes
     _require(
         {
             "the junction flag is inverted in the four Catalan provinces only, every year from "
@@ -370,6 +397,30 @@ def _coding_breaks() -> str:
                 (rest_j.away_with_junction_type / rest_j.away_from_junction).max()
             )
             < 0.05,
+            "the association analysis reads the flag the other way round in exactly the inverted "
+            "province-years": int(read.recoded.sum()) == int(inverted.crashes.sum())
+            and int(read.crashes_in_inverted_province_years.sum()) == int(inverted.crashes.sum())
+            and [int(y) for y in read_cat.index[read_cat.recoded > 0]] == after_years,
+            "read that way, the Catalan share at a junction is close to the rest of Spain's in "
+            "the same years": float(
+                (
+                    read_cat.loc[after_years].share_at_junction
+                    - read_rest.loc[after_years].share_at_junction
+                )
+                .abs()
+                .max()
+            )
+            < CLOSE_SHARE,
+            "in one earlier year DGT's Catalan junction count matches the Catalan file's crashes "
+            "within a junction, in the others those within or near one": len(narrow_years) == 1
+            and not wider.empty
+            and bool((wider.dgt_at_junction_matches == "within or near a junction").all()),
+            "that year more Catalan crashes coded away from a junction carry junction fields than "
+            "in all the other years before the break together": float(near.loc[narrow_years].min())
+            > float(near_others.sum()),
+            "the share range named for the earlier years leaves that year out, and the year lies "
+            "below it": float(cat_share.loc[narrow_years].max())
+            < float(cat_share.loc[before].min()),
             "in the inverted years DGT's junction crashes are the Catalan file's crashes between "
             "junctions, and before them never": not flipped.empty
             and bool((flipped.dgt_at_junction_matches == "between junctions").all())
@@ -383,8 +434,8 @@ def _coding_breaks() -> str:
     )
     severity = f'<a href="severity.html">{TITLES["severity"]}</a>'
     return (
-        '<h3 id="coding-breaks">Coding breaks in the Catalan provinces\' records</h3>'
-        "<p>Three changes in DGT's coding affect series by road type and junction, and all three "
+        '<h3 id="coding-breaks">Coding breaks in DGT\'s records</h3>'
+        "<p>Four changes in DGT's coding affect series by road type and junction, and all four "
         "come from the records for the four Catalan provinces. Until "
         f"{switch - 1} those records code almost every crash on a conventional road as a "
         "conventional road with a dual carriageway "
@@ -401,9 +452,11 @@ def _coding_breaks() -> str:
         f"“other” itself, and {_fmt_int(cat_other)} of the {_fmt_int(all_other)} crashes with "
         f"that code in {later.period} are Catalan. From {flip} the same records code the junction "
         "flag the wrong way round. The share of their crashes coded at a junction goes from "
-        f"between {_fmt_pct(cat_share.loc[: flip - 1].min(), 0)} and "
-        f"{_fmt_pct(cat_share.loc[: flip - 1].max(), 0)} a year in {cat_share.index.min()}–"
-        f"{flip - 1} to "
+        f"between {_fmt_pct(cat_share.loc[before].min(), 0)} and "
+        f"{_fmt_pct(cat_share.loc[before].max(), 0)} a year in {cat_share.index.min()}–"
+        f"{flip - 1} ("
+        + _join([f"{_fmt_pct(cat_share.loc[y], 0)} in {y}" for y in narrow_years])
+        + ", under the narrower definition below) to "
         + _join([f"{_fmt_pct(cat_share.loc[y], 0)} in {y}" for y in after_years])
         + ", while elsewhere it stays between "
         f"{_fmt_pct(rest_share.min(), 0)} and {_fmt_pct(rest_share.max(), 0)}. From {flip}, "
@@ -419,31 +472,138 @@ def _coding_breaks() -> str:
         f"a death or serious injury: in {int(compared.year)} DGT codes "
         f"{_fmt_pct(compared.dgt_share_at_junction)} of the Catalan ones at a junction, and the "
         f"Catalan file places {_fmt_pct(compared.cat_share_between_junctions)} of them between "
-        "junctions. Road-type series are therefore read year by year and alongside zone, the "
+        "junctions. In "
+        + _join([str(y) for y in narrow_years])
+        + " the records use a narrower definition of a junction: DGT's count of these Catalan "
+        "crashes at a junction matches the Catalan file's crashes within a junction, where in "
+        + _runs(wider.year)
+        + " it matches those within or within "
+        + f"{dgt_audit.NEAR_JUNCTION_METRES} metres of one. That year "
+        + _join([_fmt_int(near.loc[y]) for y in narrow_years])
+        + " Catalan crashes coded away from a junction carry a junction type or a right-of-way "
+        f"flag, against {_fmt_int(near_others.sum())} in all the other years before {flip}; "
+        "counted at a junction, they bring that year's share to "
+        + _join([_fmt_pct(narrow_with_near.loc[y], 0) for y in narrow_years])
+        + ". Road-type series are therefore read year by year and alongside zone, the "
         "two kinds of conventional road form one group, and no road-type trend is drawn. "
         "Comparisons of Catalonia with the rest of Spain group every conventional road together "
         'for the same reason (<a href="validation.html">External validation</a>). Junction '
-        f"shares are not compared across {flip}, and the association of junctions with fatal "
-        f"outcomes is read from the years before it ({severity}).</p>"
+        f"shares as published are not compared across {flip}. The association of junctions "
+        "with fatal outcomes reads the flag the other way round in those province-years, which "
+        "puts the Catalan share at a junction at "
+        + _join(
+            [f"{_fmt_pct(read_cat.loc[y, 'share_at_junction'], 0)} in {y}" for y in after_years]
+        )
+        + ", against "
+        + _pct_range(read_rest.loc[after_years].share_at_junction)
+        + f" elsewhere in Spain in the same years ({severity}).</p>"
+        + _presence_breaks()
     )
 
 
-def _missingness_alt(missing: pd.DataFrame) -> str:
+def _presence_breaks() -> str:
+    """The fog and strong-wind fields where a province's records code them another way, from the
+    DGT microdata audit's presence table."""
+    presence = read_table("dgt_audit_presence_coding")
+    breaks = dgt_audit.presence_breaks(presence)
+    if breaks.empty:
+        return ""
+    fog = breaks[breaks.field.eq("CONDICION_NIEBLA")]
+    wind = breaks[breaks.field.eq("CONDICION_VIENTO")]
+    flags = [f"{field}_coding_break" for field in dgt_audit.PRESENCE_NAMES]
+    others = presence[~presence[flags].astype(bool).any(axis=1)]
+    _require({"one province's records code fog their own way": len(fog) == 1})
+    fog_province = fog.iloc[0]
+    fog_years = list(fog_province.years)
+    own = presence[presence.province.eq(fog_province.province)].set_index("year")
+    own_before = own.loc[own.index < min(fog_years)]
+    overlap = own.loc[fog_years].dropna(subset=["cat_file_severe_crashes"])
+    catalan_years = [int(y) for y in overlap.index]
+    unread = {
+        str(spec["source"])
+        for spec in features.PREDICTORS.values()
+        if str(spec["source"]) in dgt_audit.PRESENCE_NAMES
+    }
+    calculator_source = inspect.getsource(severity_model)
+    _require(
+        {
+            "the presence fields are fog and strong wind": set(dgt_audit.PRESENCE_NAMES)
+            == {c for c in dgt_audit.CANDIDATES if dgt_audit.presence_field(c)},
+            "one province codes fog its own way, every year from its break to the last": len(fog)
+            == 1
+            and fog_years == list(range(min(fog_years), int(presence.year.max()) + 1))
+            and not own_before.empty,
+            "before the break that province records fog in under 1% of crashes": float(
+                own_before.CONDICION_NIEBLA_share.max()
+            )
+            < 0.01,
+            "the Catalan file records fog in the same crashes in every year both hold": len(
+                catalan_years
+            )
+            > 0
+            and bool((overlap.severe_CONDICION_NIEBLA_recorded == overlap.cat_file_fog).all()),
+            "neither field enters the national association analysis or the calculator": not unread
+            and not any(
+                field in calculator_source for field in ("D_BOIRA", "D_VENT", "NIEBLA", "VIENTO")
+            ),
+        }
+    )
+    groups: dict[tuple, list[str]] = {}
+    for row in wind.itertuples():
+        key = (tuple(row.years), _fmt_pct(row.share_low, 0), _fmt_pct(row.share_high, 0))
+        groups.setdefault(key, []).append(str(row.province_name))
+    wind_text = _join(
+        [
+            (
+                f"in every crash of {_join(names)} in {_runs(years)}"
+                if low == high == _fmt_pct(1, 0)
+                else f"in {low}"
+                + ("" if low == high else f" to {high}")
+                + f" of {_join(names)}'s crashes in {_runs(years)}"
+            )
+            for (years, low, high), names in groups.items()
+        ]
+    )
+    return (
+        "<p>The fog and strong-wind fields are filled in only when there was fog or strong "
+        "wind, so a blank in them is read as none, except where a province's records give the "
+        f"condition to more than {_fmt_pct(dgt_audit.MAX_PRESENCE_SHARE, 0)} of their crashes; "
+        "elsewhere fog or strong wind is recorded in at most "
+        f"{_fmt_pct(max(float(others[f'{c}_share'].max()) for c in dgt_audit.PRESENCE_NAMES))} "
+        f"of a province-year's crashes. From {min(fog_years)} the records for the province of "
+        f"{fog_province.province_name} code fog in {_fmt_pct(fog_province.share_low, 0)} to "
+        f"{_fmt_pct(fog_province.share_high, 0)} of crashes a year, against "
+        f"{_fmt_pct(own_before.CONDICION_NIEBLA_share.max())} in "
+        + _runs(own_before.index)
+        + ", and the Servei Català de Trànsit's file records fog in the same number of the "
+        "province's crashes with a death or serious injury in each year of "
+        f"{catalan_years[0]}–{catalan_years[-1]}. "
+        + (f"Strong wind is recorded {wind_text}. " if not wind.empty else "")
+        + "In those province-years the field is coded another way: neither a value nor a "
+        "blank says whether there was fog or strong wind. Neither field enters the "
+        "national association analysis or the calculator.</p>"
+    )
+
+
+def _missingness_alt(missing: pd.DataFrame, applicability: pd.DataFrame) -> str:
     """The missing-values figure's alt text: what it shows, from the shares it draws."""
     years = missing.year
-    shown = figure_data.recorded_where_applicable(missing)
+    shown = figure_data.recorded_where_applicable(missing, applicability)
     names = figure_data.MISSINGNESS_FIELDS
     core = shown.loc[[names[field] for field in CORE_FIELDS]]
-    priority = shown.loc[shown.index.str.startswith("Right of way")]
+    priority = shown.loc[shown.index.str.startswith("Right of way")].iloc[0]
+    junction_type = shown.loc[names["NUDO_INFO"]]
+    # The years whose Catalan junction flag is inverted, read the other way round in the figure,
+    # checked not to leave the junction fields recorded less often than in every other year.
+    flipped = figure_data.inverted_junction_years(shown, read_table("dgt_audit_junction_coding"))
     _require(
         {
             "the fields that describe every crash are recorded in nearly every crash": bool(
                 (core > ALWAYS_RECORDED).all().all()
             ),
-            "the right-of-way flags and the junction type are recorded in under half": bool(
-                len(priority) == 1
-                and (priority < 0.5).all().all()
-                and (shown.loc[names["NUDO_INFO"]] < 0.5).all()
+            "every year the junction type is recorded in nine crashes at a junction in ten and "
+            "the right-of-way flags in most": bool(
+                (junction_type > 0.9).all() and (priority > 0.5).all()
             ),
             "the pavement and island fields are recorded in most crashes they apply to": bool(
                 (shown.loc[[names["ACERA"], names["ISLA"]]] > 0.5).all().all()
@@ -453,10 +613,13 @@ def _missingness_alt(missing: pd.DataFrame) -> str:
     return (
         "Share of DGT crash records with a value recorded, among the crashes each field applies "
         f"to, by field and year, {_span(years)}, from the most completely recorded field down. "
-        f"The {_join(list(CORE_FIELDS.values()))} are recorded in nearly every crash; the "
-        "right-of-way flags and the junction type in under half. Fields that apply only to "
-        "some crashes, such as the pavement and island fields, are recorded in most of the "
-        "crashes they apply to."
+        f"The {_join(list(CORE_FIELDS.values()))} are recorded in nearly every crash. Among "
+        "crashes at a junction, the junction type is recorded in "
+        f"{_pct_range(junction_type)} and the right-of-way flags in "
+        f"{_pct_range(priority)} a year, with the junction flag of the Catalan provinces' "
+        f"records for {_join([str(y) for y in flipped])} read the other way round. "
+        "Fields that apply only to some crashes, such as the pavement and island fields, are "
+        "recorded in most of the crashes they apply to."
     )
 
 
@@ -465,6 +628,7 @@ def _records(captions: dict[str, str]) -> str:
     artefacts = read_table("ml_recording_artefacts")
     semantics = read_table("mq_bcn_count_semantics").set_index("check").value
     missing = read_table("missingness_by_year")
+    applicability = read_table("missingness_where_applicable")
     limit = recording.RATIO_LIMIT
     catalan = artefacts[artefacts.verdict == "outcome-dependent recording"]
     catalogue = read_table("ml_feature_catalogue")
@@ -508,22 +672,28 @@ def _records(captions: dict[str, str]) -> str:
         rows = missing[missing.column == column]
         return float((rows[share] * rows.rows).sum() / rows.rows.sum())
 
-    pavement_na, island_empty = (
-        overall("ACERA", "share_not_applicable"),
-        overall("ISLA", "share_empty"),
-    )
-    # What the figure draws for the pavement and island fields: the share recorded among the
-    # crashes left once "not applicable" (998, and the island's empty cell) is set aside.
-    shown = figure_data.recorded_where_applicable(missing)
+    audited = applicability.groupby("column")[["rows", "applies", "recorded"]].sum()
+    pavement_na = float(1 - audited.loc["ACERA"].applies / audited.loc["ACERA"].rows)
+    junction_type_na = float(1 - audited.loc["NUDO_INFO"].applies / audited.loc["NUDO_INFO"].rows)
+    island_empty = overall("ISLA", "share_empty")
+    # What the figure draws: for the fields the audit examines, the share recorded among the
+    # crashes the audit's rule says they apply to; for the island field, the share recorded among
+    # the crashes left once "not applicable" and the empty cell are set aside.
+    shown = figure_data.recorded_where_applicable(missing, applicability)
     by_year = missing.set_index(["column", "year"])
-    pavement_applies = 1 - by_year.loc["ACERA"].share_not_applicable
+    audited_by_year = applicability.set_index(["column", "year"])
     island_applies = 1 - by_year.loc["ISLA"].share_not_applicable - by_year.loc["ISLA"].share_empty
     names = figure_data.MISSINGNESS_FIELDS
+
+    def audit_share(column: str) -> pd.Series:
+        rows = audited_by_year.loc[column]
+        return rows.recorded / rows.applies
+
     leaves_out_not_applicable = bool(
-        (shown.loc[names["ACERA"]] - by_year.loc["ACERA"].share_observed / pavement_applies)
-        .abs()
-        .max()
-        < 1e-9
+        all(
+            (shown.loc[names[column]] - audit_share(column)).abs().max() < 1e-9
+            for column in ("ACERA", "NUDO_INFO", "CONDICION_NIEBLA")
+        )
         and (shown.loc[names["ISLA"]] - by_year.loc["ISLA"].share_observed / island_applies)
         .abs()
         .max()
@@ -549,10 +719,23 @@ def _records(captions: dict[str, str]) -> str:
             "unrecorded shares split into fields nearly always recorded and fields often not": 0
             < mostly_blank
             < len(questions) / 2,
-            "the figure leaves “not applicable” and the island's empty cells out of its shares, "
-            "and its caption says so": leaves_out_not_applicable
-            and "998 (not applicable)" in captions.get("d1_missingness", "")
-            and "among the crashes the field applies to" in captions.get("d1_missingness", ""),
+            "the figure reads the audited fields by the audit's rule and leaves “not "
+            "applicable” and the island's empty cells out of its shares, and its caption says "
+            "so": leaves_out_not_applicable
+            and all(
+                phrase in captions.get("d1_missingness", "")
+                for phrase in (
+                    "998 (not applicable)",
+                    "among the crashes the field applies to",
+                    "in a crash recorded away from a junction",
+                    "fog or strong wind field counts as recorded",
+                    "the flag is read the other way round",
+                )
+            ),
+            "the junction type does not apply to most crashes": junction_type_na > 0.5,
+            "the audit's fog and wind fields are recorded in every crash": bool(
+                (shown.loc[[names["CONDICION_NIEBLA"], names["CONDICION_VIENTO"]]] == 1).all().all()
+            ),
             "the pavement field is mostly not applicable": pavement_na > 0.5,
             "DGT's dictionary defines an empty island field as not applicable": codes.load_dictionary()
             .get("ISLA", {})
@@ -579,7 +762,9 @@ def _records(captions: dict[str, str]) -> str:
         "<p>Missing values keep their own categories. “Not specified”, “not applicable”, a "
         "field's own “unknown” code and an empty cell are four different states, and none is "
         "read as zero or as “no”, except in the fog and strong-wind fields, which DGT fills in "
-        "only when there was fog or strong wind. The audit of DGT's records counts a field as "
+        "only when there was fog or strong wind, apart from a few province-years that code them "
+        'another way (<a href="#coding-breaks">coding breaks</a>). The audit of DGT\'s records '
+        "counts a field as "
         "unrecorded when it is “not specified”, “unknown” or empty in a crash it applies to: "
         "the junction type and the right-of-way flags, for instance, do not apply to a crash "
         "away from a junction. Of the "
@@ -594,13 +779,16 @@ def _records(captions: dict[str, str]) -> str:
         )
         + "; how unevenly the provinces record them is set out under "
         f"{sources}. The "
-        "figure leaves “not applicable” out of each field's share, so a field that applies only "
-        "to some crashes is judged on the crashes it applies to: the pavement field is “not "
-        f"applicable” in {_fmt_pct(pavement_na, 0)} of crashes, and the island field is empty, "
-        f"which DGT's dictionary defines as not applicable, in {_fmt_pct(island_empty, 0)}. In "
-        "Barcelona's crash table a blank count means zero: no cell holds an explicit zero, and "
+        "figure reads the fields the audit examines by the same rule and leaves “not applicable” "
+        "out of each field's share, so a field that applies only to some crashes is judged on "
+        "the crashes it applies to: the pavement field is “not applicable” in "
+        f"{_fmt_pct(pavement_na, 0)} of crashes, the junction type in "
+        f"{_fmt_pct(junction_type_na, 0)} (those away from a junction), and the island field is "
+        "empty, which DGT's dictionary defines as not applicable, in "
+        f"{_fmt_pct(island_empty, 0)}. In the figure an empty fog or strong-wind field counts as "
+        "recorded. In Barcelona's crash table a blank count means zero: no cell holds an explicit zero, and "
         "with blanks read as zero the victims add up in every crash.</p>"
-        + figure("d1_missingness", _missingness_alt(missing), captions)
+        + figure("d1_missingness", _missingness_alt(missing, applicability), captions)
         + "<p>Recording can also depend on the outcome. Fatal crashes may be investigated more "
         "fully, so fields left unspecified in non-fatal crashes are more often filled in for "
         f"fatal ones. In the Catalan file, {_words(levels)} placeholder levels in "
@@ -787,7 +975,9 @@ def _models() -> str:
         "For DGT's records elsewhere in Spain, a harmonised version of the original model refits the "
         f"original model's specification on the {len(used)} of {len(candidates)} candidate "
         "variables whose mapped distributions match on the Catalan crashes of "
-        f"{_span(overlap)}, which both files contain ({excluded} do not). Barcelona's records "
+        f"{_span(overlap)}, which both files contain ({excluded} "
+        + ("does" if len(dropped) == 1 else "do")
+        + " not). Barcelona's records "
         f"share no crash with the Catalan file, so the {_words(len(bcn_shared))} variables "
         "used for Barcelona were chosen only because their codings map exactly or defensibly "
         f"({validation}).</p>"
@@ -1356,6 +1546,8 @@ def page_data(captions: dict[str, str]) -> str:
             ("validation", "reconciliation checks"),
             ("risk_dispersion", "year-to-year dispersion"),
             ("missingness_by_year", "missing values by field and year"),
+            ("missingness_where_applicable", "values recorded where each field applies"),
+            ("dgt_audit_presence_coding", "fog and wind coding by province and year"),
             ("ml_split_isolation", "training and test splits"),
             ("ml_rule_comparison", "models against their tables"),
             ("ml_common_feature_validation", "harmonised variables"),

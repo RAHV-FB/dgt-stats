@@ -38,7 +38,7 @@ z
    </g>
    <g clip-path="url(#pa204abde65)">
     <image xlink:href="data:image/png;base64,
-iVBORw0KGgoAAAANSUhEUgAAAAkAAAAZCAYAAADjRwSLAAAAcUlEQVR4nGPkCUn7z0AAMBFSMKqIQkV8Vq6oitAFGBgYGD4d243CZ0EXwGYSo1TfangEY9PAwMDAwILPBLgiVy0VrBLIgKggYHGQE2M48OgVVsnd1+5gugkdwJzCwsDAwOAgJ0a5m6iniEVPlJc6JgEAEWYVOl6UFI8AAAAASUVORK5CYII=" id="imagec05805ba6a" width="9" height="25" transform="matrix(17.7265 0 0 18.827681 89.624375 5.76)" style="image-rendering:crisp-edges;image-rendering:pixelated"/>
+iVBORw0KGgoAAAANSUhEUgAAAAkAAAAZCAYAAADjRwSLAAAAfUlEQVR4nGPkCUn7z0AAMBFSMKqIHor4rFxRFaELMDAwMHw6thuFz4IugM0kRqm+1fBUgE0DiknYrA1OycQ0CReA+85VSwVD0lVLhcFVS4WBMX7HeeqkTBYHOTGGA49eYZXcfe0ORBE+E2DuZGFgYGBwkBOjgpv0RHkJKgIAY6AfJgI2xG0AAAAASUVORK5CYII=" id="imagea870e0bebd" width="9" height="25" transform="matrix(17.7265 0 0 18.827681 89.624375 5.76)" style="image-rendering:crisp-edges;image-rendering:pixelated"/>
    </g>
    <g id="matplotlib.axis_1">
     <g id="xtick_1">
@@ -189,139 +189,139 @@ L 249.162879 5.76
     <g id="ytick_2">
      <g id="line2d_31"/>
      <g id="text_12">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="86.124375" y="37.430521" transform="rotate(-0 86.124375 37.430521)">Interurban or urban</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="86.124375" y="37.430521" transform="rotate(-0 86.124375 37.430521)">Fog</text>
      </g>
     </g>
     <g id="ytick_3">
      <g id="line2d_32"/>
      <g id="text_13">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="86.124375" y="56.258202" transform="rotate(-0 86.124375 56.258202)">Province</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="86.124375" y="56.258202" transform="rotate(-0 86.124375 56.258202)">Interurban or urban</text>
      </g>
     </g>
     <g id="ytick_4">
      <g id="line2d_33"/>
      <g id="text_14">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="86.124375" y="75.085883" transform="rotate(-0 86.124375 75.085883)">Road number</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="86.124375" y="75.085883" transform="rotate(-0 86.124375 75.085883)">Province</text>
      </g>
     </g>
     <g id="ytick_5">
      <g id="line2d_34"/>
      <g id="text_15">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="86.124375" y="93.913564" transform="rotate(-0 86.124375 93.913564)">Strong wind</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="86.124375" y="93.913564" transform="rotate(-0 86.124375 93.913564)">Road number</text>
      </g>
     </g>
     <g id="ytick_6">
      <g id="line2d_35"/>
      <g id="text_16">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="86.124375" y="112.741245" transform="rotate(-0 86.124375 112.741245)">Zone</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="86.124375" y="112.741245" transform="rotate(-0 86.124375 112.741245)">Strong wind</text>
      </g>
     </g>
     <g id="ytick_7">
      <g id="line2d_36"/>
      <g id="text_17">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="86.124375" y="131.568926" transform="rotate(-0 86.124375 131.568926)">Crash type</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="86.124375" y="131.568926" transform="rotate(-0 86.124375 131.568926)">Zone</text>
      </g>
     </g>
     <g id="ytick_8">
      <g id="line2d_37"/>
      <g id="text_18">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="86.124375" y="150.396607" transform="rotate(-0 86.124375 150.396607)">Road type</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="86.124375" y="150.396607" transform="rotate(-0 86.124375 150.396607)">Crash type</text>
      </g>
     </g>
     <g id="ytick_9">
      <g id="line2d_38"/>
      <g id="text_19">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="86.124375" y="169.224288" transform="rotate(-0 86.124375 169.224288)">At a junction or not</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="86.124375" y="169.224288" transform="rotate(-0 86.124375 169.224288)">Road type</text>
      </g>
     </g>
     <g id="ytick_10">
      <g id="line2d_39"/>
      <g id="text_20">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="86.124375" y="188.051969" transform="rotate(-0 86.124375 188.051969)">Lighting</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="86.124375" y="188.051969" transform="rotate(-0 86.124375 188.051969)">At a junction or not</text>
      </g>
     </g>
     <g id="ytick_11">
      <g id="line2d_40"/>
      <g id="text_21">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="86.124375" y="206.87965" transform="rotate(-0 86.124375 206.87965)">Road owner</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="86.124375" y="206.87965" transform="rotate(-0 86.124375 206.87965)">Lighting</text>
      </g>
     </g>
     <g id="ytick_12">
      <g id="line2d_41"/>
      <g id="text_22">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="86.124375" y="225.707331" transform="rotate(-0 86.124375 225.707331)">Road surface</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="86.124375" y="225.707331" transform="rotate(-0 86.124375 225.707331)">Road owner</text>
      </g>
     </g>
     <g id="ytick_13">
      <g id="line2d_42"/>
      <g id="text_23">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="86.124375" y="244.535012" transform="rotate(-0 86.124375 244.535012)">Island</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="86.124375" y="244.535012" transform="rotate(-0 86.124375 244.535012)">Road surface</text>
      </g>
     </g>
     <g id="ytick_14">
      <g id="line2d_43"/>
      <g id="text_24">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="86.124375" y="263.362692" transform="rotate(-0 86.124375 263.362692)">Weather</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="86.124375" y="263.362692" transform="rotate(-0 86.124375 263.362692)">Island</text>
      </g>
     </g>
     <g id="ytick_15">
      <g id="line2d_44"/>
      <g id="text_25">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="86.124375" y="282.190373" transform="rotate(-0 86.124375 282.190373)">Municipality</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="86.124375" y="282.190373" transform="rotate(-0 86.124375 282.190373)">Weather</text>
      </g>
     </g>
     <g id="ytick_16">
      <g id="line2d_45"/>
      <g id="text_26">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="86.124375" y="301.018054" transform="rotate(-0 86.124375 301.018054)">Road alignment</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="86.124375" y="301.018054" transform="rotate(-0 86.124375 301.018054)">Junction type</text>
      </g>
     </g>
     <g id="ytick_17">
      <g id="line2d_46"/>
      <g id="text_27">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="86.124375" y="319.845735" transform="rotate(-0 86.124375 319.845735)">Pavement</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="86.124375" y="319.845735" transform="rotate(-0 86.124375 319.845735)">Municipality</text>
      </g>
     </g>
     <g id="ytick_18">
      <g id="line2d_47"/>
      <g id="text_28">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="86.124375" y="338.673416" transform="rotate(-0 86.124375 338.673416)">Restricted visibility</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="86.124375" y="338.673416" transform="rotate(-0 86.124375 338.673416)">Right of way, 13 flags</text>
      </g>
     </g>
     <g id="ytick_19">
      <g id="line2d_48"/>
      <g id="text_29">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="86.124375" y="357.501097" transform="rotate(-0 86.124375 357.501097)">Traffic level</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="86.124375" y="357.501097" transform="rotate(-0 86.124375 357.501097)">Road alignment</text>
      </g>
     </g>
     <g id="ytick_20">
      <g id="line2d_49"/>
      <g id="text_30">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="86.124375" y="376.328778" transform="rotate(-0 86.124375 376.328778)">Junction type</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="86.124375" y="376.328778" transform="rotate(-0 86.124375 376.328778)">Pavement</text>
      </g>
     </g>
     <g id="ytick_21">
      <g id="line2d_50"/>
      <g id="text_31">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="86.124375" y="395.156459" transform="rotate(-0 86.124375 395.156459)">Kilometre post</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="86.124375" y="395.156459" transform="rotate(-0 86.124375 395.156459)">Restricted visibility</text>
      </g>
     </g>
     <g id="ytick_22">
      <g id="line2d_51"/>
      <g id="text_32">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="86.124375" y="413.98414" transform="rotate(-0 86.124375 413.98414)">Right of way, 13 flags</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="86.124375" y="413.98414" transform="rotate(-0 86.124375 413.98414)">Traffic level</text>
      </g>
     </g>
     <g id="ytick_23">
      <g id="line2d_52"/>
      <g id="text_33">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="86.124375" y="432.811821" transform="rotate(-0 86.124375 432.811821)">Direction of travel</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="86.124375" y="432.811821" transform="rotate(-0 86.124375 432.811821)">Kilometre post</text>
      </g>
     </g>
     <g id="ytick_24">
      <g id="line2d_53"/>
      <g id="text_34">
-      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="86.124375" y="451.639502" transform="rotate(-0 86.124375 451.639502)">Fog</text>
+      <text style="font-size: 9px; font-family: 'STIX Two Text', 'Times New Roman', serif; text-anchor: end; fill: #555555" x="86.124375" y="451.639502" transform="rotate(-0 86.124375 451.639502)">Direction of travel</text>
      </g>
     </g>
     <g id="ytick_25">

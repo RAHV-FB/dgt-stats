@@ -17,6 +17,7 @@ import math
 import pandas as pd
 
 from dgt_stats import features
+from dgt_stats.microdata.validation import dgt_audit
 from dgt_stats.site.components import (
     _fmt_int,
     _fmt_pct,
@@ -54,6 +55,9 @@ CONDITION_LABELS = {
 PROFILE_TERMS = {"Autovía": "Dual carriageway"}
 
 NUMBER_WORDS = ("zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine")
+# Two shares at a junction closer than this are "close": the corrected Catalan share and the rest
+# of Spain's, or the earlier Catalan years'.
+CLOSE_SHARE = 0.02
 
 
 def _ci(odds: float, low: float, high: float) -> str:
@@ -63,6 +67,12 @@ def _ci(odds: float, low: float, high: float) -> str:
 def _count(value: int) -> str:
     """A count in words below ten, as house style asks in running prose."""
     return NUMBER_WORDS[value] if 0 <= value < len(NUMBER_WORDS) else _fmt_int(value)
+
+
+def _pct_span(values: pd.Series) -> str:
+    """One share, or the lowest and highest as a range when they round apart."""
+    low, high = _fmt_pct(float(values.min()), 0), _fmt_pct(float(values.max()), 0)
+    return low if low == high else f"{low}–{high}"
 
 
 def _junction_break_year() -> int:
@@ -102,8 +112,13 @@ def page_severity(captions: dict[str, str]) -> str:
         & (sensitivity.level == "other road")
     ].iloc[0]
     sensitivity = sensitivity[sensitivity.outcome == "fatal"].set_index(["predictor", "level"])
-    stability = read_table("q3_year_stability")
-    stability = stability[stability.outcome == "fatal"]
+    stability_all = read_table("q3_year_stability")
+    stability = stability_all[stability_all.outcome == "fatal"]
+    # The regression for a death or a hospitalisation, tested the same way.
+    serious_terms = stability_all[stability_all.outcome == "serious"].drop_duplicates(
+        ["predictor", "level"]
+    )
+    serious_varying = serious_terms[serious_terms.heterogeneity_p < 0.05]
     exclusions = read_table("q3_adverse_exclusions")
     composition = read_table("q3_adverse_composition")
     periods = read_table("q3_period_refits")
@@ -112,6 +127,10 @@ def page_severity(captions: dict[str, str]) -> str:
     )
     locations = read_table("q3_location_contrasts")
     locations = locations[locations.outcome == "fatal"]
+    # The junction flag as published and as the model reads it, and the alternatives.
+    junction_coding = read_table("q3_junction_coding")
+    junction_sensitivity = read_table("q3_junction_sensitivity")
+    junction_sensitivity = junction_sensitivity[junction_sensitivity.outcome == "fatal"]
     artefacts = read_table("dgt_audit_artefacts")
     audit = read_table("dgt_audit_checks")
     # The published Catalan model (the calculator's), scored on the years it had not seen.
@@ -158,18 +177,14 @@ def page_severity(captions: dict[str, str]) -> str:
     hyphenated = [label.replace(" ", "-") for label in largest_labels]
     kinds = ", ".join(hyphenated[:-1]) + " or " + hyphenated[-1]
     varying = terms[terms.heterogeneity_p < 0.05]
+    least_stable = terms.loc[terms.heterogeneity_p.idxmin()]
+    least_stable_label = stability[
+        (stability.predictor == least_stable.predictor) & (stability.level == least_stable.level)
+    ].predictor_label.iloc[0]
     junction_years = stability[stability.level == "at a junction"].set_index("year").odds_ratio
     yearly = stability.pivot_table(index="year", columns=["predictor", "level"], values="log_odds")
     zone_road = float(yearly[("zone", "interurban road")].corr(yearly[("road", "conventional")]))
     junction_break = _junction_break_year()
-    junction_before_years = junction_years[junction_years.index < junction_break]
-    junction_after_years = junction_years[junction_years.index >= junction_break]
-    after_values = {f"{value:.2f}" for value in junction_after_years}
-    after_text = (
-        f"{after_values.pop()} in {_join([str(year) for year in junction_after_years.index])}"
-        if len(after_values) == 1
-        else _join([f"{value:.2f} in {year}" for year, value in junction_after_years.items()])
-    )
 
     # The junction association before and after the coding break, and outside Catalonia.
     junction_key = ("junction", "at a junction")
@@ -177,6 +192,39 @@ def page_severity(captions: dict[str, str]) -> str:
     junction_from = periods.loc[("from", "all provinces", *junction_key)]
     junction_from_outside = periods.loc[("from", "outside Catalonia", *junction_key)]
     junction_before_outside = periods.loc[("before", "outside Catalonia", *junction_key)]
+
+    # How the model reads the inverted junction flag, and what the rest of each record says.
+    catalan_junctions = junction_coding[junction_coding.region == "Catalonia"].set_index("year")
+    other_junctions = junction_coding[junction_coding.region != "Catalonia"].set_index("year")
+    flipped = catalan_junctions[catalan_junctions.recoded > 0]
+    flipped_years = [int(year) for year in flipped.index]
+    earlier = catalan_junctions[catalan_junctions.index < junction_break]
+    # The earlier year whose Catalan records count only crashes within a junction at one, where
+    # the other years count those within 50 m of one too (the Catalan file's codes show which).
+    matched = dgt_audit.catalan_junction_years(read_table("dgt_audit_junction_coding"))
+    narrow_years = [
+        int(y) for y in matched[matched.dgt_at_junction_matches.eq("within a junction")].year
+    ]
+    earlier_wide = earlier.drop(index=narrow_years)
+    recoded = int(junction_coding.recoded.sum())
+    flagged_at = int(flipped.flagged_at.sum())
+    flagged_at_fields = int(flipped.flagged_at_with_junction_fields.sum())
+    flagged_away = int(flipped.flagged_away.sum())
+    away_fields_share = float(flipped.flagged_away_with_junction_fields.sum()) / flagged_away
+    earlier_at_fields = earlier.flagged_at_with_junction_fields / earlier.flagged_at
+    corrected_shares = flipped.share_at_junction
+    elsewhere_shares = other_junctions.loc[flipped_years].share_at_junction
+    treatments = junction_sensitivity[junction_sensitivity.fit == "full"].set_index("treatment")
+    used_treatment = treatments[treatments.used.astype(bool)].iloc[0]
+    yearly_q = (
+        junction_sensitivity[junction_sensitivity.fit == "year"]
+        .drop_duplicates("treatment")
+        .set_index("treatment")
+        .heterogeneity_p
+    )
+    published_years = junction_sensitivity[
+        (junction_sensitivity.treatment == "as published") & (junction_sensitivity.fit == "year")
+    ].set_index("first_year")
 
     # Zone and road type read together: the joint contrasts against an urban street.
     shown_locations = locations[~locations.is_reference.astype(bool)]
@@ -295,22 +343,58 @@ def page_severity(captions: dict[str, str]) -> str:
             junction_before.or_high
         )
         < 1,
-        "and not after it": float(junction_from.or_low) < 1 < float(junction_from.or_high),
+        "and after it, with the flag corrected": float(junction_from.or_high) < 1,
         "outside Catalonia the junction association is found in both periods": float(
             junction_from_outside.or_high
         )
         < 1
         and float(junction_before_outside.or_high) < 1,
-        "the share of Catalan crashes coded at a junction jumps at the break": float(
-            junction_from.share_at_level_inside
+        "the model reads the flag the other way round in the inverted years alone": flipped_years
+        == list(range(junction_break, last_year + 1))
+        and recoded == int(flipped.crashes.sum())
+        and recoded == int(used_treatment.recoded)
+        and abs(float(used_treatment.odds_ratio) - float(fatal.loc[junction_key, "odds_ratio"]))
+        < 1e-9,
+        "as published, the Catalan share coded at a junction jumps at the break": float(
+            flipped.share_flagged_at.min()
         )
-        - float(junction_before.share_at_level_inside)
-        > 0.15,
-        "while elsewhere it barely moves": abs(
+        > float(earlier.share_flagged_at.max()) + 0.15,
+        "one earlier year counts only crashes within a junction, and its share lies below the "
+        "other earlier years'": len(narrow_years) == 1
+        and float(earlier.loc[narrow_years].share_at_junction.max())
+        < float(earlier_wide.share_at_junction.min()),
+        "corrected, it lies within two points of those other earlier years' shares": float(
+            corrected_shares.min()
+        )
+        >= float(earlier_wide.share_at_junction.min()) - CLOSE_SHARE
+        and float(corrected_shares.max()) <= float(earlier_wide.share_at_junction.max()),
+        "and close to the rest of Spain's in the same years": float(
+            (corrected_shares - elsewhere_shares).abs().max()
+        )
+        < CLOSE_SHARE,
+        "the crashes flagged at a junction carry almost no junction field, those flagged away "
+        "almost all one": flagged_at_fields < 0.001 * flagged_at and away_fields_share > 0.99,
+        "as crashes at a junction do in the earlier years": bool((earlier_at_fields > 0.99).all()),
+        "while elsewhere the share at a junction barely moves": abs(
             float(junction_from_outside.share_at_level)
             - float(junction_before_outside.share_at_level)
         )
         < 0.03,
+        "every way of treating the inverted years keeps the junction below 1": bool(
+            (treatments.or_high < 1).all()
+        ),
+        "the flag as published gives the odds ratio closest to 1": str(
+            treatments.odds_ratio.idxmax()
+        )
+        == "as published",
+        "only the flag as published makes the junction term vary between years": float(
+            yearly_q["as published"]
+        )
+        < 0.05
+        and bool((yearly_q.drop(index="as published") > 0.05).all()),
+        "as published, the yearly junction odds ratio is about 1 in the inverted years": bool(
+            published_years.loc[flipped_years].odds_ratio.between(0.9, 1.1).all()
+        ),
         "crashes in the rain lie on interurban roads more often than crashes overall": float(
             rain_interurban.share_of_level
         )
@@ -371,14 +455,15 @@ def page_severity(captions: dict[str, str]) -> str:
         == "Road type",
         "zone and road-type odds ratios move against each other from year to year": zone_road
         < -0.5,
-        "only the junction term varies between years by more than its errors allow": list(
-            zip(varying.predictor, varying.level, strict=True)
-        )
-        == [junction_key],
-        "the yearly junction odds ratio is below 0.85 in every year before the break": bool(
-            (junction_before_years < 0.85).all()
+        "no term of the regression for a death varies between years by more than its errors "
+        "allow": varying.empty,
+        "in the regression for a death or a hospitalisation only road type 'other road' does": [
+            (str(r.predictor), str(r.level)) for r in serious_varying.itertuples()
+        ]
+        == [("road", "other road")],
+        "the yearly junction odds ratio is below 0.85 in every year": bool(
+            (junction_years < 0.85).all()
         ),
-        "and about 1 in every year from it": bool(junction_after_years.between(0.9, 1.1).all()),
         "the missing-value levels rank a little on their own and add a little": 0.5
         < float(fatal_holdout.auc_missing_only)
         < float(fatal_holdout.auc_recorded_only)
@@ -423,12 +508,12 @@ def page_severity(captions: dict[str, str]) -> str:
         "an urban street, a crash on a conventional interurban road had "
         f"{float(conventional.odds_ratio):.2f} times the odds ({interval(conventional)}). Wet "
         f"conditions went with lower odds ({wet_alone:.2f} times the odds, {interval(wet_row)}), "
-        f"and so did junctions in {span(junction_before)} "
-        f"({float(junction_before.odds_ratio):.2f}, {interval(junction_before)}) but not in "
-        f"{span(junction_from)} ({float(junction_from.odds_ratio):.2f}, "
-        f"{interval(junction_from)}), after the records for the Catalan provinces began to "
-        "code the junction flag the wrong way round. These associations among crashes that happened say nothing about how often "
-        "crashes happen or why some are deadlier. The pages on "
+        "and so did a crash at a junction "
+        f"({float(fatal.loc[junction_key, 'odds_ratio']):.2f}, "
+        f"{interval(fatal.loc[junction_key])}), once the junction flag that DGT's records for "
+        f"the Catalan provinces invert in {_join([str(y) for y in flipped_years])} is read the "
+        "other way round. These associations among crashes that happened say nothing about how "
+        "often crashes happen or why some are deadlier. The pages on "
         '<a href="catalonia.html">Catalonia</a> (crashes with a death or serious injury, deaths '
         'within 24 hours) and <a href="barcelona.html">Barcelona</a> (every crash the city police '
         "attended in one year) cover other crashes with other definitions, so their figures "
@@ -516,7 +601,7 @@ def page_severity(captions: dict[str, str]) -> str:
         {"Death": "pct", "Death or hospitalisation": "pct"},
     )
 
-    body += "<h2>Lower odds of a death on wet roads, and at junctions until the coding changed</h2>"
+    body += "<h2>Lower odds of a death on wet roads and at junctions</h2>"
     body += (
         "<p>Weather and road surface record much the same thing, so a model that contains both "
         "divides one association between them. With road surface left out, the odds ratio for "
@@ -532,24 +617,41 @@ def page_severity(captions: dict[str, str]) -> str:
         f"fixed: the wet-surface odds ratio is {orr('interurban', 'wet')} on interurban roads "
         f"and {orr('street', 'wet')} on urban streets. Its interval lies below 1 in every model "
         "variant.</p>"
-        "<p>The junction association is below 1 in every variant too, at "
-        f"{orr('full', 'at a junction')} in the full model, but that figure pools records "
-        "whose junction flag is the wrong way round with the rest. From "
-        f"{junction_break} the records for the Catalan provinces code crashes between "
-        "junctions as at a junction and the reverse "
-        '(<a href="data.html#coding-breaks">coding breaks</a>). The share of their crashes '
-        "recorded at a junction went from "
-        f"{_fmt_pct(float(junction_before.share_at_level_inside), 0)} in "
-        f"{span(junction_before)} to {_fmt_pct(float(junction_from.share_at_level_inside), 0)} "
-        f"in {span(junction_from)}, against "
-        f"{_fmt_pct(float(junction_before_outside.share_at_level), 0)} and "
-        f"{_fmt_pct(float(junction_from_outside.share_at_level), 0)} elsewhere. Fitted on each "
-        "period apart, crashes at a junction had "
+        "<p>A crash at a junction also had lower odds of a death, "
+        f"{orr('full', 'at a junction')} in the full model and below 1 in every variant. In "
+        f"{_join([str(y) for y in flipped_years])} DGT's records for the four Catalan provinces "
+        "code the junction flag the wrong way round "
+        '(<a href="data.html#coding-breaks">coding breaks</a>), and the rest of each record '
+        f"shows it: only {_count(flagged_at_fields)} of the {_fmt_int(flagged_at)} crashes they "
+        "flag at a junction carry a junction type or a right-of-way flag, the fields that "
+        f"describe a junction, while {_fmt_pct(away_fields_share)} of the "
+        f"{_fmt_int(flagged_away)} they "
+        "flag away from one carry either, as nearly every crash at a junction does in "
+        f"{span(junction_before)}. The analysis reads the flag the other way round for these "
+        f"{_fmt_int(recoded)} crashes ({_fmt_pct(recoded / numbers['n'])} of all). The share "
+        "of Catalan crashes at a junction is then "
+        + _join([f"{_fmt_pct(float(corrected_shares.loc[y]), 0)} in {y}" for y in flipped_years])
+        + f", against {_pct_span(elsewhere_shares)} elsewhere in {span(junction_from)} and "
+        f"{_fmt_pct(float(earlier_wide.share_at_junction.min()), 0)} to "
+        f"{_fmt_pct(float(earlier_wide.share_at_junction.max()), 0)} a year in Catalonia in "
+        f"{span(junction_before)} ("
+        + _join(
+            [
+                f"{_fmt_pct(float(earlier.loc[y, 'share_at_junction']), 0)} in {y}"
+                for y in narrow_years
+            ]
+        )
+        + f", when the records count a crash within {dgt_audit.NEAR_JUNCTION_METRES} metres "
+        "of a junction away from it). "
+        "Fitted on each period apart, crashes at a junction had "
         f"{ci_of(junction_before)} times the odds of a death in {span(junction_before)} and "
-        f"{ci_of(junction_from)} in {span(junction_from)}. Outside Catalonia the later figure "
-        f"is {ci_of(junction_from_outside)}, so the association disappears only where the flag "
-        "is inverted. The results for "
-        "junctions are read from the earlier years.</p>"
+        f"{ci_of(junction_from)} in {span(junction_from)}; outside Catalonia the later figure "
+        f"is {ci_of(junction_from_outside)}. Read instead from the junction type alone, the "
+        "full model's junction odds ratio is "
+        f"{ci_of(treatments.loc['junction type'])}; with those crashes' junction left "
+        f"unrecorded, {ci_of(treatments.loc['unrecorded'])}; with the flag as published, "
+        f"{ci_of(treatments.loc['as published'])}, pulled towards 1 by the inverted "
+        "records.</p>"
     )
     body += figure(
         "s2_adverse_conditions",
@@ -646,19 +748,32 @@ def page_severity(captions: dict[str, str]) -> str:
         f"{_fmt_pct(float(fatal_holdout.brier_skill))} lower for a death and "
         f"{_fmt_pct(float(serious_holdout.brier_skill))} lower for a death or a "
         "hospitalisation.</p>"
-        "<p>Refitted one year at a time, "
-        f"{outside} of the {len(stability)} yearly estimates for the regression's "
+        "<p>Refitted one year at a time, the regression for a death gives "
+        f"{outside} of its {len(stability)} yearly estimates for its "
         f"{len(largest_terms)} largest terms (each a {kinds} term) and its junction "
-        "and wet-surface terms fall outside the full model's interval. Each year's estimate has "
+        "and wet-surface terms outside the full model's interval. Each year's estimate has "
         "its own sampling error, so some departures are expected: the full model's value lies "
         f"outside the year's own interval for {full_outside_year}. Road type accounts for "
         f"{int(outside_by_term.get('Road type', 0))} of the {outside}; its odds ratios swing from "
         "year to year against the zone odds ratios, the two splitting one location contrast "
-        "between them. Tested against their yearly errors (Cochran's Q), only the junction term "
-        "varies between years by more than chance: its odds ratio lies between "
-        f"{float(junction_before_years.min()):.2f} and {float(junction_before_years.max()):.2f} "
-        f"in every year to {junction_break - 1} and is {after_text}, the years of the new "
-        'junction coding (<a href="data.html#coding-breaks">coding breaks</a>).</p>',
+        "between them. Tested against their yearly errors (Cochran's Q), none of these terms "
+        "varies between years by more than chance; the least stable is the "
+        f"{str(least_stable_label).lower()} “{least_stable.level}” (p = "
+        f"{float(least_stable.heterogeneity_p):.2f}). In the regression for a death or a "
+        "hospitalisation, tested the same way, "
+        + _join(
+            [
+                f"{str(r.predictor_label).lower()} “{r.level}” (p = {float(r.heterogeneity_p):.3f})"
+                for r in serious_varying.itertuples()
+            ]
+        )
+        + " does vary: the level that DGT's records for the Catalan provinces fill with urban "
+        f"streets in {last_year}. The junction odds ratio lies between "
+        f"{float(junction_years.min()):.2f} and {float(junction_years.max()):.2f} in every "
+        "year. With the Catalan junction flag as published, the junction term did vary (p = "
+        f"{float(yearly_q['as published']):.3f}), at about 1 in "
+        f"{_join([str(y) for y in flipped_years])} "
+        '(<a href="data.html#coding-breaks">coding breaks</a>).</p>',
     )
 
     body += "<h2>Missing values and regional recording</h2>"
@@ -736,6 +851,8 @@ def page_severity(captions: dict[str, str]) -> str:
             ("q3_calibration", "calibration on later years"),
             ("q3_year_stability", "year-by-year refits"),
             ("q3_period_refits", "refits before and after the junction coding change"),
+            ("q3_junction_coding", "the junction flag as published and as read, by year"),
+            ("q3_junction_sensitivity", "the junction odds ratio under each reading of the flag"),
             ("q3_location_contrasts", "zone and road type together"),
             ("q3_profiles", "crash profiles"),
             ("q3_groupings", "how DGT's codes map to these levels"),

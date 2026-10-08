@@ -186,8 +186,8 @@ missed only in the province of Barcelona, did not hold: the provinces left out a
 provinces in the nested test miss their observed intervals, so the page lists them.
 
 The transfer tests of the original pipeline concern a different specification. Restricted to the
-variables DGT records alike, a Catalan model ranked severe crashes elsewhere in Spain about as
-well as a model trained there (ROC-AUC 0.708 against 0.712), but fatal crashes are commoner in the
+variables DGT records alike, a Catalan model ranked severe crashes elsewhere in Spain nearly as
+well as a model trained there (ROC-AUC 0.710 against 0.721), but fatal crashes are commoner in the
 rest of Spain (15.4% against 12.6%). The calculator's probabilities describe Catalonia; elsewhere
 they are likely to be low.
 
