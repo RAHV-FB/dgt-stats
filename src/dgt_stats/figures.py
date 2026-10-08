@@ -321,7 +321,8 @@ def _long_run_figures(figures_dir: Path, captions: dict[str, str], summary) -> N
     sources = f"{SERIES_SOURCE}; {VEHICLE_FLEET_SOURCE}; {FUEL_SOURCE}"
     captions["l2_observed_over_trend"] = _caption(
         "Observed deaths within 30 days as a ratio to the pre-pandemic trend of each measure "
-        f"(fitted to {fit_end}, projected from {first_projected}), with the trend's 95% "
+        f"(up to {fit_end} the fitted segmented trend; from {first_projected} its last segment, "
+        f"refitted on that segment's years and projected), with the trend's 95% "
         f"prediction range shaded from {first_projected}, Spain, "
         f"{zoom_first}–{int(zoom.year.max())}; a year outside the shading is outside the "
         "trend's range",
