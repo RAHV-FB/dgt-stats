@@ -1,5 +1,13 @@
 """Predicting a year's road deaths, and how large a change in them the counts can detect.
 
+**Status: withdrawn, kept as the record of the analysis; the site reads nothing from it.** Two
+findings retired it. It is not a forecast in the ordinary sense: it conditions on each month's own
+road-fuel sales, which are known only once the month is over, so it estimates the deaths a month's
+traffic would have brought rather than predicting them ahead. And on the ordinary held-out years it
+lost to repeating last year's count (an error of 6.6% of a year's deaths against 5.9%;
+``reports/tables/review_forecast.csv``, ``docs/research/ML_MODEL_REVIEW.md``). The description
+below is of the model as it was built.
+
 Any before-and-after reading of the death counts compares the deaths after a change with the
 deaths there would have been without it. The second number is a forecast, and its error decides
 how large a change the comparison can see. This module builds that forecast as a small model of
