@@ -100,6 +100,9 @@ def test_moved_pages_point_to_their_successors(built: Path) -> None:
         text = (built / f"{old}.html").read_text(encoding="utf-8")
         assert f'content="0; url={new}.html"' in text
         assert f'href="{new}.html">' in text
+        # Kept out of search indexes, with no canonical link to contradict that.
+        assert '<meta name="robots" content="noindex">' in text, old
+        assert 'rel="canonical"' not in text, old
     # No live page links to a moved slug: the pointers are for old bookmarks, not navigation.
     for slug, _ in site.ALL_PAGES:
         text = (built / f"{slug}.html").read_text(encoding="utf-8")
@@ -123,6 +126,11 @@ def test_withdrawn_pages_say_why_and_nothing_links_to_them(built: Path) -> None:
         else:
             assert site.esc("less accurately than last year's count") in text
         assert site.esc(reason) in body, slug
+        # The reason is stated once, in the lead; the body says what the page published.
+        assert body.count("withdrawn because") == 1, slug
+        assert "holds no" not in body and "so it was withdrawn" not in body, slug
+        if slug == "forecast":
+            assert body.count("less accurately") == 1
         assert 'href="data.html"' in body, slug
         assert '<div class="conclusion">' not in body and "<table>" not in body, slug
         assert len(body) < 4000, slug
@@ -702,6 +710,53 @@ def test_the_development_note_is_professional_and_present(built: Path) -> None:
         text = page.read_text(encoding="utf-8")
         if page.name != "data.html":
             assert "Claude Code" not in text
+
+
+def test_methodology_lists_every_assumption_the_methods_document_tests(built: Path) -> None:
+    data = (built / "data.html").read_text(encoding="utf-8")
+    main = data[data.find("<main>") : data.find("</main>")]
+    # The glossary and the denominators are definition lists, not bulleted lists with bold leads.
+    assert '<dl class="facts" aria-label="Definitions">' in main
+    assert '<dl class="facts" aria-label="Denominators">' in main
+    assert "<li><strong>" not in main
+    # One row on the page for each row of the methods document's table of assumptions tested.
+    doc = (TABLES_DIR.parents[1] / "docs" / "methodology.md").read_text(encoding="utf-8")
+    section = doc[doc.index("## 12. Assumptions tested") :]
+    section = section[: section.index("\n## ", 1)]
+    documented = [line for line in section.splitlines() if line.startswith("| ")][1:]
+    block = main[main.index('id="assumptions-tested"') :]
+    body = block[block.index("<tbody>") : block.index("</tbody>")]
+    rows = re.findall(r"<tr>(.*?)</tr>", body, re.S)
+    rows = [re.sub(r"<[^>]+>", " ", components.html.unescape(row)) for row in rows]
+    assert len(rows) == len(documented) >= 10
+    text = {row.split("  ")[0].strip(): " ".join(row.split()) for row in rows}
+
+    def row(start: str) -> str:
+        return next(value for key, value in text.items() if key.startswith(start))
+
+    # The transfer of one region's age profile is a sensitivity range, not a test.
+    transfer = row("One region's age profile")
+    assert "cannot be tested" in transfer and "sensitivity range" in transfer
+    assert "was tested" not in transfer and "were tested" not in transfer
+    # The rows added by the national corrections carry numbers from their tables.
+    split = pd.read_csv(TABLES_DIR / "risk_frequency_severity.csv").set_index("year").iloc[-1]
+    fall = components._fmt_pct(1 - float(split.deaths_per_fuel_index) / 100, 0)
+    assert f"Deaths per tonne fell {fall}" in row("The fall in deaths per tonne")
+    panel = pd.read_csv(TABLES_DIR / "risk_annual_panel.csv").set_index("year")
+    ratio = panel.deaths_30d / panel.deaths_24h
+    for year in (2010, 2011):
+        assert f"{ratio.loc[year]:.3f} in {year}" in row("The 30-day death series")
+    projection = pd.read_csv(TABLES_DIR / "longrun_projection_sensitivity.csv")
+    later = projection[
+        (projection.measure == "road_fuel")
+        & (projection.variant.isin(["main"]) | projection.variant.str.startswith("start_"))
+        & (projection.year >= projection.year.max() - 1)
+    ]
+    for value in later.ratio:
+        assert components._fmt_pct(float(value) - 1, 0) in row("The excess of deaths per tonne")
+    # The dispersion factors are given on the trends page, not repeated here.
+    scatter = pd.read_csv(TABLES_DIR / "risk_dispersion.csv").set_index("outcome").dispersion
+    assert f"{components._fmt_dec(scatter['crashes'], 0)} times" not in main
 
 
 def test_forecast_page_is_withdrawn_and_says_why(built: Path) -> None:
