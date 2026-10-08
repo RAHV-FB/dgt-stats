@@ -294,6 +294,17 @@ def test_severity_page_leads_with_the_adverse_finding(built: Path) -> None:
     assert f"on their own {missing_only:.2f}" in text
     assert "the two regressions keep their ordering" in text
     assert "times in 100" not in text
+    # The yearly refits are the regression for a death's; the term of the other regression that
+    # does vary between years is named with its p-value.
+    assert "the regression for a death gives" in text
+    stability = pd.read_csv(TABLES_DIR / "q3_year_stability.csv")
+    serious = stability[stability.outcome == "serious"].drop_duplicates(["predictor", "level"])
+    varying = serious[serious.heterogeneity_p < 0.05]
+    assert not varying.empty
+    for row in varying.itertuples():
+        assert f"“{row.level}” (p = {row.heterogeneity_p:.3f}) does vary" in text
+    # The earlier Catalan junction shares are given without the year of the narrower definition.
+    assert "metres of a junction away from it" in text
     # The page leads with what the records show: the results come first, then what the records
     # cannot show, and only then the description of the records and the regressions.
     main = text[text.find("<main>") : text.find("</main>")]

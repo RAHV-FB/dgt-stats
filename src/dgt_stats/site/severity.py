@@ -112,8 +112,13 @@ def page_severity(captions: dict[str, str]) -> str:
         & (sensitivity.level == "other road")
     ].iloc[0]
     sensitivity = sensitivity[sensitivity.outcome == "fatal"].set_index(["predictor", "level"])
-    stability = read_table("q3_year_stability")
-    stability = stability[stability.outcome == "fatal"]
+    stability_all = read_table("q3_year_stability")
+    stability = stability_all[stability_all.outcome == "fatal"]
+    # The regression for a death or a hospitalisation, tested the same way.
+    serious_terms = stability_all[stability_all.outcome == "serious"].drop_duplicates(
+        ["predictor", "level"]
+    )
+    serious_varying = serious_terms[serious_terms.heterogeneity_p < 0.05]
     exclusions = read_table("q3_adverse_exclusions")
     composition = read_table("q3_adverse_composition")
     periods = read_table("q3_period_refits")
@@ -450,7 +455,12 @@ def page_severity(captions: dict[str, str]) -> str:
         == "Road type",
         "zone and road-type odds ratios move against each other from year to year": zone_road
         < -0.5,
-        "no term varies between years by more than its errors allow": varying.empty,
+        "no term of the regression for a death varies between years by more than its errors "
+        "allow": varying.empty,
+        "in the regression for a death or a hospitalisation only road type 'other road' does": [
+            (str(r.predictor), str(r.level)) for r in serious_varying.itertuples()
+        ]
+        == [("road", "other road")],
         "the yearly junction odds ratio is below 0.85 in every year": bool(
             (junction_years < 0.85).all()
         ),
@@ -738,10 +748,10 @@ def page_severity(captions: dict[str, str]) -> str:
         f"{_fmt_pct(float(fatal_holdout.brier_skill))} lower for a death and "
         f"{_fmt_pct(float(serious_holdout.brier_skill))} lower for a death or a "
         "hospitalisation.</p>"
-        "<p>Refitted one year at a time, "
-        f"{outside} of the {len(stability)} yearly estimates for the regression's "
+        "<p>Refitted one year at a time, the regression for a death gives "
+        f"{outside} of its {len(stability)} yearly estimates for its "
         f"{len(largest_terms)} largest terms (each a {kinds} term) and its junction "
-        "and wet-surface terms fall outside the full model's interval. Each year's estimate has "
+        "and wet-surface terms outside the full model's interval. Each year's estimate has "
         "its own sampling error, so some departures are expected: the full model's value lies "
         f"outside the year's own interval for {full_outside_year}. Road type accounts for "
         f"{int(outside_by_term.get('Road type', 0))} of the {outside}; its odds ratios swing from "
@@ -749,7 +759,16 @@ def page_severity(captions: dict[str, str]) -> str:
         "between them. Tested against their yearly errors (Cochran's Q), none of these terms "
         "varies between years by more than chance; the least stable is the "
         f"{str(least_stable_label).lower()} “{least_stable.level}” (p = "
-        f"{float(least_stable.heterogeneity_p):.2f}). The junction odds ratio lies between "
+        f"{float(least_stable.heterogeneity_p):.2f}). In the regression for a death or a "
+        "hospitalisation, tested the same way, "
+        + _join(
+            [
+                f"{str(r.predictor_label).lower()} “{r.level}” (p = {float(r.heterogeneity_p):.3f})"
+                for r in serious_varying.itertuples()
+            ]
+        )
+        + " does vary: the level that DGT's records for the Catalan provinces fill with urban "
+        f"streets in {last_year}. The junction odds ratio lies between "
         f"{float(junction_years.min()):.2f} and {float(junction_years.max()):.2f} in every "
         "year. With the Catalan junction flag as published, the junction term did vary (p = "
         f"{float(yearly_q['as published']):.3f}), at about 1 in "
