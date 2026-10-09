@@ -1644,11 +1644,9 @@ def page_data(captions: dict[str, str]) -> str:
     body = summary(
         "This page defines the terms the site uses and explains how each rate is built, how a "
         "change is judged against the variation of an ordinary year, and how the models were "
-        "tested: a model is kept only if it ranks unseen records better than a simple table "
-        "fixed in advance. Severity among recorded crashes is kept apart from how often crashes "
-        "happen, police-recorded factors are read as the officers' judgements, and missing "
-        "values stay missing. The last section lists every assumption the data can test, with "
-        "what the test found."
+        "tested. The technical notes of the analysis pages follow, page by page: definitions, "
+        "assumptions, sensitivity analyses and corrections. The last sections list the checks "
+        "on the data and every assumption the data can test, with what the test found."
     )
     body += _definitions()
     body += _rates()

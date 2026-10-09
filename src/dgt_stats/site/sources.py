@@ -664,15 +664,10 @@ def page_sources(captions: dict[str, str]) -> str:
     }
     body = summary(
         "The study uses DGT's national statistics and three sets of police crash records: "
-        "DGT's national file of injury crashes, the Servei Català de Trànsit's file of crashes "
-        "with a death or serious injury in Catalonia, and the Guàrdia Urbana's records for "
-        "Barcelona city. Travel surveys supply the kilometres driven by age: the Barcelona "
-        "area's working-day survey for the age profile, Madrid's for the split between 65–74 "
-        "and 75 and over, and, for the sensitivity range only, MOVILIA's national tables and "
-        "RACC's survey of older licence holders. No record is linked across sources; they meet only in totals "
-        "and in tests of the models. The national crash records describe Spain but train no "
-        "published model, because provinces record their fields unevenly and which fields are "
-        "left unrecorded carries information about the outcome."
+        "DGT's national file of injury crashes, the Catalan file of crashes with a death or "
+        "serious injury, and the Guàrdia Urbana's records for Barcelona city. Travel surveys "
+        "supply the kilometres driven by age. No record is linked across sources. The national "
+        "records train no published model, because provinces record their fields unevenly."
     )
     body += "<h2>The sources</h2>"
     body += _source_table(numbers, inventory)
