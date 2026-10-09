@@ -3,7 +3,9 @@
 Usage:
     python scripts/model.py            # reports/tables/q3_*.csv (about fifteen minutes)
 
-The site build never refits: scripts/analyse.py and scripts/build_site.py read these tables.
+The site build never refits: scripts/analyse.py and scripts/build_site.py read these tables. The
+same run writes the crash explorer's counts by year, region, road type and crash type
+(``explore_dgt_crashes.csv``, from :mod:`dgt_stats.crash_cells`), from the same records.
 """
 
 from __future__ import annotations
@@ -17,7 +19,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 import pandas as pd  # noqa: E402
 
-from dgt_stats import features, models  # noqa: E402
+from dgt_stats import crash_cells, features, models  # noqa: E402
 from dgt_stats.paths import TABLES_DIR  # noqa: E402
 
 log = logging.getLogger("model")
@@ -92,6 +94,7 @@ def main() -> int:
         "q3_groupings": features.grouping_table(frame),
         "q3_junction_coding": features.junction_coding_table(crashes),
         "q3_junction_sensitivity": junction,
+        crash_cells.NAME: crash_cells.crash_cells(),
     }
     for name, table in outputs.items():
         target = TABLES_DIR / f"{name}.csv"
