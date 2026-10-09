@@ -1086,6 +1086,7 @@ def _assumption_rows() -> list[tuple[str, str, str]]:
     drivers = _driver_numbers()
     ranges = drivers["ranges"]
     central = drivers["central"].involved_ratio
+    barcelona = drivers["barcelona"].involved_ratio
     licence = drivers["licence"].involved_ratio
     prevalence = read_table("risk_licence_prevalence")
     young_licensed = prevalence[prevalence.group == "15-29"].set_index(["place", "sex"]).prevalence
@@ -1203,7 +1204,7 @@ def _assumption_rows() -> list[tuple[str, str, str]]:
                 for sex in ("male", "female")
             ),
             "carrying driving per licence holder lowers the young ratio": float(licence["18-29"])
-            < float(central["18-29"]),
+            < float(barcelona["18-29"]),
             "every assumption keeps the young above the middle-aged per km": float(
                 ranges.loc["18-29", "min"]
             )
@@ -1213,8 +1214,8 @@ def _assumption_rows() -> list[tuple[str, str, str]]:
             < 1.05
             and float(ranges.loc["65+", "max"]) > 1,
             "two weekend mixes, each lowering both ratios": len(mix_labels) == 2
-            and float(weekend_older.max()) < float(central["65+"])
-            and float(weekend_young.max()) < float(central["18-29"]),
+            and float(weekend_older.max()) < float(barcelona["65+"])
+            and float(weekend_young.max()) < float(barcelona["18-29"]),
             "the weekend mixes lie inside the sensitivity ranges": float(ranges.loc["65+", "min"])
             <= float(weekend_older.min())
             and float(ranges.loc["18-29", "min"]) <= float(weekend_young.min()),
@@ -1313,9 +1314,11 @@ def _assumption_rows() -> list[tuple[str, str, str]]:
             "replace the owner-age kilometres, which are kept only as a comparison.",
         ),
         (
-            f"One region's age profile of driving holds for Spain ({drivers_page})",
+            "The average of the Barcelona-area and Madrid age profiles of driving holds for "
+            f"Spain ({drivers_page})",
             "No source measures driving by age for Spain as a whole, so the transfer cannot be "
-            "tested. Car-licence holding by age in the province of Barcelona is compared with "
+            "tested. Each survey's profile alone is an alternative in the range. Car-licence "
+            "holding by age in the province of Barcelona is compared with "
             "Spain's, the survey's working days are set against DGT's car kilometres, and the "
             "ratios are recomputed under other regional profiles, distance treatments, survey "
             "years, weekend mixes and age mixes for the kilometres the survey does not cover.",
@@ -1325,7 +1328,8 @@ def _assumption_rows() -> list[tuple[str, str, str]]:
             "than Spain's: carried per licence holder instead of per resident, the survey puts "
             "involvement per km at 18–29 at "
             f"{float(licence['18-29']):.2f} times the 45–64 rate instead of "
-            f"{float(central['18-29']):.2f}. Across every alternative, including other regional "
+            f"{float(barcelona['18-29']):.2f} (the average of the two profiles gives "
+            f"{float(central['18-29']):.2f}). Across every alternative, including other regional "
             "profiles combined with other age mixes for the uncovered kilometres, the "
             f"sensitivity range is {float(ranges.loc['18-29', 'min']):.2f}–"
             f"{float(ranges.loc['18-29', 'max']):.2f} at 18–29 and "
@@ -1362,10 +1366,10 @@ def _assumption_rows() -> list[tuple[str, str, str]]:
             "are given one of two weekend age mixes: a proxy from the "
             f"{emef_module} module on overnight weekend stays, and car trips on weekend days in "
             f"{movilia_survey}.",
-            "Cannot be tested directly. The weekend mixes lower the 65-and-over ratio from "
-            f"{float(central['65+']):.2f} to {float(weekend_older.min()):.2f}–"
-            f"{float(weekend_older.max()):.2f} and the 18–29 ratio from "
-            f"{float(central['18-29']):.2f} to {float(weekend_young.min()):.2f}–"
+            "Cannot be tested directly. On the Barcelona-area profile, the weekend mixes lower "
+            f"the 65-and-over ratio from {float(barcelona['65+']):.2f} to "
+            f"{float(weekend_older.min()):.2f}–{float(weekend_older.max()):.2f} and the 18–29 "
+            f"ratio from {float(barcelona['18-29']):.2f} to {float(weekend_young.min()):.2f}–"
             f"{float(weekend_young.max()):.2f}; both are inside the sensitivity range above.",
         ),
         (

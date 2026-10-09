@@ -111,16 +111,22 @@ CENTRAL_KM = "less taxi and ride-hailing"
 
 
 def _driver_numbers() -> dict[str, object]:
-    """Involvement per km by driver age (central Method A, the licence-calibrated A2, every
-    sensitivity), the Barcelona working-day check and the split at 75, read from ``risk_*``."""
+    """Involvement per km by driver age (the central average of the Barcelona and Madrid
+    profiles; Method A, from which the sensitivity analysis varies each choice; the
+    licence-calibrated A2; every sensitivity), the Barcelona working-day check and the split at
+    75 (``older``: the central profile's rows), read from ``risk_*``."""
+    from dgt_stats.exposure_risk import national
+
     rates = read_table("risk_national_rates")
     rates = rates[rates.km_total == CENTRAL_KM]
-    central = rates[rates.method.str.startswith("A:")].set_index("group")
-    licence = rates[rates.method.str.startswith("A2:")].set_index("group")
+    central = rates[rates.method == national.CENTRAL_METHOD].set_index("group")
+    barcelona = rates[rates.method == national.BARCELONA_METHOD].set_index("group")
+    licence = rates[rates.method == national.LICENCE_METHOD].set_index("group")
     sensitivity = read_table("risk_national_sensitivity")
     ranges = sensitivity.groupby("group").involved_ratio.agg(["min", "max"])
     by_source = sensitivity.groupby(["source", "group"]).involved_ratio.agg(["min", "max"])
-    older = read_table("risk_older_split")
+    split = read_table("risk_older_split")
+    older = split[split.profile == national.CENTRAL_METHOD]
     older_range = read_table("risk_older_sensitivity")
     city = read_table("risk_barcelona_rates")
     city = city[city.numerator == city.numerator.iloc[0]]
@@ -128,11 +134,13 @@ def _driver_numbers() -> dict[str, object]:
     return {
         "rates": rates,
         "central": central,
+        "barcelona": barcelona,
         "licence": licence,
         "sensitivity": sensitivity,
         "ranges": ranges,
         "by_source": by_source,
         "older": older,
+        "older_barcelona": split[split.profile == national.BARCELONA_METHOD],
         "older_range": {
             "65-74": (float(older_range.ratio_65_74.min()), float(older_range.ratio_65_74.max())),
             "75+": (float(older_range.ratio_75_plus.min()), float(older_range.ratio_75_plus.max())),
@@ -253,7 +261,8 @@ def side_of_one_shown(value: float, se: float, *standard_errors: float) -> bool:
 
 def _older_numbers() -> dict[str, object]:
     """Ages 75 and over: the conditional (Madrid-pattern) estimate with its joint sampling
-    interval, the sensitivity range, the span of the combinations not marked as at odds with
+    interval, on the central average profile (``barcelona_conditional``: on Method A, from which
+    the sensitivity analysis varies each choice), the sensitivity range, the span of the combinations not marked as at odds with
     men's driving, the sampling intervals at its ends, and the wording the tables allow.
 
     PASS needs the lowest unmarked combination above the 45-64 rate even at the bottom of its
@@ -264,7 +273,11 @@ def _older_numbers() -> dict[str, object]:
     split = read_table("risk_older_split")
     older = read_table("risk_older_sensitivity")
     extremes = read_table("risk_older_extremes").set_index(["group", "end"])
-    conditional = split[split.assumption == national.REFERENCE_SPLIT].set_index("group")
+    madrid_split = split[split.assumption == national.REFERENCE_SPLIT]
+    conditional = madrid_split[madrid_split.profile == national.CENTRAL_METHOD].set_index("group")
+    barcelona_conditional = madrid_split[
+        madrid_split.profile == national.BARCELONA_METHOD
+    ].set_index("group")
     unmarked = older[~older.at_odds_with_mens_driving]
     lowest = extremes.loc[("75+", "lowest unmarked")]
     clear_min = float(unmarked.ratio_75_plus.min())
@@ -297,6 +310,7 @@ def _older_numbers() -> dict[str, object]:
         "unmarked": unmarked,
         "extremes": extremes,
         "conditional": conditional,
+        "barcelona_conditional": barcelona_conditional,
         "range": {
             "65-74": (float(older.ratio_65_74.min()), float(older.ratio_65_74.max())),
             "75+": (float(older.ratio_75_plus.min()), float(older.ratio_75_plus.max())),

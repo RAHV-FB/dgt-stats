@@ -14,7 +14,6 @@
   "s1_forest_fatal": "Odds of at least one death, by crash circumstance",
   "s2_adverse_conditions": "Adverse conditions and a fatal outcome: the same odds ratio under 8 models",
   "dr1_involved_per_km": "Car drivers involved in injury crashes per kilometre driven, against drivers aged 45–64 (2024)",
-  "dr3_older_range_sources": "Car drivers aged 75 and over: how the estimate of involvement per kilometre against 45–64 changes with each assumption about kilometres (2024)",
   "dr2_killed_per_involved": "Car drivers killed per 1,000 involved in an injury crash, by age (2024)",
   "v1_per_vehicle_vs_per_km": "Vehicles in fatal crashes: the ranking per vehicle and per kilometre, 2022",
   "p1_points_series": "Monthly road deaths around the points-based licence, 2000–2007",

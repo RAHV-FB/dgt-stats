@@ -754,9 +754,6 @@ def _severity_figures(figures_dir: Path, captions: dict[str, str]) -> None:
 
 EMEF_SOURCE = "ATM, Idescat and Institut Metròpoli, Enquesta de mobilitat en dia feiner 2022–2024"
 EDM_SOURCE = "CRTM, Encuesta Domiciliaria de Movilidad 2018 (Powered by CRTM)"
-# The sources of the age mixes and the split behind the sensitivity bands of the per-km figures.
-MOVILIA_SOURCE = "Ministerio de Transportes, Encuesta de movilidad MOVILIA 2006 and 2007"
-RACC_SOURCE = "Fundació RACC, Mayores al volante (2013)"
 GROUP_LABELS = {
     "18-29": "18–29",
     "30-44": "30–44",
@@ -765,18 +762,13 @@ GROUP_LABELS = {
     "65-74": "65–74",
     "75+": "75 and over",
 }
-
-
-# Figure 3 of the drivers page shows the six choices that move the 75+ figure most; the caption
-# names the rest. Its labels wrap shorter on a phone than other charts' labels.
-DR3_FACTORS = 6
-DR3_LABEL_CHARS = 15
+OLDER_GROUPS = ("65-74", "75+")
 
 
 def _driver_exposure_figures(figures_dir: Path, captions: dict[str, str]) -> None:
-    """Involvement per kilometre by driver age, what moves the figure for 75 and over, and deaths
-    once involved, from the committed ``risk_*`` tables (``scripts/exposure_risk.py``)."""
-    from dgt_stats import edm2018
+    """Involvement per kilometre by driver age and deaths once involved, from the committed
+    ``risk_*`` tables (``scripts/exposure_risk.py``): the central estimate with its 95% sampling
+    interval, and no sensitivity bands, which the methodology page sets out in words."""
     from dgt_stats.exposure_risk import national
 
     path = TABLES_DIR / "risk_national_rates.csv"
@@ -784,141 +776,58 @@ def _driver_exposure_figures(figures_dir: Path, captions: dict[str, str]) -> Non
         log.warning("risk_national_rates.csv missing: run scripts/exposure_risk.py national")
         return
     rates = pd.read_csv(path)
-    rates = rates[rates.km_total == "less taxi and ride-hailing"]
-    central = rates[rates.method.str.startswith("A:")].set_index("group")
-    sensitivity = pd.read_csv(TABLES_DIR / "risk_national_sensitivity.csv")
-    spread = sensitivity.groupby("group").involved_ratio.agg(["min", "max"])
-    older = pd.read_csv(TABLES_DIR / "risk_older_sensitivity.csv")
-    unmarked = older[~older.at_odds_with_mens_driving]
+    rates = rates[
+        (rates.km_total == "less taxi and ride-hailing") & (rates.method == national.CENTRAL_METHOD)
+    ].set_index("group")
     split = pd.read_csv(TABLES_DIR / "risk_older_split.csv")
-    split = split[split.assumption == national.REFERENCE_SPLIT].set_index("group")
+    split = split[
+        (split.assumption == national.REFERENCE_SPLIT) & (split.profile == national.CENTRAL_METHOD)
+    ].set_index("group")
     counts = pd.read_csv(TABLES_DIR / "risk_severity_and_licences.csv").set_index("group").involved
-    madrid = edm2018.SURVEY_YEAR
-    rows = []
-    for group in ("18-29", "30-44", "45-64", "65+"):
-        rows.append(
-            {
-                "label": GROUP_LABELS[group],
-                "reference_row": group == "45-64",
-                "value": float(central.loc[group, "involved_ratio"]),
-                "low": float(central.loc[group, "involved_ratio_low"]),
-                "high": float(central.loc[group, "involved_ratio_high"]),
-                "range_low": float(spread.loc[group, "min"]),
-                "range_high": float(spread.loc[group, "max"]),
-                "count": int(counts[group]),
-            }
-        )
-    for group, column in (("65-74", "ratio_65_74"), ("75+", "ratio_75_plus")):
-        rows.append(
-            {
-                "label": f"of which {GROUP_LABELS[group]}*",
-                "reference_row": False,
-                "conditional": True,
-                "group_start": group == "65-74",
-                "value": float(split.loc[group, "ratio_to_45_64"]),
-                "low": float(split.loc[group, "ratio_low"]),
-                "high": float(split.loc[group, "ratio_high"]),
-                "range_low": float(older[column].min()),
-                "range_high": float(older[column].max()),
-                "clear_low": float(unmarked[column].min()),
-                "clear_high": float(unmarked[column].max()),
-                "count": int(counts[group]),
-            }
-        )
-    plots.estimate_and_range(
+    rows = [
+        {
+            "label": GROUP_LABELS[group],
+            "value": float(rates.loc[group, "involved_ratio"]),
+            "low": float(rates.loc[group, "involved_ratio_low"]),
+            "high": float(rates.loc[group, "involved_ratio_high"]),
+        }
+        for group in ("18-29", "30-44")
+    ]
+    rows.append({"label": GROUP_LABELS["45-64"], "value": 1.0, "low": 1.0, "high": 1.0})
+    rows += [
+        {
+            "label": GROUP_LABELS[group],
+            "value": float(split.loc[group, "ratio_to_45_64"]),
+            "low": float(split.loc[group, "ratio_low"]),
+            "high": float(split.loc[group, "ratio_high"]),
+        }
+        for group in OLDER_GROUPS
+    ]
+    plots.dot_interval(
         pd.DataFrame(rows),
+        "label",
+        "value",
+        "low",
+        "high",
         figures_dir / "dr1_involved_per_km.svg",
         "Car drivers involved in injury crashes per kilometre driven, against drivers aged "
         "45–64 (2024)",
-        xlabel="Rate ratio per km against drivers aged 45–64 (log scale)",
+        xlabel="Times the rate of drivers aged 45–64 (log scale)",
+        reference=1.0,
         reference_label="45–64 rate",
-        estimate_label="Estimate and 95% sampling interval",
-        conditional_label="* Also assumes people aged 75 and over drive as much less than those "
-        f"aged 65–74 as in Madrid in {madrid}",
-        range_label="Sensitivity range: span of the assumptions tested",
-        hatch_label="Reached only with equal km per licence holder at 65–74 and 75 and over (at "
-        "odds with surveys of men's driving)",
+        keep_order=True,
+        reference_row=GROUP_LABELS["45-64"],
+        log=True,
     )
     captions["dr1_involved_per_km"] = _caption(
         "Car drivers involved in injury crashes in Spain in 2024 per kilometre driven, as ratios "
-        "to drivers aged 45–64 (log scale). Under each label, DGT's count of drivers involved; "
-        "counts are not rates and cannot be compared between rows, because age bands differ in "
-        "width, population and driving. Dots: estimates with 95% sampling intervals. Hollow "
-        f"diamonds: also assume the Madrid {madrid} pattern; their intervals include that "
-        "survey's sampling error and hold the assumption fixed. Grey bands: sensitivity ranges, "
-        "spans of the assumptions tested with no probability attached, whose sources the "
-        "methodology page sets out; each end is itself an estimate with sampling error. "
-        "Hatched: "
-        "reached only with equal km per licence holder at 65–74 and 75 and over",
-        f"{TABLES_SOURCE}; {EMEF_SOURCE}; {EDM_SOURCE}; {MOVILIA_SOURCE}; {RACC_SOURCE}; "
-        f"{KM_2024_SOURCE}; {POPULATION_SOURCE}",
-        f"{int(central.involved.sum()):,} drivers involved",
-    )
-
-    decomposition = pd.read_csv(TABLES_DIR / "risk_older_decomposition.csv")
-    whole = decomposition[decomposition.kind == "all"].iloc[0]
-    factors = decomposition[decomposition.kind == "factor"].sort_values(
-        "log_width", ascending=False
-    )
-    shown, rest = factors.head(DR3_FACTORS), factors.iloc[DR3_FACTORS:]
-    estimate = float(whole.estimate)
-    bars = [
-        {
-            "label": str(whole.short_label),
-            "range_low": float(whole.low),
-            "range_high": float(whole.high),
-            "clear_low": float(whole.clear_low),
-            "clear_high": float(whole.clear_high),
-            "band_style": "range",
-        }
-    ]
-    for factor in shown.itertuples():
-        bars.append(
-            {
-                "label": str(factor.short_label),
-                "range_low": float(factor.low),
-                "range_high": float(factor.high),
-                "clear_low": float(factor.clear_low),
-                "clear_high": float(factor.clear_high),
-                "band_style": "factor",
-            }
-        )
-    plots.estimate_and_range(
-        pd.DataFrame(bars),
-        figures_dir / "dr3_older_range_sources.svg",
-        "Car drivers aged 75 and over: how the estimate of involvement per kilometre against "
-        "45–64 changes with each assumption about kilometres (2024)",
-        xlabel="Rate ratio per km against drivers aged 45–64 (log scale)",
-        reference_label="45–64 rate",
-        range_label="Sensitivity range: all combinations tested",
-        factor_label="One choice changed, the others as in the Madrid-pattern estimate",
-        hatch_label="Reached only with equal km per licence holder at 65–74 and 75 and over",
-        ticks=(0.75, 1, 1.5, 2, 3, 4),
-        lines=[(estimate, f"Madrid pattern {estimate:.2f}", "estimate")],
-        gap_after=[str(whole.short_label)],
-        show_whiskers=False,
-        label_width=DR3_LABEL_CHARS,
-    )
-    others = [
-        f"{factor.short_label[:1].lower()}{factor.short_label[1:]} "
-        f"({factor.low:.2f}–{factor.high:.2f})"
-        for factor in rest.itertuples()
-    ]
-    captions["dr3_older_range_sources"] = _caption(
-        "Car drivers aged 75 and over involved in injury crashes in Spain in 2024 per kilometre "
-        "driven, as ratios to drivers aged 45–64 (log scale). Each bar below the top changes one "
-        "assumption about the kilometres and keeps the others as in the Madrid-pattern estimate "
-        f"({estimate:.2f}); the bars show how the estimate moves, not what changes crash "
-        "involvement. The top bar spans every combination tested (not every possible "
-        "combination of the choices) and is the whole sensitivity range "
-        f"({float(whole.low):.2f}–{float(whole.high):.2f}). Bar lengths depend on which "
-        "alternatives were tried, not on how likely they are, and bars carry no sampling error. "
-        "Hatched: reached only with equal kilometres per licence holder at 65–74 and 75 and "
-        "over. Not shown, each moving the figure less from the Madrid-pattern estimate: "
-        f"{_join_words(others)}",
-        f"{TABLES_SOURCE}; {EMEF_SOURCE}; {EDM_SOURCE}; {MOVILIA_SOURCE}; {RACC_SOURCE}; "
-        f"{KM_2024_SOURCE}; {POPULATION_SOURCE}",
-        f"{int(counts['75+']):,} drivers aged 75 and over involved",
+        "to drivers aged 45–64 (log scale), with 95% sampling intervals. The kilometres by age "
+        "share out DGT's car kilometres with the average of the Barcelona and Madrid travel "
+        "surveys' age profiles; at 65–74 and 75 and over they also use the Madrid survey's split "
+        "of the 65-and-over kilometres",
+        f"{TABLES_SOURCE}; {EMEF_SOURCE}; {EDM_SOURCE}; {KM_2024_SOURCE}; {POPULATION_SOURCE}",
+        f"{int(sum(counts[group] for group in ('18-29', '30-44', '45-64', '65+'))):,} drivers "
+        "involved",
     )
 
     severity = pd.read_csv(TABLES_DIR / "risk_severity_and_licences.csv")

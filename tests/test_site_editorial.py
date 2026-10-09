@@ -370,9 +370,10 @@ def test_the_conditional_75_plus_estimate_is_never_read_alone(built: dict[str, s
     ranges = (f"{low:.2f}–{high:.2f}", f"{low:.2f} to {high:.2f}")
     values = [f"{madrid.ratio_to_45_64:.2f}", f"{madrid.ratio_to_45_64:.1f}"]
     # The value as a quoted figure, not as one end of another interval or range printed at one
-    # decimal ("2.1–3.4"); the conditional estimate's own interval is checked under (b).
+    # decimal ("2.1–3.4", "1.9 to 2.4"); the conditional estimate's own interval is checked
+    # under (b).
     value = re.compile(
-        r"(?<![\d.–])(" + "|".join(re.escape(v) for v in values) + r")(?![\d–]| to \d)"
+        r"(?<![\d.–])(?<!to )(" + "|".join(re.escape(v) for v in values) + r")(?![\d–]| to \d)"
     )
     intervals = [
         f"{madrid.ratio_low:.2f}–{madrid.ratio_high:.2f}",

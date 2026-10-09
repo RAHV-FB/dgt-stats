@@ -25,13 +25,8 @@ from dgt_stats.site.components import (
     summary,
 )
 from dgt_stats.site.numbers import (
-    FAIL,
-    INTERMEDIATE,
-    OLDER_CONCLUSION,
-    PASS,
     _driver_numbers,
     _long_run_numbers,
-    _older_numbers,
     _speed_numbers,
     rate_interval,
 )
@@ -121,15 +116,13 @@ def _deaths() -> str:
 
 
 def _drivers() -> str:
-    """Involvement per kilometre by age, an estimate, and deaths once involved, a count."""
+    """Involvement per kilometre by age, an estimate, and deaths once involved, a count. The
+    caveat on the figure for 75 and over is the drivers page's, said once there."""
     numbers = _driver_numbers()
     young, ranges = numbers["central"].loc["18-29"], numbers["ranges"]
     severity = numbers["severity"]
     oldest, reference = severity.loc["75+"], severity.loc["45-64"]
     ratio = float(oldest.killed_per_1000_involved) / float(reference.killed_per_1000_involved)
-    older = _older_numbers()
-    tier, full, clear = older["tier"], older["range"]["75+"], older["clear"]["75+"]
-    lowest_clear = older["lowest_clear"]
     _require(
         "drivers",
         {
@@ -141,12 +134,6 @@ def _drivers() -> str:
             "drivers aged 75 and over die far more often once involved, clearly": ratio > 2
             and float(oldest.killed_per_1000_involved_low)
             > float(reference.killed_per_1000_involved_high),
-            "the 75+ sensitivity range reaches the 45-64 rate": full[0] <= 1 < full[1],
-            "the wording printed for 75+ matches the tables": (
-                tier == INTERMEDIATE and float(lowest_clear.ratio_low) <= 1 < clear[0]
-            )
-            or (tier == PASS and float(lowest_clear.ratio_low) > 1)
-            or (tier == FAIL and clear[0] <= 1),
         },
     )
     per_km = _finding(
@@ -154,17 +141,14 @@ def _drivers() -> str:
         "per kilometre, car drivers aged 18–29 were involved in injury crashes, whoever caused "
         f"them, an estimated {float(young.involved_ratio):.2f} times as often as drivers aged "
         f"45–64 in {national_rates.YEAR} (95% {definition_link('Sampling interval')} "
-        f"{rate_interval(young, 'involved_ratio')}; {definition_link('Sensitivity range')} "
-        f"{float(ranges.loc['18-29', 'min']):.2f}–{float(ranges.loc['18-29', 'max']):.2f}).",
+        f"{rate_interval(young, 'involved_ratio')}).",
         [("drivers#involvement-in-crashes-per-kilometre-driven", "Drivers: crashes per kilometre")],
     )
     deaths = _finding(
         "Older drivers are far more likely to die once a crash has happened",
         f"car drivers aged 75 and over involved in an injury crash died {ratio:.1f} times as "
-        f"often as those aged 45–64 in {national_rates.YEAR}, but for their crashes per "
-        f"kilometre, the sensitivity range is {full[0]:.2f} to {full[1]:.2f} times the 45–64 "
-        f"rate{OLDER_CONCLUSION[tier]}.",
-        [("drivers#ages-75-and-over", "Drivers: ages 75 and over")],
+        f"often as those aged 45–64 in {national_rates.YEAR}.",
+        [("drivers#deaths-once-a-crash-has-happened", "Drivers: deaths once in a crash")],
     )
     return per_km + deaths
 

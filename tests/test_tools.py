@@ -79,46 +79,46 @@ def drivers() -> dict:
     return tool_driver_risk.driver_data()
 
 
-def test_per_km_estimates_are_the_published_rates_and_ranges(drivers: dict) -> None:
+def test_per_km_estimates_are_the_central_rates(drivers: dict) -> None:
+    # One estimate per age group, the average of the Barcelona and Madrid profiles, with its 95%
+    # sampling interval; the tool offers no choice of assumptions and quotes no range.
     rates = _table("risk_national_rates")
-    rates = rates[rates.km_total == "less taxi and ride-hailing"]
-    sensitivity = _table("risk_national_sensitivity")
-    measure = next(m for m in drivers["age"] if m["id"] == "involved_per_km")
-    for group in ("18-29", "30-44", "65+"):
-        for _, row in rates[rates.group == group].iterrows():
-            shown = measure["groups"][group]["by_profile"][row.method]
-            assert shown["value"] == pytest.approx(row.involved_ratio)
+    rates = rates[
+        (rates.km_total == "less taxi and ride-hailing") & (rates.method == national.CENTRAL_METHOD)
+    ]
+    rates = rates.set_index("group")
+    for measure_id, column in (
+        ("involved_per_km", "involved_ratio"),
+        ("killed_per_km", "killed_ratio"),
+    ):
+        measure = next(m for m in drivers["age"] if m["id"] == measure_id)
+        for group in ("18-29", "30-44", "65+"):
+            shown = measure["groups"][group]
+            assert shown["value"] == pytest.approx(rates.loc[group, column])
             assert (shown["low"], shown["high"]) == pytest.approx(
-                (row.involved_ratio_low, row.involved_ratio_high)
+                (rates.loc[group, f"{column}_low"], rates.loc[group, f"{column}_high"])
             )
-        spread = sensitivity[sensitivity.group == group].involved_ratio
-        assert measure["groups"][group]["range"] == pytest.approx([spread.min(), spread.max()])
-    # The central figures the drivers page quotes.
-    central = measure["groups"]["18-29"]["by_profile"][drivers["central_profile"]]
-    assert f"{central['value']:.2f}" == "2.53" and central["interval"] == "2.2–2.8"
-    assert [f"{v:.2f}" for v in measure["groups"]["18-29"]["range"]] == ["1.49", "3.63"]
-    assert measure["groups"]["45-64"]["range"] is None
+            assert set(shown) == {"label", "value", "low", "high", "interval"}
+        assert measure["groups"]["45-64"]["low"] is None
+    young = next(m for m in drivers["age"] if m["id"] == "involved_per_km")["groups"]["18-29"]
+    assert f"{young['value']:.2f}" == "2.68" and young["interval"] == "2.5–2.9"
+    assert not {"profiles", "splits", "condition", "older_conclusion"} & set(drivers)
 
 
-def test_the_75_plus_estimate_keeps_its_condition_and_range(drivers: dict) -> None:
+def test_the_older_estimates_follow_the_madrid_split(drivers: dict) -> None:
     split = _table("risk_older_split")
-    older = _table("risk_older_sensitivity")
+    split = split[
+        (split.profile == national.CENTRAL_METHOD) & (split.assumption == national.REFERENCE_SPLIT)
+    ].set_index("group")
     measure = next(m for m in drivers["age"] if m["id"] == "involved_per_km")
-    group = measure["groups"]["75+"]
-    assert group["range"] == pytest.approx([older.ratio_75_plus.min(), older.ratio_75_plus.max()])
-    for _, row in split[split.group == "75+"].iterrows():
-        shown = group["by_split"][row.assumption]
-        assert shown["value"] == pytest.approx(row.ratio_to_45_64)
-        flagged = older[older.assumption == row.assumption].at_odds_with_mens_driving.all()
-        assert shown["at_odds"] == bool(flagged)
-    central = group["by_split"][national.REFERENCE_SPLIT]
-    assert f"{central['value']:.2f}" == "2.06" and central["interval"] == "1.6–2.6"
-    assert "holds only if people aged 75 and over drive as much less" in drivers["condition"]
-    assert "0.97 to 3.20 times the 45–64 rate" in drivers["older_conclusion"]
-    assert (
-        "do not establish" in drivers["older_conclusion"]
-        or "not established" in drivers["older_conclusion"]
-    )
+    for group in ("65-74", "75+"):
+        shown = measure["groups"][group]
+        assert shown["value"] == pytest.approx(split.loc[group, "ratio_to_45_64"])
+        assert (shown["low"], shown["high"]) == pytest.approx(
+            (split.loc[group, "ratio_low"], split.loc[group, "ratio_high"])
+        )
+    oldest = measure["groups"]["75+"]
+    assert f"{oldest['value']:.2f}" == "2.43" and oldest["interval"] == "2.0–3.0"
 
 
 def test_observed_driver_rates_and_their_ratios(drivers: dict) -> None:
@@ -154,6 +154,4 @@ def test_men_and_women_come_from_the_sex_tables(drivers: dict) -> None:
     per_km = _table("risk_sex_per_km").set_index("measure")
     shown = drivers["sex"]["per_km"]["involved_per_km"]
     assert shown["ratio"] == pytest.approx(per_km.loc["involved per km", "ratio_men_to_women"])
-    assert shown["range"] == pytest.approx(
-        [per_km.loc["involved per km", "range_low"], per_km.loc["involved per km", "range_high"]]
-    )
+    assert "range" not in shown
