@@ -42,17 +42,25 @@ def test_every_page_is_written_with_one_heading(built: Path) -> None:
         _runs_no_script(slug, text)
         assert 'lang="en"' in text
         assert f'href="{slug}.html" aria-current="page"' in text
-    # The navigation follows the questions a reader brings: deaths over time; drivers, vehicles
-    # and recorded factors; how deadly a crash is once it has happened; and the data and methods.
-    # A pointer for each page that was renamed, and a notice for each withdrawn analysis.
+    # The navigation follows the questions a reader brings: the interactive tools; deaths over
+    # time; drivers, vehicles and recorded factors; how deadly a crash is once it has happened; and
+    # the data and methods. Old pages that no builder writes (renamed pages, withdrawn analyses)
+    # are gone.
     assert [group for group, _ in site.NAV_GROUPS] == [
         "Overview",
+        "Explore",
         "Over time",
         "Drivers, vehicles and factors",
         "Crash severity",
         "Data and methods",
     ]
-    assert len(site.PAGES) == 14 and len(site.SUPPORTING_PAGES) == 2
+    assert [slug for slug, _ in dict(site.NAV_GROUPS)["Explore"]] == [
+        "explore",
+        "calculator",
+        "driver-risk",
+        "crash-explorer",
+        "trends-explorer",
+    ]
     assert [slug for slug, _ in dict(site.NAV_GROUPS)["Crash severity"]] == [
         "severity",
         "catalonia",
@@ -60,19 +68,20 @@ def test_every_page_is_written_with_one_heading(built: Path) -> None:
         "severity-models",
         "validation",
     ]
-    expected = (
-        {slug for slug, _ in site.ALL_PAGES} | set(site.MOVED_PAGES) | set(site.WITHDRAWN_PAGES)
-    )
-    assert expected == {p.stem for p in built.glob("*.html")}
+    assert {slug for slug, _ in site.ALL_PAGES} == {p.stem for p in built.glob("*.html")}
     # The site's one site-wide script is its own reading aid; the withdrawn models' scripts and
     # registers are not shipped. The calculator's engine, page script and exported model live
-    # apart in models/, and only its page loads them.
+    # apart in models/, the other tools' scripts and data in tools/, and only the tool pages load
+    # them.
     assert [p.name for p in built.glob("*.js")] == ["site.js"]
     assert sorted(p.name for p in (built / "models").iterdir()) == [
         "severity-calculator.js",
         "severity-engine.js",
         "severity_model.json",
     ]
+    tools = {p.name for p in (built / "tools").iterdir()}
+    assert {"tools.js", "driver-risk.js", "crash-explorer.js", "trends-explorer.js"} <= tools
+    assert {p.suffix for p in (built / "tools").iterdir()} <= {".js", ".json"}
     published = {p.name for p in (built / "tables").glob("*.csv")}
     assert not published & {"simulator_evidence.csv", "factor_evidence.csv"}
 
@@ -84,68 +93,47 @@ CALCULATOR_SCRIPTS = [
 
 
 def _runs_no_script(slug: str, text: str) -> None:
-    """No page runs a script of its own, except the calculator: the simulator and factor models
-    that did were withdrawn.
+    """No page runs a script of its own, except the tools: the simulator and factor models that
+    did were withdrawn.
 
     Every page loads the site's reading aid (menus and contents), after a one-line flag that says
-    scripting is on; the severity model's page also loads the calculator's engine and page
-    script, which compute only from the exported model.
+    scripting is on; each tool page also loads the tools' shared helpers and its own script, and
+    the calculator its engine, which computes only from the exported model.
     """
     expected = ["<script>", '<script src="site.js" defer>']
-    if slug == "severity-models":
-        expected += CALCULATOR_SCRIPTS
+    if slug in site.components.TOOL_SLUGS:
+        expected.append('<script src="tools/tools.js" defer>')
+        if slug == "calculator":
+            expected += CALCULATOR_SCRIPTS
+        else:
+            expected.append(f'<script src="tools/{slug}.js" defer>')
     assert re.findall(r"<script[^>]*>", text) == expected, slug
     assert JS_FLAG in text, slug
 
 
-def test_moved_pages_point_to_their_successors(built: Path) -> None:
-    for old, new in site.MOVED_PAGES.items():
-        text = (built / f"{old}.html").read_text(encoding="utf-8")
-        assert f'content="0; url={new}.html"' in text
-        assert f'href="{new}.html">' in text
-        # Kept out of search indexes, with no canonical link to contradict that.
-        assert '<meta name="robots" content="noindex">' in text, old
-        assert 'rel="canonical"' not in text, old
-    # No live page links to a moved slug: the pointers are for old bookmarks, not navigation.
+# Pages that were renamed or whose analysis was withdrawn. They are removed, not kept as pointers.
+DEFUNCT_PAGES = (
+    "older-drivers",
+    "context",
+    "transport",
+    "forecast",
+    "simulator",
+    "distraction",
+    "alcohol-drugs",
+    "enforcement",
+)
+
+
+def test_defunct_pages_are_gone_and_nothing_links_to_them(built: Path) -> None:
+    for slug in DEFUNCT_PAGES:
+        assert not (built / f"{slug}.html").exists(), slug
     for slug, _ in site.ALL_PAGES:
         text = (built / f"{slug}.html").read_text(encoding="utf-8")
-        for moved in site.MOVED_PAGES:
-            assert f'href="{moved}.html"' not in text, (slug, moved)
-
-
-def test_withdrawn_pages_say_why_and_nothing_links_to_them(built: Path) -> None:
-    external = {"simulator", "distraction", "alcohol-drugs", "enforcement"}
-    assert set(site.WITHDRAWN_PAGES) == external | {"forecast"}
-    live = {slug for slug, _ in site.ALL_PAGES}
-    for slug, reason in site.WITHDRAWN_PAGES.items():
-        assert slug not in live and slug not in site.MOVED_PAGES, slug
-        text = (built / f"{slug}.html").read_text(encoding="utf-8")
-        body = text[text.find("<main>") : text.find("</main>")]
-        # A short notice, not a redirect: it says why the analysis went and links to the data.
-        assert 'http-equiv="refresh"' not in text and 'rel="canonical"' not in text, slug
-        if slug in external:
-            assert "withdrawn because its results came from coefficients published in " in text
-            assert "rather than from data in this repository" in text
-        else:
-            assert site.esc("less accurately than last year's count") in text
-        assert site.esc(reason) in body, slug
-        # The reason is stated once, in the lead; the body says what the page published.
-        assert body.count("withdrawn because") == 1, slug
-        assert "holds no" not in body and "so it was withdrawn" not in body, slug
-        if slug == "forecast":
-            assert body.count("less accurately") == 1
-        assert 'href="data.html"' in body, slug
-        assert '<div class="conclusion">' not in body and "<table>" not in body, slug
-        assert len(body) < 4000, slug
-    # The simulator's notice points to the speed page, and the forecast's to the trend pages.
-    assert 'href="speed.html"' in (built / "simulator.html").read_text(encoding="utf-8")
-    forecast = (built / "forecast.html").read_text(encoding="utf-8")
-    assert 'href="long-run.html"' in forecast and 'href="trends.html"' in forecast
-    # No live or moved page links to a withdrawn slug.
-    for slug in live | set(site.MOVED_PAGES):
-        text = (built / f"{slug}.html").read_text(encoding="utf-8")
-        for withdrawn in site.WITHDRAWN_PAGES:
-            assert f'href="{withdrawn}.html"' not in text, (slug, withdrawn)
+        for defunct in DEFUNCT_PAGES:
+            assert f'href="{defunct}.html"' not in text, (slug, defunct)
+    # No figure of the withdrawn forecast survives.
+    assert not (built / "figures" / "k1_forecast_check.svg").exists()
+    assert not (built / "figures" / "k2_detectability.svg").exists()
 
 
 def test_reuse_names_each_provider_its_terms_and_its_dates(built: Path) -> None:
@@ -281,12 +269,19 @@ def test_table_formats_numbers() -> None:
 
 def test_severity_page_leads_with_the_adverse_finding(built: Path) -> None:
     text = (built / "severity.html").read_text(encoding="utf-8")
+    # How the regressions are specified and checked, the junction flag's evidence, the model
+    # variants and the missing-value levels are the page's technical notes on the methodology
+    # page, which it links to.
+    data = (built / "data.html").read_text(encoding="utf-8")
+    notes = data[data.index('id="severity-method"') :]
+    notes = notes[: notes.index("<h2", 1)]
+    assert 'href="data.html#severity-method"' in text
     adverse = pd.read_csv(TABLES_DIR / "q3_adverse_conditions.csv")
     fatal = adverse[adverse.outcome == "fatal"].set_index(["variant", "level"])
     wet_alone = float(fatal.loc[("no_weather", "wet"), "odds_ratio"])
     # The headline number is computed from the table, not typed.
     assert f"{wet_alone:.2f} times the odds" in text
-    assert "Odds ratios for the adverse conditions under every model variant" in text
+    assert "Odds ratios for the adverse conditions under every model variant" in notes
     assert 'src="figures/s2_adverse_conditions.svg"' in text
     assert 'src="figures/s1_forest_fatal.svg"' in text
     # The page says what kind of analysis it is, and the distinction the finding depends on.
@@ -294,7 +289,7 @@ def test_severity_page_leads_with_the_adverse_finding(built: Path) -> None:
     assert "nothing about how often crashes happen" in text
     # No outside study explains the associations, and the subtitle claims no explanation.
     for phrase in ("doi.org", "literature", "et al", "point the wrong way", "Naturalistic"):
-        assert phrase not in text, phrase
+        assert phrase not in text + notes, phrase
     # The missing-value levels are nuisance terms: flagged, quantified by province and refitted
     # without the provinces that record most of them; the numbers come from the tables.
     coefficients = pd.read_csv(TABLES_DIR / "q3_model_coefficients.csv")
@@ -302,15 +297,15 @@ def test_severity_page_leads_with_the_adverse_finding(built: Path) -> None:
     assert set(nuisance.level) <= {"unknown", "not specified", "not applicable"}
     regime = pd.read_csv(TABLES_DIR / "q3_recording_regime.csv").set_index(["predictor", "level"])
     alignment = regime.loc[("alignment", "unknown")]
-    assert components._fmt_pct(float(alignment.catalan_share_of_level)) in text
-    assert components._fmt_pct(float(alignment.share_of_catalan_crashes)) in text
+    assert components._fmt_pct(float(alignment.catalan_share_of_level)) in notes
+    assert components._fmt_pct(float(alignment.share_of_catalan_crashes)) in notes
     assert 'href="tables/q3_regime_sensitivity.csv"' in text
     sensitivity = pd.read_csv(TABLES_DIR / "q3_regime_sensitivity.csv")
     wet = sensitivity[(sensitivity.outcome == "fatal") & (sensitivity.level == "wet")].iloc[0]
-    assert f"{wet.odds_ratio_without:.2f}" in text
+    assert f"moves from {wet.odds_ratio:.2f} to {wet.odds_ratio_without:.2f}" in notes
     # The holdout is reported with its Brier skill against the training years' base rate.
     holdout = pd.read_csv(TABLES_DIR / "q3_holdout_summary.csv").set_index("outcome")
-    assert components._fmt_pct(float(holdout.loc["fatal", "brier_skill"])) in text
+    assert components._fmt_pct(float(holdout.loc["fatal", "brier_skill"])) in notes
     # The full coefficient table is linked, not printed.
     assert 'href="tables/q3_model_coefficients.csv"' in text
     assert text.count("<table>") <= 4
@@ -331,15 +326,18 @@ def test_severity_page_leads_with_the_adverse_finding(built: Path) -> None:
     assert f"({junction.odds_ratio:.2f}, {junction.or_low:.2f}–{junction.or_high:.2f})" in opening
     assert "read the other way round" in opening
     assert "in every model variant, and so does that of the junction" not in text
-    # The junction section states the coding problem, how it was corrected, the period refits
-    # and the alternatives, every number from the tables.
+    # The page states the junction coding problem, how it was corrected, the period refits and
+    # the flag as published; the notes add the evidence and every alternative reading, every
+    # number from the tables.
     sensitivity = pd.read_csv(TABLES_DIR / "q3_junction_sensitivity.csv")
     full = sensitivity[(sensitivity.outcome == "fatal") & (sensitivity.fit == "full")]
     full = full.set_index("treatment")
     for treatment in ("junction type", "unrecorded", "as published"):
-        assert f"{full.loc[treatment, 'odds_ratio']:.2f}" in text, treatment
+        assert f"{full.loc[treatment, 'odds_ratio']:.2f}" in notes, treatment
+    published = full.loc["as published"]
+    assert f"{published.odds_ratio:.2f} ({published.or_low:.2f}–{published.or_high:.2f})" in text
     recoded = int(pd.read_csv(TABLES_DIR / "q3_junction_coding.csv").recoded.sum())
-    assert f"{recoded:,} crashes" in text
+    assert f"{recoded:,} crashes" in text and f"{recoded:,} crashes" in notes
     periods = pd.read_csv(TABLES_DIR / "q3_period_refits.csv")
     later = periods[
         (periods.outcome == "fatal")
@@ -349,41 +347,44 @@ def test_severity_page_leads_with_the_adverse_finding(built: Path) -> None:
     ].iloc[0]
     assert f"{later.odds_ratio:.2f} ({later.or_low:.2f}–{later.or_high:.2f})" in text
     assert 'href="tables/q3_junction_sensitivity.csv"' in text
-    assert "until the coding changed" not in text and "only the junction term" not in text
+    for phrase in ("until the coding changed", "only the junction term"):
+        assert phrase not in text + notes, phrase
     # The ranking is quoted with what the missing-value levels contribute to it, as ROC-AUC to
     # two decimals, the scale of the severity model and validation pages.
     recorded_only = holdout.loc["fatal", "auc_recorded_only"]
     missing_only = holdout.loc["fatal", "auc_missing_only"]
-    assert f"death scores {recorded_only:.2f}, and those levels on their own" in text
-    assert f"on their own {missing_only:.2f}" in text
-    assert "the two regressions keep their ordering" in text
-    assert "times in 100" not in text
+    assert f"death scores {recorded_only:.2f}, and those levels on their own" in notes
+    assert f"on their own {missing_only:.2f}" in notes
+    assert "the two regressions keep their ordering" in notes
+    assert "times in 100" not in text + notes
     # The yearly refits are the regression for a death's; the term of the other regression that
     # does vary between years is named with its p-value.
-    assert "the regression for a death gives" in text
+    assert "the regression for a death gives" in notes
     stability = pd.read_csv(TABLES_DIR / "q3_year_stability.csv")
     serious = stability[stability.outcome == "serious"].drop_duplicates(["predictor", "level"])
     varying = serious[serious.heterogeneity_p < 0.05]
     assert not varying.empty
     for row in varying.itertuples():
-        assert f"“{row.level}” (p = {row.heterogeneity_p:.3f}) does vary" in text
+        assert f"“{row.level}” (p = {row.heterogeneity_p:.3f}) does vary" in notes
     # The earlier Catalan junction shares are given without the year of the narrower definition.
-    assert "metres of a junction away from it" in text
+    assert "metres of a junction away from it" in notes
     # The page leads with what the records show: the results come first, then what the records
-    # cannot show, and only then the description of the records and the regressions.
+    # cannot show; the description of the records and the regressions opens the notes.
     main = text[text.find("<main>") : text.find("</main>")]
     headings = re.findall(r"<h2[^>]*>(.*?)</h2>", main, re.S)
     assert headings[0] == "Crash type and location go most strongly with a death"
     assert headings[1].startswith("Lower odds of a death on wet roads")
-    assert headings.index("The records and the regressions") > 2
+    assert headings[2].startswith("The records show which crashes were deadlier")
+    assert "The records and the regressions" not in headings
+    assert '<h3 id="severity-regressions">The records and the regressions</h3>' in notes
     assert main.find("s1_forest_fatal") < main.find("s2_adverse_conditions")
     # The opening paragraph names the other two pages on severity, once each, with their
     # populations and definitions.
     assert opening.count('href="catalonia.html"') == opening.count('href="barcelona.html"') == 1
     assert "within 30 days" in opening and "within 24 hours" in opening
     # The weekend is defined, and the file's per-crash counts are not called absent.
-    assert "from 20:00 on Friday" in text
-    assert "no fields for drivers" not in text
+    assert "from 20:00 on Friday" in notes
+    assert "no fields for drivers" not in text + notes
 
 
 def test_intervals_are_printed_at_the_precision_their_monte_carlo_error_supports() -> None:
@@ -426,7 +427,25 @@ def test_intervals_are_printed_at_the_precision_their_monte_carlo_error_supports
     assert site_numbers.rate_interval(rate, "involved_ratio") == "1.0–1.4"
 
 
+def _sections(body: str) -> dict[str, str]:
+    """A page's sections by the id of their heading, each up to the next heading."""
+    anchors = re.findall(r'<h2 id="([^"]+)"', body)
+    return dict(zip(anchors, re.split(r"<h2[^>]*>", body)[1:], strict=True))
+
+
+def _driver_notes(built: Path) -> tuple[str, str, str]:
+    """The drivers page's technical notes on the methodology page: all of them, the section on
+    kilometres and crashes per kilometre, and the section on drivers aged 75 and over."""
+    data = (built / "data.html").read_text(encoding="utf-8")
+    main = data[data.find("<main>") : data.find("</main>")]
+    sections = _sections(main)
+    per_km, older = sections["drivers-per-km"], sections["drivers-75-and-over"]
+    return per_km + older, per_km, older
+
+
 def test_drivers_page_separates_the_two_questions(built: Path) -> None:
+    from dgt_stats.site.drivers import SUMMARY_OLDER
+
     text = (built / "drivers.html").read_text(encoding="utf-8")
     body = text[text.find("<main>") : text.find("</main>")]
     rates = pd.read_csv(TABLES_DIR / "risk_national_rates.csv")
@@ -434,15 +453,39 @@ def test_drivers_page_separates_the_two_questions(built: Path) -> None:
     central = rates[rates.method.str.startswith("A:")].set_index("group")
     severity = pd.read_csv(TABLES_DIR / "risk_severity_and_licences.csv").set_index("group")
     young, older = central.loc["18-29"], central.loc["65+"]
-    # The page leads with involvement per km by driver age, quoted with its interval; the numbers
-    # come from the tables, and no big-number callout repeats the summary.
+    # A short opening states the results, from the tables: involvement per km by driver age, an
+    # estimate, and deaths once involved, a count. No big-number callout repeats it, and the
+    # principal findings follow in sections of their own, each with its interval or range.
     opening = re.search(r'<p class="summary">(.*?)</p>', body, re.S).group(1)
-    assert site_numbers.rate_interval(young, "involved_ratio") in opening
-    assert f"{older.involved_ratio:.2f}" in opening
-    assert f"{severity.loc['75+', 'killed_per_1000_involved']:.1f}" in opening
+    assert 60 <= len(re.sub(r"<[^>]+>", " ", opening).split()) <= 80
+    assert f"{young.involved_ratio:.2f} times as often per kilometre" in opening
+    oldest = float(severity.loc["75+", "killed_per_1000_involved"]) / float(
+        severity.loc["45-64", "killed_per_1000_involved"]
+    )
+    assert f"died {oldest:.1f} times as often as those aged 45–64" in opening
+    assert "estimated from a travel survey" in opening
     assert 'class="key-result"' not in body
-    assert 'src="figures/dr1_involved_per_km.svg"' in body
-    assert body.find("dr1_involved_per_km") < body.find("<table")
+    sections = _sections(body)
+    # The headings state the findings; the firm result, deaths once a crash has happened,
+    # follows the per-km section directly, and the 75+ figures keep the anchor the home page
+    # links to.
+    assert list(sections)[:4] == [
+        "involvement-in-crashes-per-kilometre-driven",
+        "deaths-once-a-crash-has-happened",
+        "ages-75-and-over",
+        "men-and-women",
+    ]
+    per_km, deaths = (
+        sections["involvement-in-crashes-per-kilometre-driven"],
+        sections["deaths-once-a-crash-has-happened"],
+    )
+    section, sexes = sections["ages-75-and-over"], sections["men-and-women"]
+    assert site_numbers.rate_interval(young, "involved_ratio") in per_km
+    assert f"{older.involved_ratio:.2f}" in per_km
+    assert f"{severity.loc['75+', 'killed_per_1000_involved']:.1f}" in deaths
+    assert 'src="figures/dr1_involved_per_km.svg"' in per_km
+    # Three charts and no table: the table of rates is in the technical notes.
+    assert "<table" not in body and body.count("<figure") == 3
     # Intervals and sensitivity ranges are told apart, and the transfer is flagged as an estimate;
     # the range spans every alternative of the sensitivity table. For 65 and over, both ranges
     # are labelled wherever they are quoted together.
@@ -454,56 +497,150 @@ def test_drivers_page_separates_the_two_questions(built: Path) -> None:
         f"(95% sampling interval {site_numbers.rate_interval(older, 'involved_ratio')}; "
         f"sensitivity range {spread.involved_ratio.min()['65+']:.2f}–"
         f"{spread.involved_ratio.max()['65+']:.2f})"
-    ) in opening
-    # The sensitivity range is defined once, at its first use in the opening, which links to its
-    # definition on the methodology page, as the first uses of the sampling interval and the
-    # conditional estimate do.
-    assert opening.count("sensitivity range</a>, the span across the assumptions tested") == 1
+    ) in per_km
+    # The sensitivity range is defined once, at its first use, which links to its definition on
+    # the methodology page, as the first uses of the sampling interval and the conditional
+    # estimate do.
+    assert body.count("sensitivity range</a>, the span across the assumptions tested") == 1
     for anchor in components.DEFINITION_IDS.values():
-        assert opening.count(f'href="data.html#{anchor}"') == 1, anchor
+        assert body.count(f'href="data.html#{anchor}"') == 1, anchor
     assert "95% interval" not in opening
-    # The opening says what involvement does not show: who caused the crash, or harm to others.
-    assert "whoever caused it" in opening and "more dangerous to others" in opening
-    # It says how much of DGT's kilometres the survey covers, and claims no direction for older
-    # drivers per km while their sensitivity ranges include 1.
+    # Involvement is not responsibility, and deaths once involved are a separate question: the
+    # opening says what involvement counts, and the deaths section what its rate cannot show.
+    assert "whoever caused it" in opening
+    assert "more dangerous to others" in deaths and "who caused a crash" in deaths
+    # The page says how much of DGT's kilometres the survey covers, and claims no direction for
+    # older drivers per km while their sensitivity ranges include 1.
     covered = pd.read_csv(TABLES_DIR / "risk_coverage.csv").set_index("component")
     share = covered.loc["working days", "share_least_explained"]
-    assert f"accounts for {components._fmt_pct(share, 0)} of DGT's car kilometres" in opening
-    assert "survey of working days that accounts for" not in opening
+    assert f"accounts for {components._fmt_pct(share, 0)} of DGT's car kilometres" in per_km
+    assert "survey of working days that accounts for" not in body
     older_rows = pd.read_csv(TABLES_DIR / "risk_older_sensitivity.csv")
     older_range = older_rows.ratio_75_plus
     if spread.involved_ratio.min()["65+"] < 1:
-        assert "is not established" in opening
-        assert "slightly more often" not in opening
+        assert "is not established" in per_km and "is not established" in opening
+        assert "slightly more often" not in body
     # 75 and over: the full range first, then the wording the tables allow, then the conditional
-    # estimate at one decimal, named by its assumption.
+    # estimate, named by its assumption, with its sampling interval.
     full = f"{older_range.min():.2f} to {older_range.max():.2f}"
-    assert f"the sensitivity range is {full} times the 45–64 rate" in opening
+    assert f"the sensitivity range is {full} times the 45–64 rate" in section
     # Madrid's survey is a Spanish source that separates the ages, for Madrid only.
-    assert "no source for Spain separates" in opening and "no Spanish source" not in opening
+    assert "no source for Spain separates" in section and "no Spanish source" not in body
     split = pd.read_csv(TABLES_DIR / "risk_older_split.csv")
     madrid = split[(split.assumption == national.REFERENCE_SPLIT) & (split.group == "75+")].iloc[0]
     conditional = (
-        f"they were involved about {madrid.ratio_to_45_64:.1f} times as often (95% sampling "
-        f"interval {madrid.ratio_low:.1f}–{madrid.ratio_high:.1f})"
+        f"they were involved {madrid.ratio_to_45_64:.2f} times as often (95% sampling "
+        f"interval {site_numbers.joint_interval(madrid)})"
     )
-    assert conditional in opening and "as in Madrid in" in opening
-    assert opening.find(full) < opening.find(conditional)
+    assert conditional in section and "as in Madrid in" in section
+    assert "holds only on that assumption" in section
+    assert section.find(full) < section.find(conditional)
     extremes = pd.read_csv(TABLES_DIR / "risk_older_extremes.csv").set_index(["group", "end"])
     lowest = extremes.loc[("75+", "lowest unmarked")]
     unmarked = older_rows[~older_rows.at_odds_with_mens_driving].ratio_75_plus
-    # The opening gives one clause on what the range allows, worded so that no reader can take
-    # "not established under every assumption" for "established under none".
+    # The section gives one clause on what the range allows, worded so that no reader can take
+    # "not established under every assumption" for "established under none"; the opening gives
+    # the same tier's words in short.
     if unmarked.min() > 1 and lowest.ratio_low <= 1:
-        assert site_numbers.OLDER_CONCLUSION[site_numbers.INTERMEDIATE] in opening
+        assert site_numbers.OLDER_CONCLUSION[site_numbers.INTERMEDIATE] in section
+        assert SUMMARY_OLDER[site_numbers.INTERMEDIATE] in opening
         assert "whatever the assumption" not in body
     elif unmarked.min() > 1 and lowest.ratio_low > 1 and madrid.ratio_low > 1:
-        assert "even allowing for sampling error" in opening
+        assert "even allowing for sampling error" in section
+        assert SUMMARY_OLDER[site_numbers.PASS] in opening
     else:
-        assert "whether they are involved more or less often per kilometre is not" in opening
+        assert "whether they are involved more or less often per kilometre is not" in section
+        assert SUMMARY_OLDER[site_numbers.FAIL] in opening
     assert "not established under every assumption" not in body
-    # Counted results, the conditional estimate and the range are told apart for 75 and over.
-    section = body[body.find('id="ages-75-and-over"') : body.find('id="men-and-women"')]
+    # The joint interval is printed to the decimals its Monte Carlo error supports.
+    digits = site_numbers.mc_digits(madrid.mc_se_low, madrid.mc_se_high)
+    assert digits < 2
+    assert f"(95% sampling interval {site_numbers.joint_interval(madrid)})" in section
+    assert f"{madrid.ratio_low:.2f}–{madrid.ratio_high:.2f}" not in body
+    assert f"{madrid.ratio_low_split_fixed:.2f}–{madrid.ratio_high_split_fixed:.2f}" not in body
+    # The page links the full assumptions (its technical notes on the methodology page and the
+    # exposure study) and the tool that compares groups.
+    assert 'href="data.html#drivers-per-km"' in per_km
+    assert 'href="data.html#drivers-75-and-over"' in section
+    assert "research/DRIVER_AGE_EXPOSURE.md" in section
+    assert 'href="driver-risk.html"' in body
+    # Figure 2's text names every age group's rate.
+    severity_rows = pd.read_csv(TABLES_DIR / "risk_severity_and_licences.csv").set_index("group")
+    alt = re.search(
+        r'<img class="figure-wide" src="figures/dr2_killed_per_involved.svg" alt="([^"]*)"', body
+    ).group(1)
+    for group, label in (("18-29", "18–29"), ("30-44", "30–44"), ("45-64", "45–64")):
+        assert f"{severity_rows.loc[group, 'killed_per_1000_involved']:.1f} at {label}" in alt
+    # Figure references are computed.
+    numbers = re.findall(r'<span class="figure-label">Figure (\d+)\.</span>', body)
+    names = re.findall(r'id="figure-([a-z0-9_]+)"', body)
+    order = dict(zip(names, numbers))
+    assert f"(Figure {order['a3_sex_ratios']})" in sexes
+    assert "[[figure:" not in body
+    assert 'class="figure-narrow" src="figures/narrow/dr1_involved_per_km.svg"' in body
+    # No project process notes in the results.
+    assert "request for the split" not in body
+    assert "no single figure is given" not in body
+    assert 'src="figures/dr2_killed_per_involved.svg"' in deaths
+    # The Madrid survey's licence asks for its mark wherever its data are used.
+    assert "Powered by CRTM" in section and 'href="https://www.crtm.es"' in section
+    for phrase in ("frailty", "travel-weighted", "extra travel", "nearly seven"):
+        assert phrase not in text, phrase
+    assert "doi.org" not in text  # no external study interprets these results
+    # Sex: the ratio per driver involved is quoted with its interval and the ages are stated.
+    sex = pd.read_csv(TABLES_DIR / "drivers_sex_ratios.csv").set_index(["scope", "band", "measure"])
+    fatality_men = sex.loc[("car", "18+", "deaths_per_1000_involved")]
+    assert f"{fatality_men.ratio:.2f}" in sexes
+    assert f"({fatality_men.low:.2f}–{fatality_men.high:.2f})" in sexes
+    # Per kilometre, from the survey's kilometres by sex carried to Spain as for age.
+    per_km_sex = pd.read_csv(TABLES_DIR / "risk_sex_per_km.csv").set_index("measure")
+    assert f"{per_km_sex.loc['involved per km', 'ratio_men_to_women']:.2f} times" in sexes
+    assert "no source records kilometres" not in text
+    assert "drivers_sex_travel" not in text
+    assert 'src="figures/a3_sex_ratios.svg"' in sexes
+
+
+def test_drivers_technical_notes_hold_the_method_and_the_checks(built: Path) -> None:
+    notes, per_km, section = _driver_notes(built)
+    rates = pd.read_csv(TABLES_DIR / "risk_national_rates.csv")
+    rates = rates[rates.km_total == "less taxi and ride-hailing"]
+    young = rates[rates.method.str.startswith("A:")].set_index("group").loc["18-29"]
+    # The table of rates names the rows of the published CSV it reproduces, and has no jargon
+    # column.
+    assert f"method “{young.method}” and kilometre total “{young.km_total}”" in per_km
+    assert "bootstrap replicates are not published" in per_km
+    assert "licence-calibrated transfer</th>" not in notes
+    # The closed sections the text sends readers to have ids, and the text links to them.
+    for anchor in ("sources-of-the-sensitivity-range", "what-dgts-kilometres"):
+        assert f'<details class="technical" id="{anchor}">' in per_km, anchor
+        assert f'href="#{anchor}"' in per_km, anchor
+    assert "table of sources below" not in notes and "the table below gives each part" not in notes
+    # The central estimate gives professionals' work driving the working-day mix.
+    assert "their own age mix tested" in per_km
+    assert "professionals&#x27; work trips</td>" not in notes
+    assert "which makes an interval too narrow;" not in notes
+    # Barcelona's working-day check, with the ratios for 65 and over from its table.
+    city = pd.read_csv(TABLES_DIR / "risk_barcelona_rates.csv")
+    city = city[city.numerator == city.numerator.iloc[0]]
+    assert "matched in place and time" not in notes
+    for value in city[city.age4 == "65+"].ratio_to_45_64:
+        assert f"{value:.2f}" in per_km
+    # The former owner-age figures are explained, not hidden, and are no longer the result: a
+    # short note closes the per-km notes, compared like with like on today's age groups.
+    owner = pd.read_csv(TABLES_DIR / "risk_owner_age_comparison.csv")
+    old = owner[owner.denominator.str.endswith("(former figure)")].set_index("group")
+    same = owner[owner.denominator.str.endswith("same age groups")].set_index("group")
+    assert f"{same.loc['18-29', 'ratio_to_reference']:.2f} times the 45–64 rate" in per_km
+    assert f"{old.loc['18-24', 'ratio_to_reference']:.2f}, compared drivers aged 18–24" in per_km
+    assert "A car's owner is often not its driver" in per_km
+    assert "kilometres of cars registered to owners of each age" in per_km
+    assert "Why the former figure differed" not in notes and "Ratio to 35–54" not in notes
+    assert "was not established and gave no figure" not in notes
+    # Men and women per licence holder, combined.
+    sex = pd.read_csv(TABLES_DIR / "drivers_sex_ratios.csv").set_index(["scope", "band", "measure"])
+    killed_men = sex.loc[("car", "18+", "deaths_per_million_licences")]
+    assert f"died at the wheel {killed_men.ratio:.2f}" in per_km
+    # Ages 75 and over: counted results, the conditional estimate and the range are told apart.
     for label in ("Counted.", "Conditional estimate.", "Across the assumptions."):
         assert f"<strong>{label}</strong>" in section
     assert '<details class="technical"><summary>Why this assumption' in section
@@ -514,25 +651,14 @@ def test_drivers_page_separates_the_two_questions(built: Path) -> None:
         assert f"{licences.loc[group, 'involved_per_1000_licence_holders']:.2f}" in section
     assert "Drivers who drive few kilometres, at any age" in section
     assert "These rates are averages over everyone of an age" in section
-    # The change note is written against the last deployed page (owner-age kilometres), not
-    # against versions that were never published.
-    assert f"{madrid.ratio_low_split_fixed:.2f}–{madrid.ratio_high_split_fixed:.2f}" not in body
-    assert "kilometres of cars registered to owners of each age" in section
-    assert "was not established and gave no figure" not in section
-    # The joint interval is printed to the decimals its Monte Carlo error supports.
-    digits = site_numbers.mc_digits(madrid.mc_se_low, madrid.mc_se_high)
-    assert digits < 2
+    split = pd.read_csv(TABLES_DIR / "risk_older_split.csv")
+    madrid = split[(split.assumption == national.REFERENCE_SPLIT) & (split.group == "75+")].iloc[0]
     assert f"(95% sampling interval {site_numbers.joint_interval(madrid)})" in section
-    assert f"{madrid.ratio_low:.2f}–{madrid.ratio_high:.2f}" not in body
-    # The closed sections the text sends readers to have ids, and the text links to them.
-    for anchor in ("sources-of-the-sensitivity-range", "what-dgts-kilometres"):
-        assert f'<details class="technical" id="{anchor}">' in body, anchor
-        assert f'href="#{anchor}"' in body, anchor
-    assert "table of sources below" not in body and "the table below gives each part" not in body
-    # The central estimate gives professionals' work driving the working-day mix (Table 2).
-    assert "their own age mix tested" in body
-    assert "professionals&#x27; work trips</td>" not in body
-    assert "which makes an interval too narrow;" not in body
+    assert f"{madrid.ratio_low:.2f}–{madrid.ratio_high:.2f}" not in notes
+    assert f"{madrid.ratio_low_split_fixed:.2f}–{madrid.ratio_high_split_fixed:.2f}" not in notes
+    assert "no single figure is given" not in notes
+    for value in split[split.group == "75+"].ratio_to_45_64:
+        assert f"{value:.2f}" in section
     # What the 75+ range crosses and what it varies one at a time, and the bounds left out of it,
     # with their values from the tables.
     assert "Each split was combined with every alternative" in section
@@ -545,30 +671,26 @@ def test_drivers_page_separates_the_two_questions(built: Path) -> None:
     assert "among each survey&#x27;s own residents" in section or (
         "among each survey's own residents" in section
     )
-    # Figure 2's text names every age group's rate.
-    severity_rows = pd.read_csv(TABLES_DIR / "risk_severity_and_licences.csv").set_index("group")
-    alt = re.search(
-        r'<img class="figure-wide" src="figures/dr2_killed_per_involved.svg" alt="([^"]*)"', body
-    ).group(1)
-    for group, label in (("18-29", "18–29"), ("30-44", "30–44"), ("45-64", "45–64")):
-        assert f"{severity_rows.loc[group, 'killed_per_1000_involved']:.1f} at {label}" in alt
-    # Table 5 explains its two puzzling rows; the licence split counts licence holders one way.
+    # The table of splits explains its two puzzling rows; the licence split counts licence
+    # holders one way.
     assert components.esc("counted on DGT's") in section
     assert "counted a second time" not in section
     assert components.esc("upper limit is on men's kilometres") in section
-    # Figure references are computed: Figures 1 and 3 are the per-km chart and its breakdown.
-    numbers = re.findall(r'<span class="figure-label">Figure (\d+)\.</span>', body)
-    names = re.findall(r'id="figure-([a-z0-9_]+)"', body)
+    # Figure references are computed: the breakdown of the 75+ range is numbered on the
+    # methodology page, and the drivers page's charts are linked, not numbered from here.
+    data = (built / "data.html").read_text(encoding="utf-8")
+    numbers = re.findall(r'<span class="figure-label">Figure (\d+)\.</span>', data)
+    names = re.findall(r'id="figure-([a-z0-9_]+)"', data)
     order = dict(zip(names, numbers))
     assert (
-        f"hatched in Figures {order['dr1_involved_per_km']} and "
-        f"{order['dr3_older_range_sources']}" in section
-    )
-    assert f"(Figure {order['dr2_killed_per_involved']})" in section
-    assert "[[figure:" not in body
-    assert 'class="figure-narrow" src="figures/narrow/dr1_involved_per_km.svg"' in body
-    assert 'class="figure-narrow" src="figures/narrow/dr3_older_range_sources.svg"' in body
-    # Barcelona's check carries sampling intervals and its count.
+        "hatched in the drivers page's "
+        '<a href="drivers.html#figure-dr1_involved_per_km">chart of crashes per kilometre</a> '
+        f"and in Figure {order['dr3_older_range_sources']}"
+    ) in section
+    assert 'href="drivers.html#figure-dr2_killed_per_involved"' in section
+    assert "[[figure:" not in data
+    assert 'class="figure-narrow" src="figures/narrow/dr3_older_range_sources.svg"' in section
+    # Barcelona's check of the splits carries sampling intervals and its count.
     city_older = pd.read_csv(TABLES_DIR / "risk_barcelona_older.csv")
     city_madrid = city_older[
         (city_older.assumption == national.REFERENCE_SPLIT) & (city_older.age == "75+")
@@ -577,68 +699,17 @@ def test_drivers_page_separates_the_two_questions(built: Path) -> None:
     for _, row in city_madrid.iterrows():
         assert site_numbers.joint_interval(row) in section
     # The check is inconclusive because the figures disagree and some intervals reach 1, not
-    # because every interval is wide.
-    # Each interval is placed against the 45-64 rate, and a lower end within three Monte Carlo
-    # errors of it is said to end at about it rather than counted on either side.
-    bcn = pd.read_csv(TABLES_DIR / "risk_barcelona_older.csv")
-    madrid = bcn[(bcn.assumption == national.REFERENCE_SPLIT) & (bcn.age == "75+")]
-    close = (madrid.ratio_low - 1).abs() < site_numbers.MC_MARGIN * madrid.mc_se_low
+    # because every interval is wide. Each interval is placed against the 45-64 rate, and a lower
+    # end within three Monte Carlo errors of it is said to end at about it rather than counted
+    # on either side.
+    close = (city_madrid.ratio_low - 1).abs() < site_numbers.MC_MARGIN * city_madrid.mc_se_low
     assert ("could put its lower end on either side" in section) == (int(close.sum()) == 1)
     assert "include the 45–64 rate under" not in section
     assert "each figure has a wide 95% sampling interval" not in section
-    # Table 1 names the rows of the published CSV it reproduces, and has no jargon column.
-    assert f"method “{young.method}” and kilometre total “{young.km_total}”" in body
-    assert "bootstrap replicates are not published" in body
-    assert "licence-calibrated transfer</th>" not in body
-    # No project process notes in the results.
-    assert "request for the split" not in body
-    # Barcelona's working-day check, the model-dependent oldest group, and deaths once involved.
-    city = pd.read_csv(TABLES_DIR / "risk_barcelona_rates.csv")
-    city = city[city.numerator == city.numerator.iloc[0]]
-    assert "matched in place and time" not in body
-    for value in city[city.age4 == "65+"].ratio_to_45_64:
-        assert f"{value:.2f}" in body
-    older_split = pd.read_csv(TABLES_DIR / "risk_older_split.csv")
-    assert "no single figure is given" not in body
-    for value in older_split[older_split.group == "75+"].ratio_to_45_64:
-        assert f"{value:.2f}" in body
-    assert 'src="figures/dr2_killed_per_involved.svg"' in body
-    assert "Powered by CRTM" in body and 'href="https://www.crtm.es"' in body
-    # The former owner-age figures are explained, not hidden, and are no longer the result: a
-    # short note closes the per-km section, with no section or table of its own.
-    owner = pd.read_csv(TABLES_DIR / "risk_owner_age_comparison.csv")
-    old = owner[owner.denominator.str.endswith("(former figure)")].set_index("group")
-    same = owner[owner.denominator.str.endswith("same age groups")].set_index("group")
-    # Compared like with like: the owner kilometres on today's age groups and reference.
-    assert f"{same.loc['18-29', 'ratio_to_reference']:.2f} times the 45–64 rate" in body
-    assert f"{old.loc['18-24', 'ratio_to_reference']:.2f}, compared drivers aged 18–24" in body
-    assert "A car's owner is often not its driver" in body
-    assert "Why the former figure differed" not in body and "Ratio to 35–54" not in body
-    sections = re.split(r"<h2[^>]*>", body)
-    per_km = next(s for s in sections if s.startswith("Crashes per kilometre"))
-    assert "A car's owner is often not its driver" in per_km
-    # The firm result, deaths once a crash has happened, follows the per-km section directly.
-    headings = re.findall(r'<h2 id="([^"]+)"', body)
-    assert headings[:2] == [
-        "involvement-in-crashes-per-kilometre-driven",
-        "deaths-once-a-crash-has-happened",
-    ]
-    for phrase in ("frailty", "travel-weighted", "extra travel", "nearly seven"):
-        assert phrase not in text, phrase
-    assert "doi.org" not in text  # no external study interprets these results
-    # Sex: the ratio per driver involved is quoted with its interval and the ages are stated.
-    sex = pd.read_csv(TABLES_DIR / "drivers_sex_ratios.csv").set_index(["scope", "band", "measure"])
-    fatality_men = sex.loc[("car", "18+", "deaths_per_1000_involved")]
-    killed_men = sex.loc[("car", "18+", "deaths_per_million_licences")]
-    assert f"{fatality_men.ratio:.2f}" in text
-    assert f"({fatality_men.low:.2f}–{fatality_men.high:.2f})" in text
-    assert f"died at the wheel {killed_men.ratio:.2f}" in text
-    # Per kilometre, from the survey's kilometres by sex carried to Spain as for age.
-    per_km = pd.read_csv(TABLES_DIR / "risk_sex_per_km.csv").set_index("measure")
-    assert f"{per_km.loc['involved per km', 'ratio_men_to_women']:.2f} times" in text
-    assert "no source records kilometres" not in text
-    assert "drivers_sex_travel" not in text
-    assert 'src="figures/a3_sex_ratios.svg"' in text
+    assert "request for the split" not in notes
+    assert "Powered by CRTM" in section and 'href="https://www.crtm.es"' in section
+    for phrase in ("frailty", "travel-weighted", "extra travel", "nearly seven", "doi.org"):
+        assert phrase not in notes, phrase
 
 
 def test_policy_page_reports_the_falsification_not_the_headline(built: Path) -> None:
@@ -661,7 +732,7 @@ def test_policy_page_reports_the_falsification_not_the_headline(built: Path) -> 
     # The forecast shortfall is printed as the proportional change the rank orders.
     assert f"{abs(np.expm1(true_forecast.log_ratio)) * 100:.1f}% below their forecast" in text
     assert 'src="figures/p2_july_placebos.svg"' in text
-    # The fall is not attributed to the licence, and the 2019 study is a collapsed note.
+    # The fall is not attributed to the licence.
     opening = re.search(r'<p class="summary">(.*?)</p>', text, re.S).group(1)
     assert "cannot show that the licence caused" in opening
     # The step is never quoted without what the slope change does to it: the summary gives the
@@ -674,7 +745,15 @@ def test_policy_page_reports_the_falsification_not_the_headline(built: Path) -> 
     assert "too narrow" in opening
     assert components._signed_pct(float(calibration.calibrated_low)) in text
     assert "strong evidence" not in text and "QAIC" in text
-    assert "2019" in text and 'src="figures/q8_speed_series.svg"' not in text
+    # The 2019 speed-limit design, whose placebo test fails, is a technical note on the
+    # methodology page with its fits linked; its series is drawn nowhere.
+    data = (built / "data.html").read_text(encoding="utf-8")
+    notes = data[data.index('id="policy-method"') :]
+    notes = notes[: notes.index("<h2", 1)]
+    assert "2019 speed limit on conventional roads" in notes
+    assert 'href="tables/q8_speed_placebo.csv"' in notes
+    assert 'src="figures/q8_speed_series.svg"' not in text + data
+    assert 'href="data.html#policy-method"' in text
     # The exposure series are named and their effect reported; the toll series is its
     # intensity, which does not step with the network's length, and no offset is used.
     assert "CORES" in text and "toll" in text and "intensity" in text
@@ -698,7 +777,9 @@ def test_speed_page_carries_severity_and_the_recording_discontinuity(built: Path
     assert "weighted summary" in opening
     home = (built / "index.html").read_text(encoding="utf-8")
     assert f"{pooled.loc['urban', 'rate_ratio']:.1f} times on urban streets" in home
-    assert "Over 2016–2023, those crashes" in home
+    assert f"{pooled.loc['dual_carriageway', 'rate_ratio']:.1f} times on dual" in home
+    assert f"{adjusted.rate_ratio:.1f} times as many deaths per crash" in home
+    assert f"over {str(adjusted.year).replace('-', '–')}, those crashes" in home
     # The summary says plainly that a recorded factor is an association, not a cause.
     assert "These are associations in police records, not estimates of what speed causes" in (
         opening
@@ -717,10 +798,17 @@ def test_speed_page_carries_severity_and_the_recording_discontinuity(built: Path
         for year in (2014, int(all_roads.index.max())):
             assert components._fmt_pct(float(all_roads.loc[year, column])) in text
     # Nothing on the page sizes speed's effect from outside the data, and the road-type mapping
-    # is said to be checked only through the zone totals.
+    # is said to be checked only through the zone totals, in the page's technical notes on the
+    # methodology page, which it links to.
     for phrase in ("simulator", "Power Model", "physics"):
         assert phrase not in text, phrase
-    assert "not road type by road type" in text
+    data = (built / "data.html").read_text(encoding="utf-8")
+    notes = data[data.index('id="speed-method"') :]
+    notes = notes[: notes.index("<h2", 1)]
+    assert "not road type by road type" in notes
+    assert 'href="data.html#speed-method"' in text
+    for phrase in ("simulator", "Power Model", "physics"):
+        assert phrase not in notes, phrase
     # The transcribed speed report is not republished on the site: no table of the report's
     # breakdowns by limit, vehicle, licence class or hour survives anywhere.
     for page in built.glob("*.html"):
@@ -750,6 +838,15 @@ def test_factors_page_reads_trends_only_within_comparable_runs(built: Path) -> N
     assert "recording is consistent" not in opening and "point to changes in recording" not in text
     # The driver tables' break is set out once, on the speed page, which this page links to.
     assert 'href="speed.html#driver-tables"' in text
+    # The rule's thresholds and every break are the page's technical notes on the methodology
+    # page, which it links to; the notes too call a break a threshold, not an explanation.
+    data = (built / "data.html").read_text(encoding="utf-8")
+    notes = data[data.index('id="factors-method"') :]
+    notes = notes[: notes.index("<h2", 1)]
+    assert 'href="data.html#factors-method"' in text
+    assert "break in comparability" in notes and "point to changes in recording" not in notes
+    changes = pd.read_csv(TABLES_DIR / "factor_changes.csv")
+    assert f"Of the {len(changes)} year-to-year changes, {int(changes.is_break.sum())} are" in notes
 
 
 def test_trend_pages_show_every_denominator_and_the_projection(built: Path) -> None:
@@ -769,7 +866,15 @@ def test_trend_pages_show_every_denominator_and_the_projection(built: Path) -> N
     assert "roughly flat" not in trends and "per unit of traffic" not in trends
     assert "hypothetical" in trends
     long_run = (built / "long-run.html").read_text(encoding="utf-8")
-    assert 'src="figures/l2_observed_over_trend.svg"' in long_run
+    # The ratio-to-trend figure, the projection under other choices and the interurban series in
+    # detail are the long-run page's technical notes on the methodology page, which it links to.
+    data = (built / "data.html").read_text(encoding="utf-8")
+    notes = data[data.index('id="long-run-method"') :]
+    notes = notes[: notes.index("<h2", 1)]
+    for name in ("l2_observed_over_trend", "l4_km_against_fuel"):
+        assert f'src="figures/{name}.svg"' in notes and name not in long_run, name
+    assert "Observed deaths against the pre-pandemic trend under other projections" in notes
+    assert 'href="data.html#long-run-method"' in long_run
     series = pd.read_csv(TABLES_DIR / "longrun_series.csv")
     fuel = series[(series.measure == "road_fuel") & (series.period == "projected")]
     last = fuel[fuel.year == fuel.year.max()].iloc[0]
@@ -792,11 +897,12 @@ def test_trend_pages_show_every_denominator_and_the_projection(built: Path) -> N
     # road-type comparison per measured kilometre, live on this page.
     assert 'src="figures/l3_frequency_severity.svg"' in long_run
     assert 'href="tables/road_class_risk.csv"' in long_run
-    # The split is shown both ways and not attributed to severity; the per-fuel excess is shown
-    # under another start of the trend; DGT's kilometre series is not called unjoinable.
+    # The split is shown both ways and not attributed to severity (the home page leaves it to this
+    # page); the per-fuel excess is shown under another start of the trend; DGT's kilometre series
+    # is not called unjoinable.
+    assert "admitted to hospital" in long_run
     for page in (long_run, (built / "index.html").read_text(encoding="utf-8")):
         assert "mostly because crashes became less deadly" not in page
-        assert "admitted to hospital" in page
     assert 'href="tables/longrun_projection_sensitivity.csv"' in long_run
     # The per-fuel excess is qualified by the extra growth in kilometres per tonne that would
     # bring each of the last two years inside the trend's range, read from the drift table.
@@ -879,23 +985,30 @@ def test_every_page_has_a_description_and_every_image_an_alt(built: Path) -> Non
 def test_front_page_is_an_overview_of_the_study(built: Path) -> None:
     index = (built / "index.html").read_text(encoding="utf-8")
     body = index[index.find("<main>") : index.find("</main>")]
-    # The answer first, then the main findings and the pages: no numbered questions, no number
-    # tiles or boxed blocks, and the page opens on a summary paragraph.
+    # What the study measures, the way into the tools, then the main findings and the pages: no
+    # numbered questions, no number tiles, boxed blocks or figures, and the page opens on a
+    # summary paragraph.
     headings = re.findall(r"<h2[^>]*>([^<]+)</h2>", body)
     assert headings == ["Main findings", "The pages"]
     assert '<div class="finding">' not in body and "Finding 1" not in body
-    assert "finding-value" not in body and "explore" not in body and "provenance" not in body
+    assert "finding-value" not in body and "provenance" not in body
+    assert "<figure" not in body
     assert body.find('<p class="summary">') < body.find("<h2")
     opening = re.search(r'<p class="summary">(.*?)</p>', body, re.S).group(1)
-    assert "association" in opening and "fell by about three quarters" in opening
+    assert "association" in opening
+    # The interactive tools are linked straight after the opening, before the findings.
+    assert body.find(opening) < body.find('href="explore.html"') < body.find("<h2")
     sections = dict(zip(headings, re.split(r"<h2[^>]*>[^<]+</h2>", body)[1:]))
-    # A short list of findings, each led by its answer in one sentence.
+    # Three to five findings, each one sentence led by its answer and linked to its page.
     findings = re.search(r'<ul class="findings">(.*?)</ul>', body, re.S).group(1)
     items = re.findall(r"<li>(.*?)</li>", findings, re.S)
-    assert 4 <= len(items) <= 7
+    assert 3 <= len(items) <= 5
     for item in items:
         assert item.count("<strong>") == 1 and item.startswith("<p><strong>")
-    for slug in ("trends", "long-run", "drivers", "speed", "factors", "severity-models"):
+        sentence = components.html.unescape(re.sub(r"<[^>]+>", "", item.split("</p>")[0]))
+        assert sentence.endswith(".") and not re.search(r"\.\s+[A-Z]", sentence), sentence
+        assert re.search(r'<p class="finding-more"><a href="[a-z-]+\.html', item), item
+    for slug in ("trends", "long-run", "drivers", "speed", "severity-models"):
         assert f'href="{slug}.html' in sections["Main findings"], slug
     assert 'href="validation.html' in sections["Main findings"]
     # The list of pages follows the navigation's groups and lists every page once.
@@ -908,6 +1021,26 @@ def test_front_page_is_an_overview_of_the_study(built: Path) -> None:
     latest = risk[(risk.year == risk.year.max()) & (risk.outcome == "deaths_30d")]
     deaths = latest[latest.denominator == "count"].iloc[0]
     assert components._fmt_int(deaths["count"]) in sections["Main findings"]
+    counts = pd.read_csv(TABLES_DIR / "q1_annual_headline.csv").set_index("year").deaths_30d
+    steep_end = int(
+        pd.read_csv(TABLES_DIR / "longrun_segments.csv").query("measure == 'count'").start.max()
+    )
+    first = int(counts.index.min())
+    assert "fell by about three quarters" in sections["Main findings"]
+    assert (
+        f"{components._fmt_int(counts.loc[first])} people died in {first}, "
+        f"{components._fmt_int(counts.loc[steep_end])} in {steep_end}"
+    ) in sections["Main findings"]
+    heavy = (
+        pd.read_csv(TABLES_DIR / "sev_contrasts.csv")
+        .query("base == 'interurban'")
+        .set_index(["input", "level"])
+        .loc[("users", "heavy_vehicle")]
+    )
+    assert (
+        f"{heavy.ratio:.1f} times as high with a lorry or bus involved (95% interval "
+        f"{heavy.ratio_low:.1f}–{heavy.ratio_high:.1f})"
+    ) in sections["Main findings"]
     severity = pd.read_csv(TABLES_DIR / "risk_severity_and_licences.csv").set_index("group")
     oldest = float(severity.loc["75+", "killed_per_1000_involved"]) / float(
         severity.loc["45-64", "killed_per_1000_involved"]
@@ -932,22 +1065,21 @@ def test_front_page_is_an_overview_of_the_study(built: Path) -> None:
     assert f"{span})" in sections["Main findings"]
     drivers_page = (built / "drivers.html").read_text(encoding="utf-8")
     assert span in drivers_page
+    # The two kinds of interval are linked to their definitions at first use.
     methodology = (built / "data.html").read_text(encoding="utf-8")
-    for anchor in components.DEFINITION_IDS.values():
+    for term in ("Sampling interval", "Sensitivity range"):
+        anchor = components.DEFINITION_IDS[term]
         assert f'href="data.html#{anchor}"' in sections["Main findings"], anchor
+    for anchor in components.DEFINITION_IDS.values():
         assert f'<dt id="{anchor}">' in methodology, anchor
     assert "under other assumptions" not in sections["Main findings"]
-    # Drivers aged 75 and over: the range, then the conditional estimate at one decimal.
+    # Drivers aged 75 and over: the sensitivity range per kilometre, beside the deaths once
+    # involved. (The conditional estimate, which needs its assumption beside it, is left to the
+    # drivers page.)
     older_rows = pd.read_csv(TABLES_DIR / "risk_older_sensitivity.csv")
-    split = pd.read_csv(TABLES_DIR / "risk_older_split.csv")
-    madrid = split[(split.assumption == national.REFERENCE_SPLIT) & (split.group == "75+")].iloc[0]
     full = f"{older_rows.ratio_75_plus.min():.2f} to {older_rows.ratio_75_plus.max():.2f}"
     finding = sections["Main findings"]
     assert f"the sensitivity range is {full} times the 45–64 rate" in finding
-    assert (
-        f"about {madrid.ratio_to_45_64:.1f} times as often (95% sampling interval "
-        f"{madrid.ratio_low:.1f}–{madrid.ratio_high:.1f})"
-    ) in finding
     lowest = (
         pd.read_csv(TABLES_DIR / "risk_older_extremes.csv")
         .set_index(["group", "end"])
@@ -962,7 +1094,8 @@ def test_front_page_is_an_overview_of_the_study(built: Path) -> None:
     assert "nearly seven" not in sections["Main findings"]
     # While the 65-and-over range includes the 45-64 rate, no direction is claimed for it.
     if spread.involved_ratio.min()["65+"] < 1 < spread.involved_ratio.max()["65+"]:
-        assert "is not established" in sections["Main findings"]
+        if "65 and over" in sections["Main findings"]:
+            assert "is not established" in sections["Main findings"]
     # A reader can follow the front page without the modelling vocabulary of the deeper pages.
     visible = re.sub(r"<[^>]+>", " ", body)
     for jargon in ("ROC-AUC", "calibration slope", "Jensen", "transportab", "odds ratio"):
@@ -970,7 +1103,7 @@ def test_front_page_is_an_overview_of_the_study(built: Path) -> None:
     assert "tested only within Catalonia" in sections["Main findings"]
     assert site.PROFILE_URL in index and "Russell Howard" in index
     # Short, and nothing from the withdrawn external-study models.
-    assert len(body) < 9_000
+    assert len(body) < 7_500
     data = (built / "data.html").read_text(encoding="utf-8")
     for text in (body, data):
         for phrase in ("simulator", "Power Model", "DRUID", "Dingus", "per unit of traffic"):
@@ -1082,9 +1215,11 @@ def test_methodology_lists_every_assumption_the_methods_document_tests(built: Pa
     ]
     for value in later.ratio:
         assert components._fmt_pct(float(value) - 1, 0) in row("The excess of deaths per tonne")
-    # The dispersion factors are given on the trends page, not repeated here.
+    # The dispersion factors are given on the trends page, not repeated here: the factor as a
+    # number of its own, not the last digits of another ratio in the text.
     scatter = pd.read_csv(TABLES_DIR / "risk_dispersion.csv").set_index("outcome").dispersion
-    assert f"{components._fmt_dec(scatter['crashes'], 0)} times" not in main
+    factor = components._fmt_dec(scatter["crashes"], 0)
+    assert not re.search(rf"(?<![\d.,]){re.escape(factor)} times", main)
 
 
 def test_coding_breaks_describe_the_inverted_catalan_junction_flag(built: Path) -> None:
@@ -1169,17 +1304,6 @@ def test_the_missing_values_figure_reads_the_audit_rule(built: Path) -> None:
     assert "right-of-way flags and the junction type in under half" not in block
 
 
-def test_forecast_page_is_withdrawn_and_says_why(built: Path) -> None:
-    text = (built / "forecast.html").read_text(encoding="utf-8")
-    body = text[text.find("<main>") : text.find("</main>")]
-    assert '<meta name="robots" content="noindex">' in text
-    assert "<img" not in body and "<table" not in body
-    assert site.esc("last year's count") in body
-    # Nothing on a live page links to it, and no figure of it survives.
-    assert not (built / "figures" / "k1_forecast_check.svg").exists()
-    assert not (built / "figures" / "k2_detectability.svg").exists()
-
-
 def test_navigation_groups_its_pages_under_labels(built: Path) -> None:
     text = (built / "speed.html").read_text(encoding="utf-8")
     nav = re.search(r'<nav aria-label="Sections">(.*?)</nav>', text, re.S).group(1)
@@ -1213,7 +1337,8 @@ def test_navigation_groups_its_pages_under_labels(built: Path) -> None:
 
 
 def test_drivers_page_chains_crashes_and_deaths_per_crash(built: Path) -> None:
-    text = (built / "drivers.html").read_text(encoding="utf-8")
+    # Deaths per km, the two measures combined, are set out in the drivers page's technical notes.
+    text, _, _ = _driver_notes(built)
     rates = pd.read_csv(TABLES_DIR / "risk_national_rates.csv")
     for _, row in rates.iterrows():
         # Involved per km x killed per involved = killed per km, in every method and variant.

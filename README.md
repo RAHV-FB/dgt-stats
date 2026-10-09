@@ -49,9 +49,10 @@ on every run, sets their role.
 
 | Section | Pages |
 |---|---|
+| **Explore** | [interactive tools](https://rahv-fb.github.io/dgt-stats/explore.html): [crash severity calculator](https://rahv-fb.github.io/dgt-stats/calculator.html), [driver risk comparison](https://rahv-fb.github.io/dgt-stats/driver-risk.html), [crash statistics explorer](https://rahv-fb.github.io/dgt-stats/crash-explorer.html), [trends and rates explorer](https://rahv-fb.github.io/dgt-stats/trends-explorer.html) |
 | **Over time** | [long-run trends](https://rahv-fb.github.io/dgt-stats/long-run.html), [since 2019](https://rahv-fb.github.io/dgt-stats/trends.html), [seasons](https://rahv-fb.github.io/dgt-stats/seasons.html), [the 2006 points licence](https://rahv-fb.github.io/dgt-stats/policy.html) |
 | **Drivers, vehicles and factors** | [drivers](https://rahv-fb.github.io/dgt-stats/drivers.html), [vehicles](https://rahv-fb.github.io/dgt-stats/vehicles.html), [speed](https://rahv-fb.github.io/dgt-stats/speed.html), [recorded factors](https://rahv-fb.github.io/dgt-stats/factors.html) |
-| **Crash severity** | [crash circumstances in Spain](https://rahv-fb.github.io/dgt-stats/severity.html), [Catalonia](https://rahv-fb.github.io/dgt-stats/catalonia.html), [Barcelona](https://rahv-fb.github.io/dgt-stats/barcelona.html), [severity model and calculator](https://rahv-fb.github.io/dgt-stats/severity-models.html), [external validation](https://rahv-fb.github.io/dgt-stats/validation.html) |
+| **Crash severity** | [crash circumstances in Spain](https://rahv-fb.github.io/dgt-stats/severity.html), [Catalonia](https://rahv-fb.github.io/dgt-stats/catalonia.html), [Barcelona](https://rahv-fb.github.io/dgt-stats/barcelona.html), [crash severity model](https://rahv-fb.github.io/dgt-stats/severity-models.html), [model method and tests](https://rahv-fb.github.io/dgt-stats/validation.html) |
 | **Data and methods** | [data sources and scope](https://rahv-fb.github.io/dgt-stats/sources.html), [methodology](https://rahv-fb.github.io/dgt-stats/data.html) |
 
 The research behind the rebuilt drivers and models pages, and the audit of every published

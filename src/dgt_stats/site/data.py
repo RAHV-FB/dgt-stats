@@ -516,7 +516,7 @@ def _coding_breaks() -> str:
         "<p>Road-type series are therefore read year by year and alongside zone, the two kinds "
         "of conventional road form one group, and no road-type trend is drawn. Comparisons of "
         "Catalonia with the rest of Spain group every conventional road together for the same "
-        'reason (<a href="validation.html">External validation</a>).</p>'
+        'reason (<a href="validation.html">Model method and tests</a>).</p>'
         f"<p>Junction shares as published are not compared across {flip}. The association of "
         "junctions with fatal outcomes reads the flag the other way round in those "
         "province-years, which puts the Catalan share at a junction at "
@@ -927,7 +927,7 @@ def _models() -> str:
     provinces = int(cat_checks["demarcations"])
     excluded = _join([FIELD_LABELS.get(field, field.replace("_", " ")) for field in dropped.field])
     overlap = read_table("cat_vs_dgt_province_year").year
-    validation = '<a href="validation.html">External validation</a>'
+    validation = '<a href="validation.html">Model method and tests</a>'
     calculator = f'<a href="severity-models.html">{TITLES["severity-models"]}</a>'
     review = f'<a href="{DOCS_URL}/research/ML_MODEL_REVIEW.md">model review</a>'
     report = f'<a href="{DOCS_URL}/research/SEVERITY_CALCULATOR.md">calculator report</a>'
@@ -1611,20 +1611,48 @@ def _reuse() -> str:
     )
 
 
+# The analysis pages whose technical detail lives on this page: each module may define
+# ``technical_notes(captions)``, which returns one or more sections (each opening with an h2), in
+# the order of the navigation.
+NOTE_MODULES = (
+    "trends",
+    "long_run",
+    "seasons",
+    "policy",
+    "drivers",
+    "vehicles",
+    "speed",
+    "factors",
+    "severity",
+    "regional",
+)
+
+
+def _technical_notes(captions: dict[str, str]) -> str:
+    import importlib
+
+    parts = []
+    for name in NOTE_MODULES:
+        module = importlib.import_module(f"dgt_stats.site.{name}")
+        notes = getattr(module, "technical_notes", None)
+        if notes is not None:
+            parts.append(notes(captions))
+    return "".join(parts)
+
+
 def page_data(captions: dict[str, str]) -> str:
     body = summary(
         "This page defines the terms the site uses and explains how each rate is built, how a "
         "change is judged against the variation of an ordinary year, and how the models were "
-        "tested: a model is kept only if it ranks unseen records better than a simple table "
-        "fixed in advance. Severity among recorded crashes is kept apart from how often crashes "
-        "happen, police-recorded factors are read as the officers' judgements, and missing "
-        "values stay missing. The last section lists every assumption the data can test, with "
-        "what the test found."
+        "tested. The technical notes of the analysis pages follow, page by page: definitions, "
+        "assumptions, sensitivity analyses and corrections. The last sections list the checks "
+        "on the data and every assumption the data can test, with what the test found."
     )
     body += _definitions()
     body += _rates()
     body += _records(captions)
     body += _models()
+    body += _technical_notes(captions)
     body += _checks()
     body += _assumptions()
     body += _reproduce()

@@ -30,17 +30,32 @@ def test_the_withdrawn_models_and_their_scripts_are_gone() -> None:
     package = PROJECT_ROOT / "src" / "dgt_stats"
     for name in ("simulator.py", "factor_models.py", "site/simulator.py", "site/factor_pages.py"):
         assert not (package / name).exists(), name
-    # The two scripts in the package are the severity calculator's: its engine, which computes
-    # from the exported model and holds no coefficient of its own (its only decimal constant is
-    # the 97.5% normal quantile), and its page script, which only moves values between the form
-    # and the engine and holds no decimal constant at all.
+    # The scripts in the package are the interactive tools'. The severity calculator's engine
+    # computes from the exported model and holds no coefficient of its own (its only decimal
+    # constant is the 97.5% normal quantile). The tools' shared helpers hold only the geometry of
+    # their charts. Every tool's own script, the calculator's form included, only moves values
+    # between its controls and the data it loads, and holds no decimal constant and no year.
     scripts = sorted(path.relative_to(package).as_posix() for path in package.rglob("*.js"))
-    assert scripts == ["site/assets/severity-calculator.js", "site/assets/severity-engine.js"]
+    assert scripts == [
+        "site/assets/crash-explorer.js",
+        "site/assets/driver-risk.js",
+        "site/assets/severity-calculator.js",
+        "site/assets/severity-engine.js",
+        "site/assets/tools.js",
+        "site/assets/trends-explorer.js",
+    ]
     engine = (package / "site/assets/severity-engine.js").read_text(encoding="utf-8")
     assert set(re.findall(r"\b\d+\.\d+\b", engine)) == {"1.959964"}
-    page = (package / "site/assets/severity-calculator.js").read_text(encoding="utf-8")
-    assert not re.findall(r"\b\d+\.\d+\b", page)
-    assert not re.findall(r"\b(19|20)\d\d\b", page)
+    shared = (package / "site/assets/tools.js").read_text(encoding="utf-8")
+    # (The SVG namespace's URL is the one four-digit number it may hold.)
+    shared = shared.replace("http://www.w3.org/2000/svg", "")
+    assert not re.findall(r"\b(19|20)\d\d\b", shared)
+    for name in scripts:
+        if name.endswith(("severity-engine.js", "tools.js")):
+            continue
+        page = (package / name).read_text(encoding="utf-8")
+        assert not re.findall(r"\b\d+\.\d+\b", page), name
+        assert not re.findall(r"\b(19|20)\d\d\b", page), name
     for path in _python_files():
         text = path.read_text(encoding="utf-8")
         assert not WITHDRAWN_MODULES.search(text), path.relative_to(PROJECT_ROOT)
@@ -86,8 +101,6 @@ def test_no_committed_result_table_is_a_withdrawn_one() -> None:
 
 
 def test_the_committed_site_carries_no_withdrawn_result() -> None:
-    from dgt_stats.site import WITHDRAWN_PAGES
-
     site_dir = PROJECT_ROOT / "site"
     # The one script is the site's own reading aid (menus and contents); none of the withdrawn
     # models' scripts is shipped.
@@ -95,16 +108,10 @@ def test_the_committed_site_carries_no_withdrawn_result() -> None:
     script = (site_dir / "site.js").read_text(encoding="utf-8")
     for word in ("simulat", "fetch(", "XMLHttpRequest", "evidence"):
         assert word not in script, word
+    # The withdrawn analyses' pages are gone.
+    for name in ("simulator", "distraction", "alcohol-drugs", "enforcement", "forecast"):
+        assert not (site_dir / f"{name}.html").exists(), name
     for path in sorted(site_dir.glob("*.html")):
         text = path.read_text(encoding="utf-8")
-        if path.stem in WITHDRAWN_PAGES:
-            # A withdrawal notice names what was withdrawn but carries no script of its own and
-            # no figure.
-            scripts = re.findall(r"<script[^>]*>", text)
-            assert scripts == ["<script>", '<script src="site.js" defer>'], path.name
-            # (The one inline drawing is the theme switch's glyph in the shared header.)
-            body = re.sub(r'<button class="theme-toggle".*?</button>', "", text, flags=re.S)
-            assert "<svg" not in body and "<img" not in body, path.name
-            continue
         for phrase in EXTERNAL_RESULTS:
             assert phrase not in text, (path.name, phrase)

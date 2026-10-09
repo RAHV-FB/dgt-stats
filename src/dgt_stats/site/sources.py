@@ -383,8 +383,8 @@ def _meeting(cat_dgt: pd.DataFrame) -> str:
         "Catalan model restricted to variables another source records in the same way are "
         "applied to DGT's records elsewhere in Spain and to Barcelona's records, without "
         "merging either with the Catalan file; the Catalan severity model, whose inputs no other "
-        'source records, has no such test (<a href="validation.html">External '
-        "validation</a>). The rates per kilometre by driver age divide counts of drivers by age "
+        'source records, has no such test (<a href="validation.html">Model method '
+        "and tests</a>). The rates per kilometre by driver age divide counts of drivers by age "
         "by the travel surveys' kilometres by age, in total "
         '(<a href="drivers.html">Drivers</a>).</p>'
     )
@@ -664,15 +664,10 @@ def page_sources(captions: dict[str, str]) -> str:
     }
     body = summary(
         "The study uses DGT's national statistics and three sets of police crash records: "
-        "DGT's national file of injury crashes, the Servei Català de Trànsit's file of crashes "
-        "with a death or serious injury in Catalonia, and the Guàrdia Urbana's records for "
-        "Barcelona city. Travel surveys supply the kilometres driven by age: the Barcelona "
-        "area's working-day survey for the age profile, Madrid's for the split between 65–74 "
-        "and 75 and over, and, for the sensitivity range only, MOVILIA's national tables and "
-        "RACC's survey of older licence holders. No record is linked across sources; they meet only in totals "
-        "and in tests of the models. The national crash records describe Spain but train no "
-        "published model, because provinces record their fields unevenly and which fields are "
-        "left unrecorded carries information about the outcome."
+        "DGT's national file of injury crashes, the Catalan file of crashes with a death or "
+        "serious injury, and the Guàrdia Urbana's records for Barcelona city. Travel surveys "
+        "supply the kilometres driven by age. No record is linked across sources. The national "
+        "records train no published model, because provinces record their fields unevenly."
     )
     body += "<h2>The sources</h2>"
     body += _source_table(numbers, inventory)

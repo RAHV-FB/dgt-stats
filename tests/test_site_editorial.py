@@ -72,6 +72,7 @@ def _main(text: str) -> str:
 def test_navigation_follows_the_argument(built: dict[str, str]) -> None:
     assert [group for group, _ in site.NAV_GROUPS] == [
         "Overview",
+        "Explore",
         "Over time",
         "Drivers, vehicles and factors",
         "Crash severity",
@@ -84,13 +85,13 @@ def test_navigation_follows_the_argument(built: dict[str, str]) -> None:
     assert dict(groups["Data and methods"])["sources"] == "Data sources and scope"
     nav = re.search(r'<nav aria-label="Sections">(.*?)</nav>', built["speed"], re.S).group(1)
     links = re.findall(r'href="([a-z-]+)\.html"', nav)
-    assert links == list(components.READING_ORDER)
+    assert links == [slug for _, pages in site.NAV_GROUPS for slug, _ in pages]
     # Each page names its group above the title and links to its neighbours in reading order.
     assert '<p class="eyebrow">Drivers, vehicles and factors</p>' in built["speed"]
     assert 'href="vehicles.html" rel="prev"' in built["speed"]
     assert 'href="factors.html" rel="next"' in built["speed"]
     assert '<p class="eyebrow">Over time</p>' in built["policy"]
-    assert '<p class="eyebrow">Withdrawn analysis</p>' in built["forecast"]
+    assert '<p class="eyebrow">Explore</p>' in built["calculator"]
     assert '<p class="eyebrow">Crash severity</p>' in built["validation"]
     assert '<p class="eyebrow">' not in built["index"]
 
@@ -117,9 +118,6 @@ def test_the_old_page_names_and_framing_are_gone(built: dict[str, str]) -> None:
     for slug in LIVE:
         for phrase in obsolete:
             assert phrase not in built[slug], (slug, phrase)
-    # The old address of the validation page points to its successor.
-    assert site.MOVED_PAGES["transport"] == "validation"
-    assert 'content="0; url=validation.html"' in built["transport"]
 
 
 def test_no_page_carries_the_old_layer_and_unit_boilerplate(built: dict[str, str]) -> None:
@@ -167,10 +165,11 @@ def test_headings_and_leads_are_statements(built: dict[str, str]) -> None:
         for heading in re.findall(r"<h[1-3][^>]*>(.*?)</h[1-3]>", text, re.S):
             assert "?" not in re.sub(r"<[^>]+>", "", heading), (slug, heading)
         # The page's one-sentence description: its search description, shown under the title
-        # only on the home page (a page with a summary does not open twice).
+        # only on the home page and the tool pages (a page with a summary does not open twice).
         lead = re.search(r'<meta name="description" content="([^"]*)">', text).group(1)
         assert "?" not in lead, slug
-        assert ('<p class="lead">' in text) == (slug == "index"), slug
+        opens_with_lead = slug in ("index", "explore", *components.TOOL_SLUGS)
+        assert ('<p class="lead">' in text) == opens_with_lead, slug
         for opening in re.findall(r'<p class="summary">(.*?)</p>', text, re.S):
             assert "?" not in re.sub(r"<[^>]+>", "", opening), slug
 
@@ -202,6 +201,8 @@ def test_the_front_page_is_a_research_overview(built: dict[str, str]) -> None:
         assert f'href="{slug}.html"' in main, slug
     for slug in ("validation", "data", "sources"):
         assert f'href="{slug}.html' in main, slug
+    # The interactive tools are reached from the top of the page, before the findings.
+    assert main.find('<p class="summary">') < main.find('href="explore.html"') < main.find("<h2")
     # The modelling is described in plain words, with the model that lost to its table named as
     # such, and the supporting association analysis is not presented as a model.
     visible = _visible(built["index"])
@@ -212,26 +213,25 @@ def test_the_front_page_is_a_research_overview(built: dict[str, str]) -> None:
 def test_the_models_page_leads_with_predicted_against_observed(built: dict[str, str]) -> None:
     visible = _visible(built["severity-models"])
     main = _main(built["severity-models"])
-    # Predicted against observed, then the calculator, then what the model shows and a short
-    # method; scores tables stay in the research documents. The headings say what each finds.
+    # Predicted against observed, what the model shows and where it was tested; how it was
+    # built and the scores are on the Model method and tests page. The headings say what each
+    # finds.
     headings = re.findall(r"<h2[^>]*>(.*?)</h2>", main, re.S)
-    assert headings[:4] == [
+    assert headings[:3] == [
         "The estimates matched later years overall, but not in every province",
-        "Try the model",
         "Crashes involving a heavy vehicle: about twice the fatal share",
-        "How the model was built",
+        "Tested only within Catalonia",
     ]
     assert main.find("sev1_predicted_observed") < main.find('id="calculator"')
-    # One name for the published model, and one scale for ranking skill, shared with the
-    # External validation page: ROC-AUC to two decimals, explained once in plain words.
+    assert 'href="validation.html#later-years"' in main
+    assert 'id="later-years"' in built["validation"]
+    # One name for the published model; ranking skill is described by the fatal shares of the
+    # fifths, and ROC-AUC is left to the Model method and tests page.
     assert "the Catalan severity model" in visible
     assert "times in 100" not in visible
-    gloss = "given one fatal and one non-fatal crash, the share of pairs in which the fatal one"
-    assert visible.count(gloss) == 1
-    assert not re.search(r"ROC-AUC[^.]*\b0\.\d{3}\b", visible)
-    # The calculator's result and comparison share a panel that sits beside the form when there
-    # is room; the interval's scope is said beside the interval, not only in the limitations.
-    assert '<div class="calc-layout"><form>' in main and '<div class="calc-panel">' in main
+    assert "ROC-AUC" not in visible
+    # The calculator has its own page; the model page links to it at the old anchor.
+    assert '<p id="calculator">' in main and 'href="calculator.html"' in main
     assert "uncertainty of its coefficients" not in visible
     # What the calculator answers, and what its inputs are not, are said in plain words.
     assert "a posted limit is not a speed" in visible.lower()
@@ -264,6 +264,44 @@ def test_the_validation_page_does_not_claim_national_transferability(
     assert 'class="compare"' not in built["validation"]
 
 
+# The regional crash-record pages and the methodology section that holds each one's technical
+# notes.
+RECORD_PAGES = {"catalonia": "catalonia-method", "barcelona": "barcelona-method"}
+
+
+def test_record_pages_are_short_and_keep_their_detail_on_the_methodology_page(
+    built: dict[str, str],
+) -> None:
+    import pandas as pd
+
+    from dgt_stats.site.regional_common import _year_label
+
+    for slug, notes in RECORD_PAGES.items():
+        main = _main(built[slug])
+        opening = re.sub(r"<[^>]+>", " ", re.search(r'<p class="summary">(.*?)</p>', main).group(1))
+        assert 40 <= len(opening.split()) <= 90, (slug, len(opening.split()))
+        # No paragraph of the argument runs long, and one to three figures and tables carry it.
+        for block in _blocks(built[slug], "p"):
+            assert len(block.split()) <= 100, (slug, block[:80])
+        shown = main.count("<figure") + main.count('<div class="table-block">')
+        assert 1 <= shown <= 3, (slug, shown)
+        # The detail is not folded away on the page: it is a section of the methodology page,
+        # which the page links to.
+        assert '<details class="technical"' not in main, slug
+        assert f'href="data.html#{notes}"' in main, slug
+        assert f'<h2 id="{notes}">' in built["data"], slug
+    # Catalonia's fatal shares by circumstance lead to the calculator built on the same file.
+    assert 'href="calculator.html"' in _main(built["catalonia"])
+    # Barcelona's records are one city's in one year, named in the opening, and the models
+    # fitted on them give no probability.
+    year = _year_label(pd.read_csv(TABLES_DIR / "bcn_person_severity_share.csv"))
+    opening = re.search(r'<p class="summary">(.*?)</p>', built["barcelona"]).group(1)
+    assert f"crashes in {year}:" in opening
+    visible = " ".join(_visible(built["barcelona"]).split())
+    assert "one year in one city" in visible
+    assert "neither gives probabilities" in visible and "kept for research only" in visible
+
+
 def test_pages_carry_no_template_furniture(built: dict[str, str]) -> None:
     # The opening summary carries a page's result: no indicator strip repeats it, no generic
     # "Conclusion" or "Interpretation" heading closes it, and the supporting analyses say what
@@ -275,7 +313,39 @@ def test_pages_carry_no_template_furniture(built: dict[str, str]) -> None:
             assert f"<h2>{heading}</h2>" not in main, (slug, heading)
         prose = main.replace('<p class="eyebrow">Spain · supporting analysis</p>', "")
         assert "upporting analysis" not in prose, slug
-        assert main.count('<p class="summary">') == 1, slug
+        if slug not in ("explore", *components.TOOL_SLUGS):
+            assert main.count('<p class="summary">') == 1, slug
+
+
+# The pages on deaths over time and the methodology section that holds each one's technical notes.
+TIME_PAGES = {
+    "long-run": "long-run-method",
+    "trends": "trends-method",
+    "seasons": "seasons-method",
+    "policy": "policy-method",
+}
+
+
+def test_time_pages_are_short_and_keep_their_detail_on_the_methodology_page(
+    built: dict[str, str],
+) -> None:
+    for slug, notes in TIME_PAGES.items():
+        main = _main(built[slug])
+        opening = re.sub(r"<[^>]+>", " ", re.search(r'<p class="summary">(.*?)</p>', main).group(1))
+        assert 40 <= len(opening.split()) <= 90, (slug, len(opening.split()))
+        # No paragraph of the argument runs long, and one to three figures and tables carry it.
+        for block in _blocks(built[slug], "p"):
+            assert len(block.split()) <= 100, (slug, block[:80])
+        shown = main.count("<figure") + main.count('<div class="table-block">')
+        assert 1 <= shown <= 3, (slug, shown)
+        # The detail is not folded away on the page: it is a section of the methodology page,
+        # which the page links to.
+        assert '<details class="technical"' not in main, slug
+        assert f'href="data.html#{notes}"' in main, slug
+        assert f'<h2 id="{notes}">' in built["data"], slug
+    # The yearly series can be explored from the pages that read them.
+    for slug in ("long-run", "trends"):
+        assert 'href="trends-explorer.html"' in _main(built[slug]), slug
 
 
 # The pages that quote the figures for drivers aged 75 and over.
@@ -361,3 +431,37 @@ def test_older_driver_wording_carries_no_probability_or_ranking(built: dict[str,
         for match in re.finditer(r"combinations", visible):
             near = visible[max(0, match.start() - 60) : match.end() + 60]
             assert "%" not in near, (slug, near)
+
+
+# The pages on recorded factors and crash circumstances, and the methodology section that holds
+# each one's technical notes.
+FACTOR_PAGES = {
+    "speed": "speed-method",
+    "factors": "factors-method",
+    "severity": "severity-method",
+}
+
+
+def test_factor_pages_are_short_and_keep_their_detail_on_the_methodology_page(
+    built: dict[str, str],
+) -> None:
+    for slug, notes in FACTOR_PAGES.items():
+        main = _main(built[slug])
+        opening = re.sub(r"<[^>]+>", " ", re.search(r'<p class="summary">(.*?)</p>', main).group(1))
+        assert 40 <= len(opening.split()) <= 90, (slug, len(opening.split()))
+        # No paragraph of the argument runs long, and one to three figures and tables carry it.
+        for block in _blocks(built[slug], "p"):
+            assert len(block.split()) <= 100, (slug, block[:80])
+        shown = main.count("<figure") + main.count('<div class="table-block">')
+        assert 1 <= shown <= 3, (slug, shown)
+        # The detail is not folded away on the page: it is a section of the methodology page,
+        # which the page links to.
+        assert '<details class="technical"' not in main, slug
+        assert f'href="data.html#{notes}"' in main, slug
+        assert f'<h2 id="{notes}">' in built["data"], slug
+    # A recorded factor is never read as a cause.
+    assert "not estimates of what speed causes" in _visible(built["speed"])
+    assert "not a finding that the factor caused it" in _visible(built["factors"])
+    # The crash records behind the speed and severity pages can be explored by road type.
+    for slug in ("speed", "severity"):
+        assert 'href="crash-explorer.html"' in _main(built[slug]), slug

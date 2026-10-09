@@ -54,10 +54,43 @@ the crash itself (its type and who was involved).
 | Junction | between junctions; within a junction; within 50 m of one | between junctions |
 | Posted speed limit | none recorded (the road's generic limit); 10–30; 40–50; 60–70; 80–90; 100–120 km/h | none recorded |
 | Time of day | six bands | 10:00–13:59 |
-| Road users involved | pedestrian, bicycle, moped, motorcycle, car or van, heavy vehicle, other (any combination) | car or van |
+| Road users involved | pedestrian, bicycle, moped, motorcycle, car or van, heavy vehicle, other (each a separate 0/1 input) | car or van |
 | Number involved | one, two, three, four or more (vehicles and pedestrians) | two |
 
 The lighting value "De dia, dia fosc" is labelled "daylight, overcast", as on the Catalonia page.
+
+### The page's crash description
+
+The page does not ask for the crash type, the seven road-user flags and the number involved
+separately. The reader chooses a kind of crash and answers the questions it brings up; the page
+script (`SeverityBuilder.crash` in `assets/severity-calculator.js`, selects declared in
+`site/tool_calculator.py`) sets the three model inputs from the answers. The model itself is
+unchanged: the description only chooses values of inputs it already has.
+
+| Kind of crash | Questions | Crash type | Road users | Number involved |
+|---|---|---|---|---|
+| Collision between vehicles | type of collision; first vehicle; second vehicle; number of vehicles (2, 3, 4 or more); with 3 or more, another kind of vehicle (optional) | head-on, side or angle, rear-end or sideswipe, as chosen | the two vehicles' kinds, and the other kind if chosen | as chosen |
+| Pedestrian struck | the vehicle; people and vehicles involved (one pedestrian and one vehicle, 3, 4 or more); with 3 or more, another kind of vehicle (optional) | pedestrian struck | pedestrian, the vehicle's kind, and the other kind if chosen | as chosen (2 for one pedestrian and one vehicle) |
+| Single vehicle, no other road user | what happened (ran off the road, hit an object on the road, rider or passenger fell); the vehicle | ran off the road, hit an object or fell, as chosen | the vehicle's kind | one |
+| Other crash (animal, other or not specified) | the vehicle; vehicles and pedestrians involved (1, 2, 3, 4 or more); with 2 or more, another kind of road user, a vehicle or a pedestrian (optional) | other | the vehicle's kind, and the other kind if chosen | as chosen |
+
+The vehicle kinds offered are car or van, motorcycle, moped, bicycle, heavy vehicle (lorry or bus)
+and other vehicle (tram, tractor and others), one per road-user flag. Two vehicles of the same
+kind set one flag, as in the records. Every crash type, every road-user flag and every number
+involved can be reached, and no description breaks a rule below (tests in
+`tests/test_severity_engine.py`). Some combinations the engine accepts cannot be described: a
+pedestrian with no vehicle (44 recorded crashes), a collision with one unit involved (73), more
+than three kinds of road user (7), or a pedestrian with a crash type other than pedestrian struck
+or other. They are rare, and the engine keeps its warnings for inputs that come from elsewhere.
+
+The place (province, road, junction, posted limit) and the conditions (time of day, lighting,
+weather, surface) are asked directly, with every level offered. Unusual combinations of place,
+such as a posted 100–120 km/h limit on a local road, stay allowed and carry the rare-level
+warning. Two rules of the conditions apply (see `check(s)` below). When heavy rain, hail or snow is
+chosen, "dry and clean" is disabled and a dry surface becomes wet, with a one-line note. A time of
+day disables the lighting it rules out; if the lighting chosen is ruled out, the page sets
+daylight when only daylight remains (10:00–13:59) and says so, and otherwise asks the reader to
+choose the lighting before it shows an estimate (`SeverityBuilder.settle`).
 
 **Left out.** The police's judgements of which conditions influenced the crash are left out,
 because they are made after the event and fatal crashes are investigated more fully. Whether a
@@ -227,12 +260,25 @@ The browser engine builds the same 0/1 design vector as `severity_model.design_m
 including the by-zone columns (`urban:…`, `interurban:…`). It throws on an unknown road, province
 or level rather than silently using the reference. It provides:
 
-- `predict(s)`: `expit(x'b)` and its 95% interval `expit(x'b ± 1.96 √(x'Vx))`.
+- `predict(s)`: `expit(x'b)` and its 95% interval `expit(x'b ± 1.96 √(x'Vx))`. It refuses (throws
+  on) a scenario that breaks an error rule, and so does `compare`.
 - `compare(a, b)`: the ratio and the difference of two scenarios' predicted fatal shares, each with
   a 95% delta-method interval from the same covariance.
-- `check(s)`: the rules a scenario breaks.
-  - Errors, each broken by at most one of the training records: no road user ticked; fewer
-    vehicles and pedestrians than kinds of road user; a pedestrian struck without a pedestrian.
+- `check(s)`: the rules a scenario breaks, the same as `severity_model.check_scenario`.
+  - Errors of the crash itself, each broken by at most one of the training records: no road user;
+    fewer vehicles and pedestrians than kinds of road user; a pedestrian struck without a
+    pedestrian.
+  - Errors of the conditions, which cannot occur together: heavy rain, hail or snow on a dry and
+    clean surface (`heavy_rain_on_dry_surface`, broken by 174 of 22,638 fitted crashes); daylight
+    (clear or overcast) at 00:00–05:59 or 22:00–23:59, or dawn, dusk or night at 10:00–13:59
+    (`lighting_outside_hours`, 311 of 22,638). The time bands are ones that hold all year in
+    Catalonia, so no sunrise or sunset is computed; the other bands can have every lighting at
+    some time of year. The records that break these rules are recording inconsistencies. They
+    are kept in the fit, so the model is unchanged; the calculator only stops offering such
+    combinations. The worked examples (`sev_contrasts`), which change one input at a time from
+    the reference crash, are filtered by the rules of the crash only, so the table is unchanged;
+    the model page quotes none of its hour or lighting rows, because the reference crash is in
+    daylight at 10:00–13:59 and those changes alone describe conditions the calculator refuses.
   - Warnings: a collision with one unit; a pedestrian and no vehicle; fewer than 20 recorded
     crashes of the same zone, type, users and number; fewer than 20 on the chosen road with a
     chosen level.
@@ -242,14 +288,15 @@ or level rather than silently using the reference. It provides:
 - `similar(s)`: how many recorded crashes share the scenario's zone, crash type, road users and
   number involved, and how many of them were fatal.
 
-The page says, beside every estimate, that it is a share of crashes already recorded with a death
-or serious injury, not the chance of a crash or of a death on a journey. Its comparison figures
-are labelled as shares of the crashes the model was fitted on, with their counts, and the
-paragraph above the calculator says that those crashes leave out the 1,840 on roads with no named
-owning network.
+The calculator page says, beside every estimate, that it is a share of crashes already recorded
+with a death or serious injury, not the chance of a crash or of a death on a journey. Its
+comparison figures are labelled as shares of the crashes the model was fitted on, with their
+counts, and the notes below the calculator say that those crashes leave out the 1,840 on roads
+with no named owning network. Scenarios A and B are compared by `compare`, and the page words the
+difference as an association between recorded crashes.
 
-The worked examples on the page (`sev_contrasts`) use the same formulae, so they and the
-calculator always give the same numbers; a test requires it. `tests/test_severity_engine.py` runs
+The worked examples (`sev_contrasts`) use the same formulae, so they and the engine always give
+the same numbers for the same inputs; a test requires it. `tests/test_severity_engine.py` runs
 the engine under Node on more than 300 random valid scenarios and every edge case (every road in
 every province, every level of every input on three roads, the boundaries of the rules). It
 requires:
@@ -259,9 +306,20 @@ requires:
   coefficients and covariance alone to within 10⁻¹⁰; the comparison to agree to within 10⁻¹⁰;
 - the exported model to be the one the published choices give, and every input to change the
   prediction;
-- the artefact roads never to be offered, the error rules to hold in the training records, and
-  the through-town rule to follow the published choice;
+- the artefact roads never to be offered, the rules of the crash to hold in the training records
+  (the conditions rules to be broken by under 2% of them), and the through-town rule to follow
+  the published choice;
+- every combination of the crash description's selects (3,360) to break no error rule, and
+  together to reach every level of the crash type, road users and number involved; for every
+  combination of time, lighting, weather and surface, the form to offer exactly what the rules
+  allow;
+- the engine to refuse a scenario that breaks an error rule;
 - the calculator's text to frame the estimate as a conditional share.
+
+The browser tests (`tests/test_site_browser.py`) drive the page itself: the derivations, the
+conditions, the comparison of scenarios A and B against `compare_exported`, the keyboard, a phone
+and a laptop, and random sequences of changes, none of which may pass a refused scenario to the
+engine.
 
 ## What the model shows
 

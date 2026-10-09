@@ -17,40 +17,33 @@ shared furniture is in ``components``, the stylesheet in ``style``, the script i
 pages quote in ``numbers`` and the helpers of the regional, model and validation pages in
 ``regional_common``.
 
-Two kinds of old URL are kept alive. A renamed page (``MOVED_PAGES``) refreshes to its successor.
-A withdrawn analysis (``WITHDRAWN_PAGES``: the speed-law simulator and the distraction,
-alcohol-and-drugs and enforcement models, whose results came from coefficients published in
-external studies, and the monthly deaths forecast, which did worse than last year's count on the
-years it had not seen) is replaced by a short notice that says why and links to the pages that hold
-the repository's own results on the subject; it is not a redirect, and no live page links to it.
+The interactive tools (``explore`` and the ``tool_*`` modules) are pages like the others; their
+scripts and the data they read are published in ``site/tools``, and the calculator's engine and
+model in ``site/models``. Pages that no builder writes any more, such as the notices of withdrawn
+analyses, are removed from ``site``.
 """
 
 from __future__ import annotations
 
+import json
 import re
 import shutil
 from pathlib import Path
 
 from dgt_stats.paths import FIGURES_DIR, PROJECT_ROOT, TABLES_DIR
+from dgt_stats.site import explore
 from dgt_stats.site.components import (
     ALL_PAGES,
-    MOVED_PAGES,
     NAV_GROUPS,
     PAGES,
     PROFILE_URL,
     REPO_URL,
     SUPPORTING_PAGES,
-    WITHDRAWN_LEADS,
-    WITHDRAWN_PAGES,
-    WITHDRAWN_REASON,
-    WITHDRAWN_TITLES,
     _signed_pct,
     esc,
     mark_spanish,
     read_captions,
-    render_page,
     table,
-    withdrawn_detail,
 )
 from dgt_stats.site.data import page_data
 from dgt_stats.site.drivers import page_drivers
@@ -72,7 +65,6 @@ from dgt_stats.site.vehicles import page_vehicles
 
 __all__ = [
     "ALL_PAGES",
-    "MOVED_PAGES",
     "NAV_GROUPS",
     "PAGES",
     "PAGE_BUILDERS",
@@ -85,8 +77,6 @@ __all__ = [
     "build",
     "esc",
     "mark_spanish",
-    "page_moved",
-    "page_withdrawn",
     "publish_tables",
     "read_captions",
     "table",
@@ -99,10 +89,20 @@ ASSETS_DIR = Path(__file__).resolve().parent / "assets"
 # The crash-severity calculator: its arithmetic, its page script and the model it reads.
 CALCULATOR_ASSETS = (ASSETS_DIR / "severity-engine.js", ASSETS_DIR / "severity-calculator.js")
 CALCULATOR_MODEL = PROJECT_ROOT / "reports" / "models" / "severity_model.json"
+# The other tools' scripts: the shared helpers and one per tool, published in ``site/tools``.
+TOOL_ASSETS = tuple(
+    ASSETS_DIR / f"{name}.js"
+    for name in ("tools", *(slug for slug, _ in explore.TOOLS if slug != "calculator"))
+)
 
 
 PAGE_BUILDERS = {
     "index": page_index,
+    "explore": explore.page_explore,
+    "calculator": explore.tool_calculator.page_calculator,
+    "driver-risk": explore.tool_driver_risk.page_driver_risk,
+    "crash-explorer": explore.tool_crashes.page_crash_explorer,
+    "trends-explorer": explore.tool_trends.page_trends_explorer,
     "trends": page_trends,
     "long-run": page_long_run,
     "seasons": page_seasons,
@@ -119,67 +119,6 @@ PAGE_BUILDERS = {
     "sources": page_sources,
     "data": page_data,
 }
-
-
-def page_moved(old: str, new: str) -> str:
-    """A pointer page for a slug that was renamed, refreshing to its successor.
-
-    It is kept out of search indexes; it carries no canonical link, which would contradict that.
-    """
-    title = dict(ALL_PAGES)[new]
-    return render_page(
-        old,
-        "This page has moved",
-        f"What was on this page is now on the {title} page.",
-        f'<p><a href="{new}.html">Continue to {esc(title)}</a>.</p>',
-        head='\n<meta name="robots" content="noindex">'
-        f'\n<meta http-equiv="refresh" content="0; url={new}.html">',
-    )
-
-
-# The live pages that hold what the repository's own data say on each withdrawn page's subject.
-WITHDRAWN_SUCCESSORS = {
-    "long-run": "the long-run trend in deaths and how far recent years depart from it",
-    "trends": "deaths in the latest year against the base year, as counts and as rates",
-    "speed": "deaths per crash where the police recorded speed, and the speed record itself",
-    "factors": "how often the police record alcohol, distraction and other factors in crashes",
-}
-WITHDRAWN_RELATED = {
-    "forecast": ("long-run", "trends"),
-    "simulator": ("speed",),
-    "distraction": ("factors",),
-    "alcohol-drugs": ("factors",),
-    "enforcement": ("speed", "factors"),
-}
-
-
-def page_withdrawn(slug: str) -> str:
-    """A short notice for a withdrawn analysis: why it went, and where the data-only work is.
-
-    Not a redirect: a reader who arrives from an old link is told what the page was and why it is
-    gone, rather than sent on silently to a page that says something else.
-    """
-    if slug in dict(ALL_PAGES) or slug in MOVED_PAGES:
-        raise ValueError(f"withdrawn page {slug!r} is also a live or moved page")
-    titles = dict(ALL_PAGES)
-    links = "; ".join(
-        f'<a href="{target}.html">{esc(titles[target])}</a>, {esc(WITHDRAWN_SUCCESSORS[target])}'
-        for target in WITHDRAWN_RELATED[slug]
-    )
-    body = (
-        f"<p>{esc(WITHDRAWN_PAGES[slug])}</p>"
-        f"{withdrawn_detail(slug)}"
-        f"<p>What the repository's own data show on this subject is on these pages: {links}. "
-        'The <a href="data.html">methodology</a> explains how the results on the site are '
-        "produced.</p>"
-    )
-    return render_page(
-        slug,
-        WITHDRAWN_TITLES[slug],
-        WITHDRAWN_LEADS.get(slug, WITHDRAWN_REASON),
-        body,
-        head='\n<meta name="robots" content="noindex">',
-    )
 
 
 def build(site_dir: Path = SITE_DIR) -> list[Path]:
@@ -209,6 +148,24 @@ def build(site_dir: Path = SITE_DIR) -> list[Path]:
         target = models_dir / source.name
         shutil.copyfile(source, target)
         written.append(target)
+    # The other tools' scripts and the data each computes from the result tables.
+    tools_dir = site_dir / "tools"
+    if tools_dir.exists():
+        shutil.rmtree(tools_dir)
+    tools_dir.mkdir()
+    for source in TOOL_ASSETS:
+        target = tools_dir / source.name
+        shutil.copyfile(source, target)
+        written.append(target)
+    for _, module in explore.TOOLS:
+        for name, payload in module.data_files().items():
+            target = tools_dir / name
+            target.write_text(
+                json.dumps(payload, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
+                + "\n",
+                encoding="utf-8",
+            )
+            written.append(target)
     style = site_dir / "style.css"
     style.write_text(STYLE.strip() + "\n", encoding="utf-8")
     script = site_dir / "site.js"
@@ -217,14 +174,6 @@ def build(site_dir: Path = SITE_DIR) -> list[Path]:
     for slug, builder in PAGE_BUILDERS.items():
         target = site_dir / f"{slug}.html"
         target.write_text(builder(captions), encoding="utf-8")
-        written.append(target)
-    for old, new in MOVED_PAGES.items():
-        target = site_dir / f"{old}.html"
-        target.write_text(page_moved(old, new), encoding="utf-8")
-        written.append(target)
-    for slug in WITHDRAWN_PAGES:
-        target = site_dir / f"{slug}.html"
-        target.write_text(page_withdrawn(slug), encoding="utf-8")
         written.append(target)
     pages = [path for path in written if path.suffix == ".html"]
     written.extend(publish_figures(site_dir, pages))

@@ -47,8 +47,8 @@ jobs:
       - run: |
           git diff --exit-code -- site
           test -z "$(git status --porcelain -- site)" || { git status --porcelain -- site; exit 1; }
-      - run: pytest -q tests/test_site.py tests/test_site_editorial.py tests/test_site_design.py tests/test_severity_engine.py
-      - run: pytest -q tests/test_site_browser.py
+      - run: pytest -q tests/test_site.py tests/test_site_editorial.py tests/test_site_design.py tests/test_severity_engine.py tests/test_tools.py
+      - run: pytest -q tests/test_site_browser.py tests/test_tools_browser.py
         env:
           REQUIRE_BROWSER: "1"
       - uses: actions/configure-pages@v5

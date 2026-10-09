@@ -91,23 +91,24 @@ def test_the_skip_link_reaches_the_page_opening(pages: dict[str, str]) -> None:
 def test_the_navigation_holds_only_live_pages_and_marks_the_current_one(
     pages: dict[str, str],
 ) -> None:
-    hidden = set(site.WITHDRAWN_PAGES) | set(site.MOVED_PAGES)
+    every = [slug for _, group in site.NAV_GROUPS for slug, _ in group]
     for slug in LIVE:
         nav = re.search(r'<nav aria-label="Sections">(.*?)</nav>', pages[slug], re.S).group(1)
         linked = re.findall(r'href="([a-z-]+)\.html"', nav)
-        assert linked == list(components.READING_ORDER), slug
-        assert not hidden & set(linked), slug
+        assert linked == every, slug
         assert nav.count('aria-current="page"') == 1, slug
         assert f'href="{slug}.html" aria-current="page"' in nav, slug
-    for slug in site.WITHDRAWN_PAGES:
-        assert '<meta name="robots" content="noindex">' in pages[slug], slug
+    # The reading-order links run through the articles; the tools are opened from their page.
+    assert set(components.READING_ORDER) == set(every) - {"explore", *components.TOOL_SLUGS}
 
 
 def test_every_table_has_a_caption_and_header_cells(pages: dict[str, str]) -> None:
     for slug in LIVE:
         main = _main(pages[slug])
         blocks = re.findall(r'<div class="table-block">.*?</table></div></div>', main, re.S)
-        assert len(blocks) == len(re.findall(r"<table[ >]", main)), slug
+        # A tool's own table is filled, caption included, by its script (tested in the browser).
+        scripted = len(re.findall(r"<table data-table>", main))
+        assert len(blocks) + scripted == len(re.findall(r"<table[ >]", main)), slug
         for number, block in enumerate(blocks, 1):
             # The title is outside the box that scrolls, numbered in reading order, and the
             # caption repeats it, number included, for screen readers.
@@ -206,9 +207,9 @@ def test_technical_details_and_limitations_use_one_form(pages: dict[str, str]) -
             assert len(label) > 10 and label.lower() not in {"details", "more", "technical"}
         for note in re.findall(r'<aside class="limit"[^>]*>(.*?)</aside>', main, re.S):
             assert '<span class="limit-label">Limitations.</span> ' in note, slug
-        # Every page closes on the same block: its tables, its method (the methodology page is
-        # its own) and its sources.
-        if slug != "index":
+        # Every article closes on the same block: its tables, its method (the methodology page is
+        # its own) and its sources. A tool page closes on short notes about its numbers instead.
+        if slug not in ("index", "explore", *components.TOOL_SLUGS):
             block = re.search(r'<section class="data-method".*?</section>', main, re.S).group(0)
             terms = ["Result tables (CSV)", "Source documentation"]
             if slug != "data":

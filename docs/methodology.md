@@ -129,6 +129,22 @@ used.
   improvement in recording. Two undocumented quirks are handled as the data page states: code 0 in
   the island field from 2018, and the strong-wind flag in 2021.
 
+**The crash explorer's table** (`crash_cells.py`, `regions.py`; written by `scripts/model.py` as
+`explore_dgt_crashes.csv`). One row per cell of year × autonomous community × road group × crash
+type that holds at least one injury crash in the processed records (2016 onwards), with injury
+crashes, fatal crashes (at least one death within 30 days), 30-day deaths and those deaths by
+road-user type. No cell is filled with zeros and nothing is interpolated. The community comes from
+the province code by INE's classification; road types are the road groups above. Crash types are
+DGT's own, except that the nine run-off-road codes (11–19, by side and outcome) form one type. The
+twelve per-crash death counts form eight groups: van and light-truck occupants together, lorry and
+bus occupants together, and other vehicles, unspecified vehicles and personal mobility vehicles
+(counted separately only from 2020) together. A record without a road type or a crash type counts
+under "not recorded", so nothing drops out. The tests reconcile the table exactly with the
+published yearly totals of injury crashes and 30-day deaths (`q1_annual_headline`) for every year
+it covers, and check that the road-user deaths of every cell add up to its 30-day deaths. The
+explorer adds up the rows the reader selects in the browser; the interval of a fatal share is the
+95% Wilson interval (`rates.wilson_interval`, `Tools.wilson`).
+
 ## 4. Counts against risk, 2019–2024 (`risk_trends.py`)
 
 Each annual outcome, 30-day deaths, injured admitted to hospital and injury crashes, is set against
@@ -184,7 +200,7 @@ drivers admitted per licence holder (+4.5 %) and occupants admitted per register
 (+3.4 %). Deaths in 2024 are within an ordinary year of 2019 under all five pairings: the count, per
 resident, per tonne of road fuel, drivers per licence holder and occupants per registered vehicle.
 In 2020 deaths were below the interval under every pairing but road fuel, and in 2021 as a count
-and per resident; the statement on the front page is about 2024 against 2019.
+and per resident; the statement on the Since 2019 page is about 2024 against 2019.
 
 **How often against how hard** (`frequency_severity`). Deaths per tonne of road fuel is the exact
 product of injury crashes per tonne and deaths per injury crash, and equally of people admitted to
@@ -594,7 +610,8 @@ overstated. That figure put drivers aged 18–24 at 6.75 times the 35–54 rate 
 0.71 times, on other bands and another reference than the current figures. On the same groups and
 the 45–64 reference, the owner kilometres give 4.62 at 18–29 and 1.00 at 65+, against 2.53 and 1.19
 by the driver's age (`risk_owner_age_comparison.csv`). The owner-age tables are still built from
-the raw release, and the drivers page explains the difference.
+the raw release, and the drivers page's technical notes, on the methodology page, explain the
+difference.
 
 **Sources considered and not used as exposure**, with the reason (registered in
 [`data_sources.md`](data_sources.md)): MOVILIA 2006/2007 count trips and travel time, not

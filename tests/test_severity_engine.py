@@ -9,6 +9,11 @@ alone, and the same rule checks as :func:`dgt_stats.severity_model.check_scenari
 require the exported model to be the one the published choices give, and the page and the
 calculator to say that the estimate is a share among crashes already recorded with a death or
 serious injury, not the chance of a crash or of a death on a journey.
+
+The page's own script (``assets/severity-calculator.js``) turns the reader's description of a
+crash into the model's inputs and keeps the conditions possible; under Node it exports that
+mapping (``SeverityBuilder``), and every description the form can give, and every combination of
+conditions, is run through it here and must pass the rules.
 """
 
 from __future__ import annotations
@@ -24,9 +29,11 @@ import pytest
 
 from dgt_stats import severity_model as sm
 from dgt_stats.paths import PROJECT_ROOT, REPORTS_DIR
+from dgt_stats.site import tool_calculator
 
 MODEL = REPORTS_DIR / "models" / "severity_model.json"
 ENGINE = PROJECT_ROOT / "src" / "dgt_stats" / "site" / "assets" / "severity-engine.js"
+BUILDER = ENGINE.parent / "severity-calculator.js"
 NODE = shutil.which("node")
 
 needs_model = pytest.mark.skipif(not MODEL.exists(), reason="run scripts/severity_calculator.py")
@@ -69,6 +76,16 @@ def _edge_cases() -> list[dict]:
         base | {"units": "1", "crash_type": "run_off_road", "road": "rural_track"},
         base | {"road": "conventional_local", "speed_limit": "100_120"},
     ]
+    # The conditions rules: each broken, and the nearest combinations that keep them.
+    out += [
+        base | {"weather": "heavy_rain_snow", "surface": "dry"},  # refused
+        base | {"weather": "heavy_rain_snow", "surface": "wet"},
+        base | {"weather": "heavy_rain_snow", "surface": "slippery"},
+        base | {"weather": "light_rain", "surface": "dry"},
+    ]
+    for hour in sm.HOURS:
+        for lighting in sm.LIGHTING:
+            out.append(base | {"hour": hour, "lighting": lighting, "road": "urban_street"})
     return out
 
 
@@ -193,8 +210,35 @@ def test_four_or_more_units_has_no_upper_bound() -> None:
     assert "units_cover_users" in sm.check_scenario(five_kinds | {"units": "3"})
 
 
+def test_the_conditions_rules() -> None:
+    """Heavy rain, hail or snow never on a dry, clean surface; no daylight at 00:00-05:59 or
+    22:00-23:59; nothing but daylight at 10:00-13:59; every lighting in the other bands."""
+    base = sm.REFERENCE_SCENARIO
+    for weather in sm.WEATHER:
+        for surface in sm.SURFACE:
+            broken = "heavy_rain_on_dry_surface" in sm.check_scenario(
+                base | {"weather": weather, "surface": surface}
+            )
+            assert broken == (weather == "heavy_rain_snow" and surface == "dry")
+    for hour in sm.HOURS:
+        refused = {
+            lighting
+            for lighting in sm.LIGHTING
+            if "lighting_outside_hours"
+            in sm.check_scenario(base | {"hour": hour, "lighting": lighting})
+        }
+        if hour in ("00-05", "22-23"):
+            assert refused == {"day", "overcast"}, hour
+        elif hour == "10-13":
+            assert refused == set(sm.LIGHTING) - {"day", "overcast"}, hour
+        else:
+            assert not refused, hour
+
+
 def test_hard_rules_hold_in_the_training_records() -> None:
-    """The three rules the page enforces are broken by at most one recorded crash each."""
+    """The three rules of the crash itself are broken by at most one recorded crash each. The two
+    conditions rules are broken by a few records, recording inconsistencies kept in the fit: the
+    calculator report gives their counts, and each stays under 2% of the fitted crashes."""
     if not sm.FEATURES_PATH.exists():
         pytest.skip("run scripts/microdata.py features")
     frame, _, _ = sm.load()
@@ -206,8 +250,15 @@ def test_hard_rules_hold_in_the_training_records() -> None:
             for id_ in sm.check_scenario(record)
             if id_ in sm.ERRORS
         ]
-    )
-    assert broken.value_counts().max() <= 1
+    ).value_counts()
+    for rule in sm.CRASH_ERRORS:
+        assert broken.get(rule, 0) <= 1, (rule, broken.get(rule, 0))
+    report = (PROJECT_ROOT / "docs" / "research" / "SEVERITY_CALCULATOR.md").read_text()
+    total = len(scenarios)
+    for rule in sm.CONDITION_ERRORS:
+        count = int(broken.get(rule, 0))
+        assert count < 0.02 * total, (rule, count, total)
+        assert f"{count:,} of {total:,}" in " ".join(report.split()), (rule, count)
 
 
 @needs_model
@@ -372,7 +423,7 @@ def test_the_averages_name_the_crashes_left_out() -> None:
 
 def _calculator_text() -> str:
     """The calculator script with its string concatenations joined, as one line."""
-    script = (ENGINE.parent / "severity-calculator.js").read_text(encoding="utf-8")
+    script = BUILDER.read_text(encoding="utf-8")
     return " ".join(re.sub(r'"\s*\+\s*"', "", script).split())
 
 
@@ -380,7 +431,7 @@ def test_the_estimate_is_framed_as_a_conditional_share() -> None:
     """The calculator says its estimate is a share among crashes already recorded with a death
     or serious injury, not the chance of a crash or of a death on a journey."""
     flat = _calculator_text()
-    assert "of crashes like this one with a death or serious injury" in flat
+    assert "among crashes like this one with a death or serious injury in Catalonia" in flat
     assert "a share of crashes already recorded" in flat
     assert "not the chance of a crash or of a death on a journey" in flat
     for wrong in ("chance of dying", "probability of a crash", "risk of a crash"):
@@ -390,3 +441,163 @@ def test_the_estimate_is_framed_as_a_conditional_share() -> None:
         assert model["question"].startswith(
             "Of crashes in Catalonia with a death or a serious injury"
         )
+
+
+def _run_builder(body: str, payload: object) -> object:
+    """Run ``body`` under Node with the page's builder (``builder``), an engine on the exported
+    model (``engine``) and ``payload`` (``input``); it writes its JSON result to stdout."""
+    script = f"""
+const builder = require({json.dumps(str(BUILDER))});
+const engine = require({json.dumps(str(ENGINE))}).create(require({json.dumps(str(MODEL))}));
+const input = JSON.parse(require('fs').readFileSync(0, 'utf8'));
+{body}
+"""
+    result = subprocess.run(
+        [NODE, "-e", script], input=json.dumps(payload), capture_output=True, text=True, check=True
+    )
+    return json.loads(result.stdout)
+
+
+def _from_description(crash: dict) -> dict:
+    """The reference crash's place and conditions with a described crash's model inputs."""
+    base = {k: v for k, v in sm.REFERENCE_SCENARIO.items() if k not in sm.USERS}
+    return (
+        base
+        | {"crash_type": crash["crash_type"], "units": crash["units"]}
+        | {user: int(user in crash["users"]) for user in sm.USERS}
+    )
+
+
+@needs_model
+@needs_node
+def test_every_crash_the_form_describes_passes_the_rules() -> None:
+    """Every description the "What happened?" selects can give becomes a scenario that breaks no
+    error rule, in Python and in the engine; together they reach every crash type, every kind of
+    road user and every number involved, so no level of the model is lost to the form."""
+    choices = tool_calculator.builder_choices()
+    described = _run_builder(
+        "process.stdout.write(JSON.stringify(input.map(c => builder.crash(c))));", choices
+    )
+    scenarios = []
+    for choice, crash in zip(choices, described, strict=True):
+        scenario = _from_description(crash)
+        assert not set(sm.check_scenario(scenario)) & sm.ERRORS, (choice, scenario)
+        # The vehicles named are involved; collisions and a pedestrian struck have two or more.
+        assert choice["vehicle"] in crash["users"], choice
+        if choice["what"] == "collision":
+            assert choice["second"] in crash["users"] and crash["units"] != "1", choice
+        if choice["what"] == "pedestrian":
+            assert crash["crash_type"] == "pedestrian_struck" and scenario["pedestrian"], choice
+        if choice["what"] == "single":
+            assert crash["units"] == "1" and crash["users"] == [choice["vehicle"]], choice
+        scenarios.append(scenario)
+    assert not [r for r in _run_engine(scenarios) if r["check"]["errors"]]
+    assert {s["crash_type"] for s in scenarios} == set(sm.CRASH_TYPES)
+    assert {s["units"] for s in scenarios} == set(sm.UNITS)
+    assert {user for s in scenarios for user in sm.USERS if s[user]} == set(sm.USERS)
+    # Three plain descriptions.
+    examples = [
+        {"what": "pedestrian", "vehicle": "light_vehicle", "count": "2", "another": ""},
+        {
+            "what": "collision",
+            "type": "head_on",
+            "vehicle": "light_vehicle",
+            "second": "motorcycle",
+            "count": "2",
+            "another": "heavy_vehicle",  # not asked with two vehicles: ignored
+        },
+        {"what": "single", "type": "fall", "vehicle": "motorcycle"},
+    ]
+    pedestrian, collision, fall = _run_builder(
+        "process.stdout.write(JSON.stringify(input.map(c => builder.crash(c))));", examples
+    )
+    assert pedestrian == {
+        "crash_type": "pedestrian_struck",
+        "units": "2",
+        "users": ["pedestrian", "light_vehicle"],
+    }
+    assert collision == {
+        "crash_type": "head_on",
+        "units": "2",
+        "users": ["light_vehicle", "motorcycle"],
+    }
+    assert fall == {"crash_type": "fall", "units": "1", "users": ["motorcycle"]}
+
+
+@needs_model
+@needs_node
+def test_the_conditions_the_form_allows_pass_the_rules() -> None:
+    """For every time of day, lighting (or none chosen yet), weather and surface, the form offers
+    exactly the options the rules allow, changes a selection only when the rules rule it out,
+    chooses daylight only when nothing else remains, and otherwise leaves the lighting to the
+    reader. Whatever it settles on with a lighting breaks no rule."""
+    base = sm.REFERENCE_SCENARIO
+    states = [
+        base | {"hour": hour, "lighting": lighting, "weather": weather, "surface": surface}
+        for hour in sm.HOURS
+        for lighting in (*sm.LIGHTING, "")
+        for weather in sm.WEATHER
+        for surface in sm.SURFACE
+    ]
+    settled = _run_builder(
+        "process.stdout.write(JSON.stringify(input.map(s => builder.settle(engine, s))));", states
+    )
+    asked = 0
+    for before, out in zip(states, settled, strict=True):
+        after = out["scenario"]
+        lighting = [
+            level
+            for level in sm.LIGHTING
+            if "lighting_outside_hours" not in sm.check_scenario(after | {"lighting": level})
+        ]
+        surface = [
+            level
+            for level in sm.SURFACE
+            if "heavy_rain_on_dry_surface" not in sm.check_scenario(after | {"surface": level})
+        ]
+        assert out["lighting"] == lighting and out["surface"] == surface, before
+        assert {k for k in before if before[k] != after[k]} <= {"surface", "lighting"}
+        if before["surface"] in surface:
+            assert after["surface"] == before["surface"]
+        else:
+            assert after["surface"] == "wet" and "surface" in out["changed"], before
+        if before["lighting"] in lighting:
+            assert after["lighting"] == before["lighting"]
+        elif all(level in sm.DAYLIGHT for level in lighting):
+            assert after["lighting"] == "day" and "lighting" in out["changed"], before
+        else:
+            assert after["lighting"] == "" and "lighting" not in out["changed"], before
+        if after["lighting"]:
+            assert not set(sm.check_scenario(after)) & sm.ERRORS, after
+        else:
+            asked += 1
+            assert after["hour"] != "10-13"
+    assert asked
+
+
+@needs_model
+@needs_node
+def test_the_engine_refuses_a_scenario_that_breaks_a_rule() -> None:
+    """The engine computes no estimate and no comparison for a scenario the rules refuse."""
+    base = sm.REFERENCE_SCENARIO
+    refused = [
+        base | {"light_vehicle": 0},
+        base | {"crash_type": "pedestrian_struck"},
+        base | {"weather": "heavy_rain_snow"},
+        base | {"lighting": "night_unlit"},
+        base | {"hour": "00-05"},
+    ]
+    messages = _run_builder(
+        """
+const attempt = (f) => { try { f(); return 'computed'; } catch (error) { return error.message; } };
+const base = input[input.length - 1];
+process.stdout.write(JSON.stringify(input.slice(0, -1).map(s => [
+  attempt(() => engine.predict(s)), attempt(() => engine.compare(s, base))])));""",
+        [*refused, base],
+    )
+    for scenario, (predicted, compared) in zip(refused, messages, strict=True):
+        rules = sorted(set(sm.check_scenario(scenario)) & sm.ERRORS)
+        assert rules, scenario
+        for message in (predicted, compared):
+            assert message.startswith("refused scenario: "), message
+            assert sorted(message.removeprefix("refused scenario: ").split(", ")) == rules

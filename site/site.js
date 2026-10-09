@@ -1,6 +1,13 @@
 (function () {
   "use strict";
 
+  // The calculator moved from the model page to a page of its own: an old link to it arrives there.
+  // Without scripting the old anchor still holds a link to the new page.
+  if (/severity-models\.html$/.test(window.location.pathname) && window.location.hash === "#calculator") {
+    window.location.replace("calculator.html");
+    return;
+  }
+
   // Section menus: a button opens its list; Escape, a click elsewhere or leaving the menu closes it.
   var groups = Array.prototype.slice.call(document.querySelectorAll(".nav-group"));
   function close(group, focus) {

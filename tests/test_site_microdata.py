@@ -8,7 +8,7 @@ import pytest
 from dgt_stats.paths import FIGURES_DIR, PROJECT_ROOT, TABLES_DIR
 from dgt_stats.site.components import _fmt_int, _fmt_pct
 
-PAGES = ("catalonia", "barcelona", "severity-models", "validation", "sources")
+PAGES = ("catalonia", "barcelona", "severity-models", "validation", "sources", "calculator")
 # The modules that write the pages, and the helpers they share. Two are left out: components,
 # whose navigation labels and publication titles carry years, and data, which cites a law by its
 # number.
@@ -41,11 +41,20 @@ def pages(tmp_path_factory: pytest.TempPathFactory) -> dict[str, str]:
 
     target = tmp_path_factory.mktemp("site")
     site.build(target)
-    return {slug: (target / f"{slug}.html").read_text(encoding="utf-8") for slug in PAGES}
+    # The methodology page too, which holds the regional pages' technical notes.
+    return {
+        slug: (target / f"{slug}.html").read_text(encoding="utf-8") for slug in (*PAGES, "data")
+    }
 
 
 def _table(name: str) -> pd.DataFrame:
     return pd.read_csv(TABLES_DIR / f"{name}.csv")
+
+
+def _notes(data: str, anchor: str) -> str:
+    """One page's technical notes on the methodology page: its section, up to the next one."""
+    start = data.index(f'<h2 id="{anchor}">')
+    return data[start : data.index("<h2", start + 1)]
 
 
 def test_page_code_types_no_year_and_no_result() -> None:
@@ -63,14 +72,19 @@ def test_page_code_types_no_year_and_no_result() -> None:
 
 def test_microdata_pages_open_with_a_summary_and_link_their_tables(pages: dict[str, str]) -> None:
     for slug, text in pages.items():
+        if slug in ("calculator", "data"):
+            continue
         # The old furniture is gone: no source block, no layer line. (A model's description
         # may say in prose what one row is; the old per-page "unit" block is what is banned.)
         assert '<details class="about">' not in text, slug
         assert '<p class="level">' not in text and "Layer:" not in text, slug
         assert text.count('<p class="summary">') == 1, slug
         assert 'href="tables/' in text, slug
+    # Each regional page links its technical notes on the methodology page, and the notes link
+    # the methodology's account of how police crash records are read.
     for slug in ("catalonia", "barcelona"):
-        assert 'href="data.html#records"' in pages[slug], slug
+        assert f'href="data.html#{slug}-method"' in pages[slug], slug
+        assert 'href="#records"' in _notes(pages["data"], f"{slug}-method"), slug
 
 
 def test_catalonia_headline_numbers_come_from_the_tables(pages: dict[str, str]) -> None:
@@ -112,24 +126,34 @@ def test_catalonia_leads_with_its_results_and_links_the_calculator(
 ) -> None:
     text = pages["catalonia"]
     headings = _headings(text)
-    # The checks on the file are technical notes after the results, not sections of the page;
-    # the agreement with DGT keeps its anchor for the pages that cite it.
+    # The checks on the file are technical notes on the methodology page, not sections of the
+    # page. The page keeps the agreement with DGT's 24-hour counts, under the anchor the sources
+    # and validation pages cite; the comparison in full is in the notes.
     assert "Agreement with DGT's national records" not in headings
     assert "Fields recorded unevenly" not in headings
-    assert '<details class="technical" id="dgt-agreement">' in text
+    assert '<details class="technical"' not in text
     main = text[text.find("<main>") : text.find("</main>")]
-    sections = [match.start() for match in re.finditer(r"<h2", main)]
     assert headings[-1] == "Data and method"
-    assert sections[-2] < main.find('id="dgt-agreement"') < sections[-1]
+    agreement = re.search(r'<p id="dgt-agreement">(.*?)</p>', main, re.S).group(1)
+    comparison = _table("cat_vs_dgt_province_year")
+    assert f"in all {len(comparison)} province-years" in agreement
+    assert "a death within 24 hours" in agreement
+    notes = _notes(pages["data"], "catalonia-method")
+    ratio30 = comparison.ratio_fatal_30d
+    assert (
+        f"{_fmt_pct(ratio30.min(), 0).removesuffix('%')}–{_fmt_pct(ratio30.max(), 0)} of DGT's "
+        "count of crashes with a death within 30 days" in notes
+    )
     # Where it shows fatal shares by circumstance, the page sends the reader to the calculator
     # before its first chart.
     first = main.find("<h2")
-    calculator = main.find('href="severity-models.html#calculator"')
+    calculator = main.find('href="calculator.html"')
     assert first < calculator < main.find("cat1_fatal_by_road")
 
 
 def test_barcelona_tables_name_each_breakdown_once(pages: dict[str, str]) -> None:
-    text = pages["barcelona"]
+    # The tables of people by road user, age and sex are the Barcelona page's technical notes.
+    text = _notes(pages["data"], "barcelona-method")
     for prefix in ("Road user: ", "Age: ", "Sex: "):
         assert f">{prefix}" not in text, prefix
     for column in ("Road user", "Age", "Sex"):
@@ -152,17 +176,18 @@ def test_barcelona_headline_numbers_come_from_the_tables(pages: dict[str, str]) 
 
 
 def test_model_scores_come_from_the_tables(pages: dict[str, str]) -> None:
-    text = pages["severity-models"]
+    # The scores are on the Model method and tests page; the model page gives the shares.
+    text, notes = pages["severity-models"], pages["validation"]
     scores = _table("sev_rolling_scores")
     pooled = scores[scores.subset.str.fullmatch(r"\d{4}-\d{4}")].set_index("estimator")
     calc, table = pooled.loc["calculator"], pooled.loc["road_x_crash_table"]
     trees = pooled.loc["boosted_trees"]
     # Ranking is given as ROC-AUC to two decimals, the scale the validation page uses.
-    assert f"The model's ROC-AUC is {calc.roc_auc:.2f} and the table's {table.roc_auc:.2f}" in text
-    assert f"({trees.roc_auc:.2f}) but gives no interval" in text
+    assert f"The model's ROC-AUC is {calc.roc_auc:.2f} and the table's {table.roc_auc:.2f}" in notes
+    assert f"({trees.roc_auc:.2f}) but gives no interval" in notes
     gap = _table("sev_comparison").set_index(["estimator", "metric"])
     lead = gap.loc[("road_x_crash_table", "roc_auc_minus_calculator")]
-    assert f"lead is {-lead.high:.2f}–{-lead.low:.2f} (95% interval)" in text
+    assert f"lead is {-lead.high:.2f}–{-lead.low:.2f} (95% interval)" in notes
     assert _fmt_pct(calc.mean_predicted) in text and _fmt_pct(calc.prevalence) in text
     # Predicted against observed leads the page, before the calculator, and no score box.
     body = text[text.find("<main>") : text.find("</main>")]
@@ -217,19 +242,65 @@ def test_models_page_follows_the_decisions(pages: dict[str, str]) -> None:
     assert "are not used as predictors" in text
     assert "can only rank" in text
     assert "ML_MODEL_REVIEW.md" in text and "SEVERITY_CALCULATOR.md" in text
-    # The calculator's form offers exactly the exported model's inputs.
+
+
+def _options(form: str, control: str) -> list[str]:
+    """The option values of the calculator's select ``calc-<control>``."""
+    select = re.search(rf'<select id="calc-{re.escape(control)}"[^>]*>(.*?)</select>', form)
+    assert select, control
+    return re.findall(r'<option value="([^"]*)"', select.group(1))
+
+
+def test_every_level_of_the_model_stays_reachable(pages: dict[str, str]) -> None:
+    """The calculator asks directly for every level of the place and the conditions, and its
+    crash description, run through the page's own mapping, reaches every crash type, every kind
+    of road user and every number involved."""
     import json
+    import shutil
+    import subprocess
 
     from dgt_stats.paths import REPORTS_DIR
+    from dgt_stats.site import tool_calculator
 
+    form = pages["calculator"]
     model = json.loads((REPORTS_DIR / "models" / "severity_model.json").read_text())
-    for name, spec in model["inputs"].items():
-        if spec["type"] == "flags":
-            for level in spec["levels"]:
-                assert f'name="users" value="{level["value"]}"' in text, level
-        else:
-            assert f'name="{name}"' in text, name
-            assert text.count(f'id="calc-{name}"') == 1, name
+    direct = (*tool_calculator.PLACE_INPUTS, *tool_calculator.CONDITION_INPUTS)
+    assert {*direct, "crash_type", "units", "users"} == set(model["inputs"])
+    for name in direct:
+        assert form.count(f'id="calc-{name}"') == 1 and f'name="{name}"' in form, name
+        levels = [level["value"] for level in model["inputs"][name]["levels"]]
+        # The lighting's empty option is the "Choose the lighting" prompt.
+        assert [value for value in _options(form, name) if value] == levels, name
+    for what, fields in tool_calculator.GROUPS.items():
+        assert form.count(f'data-group="{what}"') == 1, what
+        for _, control, _, options in fields:
+            assert _options(form, control) == [value for value, _ in options], control
+    assert _options(form, "what") == [value for value, _ in tool_calculator.WHAT]
+    node = shutil.which("node")
+    if node is None:
+        pytest.skip("Node is not installed")
+    script = PROJECT_ROOT / "src/dgt_stats/site/assets/severity-calculator.js"
+    described = json.loads(
+        subprocess.run(
+            [
+                node,
+                "-e",
+                f"const b = require({json.dumps(str(script))});"
+                "const input = JSON.parse(require('fs').readFileSync(0, 'utf8'));"
+                "process.stdout.write(JSON.stringify(input.map(c => b.crash(c))));",
+            ],
+            input=json.dumps(tool_calculator.builder_choices()),
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout
+    )
+    for name, reached in (
+        ("crash_type", {crash["crash_type"] for crash in described}),
+        ("units", {crash["units"] for crash in described}),
+        ("users", {user for crash in described for user in crash["users"]}),
+    ):
+        assert reached == {level["value"] for level in model["inputs"][name]["levels"]}, name
 
 
 def test_validation_page_keeps_population_differences_and_validation_apart(
