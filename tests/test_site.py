@@ -649,7 +649,7 @@ def test_policy_page_reports_the_falsification_not_the_headline(built: Path) -> 
     # The forecast shortfall is printed as the proportional change the rank orders.
     assert f"{abs(np.expm1(true_forecast.log_ratio)) * 100:.1f}% below their forecast" in text
     assert 'src="figures/p2_july_placebos.svg"' in text
-    # The fall is not attributed to the licence, and the 2019 study is a collapsed note.
+    # The fall is not attributed to the licence.
     opening = re.search(r'<p class="summary">(.*?)</p>', text, re.S).group(1)
     assert "cannot show that the licence caused" in opening
     # The step is never quoted without what the slope change does to it: the summary gives the
@@ -662,7 +662,15 @@ def test_policy_page_reports_the_falsification_not_the_headline(built: Path) -> 
     assert "too narrow" in opening
     assert components._signed_pct(float(calibration.calibrated_low)) in text
     assert "strong evidence" not in text and "QAIC" in text
-    assert "2019" in text and 'src="figures/q8_speed_series.svg"' not in text
+    # The 2019 speed-limit design, whose placebo test fails, is a technical note on the
+    # methodology page with its fits linked; its series is drawn nowhere.
+    data = (built / "data.html").read_text(encoding="utf-8")
+    notes = data[data.index('id="policy-method"') :]
+    notes = notes[: notes.index("<h2", 1)]
+    assert "2019 speed limit on conventional roads" in notes
+    assert 'href="tables/q8_speed_placebo.csv"' in notes
+    assert 'src="figures/q8_speed_series.svg"' not in text + data
+    assert 'href="data.html#policy-method"' in text
     # The exposure series are named and their effect reported; the toll series is its
     # intensity, which does not step with the network's length, and no offset is used.
     assert "CORES" in text and "toll" in text and "intensity" in text
@@ -757,7 +765,15 @@ def test_trend_pages_show_every_denominator_and_the_projection(built: Path) -> N
     assert "roughly flat" not in trends and "per unit of traffic" not in trends
     assert "hypothetical" in trends
     long_run = (built / "long-run.html").read_text(encoding="utf-8")
-    assert 'src="figures/l2_observed_over_trend.svg"' in long_run
+    # The ratio-to-trend figure, the projection under other choices and the interurban series in
+    # detail are the long-run page's technical notes on the methodology page, which it links to.
+    data = (built / "data.html").read_text(encoding="utf-8")
+    notes = data[data.index('id="long-run-method"') :]
+    notes = notes[: notes.index("<h2", 1)]
+    for name in ("l2_observed_over_trend", "l4_km_against_fuel"):
+        assert f'src="figures/{name}.svg"' in notes and name not in long_run, name
+    assert "Observed deaths against the pre-pandemic trend under other projections" in notes
+    assert 'href="data.html#long-run-method"' in long_run
     series = pd.read_csv(TABLES_DIR / "longrun_series.csv")
     fuel = series[(series.measure == "road_fuel") & (series.period == "projected")]
     last = fuel[fuel.year == fuel.year.max()].iloc[0]

@@ -277,6 +277,37 @@ def test_pages_carry_no_template_furniture(built: dict[str, str]) -> None:
             assert main.count('<p class="summary">') == 1, slug
 
 
+# The pages on deaths over time and the methodology section that holds each one's technical notes.
+TIME_PAGES = {
+    "long-run": "long-run-method",
+    "trends": "trends-method",
+    "seasons": "seasons-method",
+    "policy": "policy-method",
+}
+
+
+def test_time_pages_are_short_and_keep_their_detail_on_the_methodology_page(
+    built: dict[str, str],
+) -> None:
+    for slug, notes in TIME_PAGES.items():
+        main = _main(built[slug])
+        opening = re.sub(r"<[^>]+>", " ", re.search(r'<p class="summary">(.*?)</p>', main).group(1))
+        assert 40 <= len(opening.split()) <= 90, (slug, len(opening.split()))
+        # No paragraph of the argument runs long, and one to three figures and tables carry it.
+        for block in _blocks(built[slug], "p"):
+            assert len(block.split()) <= 100, (slug, block[:80])
+        shown = main.count("<figure") + main.count('<div class="table-block">')
+        assert 1 <= shown <= 3, (slug, shown)
+        # The detail is not folded away on the page: it is a section of the methodology page,
+        # which the page links to.
+        assert '<details class="technical"' not in main, slug
+        assert f'href="data.html#{notes}"' in main, slug
+        assert f'<h2 id="{notes}">' in built["data"], slug
+    # The yearly series can be explored from the pages that read them.
+    for slug in ("long-run", "trends"):
+        assert 'href="trends-explorer.html"' in _main(built[slug]), slug
+
+
 # The pages that quote the figures for drivers aged 75 and over.
 OLDER_PAGES = ("drivers", "index", "data")
 
