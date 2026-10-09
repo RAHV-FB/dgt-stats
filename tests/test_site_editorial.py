@@ -264,6 +264,44 @@ def test_the_validation_page_does_not_claim_national_transferability(
     assert 'class="compare"' not in built["validation"]
 
 
+# The regional crash-record pages and the methodology section that holds each one's technical
+# notes.
+RECORD_PAGES = {"catalonia": "catalonia-method", "barcelona": "barcelona-method"}
+
+
+def test_record_pages_are_short_and_keep_their_detail_on_the_methodology_page(
+    built: dict[str, str],
+) -> None:
+    import pandas as pd
+
+    from dgt_stats.site.regional_common import _year_label
+
+    for slug, notes in RECORD_PAGES.items():
+        main = _main(built[slug])
+        opening = re.sub(r"<[^>]+>", " ", re.search(r'<p class="summary">(.*?)</p>', main).group(1))
+        assert 40 <= len(opening.split()) <= 90, (slug, len(opening.split()))
+        # No paragraph of the argument runs long, and one to three figures and tables carry it.
+        for block in _blocks(built[slug], "p"):
+            assert len(block.split()) <= 100, (slug, block[:80])
+        shown = main.count("<figure") + main.count('<div class="table-block">')
+        assert 1 <= shown <= 3, (slug, shown)
+        # The detail is not folded away on the page: it is a section of the methodology page,
+        # which the page links to.
+        assert '<details class="technical"' not in main, slug
+        assert f'href="data.html#{notes}"' in main, slug
+        assert f'<h2 id="{notes}">' in built["data"], slug
+    # Catalonia's fatal shares by circumstance lead to the calculator built on the same file.
+    assert 'href="calculator.html"' in _main(built["catalonia"])
+    # Barcelona's records are one city's in one year, named in the opening, and the models
+    # fitted on them give no probability.
+    year = _year_label(pd.read_csv(TABLES_DIR / "bcn_person_severity_share.csv"))
+    opening = re.search(r'<p class="summary">(.*?)</p>', built["barcelona"]).group(1)
+    assert f"crashes in {year}:" in opening
+    visible = " ".join(_visible(built["barcelona"]).split())
+    assert "one year in one city" in visible
+    assert "neither gives probabilities" in visible and "kept for research only" in visible
+
+
 def test_pages_carry_no_template_furniture(built: dict[str, str]) -> None:
     # The opening summary carries a page's result: no indicator strip repeats it, no generic
     # "Conclusion" or "Interpretation" heading closes it, and the supporting analyses say what
