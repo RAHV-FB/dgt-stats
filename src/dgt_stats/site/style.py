@@ -366,6 +366,7 @@ main { padding: var(--space-7) 0 var(--space-7); min-width: 0; }
 .tool-svg .axis { stroke: var(--rule-strong); stroke-width: 1; }
 .tool-svg .mark { stroke: var(--text-muted); stroke-width: 1; stroke-dasharray: 3 3; }
 .tool-svg .series { stroke-width: 2.5; }
+.tool-svg path.series { fill: none; }
 .tool-svg .series-0 { stroke: var(--mark); fill: var(--mark); }
 .tool-svg .series-1 { stroke: var(--text-muted); fill: var(--text-muted); }
 .tool-svg path.series-1 { stroke-dasharray: 6 4; }
@@ -381,12 +382,18 @@ main { padding: var(--space-7) 0 var(--space-7); min-width: 0; }
 .tool-notes { max-width: var(--measure); margin-top: var(--space-6); border-top: 1px solid var(--rule); padding-top: var(--space-4); font-size: var(--text-sm); }
 .tool-notes p { margin: 0 0 var(--space-3); }
 .tool-fallback { color: var(--text-muted); }
+.tool-caveats { margin: var(--space-4) 0 0; padding-left: var(--space-4); font-size: var(--text-sm); color: var(--text-muted); }
+.tool-caveats li + li { margin-top: var(--space-1); }
+.tool-flag { font-size: var(--text-xs); color: var(--text-muted); white-space: nowrap; }
+.tool-table tbody th[scope] { white-space: normal; min-width: 9ch; }
 @container (min-width: 52rem) {
   .tool-layout { grid-template-columns: minmax(16rem, 20rem) minmax(0, 1fr); align-items: start; }
   .tool-fields { grid-template-columns: 1fr; }
 }
 @media (max-width: 30rem) {
   .tool-fields { grid-template-columns: 1fr; }
+  .tool-table th, .tool-table td { padding-right: var(--space-2); }
+  .tool-table .num { padding-left: var(--space-2); }
 }
 
 /* ------------------------------------------------------------------ calculator */

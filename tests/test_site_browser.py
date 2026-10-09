@@ -591,3 +591,287 @@ def test_without_scripting_the_fallback_is_shown(browser, server) -> None:
     assert not page.is_visible("#calculator")
     assert page.is_visible("#calculator-fallback")
     context.close()
+
+
+# ------------------------------------------------------------- the crash statistics explorer
+
+EXPLORER = "crash-explorer.html"
+CRASH_TABLE = REPORTS_DIR / "tables" / "explore_dgt_crashes.csv"
+CRASH_COUNTS = [
+    "injury_crashes",
+    "fatal_crashes",
+    "deaths_30d",
+    "deaths_pedestrians",
+    "deaths_cyclists",
+    "deaths_moped_riders",
+    "deaths_motorcyclists",
+    "deaths_car_occupants",
+    "deaths_van_light_truck",
+    "deaths_heavy_vehicle",
+    "deaths_other",
+]
+
+
+def _explorer_data() -> dict:
+    return json.loads((SITE / "tools" / "crash-explorer.json").read_text(encoding="utf-8"))
+
+
+def _open_explorer(browser, server, size: dict | None = None, scheme: str = "light"):
+    page = browser.new_page(viewport=size or LAPTOP, color_scheme=scheme)
+    errors: list[str] = []
+    page.on("pageerror", lambda error: errors.append(str(error)))
+    page.on(
+        "console", lambda message: errors.append(message.text) if message.type == "error" else None
+    )
+    page.goto(f"{server}/{EXPLORER}", wait_until="networkidle")
+    page.wait_for_selector('[data-tool="crash-explorer"]:not([hidden])')
+    return page, errors
+
+
+@pytest.fixture()
+def explorer(browser, server):
+    page, errors = _open_explorer(browser, server)
+    yield page
+    assert errors == []
+    page.close()
+
+
+def _explorer_result(page) -> str:
+    return re.sub(r"\s+", " ", page.text_content(".tool-result"))
+
+
+def _value(text: str) -> float | None:
+    text = text.strip().replace(",", "").replace("−", "-")
+    return None if text in ("", "–") else float(text)
+
+
+def _explorer_rows(page) -> list[list[str]]:
+    return [
+        [cell.text_content() for cell in row.query_selector_all("th, td")]
+        for row in page.query_selector_all("[data-table] tbody tr")
+    ]
+
+
+def test_the_crash_explorer_loads_and_every_control_changes_the_result(explorer) -> None:
+    data = _explorer_data()
+    changes = [
+        ("from", "2"),
+        ("to", str(len(data["years"]) - 2)),
+        ("region", str(data["catalonia"])),
+        ("road", "0"),
+        ("type", "0"),
+        ("outcome", "fatal_share"),
+        ("outcome", "user"),
+        ("user", "3"),
+        ("by", "type"),
+    ]
+    assert explorer.is_hidden('[data-field="user"]')
+    for name, value in changes:
+        before = _explorer_result(explorer)
+        explorer.select_option(f'[name="{name}"]', value)
+        assert _explorer_result(explorer) != before, name
+    # The road-user menu shows only with the outcome that needs it, and the breakdown's own
+    # filter shows every level instead of one.
+    assert explorer.is_visible('[data-field="user"]')
+    assert explorer.is_disabled('[name="type"]')
+    assert explorer.input_value('[name="type"]') == "each"
+    explorer.select_option('[name="by"]', "year")
+    assert explorer.input_value('[name="type"]') == "0" and explorer.is_enabled('[name="type"]')
+    # A start year after the end year moves the end year with it.
+    explorer.select_option('[name="from"]', str(len(data["years"]) - 1))
+    assert explorer.input_value('[name="to"]') == str(len(data["years"]) - 1)
+
+
+def test_the_crash_explorer_names_the_caveats_that_apply(explorer) -> None:
+    def caveats() -> str:
+        return explorer.text_content("[data-caveats]")
+
+    assert "recorded by the police" in caveats()
+    assert "30 days" not in caveats() and "coding breaks" not in caveats()
+    explorer.select_option('[name="outcome"]', "fatal_share")
+    assert "30 days" in caveats() and "not rates per person" in caveats()
+    explorer.select_option('[name="road"]', "0")
+    assert "Catalonia's records" in caveats()
+    assert explorer.query_selector('[data-caveats] a[href="data.html#coding-breaks"]')
+    # A region other than Catalonia leaves Catalonia's coding out of it.
+    madrid = _explorer_data()["regions"].index("Madrid")
+    explorer.select_option('[name="region"]', str(madrid))
+    assert "Catalonia's records" not in caveats()
+    # Small cells are flagged in the table and named once below it.
+    explorer.select_option('[name="by"]', "type")
+    flagged = [row for row in _explorer_rows(explorer) if "low support" in row[0]]
+    assert flagged and all(0 < _value(row[1]) < _explorer_data()["minSupport"] for row in flagged)
+    assert caveats().count("low support") == 1
+
+
+def test_the_crash_explorer_says_when_nothing_was_recorded(explorer) -> None:
+    data = _explorer_data()
+    explorer.select_option('[name="region"]', str(data["regions"].index("Ceuta")))
+    explorer.select_option('[name="road"]', str(data["roads"].index("Motorways")))
+    text = _explorer_result(explorer)
+    assert "No recorded crashes for this selection" in text
+    assert f"The records cover {data['years'][0]}–{data['years'][-1]}" in text
+    assert _explorer_rows(explorer) == [] and explorer.query_selector("[data-chart] svg") is None
+
+
+def _expected(table, data: dict, choice: dict):
+    """The selection added up in pandas from the committed table, by the breakdown's level."""
+    years = data["years"]
+    rows = table[
+        (table.year >= years[int(choice["from"])]) & (table.year <= years[int(choice["to"])])
+    ]
+    columns = {
+        "region": ("community", "regions"),
+        "road": ("road_type", "roads"),
+        "type": ("crash_type", "types"),
+    }
+    for name, (column, labels) in columns.items():
+        if choice[name] != "all" and choice["by"] != name:
+            rows = rows[rows[column] == data[labels][int(choice[name])]]
+    by = {"year": "year", **{name: column for name, (column, _) in columns.items()}}
+    grouped = rows.groupby(by[choice["by"]])[CRASH_COUNTS].sum()
+    if choice["by"] == "year":
+        grouped.index = grouped.index.astype(str)
+    return grouped, rows[CRASH_COUNTS].sum()
+
+
+def _outcome(sums, choice: dict) -> tuple[float | None, tuple[float, float] | None]:
+    from dgt_stats import rates
+
+    crashes = sums["injury_crashes"]
+    outcome = choice["outcome"]
+    if outcome in ("crashes", "fatal", "deaths", "user"):
+        column = {"crashes": "injury_crashes", "fatal": "fatal_crashes", "deaths": "deaths_30d"}
+        name = column.get(outcome) or CRASH_COUNTS[3 + int(choice["user"])]
+        return float(sums[name]), None
+    if not crashes:
+        return None, None
+    if outcome == "deaths_rate":
+        return 100 * sums["deaths_30d"] / crashes, None
+    low, high = rates.wilson_interval(sums["fatal_crashes"] / crashes, crashes)
+    return 100 * sums["fatal_crashes"] / crashes, (100 * low, 100 * high)
+
+
+def _close(shown: float | None, expected: float | None) -> bool:
+    if expected is None:
+        return shown is None
+    # Shares are shown to two decimals, counts exactly.
+    return shown is not None and abs(shown - expected) <= 0.005 + 1e-9
+
+
+def test_crash_explorer_selections_match_the_table(explorer) -> None:
+    import numpy as np
+    import pandas as pd
+
+    table = pd.read_csv(CRASH_TABLE)
+    data = _explorer_data()
+    rng = np.random.default_rng(16)
+    outcomes = ["crashes", "fatal", "deaths", "fatal_share", "deaths_rate", "user"]
+    for _ in range(20):
+        first = int(rng.integers(len(data["years"])))
+        choice = {
+            "from": str(first),
+            "to": str(int(rng.integers(first, len(data["years"])))),
+            "outcome": str(rng.choice(outcomes)),
+            "user": str(int(rng.integers(len(data["users"])))),
+            "by": str(rng.choice(["year", "region", "road", "type"])),
+        }
+        for name, labels in (("region", "regions"), ("road", "roads"), ("type", "types")):
+            pick = int(rng.integers(-4, len(data[labels])))
+            choice[name] = "all" if pick < 0 else str(pick)
+        explorer.select_option('[name="by"]', "year")
+        for name in ("from", "to", "region", "road", "type", "outcome", "user", "by"):
+            if name != "user" or choice["outcome"] == "user":
+                explorer.select_option(f'[name="{name}"]', choice[name])
+        assert explorer.input_value('[name="from"]') == choice["from"], choice
+        grouped, total = _expected(table, data, choice)
+        if not total["injury_crashes"]:
+            assert "No recorded crashes" in _explorer_result(explorer), choice
+            continue
+        value, interval = _outcome(total, choice)
+        headline = explorer.text_content("[data-headline] strong")
+        assert _close(_value(headline), value), (choice, headline, value)
+        if interval:
+            shown = re.search(r"95% interval ([\d.]+)–([\d.]+)", _explorer_result(explorer))
+            assert _close(float(shown.group(1)), interval[0]), choice
+            assert _close(float(shown.group(2)), interval[1]), choice
+        rows = _explorer_rows(explorer)
+        assert {row[0].replace(" low support", "") for row in rows} >= set(grouped.index), choice
+        for row in rows:
+            label = row[0].replace(" low support", "")
+            sums = grouped.loc[label] if label in grouped.index else total * 0
+            assert _value(row[1]) == sums["injury_crashes"], (choice, row)
+            assert ("low support" in row[0]) == (0 < sums["injury_crashes"] < data["minSupport"])
+            if choice["outcome"] != "crashes":
+                value, interval = _outcome(sums, choice)
+                assert _close(_value(row[2]), value), (choice, row, value)
+                if interval:
+                    low, high = (_value(part) for part in row[3].split("–"))
+                    assert _close(low, interval[0]) and _close(high, interval[1]), (choice, row)
+
+
+def test_crash_explorer_wilson_interval_equals_pythons(explorer) -> None:
+    from dgt_stats import rates
+
+    z = _explorer_data()["z"]
+    for fatal, crashes in ((0, 1), (0, 19), (3, 19), (7, 244), (1435, 875013), (19, 19)):
+        shown = explorer.evaluate("([k, n, z]) => Tools.wilson(k, n, z)", [fatal, crashes, z])
+        low, high = rates.wilson_interval(fatal / crashes, crashes)
+        assert shown["low"] == pytest.approx(low, abs=1e-12), (fatal, crashes)
+        assert shown["high"] == pytest.approx(high, abs=1e-12), (fatal, crashes)
+
+
+@pytest.mark.parametrize("scheme", ["light", "dark"])
+@pytest.mark.parametrize("width", [320, 768, 1280])
+def test_crash_explorer_fits_every_width(browser, server, width: int, scheme: str) -> None:
+    page, errors = _open_explorer(browser, server, {"width": width, "height": 900}, scheme)
+    for by, outcome in (("year", "crashes"), ("type", "fatal_share"), ("region", "user")):
+        page.select_option('[name="outcome"]', outcome)
+        page.select_option('[name="by"]', by)
+        overflow = page.evaluate(
+            "document.documentElement.scrollWidth - document.documentElement.clientWidth"
+        )
+        assert overflow <= 1, (width, scheme, by, overflow)
+        chart = page.evaluate(
+            "(() => { const c = document.querySelector('[data-chart]');"
+            " const s = c.querySelector('svg'); return [c.clientWidth,"
+            " s ? s.getBoundingClientRect().width : 0]; })()"
+        )
+        assert 0 < chart[1] <= chart[0] + 0.5, (width, scheme, by, chart)
+        # The figures fit the column: no sideways scrolling inside the table either.
+        table = page.evaluate(
+            "(() => { const w = document.querySelector('[data-table]');"
+            " return w.scrollWidth - w.clientWidth; })()"
+        )
+        assert table <= 1, (width, scheme, by, table)
+    page.close()
+    assert errors == []
+
+
+def test_keyboard_alone_operates_the_crash_explorer(explorer) -> None:
+    explorer.focus("#ce-from")
+    order = []
+    for _ in range(6):
+        order.append(explorer.evaluate("document.activeElement.id"))
+        explorer.keyboard.press("Tab")
+    # The road-user menu is skipped while it is hidden.
+    assert order == ["ce-from", "ce-to", "ce-region", "ce-road", "ce-type", "ce-outcome"]
+    assert explorer.evaluate("document.activeElement.id") == "ce-by"
+    explorer.focus("#ce-from")
+    for keys in ("ArrowDown", "Tab ArrowUp", "Tab ArrowDown", "Tab ArrowDown", "Tab ArrowDown"):
+        before = _explorer_result(explorer)
+        for key in keys.split():
+            explorer.keyboard.press(key)
+        assert _explorer_result(explorer) != before, keys
+    explorer.keyboard.press("Tab")
+    explorer.keyboard.press("End")
+    assert explorer.input_value("#ce-outcome") == "user"
+    explorer.keyboard.press("Tab")
+    assert explorer.evaluate("document.activeElement.id") == "ce-user"
+    explorer.locator("[data-status]", has_text="deaths within 30 days").wait_for(state="attached")
+    assert explorer.get_attribute("[data-status]", "aria-live") == "polite"
+    for control in explorer.query_selector_all(".tool select"):
+        label = explorer.evaluate(
+            "(el) => document.querySelector(`label[for='${el.id}']`)?.textContent", control
+        )
+        assert label, control.get_attribute("id")

@@ -129,6 +129,22 @@ used.
   improvement in recording. Two undocumented quirks are handled as the data page states: code 0 in
   the island field from 2018, and the strong-wind flag in 2021.
 
+**The crash explorer's table** (`crash_cells.py`, `regions.py`; written by `scripts/model.py` as
+`explore_dgt_crashes.csv`). One row per cell of year × autonomous community × road group × crash
+type that holds at least one injury crash in the processed records (2016 onwards), with injury
+crashes, fatal crashes (at least one death within 30 days), 30-day deaths and those deaths by
+road-user type. No cell is filled with zeros and nothing is interpolated. The community comes from
+the province code by INE's classification; road types are the road groups above. Crash types are
+DGT's own, except that the nine run-off-road codes (11–19, by side and outcome) form one type. The
+twelve per-crash death counts form eight groups: van and light-truck occupants together, lorry and
+bus occupants together, and other vehicles, unspecified vehicles and personal mobility vehicles
+(counted separately only from 2020) together. A record without a road type or a crash type counts
+under "not recorded", so nothing drops out. The tests reconcile the table exactly with the
+published yearly totals of injury crashes and 30-day deaths (`q1_annual_headline`) for every year
+it covers, and check that the road-user deaths of every cell add up to its 30-day deaths. The
+explorer adds up the rows the reader selects in the browser; the interval of a fatal share is the
+95% Wilson interval (`rates.wilson_interval`, `Tools.wilson`).
+
 ## 4. Counts against risk, 2019–2024 (`risk_trends.py`)
 
 Each annual outcome, 30-day deaths, injured admitted to hospital and injury crashes, is set against

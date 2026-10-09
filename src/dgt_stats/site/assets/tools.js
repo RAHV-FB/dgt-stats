@@ -29,6 +29,16 @@
     return format(low) + "–" + format(high);
   }
 
+  // The Wilson score interval of a share, successes out of n, at the normal quantile z (which the
+  // tool's data file carries); the same formula as dgt_stats.rates.wilson_interval.
+  function wilson(successes, n, z) {
+    if (!(n > 0)) return { low: NaN, high: NaN };
+    var share = successes / n, z2 = z * z;
+    var centre = (share + z2 / (2 * n)) / (1 + z2 / n);
+    var half = (z * Math.sqrt(share * (1 - share) / n + z2 / (4 * n * n))) / (1 + z2 / n);
+    return { low: Math.max(centre - half, 0), high: Math.min(centre + half, 1) };
+  }
+
   function element(tag, attributes, text) {
     var node = document.createElement(tag);
     Object.keys(attributes || {}).forEach(function (key) { node.setAttribute(key, attributes[key]); });
@@ -157,7 +167,10 @@
     var bars = spec.bars.filter(function (b) { return b.value !== null && isFinite(b.value); });
     if (!bars.length) { container.appendChild(element("p", { class: "tool-empty" }, spec.empty || "No data for this selection.")); return; }
     var width = widthOf(container);
-    var narrow = width < 480;
+    // Labels sit beside the bars where the longest fits (about 7 px a character), above them
+    // otherwise.
+    var longest = Math.max.apply(null, bars.map(function (b) { return String(b.label).length; }));
+    var narrow = width < 480 || longest * 7 > Math.min(220, Math.round(width * 0.34));
     var labelW = narrow ? 0 : Math.min(220, Math.round(width * 0.34));
     var rowH = narrow ? 52 : 34;
     var margin = { top: 8, right: 18, bottom: 34, left: labelW + 8 };
@@ -243,6 +256,7 @@
     percent: percent,
     signedPercent: signedPercent,
     range: range,
+    wilson: wilson,
     element: element,
     options: options,
     announcer: announcer,

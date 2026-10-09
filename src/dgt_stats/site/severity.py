@@ -520,6 +520,10 @@ def page_severity(captions: dict[str, str]) -> str:
         "differ."
     )
 
+    body += (
+        '<p><a href="crash-explorer.html">Explore these records</a> by year, region, road type '
+        "and crash type.</p>"
+    )
     body += "<h2>Crash type and location go most strongly with a death</h2>"
     body += (
         "<p>An odds ratio compares the odds of a death in crashes with a circumstance against "
