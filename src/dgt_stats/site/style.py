@@ -64,6 +64,19 @@ def _tokens(colours: dict[str, str], indent: str = "  ") -> str:
     return "\n".join(f"{indent}--{name}: {value};" for name, value in colours.items())
 
 
+# The column widths, in rems, at which a figure may switch from its wide drawing to its narrow one
+# (``components.figure_switch_rem``): one container query per width.
+FIGURE_SWITCH_REMS = range(20, 65)
+
+
+def _figure_switches() -> str:
+    return "\n".join(
+        f"@container figure (max-width: {rem}rem) {{ .figure-switch-{rem} .figure-wide "
+        f"{{ display: none; }} .figure-switch-{rem} .figure-narrow {{ display: block; }} }}"
+        for rem in FIGURE_SWITCH_REMS
+    )
+
+
 STYLE = (
     """
 /* ------------------------------------------------------------------ fonts */
@@ -388,11 +401,17 @@ figure { margin: var(--space-6) 0 var(--space-7); max-width: var(--wide); }
 .figure-media { overflow-x: auto; background: var(--figure-bg); width: fit-content; max-width: 100%; }
 .figure-media a { display: block; width: max-content; max-width: 100%; }
 .figure-media a:focus-visible { outline: 2px solid var(--figure-focus); outline-offset: -2px; }
-.figure-media picture { display: block; }
-/* A chart shrinks to fit its column, but never below the size that keeps its text legible: below
-   that it scrolls sideways inside its box. A phone is served the chart drawn for its column
-   (components.NARROW_MEDIA, the same width as below), which fills the column and never scrolls. */
-.figure-media img { display: block; width: var(--w); max-width: 100%; min-width: var(--w-small); height: auto; }
+/* A figure shows its wide drawing while the column leaves its smallest text at 11 px or more, and
+   its narrow drawing, made for a phone's column, below that (components.figure_switch_rem): the
+   switch follows the column, whatever the viewport, zoom or layout. Only the drawing shown is
+   loaded, both being lazy. */
+figure { container: figure / inline-size; }
+.figure-media img { max-width: 100%; height: auto; }
+.figure-wide { display: block; width: var(--w); min-width: var(--w-small); }
+.figure-narrow { display: none; width: var(--w-narrow); }
+"""
+    + _figure_switches()
+    + """
 figcaption {
   margin-top: var(--space-3); max-width: var(--measure);
   font-size: var(--text-sm); line-height: 1.5; color: var(--text-muted);
@@ -405,7 +424,6 @@ figcaption p { margin: 0; }
 }
 @media (max-width: 40rem) {
   .figure-tools { display: none; }
-  .figure-media img { width: var(--w-narrow, var(--w)); min-width: 0; }
 }
 
 /* ------------------------------------------------------------------ tables */
@@ -612,6 +630,8 @@ nav.pager a[rel="next"] .pager-title::after { transform: rotate(-45deg); margin-
     overflow: visible; padding: 0;
   }
   .figure-media img { width: auto !important; max-width: 100% !important; min-width: 0 !important; }
+  .figure-media .figure-wide { display: block !important; }
+  .figure-media .figure-narrow { display: none !important; }
   .table-wrap { overflow: visible; }
   table { font-size: 8.5pt; }
   th, td { white-space: normal; }

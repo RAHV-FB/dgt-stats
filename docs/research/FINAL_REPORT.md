@@ -451,7 +451,7 @@ measurements, labelled with when they were taken; none of them is the final stat
 | Lint and format (`ruff check`, `ruff format --check`) | clean when this review was first written |
 | Clean rebuild of the EMEF tables, driver-age rates, figures and site from the raw files | every committed output reproduced byte for byte when this review was first written |
 | CI on the pull request (Python 3.11, locked dependencies, national and regional layers rebuilt from the raw files, `pytest`) | passed on all five pushes of the rebuild before this review; the result for each later push is shown on the pull request |
-| Deployment | not deployed by this work: the Pages workflow publishes the site from `main`, so the rebuilt pages go live only when the pull request is merged |
+| Deployment | not deployed by this work: the Pages workflow publishes the site from `main`, so the rebuilt pages went live when the pull request was merged, as `5ea4b24`, on 8 October 2026 ([`ACCEPTANCE_REPORT.md`](ACCEPTANCE_REPORT.md), section 8) |
 
 The browser tests need the optional `browser` dependencies (`pip install -e .[browser]`) and skip
 without them locally. CI runs them in a job of its own (`browser` in `.github/workflows/ci.yml`),
@@ -593,6 +593,12 @@ and for most of the wide charts from 641 px to about 960 px, where the wide draw
 to about 10.2 px); at 768 px nine of them also scroll sideways. That follows from the figure
 scales and the breakpoint shared by every chart on the site, not from these figures, and is left
 to a site-wide change.
+
+Fixed after publication, in the follow-up to the merge `5ea4b24`: the phone drawings are drawn
+narrower, so that their text is at least 11 px in the column of a 320 px phone, and each figure
+shows its phone drawing wherever its column is too narrow for the wide drawing's text to reach
+11 px. Measured at 17 widths from 320 to 1440 px in both themes, the smallest chart text is
+11.2 px and no chart scrolls ([`ACCEPTANCE_REPORT.md`](ACCEPTANCE_REPORT.md), section 8).
 
 **The method fixes (October 2026).** A later independent review found three faults of method, and
 each was corrected (the full account is in the change log of

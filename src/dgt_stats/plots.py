@@ -114,14 +114,18 @@ FONT_SIZE = 9.5
 TICK_SIZE = 9.0
 NOTE_SIZE = 8.5
 
-# The narrow drawing (``narrow``). A phone of 390 CSS px has a column of 358 px, 334 px inside
-# the dark theme's white chart box; a chart at most ``NARROW_MAX_POINTS`` wide fills it at 1.22
-# px a point or more, so the 9-point text is at least 11 px. Notes are set at the tick size.
-NARROW_WIDTH = 3.6
-NARROW_MAX_POINTS = 273.0
+# The narrow drawing (``narrow``). The narrowest phone served, 320 CSS px, has a column of 288 px;
+# a chart at most ``NARROW_MAX_POINTS`` wide fills it at 1.22 px a point or more, so the 9-point
+# text is at least 11 px. Notes are set at the tick size.
+NARROW_WIDTH = 3.0
+NARROW_MAX_POINTS = 235.0
 # Category labels in a narrow chart wrap at about this many characters, axis labels at about
 # twice that.
-NARROW_LABEL_CHARS = 22
+NARROW_LABEL_CHARS = 18
+# The least distance, in points, between the rows of a narrow range chart (``estimate_and_range``).
+NARROW_ROW_POINTS = 26.0
+# The size of a narrow chart's markers against a wide chart's (``_mark``).
+NARROW_MARKER_SCALE = 0.8
 NARROW = False
 
 # The title of every chart drawn since the registry was last cleared, by file stem. The site
@@ -152,8 +156,9 @@ def _wrap(text: str, width: int) -> str:
 
 def _fit(text: object, width: int = NARROW_LABEL_CHARS) -> str:
     """A category label as a narrow chart sets it: wrapped at about ``width`` characters between
-    words (never at a hyphen), with a closing note in brackets on a line of its own where it
-    fits there. Unchanged in a wide chart."""
+    words (never at a hyphen), in lines as even as the words allow, so that no word is left
+    alone on a last line that could share it, with a closing note in brackets on a line of its
+    own where it fits there. Unchanged in a wide chart."""
     text = str(text)
     if not NARROW or len(text) <= width:
         return text
@@ -162,12 +167,26 @@ def _fit(text: object, width: int = NARROW_LABEL_CHARS) -> str:
         head, gap, tail = text.rpartition(" (")
     if head and gap and tail.endswith(")") and len(tail) < width:
         return f"{_fit(head, width)}\n({tail}"
-    return textwrap.fill(text, width=width, break_long_words=False, break_on_hyphens=False)
+    lines = _wrapped(text, width)
+    # The narrowest width that takes no more lines than ``width`` does.
+    while width > 1 and len(shorter := _wrapped(text, width - 1)) == len(lines):
+        lines, width = shorter, width - 1
+    return "\n".join(lines)
+
+
+def _wrapped(text: str, width: int) -> list[str]:
+    return textwrap.wrap(text, width=width, break_long_words=False, break_on_hyphens=False)
 
 
 def _axis_text(text: str) -> str:
     """An axis label or legend entry, wrapped to a narrow chart's width."""
     return _fit(text, 2 * NARROW_LABEL_CHARS) if text else text
+
+
+def _mark(size: float) -> float:
+    """A marker's size in points: smaller in a narrow chart, whose plot is about half as wide, so
+    that a short interval still shows on either side of its dot."""
+    return size * NARROW_MARKER_SCALE if NARROW else size
 
 
 def _lines(texts: list[str]) -> int:
@@ -268,15 +287,39 @@ def apply_style() -> None:
     )
 
 
+def _add_sparse_ticks(fig: plt.Figure) -> None:
+    """Set ticks twice as close on an x axis that a narrow chart's automatic ticks label at fewer
+    than three points, such as a change from -15% to +35% labelled only at 0 and +20%."""
+    fig.draw_without_rendering()
+    for axis in fig.axes:
+        if (
+            not axis.axison
+            or type(axis.xaxis.get_major_locator()) is not matplotlib.ticker.AutoLocator
+        ):
+            continue
+        left, right = sorted(axis.get_xlim())
+        if sum(left <= at <= right for at in axis.get_xticks()) >= 3:
+            continue
+        limits = axis.get_xlim()
+        bins = 2 * axis.xaxis.get_tick_space()
+        axis.xaxis.set_major_locator(
+            matplotlib.ticker.MaxNLocator(nbins=bins, steps=[1, 2, 2.5, 5, 10])
+        )
+        axis.set_xlim(limits)
+
+
 def _thin_crowded_ticks(fig: plt.Figure) -> None:
     """Label every second tick on an x axis whose labels would touch, such as eleven years
-    under the bars of a narrow chart; the ticks themselves stay."""
+    under the bars of a narrow chart; the ticks themselves stay. Months lettered one by one are
+    named instead (Jan, Mar, May...), since a letter alone does not say which month it is."""
     renderer = fig.canvas.get_renderer()
     fig.draw_without_rendering()
     for axis in fig.axes:
         ticks = axis.get_xticks()
         labels = axis.xaxis.get_major_ticks()[: len(ticks)]
         texts = [tick.label1.get_text() for tick in labels]
+        if tuple(texts) == MONTH_TICKS:
+            texts = list(MONTH_SHORT_NAMES)
         left, right = sorted(axis.get_xlim())
         shown = [
             tick.label1
@@ -297,6 +340,7 @@ def _thin_crowded_ticks(fig: plt.Figure) -> None:
 def save(fig: plt.Figure, path: Path) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     if NARROW:
+        _add_sparse_ticks(fig)
         _thin_crowded_ticks(fig)
     buffer = io.StringIO()
     fig.savefig(buffer, format="svg", metadata={"Date": None}, bbox_inches="tight", pad_inches=0.08)
@@ -797,7 +841,7 @@ def _dots(axis: plt.Axes, xs, ys, lows, highs, kind: str) -> None:
         xs,
         ys,
         marker=look["marker"],
-        markersize=look["size"],
+        markersize=_mark(look["size"]),
         markerfacecolor=look["face"],
         markeredgecolor=look["edge"] if look["face"] != SURFACE else look["edge"],
         markeredgewidth=1.0 if look["face"] != SURFACE else 1.4,
@@ -1007,7 +1051,7 @@ def dot_range(
                 [b],
                 [position],
                 marker="D",
-                markersize=6,
+                markersize=_mark(6),
                 markerfacecolor=SURFACE,
                 markeredgecolor=NEUTRAL,
                 markeredgewidth=1.4,
@@ -1046,7 +1090,7 @@ def dot_range(
             [],
             color=ACCENT,
             marker="o",
-            markersize=6.5,
+            markersize=_mark(6.5),
             markeredgecolor=SURFACE,
             linewidth=1.6,
             label=_axis_text(value_label),
@@ -1056,7 +1100,7 @@ def dot_range(
             [],
             color=NEUTRAL,
             marker="D",
-            markersize=6,
+            markersize=_mark(6),
             markerfacecolor=SURFACE,
             markeredgewidth=1.4,
             linestyle="none",
@@ -1260,7 +1304,7 @@ def estimate_and_range(
                     [row.value],
                     [position],
                     marker="D",
-                    markersize=6.0,
+                    markersize=_mark(6.0),
                     markerfacecolor=SURFACE,
                     markeredgecolor=ACCENT,
                     markeredgewidth=1.4,
@@ -1273,6 +1317,11 @@ def estimate_and_range(
                 present["estimate"] = True
     _reference_line(axis, reference, vertical=True)
     marks = [(reference, reference_label, "reference")] + list(lines or [])
+    # Lines close together on a narrow chart would have their labels run into each other: each
+    # label after the first is set a line higher, on a white ground that breaks a line it crosses.
+    rise = 0.45 if NARROW else 0.0
+    ground = {"bbox": {"facecolor": SURFACE, "edgecolor": "none", "pad": 0.5}} if NARROW else {}
+    labelled = 0
     for value, text, style in marks:
         if style == "estimate":
             axis.axvline(value, color=ACCENT, linewidth=0.9, linestyle=(0, (4, 2)), zorder=1.6)
@@ -1281,13 +1330,15 @@ def estimate_and_range(
         if text:
             axis.annotate(
                 _axis_text(text),
-                (value, top + 0.45),
+                (value, top + 0.45 + rise * labelled),
                 xytext=(4, 0),
                 textcoords="offset points",
                 fontsize=NOTE_SIZE,
                 color=LABEL_SHADES[ACCENT] if style == "estimate" else TEXT_SECONDARY,
                 va="center",
+                **ground,
             )
+            labelled += 1
     axis.set_xscale("log")
     axis.xaxis.set_major_locator(matplotlib.ticker.FixedLocator(list(ticks)))
     axis.xaxis.set_minor_locator(matplotlib.ticker.NullLocator())
@@ -1298,7 +1349,7 @@ def estimate_and_range(
     axis.spines["left"].set_visible(False)
     axis.grid(True, axis="x")
     axis.grid(False, axis="y")
-    axis.set_ylim(-0.7, top + 0.7)
+    axis.set_ylim(-0.7, top + 0.7 + rise * max(labelled - 1, 0))
     handles = []
     legacy = not any(
         column in ordered for column in ("clear_low", "conditional", "count", "band_style")
@@ -1315,7 +1366,7 @@ def estimate_and_range(
                 [],
                 color=ACCENT,
                 marker="o",
-                markersize=6.5,
+                markersize=_mark(6.5),
                 markeredgecolor=SURFACE,
                 linewidth=1.6,
                 label=entry(estimate_label),
@@ -1328,7 +1379,7 @@ def estimate_and_range(
                 [],
                 color=ACCENT,
                 marker="D",
-                markersize=6.0,
+                markersize=_mark(6.0),
                 markerfacecolor=SURFACE,
                 markeredgecolor=ACCENT,
                 markeredgewidth=1.4,
@@ -1354,6 +1405,15 @@ def estimate_and_range(
     _legend_below(axis, -0.16, columns, handles=handles)
     _title(path, title)
     axis.set_xlabel(_axis_text(xlabel))
+    if NARROW:
+        # A narrow chart's legend and axis title take much of its height. The chart is made tall
+        # enough for rows ``NARROW_ROW_POINTS`` apart, so that the lines' labels clear the top row.
+        fig.draw_without_rendering()
+        y0, y1 = axis.transData.transform([(1, 0), (1, 1)])[:, 1]
+        short = NARROW_ROW_POINTS - (y1 - y0) * 72 / fig.dpi
+        if short > 0:
+            bottom, ceiling = axis.get_ylim()
+            fig.set_figheight(fig.get_figheight() + short * (ceiling - bottom) / 72)
     if hatched or outlined or has_counts:
         # The hatched segments, the bands' outlines and the counts are placed once the layout is
         # final, so that a segment or an outline is exactly as tall as its band and a count sits
@@ -1476,7 +1536,7 @@ def calibration(
             group[predicted],
             group[observed],
             marker=MARKERS[index % len(MARKERS)],
-            markersize=6.5,
+            markersize=_mark(6.5),
             linestyle=LINE_STYLES[index % len(LINE_STYLES)],
             linewidth=1.6,
             color=CATEGORICAL[index],
@@ -1559,7 +1619,7 @@ def calibration_intervals(
         frame.mean_predicted,
         frame.observed,
         marker="o",
-        markersize=7,
+        markersize=_mark(7),
         linestyle="none",
         color=ACCENT,
         markeredgecolor=SURFACE,
@@ -1606,9 +1666,11 @@ def calibration_comparison(
     fig, axis = _subplots(figsize=(side, side))
     top = float(frame[["mean_predicted", "observed_high"]].max().max()) * 1.06
     axis.plot([0, top], [0, top], color=REFERENCE, linewidth=1.1, linestyle=":", zorder=1)
+    # A narrow chart's label is long against its axes: it starts lower so that it ends inside.
+    start = (0.45, 0.37) if NARROW else (0.62, 0.56)
     axis.annotate(
         "predicted = observed",
-        (top * 0.62, top * 0.56),
+        (top * start[0], top * start[1]),
         ha="left",
         va="top",
         rotation=45,
@@ -1617,8 +1679,8 @@ def calibration_comparison(
         color=TEXT_SECONDARY,
     )
     styles = [
-        {"color": ACCENT, "markerfacecolor": ACCENT, "markersize": 7, "offset": 0.0},
-        {"color": NEUTRAL, "markerfacecolor": SURFACE, "markersize": 6.5, "offset": 0.003},
+        {"color": ACCENT, "markerfacecolor": ACCENT, "markersize": _mark(7), "offset": 0.0},
+        {"color": NEUTRAL, "markerfacecolor": SURFACE, "markersize": _mark(6.5), "offset": 0.003},
     ]
     handles = []
     for (estimator, label), style in zip(series.items(), styles):
@@ -1641,14 +1703,18 @@ def calibration_comparison(
             label=label,
         )
         handles.append(handle)
-    axis.legend(
-        handles=handles,
-        loc="upper left",
-        frameon=False,
-        fontsize=NOTE_SIZE + 0.5,
-        handletextpad=0.4,
-        borderaxespad=0.2,
-    )
+    if NARROW:
+        # Inside a narrow chart's axes the legend would cover the highest groups.
+        _legend_below(axis, 0, 1, handles=handles, frameon=False, handletextpad=0.4)
+    else:
+        axis.legend(
+            handles=handles,
+            loc="upper left",
+            frameon=False,
+            fontsize=NOTE_SIZE + 0.5,
+            handletextpad=0.4,
+            borderaxespad=0.2,
+        )
     axis.set_xlim(0, top)
     axis.set_ylim(0, top)
     axis.set_aspect("equal", adjustable="box")
@@ -1853,12 +1919,17 @@ def slope(
             color=text_colour,
             fontweight=weight,
         )
-    axis.text(
-        0, n - 0.2, left_title, ha="center", va="bottom", fontsize=TICK_SIZE, color=TEXT_SECONDARY
-    )
-    axis.text(
-        1, n - 0.2, right_title, ha="center", va="bottom", fontsize=TICK_SIZE, color=TEXT_SECONDARY
-    )
+    # A narrow chart's columns are too close for a heading of more than a dozen characters.
+    for x, heading in ((0, left_title), (1, right_title)):
+        axis.text(
+            x,
+            n - 0.2,
+            _fit(heading, 12),
+            ha="center",
+            va="bottom",
+            fontsize=TICK_SIZE,
+            color=TEXT_SECONDARY,
+        )
     axis.set_xlim(*((-1.0, 2.0) if NARROW else (-0.9, 1.9)))
     axis.set_ylim(-0.6, n + 0.4)
     axis.axis("off")
@@ -2226,6 +2297,20 @@ def line_panels(
 
 
 MONTH_TICKS = ("J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D")
+MONTH_SHORT_NAMES = (
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+)
 
 
 def month_lines(

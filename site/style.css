@@ -326,11 +326,59 @@ figure { margin: var(--space-6) 0 var(--space-7); max-width: var(--wide); }
 .figure-media { overflow-x: auto; background: var(--figure-bg); width: fit-content; max-width: 100%; }
 .figure-media a { display: block; width: max-content; max-width: 100%; }
 .figure-media a:focus-visible { outline: 2px solid var(--figure-focus); outline-offset: -2px; }
-.figure-media picture { display: block; }
-/* A chart shrinks to fit its column, but never below the size that keeps its text legible: below
-   that it scrolls sideways inside its box. A phone is served the chart drawn for its column
-   (components.NARROW_MEDIA, the same width as below), which fills the column and never scrolls. */
-.figure-media img { display: block; width: var(--w); max-width: 100%; min-width: var(--w-small); height: auto; }
+/* A figure shows its wide drawing while the column leaves its smallest text at 11 px or more, and
+   its narrow drawing, made for a phone's column, below that (components.figure_switch_rem): the
+   switch follows the column, whatever the viewport, zoom or layout. Only the drawing shown is
+   loaded, both being lazy. */
+figure { container: figure / inline-size; }
+.figure-media img { max-width: 100%; height: auto; }
+.figure-wide { display: block; width: var(--w); min-width: var(--w-small); }
+.figure-narrow { display: none; width: var(--w-narrow); }
+@container figure (max-width: 20rem) { .figure-switch-20 .figure-wide { display: none; } .figure-switch-20 .figure-narrow { display: block; } }
+@container figure (max-width: 21rem) { .figure-switch-21 .figure-wide { display: none; } .figure-switch-21 .figure-narrow { display: block; } }
+@container figure (max-width: 22rem) { .figure-switch-22 .figure-wide { display: none; } .figure-switch-22 .figure-narrow { display: block; } }
+@container figure (max-width: 23rem) { .figure-switch-23 .figure-wide { display: none; } .figure-switch-23 .figure-narrow { display: block; } }
+@container figure (max-width: 24rem) { .figure-switch-24 .figure-wide { display: none; } .figure-switch-24 .figure-narrow { display: block; } }
+@container figure (max-width: 25rem) { .figure-switch-25 .figure-wide { display: none; } .figure-switch-25 .figure-narrow { display: block; } }
+@container figure (max-width: 26rem) { .figure-switch-26 .figure-wide { display: none; } .figure-switch-26 .figure-narrow { display: block; } }
+@container figure (max-width: 27rem) { .figure-switch-27 .figure-wide { display: none; } .figure-switch-27 .figure-narrow { display: block; } }
+@container figure (max-width: 28rem) { .figure-switch-28 .figure-wide { display: none; } .figure-switch-28 .figure-narrow { display: block; } }
+@container figure (max-width: 29rem) { .figure-switch-29 .figure-wide { display: none; } .figure-switch-29 .figure-narrow { display: block; } }
+@container figure (max-width: 30rem) { .figure-switch-30 .figure-wide { display: none; } .figure-switch-30 .figure-narrow { display: block; } }
+@container figure (max-width: 31rem) { .figure-switch-31 .figure-wide { display: none; } .figure-switch-31 .figure-narrow { display: block; } }
+@container figure (max-width: 32rem) { .figure-switch-32 .figure-wide { display: none; } .figure-switch-32 .figure-narrow { display: block; } }
+@container figure (max-width: 33rem) { .figure-switch-33 .figure-wide { display: none; } .figure-switch-33 .figure-narrow { display: block; } }
+@container figure (max-width: 34rem) { .figure-switch-34 .figure-wide { display: none; } .figure-switch-34 .figure-narrow { display: block; } }
+@container figure (max-width: 35rem) { .figure-switch-35 .figure-wide { display: none; } .figure-switch-35 .figure-narrow { display: block; } }
+@container figure (max-width: 36rem) { .figure-switch-36 .figure-wide { display: none; } .figure-switch-36 .figure-narrow { display: block; } }
+@container figure (max-width: 37rem) { .figure-switch-37 .figure-wide { display: none; } .figure-switch-37 .figure-narrow { display: block; } }
+@container figure (max-width: 38rem) { .figure-switch-38 .figure-wide { display: none; } .figure-switch-38 .figure-narrow { display: block; } }
+@container figure (max-width: 39rem) { .figure-switch-39 .figure-wide { display: none; } .figure-switch-39 .figure-narrow { display: block; } }
+@container figure (max-width: 40rem) { .figure-switch-40 .figure-wide { display: none; } .figure-switch-40 .figure-narrow { display: block; } }
+@container figure (max-width: 41rem) { .figure-switch-41 .figure-wide { display: none; } .figure-switch-41 .figure-narrow { display: block; } }
+@container figure (max-width: 42rem) { .figure-switch-42 .figure-wide { display: none; } .figure-switch-42 .figure-narrow { display: block; } }
+@container figure (max-width: 43rem) { .figure-switch-43 .figure-wide { display: none; } .figure-switch-43 .figure-narrow { display: block; } }
+@container figure (max-width: 44rem) { .figure-switch-44 .figure-wide { display: none; } .figure-switch-44 .figure-narrow { display: block; } }
+@container figure (max-width: 45rem) { .figure-switch-45 .figure-wide { display: none; } .figure-switch-45 .figure-narrow { display: block; } }
+@container figure (max-width: 46rem) { .figure-switch-46 .figure-wide { display: none; } .figure-switch-46 .figure-narrow { display: block; } }
+@container figure (max-width: 47rem) { .figure-switch-47 .figure-wide { display: none; } .figure-switch-47 .figure-narrow { display: block; } }
+@container figure (max-width: 48rem) { .figure-switch-48 .figure-wide { display: none; } .figure-switch-48 .figure-narrow { display: block; } }
+@container figure (max-width: 49rem) { .figure-switch-49 .figure-wide { display: none; } .figure-switch-49 .figure-narrow { display: block; } }
+@container figure (max-width: 50rem) { .figure-switch-50 .figure-wide { display: none; } .figure-switch-50 .figure-narrow { display: block; } }
+@container figure (max-width: 51rem) { .figure-switch-51 .figure-wide { display: none; } .figure-switch-51 .figure-narrow { display: block; } }
+@container figure (max-width: 52rem) { .figure-switch-52 .figure-wide { display: none; } .figure-switch-52 .figure-narrow { display: block; } }
+@container figure (max-width: 53rem) { .figure-switch-53 .figure-wide { display: none; } .figure-switch-53 .figure-narrow { display: block; } }
+@container figure (max-width: 54rem) { .figure-switch-54 .figure-wide { display: none; } .figure-switch-54 .figure-narrow { display: block; } }
+@container figure (max-width: 55rem) { .figure-switch-55 .figure-wide { display: none; } .figure-switch-55 .figure-narrow { display: block; } }
+@container figure (max-width: 56rem) { .figure-switch-56 .figure-wide { display: none; } .figure-switch-56 .figure-narrow { display: block; } }
+@container figure (max-width: 57rem) { .figure-switch-57 .figure-wide { display: none; } .figure-switch-57 .figure-narrow { display: block; } }
+@container figure (max-width: 58rem) { .figure-switch-58 .figure-wide { display: none; } .figure-switch-58 .figure-narrow { display: block; } }
+@container figure (max-width: 59rem) { .figure-switch-59 .figure-wide { display: none; } .figure-switch-59 .figure-narrow { display: block; } }
+@container figure (max-width: 60rem) { .figure-switch-60 .figure-wide { display: none; } .figure-switch-60 .figure-narrow { display: block; } }
+@container figure (max-width: 61rem) { .figure-switch-61 .figure-wide { display: none; } .figure-switch-61 .figure-narrow { display: block; } }
+@container figure (max-width: 62rem) { .figure-switch-62 .figure-wide { display: none; } .figure-switch-62 .figure-narrow { display: block; } }
+@container figure (max-width: 63rem) { .figure-switch-63 .figure-wide { display: none; } .figure-switch-63 .figure-narrow { display: block; } }
+@container figure (max-width: 64rem) { .figure-switch-64 .figure-wide { display: none; } .figure-switch-64 .figure-narrow { display: block; } }
 figcaption {
   margin-top: var(--space-3); max-width: var(--measure);
   font-size: var(--text-sm); line-height: 1.5; color: var(--text-muted);
@@ -343,7 +391,6 @@ figcaption p { margin: 0; }
 }
 @media (max-width: 40rem) {
   .figure-tools { display: none; }
-  .figure-media img { width: var(--w-narrow, var(--w)); min-width: 0; }
 }
 
 /* ------------------------------------------------------------------ tables */
@@ -570,6 +617,8 @@ nav.pager a[rel="next"] .pager-title::after { transform: rotate(-45deg); margin-
     overflow: visible; padding: 0;
   }
   .figure-media img { width: auto !important; max-width: 100% !important; min-width: 0 !important; }
+  .figure-media .figure-wide { display: block !important; }
+  .figure-media .figure-narrow { display: none !important; }
   .table-wrap { overflow: visible; }
   table { font-size: 8.5pt; }
   th, td { white-space: normal; }

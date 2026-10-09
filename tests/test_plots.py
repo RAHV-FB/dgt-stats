@@ -4,6 +4,7 @@ import re
 from pathlib import Path
 
 import matplotlib.dates
+import matplotlib.pyplot as plt
 import pandas as pd
 import pytest
 
@@ -820,11 +821,16 @@ def test_narrow_labels_wrap_and_wide_ones_do_not() -> None:
     assert plots._fit(label) == label
     with plots.narrow():
         lines = plots._fit(label).split("\n")
-        assert lines[-1] == "(n=17,969)" and lines[-2] == "(value not recorded)"
+        assert lines[-1] == "(n=17,969)" and lines[-2] == "not recorded)"
         assert all(len(line) <= plots.NARROW_LABEL_CHARS for line in lines)
         # Never broken at a hyphen; a short label is left alone.
         assert plots._fit("75 and over (model-dependent)") == "75 and over\n(model-dependent)"
         assert plots._fit("Per resident") == "Per resident"
+        # The lines are as even as the words allow: no word is left alone on the last line.
+        assert plots._fit("2007–2011: left out") == "2007–2011:\nleft out"
+        assert plots._axis_text("Ratio of deaths per 100 crashes, log scale") == (
+            "Ratio of deaths per\n100 crashes, log scale"
+        )
 
 
 def test_narrow_charts_fit_a_phone_column(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -898,6 +904,39 @@ def test_narrow_bars_thin_crowded_year_labels(
     assert all(wide) and len(narrow) == len(wide)
     # Every second year is named, so the names do not run into each other; every bar stays.
     assert narrow[::2] == wide[::2] and not any(narrow[1::2])
+
+
+def test_narrow_charts_name_the_months_they_thin_and_add_ticks_to_a_sparse_axis() -> None:
+    plots.apply_style()
+    with plots.narrow():
+        fig, (months, change) = plt.subplots(2, 1, figsize=(1.6, 2.4))
+        months.set_xticks(range(1, 13), plots.MONTH_TICKS)
+        months.set_xlim(0.6, 12.4)
+        change.plot([-0.15, 0.34], [0, 1])
+        change.set_xlim(-0.15, 0.34)
+        fig.draw_without_rendering()
+        assert sum(-0.15 <= at <= 0.34 for at in change.get_xticks()) < 3
+        plots._add_sparse_ticks(fig)
+        plots._thin_crowded_ticks(fig)
+    # A letter alone does not say which month it is: every other month is named instead.
+    assert [label.get_text() for label in months.get_xticklabels()] == [
+        "Jan",
+        "",
+        "Mar",
+        "",
+        "May",
+        "",
+        "Jul",
+        "",
+        "Sep",
+        "",
+        "Nov",
+        "",
+    ]
+    # A change from -15% to +34% is labelled on both sides of 0, not at 0 and +20% only.
+    shown = [at for at in change.get_xticks() if -0.15 <= at <= 0.34]
+    assert len(shown) >= 3 and min(shown) < 0
+    plt.close(fig)
 
 
 def test_ratio_panels_and_line_panels(tmp_path: Path) -> None:

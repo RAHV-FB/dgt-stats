@@ -4,11 +4,15 @@ Task 25 of the final audit. It records the state of the branch `cl/inspiring-woz
 (pull request [RAHV-FB/dgt-stats#25](https://github.com/RAHV-FB/dgt-stats/pull/25)) at commit
 `53776a6`, the last commit that changed code, results or pages, against `main` at
 `d111da8`, where the rebuild began. This report was added in the commit after it. Every figure
-below comes from a committed table or from the document named beside it.
+below comes from a committed table or from the document named beside it. Section 8, and the
+updates to sections 1, 5 and 6 and to the task matrix that it lists, were added after the pull
+request was merged and the site published.
 
 ## 1. Overall status
 
-**Ready for publication once the pull request is merged**, with the limitations in section 6.
+**Published.** The pull request was merged as `5ea4b24` and the site deployed from it on
+8 October 2026; the live pages were checked against the build (section 8). The limitations in
+section 6 remain.
 Independent reviews were run in four rounds. In the last three, each reviewer worked on a
 recorded commit and each P0 or P1 finding went to a separate verifier who tried to refute it:
 - the second audit, of the branch after the editorial, design and statistical passes (f6968ca);
@@ -25,8 +29,8 @@ Every finding is fixed or set out, with its reason, in the review records (secti
 test suite passes (587 tests, none skipped; section 5), and CI passes on the final commit (run
 [37843708799](https://github.com/RAHV-FB/dgt-stats/actions/runs/37843708799), both jobs).
 
-The site is published from `main` by `.github/workflows/pages.yml`, so the rebuilt pages are not
-yet live. Deployment is verified after the merge (section 5).
+The site is published from `main` by `.github/workflows/pages.yml`. The merge, its CI and
+deployment runs and the checks of the live site are recorded in section 8.
 
 ## 2. Research and statistical audit
 
@@ -165,8 +169,8 @@ The research-only models and the removed ones are listed in [`ML_MODEL_REVIEW.md
 | Failures fixed | Tests updated for deliberate wording changes; a browser-test skip that hid a missing build now fails; tables reject format keys for missing columns; the design test's disclosure patterns missed disclosures with an id; new browser tests for the pinned line, the dark chart frame and the calculator link, each shown to fail without its fix |
 | Clean build | The national, EMEF and driver-age tables reproduce byte for byte from the raw files (the EMEF and exposure scripts run on one BLAS thread). In the third review's rebuild, a severity refit moved two tables (`sev_geography`, `sev_penalty`) in the sixth decimal (solver noise). The committed pages equal a fresh build and the build writes no uncommitted page, which CI and the Pages workflow check; CI also checks that every table and document it regenerates under `reports/` and `docs/` equals the committed copy |
 | Browser testing | 125 Chromium cases, run in CI and in the Pages workflow before deploying. The third review swept 24 pages at 12 widths (320–1280 px) with no horizontal overflow and no console errors; the final check crawled the 24 pages at 360 and 1366 px in both themes and tabbed through the calculator at nine sizes with no focused control covered |
-| Deployment status | Not deployed. `.github/workflows/pages.yml` publishes from `main`, so the rebuilt pages go live when the pull request is merged; the live pages are then checked against the committed `site/` at `53776a6` |
-| Final commit | `53776a6` |
+| Deployment status | Deployed from `main` at `5ea4b24` (Publish site run [37847354723](https://github.com/RAHV-FB/dgt-stats/actions/runs/37847354723)); every published file of the live site equals a fresh build of that commit (section 8) |
+| Final commit | `53776a6` (code, results and pages); merged into `main` as `5ea4b24` |
 
 ## 6. Remaining limitations
 
@@ -190,15 +194,16 @@ The research-only models and the removed ones are listed in [`ML_MODEL_REVIEW.md
   choice to have them was made on years that include the city's crashes. The page says so.
 
 **Incomplete or accepted work:**
-- Chart text falls below 11 px for every chart at 320 px (down to about 9.6 px), for one chart
-  at 360 px (10.9 px) and for most of the wide charts from 641 to about 960 px (down to about
-  10.2 px), where nine of them also scroll sideways at 768 px. It follows from the figure scales
-  and the breakpoint shared by every chart; the fix is site-wide.
-- Merging retires 32 table and figure URLs of the live site. 25 of the files stay in the
-  repository's `reports/` folder; the other seven (six figures of withdrawn analyses and
-  `q7_breakeven_km.csv`) were deleted and remain in the repository's history. There is no 404
-  page, because GitHub Pages serves it at any depth, where the site's relative links would
-  break.
+- Chart text below 11 px, and the sideways scrolling of wide charts at 641–820 px, were fixed
+  after publication (section 8). In the phone drawings, as in the wide ones, an interval
+  shorter than its marker is hidden by it; a month axis too narrow for twelve initials names
+  every other month (Jan, Mar, May...); and the chart of the 46 provinces' test scores is about
+  1,800 px long on a phone, with its axis at the foot.
+- The merge retired 32 table and figure URLs of the live site, which now return 404. 25 of the
+  files stay in the repository's `reports/` folder; the other seven (six figures of withdrawn
+  analyses and `q7_breakeven_km.csv`) were deleted and remain in the repository's history.
+  There is no 404 page, because GitHub Pages serves it at any depth, where the site's relative
+  links would break.
 - The Pages workflow runs its own checks of the pages (the page diff, the site, engine and
   browser tests) rather than waiting for the Checks workflow. Its actions are pinned to tags,
   not commit SHAs, and Playwright and its dependencies are installed by version, without the
@@ -213,7 +218,11 @@ The research-only models and the removed ones are listed in [`ML_MODEL_REVIEW.md
 - The check that the cross-source models use only validated DGT fields needs the harmonised
   tables, which only the source models' step writes, so CI skips it.
 - The drivers page opens with one long paragraph, which keeps the 75+ figures beside their
-  range and condition and involvement apart from deaths and responsibility.
+  range and condition and involvement apart from deaths and responsibility. Every page opens
+  with a single summary paragraph, and the tests require this one to carry each of those
+  figures and qualifications; the long paragraphs after it were split after publication
+  (section 8).
+- Performance (page weight, load time) has not been measured.
 
 ## 7. Audit evidence
 
@@ -230,7 +239,8 @@ verdict.
 ### Task matrix
 
 The third review's audit-process reviewer graded every task at 3af96b3. The last column gives
-the status at `53776a6` and what changed it. "Done" means there is evidence in the
+the status at `53776a6` and what changed it, brought up to date after publication where section 8
+says so. "Done" means there is evidence in the
 repository that a reader can check. "Partial" means part of the task has no record or is left
 undone, as stated.
 
@@ -249,17 +259,17 @@ undone, as stated.
 | T11 ML page | Done | Done. The 2016, urban-street, provincial and cell misses are named on the page (fe7a76e) | — |
 | T12 Rest of the site | Done | Done. `STATISTICAL_AUDIT.md` carries a final-audit column (32d33c3) | — |
 | T13 Signs of AI writing | Partial | Partial. The outcome is in the per-page editorial commits and the template-furniture tests | No record of the review itself |
-| T14 Sentence-by-sentence pass | Partial | Partial. The 75+ additions were edited after the third review (4f8ac06, e74cd57) | The drivers page opens with one long summary paragraph |
+| T14 Sentence-by-sentence pass | Partial | Partial. The 75+ additions were edited after the third review (4f8ac06, e74cd57); after publication the long paragraphs of the drivers, methods and long-run pages were split into shorter paragraphs and lists, with every number and qualification kept (section 8) | The drivers page opens with one long summary paragraph |
 | T15 Information architecture | Done | Done. Navigation by question; README page table matches (4a26a40) | — |
-| T16 Design audit | Partial | Partial. The third review, the recheck and the final check examined the pages at 320–1366 px in both themes; the dark chart frame no longer narrows charts below 64rem | Wide charts show text under 11 px, and some scroll sideways, between 641 and about 960 px; no design-review report from the rebuild |
-| T17 Figures and tables | Partial | Partial. Unknown format keys fail the build; zero shares drawn whole; a figure is as wide in dark as in light (browser test) | Chart text below 11 px at 320 px, on one chart at 360 px and on most wide charts from 641 to about 960 px, where some scroll |
+| T16 Design audit | Partial | Partial. The third review, the recheck and the final check examined the pages at 320–1366 px in both themes; the dark chart frame no longer narrows charts below 64rem; after publication, chart text is at least 11 px and no chart scrolls at any width measured from 320 to 1440 px (section 8) | No design-review report from the rebuild |
+| T17 Figures and tables | Partial | Done. Unknown format keys fail the build; zero shares drawn whole; a figure is as wide in dark as in light (browser test); after publication, every chart's text is at least 11 px with no scrolling from 320 to 1440 px in both themes, checked by browser tests at six widths and a visual inspection of every phone drawing (section 8) | The chart fix was checked by tests and inspection, not by a review round |
 | T18 Reader experience | Not evidenced | Evidenced by the third review only: each of the nine reader tasks is answered within two clicks of the home page | No usability record from the rebuild |
 | T19 Technical audit | Partial | Done. CI and the Pages workflow check that the committed pages equal a fresh build and that the build writes no uncommitted page (93edb1f, recheck); CI checks that every regenerated table and document under reports/ and docs/ equals the committed copy; `source_comparison` regenerated (c1ef923); both scripts that refit the distance model run on one BLAS thread | A severity refit can move two tables in the sixth decimal |
-| T20 Browser testing | Done | Done. `REQUIRE_BROWSER=1` fails when the site is not built (4a26a40); new tests of the pinned line at four sizes, of the dark frame at 360 and 768 px and of the calculator link, each shown to fail without its fix | The phone figure test checks text size at 390 px only |
-| T21 Performance and deployment | Partial | Partial until the merge. Deployment runs the site tests, the engine tests and the browser tests first, with a 20-minute limit (93edb1f, recheck, final check) | Not deployed until the merge; the Pages workflow does not wait for the Checks workflow; actions pinned to tags; Playwright installed without hashes; scripts and styles carry no version in their URLs (Pages caches them for ten minutes) |
+| T20 Browser testing | Done | Done. `REQUIRE_BROWSER=1` fails when the site is not built (4a26a40); new tests of the pinned line at four sizes, of the dark frame at 360 and 768 px and of the calculator link, each shown to fail without its fix; after publication, chart text size and fit are tested at 320, 390, 700, 820, 960 and 1152 px in both themes | — |
+| T21 Performance and deployment | Partial | Partial. Deployment runs the site tests, the engine tests and the browser tests first, with a 20-minute limit (93edb1f, recheck, final check). Deployed from `5ea4b24` (run 37847354723); the 235 live files equal a fresh build of that commit, the 32 retired URLs return 404, and the 24 pages load in Chromium at 390 and 1366 px in both themes without errors or overflow (section 8) | Performance not measured; the Pages workflow does not wait for the Checks workflow; actions pinned to tags; Playwright installed without hashes; scripts and styles carry no version in their URLs (Pages caches them for ten minutes) |
 | T22 Second independent audit | Partial | Done. `SECOND_AUDIT.md` records the second audit; `THIRD_REVIEW_3af96b3.md` seven reviewers on 3af96b3; `RECHECK_417cf04.md` three reviewers and a verifier on 417cf04 (one P1, fixed); `FINAL_CHECK_4735d9d.md` five reviewers and three verifiers on 4735d9d (one P1, this report, now committed) | The second audit's reviewer SHAs, except f6968ca, were not kept |
 | T23 Verify the audit process | Partial | Done. The audit-process reviewer's matrix, updated here; the final check verified the recheck's dispositions and found three that it corrected | — |
-| T24 Cleanup | Partial | Partial until the merge. All 164 commits since `d111da8` are under the owner's identity with no co-author lines; stale documents reconciled (32d33c3) | Not deployed until the merge |
+| T24 Cleanup | Partial | Done. All 166 commits from `d111da8` to the merge `5ea4b24` (165 on the branch and the merge) are under the owner's identity with no co-author lines; stale documents reconciled (32d33c3), and this report brought up to date after deployment (section 8); merged and deployed, with the retired URLs returning 404 | — |
 | T25 Acceptance report | Not evidenced | Done. This document, committed after the final check that found it missing | — |
 | Priority 1: numerical consistency | Partial | Done. Ledger and documents reconciled (32d33c3); the final check's scan found a few passages still stale, which the last fixes corrected (53776a6) | — |
 | Priority 2: coverage of DGT km | Done | Done. Ranges rebuilt with the standardised profile and the bounds outside them | The unexplained km cannot be given an age mix |
@@ -271,5 +281,87 @@ undone, as stated.
 | 75+ step 3: CRTM ESM2024 | Done | Done. Validation only (ages capped at 80, aggregate tables) | No archived copy of its documents |
 | 75+ step 4: EMEF strata and other sources | Partial | Partial. RACC on the sources page and in the figure sources (4f8ac06); MOVILIA 2006/2007 recorded | The EMEF request is prepared, not sent |
 | 75+ step 5: no artificial narrowing | Done | Done. The home page no longer argues from scenario counts | — |
-| 75+ step 6: visualisation | Done | Done. Figure 1 shows counts, conditional estimate, intervals and bands | Text under 11 px at tablet widths (section 6) |
+| 75+ step 6: visualisation | Done | Done. Figure 1 shows counts, conditional estimate, intervals and bands; its text is at least 11 px at every width since the chart fix (section 8) | — |
 | 75+ step 7: range, estimate and missing data | Partial | Done. The drivers page names the data that would narrow the range (10e83cb) | — |
+
+## 8. After publication
+
+**The merge.** Pull request #25 was merged into `main` as `5ea4b24`, a merge commit under the
+owner's identity whose parents are `d111da8`, where `main` stood, and `a5bc119`, the branch's last
+commit, which added this report. Its tree is the same as `a5bc119`'s, so `main` holds exactly the
+branch that was checked. No commit had been added to `main` when this section was written.
+
+**CI on the merge.** Checks run
+[37847354532](https://github.com/RAHV-FB/dgt-stats/actions/runs/37847354532) succeeded in both
+jobs. The first linted the code, rebuilt the staging layer and reconciled it against DGT's
+published totals, rebuilt the processed and regional layers, refitted the DGT associations,
+found every regenerated table and document under `reports/` and `docs/` equal to the committed
+copy, and ran the full test suite. The second built the site, found the committed pages equal
+to the build and ran the browser tests.
+
+**Deployment.** Publish site run
+[37847354723](https://github.com/RAHV-FB/dgt-stats/actions/runs/37847354723) succeeded. It rebuilt
+the site, checked the committed pages against the build, ran the site, engine and browser tests,
+and deployed the pages at 21:35 UTC on 8 October 2026.
+
+**The live site**, <https://rahv-fb.github.io/dgt-stats/>, against a fresh build of `5ea4b24`:
+- Each of the 235 files the build publishes was fetched with a query string that bypasses
+  cached copies, and each is byte-identical to the build. In the first comparison, minutes after
+  deployment, two files returned a 503 from the Pages servers; a second comparison of all 235
+  found none different.
+- The 32 retired table and figure URLs return 404.
+- In Chromium, the 24 pages at 390 and 1366 px, each in the light and the dark theme (96 loads),
+  show no script error and no horizontal overflow. Run just after deployment, they showed no
+  console error and no failed request either. Run again later, one load logged a console error
+  because a phone drawing returned a 503 from the Pages servers; the same file returned 200 on
+  six further fetches.
+- The calculator gives the reference crash 13.4% (11.0–16.2%) from model `924e1606d1d6` and
+  pins that line to the foot of a phone's screen, and a link to `#calculator` lands on it.
+
+**Authorship.** All 166 commits from `d111da8` to `5ea4b24`, 165 on the branch and the merge,
+are under the owner's identity, with no co-author line.
+
+**Changes after publication.** A follow-up pull request made the changes below. None alters a
+result table, a model, an exposure assumption or the data a chart draws.
+- *Charts.* The phone drawings are now 3.0 inches wide (at most 235 points), so that their
+  9-point text is at least 11 px in the 288 px column of a 320 px phone. Each figure carries the
+  column width below which the smallest text of its wide drawing would be under 11 px, and shows
+  the phone drawing below it (a CSS container query); a browser fetches only the drawing it
+  shows. In the phone drawings, wrapped labels are set in even lines, markers are 80% of their
+  wide size, and five charts whose labels collided or whose ticks were thinned too far were
+  corrected: the slope chart's column headings (v1), the calibration chart's legend, which now
+  sits below it (sev1), the labels of the two lines in the 75+ sources chart (dr3), the months of
+  the lockdown chart (m3) and the ticks of the July placebo chart (p2). The wide drawings are
+  unchanged, byte for byte. On every figure of every page, at 17 widths from 320 to 1440 px in
+  both themes, the smallest chart text is 11.2 px, no figure scrolls or overflows its column,
+  and each figure shows and fetches one drawing. The browser tests check this at 320, 390, 700,
+  820, 960 and 1152 px. Every phone drawing was compared at 320 px with the one it replaces, for
+  clipped, overlapping or lost text: the first comparison found the five charts above and, after
+  their correction, one whose markers hid its intervals, which the smaller markers corrected.
+  The last found nothing clipped, hidden or lost: 31 of the 37 drawings clean and six with
+  cosmetic points only (two labels that meet a line, alternate month names, alternate years,
+  points that crowd on the calibration chart, and a chart of 46 provinces that is long on a
+  phone).
+- *Writing.* The long paragraphs of the drivers, methods and long-run pages were split into
+  shorter paragraphs and, where they set out parallel items, into lists. Every qualification is
+  kept, as is the distinction between involvement, deaths once involved, responsibility and
+  cause. In the visible text of the methods and long-run pages the numbers are unchanged; on the
+  drivers page every number is kept and two age groups are named twice more, so that each of the
+  three allocations left out of the range names its own ranges. A verifier for each page
+  compared the text before and after. The drivers page's opening summary is unchanged
+  (section 6).
+- *Provenance.* The README no longer says that every number comes from files in `data/raw`. It
+  names the values typed into the code from cited documents (definitions such as the
+  public-holiday calendars, figures read from archived files, and the two sets of measurements
+  whose documents are not archived), as the methods page and the data contract already did, and
+  says that nearly every number in the pages' sentences, not every one, is computed from a table.
+- *Records.* This section; sections 1, 5 and 6 and the task matrix of this report; and a note
+  in `FINAL_REPORT.md` and `STATISTICAL_AUDIT.md` where they left the chart text unchanged.
+
+**Checks of the follow-up**, on its final code, pages and figures:
+- `REQUIRE_BROWSER=1 pytest`: 644 passed, none skipped, one slow test deselected; `pytest -m
+  slow` (raw-file hashes): passed; `ruff check` and `ruff format --check`: clean.
+- Regenerating the figures (`scripts/analyse.py figures`) and the site (`scripts/build_site.py`)
+  changes no committed file.
+- The drivers, methods and long-run pages at 320, 375, 390, 600, 768, 820, 1024 and 1366 px in
+  both themes: no page overflow (tables scroll inside their own regions) and no console error.

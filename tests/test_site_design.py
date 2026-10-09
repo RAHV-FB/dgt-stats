@@ -13,7 +13,7 @@ import pytest
 from dgt_stats import site, summaries
 from dgt_stats.paths import FIGURES_DIR, TABLES_DIR
 from dgt_stats.site import components
-from dgt_stats.site.style import STYLE
+from dgt_stats.site.style import FIGURE_SWITCH_REMS, STYLE
 
 pytestmark = pytest.mark.skipif(
     not (FIGURES_DIR / "captions.json").exists()
@@ -146,16 +146,19 @@ def test_every_figure_has_a_title_alt_text_caption_and_source(
             assert len(alt) > 30, (slug, name)
             assert re.search(r'width="\d+" height="\d+"', html), (slug, name)
             assert '<p class="figure-source">Source: ' in html, (slug, name)
-            # A phone loads the chart drawn for its column; the chart still links to its full
-            # size and is loaded lazily.
-            source = (
-                f'<source media="{re.escape(components.NARROW_MEDIA)}" '
-                f'srcset="figures/narrow/{name}.svg" width="\\d+" height="\\d+">'
+            # The chart is drawn twice and links to its full size; the figure's switch class
+            # names the column width below which it shows the drawing made for a phone's column.
+            # Both drawings are lazy, so only the one shown is loaded.
+            switch = components.figure_switch_rem(name)
+            assert html.startswith(f'<figure class="figure-switch-{switch}" style="--w: '), (
+                slug,
+                name,
             )
             assert re.search(
-                f'<a href="figures/{name}.svg"><picture>{source}<img src="figures/{name}.svg" '
-                r'alt="[^"]+" width="\d+" height="\d+" style="[^"]+" loading="lazy" '
-                r'decoding="async"></picture></a>',
+                f'<a href="figures/{name}.svg"><img class="figure-wide" src="figures/{name}.svg" '
+                r'alt="[^"]+" width="\d+" height="\d+" loading="lazy" decoding="async">'
+                f'<img class="figure-narrow" src="figures/narrow/{name}.svg" '
+                r'alt="[^"]+" width="\d+" height="\d+" loading="lazy" decoding="async"></a>',
                 html,
             ), (slug, name)
             assert (built / "figures" / "narrow" / f"{name}.svg").exists(), (slug, name)
@@ -224,18 +227,35 @@ def test_only_figure_sizes_are_set_inline(pages: dict[str, str]) -> None:
         assert "<style" not in text, slug
 
 
-def test_phones_get_the_narrow_charts_without_a_forced_width() -> None:
-    # The page's <source media> and the stylesheet's phone rules use the same width.
-    width = re.fullmatch(r"\(max-width: (\d+rem)\)", components.NARROW_MEDIA).group(1)
-    phone = re.findall(rf"@media \(max-width: {width}\) \{{(.*?)\n\}}", STYLE, re.S)
-    rules = "".join(phone)
-    assert ".figure-media img { width: var(--w-narrow, var(--w)); min-width: 0; }" in rules
-    assert ".figure-tools { display: none; }" in rules
-    # Wider screens keep the full chart at its own scale, legible down to --w-small.
-    assert (
-        ".figure-media img { display: block; width: var(--w); max-width: 100%; "
-        "min-width: var(--w-small); height: auto; }" in STYLE
-    )
+def test_each_figure_switches_drawings_where_its_text_would_fall_below_11px() -> None:
+    # The figure is the container; the wide drawing shows by default, the narrow one below the
+    # figure's switch width, with one rule per width the pages can use.
+    assert "figure { container: figure / inline-size; }" in STYLE
+    assert ".figure-wide { display: block; width: var(--w); min-width: var(--w-small); }" in STYLE
+    assert ".figure-narrow { display: none; width: var(--w-narrow); }" in STYLE
+    for rem in FIGURE_SWITCH_REMS:
+        assert (
+            f"@container figure (max-width: {rem}rem) {{ .figure-switch-{rem} .figure-wide "
+            f"{{ display: none; }} .figure-switch-{rem} .figure-narrow {{ display: block; }} }}"
+        ) in STYLE
+    # Above its switch width a figure's wide drawing keeps its smallest text at 11 px or more,
+    # inside the dark frame, without falling below its own minimum width; the narrow drawing
+    # reaches 11 px in the narrowest column served (288 px).
+    for svg in sorted(FIGURES_DIR.glob("*.svg")):
+        rem = components.figure_switch_rem(svg.stem)
+        text = svg.read_text(encoding="utf-8")
+        width = float(re.search(r'viewBox="[\d.\-]+ [\d.\-]+ ([\d.]+) ', text).group(1))
+        smallest = min(float(size) for size in re.findall(r"font-size: ([\d.]+)px", text))
+        column = rem * 16 - components.FRAME_PX
+        assert column >= width * components.SMALL_SCALE, svg.stem
+        assert smallest * min(components.FIGURE_SCALE, column / width) >= 11, svg.stem
+        narrow = (FIGURES_DIR / "narrow" / svg.name).read_text(encoding="utf-8")
+        narrow_width = float(re.search(r'viewBox="[\d.\-]+ [\d.\-]+ ([\d.]+) ', narrow).group(1))
+        narrow_smallest = min(float(size) for size in re.findall(r"font-size: ([\d.]+)px", narrow))
+        assert narrow_smallest * min(components.FIGURE_SCALE, 288 / narrow_width) >= 11, svg.stem
+    # The phone stylesheet still hides the note about scrolling, which no chart needs there.
+    phone = "".join(re.findall(r"@media \(max-width: 40rem\) \{(.*?)\n\}", STYLE, re.S))
+    assert ".figure-tools { display: none; }" in phone
 
 
 def test_the_stylesheet_is_one_token_system() -> None:
