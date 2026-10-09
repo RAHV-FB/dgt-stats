@@ -294,6 +294,7 @@ main { padding: var(--space-7) 0 var(--space-7); min-width: 0; }
 .tool-svg .series-0 { stroke: var(--mark); fill: var(--mark); }
 .tool-svg .series-1 { stroke: var(--text-muted); fill: var(--text-muted); }
 .tool-svg path.series-1 { stroke-dasharray: 6 4; }
+.tool-svg path.series { fill: none; }
 .tool-svg .bar { fill: var(--mark); }
 .tool-svg .bar.muted, .tool-svg .dot.muted { fill: var(--text-muted); }
 .tool-svg .dot { fill: var(--mark); stroke: var(--bg); stroke-width: 1.5; }

@@ -7,7 +7,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-obt9E6kr4GpWGO8U4U/O1F2Ek2VTTWyy/bPSJ32jH1g='; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <title>Trends and rates explorer · Road safety in Spain</title>
-<meta name="description" content="Road deaths, injuries and crashes over time, as counts or as rates.">
+<meta name="description" content="Spain&#x27;s road deaths, hospital admissions and injury crashes year by year, as counts or as rates, for the period you choose.">
 <link rel="preload" href="fonts/NunitoSans.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="icon" href="data:,">
 <link rel="stylesheet" href="style.css">
@@ -32,9 +32,9 @@
 <main>
 <header class="page-header" id="content">
 <p class="eyebrow">Explore</p><h1>Trends and rates explorer</h1>
-<p class="lead">Road deaths, injuries and crashes over time, as counts or as rates.</p>
+<p class="lead">Spain&#x27;s road deaths, hospital admissions and injury crashes year by year, as counts or as rates, for the period you choose.</p>
 </header>
-<div class="tool" data-tool="trends-explorer" hidden></div><p class="tool-fallback" data-tool-fallback>This tool needs JavaScript. The results it draws on are on the pages linked below.</p><section class="tool-notes" aria-label="About these numbers"><p>This tool is being built.</p></section>
+<section class="tool" data-tool="trends-explorer" data-src="tools/trends-explorer.json" aria-label="Trends and rates explorer" hidden><div class="tool-layout"><form class="tool-controls" data-controls><fieldset><legend>Indicator</legend><div class="tool-fields"><div class="tool-field"><label for="trends-indicator">Show</label><select id="trends-indicator" name="indicator"></select></div><div class="tool-field"><label for="trends-compare">Compare with</label><select id="trends-compare" name="compare"></select></div></div></fieldset><fieldset><legend>Period</legend><div class="tool-fields"><div class="tool-field"><label for="trends-from">From</label><select id="trends-from" name="from"></select></div><div class="tool-field"><label for="trends-to">To</label><select id="trends-to" name="to"></select></div></div></fieldset><div class="tool-actions"><button type="button" data-reset>Reset</button></div></form><div class="tool-result" data-result><p class="tool-headline" data-headline></p><p class="tool-meaning" data-change></p><div class="tool-chart" data-chart></div><p class="tool-note" data-note></p><details class="tool-table"><summary>Figures by year</summary><div class="table-wrap"><table data-table></table></div></details></div></div><p class="visually-hidden" role="status" aria-live="polite" data-status></p></section><p class="tool-fallback" data-tool-fallback>This tool needs JavaScript. The results it draws on are on the pages linked below.</p><section class="tool-notes" aria-label="About these numbers"><p>Every figure is a count or a ratio of counts published by DGT, INE, CORES and the Ministerio de Transportes; a rate is shown only for the years its denominator exists, and no year is filled in. Comparing two indicators shows each as an index, the first year of the period being 100.</p><p>The long-run trend and how far recent years depart from it are on the <a href="long-run.html">long-run trends</a> page; definitions are on the <a href="data.html#rates">methodology</a> page.</p></section>
 </main>
 </div>
 <footer class="site-footer">

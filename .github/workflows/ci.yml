@@ -121,4 +121,4 @@ jobs:
       - name: Test the built site in a browser
         env:
           REQUIRE_BROWSER: "1"
-        run: pytest tests/test_site_browser.py
+        run: pytest tests/test_site_browser.py tests/test_tools_browser.py

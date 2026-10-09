@@ -79,6 +79,13 @@
     return out;
   }
 
+  // A tick label with only the decimals its spacing needs.
+  function tickFormat(values) {
+    var step = values.length > 1 ? Math.abs(values[1] - values[0]) : 1;
+    var decimals = Math.max(0, Math.min(3, Math.ceil(-Math.log(step) / Math.LN10 - 1e-9)));
+    return function (v) { return number(v, decimals); };
+  }
+
   // The width a chart has, so its text is drawn at the size it is read (no scaling of the SVG).
   function widthOf(container) {
     return Math.max(260, Math.floor(container.getBoundingClientRect().width || 320));
@@ -109,9 +116,10 @@
     var X = function (v) { return margin.left + (v - x0) / (x1 - x0) * plotW; };
     var Y = function (v) { return margin.top + (1 - (v - lo) / (hi - lo)) * plotH; };
     var svg = svgElement("svg", { viewBox: "0 0 " + width + " " + height, width: width, height: height, role: "img", "aria-label": spec.description || spec.yLabel || "Chart", class: "tool-svg" });
+    var yTick = spec.tick || tickFormat(yTicks);
     yTicks.forEach(function (t) {
       svg.appendChild(svgElement("line", { x1: margin.left, x2: width - margin.right, y1: Y(t), y2: Y(t), class: "grid" }));
-      svg.appendChild(svgElement("text", { x: margin.left - 6, y: Y(t) + 5, "text-anchor": "end", class: "tick" }, (spec.tick || spec.format)(t)));
+      svg.appendChild(svgElement("text", { x: margin.left - 6, y: Y(t) + 5, "text-anchor": "end", class: "tick" }, yTick(t)));
     });
     var span = x1 - x0;
     var step = span <= 12 ? (narrow && span > 6 ? 2 : 1) : span <= 30 ? (narrow ? 10 : 5) : 10;
@@ -169,9 +177,10 @@
     var plotW = width - margin.left - margin.right;
     var X = function (v) { return margin.left + (tr(v) - tr(lo)) / (tr(hi) - tr(lo)) * plotW; };
     var svg = svgElement("svg", { viewBox: "0 0 " + width + " " + height, width: width, height: height, role: "img", "aria-label": spec.description || "Chart", class: "tool-svg" });
+    var xTick = spec.tick || (log ? function (v) { return number(v, v < 1 ? 2 : (v % 1 ? 1 : 0)); } : tickFormat(tickValues));
     tickValues.forEach(function (t) {
       svg.appendChild(svgElement("line", { x1: X(t), x2: X(t), y1: margin.top, y2: height - margin.bottom, class: "grid" }));
-      svg.appendChild(svgElement("text", { x: X(t), y: height - margin.bottom + 20, "text-anchor": "middle", class: "tick" }, (spec.tick || spec.format)(t)));
+      svg.appendChild(svgElement("text", { x: X(t), y: height - margin.bottom + 20, "text-anchor": "middle", class: "tick" }, xTick(t)));
     });
     if (spec.reference !== undefined) {
       svg.appendChild(svgElement("line", { x1: X(spec.reference), x2: X(spec.reference), y1: margin.top, y2: height - margin.bottom, class: "mark" }));
