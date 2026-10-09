@@ -393,3 +393,37 @@ def test_older_driver_wording_carries_no_probability_or_ranking(built: dict[str,
         for match in re.finditer(r"combinations", visible):
             near = visible[max(0, match.start() - 60) : match.end() + 60]
             assert "%" not in near, (slug, near)
+
+
+# The pages on recorded factors and crash circumstances, and the methodology section that holds
+# each one's technical notes.
+FACTOR_PAGES = {
+    "speed": "speed-method",
+    "factors": "factors-method",
+    "severity": "severity-method",
+}
+
+
+def test_factor_pages_are_short_and_keep_their_detail_on_the_methodology_page(
+    built: dict[str, str],
+) -> None:
+    for slug, notes in FACTOR_PAGES.items():
+        main = _main(built[slug])
+        opening = re.sub(r"<[^>]+>", " ", re.search(r'<p class="summary">(.*?)</p>', main).group(1))
+        assert 40 <= len(opening.split()) <= 90, (slug, len(opening.split()))
+        # No paragraph of the argument runs long, and one to three figures and tables carry it.
+        for block in _blocks(built[slug], "p"):
+            assert len(block.split()) <= 100, (slug, block[:80])
+        shown = main.count("<figure") + main.count('<div class="table-block">')
+        assert 1 <= shown <= 3, (slug, shown)
+        # The detail is not folded away on the page: it is a section of the methodology page,
+        # which the page links to.
+        assert '<details class="technical"' not in main, slug
+        assert f'href="data.html#{notes}"' in main, slug
+        assert f'<h2 id="{notes}">' in built["data"], slug
+    # A recorded factor is never read as a cause.
+    assert "not estimates of what speed causes" in _visible(built["speed"])
+    assert "not a finding that the factor caused it" in _visible(built["factors"])
+    # The crash records behind the speed and severity pages can be explored by road type.
+    for slug in ("speed", "severity"):
+        assert 'href="crash-explorer.html"' in _main(built[slug]), slug
