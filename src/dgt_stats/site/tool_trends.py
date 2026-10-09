@@ -182,6 +182,33 @@ def describe() -> dict[str, str]:
     }
 
 
+def about() -> dict[str, str]:
+    counted_from = risk_trends.DEATHS_30D_COUNTED_FROM
+    return {
+        "question": "How road deaths, hospital admissions and injury crashes in Spain have "
+        "changed, as counts and against residents, vehicles, road fuel or measured traffic.",
+        "population": "Every road death, hospital admission and police-recorded injury crash in "
+        "Spain in the years shown.",
+        "unit": "The calendar year.",
+        "source": "DGT's yearbook series; INE residents; CORES road fuel sales; the Ministerio "
+        "de Transportes' vehicle-kilometres measured on interurban roads.",
+        "variables": "The indicator, an optional second indicator to compare, and the first and "
+        "last year.",
+        "outcome": "Deaths within 30 days (or 24 hours) of the crash, people admitted to "
+        "hospital, injury crashes.",
+        "denominator": "None for counts; for rates, residents, registered vehicles, tonnes of "
+        "road fuel, injury crashes or interurban vehicle-kilometres.",
+        "result": "Observed counts and ratios of observed counts, with the change between the "
+        "two years chosen and its average per year.",
+        "limitations": f"Deaths within 30 days were estimated from 24-hour counts up to "
+        f"{counted_from - 1}. Road fuel stands in for traffic but is not distance. A rate exists "
+        "only for the years its denominator does; no year is filled in. A change between two "
+        "years is not a trend test.",
+        "validation": "Every value is recomputed from the result tables in the test suite, and "
+        "the browser tests compare what the page shows with them.",
+    }
+
+
 def data_files() -> dict[str, object]:
     return {"trends-explorer.json": {"indicators": indicators()}}
 
@@ -239,4 +266,5 @@ def page_trends_explorer(captions: dict[str, str]) -> str:
         tool,
         notes,
         ("tools/trends-explorer.js",),
+        about=about(),
     )

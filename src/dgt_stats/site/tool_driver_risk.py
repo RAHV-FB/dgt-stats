@@ -311,6 +311,33 @@ def describe() -> dict[str, str]:
     }
 
 
+def about() -> dict[str, str]:
+    return {
+        "question": "How often private-car drivers of one age group, or men, are involved in "
+        "injury crashes or killed in them, compared with another group or with women.",
+        "population": f"Drivers of private cars in Spain, {national.YEAR}; taxi and "
+        "ride-hailing drivers are left out.",
+        "unit": "The driver involved in an injury crash.",
+        "source": "DGT's crash records and yearbook tables (drivers involved and killed); DGT's "
+        "licence register; DGT's car kilometres from inspection odometer readings, shared out "
+        f"by age with the Barcelona (EMEF) and Madrid ({edm2018.SURVEY_YEAR}) travel surveys.",
+        "variables": "Age groups or sex, the measure, and for the per-kilometre estimates the "
+        "age profile of the kilometres and how the kilometres of people aged 65 and over are "
+        "split at 75.",
+        "outcome": "Drivers involved in an injury crash; drivers killed.",
+        "denominator": "B-licence holders, kilometres driven (estimated), or drivers involved.",
+        "result": "Rates per licence holder and per driver involved are observed, with 95% "
+        "intervals for chance variation; rates per kilometre are estimates that depend on "
+        "assumptions, with a 95% sampling interval and a sensitivity range kept apart.",
+        "limitations": "Involvement counts every driver in a crash, whoever caused it; it is "
+        "not responsibility. No source measures kilometres by driver age. The figure for 75 "
+        "and over holds only under the chosen split of the older kilometres and is not "
+        "established across the assumptions tested.",
+        "validation": "The test suite recomputes every rate, interval and range from the "
+        "result tables, and the browser tests compare what the page shows with them.",
+    }
+
+
 def data_files() -> dict[str, object]:
     return {"driver-risk.json": driver_data()}
 
@@ -375,4 +402,5 @@ def page_driver_risk(captions: dict[str, str]) -> str:
         tool,
         notes,
         ("tools/driver-risk.js",),
+        about=about(),
     )
