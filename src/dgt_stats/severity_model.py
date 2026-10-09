@@ -1201,11 +1201,18 @@ def input_specification(
 
 COLLISION_TYPES = ("head_on", "side_impact", "rear_end", "sideswipe", "pedestrian_struck")
 UNIT_COUNTS = {"1": 1, "2": 2, "3": 3, "4+": None}  # None: four or more, no upper bound
+# The conditions rules use time bands that hold all year in Catalonia: no daylight before 06:00
+# or from 22:00, and neither dawn, dusk nor night between 10:00 and 13:59. The other bands can
+# have every lighting at some time of year.
+DAYLIGHT = ("day", "overcast")
+HOURS_WITHOUT_DAYLIGHT = ("00-05", "22-23")
+HOURS_OF_DAYLIGHT_ONLY = ("10-13",)
 
 
 def check_scenario(scenario: dict[str, object], through_town: str = "average") -> list[str]:
     """The ids of the rules a scenario breaks (errors and the scenario-level warnings).
-    ``through_town`` is the published choice for roads through towns ("average" or "model")."""
+    ``through_town`` is the published choice for roads through towns ("average" or "model").
+    The browser engine's ``check`` applies the same rules (``assets/severity-engine.js``)."""
     users = [u for u in USERS if scenario.get(u)]
     units = UNIT_COUNTS[str(scenario["units"])]
     broken = []
@@ -1215,6 +1222,13 @@ def check_scenario(scenario: dict[str, object], through_town: str = "average") -
         broken.append("units_cover_users")
     if scenario["crash_type"] == "pedestrian_struck" and not scenario.get("pedestrian"):
         broken.append("pedestrian_struck_needs_pedestrian")
+    if scenario["weather"] == "heavy_rain_snow" and scenario["surface"] == "dry":
+        broken.append("heavy_rain_on_dry_surface")
+    daylight = scenario["lighting"] in DAYLIGHT
+    if (scenario["hour"] in HOURS_WITHOUT_DAYLIGHT and daylight) or (
+        scenario["hour"] in HOURS_OF_DAYLIGHT_ONLY and not daylight
+    ):
+        broken.append("lighting_outside_hours")
     if scenario["crash_type"] in COLLISION_TYPES and units == 1:
         broken.append("collision_with_one_unit")
     if users == ["pedestrian"]:
@@ -1340,7 +1354,11 @@ URBAN_REFERENCE: dict[str, object] = REFERENCE_SCENARIO | {"road": "urban_street
 
 
 def _variants(base: dict[str, object]) -> list[tuple[str, str, dict[str, object]]]:
-    """``base`` with one input changed at a time (only changes that keep the scenario valid)."""
+    """``base`` with one input changed at a time (only changes that keep the crash itself
+    possible). The conditions rules are not applied: the worked examples compare the model's
+    terms one at a time from the reference crash (a lighting term is the same at every time of
+    day), so a change such as night at 10:00–13:59 keeps its row although the calculator would
+    ask for another time."""
     out = []
     zone = ROADS[str(base["road"])][1]
     for road, (_, road_zone) in ROADS.items():
@@ -1364,10 +1382,15 @@ def _variants(base: dict[str, object]) -> list[tuple[str, str, dict[str, object]
         if user == "light_vehicle":
             continue
         out.append(("users", user, base | {user: 1}))
-    return [(n, level, s) for n, level, s in out if not set(check_scenario(s)) & ERRORS]
+    return [(n, level, s) for n, level, s in out if not set(check_scenario(s)) & CRASH_ERRORS]
 
 
-ERRORS = {"at_least_one_user", "units_cover_users", "pedestrian_struck_needs_pedestrian"}
+# The rules the calculator refuses: those of the crash itself (at most one recorded crash breaks
+# each) and those of the conditions (a few recorded crashes break them, recording
+# inconsistencies kept in the fit).
+CRASH_ERRORS = {"at_least_one_user", "units_cover_users", "pedestrian_struck_needs_pedestrian"}
+CONDITION_ERRORS = {"heavy_rain_on_dry_surface", "lighting_outside_hours"}
+ERRORS = CRASH_ERRORS | CONDITION_ERRORS
 
 
 def scenario_contrasts(

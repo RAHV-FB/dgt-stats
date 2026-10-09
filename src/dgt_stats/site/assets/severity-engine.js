@@ -23,11 +23,20 @@
   var Z = 1.959964;
   // "4+" means four or more: no upper bound (dgt_stats.severity_model.UNIT_COUNTS).
   var UNITS = { "1": 1, "2": 2, "3": 3, "4+": Infinity };
+  // The rules a scenario must not break (dgt_stats.severity_model.ERRORS): the crash itself, and
+  // conditions that cannot occur together. predict and compare refuse a scenario that breaks one.
   var ERROR_RULES = {
     at_least_one_user: true,
     units_cover_users: true,
-    pedestrian_struck_needs_pedestrian: true
+    pedestrian_struck_needs_pedestrian: true,
+    heavy_rain_on_dry_surface: true,
+    lighting_outside_hours: true
   };
+  // Time bands that hold all year in Catalonia (dgt_stats.severity_model.DAYLIGHT and the two
+  // bands after it): no daylight before 06:00 or from 22:00; only daylight from 10:00 to 13:59.
+  var DAYLIGHT = ["day", "overcast"];
+  var HOURS_WITHOUT_DAYLIGHT = ["00-05", "22-23"];
+  var HOURS_OF_DAYLIGHT_ONLY = ["10-13"];
 
   function expit(z) {
     return 1 / (1 + Math.exp(-z));
@@ -102,7 +111,35 @@
       return ones;
     }
 
+    // The error rules a scenario breaks, in the order check lists them.
+    function errorsOf(scenario) {
+      var chosen = ticked(scenario);
+      var units = UNITS[String(scenario.units)];
+      var broken = [];
+      if (chosen.length === 0) broken.push("at_least_one_user");
+      if (units < chosen.length) broken.push("units_cover_users");
+      if (scenario.crash_type === "pedestrian_struck" && !scenario.pedestrian) {
+        broken.push("pedestrian_struck_needs_pedestrian");
+      }
+      if (scenario.weather === "heavy_rain_snow" && scenario.surface === "dry") {
+        broken.push("heavy_rain_on_dry_surface");
+      }
+      var hour = String(scenario.hour);
+      var daylight = DAYLIGHT.indexOf(String(scenario.lighting)) >= 0;
+      if ((HOURS_WITHOUT_DAYLIGHT.indexOf(hour) >= 0 && daylight) ||
+          (HOURS_OF_DAYLIGHT_ONLY.indexOf(hour) >= 0 && !daylight)) {
+        broken.push("lighting_outside_hours");
+      }
+      return broken;
+    }
+
+    function refuse(scenario) {
+      var broken = errorsOf(scenario);
+      if (broken.length) throw new Error("refused scenario: " + broken.join(", "));
+    }
+
     function predict(scenario) {
+      refuse(scenario);
       var ones = design(scenario);
       var logit = 0;
       var variance = 0;
@@ -123,6 +160,8 @@
     // The first scenario against the second: ratio and difference of the predicted fatal shares,
     // each with a 95% delta-method interval (dgt_stats.severity_model.compare_exported).
     function compare(first, second) {
+      refuse(first);
+      refuse(second);
       var a = design(first);
       var b = design(second);
       var pa = predict(first).probability;
@@ -177,12 +216,7 @@
     function check(scenario) {
       var chosen = ticked(scenario);
       var units = UNITS[String(scenario.units)];
-      var broken = [];
-      if (chosen.length === 0) broken.push("at_least_one_user");
-      if (units < chosen.length) broken.push("units_cover_users");
-      if (scenario.crash_type === "pedestrian_struck" && !scenario.pedestrian) {
-        broken.push("pedestrian_struck_needs_pedestrian");
-      }
+      var broken = errorsOf(scenario);
       if (model.collision_types.indexOf(scenario.crash_type) >= 0 && units === 1) {
         broken.push("collision_with_one_unit");
       }
@@ -213,13 +247,19 @@
       return { errors: errors, warnings: warnings, rare: rare };
     }
 
+    function levels(name) {
+      return model.inputs[name].levels.map(function (level) { return level.value; });
+    }
+
     return {
       design: design,
       predict: predict,
       compare: compare,
       check: check,
       similar: similar,
-      zoneOf: zoneOf
+      zoneOf: zoneOf,
+      levels: levels,
+      daylight: DAYLIGHT.slice()
     };
   }
 

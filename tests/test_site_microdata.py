@@ -214,25 +214,71 @@ def test_transfer_scores_and_the_small_barcelona_benchmark_come_from_the_tables(
 
 
 def test_models_page_follows_the_decisions(pages: dict[str, str]) -> None:
-    text, form = pages["severity-models"], pages["calculator"]
+    text = pages["severity-models"]
     # The other models are named as not used, with the reason, and the review is linked; no
     # other model's probabilities are shown.
     assert "are not used as predictors" in text
     assert "can only rank" in text
     assert "ML_MODEL_REVIEW.md" in text and "SEVERITY_CALCULATOR.md" in text
-    # The calculator's form offers exactly the exported model's inputs.
+
+
+def _options(form: str, control: str) -> list[str]:
+    """The option values of the calculator's select ``calc-<control>``."""
+    select = re.search(rf'<select id="calc-{re.escape(control)}"[^>]*>(.*?)</select>', form)
+    assert select, control
+    return re.findall(r'<option value="([^"]*)"', select.group(1))
+
+
+def test_every_level_of_the_model_stays_reachable(pages: dict[str, str]) -> None:
+    """The calculator asks directly for every level of the place and the conditions, and its
+    crash description, run through the page's own mapping, reaches every crash type, every kind
+    of road user and every number involved."""
     import json
+    import shutil
+    import subprocess
 
     from dgt_stats.paths import REPORTS_DIR
+    from dgt_stats.site import tool_calculator
 
+    form = pages["calculator"]
     model = json.loads((REPORTS_DIR / "models" / "severity_model.json").read_text())
-    for name, spec in model["inputs"].items():
-        if spec["type"] == "flags":
-            for level in spec["levels"]:
-                assert f'name="users" value="{level["value"]}"' in form, level
-        else:
-            assert f'name="{name}"' in form, name
-            assert form.count(f'id="calc-{name}"') == 1, name
+    direct = (*tool_calculator.PLACE_INPUTS, *tool_calculator.CONDITION_INPUTS)
+    assert {*direct, "crash_type", "units", "users"} == set(model["inputs"])
+    for name in direct:
+        assert form.count(f'id="calc-{name}"') == 1 and f'name="{name}"' in form, name
+        levels = [level["value"] for level in model["inputs"][name]["levels"]]
+        # The lighting's empty option is the "Choose the lighting" prompt.
+        assert [value for value in _options(form, name) if value] == levels, name
+    for what, fields in tool_calculator.GROUPS.items():
+        assert form.count(f'data-group="{what}"') == 1, what
+        for _, control, _, options in fields:
+            assert _options(form, control) == [value for value, _ in options], control
+    assert _options(form, "what") == [value for value, _ in tool_calculator.WHAT]
+    node = shutil.which("node")
+    if node is None:
+        pytest.skip("Node is not installed")
+    script = PROJECT_ROOT / "src/dgt_stats/site/assets/severity-calculator.js"
+    described = json.loads(
+        subprocess.run(
+            [
+                node,
+                "-e",
+                f"const b = require({json.dumps(str(script))});"
+                "const input = JSON.parse(require('fs').readFileSync(0, 'utf8'));"
+                "process.stdout.write(JSON.stringify(input.map(c => b.crash(c))));",
+            ],
+            input=json.dumps(tool_calculator.builder_choices()),
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout
+    )
+    for name, reached in (
+        ("crash_type", {crash["crash_type"] for crash in described}),
+        ("units", {crash["units"] for crash in described}),
+        ("users", {user for crash in described for user in crash["users"]}),
+    ):
+        assert reached == {level["value"] for level in model["inputs"][name]["levels"]}, name
 
 
 def test_validation_page_keeps_population_differences_and_validation_apart(
