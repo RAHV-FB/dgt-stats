@@ -41,11 +41,20 @@ def pages(tmp_path_factory: pytest.TempPathFactory) -> dict[str, str]:
 
     target = tmp_path_factory.mktemp("site")
     site.build(target)
-    return {slug: (target / f"{slug}.html").read_text(encoding="utf-8") for slug in PAGES}
+    # The methodology page too, which holds the regional pages' technical notes.
+    return {
+        slug: (target / f"{slug}.html").read_text(encoding="utf-8") for slug in (*PAGES, "data")
+    }
 
 
 def _table(name: str) -> pd.DataFrame:
     return pd.read_csv(TABLES_DIR / f"{name}.csv")
+
+
+def _notes(data: str, anchor: str) -> str:
+    """One page's technical notes on the methodology page: its section, up to the next one."""
+    start = data.index(f'<h2 id="{anchor}">')
+    return data[start : data.index("<h2", start + 1)]
 
 
 def test_page_code_types_no_year_and_no_result() -> None:
@@ -63,7 +72,7 @@ def test_page_code_types_no_year_and_no_result() -> None:
 
 def test_microdata_pages_open_with_a_summary_and_link_their_tables(pages: dict[str, str]) -> None:
     for slug, text in pages.items():
-        if slug == "calculator":
+        if slug in ("calculator", "data"):
             continue
         # The old furniture is gone: no source block, no layer line. (A model's description
         # may say in prose what one row is; the old per-page "unit" block is what is banned.)
@@ -71,8 +80,11 @@ def test_microdata_pages_open_with_a_summary_and_link_their_tables(pages: dict[s
         assert '<p class="level">' not in text and "Layer:" not in text, slug
         assert text.count('<p class="summary">') == 1, slug
         assert 'href="tables/' in text, slug
+    # Each regional page links its technical notes on the methodology page, and the notes link
+    # the methodology's account of how police crash records are read.
     for slug in ("catalonia", "barcelona"):
-        assert 'href="data.html#records"' in pages[slug], slug
+        assert f'href="data.html#{slug}-method"' in pages[slug], slug
+        assert 'href="#records"' in _notes(pages["data"], f"{slug}-method"), slug
 
 
 def test_catalonia_headline_numbers_come_from_the_tables(pages: dict[str, str]) -> None:
@@ -114,24 +126,34 @@ def test_catalonia_leads_with_its_results_and_links_the_calculator(
 ) -> None:
     text = pages["catalonia"]
     headings = _headings(text)
-    # The checks on the file are technical notes after the results, not sections of the page;
-    # the agreement with DGT keeps its anchor for the pages that cite it.
+    # The checks on the file are technical notes on the methodology page, not sections of the
+    # page. The page keeps the agreement with DGT's 24-hour counts, under the anchor the sources
+    # and validation pages cite; the comparison in full is in the notes.
     assert "Agreement with DGT's national records" not in headings
     assert "Fields recorded unevenly" not in headings
-    assert '<details class="technical" id="dgt-agreement">' in text
+    assert '<details class="technical"' not in text
     main = text[text.find("<main>") : text.find("</main>")]
-    sections = [match.start() for match in re.finditer(r"<h2", main)]
     assert headings[-1] == "Data and method"
-    assert sections[-2] < main.find('id="dgt-agreement"') < sections[-1]
+    agreement = re.search(r'<p id="dgt-agreement">(.*?)</p>', main, re.S).group(1)
+    comparison = _table("cat_vs_dgt_province_year")
+    assert f"in all {len(comparison)} province-years" in agreement
+    assert "a death within 24 hours" in agreement
+    notes = _notes(pages["data"], "catalonia-method")
+    ratio30 = comparison.ratio_fatal_30d
+    assert (
+        f"{_fmt_pct(ratio30.min(), 0).removesuffix('%')}–{_fmt_pct(ratio30.max(), 0)} of DGT's "
+        "count of crashes with a death within 30 days" in notes
+    )
     # Where it shows fatal shares by circumstance, the page sends the reader to the calculator
     # before its first chart.
     first = main.find("<h2")
-    calculator = main.find('href="severity-models.html#calculator"')
+    calculator = main.find('href="calculator.html"')
     assert first < calculator < main.find("cat1_fatal_by_road")
 
 
 def test_barcelona_tables_name_each_breakdown_once(pages: dict[str, str]) -> None:
-    text = pages["barcelona"]
+    # The tables of people by road user, age and sex are the Barcelona page's technical notes.
+    text = _notes(pages["data"], "barcelona-method")
     for prefix in ("Road user: ", "Age: ", "Sex: "):
         assert f">{prefix}" not in text, prefix
     for column in ("Road user", "Age", "Sex"):
