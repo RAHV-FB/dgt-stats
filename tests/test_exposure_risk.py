@@ -89,11 +89,34 @@ def test_shares_add_up_and_rates_follow_from_them() -> None:
 
 def test_older_split_keeps_the_measured_65_plus_kilometres(older_split_table) -> None:
     split = older_split_table
-    assert set(split.assumption) == set(national.SPLITS)
-    rates = national.rates().query("method.str.startswith('A:') and group == '65+'").iloc[0]
-    for _, part in split.groupby("assumption"):
-        assert part.billion_km.sum() == pytest.approx(rates.billion_km)
-        assert part.share_of_65_plus_km.sum() == pytest.approx(1.0)
+    assert set(split.profile) == {national.CENTRAL_METHOD, national.BARCELONA_METHOD}
+    rates = national.rates()
+    for profile, table in split.groupby("profile"):
+        assert set(table.assumption) == set(national.SPLITS)
+        over_65 = rates[(rates.method == profile) & (rates.group == "65+")].iloc[0]
+        for _, part in table.groupby("assumption"):
+            assert part.billion_km.sum() == pytest.approx(over_65.billion_km)
+            assert part.share_of_65_plus_km.sum() == pytest.approx(1.0)
+
+
+def test_the_central_profile_averages_the_barcelona_and_madrid_shares() -> None:
+    # Each age group's share of the kilometres is the mean of its shares under the two surveys,
+    # the Barcelona survey's 65+ kilometres first put on Spain's older population.
+    def shares(profile: dict) -> pd.Series:
+        km, _ = national.national_km(profile)
+        return km / km.sum()
+
+    central = shares(national.average_profile())
+    mean = (shares(national.emef_profile()) + shares(national.edm_profile())) / 2
+    assert central.sum() == pytest.approx(1.0)
+    assert np.allclose(central, mean, atol=0.001)
+    # Every central ratio lies inside its sensitivity range.
+    rates = national.rates()
+    central_rates = rates[rates.method == national.CENTRAL_METHOD].set_index("group")
+    spread = national.sensitivity().groupby("group").involved_ratio.agg(["min", "max"])
+    for group in national.GROUPS:
+        value = central_rates.loc[group, "involved_ratio"]
+        assert spread.loc[group, "min"] <= value <= spread.loc[group, "max"], group
 
 
 def test_uniform_weekend_mix_reproduces_the_central_ratios() -> None:
@@ -249,7 +272,7 @@ def test_coverage_mixes_and_scenarios() -> None:
     scenario = next(
         s
         for s in coverage.scenario_km()
-        if s["profile"] == national.CENTRAL_METHOD
+        if s["profile"] == national.BARCELONA_METHOD
         and s["non_working_mix"] == s["remainder_mix"] == coverage.WORKING_DAY_MIX
     )
     _, professional = coverage._daily_km()
@@ -319,27 +342,39 @@ def test_madrid_survey_reading() -> None:
 
 
 def test_older_split_joint_interval(older_split_table) -> None:
-    split = older_split_table.set_index(["assumption", "group"])
-    reference = split.loc[national.REFERENCE_SPLIT]
-    assert reference.loc["75+", "ratio_to_45_64"] == pytest.approx(2.055, abs=0.001)
-    assert reference.loc["65-74", "ratio_to_45_64"] == pytest.approx(0.939, abs=0.001)
-    for (_, group), row in split.iterrows():
+    split = older_split_table.set_index(["profile", "assumption", "group"]).sort_index()
+    barcelona = split.loc[(national.BARCELONA_METHOD, national.REFERENCE_SPLIT)]
+    central = split.loc[(national.CENTRAL_METHOD, national.REFERENCE_SPLIT)]
+    assert barcelona.loc["75+", "ratio_to_45_64"] == pytest.approx(2.055, abs=0.001)
+    assert barcelona.loc["65-74", "ratio_to_45_64"] == pytest.approx(0.939, abs=0.001)
+    # The Madrid profile has fewer kilometres at 65 and over, so the average raises both.
+    assert central.loc["75+", "ratio_to_45_64"] == pytest.approx(2.427, abs=0.001)
+    assert central.loc["65-74", "ratio_to_45_64"] == pytest.approx(1.108, abs=0.001)
+    for _, row in split.iterrows():
         assert row.ratio_low <= row.ratio_to_45_64 <= row.ratio_high
         # The Monte Carlo error of each end is real but small against the interval's width.
         assert 0 < row.mc_se_low < 0.05 * (row.ratio_high - row.ratio_low)
         assert 0 < row.mc_se_high < 0.06 * (row.ratio_high - row.ratio_low)
-    assert reference.loc["75+", "ratio_low"] > 1
-    # Another set of replicates would not bring the interval down to the 45-64 rate.
-    assert reference.loc["75+", "ratio_low"] - 3 * reference.loc["75+", "mc_se_low"] > 1
+    for reference in (barcelona, central):
+        assert reference.loc["75+", "ratio_low"] > 1
+        # Another set of replicates would not bring the interval down to the 45-64 rate.
+        assert reference.loc["75+", "ratio_low"] - 3 * reference.loc["75+", "mc_se_low"] > 1
     # A regression check, not an invariant: adding the Madrid survey's sampling error widens
     # the interval of the two Madrid splits.
-    for assumption in national.EDM_SPLITS:
-        row = split.loc[(assumption, "75+")]
-        joint = np.log(row.ratio_high / row.ratio_low) / 2
-        fixed = np.log(row.ratio_high_split_fixed / row.ratio_low_split_fixed) / 2
-        assert joint >= fixed - 0.02
-        assert "EDM2018" in row.sampling_sources
-    assert "RACC constant" in split.loc[(national.RACC_SPLIT, "75+"), "sampling_sources"]
+    for profile in (national.BARCELONA_METHOD, national.CENTRAL_METHOD):
+        for assumption in national.EDM_SPLITS:
+            row = split.loc[(profile, assumption, "75+")]
+            joint = np.log(row.ratio_high / row.ratio_low) / 2
+            fixed = np.log(row.ratio_high_split_fixed / row.ratio_low_split_fixed) / 2
+            assert joint >= fixed - 0.02
+            assert "EDM2018" in row.sampling_sources
+    # The central average carries both surveys' sampling error under every split.
+    for (_, _, _), row in split.loc[[national.CENTRAL_METHOD]].iterrows():
+        assert "EMEF" in row.sampling_sources and "EDM2018" in row.sampling_sources
+    assert (
+        "RACC constant"
+        in split.loc[(national.BARCELONA_METHOD, national.RACC_SPLIT, "75+"), "sampling_sources"]
+    )
 
 
 def test_interval_monte_carlo_error_respects_crossed_replicates() -> None:
@@ -448,7 +483,8 @@ def test_composition_bound(older_table, older_split_table) -> None:
     table = older_table
     bound = table[table.variant == national.COMPOSITION_VARIANT].set_index("assumption")
     assert set(bound.index) == set(national.SPLITS)
-    split = older_split_table.set_index(["assumption", "group"]).ratio_to_45_64
+    split = older_split_table[older_split_table.profile == national.BARCELONA_METHOD]
+    split = split.set_index(["assumption", "group"]).ratio_to_45_64
     for assumption, row in bound.iterrows():
         rise = row.ratio_75_plus / split[(assumption, "75+")] - 1
         assert 0.04 < rise < 0.13, (assumption, rise)
@@ -540,7 +576,8 @@ def test_reference_checks_licence_trend() -> None:
     # over alone, and the cohort update lowers the conditional estimate.
     assert (gradient > 1).all() and (gradient < level).all()
     cohort = float(checks.loc[(national.CHECK_COHORT_UPDATE, "both sexes"), "value"])
-    split = national.older_split().set_index(["assumption", "group"])
+    split = national.older_split()
+    split = split[split.profile == national.BARCELONA_METHOD].set_index(["assumption", "group"])
     assert 1 < cohort < float(split.loc[(national.REFERENCE_SPLIT, "75+"), "ratio_to_45_64"])
 
 

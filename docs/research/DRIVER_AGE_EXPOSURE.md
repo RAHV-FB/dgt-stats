@@ -15,6 +15,17 @@ October 2026 after an independent audit.
 The Madrid survey data are © Consorcio Regional de Transportes de Madrid, reused under its
 open-data licence. Powered by CRTM (<https://www.crtm.es>).
 
+**The published estimate since October 2026.** The site's rates per kilometre now use the average
+of two age profiles, the EMEF's (Method A, province of Barcelona) and the Madrid survey's of 2018:
+each age group's share of the kilometres is the mean of its shares under the two
+(`national.average_profile`, `national.CENTRAL_METHOD`). On it, drivers aged 18–29 were involved in
+injury crashes 2.68 times as often per kilometre as drivers aged 45–64 (95 % sampling interval
+2.5–2.9), 30–44 1.24, 65 and over 1.41, 65–74 1.11 and 75 and over 2.43 (2.0–3.0, on Madrid's split
+of the 65+ kilometres). This document was written with Method A as the central estimate, and its
+analysis of the sensitivity range still varies each choice from Method A; the figures below for
+Method A (2.53 at 18–29, 2.06 at 75 and over) are that starting point. The sensitivity ranges are
+unchanged, and the average lies inside every one of them.
+
 ## What is measured
 
 The unit is the **car-driver kilometre on a working day** by a resident aged 16 or over of the

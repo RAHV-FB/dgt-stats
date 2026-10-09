@@ -163,40 +163,36 @@ def test_comparing_two_indicators_shows_indices_and_reset_restores(browser, serv
 # --------------------------------------------------------------------------- driver risk
 
 
-def test_the_driver_comparison_opens_on_the_75_plus_estimate_with_its_condition(
-    browser, server
-) -> None:
+def test_the_driver_comparison_opens_on_the_75_plus_estimate(browser, server) -> None:
     page, errors = _open(browser, server, "driver-risk")
+    data = tool_driver_risk.driver_data()
+    oldest = next(m for m in data["age"] if m["id"] == "involved_per_km")["groups"]["75+"]
     headline = _text(page, "[data-headline]")
     assert (
-        "drivers aged 75 and over were involved in injury crashes 2.06 times as often" in headline
+        "drivers aged 75 and over were involved in injury crashes "
+        f"{oldest['value']:.2f} times as often" in headline
     )
-    detail = _text(page, "[data-detail]")
-    assert "95% sampling interval 1.6–2.6; sensitivity range 0.97–3.20" in detail
-    condition = _text(page, "[data-condition]")
-    assert "holds only if people aged 75 and over drive as much less" in condition
-    assert "0.97 to 3.20 times the 45–64 rate" in condition
+    assert f"95% sampling interval {oldest['interval']}" in _text(page, "[data-detail]")
+    # No choice of assumptions and no caveat in the tool: the drivers page says it once.
+    for name in ("profile", "split"):
+        assert page.locator(f"[name='{name}']").count() == 0, name
+    assert page.locator("[data-condition]").count() == 0
+    assert "Madrid" not in _text(page, '[data-tool="driver-risk"]')
     assert not errors
     page.close()
 
 
-def test_changing_the_split_changes_only_the_older_estimates(browser, server) -> None:
+def test_every_age_group_shows_its_central_estimate(browser, server) -> None:
     page, _ = _open(browser, server, "driver-risk")
     data = tool_driver_risk.driver_data()
     groups = next(m for m in data["age"] if m["id"] == "involved_per_km")["groups"]
-    for split in data["splits"]:
-        page.select_option("[name='split']", split["value"])
-        shown = groups["75+"]["by_split"][split["value"]]
-        assert f"{shown['value']:.2f} times as often" in _text(page, "[data-headline]")
-        assert shown["interval"] in _text(page, "[data-detail]")
-        odds = "at odds with surveys of men's driving" in _text(page, "[data-condition]")
-        assert odds == shown["at_odds"], split["value"]
-    # The age profile applies to the younger groups, not to the split at 75.
-    page.select_option("[name='a']", "18-29")
-    for profile in data["profiles"]:
-        page.select_option("[name='profile']", profile["value"])
-        shown = groups["18-29"]["by_profile"][profile["value"]]
-        assert f"{shown['value']:.2f} times as often" in _text(page, "[data-headline]")
+    page.select_option("[name='b']", "45-64")
+    for group, shown in groups.items():
+        if group == "45-64":
+            continue
+        page.select_option("[name='a']", group)
+        assert f"{shown['value']:.2f} times as often" in _text(page, "[data-headline]"), group
+        assert shown["interval"] in _text(page, "[data-detail]"), group
     page.close()
 
 

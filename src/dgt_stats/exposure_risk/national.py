@@ -44,6 +44,12 @@ aged 16 and 17 count in its population but cannot hold a car licence, and the 41
 of every rate; the ratios between ages are unchanged by that only if their ages follow the recorded
 mix (:func:`unknown_age_bounds` gives the ratios if they were all of one age group).
 
+**Central estimate.** The published rates use the mean of the Barcelona (A) and Madrid (C, 2018)
+age profiles (:func:`average_profile`): each group's share of the kilometres is the mean of its
+shares under the two surveys. Every other profile, each survey's alone included, is an
+alternative in the sensitivity range; :func:`older_sensitivity` and the tables built on it vary
+each choice from Method A.
+
 **Uncertainty.** Each interval crosses the EMEF bootstrap replicates (sampling error of the
 exposure shares) with :data:`COUNT_DRAWS` gamma draws of the counts (Poisson error) per replicate,
 and carries the Monte Carlo standard error of each end (:func:`_interval`). The spread between
@@ -320,6 +326,93 @@ def _older_mean_population(profile: dict) -> pd.Series:
     return barcelona_older_population().set_index(["sex", "group"]).population
 
 
+@cache
+def average_profile() -> dict:
+    """The central profile: the Barcelona (EMEF, Method A) and Madrid (2018 survey) profiles,
+    each scaled to the same national total and averaged cell by cell, so that every age group's
+    share of Spain's kilometres is the mean of its shares under the two surveys. Neither survey
+    covers Spain; the two largest metropolitan areas differ most at 65 and over, and the mean
+    gives them equal weight. The result is cached: callers must not change it.
+
+    The EMEF's 65+ km per resident is a mean over the province of Barcelona's older residents. It
+    is first split at 75 with the Madrid survey's ratio of km per resident, replicate by
+    replicate, so that both profiles carry 65-74 and 75+ cells and a 65+ mean over Spain's older
+    residents (as :func:`edm_profile` does). Replicate b pairs the EMEF's bootstrap b with the
+    Madrid survey's household bootstrap b (independent surveys); :func:`_average_profile_crossed`
+    crosses them instead, for the 75+ interval."""
+    emef, madrid = emef_profile(), edm_profile()
+    ratios = edm2018.older_ratio_replicates()
+    spain = population_by_group().set_index(["sex", "group"]).population
+    barcelona = barcelona_older_population().set_index(["sex", "group"]).population
+    cells = (*GROUPS[:-1], *OLDER)
+    standard = {key: emef[key] for key in emef if key[1] != "65+"}
+    for sex in SEXES:
+        young, old = barcelona[(sex, "65-74")], barcelona[(sex, "75+")]
+        for index in (0, 1):
+            k65 = emef[(sex, "65+")][index]
+            r = ratios[sex]["per_resident"][index]
+            k_young = k65 * (young + old) / (young + r * old)
+            standard.setdefault((sex, "65-74"), [None, None])[index] = k_young
+            standard.setdefault((sex, "75+"), [None, None])[index] = r * k_young
+
+    def total(profile: dict, index: int):
+        return sum(profile[(sex, g)][index] * spain[(sex, g)] for sex in SEXES for g in cells)
+
+    out = {}
+    for sex in SEXES:
+        for g in cells:
+            out[(sex, g)] = tuple(
+                0.5 * standard[(sex, g)][i] / total(standard, i)
+                + 0.5 * madrid[(sex, g)][i] / total(madrid, i)
+                for i in (0, 1)
+            )
+        young, old = spain[(sex, "65-74")], spain[(sex, "75+")]
+        out[(sex, "65+")] = tuple(
+            (out[(sex, "65-74")][i] * young + out[(sex, "75+")][i] * old) / (young + old)
+            for i in (0, 1)
+        )
+    return out
+
+
+@cache
+def _average_profile_crossed() -> dict:
+    """:func:`average_profile` with two-dimensional replicates: cell (i, j) averages the EMEF's
+    bootstrap i with the Madrid survey's household bootstrap j, the EMEF's 65+ km being split at
+    75 with Madrid resample j's ratio. Crossing the two independent surveys gives 300 x 300
+    cells instead of 300 pairs, so the interval ends of the 75+ estimate carry Monte Carlo errors
+    as small as Method A's; a Madrid split drawn along the second axis then uses the same
+    households as the Madrid half of the profile in every cell."""
+    emef, madrid = emef_profile(), edm_profile()
+    ratios = edm2018.older_ratio_replicates()
+    spain = population_by_group().set_index(["sex", "group"]).population
+    barcelona = barcelona_older_population().set_index(["sex", "group"]).population
+    cells = (*GROUPS[:-1], *OLDER)
+    a = {key: value[1][:, None] for key, value in emef.items() if key[1] != "65+"}
+    m = {key: value[1][None, :] for key, value in madrid.items()}
+    for sex in SEXES:
+        young, old = barcelona[(sex, "65-74")], barcelona[(sex, "75+")]
+        k65 = emef[(sex, "65+")][1][:, None]
+        r = np.asarray(ratios[sex]["per_resident"][1])[None, :]
+        k_young = k65 * (young + old) / (young + r * old)
+        a[(sex, "65-74")], a[(sex, "75+")] = k_young, r * k_young
+    total_a = sum(a[(sex, g)] * spain[(sex, g)] for sex in SEXES for g in cells)
+    total_m = sum(m[(sex, g)] * spain[(sex, g)] for sex in SEXES for g in cells)
+    point = average_profile()
+    out = {}
+    for sex in SEXES:
+        for g in cells:
+            out[(sex, g)] = (
+                point[(sex, g)][0],
+                0.5 * a[(sex, g)] / total_a + 0.5 * m[(sex, g)] / total_m,
+            )
+        young, old = spain[(sex, "65-74")], spain[(sex, "75+")]
+        out[(sex, "65+")] = (
+            point[(sex, "65+")][0],
+            (out[(sex, "65-74")][1] * young + out[(sex, "75+")][1] * old) / (young + old),
+        )
+    return out
+
+
 def national_km(profile: dict, year: int = YEAR) -> tuple[pd.Series, np.ndarray]:
     """Method A: working-day car-driver km per day in Spain by group, point and replicates."""
     population = population_by_group(year).set_index(["sex", "group"]).population
@@ -410,14 +503,21 @@ def licence_holders(year: int = YEAR) -> pd.Series:
 # ----------------------------------------------------------------------------- results
 
 
-CENTRAL_METHOD = "A: EMEF, province of Barcelona"
+BARCELONA_METHOD = "A: EMEF, province of Barcelona"
 LICENCE_METHOD = "A2: EMEF, province of Barcelona, per licence holder"
+AVERAGE_METHOD = "Average of Barcelona and Madrid"
+# The published estimate: each age group's share of Spain's kilometres is the mean of its shares
+# under the Barcelona (EMEF) and Madrid (2018) profiles (:func:`average_profile`). Every other
+# profile, Barcelona's and Madrid's alone included, is an alternative in the sensitivity range.
+CENTRAL_METHOD = AVERAGE_METHOD
 
 
 def exposure_profiles() -> dict[str, tuple[pd.Series, np.ndarray]]:
-    """National working-day km per day by group under Methods A, A2 and each Method C profile."""
+    """National working-day km per day by group under the central average, Methods A and A2 and
+    each Method C profile."""
     out = {
-        CENTRAL_METHOD: national_km(emef_profile()),
+        CENTRAL_METHOD: national_km(average_profile()),
+        BARCELONA_METHOD: national_km(emef_profile()),
         LICENCE_METHOD: national_km(licence_calibrated(emef_profile())),
     }
     for area in exposure.AREAS:
@@ -833,14 +933,16 @@ def _older_draws(
     along the second axis. Every cell gets its own gamma draws of the three counts.
     ``structure`` is ``None`` (all km at the profile's mix), ``("coverage", non_working_mix,
     remainder_mix, professional_mix)`` or ``("weekend", mix, share of km)``. The mixes' own
-    weights are held fixed. Returns the two ratios, with the shape of the cells."""
+    weights are held fixed. A profile whose replicates are already two-dimensional (the central
+    average's, :func:`_average_profile_crossed`) is used as it is, its second axis being the
+    split's survey. Returns the two ratios, with the shape of the cells."""
     from dgt_stats.exposure_risk import coverage
 
     n = len(profile[("male", "65+")][1])
 
     def prof(sex: str, group: str) -> np.ndarray:
         values = np.asarray(profile[(sex, group)][1], dtype=float)
-        return values if matched else values[:, None]
+        return values if matched or values.ndim == 2 else values[:, None]
 
     def ratio(sex: str) -> np.ndarray | float:
         value = ratios[sex]
@@ -945,8 +1047,8 @@ def _sampling_sources(split: str, profile_source: str = "EMEF", fixed: tuple[str
 
 
 def older_split(km_variant: str = "less taxi and ride-hailing") -> pd.DataFrame:
-    """Kilometres and rates for 65-74 and 75 and over under each split (Method A/B, central), with
-    joint 95% sampling intervals.
+    """Kilometres and rates for 65-74 and 75 and over under each split, for the central average
+    profile and for Method A alone (``profile``), with joint 95% sampling intervals.
 
     The EMEF and the Madrid survey are independent samples, so the interval crosses all of the
     EMEF's replicates with all of the Madrid survey's (300 x 300 cells), each cell with its own
@@ -955,15 +1057,39 @@ def older_split(km_variant: str = "less taxi and ride-hailing") -> pd.DataFrame:
     the EMEF bootstrap ignores clustering, the Madrid household bootstrap ignores stratification,
     and neither recalibrates the weights. ``ratio_low_split_fixed`` and ``ratio_high_split_fixed``
     are the earlier interval, which held the split's ratio at its point value and so left out the
-    Madrid survey's sampling error."""
-    profile = emef_profile()
-    km, replicates = national_km(profile)
+    Madrid survey's sampling error.
+
+    For the central average, half of whose profile is the Madrid survey's, the interval's cells
+    cross the EMEF's replicates with the Madrid survey's (:func:`_average_profile_crossed`): the
+    Madrid half of the profile and a Madrid split use the same household resample in each cell."""
     total_km = dgt_car_km()[km_variant]
     counts = drivers_involved().set_index("group")
+    holders = older_licence_prevalence().groupby("group").b_licence_holders.sum()
+    rows = []
+    profiles = (
+        (CENTRAL_METHOD, average_profile(), _average_profile_crossed(), "EMEF, EDM2018"),
+        (BARCELONA_METHOD, emef_profile(), emef_profile(), "EMEF"),
+    )
+    for method, profile, draws_profile, source in profiles:
+        rows += _older_split_rows(method, profile, draws_profile, source, total_km, counts, holders)
+    return pd.DataFrame(rows)
+
+
+def _older_split_rows(
+    method: str,
+    profile: dict,
+    draws_profile: dict,
+    source: str,
+    total_km: float,
+    counts: pd.DataFrame,
+    holders: pd.Series,
+) -> list[dict]:
+    """:func:`older_split`'s rows for one profile; ``draws_profile`` gives the replicates its
+    joint interval is drawn from."""
+    km, replicates = national_km(profile)
     rng = np.random.default_rng(SEED)
     n_rep = replicates.shape[1]
     draws = {g: rng.gamma(counts.loc[g, "involved"] + 0.5, 1.0, n_rep) for g in (*OLDER, REFERENCE)}
-    holders = older_licence_prevalence().groupby("group").b_licence_holders.sum()
     rows = []
     for split in SPLITS:
         ratios = _older_ratios()[split]
@@ -972,7 +1098,7 @@ def older_split(km_variant: str = "less taxi and ride-hailing") -> pd.DataFrame:
         point = _older_ratios_to_reference(km, share)
         per_holder = implied_km_per_holder(ratios)
         pooled = (share / (1 - share)) / float(holders["75+"] / holders["65-74"])
-        joint75, joint65 = _older_draws(profile, _split_replicates(split))
+        joint75, joint65 = _older_draws(draws_profile, _split_replicates(split))
         intervals = {"75+": _interval(joint75), "65-74": _interval(joint65)}
         reference = GROUPS.index(REFERENCE)
         older_index = GROUPS.index("65+")
@@ -986,6 +1112,7 @@ def older_split(km_variant: str = "less taxi and ride-hailing") -> pd.DataFrame:
             joint = intervals[group]
             rows.append(
                 {
+                    "profile": method,
                     "assumption": split,
                     "group": group,
                     "ratio_75_to_65_74_male": ratios["male"],
@@ -1001,18 +1128,18 @@ def older_split(km_variant: str = "less taxi and ride-hailing") -> pd.DataFrame:
                     "mc_se_high": joint["mc_se_high"],
                     "ratio_low_split_fixed": float(np.percentile(rate_rep / ref_rep, 2.5)),
                     "ratio_high_split_fixed": float(np.percentile(rate_rep / ref_rep, 97.5)),
-                    "sampling_sources": _sampling_sources(split),
+                    "sampling_sources": _sampling_sources(split, source),
                     "men_km_per_holder_75_vs_65_74": per_holder["male"],
                     "women_km_per_holder_75_vs_65_74": per_holder["female"],
                     "pooled_km_per_holder_75_vs_65_74": pooled,
                 }
             )
-    return pd.DataFrame(rows)
+    return rows
 
 
 def _profile_methods() -> dict[str, str]:
     """The method name of every profile, by the label the sensitivity tables give it."""
-    methods = [CENTRAL_METHOD, LICENCE_METHOD]
+    methods = [BARCELONA_METHOD, LICENCE_METHOD]
     methods += [f"C: EMEF, {area}" for area in exposure.AREAS]
     methods.append(MADRID_METHOD)
     return {method.split(": ", 1)[1]: method for method in methods}
@@ -1044,7 +1171,7 @@ def older_sensitivity() -> pd.DataFrame:
         method = (
             methods[variant]
             if source in ("regional profile", "licence-calibrated transfer")
-            else CENTRAL_METHOD
+            else BARCELONA_METHOD
         )
         entries.append((source, variant, method, None, None, km, profile))
     # Weekend mixes change the age shares of the annual km, not the split within 65+.
@@ -1053,7 +1180,7 @@ def older_sensitivity() -> pd.DataFrame:
     for (mix, share), part in weekend.groupby(["non_working_age_mix", "non_working_share_of_km"]):
         km = part.set_index("group").share_of_km
         entries.append(
-            ("non-working days", f"{mix}, {share:.0%} of km", CENTRAL_METHOD, mix, None, km)
+            ("non-working days", f"{mix}, {share:.0%} of km", BARCELONA_METHOD, mix, None, km)
             + (emef_profile(),)
         )
     holders = licence_holders()
@@ -1106,7 +1233,7 @@ def older_sensitivity() -> pd.DataFrame:
         profile = composition_profile(emef_profile(), ratios)
         km, _ = national_km(profile)
         national = _split_older(profile, ratios)
-        entry = ("older sample", COMPOSITION_VARIANT, CENTRAL_METHOD, None, None)
+        entry = ("older sample", COMPOSITION_VARIANT, BARCELONA_METHOD, None, None)
         record(entry, split, national["75+"] / sum(national.values()), km)
     # The kilometres the survey does not cover, given credible age mixes, with every profile.
     for scenario in coverage.scenario_km():
@@ -1138,7 +1265,7 @@ def _coverage_source(scenario: dict) -> tuple[str, str]:
     from dgt_stats.exposure_risk import coverage
 
     label = coverage.scenario_label(scenario)
-    if scenario["profile"] == CENTRAL_METHOD:
+    if scenario["profile"] == BARCELONA_METHOD:
         return COVERAGE_SOURCE, label
     return COVERAGE_PROFILE_SOURCE, f"{scenario['profile'].split(': ', 1)[1]}; {label}"
 
@@ -1288,7 +1415,8 @@ SURVEY_YEARS_VARIANTS: tuple[tuple[int, ...], ...] = (
 def _variant_profiles():
     """(source, variant, EMEF profile or None, national km by group) for every alternative."""
     for method, (km, _) in exposure_profiles().items():
-        if method == CENTRAL_METHOD:
+        # The analysis varies each choice from Method A; the central average is no alternative.
+        if method in (BARCELONA_METHOD, CENTRAL_METHOD):
             continue
         source = "licence-calibrated transfer" if method == LICENCE_METHOD else "regional profile"
         profile = None
@@ -1358,9 +1486,10 @@ def sensitivity() -> pd.DataFrame:
 
 
 def unknown_age_bounds() -> pd.DataFrame:
-    """Involvement ratios to 45-64 if every driver of unrecorded age were in one group."""
+    """Involvement ratios to 45-64 (central average profile) if every driver of unrecorded age
+    were in one group."""
     counts = drivers_involved().set_index("group").involved
-    km, _ = national_km(emef_profile())
+    km, _ = national_km(average_profile())
     unknown = float(counts["unknown"])
     rows = []
     for assigned in (None, *GROUPS):
@@ -1381,10 +1510,11 @@ def unknown_age_bounds() -> pd.DataFrame:
 
 def sex_per_km() -> pd.DataFrame:
     """Men against women aged 18 and over: private-car drivers involved and killed per km, with
-    the km split by sex from the Method A profile (the same transfer as for age), and the ratio
-    under each other profile as a sensitivity range."""
-    out = _sex_per_km(emef_profile()).assign(profile=CENTRAL_METHOD)
+    the km split by sex from the central average profile (the same transfer as for age), and the
+    ratio under each other profile as a sensitivity range."""
+    out = _sex_per_km(average_profile()).assign(profile=CENTRAL_METHOD)
     others = {
+        BARCELONA_METHOD: emef_profile(),
         LICENCE_METHOD: licence_calibrated(emef_profile()),
         **{f"C: EMEF, {area}": emef_profile(area) for area in exposure.AREAS},
         "C: Madrid survey 2018": edm_profile(),
@@ -1513,7 +1643,8 @@ def owner_age_comparison() -> pd.DataFrame:
     new = new[new.method == CENTRAL_METHOD]
     rows += [
         {
-            "denominator": "km driven by drivers of this age (EMEF profile, DGT total)",
+            "denominator": "km driven by drivers of this age (Barcelona and Madrid profiles, "
+            "DGT total)",
             "group": group,
             "involved": involved,
             "billion_km": km,
@@ -1721,7 +1852,11 @@ def older_decomposition(
     they are, and it carries no sampling error."""
     table = older_sensitivity() if table is None else table
     split_table = older_split() if split_table is None else split_table
-    oldest = split_table[split_table.group == "75+"].set_index("assumption").ratio_to_45_64
+    oldest = (
+        split_table[(split_table.group == "75+") & (split_table.profile == BARCELONA_METHOD)]
+        .set_index("assumption")
+        .ratio_to_45_64
+    )
     estimate = float(oldest[REFERENCE_SPLIT])
     reference = table[table.assumption == REFERENCE_SPLIT]
     values: dict[str, pd.Series] = {}
@@ -1958,7 +2093,7 @@ def reference_checks() -> pd.DataFrame:
                 value,
             )
     people = population_by_group().groupby("group").population.sum()
-    for method, profile in ((CENTRAL_METHOD, emef_profile()), (MADRID_METHOD, edm_profile())):
+    for method, profile in ((BARCELONA_METHOD, emef_profile()), (MADRID_METHOD, edm_profile())):
         km, _ = national_km(profile)
         add(
             CHECK_TRANSFER,
@@ -1969,7 +2104,7 @@ def reference_checks() -> pd.DataFrame:
     emef, _ = _emef_frame()
     edm = edm2018.person_day()
     for method, older, middle in (
-        (CENTRAL_METHOD, emef[emef.age4 == "65+"], emef[emef.age4 == REFERENCE]),
+        (BARCELONA_METHOD, emef[emef.age4 == "65+"], emef[emef.age4 == REFERENCE]),
         (MADRID_METHOD, edm[edm.EDAD_FIN >= 65], edm[edm.EDAD_FIN.between(45, 64)]),
     ):
         add(

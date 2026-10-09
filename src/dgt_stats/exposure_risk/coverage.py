@@ -622,7 +622,7 @@ def _profiles() -> dict[str, dict]:
     """The profile of the covered part: Method A's and every other of
     :func:`national.exposure_profiles`."""
     out = {
-        national.CENTRAL_METHOD: national.emef_profile(),
+        national.BARCELONA_METHOD: national.emef_profile(),
         national.LICENCE_METHOD: national.licence_calibrated(national.emef_profile()),
     }
     for area in exposure.AREAS:
