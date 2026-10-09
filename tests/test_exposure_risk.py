@@ -342,7 +342,7 @@ def test_madrid_survey_reading() -> None:
 
 
 def test_older_split_joint_interval(older_split_table) -> None:
-    split = older_split_table.set_index(["profile", "assumption", "group"])
+    split = older_split_table.set_index(["profile", "assumption", "group"]).sort_index()
     barcelona = split.loc[(national.BARCELONA_METHOD, national.REFERENCE_SPLIT)]
     central = split.loc[(national.CENTRAL_METHOD, national.REFERENCE_SPLIT)]
     assert barcelona.loc["75+", "ratio_to_45_64"] == pytest.approx(2.055, abs=0.001)
