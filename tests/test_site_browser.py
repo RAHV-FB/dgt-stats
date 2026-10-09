@@ -11,9 +11,13 @@ What they check:
 * the calculator loads its model and shows, for the reference crashes, the probability and
   interval that :func:`dgt_stats.severity_model.predict_exported` computes in Python, and the
   engine running in the page agrees with Python to 1e-10 on many scenarios;
-* the two-scenario comparison matches :func:`compare_exported`;
+* the description of the crash sets the model's crash type, road users and number involved;
+  the conditions offer only what the rules allow, adjust what they must and say so, and leave an
+  ambiguous lighting to the reader;
+* the comparison of scenarios A and B matches :func:`compare_exported`, and reset restores the
+  defaults;
 * every control is reachable and operable from the keyboard, and results are announced;
-* an impossible combination is refused with the rule's own words;
+* random sequences of changes never pass a scenario the rules refuse to the engine;
 * at a phone's width no page scrolls sideways;
 * at a phone's width every figure loads the chart drawn for a phone, fits its column without
   scrolling and shows its smallest text at 11 px or more, while a desktop loads the full chart;
@@ -115,7 +119,8 @@ def _model() -> dict:
 
 
 def _scenarios(n: int) -> list[dict]:
-    """The two reference crashes, every one-input change of them, and random scenarios."""
+    """The two reference crashes, every one-input change of them (some of which the conditions
+    rules refuse), and random scenarios the rules allow."""
     import numpy as np
 
     out = [sm.REFERENCE_SCENARIO, sm.URBAN_REFERENCE]
@@ -129,7 +134,8 @@ def _scenarios(n: int) -> list[dict]:
             scenario[name] = str(rng.choice(list(levels)))
         for user in sm.USERS:
             scenario[user] = int(rng.random() < 0.3)
-        out.append(scenario)
+        if not set(sm.check_scenario(scenario)) & sm.ERRORS:
+            out.append(scenario)
     return out
 
 
@@ -146,37 +152,64 @@ def _shown(page) -> str:
     return re.sub(r"\s+", " ", page.text_content("[data-output]"))
 
 
+def _text(page, selector: str) -> str:
+    return re.sub(r"\s+", " ", page.text_content(selector) or "").strip()
+
+
+def _disabled(page, control: str) -> set[str]:
+    """The values of the options of ``calc-<control>`` the form does not offer now."""
+    return set(
+        page.eval_on_selector(
+            f"#calc-{control}",
+            "(s) => [...s.options].filter((o) => o.disabled && o.value).map((o) => o.value)",
+        )
+    )
+
+
+def _described(crash: dict) -> dict:
+    """The reference crash with a crash type, road users and number involved of its own."""
+    users = {user: int(user in crash.get("users", ())) for user in sm.USERS}
+    return sm.REFERENCE_SCENARIO | users | {k: v for k, v in crash.items() if k != "users"}
+
+
+def _shows_estimate(page, scenario: dict) -> None:
+    expected = sm.predict_exported(_model(), scenario)
+    text = _shown(page)
+    assert text.startswith(_percent(expected["probability"])), (scenario, text)
+    assert f"95% confidence interval: {_range(expected['low'], expected['high'])}" in text
+
+
 def test_reference_crashes_match_python(calculator) -> None:
     model = _model()
     # The calculator opens on the worked examples' reference crash.
-    regional = sm.predict_exported(model, sm.REFERENCE_SCENARIO)
+    _shows_estimate(calculator, sm.REFERENCE_SCENARIO)
     text = _shown(calculator)
-    assert text.startswith(_percent(regional["probability"]))
-    assert f"95% confidence interval: {_range(regional['low'], regional['high'])}" in text
+    # What the estimate is: a share among crashes already recorded with a death or serious
+    # injury (a death within 24 hours), not a chance per crash or per journey.
     assert "within 24 hours" in text
-    # Beside the interval, what it leaves out, and what the estimate is: a share among crashes
-    # already recorded with a death or serious injury, not a chance per crash or per journey.
-    assert "only the uncertainty in the model's coefficients" in text
-    assert "not the differences between places and years" in text
-    assert "of crashes like this one with a death or serious injury" in text
+    assert "among crashes like this one with a death or serious injury in Catalonia" in text
     assert "a share of crashes already recorded" in text
     assert "not the chance of a crash or of a death on a journey" in text
+    # What the interval leaves out, said once in the notes below the calculator.
+    notes = re.sub(r"\s+", " ", calculator.text_content(".tool-notes"))
+    assert "only the uncertainty in the model's coefficients" in notes
+    assert "not the differences between places and years" in notes
+    left_out = f"{model['training']['excluded_owner_not_recorded']:,}"
+    assert f"leave out the {left_out} on conventional roads whose owning network" in notes
+    # The model's version, its years and a link to the method, in one line.
+    first, last = model["training"]["years"]
+    meta = _text(calculator, ".calc-meta")
+    assert model["model_id"] in meta and f"{first}–{last}" in meta
+    assert calculator.get_attribute(".calc-meta a", "href") == "severity-models.html"
     calculator.select_option("#calc-road", "urban_street")
-    urban = sm.predict_exported(model, sm.URBAN_REFERENCE)
-    assert _shown(calculator).startswith(_percent(urban["probability"]))
+    _shows_estimate(calculator, sm.URBAN_REFERENCE)
     key = f"urban|{sm.REFERENCE_SCENARIO['province']}"
     shown = _shown(calculator)
     assert f"{_percent(model['zone_average'][key])} of those on urban streets in the" in shown
-    # The averages are over the crashes the model was fitted on, with their count; the page
-    # says beside the calculator that those crashes leave out the roads whose owning network
-    # is not named.
+    # The averages are over the crashes the model was fitted on, with their count.
     crashes, fatal, _, _ = model["zone_counts"][key]
     assert f"({fatal:,} of {crashes:,})" in shown
     assert "of the crashes the model was fitted on" in shown
-    assert "of all such crashes in Catalonia" not in shown
-    left_out = f"{model['training']['excluded_owner_not_recorded']:,}"
-    intro = re.sub(r"\s+", " ", calculator.text_content("main"))
-    assert f"leave out the {left_out} on conventional roads whose owning network" in intro
 
 
 def test_the_engine_in_the_page_matches_python(calculator) -> None:
@@ -201,37 +234,186 @@ def test_the_engine_in_the_page_matches_python(calculator) -> None:
     assert checked > 100
 
 
-def test_comparison_matches_python(calculator) -> None:
-    model = _model()
-    calculator.click("[data-keep]")
-    calculator.check('input[name="users"][value="heavy_vehicle"]')
-    expected = sm.compare_exported(
-        model, sm.REFERENCE_SCENARIO | {"heavy_vehicle": 1}, sm.REFERENCE_SCENARIO
+def test_the_description_sets_the_models_inputs(calculator) -> None:
+    """The kind of crash and its questions set the crash type, the road users and the number
+    involved, and the page says which."""
+    derived = "[data-derived]"
+    assert _text(calculator, derived) == (
+        "In the model: side or angle collision; road users: a car or van; number involved: two."
     )
-    text = re.sub(r"\s+", " ", calculator.text_content("[data-baseline]"))
-    assert f"{expected['ratio']:.2f} times the share" in text
-    assert f"{expected['ratio_low']:.2f}–{expected['ratio_high']:.2f}" in text
-    assert "percentage points" in text and "not the effect of changing" in text
-    # The kept crash is named by what differs from the crash on the form.
-    kept = sm.predict_exported(model, sm.REFERENCE_SCENARIO)
-    assert f"({_percent(kept['probability'])}, {_range(kept['low'], kept['high'])})" in text
-    assert "differs from this one in road users involved (A car or van)" in text
+    # A pedestrian struck: the pedestrian is involved.
+    calculator.select_option("#calc-what", "pedestrian")
+    assert "pedestrian struck; road users: a pedestrian and a car or van; number involved: two" in (
+        _text(calculator, derived)
+    )
+    _shows_estimate(
+        calculator,
+        _described({"crash_type": "pedestrian_struck", "users": ("pedestrian", "light_vehicle")}),
+    )
+    # A car and a motorcycle in a collision: both, two involved.
+    calculator.select_option("#calc-what", "collision")
+    calculator.select_option("#calc-second", "motorcycle")
+    assert "road users: a motorcycle and a car or van; number involved: two" in (
+        _text(calculator, derived)
+    )
+    _shows_estimate(calculator, _described({"users": ("motorcycle", "light_vehicle")}))
+    # A collision never has fewer than two involved, whatever its type.
+    calculator.select_option("#calc-collision", "head_on")
+    assert calculator.eval_on_selector(
+        "#calc-vehicles", "(s) => [...s.options].map((o) => o.value)"
+    ) == ["2", "3", "4+"]
+    # A third kind of vehicle is asked only when there are three or more.
+    assert not calculator.is_visible("#calc-collision-another")
+    calculator.select_option("#calc-vehicles", "3")
+    calculator.select_option("#calc-collision-another", "heavy_vehicle")
+    _shows_estimate(
+        calculator,
+        _described(
+            {
+                "crash_type": "head_on",
+                "units": "3",
+                "users": ("motorcycle", "light_vehicle", "heavy_vehicle"),
+            }
+        ),
+    )
+    # A motorcyclist's fall: the motorcycle alone, one involved.
+    calculator.select_option("#calc-what", "single")
+    calculator.select_option("#calc-mishap", "fall")
+    calculator.select_option("#calc-single-vehicle", "motorcycle")
+    assert "road users: a motorcycle; number involved: one" in _text(calculator, derived)
+    _shows_estimate(
+        calculator, _described({"crash_type": "fall", "units": "1", "users": ("motorcycle",)})
+    )
+    assert not calculator.is_visible("#calc-collision")
+
+
+def test_heavy_rain_leaves_no_dry_surface(calculator) -> None:
+    calculator.select_option("#calc-weather", "heavy_rain_snow")
+    assert calculator.input_value("#calc-surface") == "wet"
+    assert _disabled(calculator, "surface") == {"dry"}
+    note = _text(calculator, "[data-adjusted]")
+    assert calculator.is_visible("[data-adjusted]") and "road surface set to wet" in note
+    _shows_estimate(
+        calculator, sm.REFERENCE_SCENARIO | {"weather": "heavy_rain_snow", "surface": "wet"}
+    )
+    calculator.select_option("#calc-surface", "slippery")
+    assert not calculator.is_visible("[data-adjusted]")
+    # Without heavy rain, a dry surface is offered again; nothing changes by itself.
+    calculator.select_option("#calc-weather", "fine")
+    assert _disabled(calculator, "surface") == set()
+    assert calculator.input_value("#calc-surface") == "slippery"
+
+
+def test_the_time_of_day_limits_the_lighting(calculator) -> None:
+    # Late morning: daylight only.
+    assert _disabled(calculator, "lighting") == set(sm.LIGHTING) - {"day", "overcast"}
+    calculator.select_option("#calc-hour", "18-21")
+    assert _disabled(calculator, "lighting") == set()
+    calculator.select_option("#calc-lighting", "night_lit")
+    for hour in ("00-05", "22-23"):
+        calculator.select_option("#calc-hour", hour)
+        assert _disabled(calculator, "lighting") == {"day", "overcast"}, hour
+        assert calculator.input_value("#calc-lighting") == "night_lit"
+    _shows_estimate(calculator, sm.REFERENCE_SCENARIO | {"hour": "22-23", "lighting": "night_lit"})
+    # Back to late morning, only daylight remains: it is chosen, and the page says so.
+    calculator.select_option("#calc-hour", "10-13")
+    assert calculator.input_value("#calc-lighting") == "day"
+    assert "it is daylight all year: lighting set to daylight" in _text(
+        calculator, "[data-adjusted]"
+    )
+    _shows_estimate(calculator, sm.REFERENCE_SCENARIO)
+
+
+def test_an_ambiguous_lighting_is_left_to_the_reader(calculator) -> None:
+    calculator.select_option("#calc-hour", "00-05")
+    # Dawn or night with lit, poorly lit or unlit streets: the reader chooses.
+    assert calculator.input_value("#calc-lighting") == ""
+    assert "Choose the lighting" in _text(calculator, "#calc-lighting option:checked")
+    assert _shown(calculator).strip() == "Choose the lighting to see the estimate."
+    assert _text(calculator, "[data-sticky]") == "Choose the lighting to see the estimate."
+    assert calculator.is_disabled("[data-save]")
+    calculator.select_option("#calc-lighting", "night_unlit")
+    _shows_estimate(
+        calculator, sm.REFERENCE_SCENARIO | {"hour": "00-05", "lighting": "night_unlit"}
+    )
+    assert not calculator.is_disabled("[data-save]")
+
+
+def test_scenarios_a_and_b_match_python(calculator) -> None:
+    model = _model()
+    assert calculator.is_hidden("[data-clear]")
+    calculator.click("[data-save]")
+    calculator.locator("[data-status]", has_text="Scenario A saved").wait_for(state="attached")
+    calculator.select_option("#calc-second", "heavy_vehicle")
+    a = sm.REFERENCE_SCENARIO
+    b = sm.REFERENCE_SCENARIO | {"heavy_vehicle": 1}
+    pa, pb = sm.predict_exported(model, a), sm.predict_exported(model, b)
+    compared = sm.compare_exported(model, b, a)
+    rows = calculator.eval_on_selector_all(
+        ".calc-ab tbody tr", "(rows) => rows.map((r) => [...r.cells].map((c) => c.textContent))"
+    )
+
+    def points(value: float) -> str:
+        shown = f"{100 * value:.1f}"
+        return ("+" if value > 0 else "") + shown.replace("-", "−")
+
+    assert rows == [
+        ["Scenario A", _percent(pa["probability"]), _range(pa["low"], pa["high"])],
+        ["Scenario B", _percent(pb["probability"]), _range(pb["low"], pb["high"])],
+        [
+            "Difference, B − A",
+            f"{points(compared['difference'])} points",
+            f"{points(compared['difference_low'])} to {points(compared['difference_high'])}",
+        ],
+        [
+            "Ratio, B ÷ A",
+            f"{compared['ratio']:.2f}",
+            f"{compared['ratio_low']:.2f}–{compared['ratio_high']:.2f}",
+        ],
+    ]
+    baseline = _text(calculator, "[data-baseline]")
+    assert "Scenario A differs from B in road users involved (a car or van)." in baseline
+    assert "an association between recorded crashes" in baseline
+    assert "not the effect of changing" in baseline
+    assert f"B − A {points(compared['difference'])} percentage points" in _text(
+        calculator, "[data-sticky]"
+    )
+    # While scenario B has no estimate, A stays named and no difference is shown.
+    calculator.select_option("#calc-hour", "00-05")
+    baseline = _text(calculator, "[data-baseline]")
+    assert "No comparison until scenario B has an estimate." in baseline
+    assert f"Scenario A: {_percent(pa['probability'])}" in baseline
+    assert "time of day (10:00–13:59)" in baseline
+    assert not calculator.query_selector(".calc-ab")
     calculator.click("[data-clear]")
-    assert "Keep this crash" in calculator.text_content("[data-baseline]")
+    assert calculator.is_hidden("[data-clear]") and _text(calculator, "[data-baseline]") == ""
+    calculator.select_option("#calc-lighting", "night_unlit")
+    assert "save this one as scenario A" in _text(calculator, "[data-baseline]")
 
 
-def test_a_refused_crash_shows_no_comparison(calculator) -> None:
-    """Once the current inputs are refused, no ratio from an earlier state stays on screen."""
-    calculator.click("[data-keep]")
-    calculator.check('input[name="users"][value="heavy_vehicle"]')
-    assert "times the share" in calculator.text_content("[data-baseline]")
-    calculator.select_option("#calc-crash_type", "pedestrian_struck")
-    assert "No estimate" in _shown(calculator)
-    baseline = calculator.text_content("[data-baseline]")
-    assert "times the share" not in baseline and "No comparison" in baseline
-    # The kept crash is still named, by the inputs to change back.
-    assert "The kept crash differs from this one in" in baseline
-    assert "type of crash (Side or angle collision)" in baseline
+def test_reset_restores_the_defaults(calculator) -> None:
+    defaults = calculator.eval_on_selector_all(
+        "#calculator select", "(all) => all.map((s) => [s.id, s.value])"
+    )
+    calculator.click("[data-save]")
+    calculator.select_option("#calc-what", "single")
+    calculator.select_option("#calc-province", "Lleida")
+    calculator.select_option("#calc-weather", "heavy_rain_snow")
+    calculator.select_option("#calc-hour", "00-05")
+    calculator.click('button[type="reset"]')
+    calculator.locator("[data-status]", has_text="Inputs reset.").wait_for(state="attached")
+    assert (
+        calculator.eval_on_selector_all(
+            "#calculator select", "(all) => all.map((s) => [s.id, s.value])"
+        )
+        == defaults
+    )
+    _shows_estimate(calculator, sm.REFERENCE_SCENARIO)
+    assert _disabled(calculator, "surface") == set()
+    assert not calculator.is_visible("[data-adjusted]")
+    assert calculator.is_visible("#calc-collision") and not calculator.is_visible("#calc-mishap")
+    # Scenario A is kept until it is cleared: the form is compared with it again.
+    assert calculator.query_selector(".calc-ab")
 
 
 def test_roads_through_towns_follow_the_published_choice(calculator) -> None:
@@ -251,37 +433,43 @@ def test_roads_through_towns_follow_the_published_choice(calculator) -> None:
     assert f"({fatal:,} of {crashes:,}, 95% interval {_range(low, high)})" in text
     rule = next(r for r in model["rules"] if r["id"] == "through_town")
     assert rule["text"] in text
-    assert calculator.is_disabled("[data-keep]")
+    assert calculator.is_disabled("[data-save]")
 
 
 def test_a_rarely_recorded_level_on_the_chosen_road_is_flagged(calculator) -> None:
     calculator.select_option("#calc-road", "conventional_local")
     calculator.select_option("#calc-speed_limit", "100_120")
-    assert "Fewer than" in _shown(calculator) and "posted speed limit" in _shown(calculator)
+    warnings = calculator.eval_on_selector_all(
+        ".calc-warnings li", "(items) => items.map((li) => li.textContent)"
+    )
+    assert any("Fewer than" in w and "posted speed limit" in w for w in warnings), warnings
 
 
 def test_keyboard_alone_operates_the_calculator(calculator) -> None:
-    calculator.focus("#calc-road")
+    calculator.focus("#calc-what")
     before = _shown(calculator)
-    # Choose another road with the arrow keys, as a keyboard user would.
+    # Choose another kind of crash with the arrow keys, as a keyboard user would.
     calculator.keyboard.press("ArrowDown")
-    assert calculator.input_value("#calc-road") != sm.REFERENCE_SCENARIO["road"]
-    assert _shown(calculator) != before
-    # Tab reaches every control in order, and the keep button works from the keyboard.
-    calculator.focus('input[name="users"][value="other_unit"]')
+    assert calculator.input_value("#calc-what") == "pedestrian"
+    assert calculator.is_visible("#calc-struck-by") and _shown(calculator) != before
+    # Tab reaches every control in order, then the buttons; Enter saves scenario A.
+    calculator.focus("#calc-surface")
     calculator.keyboard.press("Tab")
-    assert calculator.evaluate("document.activeElement.hasAttribute('data-keep')")
+    assert calculator.evaluate("document.activeElement.hasAttribute('data-save')")
     calculator.keyboard.press("Enter")
     # Locators poll without evaluating strings, which the pages' security policy forbids.
-    calculator.locator("[data-status]", has_text="Crash kept for comparison.").wait_for(
-        state="attached"
-    )
+    calculator.locator("[data-status]", has_text="Scenario A saved").wait_for(state="attached")
     assert calculator.get_attribute("[data-status]", "aria-live") == "polite"
+    assert calculator.get_attribute("[data-status]", "role") == "status"
     for control in calculator.query_selector_all("#calculator select"):
         label = calculator.evaluate(
             "(el) => document.querySelector(`label[for='${el.id}']`)?.textContent", control
         )
         assert label, control.get_attribute("id")
+    legends = calculator.eval_on_selector_all(
+        "#calculator fieldset", "(sets) => sets.map((f) => f.querySelector('legend')?.textContent)"
+    )
+    assert legends == ["What happened?", "Where did it happen?", "Under what conditions?"]
 
 
 LAPTOP = {"width": 1280, "height": 760}
@@ -304,12 +492,11 @@ def test_on_a_laptop_the_estimate_stays_beside_the_form(browser, server) -> None
     assert panel["left"] >= form["right"]
     assert abs(panel["top"] - form["top"]) < 2
     # The last input of the form: once it is on screen and changed, the new estimate is too.
-    last = 'input[name="users"][value="heavy_vehicle"]'
-    page.locator(last).scroll_into_view_if_needed()
-    page.check(last)
+    page.locator("#calc-surface").scroll_into_view_if_needed()
+    page.select_option("#calc-surface", "wet")
     value = _box(page, ".calc-value")
     assert 0 <= value["top"] and value["bottom"] <= LAPTOP["height"], value
-    expected = sm.predict_exported(_model(), sm.REFERENCE_SCENARIO | {"heavy_vehicle": 1})
+    expected = sm.predict_exported(_model(), sm.REFERENCE_SCENARIO | {"surface": "wet"})
     assert page.text_content(".calc-value") == _percent(expected["probability"])
     page.close()
 
@@ -320,10 +507,26 @@ def test_on_a_phone_the_estimate_follows_the_form_and_is_announced(browser, serv
     page.wait_for_selector("#calculator:not([hidden])")
     form, panel = _box(page, ".calc-layout > form"), _box(page, ".calc-panel")
     assert panel["top"] >= form["bottom"] - 1
-    page.select_option("#calc-lighting", "night_unlit")
-    expected = sm.predict_exported(_model(), sm.REFERENCE_SCENARIO | {"lighting": "night_unlit"})
+    overflow = page.evaluate(
+        "document.documentElement.scrollWidth - document.documentElement.clientWidth"
+    )
+    assert overflow <= 1
+    page.select_option("#calc-lighting", "overcast")
+    expected = sm.predict_exported(_model(), sm.REFERENCE_SCENARIO | {"lighting": "overcast"})
     announced = f"Estimate {_percent(expected['probability'])}, interval"
     page.locator("[data-status]", has_text=announced).wait_for(state="attached")
+    assert page.text_content("[data-sticky]").startswith(
+        f"Estimate {_percent(expected['probability'])} fatal"
+    )
+    # Scenarios A and B fit the phone's column.
+    page.click("[data-save]")
+    page.select_option("#calc-what", "pedestrian")
+    table, column = _box(page, ".calc-ab"), _box(page, ".calc-panel")
+    assert table["right"] <= column["right"] + 0.5
+    overflow = page.evaluate(
+        "document.documentElement.scrollWidth - document.documentElement.clientWidth"
+    )
+    assert overflow <= 1
     page.close()
 
 
@@ -342,8 +545,14 @@ def test_the_pinned_estimate_never_covers_the_focused_control(browser, server, s
     page = browser.new_page(viewport=size, reduced_motion="reduce")
     page.goto(f"{server}/{PAGE}", wait_until="networkidle")
     page.wait_for_selector("[data-sticky]:not(:empty)")
-    page.focus("#calc-road")
-    reached = 0
+    # With scenario A saved, every button is shown.
+    page.click("[data-save]")
+    controls = page.evaluate(
+        "() => [...document.querySelectorAll('.calc-layout form select, .calc-layout form button')]"
+        ".filter((el) => el.getClientRects().length).length"
+    )
+    page.focus("#calc-what")
+    reached = 1
     for _ in range(40):
         page.keyboard.press("Tab")
         state = page.evaluate(
@@ -362,7 +571,7 @@ def test_the_pinned_estimate_never_covers_the_focused_control(browser, server, s
         reached += 1
         assert state["shown"], size
         assert 0 <= state["top"] and state["bottom"] <= state["line"] + 0.5, (size, state)
-    assert reached >= 15, reached
+    assert reached == controls >= 15, (reached, controls)
     page.close()
 
 
@@ -377,14 +586,93 @@ def test_an_old_link_to_the_calculator_lands_on_its_page(browser, server, size) 
     page.close()
 
 
-def test_an_impossible_crash_is_refused(calculator) -> None:
-    calculator.select_option("#calc-crash_type", "pedestrian_struck")
-    text = _shown(calculator)
-    rule = next(r for r in _model()["rules"] if r["id"] == "pedestrian_struck_needs_pedestrian")
-    assert "No estimate" in text and rule["text"] in text
-    assert calculator.is_disabled("[data-keep]")
-    calculator.check('input[name="users"][value="pedestrian"]')
-    assert not calculator.is_disabled("[data-keep]")
+# Wrap the engine's predict and compare before the page creates it, to record any scenario the
+# rules refuse that the page passes to them.
+WATCH_ENGINE = """
+(() => {
+  let engine;
+  window.__refused = [];
+  window.__computed = 0;
+  Object.defineProperty(window, 'SeverityEngine', {
+    configurable: true,
+    get() { return engine; },
+    set(value) {
+      engine = Object.assign({}, value, {
+        create(model) {
+          const made = value.create(model);
+          const watch = (name) => {
+            const original = made[name];
+            made[name] = (...scenarios) => {
+              for (const s of scenarios) {
+                const errors = made.check(s).errors;
+                if (errors.length) window.__refused.push({ call: name, scenario: s, errors });
+              }
+              window.__computed += 1;
+              return original(...scenarios);
+            };
+          };
+          watch('predict');
+          watch('compare');
+          return made;
+        },
+      });
+    },
+  });
+})();
+"""
+# Random changes as a reader could make them: an offered option of a shown select, or a button.
+# After each, the form and the result must agree: no select shows an option it does not offer,
+# and the lighting is unchosen exactly when the page asks for it.
+FUZZ = """
+async ([seed, steps]) => {
+  let state = seed;
+  const random = () => { state = (state * 16807) % 2147483647; return state / 2147483647; };
+  const form = document.querySelector('#calculator form');
+  const shown = (el) => el.getClientRects().length > 0;
+  const problems = [];
+  for (let i = 0; i < steps; i++) {
+    const r = random();
+    const save = document.querySelector('[data-save]');
+    const clear = document.querySelector('[data-clear]');
+    if (r < 0.05 && !save.disabled) save.click();
+    else if (r < 0.07 && !clear.hidden) clear.click();
+    else if (r < 0.09) form.reset();
+    else {
+      const selects = [...form.querySelectorAll('select')].filter(shown);
+      const select = selects[Math.floor(random() * selects.length)];
+      const options = [...select.options].filter((o) => !o.disabled);
+      select.value = options[Math.floor(random() * options.length)].value;
+      select.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+    await new Promise((done) => setTimeout(done, 0));
+    const output = document.querySelector('[data-output]').getAttribute('data-state');
+    for (const select of form.querySelectorAll('select')) {
+      const chosen = select.selectedOptions[0];
+      if (chosen.disabled && chosen.value) problems.push([i, select.id, chosen.value]);
+    }
+    const unchosen = form.elements.lighting.value === '';
+    if (unchosen !== (output === 'pending')) problems.push([i, 'lighting', output]);
+    if (['ok', 'average', 'pending'].indexOf(output) < 0) problems.push([i, 'state', output]);
+  }
+  return { problems, refused: window.__refused, computed: window.__computed };
+}
+"""
+
+
+@pytest.mark.parametrize("seed", [7, 2026, 90210])
+def test_random_changes_never_pass_a_refused_scenario_to_the_engine(browser, server, seed) -> None:
+    page = browser.new_page()
+    errors: list[str] = []
+    page.on("pageerror", lambda error: errors.append(str(error)))
+    page.add_init_script(WATCH_ENGINE)
+    page.goto(f"{server}/{PAGE}", wait_until="networkidle")
+    page.wait_for_selector("#calculator:not([hidden])")
+    result = page.evaluate(FUZZ, [seed, 400])
+    page.close()
+    assert errors == []
+    assert result["refused"] == [], result["refused"][:3]
+    assert result["problems"] == [], result["problems"][:5]
+    assert result["computed"] > 100
 
 
 PAGES = sorted(path.stem for path in SITE.glob("*.html"))

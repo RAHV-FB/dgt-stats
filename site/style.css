@@ -330,10 +330,13 @@ main { padding: var(--space-7) 0 var(--space-7); min-width: 0; }
   width: 100%; min-height: 2.75rem; padding: var(--space-2); font: inherit; font-size: var(--text-sm);
   color: var(--text); background: var(--bg); border: 1px solid var(--rule-strong); border-radius: 2px;
 }
-.calc-users { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-2) var(--space-5); margin: 0; padding: 0; list-style: none; }
-.calc-users li { margin: 0; }
-.calc-users label { display: flex; gap: var(--space-2); align-items: center; min-height: 2.75rem; font-size: var(--text-sm); }
-.calc-users input { width: 1.25rem; height: 1.25rem; margin: 0; accent-color: var(--accent); }
+/* The kind of crash spans the form; the selects it shows follow it. */
+.calc-field[data-wide] { grid-column: 1 / -1; }
+.calc-group { margin-top: var(--space-4); }
+/* What the description sets in the model, and a change the conditions forced, in one line each. */
+.calc-derived, .calc-adjusted { margin: var(--space-3) 0 0; font-size: var(--text-sm); }
+.calc-derived { color: var(--text-muted); }
+.calc-adjusted { padding-left: var(--space-3); border-left: 3px solid var(--mark); }
 .calc-actions { display: flex; flex-wrap: wrap; gap: var(--space-3); margin: var(--space-4) 0; }
 .calc-actions button {
   min-height: 2.75rem; padding: var(--space-2) var(--space-4); font: inherit; font-size: var(--text-sm);
@@ -345,11 +348,18 @@ main { padding: var(--space-7) 0 var(--space-7); min-width: 0; }
 }
 .calc-result, .calc-baseline { border-top: 1px solid var(--rule); padding: var(--space-4) 0; }
 .calc-value { margin: 0; font-size: 2.25rem; font-weight: 500; line-height: 1.05; font-variant-numeric: tabular-nums lining-nums; }
+.calc-interval { margin: var(--space-1) 0 0; font-variant-numeric: tabular-nums lining-nums; }
 .calc-label, .calc-compare { margin: var(--space-2) 0 0; font-size: var(--text-base); }
 .calc-note, .calc-kept { margin: var(--space-2) 0 0; font-size: var(--text-sm); color: var(--text-muted); }
 .calc-warnings { margin: var(--space-3) 0 0; padding-left: 1.2em; font-size: var(--text-sm); }
 .calc-result[data-state="error"] { border-top-color: var(--rule-strong); }
-.calc-error-title { margin: 0; font-weight: 600; }
+.calc-error-title, .calc-pending { margin: 0; font-weight: 600; }
+/* Scenarios A and B, their difference and their ratio: four short rows that fit a phone. */
+.calc-ab { width: 100%; margin: 0; }
+.calc-ab caption { text-align: left; padding-bottom: var(--space-2); font-weight: 600; }
+.calc-ab th, .calc-ab td { padding-right: var(--space-3); }
+.calc-ab tbody th { white-space: normal; }
+.calc-meta { margin: 0; padding-top: var(--space-3); border-top: 1px solid var(--rule); font-size: var(--text-sm); color: var(--text-muted); }
 /* The estimate pinned to the foot of the screen while the form scrolls, where the panel follows it. */
 .calc-sticky {
   position: sticky; bottom: 0; z-index: 1; margin: 0; padding: var(--space-2) var(--space-3);
@@ -590,7 +600,7 @@ nav.pager a[rel="next"] .pager-title::after { transform: rotate(-45deg); margin-
 
 /* ------------------------------------------------------------------ small screens */
 @media (max-width: 40rem) {
-  .calc-fields, .calc-users { grid-template-columns: 1fr; }
+  .calc-fields { grid-template-columns: 1fr; }
   body { font-size: 1.0625rem; }
   h1 { font-size: 1.875rem; }
   h2 { font-size: 1.3125rem; margin-top: var(--space-6); }
