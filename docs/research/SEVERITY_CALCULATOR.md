@@ -276,9 +276,9 @@ or level rather than silently using the reference. It provides:
     some time of year. The records that break these rules are recording inconsistencies. They
     are kept in the fit, so the model is unchanged; the calculator only stops offering such
     combinations. The worked examples (`sev_contrasts`), which change one input at a time from
-    the reference crash, are filtered by the rules of the crash only, so their published table
-    is unchanged; the model has no term that joins lighting with time, so their lighting rows
-    compare the same model terms at any hour.
+    the reference crash, are filtered by the rules of the crash only, so the table is unchanged;
+    the model page quotes none of its hour or lighting rows, because the reference crash is in
+    daylight at 10:00–13:59 and those changes alone describe conditions the calculator refuses.
   - Warnings: a collision with one unit; a pedestrian and no vehicle; fewer than 20 recorded
     crashes of the same zone, type, users and number; fewer than 20 on the chosen road with a
     chosen level.
@@ -295,8 +295,8 @@ counts, and the notes below the calculator say that those crashes leave out the 
 with no named owning network. Scenarios A and B are compared by `compare`, and the page words the
 difference as an association between recorded crashes.
 
-The worked examples on the model page (`sev_contrasts`) use the same formulae, so they and the
-calculator always give the same numbers; a test requires it. `tests/test_severity_engine.py` runs
+The worked examples (`sev_contrasts`) use the same formulae, so they and the engine always give
+the same numbers for the same inputs; a test requires it. `tests/test_severity_engine.py` runs
 the engine under Node on more than 300 random valid scenarios and every edge case (every road in
 every province, every level of every input on three roads, the boundaries of the rules). It
 requires:

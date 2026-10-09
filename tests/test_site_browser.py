@@ -720,7 +720,7 @@ FIGURE_PAGES = sorted(
 assert FIGURE_PAGES
 # Every figure on the page, brought into view so that the drawing it shows loads, then measured:
 # the drawing shown (wide or narrow), how many are shown, and every figure the page fetched.
-FIGURES = """async () => {
+FIGURES = r"""async () => {
   const out = [];
   for (const figure of document.querySelectorAll('main figure')) {
     const shown = [...figure.querySelectorAll('img')].filter(

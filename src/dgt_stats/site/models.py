@@ -40,14 +40,13 @@ MODEL_PATH = REPORTS_DIR / "models" / "severity_model.json"
 REVIEW_DOC = f"{DOCS_URL}/research/ML_MODEL_REVIEW.md"
 CALCULATOR_DOC = f"{DOCS_URL}/research/SEVERITY_CALCULATOR.md"
 # The contrasts quoted as worked examples, each a change of one input from the reference crash.
+# The reference is in daylight at 10:00-13:59, so changes of the hour or the lighting alone would
+# describe conditions the calculator refuses; none is quoted.
 EXAMPLES = (
     ("users", "heavy_vehicle", "A heavy vehicle (lorry or bus) involved as well as the car"),
     ("crash_type", "run_off_road", "The car ran off the road"),
     ("crash_type", "pedestrian_struck", "A pedestrian struck"),
     ("crash_type", "head_on", "A head-on collision"),
-    ("hour", "22-23", "Between 22:00 and 23:59"),
-    ("hour", "00-05", "Between 00:00 and 05:59"),
-    ("lighting", "night_unlit", "At night on an unlit road"),
     ("junction", "junction", "Within a junction"),
     ("speed_limit", "40_50", "A posted limit of 40–50 km/h"),
     ("weather", "heavy_rain_snow", "In heavy rain, hail or snow"),
@@ -164,7 +163,7 @@ def _examples_table(contrasts: pd.DataFrame, base: float) -> str:
         "vans on a conventional regional road in the province of Barcelona, between junctions, "
         "in daylight, fine weather and "
         "on a dry surface, between 10:00 and 13:59, with no posted limit recorded; each row "
-        "changes one input. The calculator gives the same numbers. The intervals cover the "
+        "changes one input. The intervals cover the "
         "uncertainty of the model's coefficients only.",
     )
 
