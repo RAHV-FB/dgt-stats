@@ -123,6 +123,7 @@ def test_the_trends_explorer_shows_each_indicator_and_its_change(browser, server
         # The chart and the table cover exactly the chosen years.
         rows = page.locator("[data-table] tbody tr")
         assert rows.count() == end - start + 1
+        assert _text(page, "[data-table] caption") == f"{item['label']}, {start}–{end}"
         assert page.locator("[data-chart] svg").count() == 1
     assert not errors
     page.close()

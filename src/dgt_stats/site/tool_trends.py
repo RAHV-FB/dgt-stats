@@ -209,7 +209,7 @@ def _controls() -> str:
         '<p class="tool-meaning" data-change></p>'
         '<div class="tool-chart" data-chart></div>'
         '<p class="tool-note" data-note></p>'
-        '<details class="tool-table"><summary>Figures by year</summary>'
+        '<details class="technical"><summary>The figures year by year</summary>'
         '<div class="table-wrap"><table data-table></table></div></details>'
         "</div></div>"
         '<p class="visually-hidden" role="status" aria-live="polite" data-status></p>'

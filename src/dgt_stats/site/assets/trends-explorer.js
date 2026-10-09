@@ -115,6 +115,7 @@
     out.note.textContent = said;
     // The figures behind the chart.
     out.table.textContent = "";
+    out.table.appendChild(T.element("caption", {}, main.label + (other ? " and " + other.label.toLowerCase() : "") + ", " + from + "–" + to));
     var head = T.element("thead"), row = T.element("tr");
     row.appendChild(T.element("th", { scope: "col" }, "Year"));
     row.appendChild(T.element("th", { scope: "col", class: "num" }, main.label));

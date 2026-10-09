@@ -106,7 +106,9 @@ def test_every_table_has_a_caption_and_header_cells(pages: dict[str, str]) -> No
     for slug in LIVE:
         main = _main(pages[slug])
         blocks = re.findall(r'<div class="table-block">.*?</table></div></div>', main, re.S)
-        assert len(blocks) == len(re.findall(r"<table[ >]", main)), slug
+        # A tool's own table is filled, caption included, by its script (tested in the browser).
+        scripted = len(re.findall(r"<table data-table>", main))
+        assert len(blocks) + scripted == len(re.findall(r"<table[ >]", main)), slug
         for number, block in enumerate(blocks, 1):
             # The title is outside the box that scrolls, numbered in reading order, and the
             # caption repeats it, number included, for screen readers.
