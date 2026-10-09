@@ -845,10 +845,10 @@ def _driver_exposure_figures(figures_dir: Path, captions: dict[str, str]) -> Non
         "counts are not rates and cannot be compared between rows, because age bands differ in "
         "width, population and driving. Dots: estimates with 95% sampling intervals. Hollow "
         f"diamonds: also assume the Madrid {madrid} pattern; their intervals include that "
-        "survey's sampling error and hold the assumption fixed. Grey bands: sensitivity ranges "
-        "(for their sources, open “Sources of the sensitivity range” further down), spans "
-        "of the assumptions tested with no probability attached; each end is itself an "
-        "estimate with sampling error. Hatched: "
+        "survey's sampling error and hold the assumption fixed. Grey bands: sensitivity ranges, "
+        "spans of the assumptions tested with no probability attached, whose sources the "
+        "methodology page sets out; each end is itself an estimate with sampling error. "
+        "Hatched: "
         "reached only with equal km per licence holder at 65–74 and 75 and over",
         f"{TABLES_SOURCE}; {EMEF_SOURCE}; {EDM_SOURCE}; {MOVILIA_SOURCE}; {RACC_SOURCE}; "
         f"{KM_2024_SOURCE}; {POPULATION_SOURCE}",

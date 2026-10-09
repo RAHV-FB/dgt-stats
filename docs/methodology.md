@@ -610,7 +610,8 @@ overstated. That figure put drivers aged 18–24 at 6.75 times the 35–54 rate 
 0.71 times, on other bands and another reference than the current figures. On the same groups and
 the 45–64 reference, the owner kilometres give 4.62 at 18–29 and 1.00 at 65+, against 2.53 and 1.19
 by the driver's age (`risk_owner_age_comparison.csv`). The owner-age tables are still built from
-the raw release, and the drivers page explains the difference.
+the raw release, and the drivers page's technical notes, on the methodology page, explain the
+difference.
 
 **Sources considered and not used as exposure**, with the reason (registered in
 [`data_sources.md`](data_sources.md)): MOVILIA 2006/2007 count trips and travel time, not
