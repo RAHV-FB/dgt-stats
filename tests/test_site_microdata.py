@@ -154,17 +154,18 @@ def test_barcelona_headline_numbers_come_from_the_tables(pages: dict[str, str]) 
 
 
 def test_model_scores_come_from_the_tables(pages: dict[str, str]) -> None:
-    text = pages["severity-models"]
+    # The scores are on the Model method and tests page; the model page gives the shares.
+    text, notes = pages["severity-models"], pages["validation"]
     scores = _table("sev_rolling_scores")
     pooled = scores[scores.subset.str.fullmatch(r"\d{4}-\d{4}")].set_index("estimator")
     calc, table = pooled.loc["calculator"], pooled.loc["road_x_crash_table"]
     trees = pooled.loc["boosted_trees"]
     # Ranking is given as ROC-AUC to two decimals, the scale the validation page uses.
-    assert f"The model's ROC-AUC is {calc.roc_auc:.2f} and the table's {table.roc_auc:.2f}" in text
-    assert f"({trees.roc_auc:.2f}) but gives no interval" in text
+    assert f"The model's ROC-AUC is {calc.roc_auc:.2f} and the table's {table.roc_auc:.2f}" in notes
+    assert f"({trees.roc_auc:.2f}) but gives no interval" in notes
     gap = _table("sev_comparison").set_index(["estimator", "metric"])
     lead = gap.loc[("road_x_crash_table", "roc_auc_minus_calculator")]
-    assert f"lead is {-lead.high:.2f}–{-lead.low:.2f} (95% interval)" in text
+    assert f"lead is {-lead.high:.2f}–{-lead.low:.2f} (95% interval)" in notes
     assert _fmt_pct(calc.mean_predicted) in text and _fmt_pct(calc.prevalence) in text
     # Predicted against observed leads the page, before the calculator, and no score box.
     body = text[text.find("<main>") : text.find("</main>")]

@@ -1,11 +1,13 @@
-"""External validation of the severity models: how well they rank crashes from years, places and
-data sources they were not fitted on, and how the crash populations compare.
+"""Model method and tests: the technical companion of the Crash severity model page. How the
+Catalan severity model was built and tested on later years (``models.technical_notes``), how well
+it and the original Catalan model rank crashes from places and data sources they were not fitted
+on, and how the crash populations compare.
 
-The page leads with the tests of the published model, the Catalan severity model behind the
-calculator. The tests of the original Catalan model, which it replaced, follow under that name:
-first its harmonised version on DGT's records elsewhere in Spain, the only test on another source,
-then the original model within Catalonia and Barcelona city. Ranking skill is given as ROC-AUC to
-two decimals, defined once in plain words, as on the Severity model page.
+The page leads with the published model, the Catalan severity model behind the calculator. The
+tests of the original Catalan model, which it replaced, follow under that name: first its
+harmonised version on DGT's records elsewhere in Spain, the only test on another source, then the
+original model within Catalonia and Barcelona city. Ranking skill is given as ROC-AUC to two
+decimals, defined once in plain words at the top.
 """
 
 from __future__ import annotations
@@ -17,6 +19,7 @@ import pandas as pd
 from dgt_stats.microdata.ml import modelling
 from dgt_stats.microdata.validation import generalisability, harmonise
 from dgt_stats.microdata.validation import transport as transport_rules
+from dgt_stats.site import models
 from dgt_stats.site.components import (
     DOCS_URL,
     MINUS,
@@ -32,7 +35,6 @@ from dgt_stats.site.components import (
     table,
     technical,
 )
-from dgt_stats.site.models import _miss_text
 from dgt_stats.site.regional_common import _check
 
 PAGE = "validation"
@@ -386,36 +388,19 @@ def _calculator_section(
         [f"{_direction(row)} for {name} ({share(row)})" for name, row in missed.iterrows()]
     )
     inside = _join([f"for {name} ({share(row)})" for name, row in matched.iterrows()])
-    # The models page's wording, which adds a decimal where one decimal would print a miss at
-    # an end of the interval it falls outside.
-    cell_text = _join([_miss_text(row) for row in cell_misses.itertuples()])
     return (
         "<h2>The Catalan severity model: ranking holds, estimates of the fatal share miss in "
         "several provinces</h2>"
-        "<p>Every test on this page scores crashes that played no part in fitting the model. "
-        "Ranking is measured by the ROC-AUC: given one fatal and one non-fatal crash, the share "
-        "of pairs in which the fatal one gets the higher estimate, from 0.5 for chance to 1 for "
-        "a perfect ranking. Each score is set beside a reference, the same kind of model fitted "
-        "and cross-validated within the test population, which shows how well that "
-        "population's crashes can be ranked at all. A small test population gives a weak "
-        "reference, which a model fitted elsewhere on many more crashes can beat.</p>"
-        "<p>The Catalan severity model is the one behind the calculator "
-        '(<a href="severity-models.html">Severity model and calculator</a>). It has been tested '
-        "only within the Catalan file, on crashes on the roads a reader can choose. Each year "
-        f"of {_years(rolling.test_domain)} was predicted by a model whose settings (penalty, "
-        "form, the rule for roads through towns and whether each province has a starting level "
-        "of its own) were chosen on the two years before it and whose coefficients were fitted "
-        "on all earlier years, so no choice saw the year it "
-        f"predicts. Over the {_fmt_int(rolling.test_n)} crashes this gives a ROC-AUC of "
+        "<p>The Catalan severity model has been tested only within the Catalan file, on "
+        "crashes on the roads a reader can choose. Over the "
+        f"{_fmt_int(rolling.test_n)} crashes of the test on later years it has a ROC-AUC of "
         f"{_auc(rolling.roc_auc)} (95% interval "
         f"{_interval(rolling.roc_auc_low, rolling.roc_auc_high)}), against "
         f"{_auc(rolling.table_roc_auc)} for a table of fatal shares by road and crash type, "
         f"and a mean estimate of {_fmt_pct(rolling.mean_predicted)} where "
         f"{_fmt_pct(rolling.test_prevalence)} were fatal. On {later_label} alone it scores "
         f"{_auc(later.roc_auc)}, against {_auc(later.in_domain_cv_roc_auc)} for the same model "
-        f"fitted and cross-validated on that year's {_fmt_int(later.test_n)} crashes. By "
-        "province and kind of road the estimates were less close: the mean estimate fell "
-        f"outside the 95% interval of the observed share {cell_text}.</p>"
+        f"fitted and cross-validated on that year's {_fmt_int(later.test_n)} crashes.</p>"
         "<p>With each province left out of the fitting in turn, and the settings chosen on the "
         f"other three, it scores between {_auc(provinces.loc[lowest_name].roc_auc)} "
         f"({lowest_name}) and {_auc(provinces.loc[highest_name].roc_auc)} ({highest_name}) on "
@@ -566,18 +551,27 @@ def page_validation(captions: dict[str, str]) -> str:
     left_out = _left_out_provinces(calculator)
     missed_provinces = list(left_out[left_out.apply(_outside, axis=1)].index)
     body = summary(
-        "The Catalan severity model, the one behind the calculator, has been tested only within "
-        "Catalonia: no other source records its inputs. On later years and on provinces left "
-        "out of its fitting it ranked crashes better than a table of fatal shares by road and "
-        "crash type, but its estimates of the fatal share were off for "
-        f"{_join(missed_provinces)} when each was left out of its fitting, and for the city of "
-        "Barcelona. A harmonised version of the original Catalan model (retired) "
-        "ranked crashes elsewhere in Spain nearly as well as a model fitted there. Because "
-        "Catalonia's serious crashes differ from the rest of Spain's in the mix of crash types "
-        "and in how several fields are recorded, national use of the models is not established."
+        "How the Catalan severity model was built and tested, in detail. It ranked crashes "
+        "from later years and from provinces left out of its fitting better than a table of "
+        "fatal shares, but its estimates of the fatal share were off for "
+        f"{_join(missed_provinces)} when each was left out, and for Barcelona city. A version "
+        "of the retired original model ranked crashes elsewhere in Spain nearly as well as a "
+        "model fitted there, but national use of the models is not established."
+    )
+    body += (
+        "<p>Every test on this page scores crashes that played no part in fitting the model. "
+        "Ranking is measured by the ROC-AUC: given one fatal and one non-fatal crash, the share "
+        "of pairs in which the fatal one gets the higher estimate, from 0.5 for chance to 1 for "
+        "a perfect ranking. Each score of a model tested on another place or source is set "
+        "beside a reference, the same kind of model fitted and cross-validated within the test "
+        "population, which shows how well that population's crashes can be ranked at all. A "
+        "small test population gives a weak reference, which a model fitted elsewhere on many "
+        'more crashes can beat. The results for readers are on <a href="severity-models.html">'
+        "Crash severity model</a>.</p>"
     )
 
     # ------------------------------------------------------------------ the published model
+    body += models.technical_notes(captions)
     body += _calculator_section(calculator, rolling_scores, mapping)
     body += figure(
         "tr0_calculator_transfer",
@@ -1284,8 +1278,8 @@ def page_validation(captions: dict[str, str]) -> str:
     )
     return render_page(
         PAGE,
-        "External validation of the severity models",
-        "How the Catalan severity model, and the original Catalan model it replaced, rank "
-        "crashes from years, places and records they were not fitted on.",
+        "How the severity models were built and tested",
+        "How the Catalan severity model was built, and how it and the original Catalan model it "
+        "replaced rank crashes from years, places and records they were not fitted on.",
         body,
     )

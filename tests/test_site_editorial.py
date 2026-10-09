@@ -211,22 +211,23 @@ def test_the_front_page_is_a_research_overview(built: dict[str, str]) -> None:
 def test_the_models_page_leads_with_predicted_against_observed(built: dict[str, str]) -> None:
     visible = _visible(built["severity-models"])
     main = _main(built["severity-models"])
-    # Predicted against observed, then the calculator, then what the model shows and a short
-    # method; scores tables stay in the research documents. The headings say what each finds.
+    # Predicted against observed, what the model shows and where it was tested; how it was
+    # built and the scores are on the Model method and tests page. The headings say what each
+    # finds.
     headings = re.findall(r"<h2[^>]*>(.*?)</h2>", main, re.S)
     assert headings[:3] == [
         "The estimates matched later years overall, but not in every province",
         "Crashes involving a heavy vehicle: about twice the fatal share",
-        "How the model was built",
+        "Tested only within Catalonia",
     ]
     assert main.find("sev1_predicted_observed") < main.find('id="calculator"')
-    # One name for the published model, and one scale for ranking skill, shared with the
-    # External validation page: ROC-AUC to two decimals, explained once in plain words.
+    assert 'href="validation.html#later-years"' in main
+    assert 'id="later-years"' in built["validation"]
+    # One name for the published model; ranking skill is described by the fatal shares of the
+    # fifths, and ROC-AUC is left to the Model method and tests page.
     assert "the Catalan severity model" in visible
     assert "times in 100" not in visible
-    gloss = "given one fatal and one non-fatal crash, the share of pairs in which the fatal one"
-    assert visible.count(gloss) == 1
-    assert not re.search(r"ROC-AUC[^.]*\b0\.\d{3}\b", visible)
+    assert "ROC-AUC" not in visible
     # The calculator has its own page; the model page links to it at the old anchor.
     assert '<p id="calculator">' in main and 'href="calculator.html"' in main
     assert "uncertainty of its coefficients" not in visible

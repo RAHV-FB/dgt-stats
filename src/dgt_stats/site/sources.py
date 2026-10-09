@@ -383,8 +383,8 @@ def _meeting(cat_dgt: pd.DataFrame) -> str:
         "Catalan model restricted to variables another source records in the same way are "
         "applied to DGT's records elsewhere in Spain and to Barcelona's records, without "
         "merging either with the Catalan file; the Catalan severity model, whose inputs no other "
-        'source records, has no such test (<a href="validation.html">External '
-        "validation</a>). The rates per kilometre by driver age divide counts of drivers by age "
+        'source records, has no such test (<a href="validation.html">Model method '
+        "and tests</a>). The rates per kilometre by driver age divide counts of drivers by age "
         "by the travel surveys' kilometres by age, in total "
         '(<a href="drivers.html">Drivers</a>).</p>'
     )

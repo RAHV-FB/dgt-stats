@@ -516,7 +516,7 @@ def _coding_breaks() -> str:
         "<p>Road-type series are therefore read year by year and alongside zone, the two kinds "
         "of conventional road form one group, and no road-type trend is drawn. Comparisons of "
         "Catalonia with the rest of Spain group every conventional road together for the same "
-        'reason (<a href="validation.html">External validation</a>).</p>'
+        'reason (<a href="validation.html">Model method and tests</a>).</p>'
         f"<p>Junction shares as published are not compared across {flip}. The association of "
         "junctions with fatal outcomes reads the flag the other way round in those "
         "province-years, which puts the Catalan share at a junction at "
@@ -927,7 +927,7 @@ def _models() -> str:
     provinces = int(cat_checks["demarcations"])
     excluded = _join([FIELD_LABELS.get(field, field.replace("_", " ")) for field in dropped.field])
     overlap = read_table("cat_vs_dgt_province_year").year
-    validation = '<a href="validation.html">External validation</a>'
+    validation = '<a href="validation.html">Model method and tests</a>'
     calculator = f'<a href="severity-models.html">{TITLES["severity-models"]}</a>'
     review = f'<a href="{DOCS_URL}/research/ML_MODEL_REVIEW.md">model review</a>'
     report = f'<a href="{DOCS_URL}/research/SEVERITY_CALCULATOR.md">calculator report</a>'
