@@ -1611,6 +1611,35 @@ def _reuse() -> str:
     )
 
 
+# The analysis pages whose technical detail lives on this page: each module may define
+# ``technical_notes(captions)``, which returns one or more sections (each opening with an h2), in
+# the order of the navigation.
+NOTE_MODULES = (
+    "trends",
+    "long_run",
+    "seasons",
+    "policy",
+    "drivers",
+    "vehicles",
+    "speed",
+    "factors",
+    "severity",
+    "regional",
+)
+
+
+def _technical_notes(captions: dict[str, str]) -> str:
+    import importlib
+
+    parts = []
+    for name in NOTE_MODULES:
+        module = importlib.import_module(f"dgt_stats.site.{name}")
+        notes = getattr(module, "technical_notes", None)
+        if notes is not None:
+            parts.append(notes(captions))
+    return "".join(parts)
+
+
 def page_data(captions: dict[str, str]) -> str:
     body = summary(
         "This page defines the terms the site uses and explains how each rate is built, how a "
@@ -1625,6 +1654,7 @@ def page_data(captions: dict[str, str]) -> str:
     body += _rates()
     body += _records(captions)
     body += _models()
+    body += _technical_notes(captions)
     body += _checks()
     body += _assumptions()
     body += _reproduce()
