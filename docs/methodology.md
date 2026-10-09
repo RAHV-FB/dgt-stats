@@ -200,7 +200,7 @@ drivers admitted per licence holder (+4.5 %) and occupants admitted per register
 (+3.4 %). Deaths in 2024 are within an ordinary year of 2019 under all five pairings: the count, per
 resident, per tonne of road fuel, drivers per licence holder and occupants per registered vehicle.
 In 2020 deaths were below the interval under every pairing but road fuel, and in 2021 as a count
-and per resident; the statement on the front page is about 2024 against 2019.
+and per resident; the statement on the Since 2019 page is about 2024 against 2019.
 
 **How often against how hard** (`frequency_severity`). Deaths per tonne of road fuel is the exact
 product of injury crashes per tonne and deaths per injury crash, and equally of people admitted to

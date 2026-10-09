@@ -201,6 +201,8 @@ def test_the_front_page_is_a_research_overview(built: dict[str, str]) -> None:
         assert f'href="{slug}.html"' in main, slug
     for slug in ("validation", "data", "sources"):
         assert f'href="{slug}.html' in main, slug
+    # The interactive tools are reached from the top of the page, before the findings.
+    assert main.find('<p class="summary">') < main.find('href="explore.html"') < main.find("<h2")
     # The modelling is described in plain words, with the model that lost to its table named as
     # such, and the supporting association analysis is not presented as a model.
     visible = _visible(built["index"])

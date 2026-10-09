@@ -694,7 +694,9 @@ def test_speed_page_carries_severity_and_the_recording_discontinuity(built: Path
     assert "weighted summary" in opening
     home = (built / "index.html").read_text(encoding="utf-8")
     assert f"{pooled.loc['urban', 'rate_ratio']:.1f} times on urban streets" in home
-    assert "Over 2016–2023, those crashes" in home
+    assert f"{pooled.loc['dual_carriageway', 'rate_ratio']:.1f} times on dual" in home
+    assert f"{adjusted.rate_ratio:.1f} times as many deaths per crash" in home
+    assert f"over {str(adjusted.year).replace('-', '–')}, those crashes" in home
     # The summary says plainly that a recorded factor is an association, not a cause.
     assert "These are associations in police records, not estimates of what speed causes" in (
         opening
@@ -796,11 +798,12 @@ def test_trend_pages_show_every_denominator_and_the_projection(built: Path) -> N
     # road-type comparison per measured kilometre, live on this page.
     assert 'src="figures/l3_frequency_severity.svg"' in long_run
     assert 'href="tables/road_class_risk.csv"' in long_run
-    # The split is shown both ways and not attributed to severity; the per-fuel excess is shown
-    # under another start of the trend; DGT's kilometre series is not called unjoinable.
+    # The split is shown both ways and not attributed to severity (the home page leaves it to this
+    # page); the per-fuel excess is shown under another start of the trend; DGT's kilometre series
+    # is not called unjoinable.
+    assert "admitted to hospital" in long_run
     for page in (long_run, (built / "index.html").read_text(encoding="utf-8")):
         assert "mostly because crashes became less deadly" not in page
-        assert "admitted to hospital" in page
     assert 'href="tables/longrun_projection_sensitivity.csv"' in long_run
     # The per-fuel excess is qualified by the extra growth in kilometres per tonne that would
     # bring each of the last two years inside the trend's range, read from the drift table.
@@ -883,23 +886,30 @@ def test_every_page_has_a_description_and_every_image_an_alt(built: Path) -> Non
 def test_front_page_is_an_overview_of_the_study(built: Path) -> None:
     index = (built / "index.html").read_text(encoding="utf-8")
     body = index[index.find("<main>") : index.find("</main>")]
-    # The answer first, then the main findings and the pages: no numbered questions, no number
-    # tiles or boxed blocks, and the page opens on a summary paragraph.
+    # What the study measures, the way into the tools, then the main findings and the pages: no
+    # numbered questions, no number tiles, boxed blocks or figures, and the page opens on a
+    # summary paragraph.
     headings = re.findall(r"<h2[^>]*>([^<]+)</h2>", body)
     assert headings == ["Main findings", "The pages"]
     assert '<div class="finding">' not in body and "Finding 1" not in body
     assert "finding-value" not in body and "provenance" not in body
+    assert "<figure" not in body
     assert body.find('<p class="summary">') < body.find("<h2")
     opening = re.search(r'<p class="summary">(.*?)</p>', body, re.S).group(1)
-    assert "association" in opening and "fell by about three quarters" in opening
+    assert "association" in opening
+    # The interactive tools are linked straight after the opening, before the findings.
+    assert body.find(opening) < body.find('href="explore.html"') < body.find("<h2")
     sections = dict(zip(headings, re.split(r"<h2[^>]*>[^<]+</h2>", body)[1:]))
-    # A short list of findings, each led by its answer in one sentence.
+    # Three to five findings, each one sentence led by its answer and linked to its page.
     findings = re.search(r'<ul class="findings">(.*?)</ul>', body, re.S).group(1)
     items = re.findall(r"<li>(.*?)</li>", findings, re.S)
-    assert 4 <= len(items) <= 7
+    assert 3 <= len(items) <= 5
     for item in items:
         assert item.count("<strong>") == 1 and item.startswith("<p><strong>")
-    for slug in ("trends", "long-run", "drivers", "speed", "factors", "severity-models"):
+        sentence = components.html.unescape(re.sub(r"<[^>]+>", "", item.split("</p>")[0]))
+        assert sentence.endswith(".") and not re.search(r"\.\s+[A-Z]", sentence), sentence
+        assert re.search(r'<p class="finding-more"><a href="[a-z-]+\.html', item), item
+    for slug in ("trends", "long-run", "drivers", "speed", "severity-models"):
         assert f'href="{slug}.html' in sections["Main findings"], slug
     assert 'href="validation.html' in sections["Main findings"]
     # The list of pages follows the navigation's groups and lists every page once.
@@ -912,6 +922,26 @@ def test_front_page_is_an_overview_of_the_study(built: Path) -> None:
     latest = risk[(risk.year == risk.year.max()) & (risk.outcome == "deaths_30d")]
     deaths = latest[latest.denominator == "count"].iloc[0]
     assert components._fmt_int(deaths["count"]) in sections["Main findings"]
+    counts = pd.read_csv(TABLES_DIR / "q1_annual_headline.csv").set_index("year").deaths_30d
+    steep_end = int(
+        pd.read_csv(TABLES_DIR / "longrun_segments.csv").query("measure == 'count'").start.max()
+    )
+    first = int(counts.index.min())
+    assert "fell by about three quarters" in sections["Main findings"]
+    assert (
+        f"{components._fmt_int(counts.loc[first])} people died in {first}, "
+        f"{components._fmt_int(counts.loc[steep_end])} in {steep_end}"
+    ) in sections["Main findings"]
+    heavy = (
+        pd.read_csv(TABLES_DIR / "sev_contrasts.csv")
+        .query("base == 'interurban'")
+        .set_index(["input", "level"])
+        .loc[("users", "heavy_vehicle")]
+    )
+    assert (
+        f"{heavy.ratio:.1f} times as high with a lorry or bus involved (95% interval "
+        f"{heavy.ratio_low:.1f}–{heavy.ratio_high:.1f})"
+    ) in sections["Main findings"]
     severity = pd.read_csv(TABLES_DIR / "risk_severity_and_licences.csv").set_index("group")
     oldest = float(severity.loc["75+", "killed_per_1000_involved"]) / float(
         severity.loc["45-64", "killed_per_1000_involved"]
@@ -936,22 +966,21 @@ def test_front_page_is_an_overview_of_the_study(built: Path) -> None:
     assert f"{span})" in sections["Main findings"]
     drivers_page = (built / "drivers.html").read_text(encoding="utf-8")
     assert span in drivers_page
+    # The two kinds of interval are linked to their definitions at first use.
     methodology = (built / "data.html").read_text(encoding="utf-8")
-    for anchor in components.DEFINITION_IDS.values():
+    for term in ("Sampling interval", "Sensitivity range"):
+        anchor = components.DEFINITION_IDS[term]
         assert f'href="data.html#{anchor}"' in sections["Main findings"], anchor
+    for anchor in components.DEFINITION_IDS.values():
         assert f'<dt id="{anchor}">' in methodology, anchor
     assert "under other assumptions" not in sections["Main findings"]
-    # Drivers aged 75 and over: the range, then the conditional estimate at one decimal.
+    # Drivers aged 75 and over: the sensitivity range per kilometre, beside the deaths once
+    # involved. (The conditional estimate, which needs its assumption beside it, is left to the
+    # drivers page.)
     older_rows = pd.read_csv(TABLES_DIR / "risk_older_sensitivity.csv")
-    split = pd.read_csv(TABLES_DIR / "risk_older_split.csv")
-    madrid = split[(split.assumption == national.REFERENCE_SPLIT) & (split.group == "75+")].iloc[0]
     full = f"{older_rows.ratio_75_plus.min():.2f} to {older_rows.ratio_75_plus.max():.2f}"
     finding = sections["Main findings"]
     assert f"the sensitivity range is {full} times the 45–64 rate" in finding
-    assert (
-        f"about {madrid.ratio_to_45_64:.1f} times as often (95% sampling interval "
-        f"{madrid.ratio_low:.1f}–{madrid.ratio_high:.1f})"
-    ) in finding
     lowest = (
         pd.read_csv(TABLES_DIR / "risk_older_extremes.csv")
         .set_index(["group", "end"])
@@ -966,7 +995,8 @@ def test_front_page_is_an_overview_of_the_study(built: Path) -> None:
     assert "nearly seven" not in sections["Main findings"]
     # While the 65-and-over range includes the 45-64 rate, no direction is claimed for it.
     if spread.involved_ratio.min()["65+"] < 1 < spread.involved_ratio.max()["65+"]:
-        assert "is not established" in sections["Main findings"]
+        if "65 and over" in sections["Main findings"]:
+            assert "is not established" in sections["Main findings"]
     # A reader can follow the front page without the modelling vocabulary of the deeper pages.
     visible = re.sub(r"<[^>]+>", " ", body)
     for jargon in ("ROC-AUC", "calibration slope", "Jensen", "transportab", "odds ratio"):
@@ -974,7 +1004,7 @@ def test_front_page_is_an_overview_of_the_study(built: Path) -> None:
     assert "tested only within Catalonia" in sections["Main findings"]
     assert site.PROFILE_URL in index and "Russell Howard" in index
     # Short, and nothing from the withdrawn external-study models.
-    assert len(body) < 9_000
+    assert len(body) < 7_500
     data = (built / "data.html").read_text(encoding="utf-8")
     for text in (body, data):
         for phrase in ("simulator", "Power Model", "DRUID", "Dingus", "per unit of traffic"):

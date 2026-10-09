@@ -244,7 +244,9 @@ html:not(.js) .nav-group:focus-within > .nav-menu { display: block; }
 .theme-toggle:hover { color: var(--text); border-color: var(--rule-strong); }
 .theme-toggle svg { width: 1rem; height: 1rem; }
 
-@media (max-width: 59.99rem) {
+/* The sections stay in one row only where the whole header fits beside them (about 66rem with the
+   Explore section); below that they open from the Menu button. */
+@media (max-width: 67.99rem) {
   .site-header-inner { flex-wrap: wrap; gap: 0 var(--space-2); }
   .nav-toggle:not([hidden]) { display: inline-flex; order: 1; margin-left: auto; }
   .theme-toggle { order: 2; margin-left: var(--space-1); }
@@ -627,8 +629,20 @@ nav.pager a[rel="next"] .pager-title::after { transform: rotate(-45deg); margin-
 .site-footer p { max-width: var(--measure); margin: 0 0 var(--space-2); }
 
 /* ------------------------------------------------------------------ home page */
+/* The way into the tools is marked like the cards of the tools page; the pages are listed in two
+   columns, each title beside what its page answers. */
 .home .page-header { margin-bottom: var(--space-6); }
 .home h2 { margin-top: var(--space-7); }
+.home-tools { padding-top: var(--space-4); border-top: 2px solid var(--mark); }
+.home-tools a {
+  display: block; width: fit-content; margin-bottom: var(--space-1);
+  font-size: var(--text-md); font-weight: 600;
+}
+.home-tools a::after {
+  content: ""; display: inline-block; width: 0.42em; height: 0.42em; margin: 0 0 0.1em 0.45em;
+  border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor;
+  transform: rotate(-45deg);
+}
 .findings { list-style: none; padding: 0; margin: var(--space-4) 0 0; max-width: var(--measure); }
 .findings > li { margin: 0; padding: var(--space-4) 0; border-top: 1px solid var(--rule); }
 .findings > li:last-child { border-bottom: 1px solid var(--rule); }
@@ -636,8 +650,17 @@ nav.pager a[rel="next"] .pager-title::after { transform: rotate(-45deg); margin-
 .findings strong { font-weight: 600; }
 .finding-more { font-size: var(--text-sm); }
 .home h3 { font-size: var(--text-base); margin: var(--space-5) 0 var(--space-2); }
-.page-list { margin: 0; padding-left: 1.2em; max-width: var(--measure); }
-.page-list li { margin: 0 0 var(--space-1); }
+.page-list {
+  display: grid; grid-template-columns: 14rem minmax(0, 1fr); gap: var(--space-2) var(--space-5);
+  margin: 0; max-width: var(--wide); font-size: var(--text-sm); line-height: 1.45;
+}
+.page-list > div { display: contents; }
+.page-list dt, .page-list dd { margin: 0; }
+.page-list dd { max-width: none; color: var(--text-muted); }
+@media (max-width: 40rem) {
+  .page-list { grid-template-columns: 1fr; row-gap: 0; }
+  .page-list dd { margin-bottom: var(--space-3); }
+}
 
 /* ------------------------------------------------------------------ small screens */
 @media (max-width: 40rem) {
