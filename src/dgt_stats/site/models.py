@@ -33,7 +33,6 @@ from dgt_stats.site.components import (
     _fmt_pct,
     _join,
     downloads,
-    esc,
     evidence_note,
     figure,
     limitation,
@@ -41,24 +40,11 @@ from dgt_stats.site.components import (
     render_page,
     summary,
     table,
-    technical,
 )
 
 MODEL_PATH = REPORTS_DIR / "models" / "severity_model.json"
 REVIEW_DOC = f"{DOCS_URL}/research/ML_MODEL_REVIEW.md"
 CALCULATOR_DOC = f"{DOCS_URL}/research/SEVERITY_CALCULATOR.md"
-# The inputs in the order the form asks for them, in two groups.
-ROAD_INPUTS = (
-    "province",
-    "road",
-    "speed_limit",
-    "junction",
-    "lighting",
-    "weather",
-    "surface",
-    "hour",
-)
-CRASH_INPUTS = ("crash_type", "units")
 # The contrasts quoted as worked examples, each a change of one input from the reference crash.
 EXAMPLES = (
     ("users", "heavy_vehicle", "A heavy vehicle (lorry or bus) involved as well as the car"),
@@ -147,61 +133,6 @@ def _words(value: int) -> str:
     words = ("no", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten")
     words += ("eleven", "twelve")
     return words[value] if 0 <= value < len(words) else f"{value:,}"
-
-
-def _select(name: str, spec: dict) -> str:
-    options = "".join(
-        f'<option value="{esc(level["value"])}"'
-        f"{' selected' if level['value'] == spec['default'] else ''}>{esc(level['label'])}</option>"
-        for level in spec["levels"]
-    )
-    return (
-        f'<div class="calc-field"><label for="calc-{name}">{esc(spec["label"])}</label>'
-        f'<select id="calc-{name}" name="{name}">{options}</select></div>'
-    )
-
-
-def _form(model: dict) -> str:
-    inputs = model["inputs"]
-    road = "".join(_select(name, inputs[name]) for name in ROAD_INPUTS)
-    crash = "".join(_select(name, inputs[name]) for name in CRASH_INPUTS)
-    users = inputs["users"]
-    boxes = "".join(
-        f'<li><label><input type="checkbox" name="users" value="{esc(level["value"])}"'
-        f"{' checked' if level['value'] in users['default'] else ''}> {esc(level['label'])}"
-        "</label></li>"
-        for level in users["levels"]
-    )
-    # The form, then the panel with the result and the comparison: beside the form on a wide
-    # screen (it stays in view while the form scrolls), after it on a phone.
-    return (
-        '<section class="calculator" id="calculator" data-model="models/severity_model.json" '
-        f'data-model-id="{esc(model["model_id"])}" aria-labelledby="calculator-title" hidden>'
-        '<h3 id="calculator-title">Describe a crash</h3>'
-        '<div class="calc-layout">'
-        "<form>"
-        f'<fieldset><legend>The road and the conditions</legend><div class="calc-fields">{road}'
-        "</div></fieldset>"
-        f'<fieldset><legend>The crash</legend><div class="calc-fields">{crash}</div></fieldset>'
-        f'<fieldset><legend>{esc(users["label"])}</legend><ul class="calc-users">{boxes}</ul>'
-        "</fieldset>"
-        '<div class="calc-actions">'
-        '<button type="button" data-keep>Keep this crash for comparison</button>'
-        '<button type="button" data-clear hidden>Clear the comparison</button>'
-        '<button type="reset">Reset the inputs</button></div>'
-        "</form>"
-        # On a narrow screen the full result follows the form; this line keeps the estimate in
-        # view while the form scrolls (the status line below announces it to screen readers).
-        '<p class="calc-sticky" aria-hidden="true" data-sticky></p>'
-        '<div class="calc-panel">'
-        '<div class="calc-result" data-output></div>'
-        '<div class="calc-baseline" data-baseline></div>'
-        "</div></div>"
-        '<p class="visually-hidden" role="status" aria-live="polite" data-status></p>'
-        "</section>"
-        '<p id="calculator-fallback">The calculator needs JavaScript. Without it, the worked '
-        "examples below give the model's estimates for typical crashes.</p>"
-    )
 
 
 def _pooled(scores: pd.DataFrame) -> str:
@@ -619,33 +550,9 @@ def page_severity_models(captions: dict[str, str]) -> str:
     )
 
     # ------------------------------------------------------------------- calculator
-    few = next(rule["threshold"] for rule in model["rules"] if rule["id"] == "few_similar")
-    body += "<h2>Try the model</h2>"
     body += (
-        "<p>Describe a crash in which someone was killed or seriously injured, and the "
-        "calculator gives the model's estimate of the share of such crashes that were fatal, "
-        "with a 95% confidence interval, and the share that were fatal among the crashes the "
-        "model was fitted on, on the same kind of road in the same province. Those crashes "
-        f"leave out the {training['excluded_owner_not_recorded']:,} on conventional roads whose "
-        "owning network is not named (below). The estimate is a share among crashes already "
-        "recorded with a death or serious injury, not the chance that a crash happens or that "
-        "someone dies on a journey. "
-        "Three impossible combinations, such as a pedestrian struck with no pedestrian "
-        f"involved, are refused; combinations with fewer than {few} similar recorded crashes, "
-        "including none, still get an estimate, with a warning that it rests on the model's "
-        "assumptions.</p>"
-    )
-    body += _form(model)
-    body += technical(
-        "What the inputs mean and what is left out",
-        "<p>Every input is something the police record about the road, the conditions or the "
-        "crash. The road is the zone and type of road and, for conventional roads, the network "
-        "that owns it. The posted limit is the signposted limit where the record gives one, "
-        "never a vehicle's speed; most records give none, and the road's generic limit "
-        "applies. “Vehicles and pedestrians involved” counts every vehicle and every "
-        "pedestrian. Information recorded only after the crash, such as the police's judgement "
-        "of which factors influenced it, is left out: it is written once the outcome is known, "
-        "so it would flatter the model without helping anyone predict.</p>",
+        '<p id="calculator">The model can be tried in the <a href="calculator.html">crash '
+        "severity calculator</a>, which gives its estimate for a crash you describe.</p>"
     )
 
     # ------------------------------------------------------------------- what it shows
@@ -817,6 +724,4 @@ def page_severity_models(captions: dict[str, str]) -> str:
         "in Catalonia were fatal, tested by predicting each year from a model fitted and tuned "
         "on the years before it, and a calculator to try it.",
         body,
-        head='\n<script src="models/severity-engine.js" defer></script>'
-        '\n<script src="models/severity-calculator.js" defer></script>',
     )

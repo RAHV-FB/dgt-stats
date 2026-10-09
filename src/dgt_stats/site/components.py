@@ -24,17 +24,29 @@ PROFILE_URL = "https://github.com/RAHV-FB"
 DOCS_URL = f"{REPO_URL}/blob/main/docs"
 
 
-# The navigation follows the questions a reader brings: how deaths have changed over time, which
-# drivers, vehicles and recorded circumstances go with crashes and deaths, how deadly a crash is
-# once it has happened (in Spain's records, in Catalonia's and Barcelona's, and in the model built
-# on Catalonia's), and where the data and methods come from. The home page lists the same groups.
+# The navigation follows the questions a reader brings: the interactive tools first, then how
+# deaths have changed over time, which drivers, vehicles and recorded circumstances go with crashes
+# and deaths, how deadly a crash is once it has happened (in Spain's records, in Catalonia's and
+# Barcelona's, and in the model built on Catalonia's), and where the data and methods come from.
+# The home page lists the same groups.
 OVERVIEW = "Overview"
+EXPLORE = "Explore"
 OVER_TIME = "Over time"
 WHO = "Drivers, vehicles and factors"
 SEVERITY = "Crash severity"
 METHODS = "Data and methods"
 NAV_GROUPS: tuple[tuple[str, tuple[tuple[str, str], ...]], ...] = (
     (OVERVIEW, (("index", "Overview"),)),
+    (
+        EXPLORE,
+        (
+            ("explore", "Interactive tools"),
+            ("calculator", "Crash severity calculator"),
+            ("driver-risk", "Driver risk comparison"),
+            ("crash-explorer", "Crash statistics explorer"),
+            ("trends-explorer", "Trends and rates explorer"),
+        ),
+    ),
     (
         OVER_TIME,
         (
@@ -67,8 +79,18 @@ NAV_GROUPS: tuple[tuple[str, tuple[tuple[str, str], ...]], ...] = (
 )
 # The line above a page's title: the group it belongs to.
 EYEBROWS = {group: group for group, _ in NAV_GROUPS}
+# The interactive tools, each on a page of its own under ``explore``.
+TOOL_SLUGS = ("calculator", "driver-risk", "crash-explorer", "trends-explorer")
 # What each page answers, one line each, for the home page's list of pages.
 PAGE_QUESTIONS = {
+    "explore": "Calculators and explorers that compute results from the site's data.",
+    "calculator": "The estimated fatal share of a severe crash in Catalonia, for a crash you "
+    "describe.",
+    "driver-risk": "Crash involvement and deaths of drivers of two age groups or sexes, side by "
+    "side.",
+    "crash-explorer": "Spain's recorded injury crashes and deaths by year, region, road and crash "
+    "type.",
+    "trends-explorer": "Road deaths, injuries and crashes since 1993, as counts and as rates.",
     "long-run": "How road deaths have changed since 1993, against vehicles, fuel sold and "
     "kilometres driven.",
     "trends": f"Deaths, hospital admissions and injury crashes in 2024 against {BASE_YEAR}.",
@@ -108,90 +130,11 @@ SPAIN_PAGES: tuple[tuple[str, str], ...] = tuple(
 
 
 ALL_PAGES = PAGES + SUPPORTING_PAGES
-# Every page in reading order, as the navigation lists them; the pager follows it.
-READING_ORDER: tuple[str, ...] = tuple(slug for _, pages in NAV_GROUPS for slug, _ in pages)
-
-
-# Pages that existed under another name, kept as pointers so old links still arrive somewhere.
-MOVED_PAGES = {"older-drivers": "drivers", "context": "long-run", "transport": "validation"}
-
-
-# Pages whose analysis was withdrawn, each with the reason. Their URLs stay alive as short notices
-# (not redirects): every result on them came from coefficients published in external studies, not
-# from rows of the files in this repository, which the project no longer accepts.
-WITHDRAWN_REASON = (
-    "This analysis was withdrawn because its results came from coefficients published in "
-    "external studies rather than from data in this repository."
+# Every article in reading order, as the navigation lists them; the pager follows it. The tools
+# are opened from their own page and are not part of it.
+READING_ORDER: tuple[str, ...] = tuple(
+    slug for group, pages in NAV_GROUPS if group != EXPLORE for slug, _ in pages
 )
-# A withdrawn page whose reason differs from ``WITHDRAWN_REASON``. The lead states the reason; the
-# notice's body says only what the page published and where the data-only work is.
-WITHDRAWN_LEADS = {
-    "forecast": (
-        "This analysis was withdrawn because the model forecast a year's deaths less accurately "
-        "than last year's count."
-    ),
-}
-# What each withdrawn page was, as its notice names it.
-WITHDRAWN_TITLES = {
-    "forecast": "Monthly deaths forecast",
-    "simulator": "Speed-limit simulator",
-    "distraction": "Deaths attributed to distraction",
-    "alcohol-drugs": "Deaths attributed to alcohol and drugs",
-    "enforcement": "Ranking of enforcement measures",
-}
-# What each withdrawn page published. The reason is in its lead and is not repeated here.
-WITHDRAWN_PAGES = {
-    "forecast": (
-        "This page published a model of Spain's monthly road deaths and, from its forecast "
-        "errors, the smallest change in a year's deaths that the counts could reveal. Both are "
-        "withdrawn."
-    ),
-    "simulator": (
-        "This page simulated what new speed limits, and drivers keeping to them, would do to "
-        "deaths and injuries. It started from free-flow speeds measured in Spain for the EU "
-        "Baseline project, and took from studies in other countries both how speeds follow a "
-        "new limit and how casualties respond to speed."
-    ),
-    "distraction": (
-        "This page estimated how many deaths a year distraction causes, by combining the share "
-        "of fatal crashes in which the police recorded distraction with a crash risk measured "
-        "in a driving study in the United States."
-    ),
-    "alcohol-drugs": (
-        "This page estimated how many deaths a year alcohol and drugs cause, by applying "
-        "relative risks from a European study to the share of fatal crashes in which the police "
-        "recorded alcohol."
-    ),
-    "enforcement": (
-        "This page ranked enforcement against speeding, drink- and drug-driving and distraction "
-        "by the deaths each would avoid, combining the three withdrawn models with published "
-        "evaluations of enforcement, all from other countries but one study of Barcelona's "
-        "fixed speed cameras."
-    ),
-}
-
-
-def withdrawn_detail(slug: str) -> str:
-    """A further paragraph for a withdrawn page whose reason rests on a result table (HTML)."""
-    if slug != "forecast":
-        return ""
-    review = read_table("review_forecast")
-    held_out = review[review.set.eq("holdout")]
-    model = held_out[held_out.method.str.contains("published model")].sort_values("window")
-    naive = held_out[held_out.method.str.startswith("naive")]
-    model_error, naive_error = float(model.rmse.iloc[0]), float(naive.rmse.iloc[0])
-    if not (len(naive) == 1 and model_error > naive_error):
-        raise ValueError("forecast notice: the model no longer loses to last year's count")
-    return (
-        "<p>The model predicted each month's deaths from the month of the year, a linear trend, "
-        "the number of Fridays, Saturdays and Sundays, and the road fuel sold in that same "
-        "month. Fuel sales are known only once the month is over, so the model could not "
-        "forecast ahead: it estimated the deaths that a month's traffic would have brought. "
-        "Even so, in the ordinary years held back from its choice its error in a year's deaths "
-        f"was {_fmt_pct(model_error)}, against {_fmt_pct(naive_error)} for repeating the same "
-        "months of the year before. The re-evaluation is in the "
-        f'<a href="{DOCS_URL}/research/ML_MODEL_REVIEW.md">model review</a>.</p>'
-    )
 
 
 # House style for numbers: a typographic minus rather than a hyphen, so a negative figure in a
@@ -749,12 +692,13 @@ def _nav(slug: str) -> str:
 def _place(slug: str) -> tuple[str, str]:
     """Where a page sits: its section above the title, and the pages either side in reading order."""
     titles = dict(ALL_PAGES)
-    if slug in WITHDRAWN_PAGES:
-        return '<p class="eyebrow">Withdrawn analysis</p>', ""
-    if slug not in READING_ORDER or slug == "index":
+    group = next((label for label, pages in NAV_GROUPS if slug in dict(pages)), None)
+    if group is None or slug == "index":
         return "", ""
-    group = next(label for label, pages in NAV_GROUPS if slug in dict(pages))
     eyebrow = f'<p class="eyebrow">{esc(EYEBROWS[group])}</p>'
+    # A tool is opened from the tools page, not read in sequence: it has no reading-order links.
+    if slug not in READING_ORDER:
+        return eyebrow, ""
     position = READING_ORDER.index(slug)
     links = []
     if position > 0:
@@ -781,7 +725,7 @@ def render_page(slug: str, title: str, lead: str, body: str, head: str = "") -> 
 
     ``lead`` is one sentence on what the page covers. It is the page's search description, and it
     is shown under the title only where no summary follows to state the result: on the home page,
-    which it introduces, and on the withdrawn and moved notices, where it gives the reason."""
+    which it introduces, and on the tool pages, where it says what the tool computes."""
     eyebrow, pager = _place(slug)
     page_title = SITE_TITLE if slug == "index" else esc(title) + " · " + SITE_TITLE
     body, entries = _sections(_number(body))

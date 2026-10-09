@@ -1,6 +1,7 @@
 """The one script the site runs, and only to make reading easier; every page works without it.
 
-It opens and closes the section menus and the small-screen menu, marks the section of a long page
+It sends an old link to the calculator on the model page to the calculator's own page, opens and
+closes the section menus and the small-screen menu, marks the section of a long page
 that is being read in its contents rail, gives a chart or table a keyboard stop and a note about
 scrolling sideways only when it overflows its column, switches between the light and dark themes,
 and opens the technical details before a page is printed. The pages set ``class="js"`` on
@@ -40,6 +41,13 @@ CONTENT_SECURITY_POLICY = (
 SCRIPT = r"""
 (function () {
   "use strict";
+
+  // The calculator moved from the model page to a page of its own: an old link to it arrives there.
+  // Without scripting the old anchor still holds a link to the new page.
+  if (/severity-models\.html$/.test(window.location.pathname) && window.location.hash === "#calculator") {
+    window.location.replace("calculator.html");
+    return;
+  }
 
   // Section menus: a button opens its list; Escape, a click elsewhere or leaving the menu closes it.
   var groups = Array.prototype.slice.call(document.querySelectorAll(".nav-group"));

@@ -42,17 +42,25 @@ def test_every_page_is_written_with_one_heading(built: Path) -> None:
         _runs_no_script(slug, text)
         assert 'lang="en"' in text
         assert f'href="{slug}.html" aria-current="page"' in text
-    # The navigation follows the questions a reader brings: deaths over time; drivers, vehicles
-    # and recorded factors; how deadly a crash is once it has happened; and the data and methods.
-    # A pointer for each page that was renamed, and a notice for each withdrawn analysis.
+    # The navigation follows the questions a reader brings: the interactive tools; deaths over
+    # time; drivers, vehicles and recorded factors; how deadly a crash is once it has happened; and
+    # the data and methods. Old pages that no builder writes (renamed pages, withdrawn analyses)
+    # are gone.
     assert [group for group, _ in site.NAV_GROUPS] == [
         "Overview",
+        "Explore",
         "Over time",
         "Drivers, vehicles and factors",
         "Crash severity",
         "Data and methods",
     ]
-    assert len(site.PAGES) == 14 and len(site.SUPPORTING_PAGES) == 2
+    assert [slug for slug, _ in dict(site.NAV_GROUPS)["Explore"]] == [
+        "explore",
+        "calculator",
+        "driver-risk",
+        "crash-explorer",
+        "trends-explorer",
+    ]
     assert [slug for slug, _ in dict(site.NAV_GROUPS)["Crash severity"]] == [
         "severity",
         "catalonia",
@@ -60,19 +68,20 @@ def test_every_page_is_written_with_one_heading(built: Path) -> None:
         "severity-models",
         "validation",
     ]
-    expected = (
-        {slug for slug, _ in site.ALL_PAGES} | set(site.MOVED_PAGES) | set(site.WITHDRAWN_PAGES)
-    )
-    assert expected == {p.stem for p in built.glob("*.html")}
+    assert {slug for slug, _ in site.ALL_PAGES} == {p.stem for p in built.glob("*.html")}
     # The site's one site-wide script is its own reading aid; the withdrawn models' scripts and
     # registers are not shipped. The calculator's engine, page script and exported model live
-    # apart in models/, and only its page loads them.
+    # apart in models/, the other tools' scripts and data in tools/, and only the tool pages load
+    # them.
     assert [p.name for p in built.glob("*.js")] == ["site.js"]
     assert sorted(p.name for p in (built / "models").iterdir()) == [
         "severity-calculator.js",
         "severity-engine.js",
         "severity_model.json",
     ]
+    tools = {p.name for p in (built / "tools").iterdir()}
+    assert {"tools.js", "driver-risk.js", "crash-explorer.js", "trends-explorer.js"} <= tools
+    assert {p.suffix for p in (built / "tools").iterdir()} <= {".js", ".json"}
     published = {p.name for p in (built / "tables").glob("*.csv")}
     assert not published & {"simulator_evidence.csv", "factor_evidence.csv"}
 
@@ -84,68 +93,47 @@ CALCULATOR_SCRIPTS = [
 
 
 def _runs_no_script(slug: str, text: str) -> None:
-    """No page runs a script of its own, except the calculator: the simulator and factor models
-    that did were withdrawn.
+    """No page runs a script of its own, except the tools: the simulator and factor models that
+    did were withdrawn.
 
     Every page loads the site's reading aid (menus and contents), after a one-line flag that says
-    scripting is on; the severity model's page also loads the calculator's engine and page
-    script, which compute only from the exported model.
+    scripting is on; each tool page also loads the tools' shared helpers and its own script, and
+    the calculator its engine, which computes only from the exported model.
     """
     expected = ["<script>", '<script src="site.js" defer>']
-    if slug == "severity-models":
-        expected += CALCULATOR_SCRIPTS
+    if slug in site.components.TOOL_SLUGS:
+        expected.append('<script src="tools/tools.js" defer>')
+        if slug == "calculator":
+            expected += CALCULATOR_SCRIPTS
+        else:
+            expected.append(f'<script src="tools/{slug}.js" defer>')
     assert re.findall(r"<script[^>]*>", text) == expected, slug
     assert JS_FLAG in text, slug
 
 
-def test_moved_pages_point_to_their_successors(built: Path) -> None:
-    for old, new in site.MOVED_PAGES.items():
-        text = (built / f"{old}.html").read_text(encoding="utf-8")
-        assert f'content="0; url={new}.html"' in text
-        assert f'href="{new}.html">' in text
-        # Kept out of search indexes, with no canonical link to contradict that.
-        assert '<meta name="robots" content="noindex">' in text, old
-        assert 'rel="canonical"' not in text, old
-    # No live page links to a moved slug: the pointers are for old bookmarks, not navigation.
+# Pages that were renamed or whose analysis was withdrawn. They are removed, not kept as pointers.
+DEFUNCT_PAGES = (
+    "older-drivers",
+    "context",
+    "transport",
+    "forecast",
+    "simulator",
+    "distraction",
+    "alcohol-drugs",
+    "enforcement",
+)
+
+
+def test_defunct_pages_are_gone_and_nothing_links_to_them(built: Path) -> None:
+    for slug in DEFUNCT_PAGES:
+        assert not (built / f"{slug}.html").exists(), slug
     for slug, _ in site.ALL_PAGES:
         text = (built / f"{slug}.html").read_text(encoding="utf-8")
-        for moved in site.MOVED_PAGES:
-            assert f'href="{moved}.html"' not in text, (slug, moved)
-
-
-def test_withdrawn_pages_say_why_and_nothing_links_to_them(built: Path) -> None:
-    external = {"simulator", "distraction", "alcohol-drugs", "enforcement"}
-    assert set(site.WITHDRAWN_PAGES) == external | {"forecast"}
-    live = {slug for slug, _ in site.ALL_PAGES}
-    for slug, reason in site.WITHDRAWN_PAGES.items():
-        assert slug not in live and slug not in site.MOVED_PAGES, slug
-        text = (built / f"{slug}.html").read_text(encoding="utf-8")
-        body = text[text.find("<main>") : text.find("</main>")]
-        # A short notice, not a redirect: it says why the analysis went and links to the data.
-        assert 'http-equiv="refresh"' not in text and 'rel="canonical"' not in text, slug
-        if slug in external:
-            assert "withdrawn because its results came from coefficients published in " in text
-            assert "rather than from data in this repository" in text
-        else:
-            assert site.esc("less accurately than last year's count") in text
-        assert site.esc(reason) in body, slug
-        # The reason is stated once, in the lead; the body says what the page published.
-        assert body.count("withdrawn because") == 1, slug
-        assert "holds no" not in body and "so it was withdrawn" not in body, slug
-        if slug == "forecast":
-            assert body.count("less accurately") == 1
-        assert 'href="data.html"' in body, slug
-        assert '<div class="conclusion">' not in body and "<table>" not in body, slug
-        assert len(body) < 4000, slug
-    # The simulator's notice points to the speed page, and the forecast's to the trend pages.
-    assert 'href="speed.html"' in (built / "simulator.html").read_text(encoding="utf-8")
-    forecast = (built / "forecast.html").read_text(encoding="utf-8")
-    assert 'href="long-run.html"' in forecast and 'href="trends.html"' in forecast
-    # No live or moved page links to a withdrawn slug.
-    for slug in live | set(site.MOVED_PAGES):
-        text = (built / f"{slug}.html").read_text(encoding="utf-8")
-        for withdrawn in site.WITHDRAWN_PAGES:
-            assert f'href="{withdrawn}.html"' not in text, (slug, withdrawn)
+        for defunct in DEFUNCT_PAGES:
+            assert f'href="{defunct}.html"' not in text, (slug, defunct)
+    # No figure of the withdrawn forecast survives.
+    assert not (built / "figures" / "k1_forecast_check.svg").exists()
+    assert not (built / "figures" / "k2_detectability.svg").exists()
 
 
 def test_reuse_names_each_provider_its_terms_and_its_dates(built: Path) -> None:
@@ -884,7 +872,7 @@ def test_front_page_is_an_overview_of_the_study(built: Path) -> None:
     headings = re.findall(r"<h2[^>]*>([^<]+)</h2>", body)
     assert headings == ["Main findings", "The pages"]
     assert '<div class="finding">' not in body and "Finding 1" not in body
-    assert "finding-value" not in body and "explore" not in body and "provenance" not in body
+    assert "finding-value" not in body and "provenance" not in body
     assert body.find('<p class="summary">') < body.find("<h2")
     opening = re.search(r'<p class="summary">(.*?)</p>', body, re.S).group(1)
     assert "association" in opening and "fell by about three quarters" in opening
@@ -1167,17 +1155,6 @@ def test_the_missing_values_figure_reads_the_audit_rule(built: Path) -> None:
     assert "recorded less often" not in caption
     assert "optional fields (fog" not in caption
     assert "right-of-way flags and the junction type in under half" not in block
-
-
-def test_forecast_page_is_withdrawn_and_says_why(built: Path) -> None:
-    text = (built / "forecast.html").read_text(encoding="utf-8")
-    body = text[text.find("<main>") : text.find("</main>")]
-    assert '<meta name="robots" content="noindex">' in text
-    assert "<img" not in body and "<table" not in body
-    assert site.esc("last year's count") in body
-    # Nothing on a live page links to it, and no figure of it survives.
-    assert not (built / "figures" / "k1_forecast_check.svg").exists()
-    assert not (built / "figures" / "k2_detectability.svg").exists()
 
 
 def test_navigation_groups_its_pages_under_labels(built: Path) -> None:

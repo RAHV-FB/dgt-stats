@@ -46,7 +46,7 @@ else:
 
 SITE = PROJECT_ROOT / "site"
 MODEL = REPORTS_DIR / "models" / "severity_model.json"
-PAGE = "severity-models.html"
+PAGE = "calculator.html"
 PHONE = {"width": 390, "height": 844}
 
 if not (SITE / PAGE).exists() or not (SITE / "models" / "severity_model.json").exists():
@@ -367,15 +367,13 @@ def test_the_pinned_estimate_never_covers_the_focused_control(browser, server, s
 
 
 @pytest.mark.parametrize("size", [PHONE, LAPTOP])
-def test_a_link_to_the_calculator_lands_on_it(browser, server, size) -> None:
-    """The calculator is hidden until its model loads, so the browser's own jump to
-    #calculator finds nothing; the page jumps once it is shown."""
+def test_an_old_link_to_the_calculator_lands_on_its_page(browser, server, size) -> None:
+    """The calculator moved from the model page to its own page: an old link to it arrives
+    there."""
     page = browser.new_page(viewport=size, reduced_motion="reduce")
-    page.goto(f"{server}/{PAGE}#calculator", wait_until="networkidle")
+    page.goto(f"{server}/severity-models.html#calculator", wait_until="networkidle")
+    page.wait_for_url(f"{server}/{PAGE}")
     page.wait_for_selector("#calculator:not([hidden])")
-    page.wait_for_function(
-        "Math.abs(document.querySelector('#calculator').getBoundingClientRect().top) < 2"
-    )
     page.close()
 
 

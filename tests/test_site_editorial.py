@@ -72,6 +72,7 @@ def _main(text: str) -> str:
 def test_navigation_follows_the_argument(built: dict[str, str]) -> None:
     assert [group for group, _ in site.NAV_GROUPS] == [
         "Overview",
+        "Explore",
         "Over time",
         "Drivers, vehicles and factors",
         "Crash severity",
@@ -84,13 +85,13 @@ def test_navigation_follows_the_argument(built: dict[str, str]) -> None:
     assert dict(groups["Data and methods"])["sources"] == "Data sources and scope"
     nav = re.search(r'<nav aria-label="Sections">(.*?)</nav>', built["speed"], re.S).group(1)
     links = re.findall(r'href="([a-z-]+)\.html"', nav)
-    assert links == list(components.READING_ORDER)
+    assert links == [slug for _, pages in site.NAV_GROUPS for slug, _ in pages]
     # Each page names its group above the title and links to its neighbours in reading order.
     assert '<p class="eyebrow">Drivers, vehicles and factors</p>' in built["speed"]
     assert 'href="vehicles.html" rel="prev"' in built["speed"]
     assert 'href="factors.html" rel="next"' in built["speed"]
     assert '<p class="eyebrow">Over time</p>' in built["policy"]
-    assert '<p class="eyebrow">Withdrawn analysis</p>' in built["forecast"]
+    assert '<p class="eyebrow">Explore</p>' in built["calculator"]
     assert '<p class="eyebrow">Crash severity</p>' in built["validation"]
     assert '<p class="eyebrow">' not in built["index"]
 
@@ -117,9 +118,6 @@ def test_the_old_page_names_and_framing_are_gone(built: dict[str, str]) -> None:
     for slug in LIVE:
         for phrase in obsolete:
             assert phrase not in built[slug], (slug, phrase)
-    # The old address of the validation page points to its successor.
-    assert site.MOVED_PAGES["transport"] == "validation"
-    assert 'content="0; url=validation.html"' in built["transport"]
 
 
 def test_no_page_carries_the_old_layer_and_unit_boilerplate(built: dict[str, str]) -> None:
@@ -167,10 +165,11 @@ def test_headings_and_leads_are_statements(built: dict[str, str]) -> None:
         for heading in re.findall(r"<h[1-3][^>]*>(.*?)</h[1-3]>", text, re.S):
             assert "?" not in re.sub(r"<[^>]+>", "", heading), (slug, heading)
         # The page's one-sentence description: its search description, shown under the title
-        # only on the home page (a page with a summary does not open twice).
+        # only on the home page and the tool pages (a page with a summary does not open twice).
         lead = re.search(r'<meta name="description" content="([^"]*)">', text).group(1)
         assert "?" not in lead, slug
-        assert ('<p class="lead">' in text) == (slug == "index"), slug
+        opens_with_lead = slug in ("index", "explore", *components.TOOL_SLUGS)
+        assert ('<p class="lead">' in text) == opens_with_lead, slug
         for opening in re.findall(r'<p class="summary">(.*?)</p>', text, re.S):
             assert "?" not in re.sub(r"<[^>]+>", "", opening), slug
 
@@ -215,9 +214,8 @@ def test_the_models_page_leads_with_predicted_against_observed(built: dict[str, 
     # Predicted against observed, then the calculator, then what the model shows and a short
     # method; scores tables stay in the research documents. The headings say what each finds.
     headings = re.findall(r"<h2[^>]*>(.*?)</h2>", main, re.S)
-    assert headings[:4] == [
+    assert headings[:3] == [
         "The estimates matched later years overall, but not in every province",
-        "Try the model",
         "Crashes involving a heavy vehicle: about twice the fatal share",
         "How the model was built",
     ]
@@ -229,9 +227,8 @@ def test_the_models_page_leads_with_predicted_against_observed(built: dict[str, 
     gloss = "given one fatal and one non-fatal crash, the share of pairs in which the fatal one"
     assert visible.count(gloss) == 1
     assert not re.search(r"ROC-AUC[^.]*\b0\.\d{3}\b", visible)
-    # The calculator's result and comparison share a panel that sits beside the form when there
-    # is room; the interval's scope is said beside the interval, not only in the limitations.
-    assert '<div class="calc-layout"><form>' in main and '<div class="calc-panel">' in main
+    # The calculator has its own page; the model page links to it at the old anchor.
+    assert '<p id="calculator">' in main and 'href="calculator.html"' in main
     assert "uncertainty of its coefficients" not in visible
     # What the calculator answers, and what its inputs are not, are said in plain words.
     assert "a posted limit is not a speed" in visible.lower()
@@ -275,7 +272,8 @@ def test_pages_carry_no_template_furniture(built: dict[str, str]) -> None:
             assert f"<h2>{heading}</h2>" not in main, (slug, heading)
         prose = main.replace('<p class="eyebrow">Spain · supporting analysis</p>', "")
         assert "upporting analysis" not in prose, slug
-        assert main.count('<p class="summary">') == 1, slug
+        if slug not in ("explore", *components.TOOL_SLUGS):
+            assert main.count('<p class="summary">') == 1, slug
 
 
 # The pages that quote the figures for drivers aged 75 and over.

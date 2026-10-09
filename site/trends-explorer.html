@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-obt9E6kr4GpWGO8U4U/O1F2Ek2VTTWyy/bPSJ32jH1g='; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<title>Trends and rates explorer · Road safety in Spain</title>
+<meta name="description" content="Road deaths, injuries and crashes over time, as counts or as rates.">
+<link rel="preload" href="fonts/NunitoSans.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="style.css">
+<script>(function(r){r.classList.add('js');try{var t=localStorage.getItem('theme');if(t==='dark'||t==='light')r.setAttribute('data-theme',t)}catch(e){}})(document.documentElement)</script>
+<script src="site.js" defer></script>
+<script src="tools/tools.js" defer></script>
+<script src="tools/trends-explorer.js" defer></script>
+</head>
+<body>
+<a class="skip-link" href="#content">Skip to content</a>
+<header class="site-header">
+<div class="site-header-inner">
+<a class="site-title" href="index.html">Road safety in Spain</a>
+<button class="nav-toggle" type="button" aria-expanded="false" aria-controls="site-nav" hidden>Menu</button>
+<div class="site-nav" id="site-nav">
+<nav aria-label="Sections"><ul class="nav-groups"><li class="nav-group"><a class="nav-top" href="index.html">Overview</a></li><li class="nav-group is-current"><button class="nav-trigger" type="button" aria-expanded="false" aria-controls="menu-explore">Explore<span class="visually-hidden"> (current section)</span></button><span class="nav-label" id="label-explore">Explore</span><ul class="nav-menu" id="menu-explore" aria-labelledby="label-explore"><li><a href="explore.html">Interactive tools</a></li><li><a href="calculator.html">Crash severity calculator</a></li><li><a href="driver-risk.html">Driver risk comparison</a></li><li><a href="crash-explorer.html">Crash statistics explorer</a></li><li><a href="trends-explorer.html" aria-current="page">Trends and rates explorer</a></li></ul></li><li class="nav-group"><button class="nav-trigger" type="button" aria-expanded="false" aria-controls="menu-over-time">Over time</button><span class="nav-label" id="label-over-time">Over time</span><ul class="nav-menu" id="menu-over-time" aria-labelledby="label-over-time"><li><a href="long-run.html">Long-run trends</a></li><li><a href="trends.html">Since 2019</a></li><li><a href="seasons.html">Seasons</a></li><li><a href="policy.html">The 2006 points licence</a></li></ul></li><li class="nav-group"><button class="nav-trigger" type="button" aria-expanded="false" aria-controls="menu-drivers-vehicles-and-factors">Drivers, vehicles and factors</button><span class="nav-label" id="label-drivers-vehicles-and-factors">Drivers, vehicles and factors</span><ul class="nav-menu" id="menu-drivers-vehicles-and-factors" aria-labelledby="label-drivers-vehicles-and-factors"><li><a href="drivers.html">Drivers</a></li><li><a href="vehicles.html">Vehicles</a></li><li><a href="speed.html">Speed</a></li><li><a href="factors.html">Recorded factors</a></li></ul></li><li class="nav-group"><button class="nav-trigger" type="button" aria-expanded="false" aria-controls="menu-crash-severity">Crash severity</button><span class="nav-label" id="label-crash-severity">Crash severity</span><ul class="nav-menu" id="menu-crash-severity" aria-labelledby="label-crash-severity"><li><a href="severity.html">Crash circumstances in Spain</a></li><li><a href="catalonia.html">Catalonia</a></li><li><a href="barcelona.html">Barcelona</a></li><li><a href="severity-models.html">Severity model and calculator</a></li><li><a href="validation.html">External validation</a></li></ul></li><li class="nav-group"><button class="nav-trigger" type="button" aria-expanded="false" aria-controls="menu-data-and-methods">Data and methods</button><span class="nav-label" id="label-data-and-methods">Data and methods</span><ul class="nav-menu" id="menu-data-and-methods" aria-labelledby="label-data-and-methods"><li><a href="sources.html">Data sources and scope</a></li><li><a href="data.html">Methodology</a></li></ul></li></ul></nav>
+</div>
+<button class="theme-toggle" type="button" aria-pressed="false" title="Dark mode" hidden><span class="visually-hidden">Dark mode</span><svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.25" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 1.75a6.25 6.25 0 0 1 0 12.5z" fill="currentColor"/></svg></button>
+</div>
+</header>
+<div class="page">
+<main>
+<header class="page-header" id="content">
+<p class="eyebrow">Explore</p><h1>Trends and rates explorer</h1>
+<p class="lead">Road deaths, injuries and crashes over time, as counts or as rates.</p>
+</header>
+<div class="tool" data-tool="trends-explorer" hidden></div><p class="tool-fallback" data-tool-fallback>This tool needs JavaScript. The results it draws on are on the pages linked below.</p><section class="tool-notes" aria-label="About these numbers"><p>This tool is being built.</p></section>
+</main>
+</div>
+<footer class="site-footer">
+<div class="site-footer-inner">
+<p>Road safety in Spain, an independent analysis by <a href="https://github.com/RAHV-FB">Russell Howard (RAHV-FB)</a>.
+Data from the Dirección General de Tráfico, INE, the Ministerio de Transportes, CORES, the Servei
+Català de Trànsit, the Ajuntament de Barcelona, the Autoritat del Transport Metropolità, Idescat and
+Institut Metròpoli (EMEF), Idescat (population census) and the Consorcio Regional de Transportes de
+Madrid (<a href="https://www.crtm.es">Powered by CRTM</a>).
+All results are computed by the code in the repository from the published files and the cited
+<a href="data.html#reproduce">values it holds</a>.</p>
+<p><a href="sources.html">Data sources</a> · <a href="data.html">Methodology</a> ·
+<a href="data.html#reuse">Reuse and licences</a> ·
+<a href="https://github.com/RAHV-FB/dgt-stats">Repository</a> ·
+<a href="https://github.com/RAHV-FB/dgt-stats/commits/main/site">Change history</a></p>
+</div>
+</footer>
+</body>
+</html>

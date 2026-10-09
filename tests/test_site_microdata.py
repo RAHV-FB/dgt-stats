@@ -8,7 +8,7 @@ import pytest
 from dgt_stats.paths import FIGURES_DIR, PROJECT_ROOT, TABLES_DIR
 from dgt_stats.site.components import _fmt_int, _fmt_pct
 
-PAGES = ("catalonia", "barcelona", "severity-models", "validation", "sources")
+PAGES = ("catalonia", "barcelona", "severity-models", "validation", "sources", "calculator")
 # The modules that write the pages, and the helpers they share. Two are left out: components,
 # whose navigation labels and publication titles carry years, and data, which cites a law by its
 # number.
@@ -63,6 +63,8 @@ def test_page_code_types_no_year_and_no_result() -> None:
 
 def test_microdata_pages_open_with_a_summary_and_link_their_tables(pages: dict[str, str]) -> None:
     for slug, text in pages.items():
+        if slug == "calculator":
+            continue
         # The old furniture is gone: no source block, no layer line. (A model's description
         # may say in prose what one row is; the old per-page "unit" block is what is banned.)
         assert '<details class="about">' not in text, slug
@@ -211,7 +213,7 @@ def test_transfer_scores_and_the_small_barcelona_benchmark_come_from_the_tables(
 
 
 def test_models_page_follows_the_decisions(pages: dict[str, str]) -> None:
-    text = pages["severity-models"]
+    text, form = pages["severity-models"], pages["calculator"]
     # The other models are named as not used, with the reason, and the review is linked; no
     # other model's probabilities are shown.
     assert "are not used as predictors" in text
@@ -226,10 +228,10 @@ def test_models_page_follows_the_decisions(pages: dict[str, str]) -> None:
     for name, spec in model["inputs"].items():
         if spec["type"] == "flags":
             for level in spec["levels"]:
-                assert f'name="users" value="{level["value"]}"' in text, level
+                assert f'name="users" value="{level["value"]}"' in form, level
         else:
-            assert f'name="{name}"' in text, name
-            assert text.count(f'id="calc-{name}"') == 1, name
+            assert f'name="{name}"' in form, name
+            assert form.count(f'id="calc-{name}"') == 1, name
 
 
 def test_validation_page_keeps_population_differences_and_validation_apart(

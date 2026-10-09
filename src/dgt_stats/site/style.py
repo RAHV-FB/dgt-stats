@@ -317,6 +317,77 @@ main { padding: var(--space-7) 0 var(--space-7); min-width: 0; }
 .toc-inline ol { margin: 0 0 var(--space-4); padding-left: 1.4em; font-size: var(--text-sm); }
 .toc-inline li + li { margin-top: var(--space-1); }
 
+/* ------------------------------------------------------------------ interactive tools */
+/* The landing page lists the tools; each tool is a column of compact controls and a result with a
+   chart and its figures. On a wide screen the controls sit beside the result. The charts are drawn
+   by tools.js in the site's own colours, with their text at the size it is read. */
+.tool-list { list-style: none; margin: var(--space-6) 0; padding: 0; max-width: var(--wide);
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr)); gap: var(--space-5); }
+.tool-card { margin: 0; padding: var(--space-4) 0 0; border-top: 2px solid var(--mark); max-width: none; }
+.tool-card h2 { margin: 0 0 var(--space-2); font-size: var(--text-md); }
+.tool-card p { margin: 0 0 var(--space-3); }
+.tool-facts { margin: 0; font-size: var(--text-sm); }
+.tool-facts div { display: flex; gap: var(--space-2); }
+.tool-facts dt { color: var(--text-muted); min-width: 4.5rem; }
+.tool-facts dd { margin: 0; }
+.tool-landing-note { color: var(--text-muted); font-size: var(--text-sm); }
+.tool { margin: var(--space-5) 0 var(--space-6); max-width: var(--wide); container-type: inline-size; }
+.tool-layout { display: grid; gap: var(--space-5); }
+.tool-controls { margin: 0; }
+.tool-controls fieldset { margin: 0 0 var(--space-4); padding: 0; border: 0; min-width: 0; }
+.tool-controls legend { padding: 0 0 var(--space-2); font-weight: 600; }
+.tool-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3) var(--space-4); }
+.tool-field { min-width: 0; }
+.tool-field label, .tool-field .tool-field-label { display: block; margin-bottom: var(--space-1); font-size: var(--text-sm); color: var(--text-muted); }
+.tool-field select, .tool-field input[type="number"] {
+  width: 100%; min-height: 2.75rem; padding: 0 var(--space-2); font: inherit; font-size: var(--text-base);
+  color: var(--text); background: var(--bg); border: 1px solid var(--rule-strong); border-radius: 0;
+}
+.tool-actions { display: flex; flex-wrap: wrap; gap: var(--space-3); margin: var(--space-3) 0 0; }
+.tool-actions button, .tool-choice button {
+  min-height: 2.75rem; padding: 0 var(--space-4); font: inherit; font-size: var(--text-sm);
+  color: var(--text); background: var(--surface); border: 1px solid var(--rule-strong); cursor: pointer;
+}
+.tool-actions button:disabled { opacity: 0.5; cursor: not-allowed; }
+.tool select:focus-visible, .tool input:focus-visible, .tool button:focus-visible {
+  outline: 3px solid var(--accent); outline-offset: 2px;
+}
+.tool-result { border-top: 1px solid var(--rule); padding-top: var(--space-4); min-width: 0; }
+.tool-headline { margin: 0; font-size: var(--text-lg); line-height: var(--leading-tight); }
+.tool-headline strong { font-size: var(--text-xl); font-weight: 500; font-variant-numeric: tabular-nums lining-nums; }
+.tool-meaning { margin: var(--space-2) 0 0; }
+.tool-note { margin: var(--space-2) 0 0; font-size: var(--text-sm); color: var(--text-muted); }
+.tool-warning { margin: var(--space-3) 0 0; padding-left: var(--space-3); border-left: 3px solid var(--rule-strong); font-size: var(--text-sm); }
+.tool-chart { margin: var(--space-4) 0 var(--space-2); min-width: 0; }
+.tool-svg { display: block; max-width: 100%; height: auto; font-family: var(--font); }
+.tool-svg text { fill: var(--text); font-size: 14px; }
+.tool-svg .tick { fill: var(--text-muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+.tool-svg .grid { stroke: var(--rule); stroke-width: 1; }
+.tool-svg .axis { stroke: var(--rule-strong); stroke-width: 1; }
+.tool-svg .mark { stroke: var(--text-muted); stroke-width: 1; stroke-dasharray: 3 3; }
+.tool-svg .series { stroke-width: 2.5; }
+.tool-svg .series-0 { stroke: var(--mark); fill: var(--mark); }
+.tool-svg .series-1 { stroke: var(--text-muted); fill: var(--text-muted); }
+.tool-svg path.series-1 { stroke-dasharray: 6 4; }
+.tool-svg .bar { fill: var(--mark); }
+.tool-svg .bar.muted, .tool-svg .dot.muted { fill: var(--text-muted); }
+.tool-svg .dot { fill: var(--mark); stroke: var(--bg); stroke-width: 1.5; }
+.tool-svg .whisker { stroke: var(--text); stroke-width: 2; }
+.tool-svg .range { fill: var(--rule-strong); opacity: 0.55; }
+.tool-axis-label { margin: 0; font-size: var(--text-sm); color: var(--text-muted); }
+.tool-empty { color: var(--text-muted); }
+.tool-table { margin: var(--space-4) 0 0; }
+.tool-notes { max-width: var(--measure); margin-top: var(--space-6); border-top: 1px solid var(--rule); padding-top: var(--space-4); font-size: var(--text-sm); }
+.tool-notes p { margin: 0 0 var(--space-3); }
+.tool-fallback { color: var(--text-muted); }
+@container (min-width: 52rem) {
+  .tool-layout { grid-template-columns: minmax(16rem, 20rem) minmax(0, 1fr); align-items: start; }
+  .tool-fields { grid-template-columns: 1fr; }
+}
+@media (max-width: 30rem) {
+  .tool-fields { grid-template-columns: 1fr; }
+}
+
 /* ------------------------------------------------------------------ calculator */
 /* The form, then a panel with the result and the comparison. Where the calculator has room, the
    panel sits beside the form and stays in view while the form scrolls, so that changing an input
