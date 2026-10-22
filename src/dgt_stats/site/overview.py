@@ -11,7 +11,7 @@ page is written.
 
 from __future__ import annotations
 
-from dgt_stats.exposure_risk import national as national_rates
+from dgt_stats.drivers.exposure_risk import national as national_rates
 from dgt_stats.site.components import (
     ALL_PAGES,
     NAV_GROUPS,
@@ -24,12 +24,7 @@ from dgt_stats.site.components import (
     render_page,
     summary,
 )
-from dgt_stats.site.numbers import (
-    _driver_numbers,
-    _long_run_numbers,
-    _speed_numbers,
-    rate_interval,
-)
+from dgt_stats.site.numbers import _driver_numbers, _long_run_numbers, _speed_numbers, rate_interval
 from dgt_stats.site.regional_common import _year_label
 
 TITLES = dict(ALL_PAGES)

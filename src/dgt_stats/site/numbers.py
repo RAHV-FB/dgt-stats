@@ -115,7 +115,7 @@ def _driver_numbers() -> dict[str, object]:
     profiles; Method A, from which the sensitivity analysis varies each choice; the
     licence-calibrated A2; every sensitivity), the Barcelona working-day check and the split at
     75 (``older``: the central profile's rows), read from ``risk_*``."""
-    from dgt_stats.exposure_risk import national
+    from dgt_stats.drivers.exposure_risk import national
 
     rates = read_table("risk_national_rates")
     rates = rates[rates.km_total == CENTRAL_KM]
@@ -268,7 +268,7 @@ def _older_numbers() -> dict[str, object]:
     PASS needs the lowest unmarked combination above the 45-64 rate even at the bottom of its
     sampling interval, and the conditional estimate's interval above it too; INTERMEDIATE, the
     lowest unmarked combination above it at its point value; otherwise FAIL."""
-    from dgt_stats.exposure_risk import national
+    from dgt_stats.drivers.exposure_risk import national
 
     split = read_table("risk_older_split")
     older = read_table("risk_older_sensitivity")

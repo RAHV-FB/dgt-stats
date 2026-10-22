@@ -18,9 +18,9 @@ from types import SimpleNamespace
 
 import pandas as pd
 
-from dgt_stats.microdata.validation import decisions as rules
+from dgt_stats.models.severity_model import PREVIOUS_VALIDATION_YEARS
+from dgt_stats.models.validation import decisions as rules
 from dgt_stats.paths import REPORTS_DIR
-from dgt_stats.severity_model import PREVIOUS_VALIDATION_YEARS
 from dgt_stats.site.components import (
     DOCS_URL,
     _fmt_dec,

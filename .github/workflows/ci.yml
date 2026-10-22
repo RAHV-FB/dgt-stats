@@ -46,18 +46,18 @@ jobs:
             data/processed/dgt_accidentes.parquet
           key: >-
             data-${{ hashFiles('data/raw/manifest.csv',
-            'src/dgt_stats/io_*.py', 'src/dgt_stats/agebands.py', 'src/dgt_stats/codes.py',
-            'src/dgt_stats/derive.py', 'src/dgt_stats/labels.py',
-            'scripts/ingest.py', 'scripts/build_tables.py') }}
+            'src/dgt_stats/national/io_*.py', 'src/dgt_stats/agebands.py',
+            'src/dgt_stats/national/codes.py', 'src/dgt_stats/national/derive.py',
+            'src/dgt_stats/national/labels.py', 'src/dgt_stats/national/stages.py') }}
 
-      - name: Build the staging layer and reconcile against DGT's published totals
-        run: python scripts/ingest.py all
+      - name: "National: build the staging layer and reconcile against DGT's published totals"
+        run: python scripts/run.py national.ingest national.reconcile
 
-      - name: Build the processed layer
-        run: python scripts/build_tables.py
+      - name: "National: build the processed layer"
+        run: python scripts/run.py national.process
 
-      - name: Fit the associations in DGT crash records
-        run: python scripts/model.py
+      - name: "National: fit the associations in DGT crash records"
+        run: python scripts/run.py national.associations
 
       # The regional crash-record layers (Catalonia, Barcelona): staging, canonical tables, the
       # data-quality report, the feature tables, the descriptive tables and the source comparison,
@@ -65,15 +65,12 @@ jobs:
       # validation take about half an hour and write committed tables, so CI does not refit them;
       # the tests check the feature tables, the leakage catalogue, the split isolation, the
       # decision rules and the committed validation tables directly.
-      - name: Build the regional layers
+      - name: "Regional: build the layers, the quality report, the feature tables and the comparisons"
         env:
           OMP_NUM_THREADS: "1"
-        run: |
-          python scripts/microdata.py build
-          python scripts/microdata.py quality
-          python scripts/microdata.py features
-          python scripts/microdata.py analyse
-          python scripts/microdata.py sources
+        run: >-
+          python scripts/run.py regional.build regional.quality models.features
+          regional.analyse sources.profile
 
       # Every table and document the steps above regenerate must match the committed copy, and
       # none may be new, so that a downloadable table or a generated document cannot go stale.
@@ -109,7 +106,7 @@ jobs:
       # The site is built from the committed result tables and figures alone, so this job needs
       # none of the data layers; the browser tests run the pages, the calculator and both themes.
       - name: Build the site
-        run: python scripts/build_site.py
+        run: python scripts/run.py site
 
       # The committed pages must be the ones the committed tables build; otherwise a page in the
       # repository would say something its source no longer does.
@@ -121,4 +118,4 @@ jobs:
       - name: Test the built site in a browser
         env:
           REQUIRE_BROWSER: "1"
-        run: pytest tests/test_site_browser.py tests/test_tools_browser.py
+        run: pytest tests/site/test_site_browser.py tests/site/test_tools_browser.py

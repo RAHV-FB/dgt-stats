@@ -16,9 +16,9 @@ import re
 
 import pandas as pd
 
-from dgt_stats.microdata.ml import modelling
-from dgt_stats.microdata.validation import generalisability, harmonise
-from dgt_stats.microdata.validation import transport as transport_rules
+from dgt_stats.models.ml import modelling
+from dgt_stats.models.validation import generalisability, harmonise
+from dgt_stats.models.validation import transport as transport_rules
 from dgt_stats.site import models
 from dgt_stats.site.components import (
     DOCS_URL,

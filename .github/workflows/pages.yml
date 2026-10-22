@@ -7,7 +7,7 @@ on:
       - "site/**"
       - "reports/**"
       - "src/dgt_stats/**"
-      - "scripts/build_site.py"
+      - "scripts/run.py"
       - "requirements.lock"
       - "pyproject.toml"
       - ".github/workflows/pages.yml"
@@ -38,7 +38,7 @@ jobs:
           pip install --require-hashes -r requirements.lock
           pip install "playwright==1.56.0"
           python -m playwright install --with-deps chromium
-      - run: python scripts/build_site.py
+      - run: python scripts/run.py site
       # Deploy only pages that match the committed ones, with no page the build writes that is
       # not committed, and that pass the site's own tests, the calculator's engine against the
       # exported model and the pages in a browser: a push straight to main cannot publish a page
@@ -47,8 +47,8 @@ jobs:
       - run: |
           git diff --exit-code -- site
           test -z "$(git status --porcelain -- site)" || { git status --porcelain -- site; exit 1; }
-      - run: pytest -q tests/test_site.py tests/test_site_editorial.py tests/test_site_design.py tests/test_severity_engine.py tests/test_tools.py
-      - run: pytest -q tests/test_site_browser.py tests/test_tools_browser.py
+      - run: pytest -q tests/site/test_site.py tests/site/test_site_editorial.py tests/site/test_site_design.py tests/models/test_severity_engine.py tests/site/test_tools.py
+      - run: pytest -q tests/site/test_site_browser.py tests/site/test_tools_browser.py
         env:
           REQUIRE_BROWSER: "1"
       - uses: actions/configure-pages@v5

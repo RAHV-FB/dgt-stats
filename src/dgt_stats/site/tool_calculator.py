@@ -13,7 +13,7 @@ from __future__ import annotations
 import itertools
 import json
 
-from dgt_stats import severity_model as sm
+from dgt_stats.models import severity_model as sm
 from dgt_stats.paths import REPORTS_DIR
 from dgt_stats.site.components import DOCS_URL, esc
 from dgt_stats.site.tool_frame import tool_page

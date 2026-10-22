@@ -12,7 +12,7 @@ from types import SimpleNamespace
 
 import pandas as pd
 
-from dgt_stats import risk_trends
+from dgt_stats.national import risk_trends
 from dgt_stats.site.components import (
     ALL_PAGES,
     DOCS_URL,

@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import pandas as pd
 
-from dgt_stats import risk_trends
+from dgt_stats.national import risk_trends
 from dgt_stats.site.components import read_table
 from dgt_stats.site.tool_frame import tool_page
 

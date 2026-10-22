@@ -6,7 +6,7 @@ an estimate printed with its sampling interval and sensitivity range; for driver
 over, the sensitivity range beside the conditional estimate and the assumption it rests on;
 deaths once involved, which need no kilometres; and men against women. ``technical_notes`` gives
 the methodology page the rest: how the kilometres by age were estimated from the EMEF working-day
-survey, Spain's population and DGT's car kilometres (``scripts/exposure_risk.py``;
+survey, Spain's population and DGT's car kilometres (``scripts/run.py drivers.exposure``;
 ``docs/research/DRIVER_AGE_EXPOSURE.md``), what DGT's kilometres are made of and what the
 sensitivity range spans, deaths per kilometre, the check in Barcelona on working days, men and
 women per licence holder, the former owner-age figure, and the split at 75 and what moves it.
@@ -22,13 +22,13 @@ from types import SimpleNamespace
 import numpy as np
 import pandas as pd
 
-from dgt_stats import edm2018
-from dgt_stats.emef import exposure, publication
-from dgt_stats.emef import variables as emef_variables
-from dgt_stats.exposure_risk import barcelona as city_design
-from dgt_stats.exposure_risk import calendar as day_calendar
-from dgt_stats.exposure_risk import coverage as coverage_design
-from dgt_stats.exposure_risk import national
+from dgt_stats.drivers import edm2018
+from dgt_stats.drivers.emef import exposure, publication
+from dgt_stats.drivers.emef import variables as emef_variables
+from dgt_stats.drivers.exposure_risk import barcelona as city_design
+from dgt_stats.drivers.exposure_risk import calendar as day_calendar
+from dgt_stats.drivers.exposure_risk import coverage as coverage_design
+from dgt_stats.drivers.exposure_risk import national
 from dgt_stats.site.components import (
     DOCS_URL,
     _fmt_dec,

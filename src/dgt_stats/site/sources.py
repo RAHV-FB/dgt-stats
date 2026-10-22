@@ -10,10 +10,10 @@ import re
 
 import pandas as pd
 
-from dgt_stats import codes
-from dgt_stats.exposure_risk import national as national_rates
-from dgt_stats.microdata.ml import recording
-from dgt_stats.microdata.validation import dgt_audit
+from dgt_stats.drivers.exposure_risk import national as national_rates
+from dgt_stats.models.ml import recording
+from dgt_stats.models.validation import dgt_audit
+from dgt_stats.national import codes
 from dgt_stats.site.components import (
     ALL_PAGES,
     DOCS_URL,

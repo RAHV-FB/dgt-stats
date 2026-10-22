@@ -3,7 +3,7 @@
 import re
 from pathlib import Path
 
-from dgt_stats import summaries
+from dgt_stats.national import summaries
 from dgt_stats.paths import PROJECT_ROOT
 
 SOURCE_DIRS = (PROJECT_ROOT / "src" / "dgt_stats", PROJECT_ROOT / "scripts")

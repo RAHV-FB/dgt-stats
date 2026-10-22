@@ -10,8 +10,8 @@ from types import SimpleNamespace
 
 import pandas as pd
 
-from dgt_stats.microdata.charts import ROAD_USER_LABELS
-from dgt_stats.microdata.validation import decisions as rules
+from dgt_stats.charts.regional import ROAD_USER_LABELS
+from dgt_stats.models.validation import decisions as rules
 from dgt_stats.site.components import (
     ALL_PAGES,
     DOCS_URL,
@@ -28,12 +28,7 @@ from dgt_stats.site.components import (
     summary,
     table,
 )
-from dgt_stats.site.regional_common import (
-    MIN_N,
-    _check,
-    _dimension,
-    _year_label,
-)
+from dgt_stats.site.regional_common import MIN_N, _check, _dimension, _year_label
 
 DATA_QUALITY = f'<a href="{DOCS_URL}/DATA_QUALITY_MICRODATA.md">data-quality report</a>'
 TITLES = dict(ALL_PAGES)

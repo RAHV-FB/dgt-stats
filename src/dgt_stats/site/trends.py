@@ -9,8 +9,9 @@ from types import SimpleNamespace
 
 import pandas as pd
 
-from dgt_stats import driver_risk, vehicles
-from dgt_stats.risk_trends import NORMAL_QUANTILE
+from dgt_stats.drivers import driver_risk
+from dgt_stats.national import vehicles
+from dgt_stats.national.risk_trends import NORMAL_QUANTILE
 from dgt_stats.site.components import (
     ALL_PAGES,
     DOCS_URL,

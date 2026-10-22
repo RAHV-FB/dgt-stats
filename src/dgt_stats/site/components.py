@@ -10,8 +10,8 @@ from pathlib import Path
 
 import pandas as pd
 
+from dgt_stats.national.risk_trends import BASE_YEAR
 from dgt_stats.paths import FIGURES_DIR, NARROW_FIGURES_DIR, TABLES_DIR
-from dgt_stats.risk_trends import BASE_YEAR
 from dgt_stats.site.script import CONTENT_SECURITY_POLICY, JS_FLAG
 from dgt_stats.site.style import FIGURE_SWITCH_REMS
 

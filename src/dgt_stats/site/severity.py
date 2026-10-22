@@ -6,7 +6,7 @@ file: its audit keeps it out. The page gives the results; how the regressions ar
 checked, the inverted junction flag, the model variants and the missing-value levels are technical
 notes on the methodology page (``technical_notes``).
 
-Every number is read from the ``q3_*`` tables that ``scripts/model.py`` writes; the qualitative
+Every number is read from the ``q3_*`` tables that ``scripts/run.py national.associations`` writes; the qualitative
 sentences are guarded by checks that stop the build when the tables stop supporting them. The
 levels that stand for a missing value are nuisance terms (``is_nuisance`` in the tables): they are
 reported and explained, never read as an effect.
@@ -19,8 +19,8 @@ from types import SimpleNamespace
 
 import pandas as pd
 
-from dgt_stats import features
-from dgt_stats.microdata.validation import dgt_audit
+from dgt_stats.models.validation import dgt_audit
+from dgt_stats.national import features
 from dgt_stats.site.components import (
     ALL_PAGES,
     DOCS_URL,

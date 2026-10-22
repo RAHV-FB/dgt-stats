@@ -12,12 +12,14 @@ import re
 
 import pandas as pd
 
-from dgt_stats import codes, edm2018, features, io_exposure, risk_trends, severity_model
-from dgt_stats import figures as figure_data
-from dgt_stats.derive import ROAD_GROUP_BY_TYPE
-from dgt_stats.exposure_risk import national as national_rates
-from dgt_stats.microdata.ml import modelling, recording, rules
-from dgt_stats.microdata.validation import dgt_audit, transport
+from dgt_stats.charts import figures as figure_data
+from dgt_stats.drivers import edm2018
+from dgt_stats.drivers.exposure_risk import national as national_rates
+from dgt_stats.models import severity_model
+from dgt_stats.models.ml import modelling, recording, rules
+from dgt_stats.models.validation import dgt_audit, transport
+from dgt_stats.national import codes, features, io_exposure, risk_trends
+from dgt_stats.national.derive import ROAD_GROUP_BY_TYPE
 from dgt_stats.paths import RAW_DATA_DIR, TABLES_DIR
 from dgt_stats.site.components import (
     ALL_PAGES,
@@ -1508,7 +1510,7 @@ def _downloaded(paths: tuple[str, ...]) -> str:
 
 
 def _reuse() -> str:
-    from dgt_stats.emef import publication
+    from dgt_stats.drivers.emef import publication
 
     catalan_update = _date(
         _manifest_note("catalonia/", r"rows last updated on the portal (\d{4}-\d{2}-\d{2})")

@@ -51,7 +51,7 @@ DARK = {
 }
 
 
-# The characters the font subsets hold (scripts/build_fonts.py), so that no file is fetched for a
+# The characters the font subsets hold (scripts/tools/build_fonts.py), so that no file is fetched for a
 # character it does not contain.
 UNICODE_RANGE = (
     "U+0020-007E, U+00A0-00FF, U+0131, U+0152-0153, U+0160-0161, U+0178, U+017D-017E, U+02C6, "

@@ -8,7 +8,7 @@ from types import SimpleNamespace
 
 import pandas as pd
 
-from dgt_stats import factors
+from dgt_stats.national import factors
 from dgt_stats.site.components import (
     ALL_PAGES,
     DOCS_URL,

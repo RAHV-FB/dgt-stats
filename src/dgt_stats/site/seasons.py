@@ -9,7 +9,7 @@ from types import SimpleNamespace
 
 import pandas as pd
 
-from dgt_stats import seasonality
+from dgt_stats.national import seasonality
 from dgt_stats.site.components import (
     ALL_PAGES,
     DOCS_URL,
