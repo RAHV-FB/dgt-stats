@@ -12,7 +12,7 @@ Among recorded crashes in Catalonia with a death or a serious injury, which comb
 - **Target:** `fatal` = 1 if D_GRAVETAT is 'Accident mortal' (equivalently F_MORTS > 0), 0 if 'Accident greu' (serious injury, no death).
 - **Feature table:** `data/features/catalonia_crash_severity.parquet` (24,478 rows, id `cat_crash_id`).
 - **Source files:** `data/raw/catalonia/accidents_morts_ferits_greus_catalunya_2010_2023.csv` (SHA-256 `05910aa53daf…`).
-- **Layer:** Crash microdata: Catalonia.
+- **Section:** Catalonia and Barcelona: crash records.
 - **Status:** retired, after the model review ([`models/review.md`](../review.md)). The decision rules gave: KEEP as useful predictive model (gain +0.095 (+0.067 to +0.123) over the table: adds signal).
 - **What it does:** ranks recorded serious-or-fatal crashes by how likely they were fatal, from road, crash and environmental circumstances.
 - **Not answered:** whether a crash happens; risk per trip or kilometre; any causal effect; crashes with only slight injuries.

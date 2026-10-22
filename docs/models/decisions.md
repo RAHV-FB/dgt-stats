@@ -17,13 +17,13 @@ document gives; the decision by the rules is kept as the record:
 - `catalonia_crash_severity`: retired: its strongest predictor, the road's owner, records how a crash was documented (a blank owner on a conventional road is far commoner on fatal records). The published Catalan model is the crash-severity calculator's (`severity_model.py`), tested in [`models/generalisability.md`](generalisability.md).
 - `barcelona_crash_severity`: removed; the site reports its table of shares by accident type.
 - `barcelona_person_severity`: kept for research only; the site shows no probability from it.
-- `dgt_monthly_deaths_forecast`: withdrawn: it forecast the held-out ordinary years less accurately than last year's count, and the detectable change computed from its errors was withdrawn with it; its page is a withdrawal notice and its tables are kept as the record.
+- `dgt_monthly_deaths_forecast`: withdrawn: it forecast the held-out ordinary years less accurately than last year's count, and the detectable change computed from its errors was withdrawn with it; its page was removed from the site and its tables are kept as the record.
 
 The re-evaluation also built the model the site publishes, the crash-severity
 calculator's (`catalonia_severity_calculator`, `severity_model.py`), and decided it
 itself. Its benchmark, scores and calibration are in
 [`models/severity_calculator.md`](severity_calculator.md), and its card is
-[`models/catalonia_severity_calculator.md`](cards/catalonia_severity_calculator.md).
+[`models/cards/catalonia_severity_calculator.md`](cards/catalonia_severity_calculator.md).
 
 | Model | Variant | Unit | Target | Source | Baseline | ML | Transfer evidence | Highest validated level | Usefulness | Decision by the rules | Status after the review |
 |---|---|---|---|---|---|---|---|---|---|---|---|
@@ -43,7 +43,7 @@ itself. Its benchmark, scores and calibration are in
 
 - **Decision by the rules:** KEEP as useful predictive model.
 - **Status after the review:** retired: its strongest predictor, the road's owner, records how a crash was documented (a blank owner on a conventional road is far commoner on fatal records). The published Catalan model is the crash-severity calculator's (`severity_model.py`), tested in [`models/generalisability.md`](generalisability.md).
-- **Unit / target / source:** one Catalan crash with a death or serious injury; fatal (a death) rather than serious; Servei Català de Trànsit, 2010-2023 (Crash microdata: Catalonia).
+- **Unit / target / source:** one Catalan crash with a death or serious injury; fatal (a death) rather than serious; Servei Català de Trànsit, 2010-2023 (Catalonia and Barcelona: crash records).
 - **What it does:** ranks recorded serious-or-fatal crashes by how likely they were fatal, from road, crash and environmental circumstances.
 - **Not answered:** whether a crash happens; risk per trip or kilometre; any causal effect; crashes with only slight injuries.
 - **Baseline:** table of D SUBTIPUS ACCIDENT x D SUBZONA: ROC-AUC 0.695, PR-AUC 0.246. **ML:** boosted trees: ROC-AUC 0.790 (0.758-0.824), PR-AUC 0.415; n=1,732, positives=209. **Usefulness:** gain +0.095 (+0.067 to +0.123) over the table: adds signal.
@@ -55,7 +55,7 @@ itself. Its benchmark, scores and calibration are in
 
 - **Decision by the rules:** KEEP as research/diagnostic model.
 - **Status after the review:** retired: its strongest predictor, the road's owner, records how a crash was documented (a blank owner on a conventional road is far commoner on fatal records). The published Catalan model is the crash-severity calculator's (`severity_model.py`), tested in [`models/generalisability.md`](generalisability.md).
-- **Unit / target / source:** one Catalan crash with a death or serious injury; fatal (a death) rather than serious; Servei Català de Trànsit, 2010-2023 (Crash microdata: Catalonia).
+- **Unit / target / source:** one Catalan crash with a death or serious injury; fatal (a death) rather than serious; Servei Català de Trànsit, 2010-2023 (Catalonia and Barcelona: crash records).
 - **What it does:** how much the information recorded after the event adds to the ranking.
 - **Not answered:** whether a crash happens; risk per trip or kilometre; any causal effect; crashes with only slight injuries.
 - **Baseline:** the primary model: ROC-AUC 0.790. **ML:** boosted trees: ROC-AUC 0.796 (0.763-0.830). **Usefulness:** +0.006 over the primary model from information recorded after the event.
@@ -67,7 +67,7 @@ itself. Its benchmark, scores and calibration are in
 
 - **Decision by the rules:** KEEP but ranking-only.
 - **Status after the review:** kept for research only; the site shows no probability from it.
-- **Unit / target / source:** one person recorded in a Barcelona crash; serious or fatal injury; Guàrdia Urbana, 2025 (Rich microdata: Barcelona).
+- **Unit / target / source:** one person recorded in a Barcelona crash; serious or fatal injury; Guàrdia Urbana, 2025 (Catalonia and Barcelona: crash records).
 - **What it does:** ranks the people recorded in crashes by how likely they were seriously or fatally injured, from road role, vehicle, age, sex and crash circumstances.
 - **Not answered:** anyone's risk per trip; the behaviour of a person (causes have no person key); other cities or years.
 - **Baseline:** table of person role x associated vehicle group: ROC-AUC 0.780, PR-AUC 0.044. **ML:** boosted trees: ROC-AUC 0.843 (0.813-0.874), PR-AUC 0.068; n=4,049, positives=58. **Usefulness:** gain +0.063 (+0.020 to +0.106) over the table: adds signal.
@@ -79,7 +79,7 @@ itself. Its benchmark, scores and calibration are in
 
 - **Decision by the rules:** KEEP as research/diagnostic model.
 - **Status after the review:** kept for research only; the site shows no probability from it.
-- **Unit / target / source:** one person recorded in a Barcelona crash; serious or fatal injury; Guàrdia Urbana, 2025 (Rich microdata: Barcelona).
+- **Unit / target / source:** one person recorded in a Barcelona crash; serious or fatal injury; Guàrdia Urbana, 2025 (Catalonia and Barcelona: crash records).
 - **What it does:** how much the information recorded after the event adds to the ranking.
 - **Not answered:** anyone's risk per trip; the behaviour of a person (causes have no person key); other cities or years.
 - **Baseline:** the primary model: ROC-AUC 0.843. **ML:** boosted trees: ROC-AUC 0.851 (0.821-0.881). **Usefulness:** +0.008 over the primary model from information recorded after the event.
@@ -91,7 +91,7 @@ itself. Its benchmark, scores and calibration are in
 
 - **Decision by the rules:** REPLACE with descriptive table.
 - **Status after the review:** removed; the site reports its table of shares by accident type.
-- **Unit / target / source:** one Barcelona crash; a serious or fatal injury in the crash; Guàrdia Urbana, 2025 (Rich microdata: Barcelona).
+- **Unit / target / source:** one Barcelona crash; a serious or fatal injury in the crash; Guàrdia Urbana, 2025 (Catalonia and Barcelona: crash records).
 - **What it does:** ranks recorded crashes by how likely they involved a serious or fatal injury.
 - **Not answered:** anyone's risk per trip; the behaviour of a person; other cities or years.
 - **Baseline:** table of accident type: ROC-AUC 0.734, PR-AUC 0.084. **ML:** logistic: ROC-AUC 0.737 (0.686-0.782), PR-AUC 0.091; n=1,994, positives=58. **Usefulness:** gain +0.003 (-0.039 to +0.051) over the table: no measurable gain.
@@ -103,7 +103,7 @@ itself. Its benchmark, scores and calibration are in
 
 - **Decision by the rules:** KEEP as research/diagnostic model.
 - **Status after the review:** removed; the site reports its table of shares by accident type.
-- **Unit / target / source:** one Barcelona crash; a serious or fatal injury in the crash; Guàrdia Urbana, 2025 (Rich microdata: Barcelona).
+- **Unit / target / source:** one Barcelona crash; a serious or fatal injury in the crash; Guàrdia Urbana, 2025 (Catalonia and Barcelona: crash records).
 - **What it does:** how much the information recorded after the event adds to the ranking.
 - **Not answered:** anyone's risk per trip; the behaviour of a person; other cities or years.
 - **Baseline:** the primary model: ROC-AUC 0.737. **ML:** logistic: ROC-AUC 0.737 (0.685-0.782). **Usefulness:** -0.001 over the primary model from information recorded after the event.
@@ -114,7 +114,7 @@ itself. Its benchmark, scores and calibration are in
 ## catalonia_common_dgt (common)
 
 - **Decision by the rules:** KEEP as research/diagnostic model.
-- **Unit / target / source:** one Catalan crash with a death or serious injury; fatal (a death within 24 hours) rather than serious; Servei Català de Trànsit, restricted to the variables DGT records alike (Validation and transportability).
+- **Unit / target / source:** one Catalan crash with a death or serious injury; fatal (a death within 24 hours) rather than serious; Servei Català de Trànsit, restricted to the variables DGT records alike (Crash-severity models and their tests).
 - **What it does:** measures whether a Catalan model keeps its ranking on crashes recorded elsewhere in Spain.
 - **Not answered:** anything the full Catalan model answers (it drops most variables).
 - **Baseline:** prior only (a validation instrument, not compared with a table). **ML:** boosted trees: ROC-AUC 0.706 (0.665-0.744), PR-AUC 0.279; n=1,732, positives=209. **Usefulness:** measures transfer; not a model to rank cases with.
@@ -125,7 +125,7 @@ itself. Its benchmark, scores and calibration are in
 ## catalonia_common_bcn (common)
 
 - **Decision by the rules:** KEEP as research/diagnostic model.
-- **Unit / target / source:** one Catalan crash with a death or serious injury; fatal rather than serious; Servei Català de Trànsit, restricted to the variables Barcelona records alike (Validation and transportability).
+- **Unit / target / source:** one Catalan crash with a death or serious injury; fatal rather than serious; Servei Català de Trànsit, restricted to the variables Barcelona records alike (Crash-severity models and their tests).
 - **What it does:** measures whether a Catalan model keeps its ranking on Barcelona's crashes.
 - **Not answered:** a fatal-against-serious benchmark on Barcelona 2025 (too few fatal crashes).
 - **Baseline:** prior only (a validation instrument, not compared with a table). **ML:** boosted trees: ROC-AUC 0.681 (0.639-0.719), PR-AUC 0.231; n=1,732, positives=209. **Usefulness:** measures transfer; not a model to rank cases with.
@@ -136,7 +136,7 @@ itself. Its benchmark, scores and calibration are in
 ## dgt_crash_severity (logistic regression with grouped, labelled predictors)
 
 - **Decision by the rules:** KEEP as research/diagnostic model.
-- **Unit / target / source:** one DGT crash with victims; a death within 30 days; DGT crash microdata (National context).
+- **Unit / target / source:** one DGT crash with victims; a death within 30 days; DGT crash microdata (Spain: national statistics).
 - **What it does:** which recorded circumstances are associated with fatal outcomes in Spain's injury crashes, adjusting for each other.
 - **Not answered:** a prediction for a new crash; any causal effect; whether an association reflects the road or the recording force.
 - **Baseline:** not compared. **ML:** logistic regression: ROC-AUC 0.803 on 2023–2024; n=203,302, positives=3,336. **Usefulness:** an association model.
@@ -147,8 +147,8 @@ itself. Its benchmark, scores and calibration are in
 ## dgt_monthly_deaths_forecast (Poisson regression, Month + trend + traffic + calendar)
 
 - **Decision by the rules:** REPLACE with descriptive table.
-- **Status after the review:** withdrawn: it forecast the held-out ordinary years less accurately than last year's count, and the detectable change computed from its errors was withdrawn with it; its page is a withdrawal notice and its tables are kept as the record.
-- **Unit / target / source:** one month, Spain; road deaths in the month (yearbook series); DGT yearbook series, CORES fuel (National context).
+- **Status after the review:** withdrawn: it forecast the held-out ordinary years less accurately than last year's count, and the detectable change computed from its errors was withdrawn with it; its page was removed from the site and its tables are kept as the record.
+- **Unit / target / source:** one month, Spain; road deaths in the month (yearbook series); DGT yearbook series, CORES fuel (Spain: national statistics).
 - **What it does:** is a year's death count outside what the series' normal variation predicts.
 - **Not answered:** why a change happened; any measure's effect.
 - **Baseline:** Naive: same months last year: held-out error 0.059. **ML:** Poisson regression, Month + trend + traffic + calendar: held-out error 0.066 over 7 ordinary years; in the lockdown years, scored apart, 0.073 against 0.192 for Naive: same months last year. **Usefulness:** does not beat last year's count on the held-out ordinary years, so the naive forecast replaces it there. In the lockdown years, scored apart, 0.073 against 0.192 for Naive: same months last year.
