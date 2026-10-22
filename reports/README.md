@@ -15,6 +15,8 @@ rebuilding:
   phone's column. Written by `python scripts/run.py charts`.
 - `models/severity_model.json`: the crash-severity calculator's model, exported for the browser by
   `python scripts/run.py models.calculator`.
+- `model_metrics.json`: the severity models' test metrics, rule baselines, transfer tests and
+  decisions in one machine-readable file, written by `python scripts/run.py models.validate`.
 
 The site reads only these files: `python scripts/run.py site` copies into `site/figures/` the SVGs a
 page shows and into `site/tables/` the tables a page links as a download. A table no page links (a

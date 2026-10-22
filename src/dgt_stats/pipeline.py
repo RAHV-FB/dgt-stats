@@ -161,7 +161,7 @@ STAGES: tuple[Stage, ...] = (
         "validate",
         "dgt_stats.models.stages:validate",
         "transfer tests, Barcelona diagnosis, DGT microdata audit, generalisability, decisions",
-        "ml_*, gen_*, dgt_audit_*.csv, model decisions and generalisability documents",
+        "ml_*, gen_*, dgt_audit_*.csv, model_metrics.json, decisions and generalisability documents",
         15,
     ),
     Stage(
