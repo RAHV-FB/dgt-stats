@@ -1,7 +1,7 @@
 # Statistical audit of the published claims
 
 Tasks 21–23. Every claim the site published when the rebuild began was checked. The claims are
-those listed page by page in [`DEPENDENCY_MAP.md`](DEPENDENCY_MAP.md), §1. Each was checked for
+those listed page by page in [`DEPENDENCY_MAP.md`](dependency_map.md), §1. Each was checked for
 four things:
 
 * whether its number can be reproduced;
@@ -22,9 +22,9 @@ previous or superseded, and the current figure is given beside it.
 
 * **Reproduction.** The site prints no number typed by hand. Every figure in its prose is formatted
   from a committed table when the site is built, and qualitative words are guarded by build checks.
-  For example, "about twice" fails the build outside 1.8–2.2 ([`DEPENDENCY_MAP.md`](DEPENDENCY_MAP.md),
+  For example, "about twice" fails the build outside 1.8–2.2 ([`DEPENDENCY_MAP.md`](dependency_map.md),
   §4.4). Rebuilding the data layers and the site from the raw files reproduced every committed table
-  and all 24 HTML files byte for byte ([`AUDIT_BASELINE.md`](AUDIT_BASELINE.md)). The repository's
+  and all 24 HTML files byte for byte ([`AUDIT_BASELINE.md`](audit_baseline.md)). The repository's
   482 reconciliation checks against published DGT totals all pass.
 * **Independent recounts.** Headline counts were recomputed directly from the raw files, without
   the repository's pipeline. They reproduce exactly:
@@ -42,7 +42,7 @@ previous or superseded, and the current figure is given beside it.
   factors as police judgements. The rebuild judged every "because" to be either an accounting
   identity, such as deaths per fuel = deaths per crash × crashes per fuel, or a statement about the
   data, and corrected no sentence on these grounds. That judgement was wrong. The final audit's
-  claim ledger ([`CLAIM_LEDGER.md`](CLAIM_LEDGER.md)) found sentences that read a cause into an
+  claim ledger ([`CLAIM_LEDGER.md`](claim_ledger.md)) found sentences that read a cause into an
   identity or gave a reason the data do not test:
   * "mostly because crashes became less deadly" (home and long-run pages, ledger-A|10 and
     ledger-A|50): an identity read as an attribution, which reverses when the fall is split by
@@ -74,18 +74,18 @@ the final site as the rebuild left it, apart from editorial rewording.
 | Overview | Road deaths fell 74% from 1993 to 2013; 1,785 deaths in 2024 | Stands | Yearbook series, reconciled against the published totals | Stands. The home page says "about three quarters" (6,378 to 1,680) and Long-run trends 74% (`c35dd36`) |
 | Overview | Deaths per injury crash fell 73% (1996–2024); injury crashes per tonne of fuel 13% | Stands | An identity of published counts; fuel is labelled a traffic proxy | Revised. Split by hospital admissions the result reverses: deaths per admission +15%, admissions per tonne −79%. The pages give the 76% fall as the finding, show both splits and no longer say "mostly because crashes became less deadly" (`c72e359`) |
 | Overview, drivers | Drivers 75+ involved in an injury crash died 3.9 times as often as drivers 35–54 (15.9 against 4.1 per 1,000) | Restated | Exposure-free and correct. The rebuilt drivers page compares every age with 45–64, the reference of the exposure analysis: 15.9 against 4.6 per 1,000 (3.4 times), private cars | Stands as restated: 15.9 against 4.6 per 1,000, 3.4 times, on the home and drivers pages |
-| Overview, drivers | Drivers 18–24 were involved in 6.8 times as many injury crashes per km as drivers 35–54 (2.0 under an extreme reassignment) | Replaced | The kilometres were those of cars registered to owners of each age, not those driven by drivers of that age. Young drivers drive cars registered to others, so their kilometres were understated and their rate overstated. Replaced by the driver-age estimate: 18–29 at 2.53 times the 45–64 rate (95% sampling interval 2.2–2.8; sensitivity range 1.49–3.63). First published as 2.57 (2.28–2.86; 1.64–3.65 across the regional profiles), before the final audit's distance corrections and coverage scenarios; then given as 2.53 (2.25–2.82) with the range 1.49–3.75, before the October 2026 method fixes ([`DRIVER_AGE_EXPOSURE.md`](DRIVER_AGE_EXPOSURE.md)) | Replaced, as stated. 2.57 became 2.53 with the distance corrections (`bd34d32`); the range's top fell from 3.75 to 3.63 when owner-age km became a bound (`eb7b70f`, `316a52f`); intervals printed to one decimal (`e74cd57`) |
+| Overview, drivers | Drivers 18–24 were involved in 6.8 times as many injury crashes per km as drivers 35–54 (2.0 under an extreme reassignment) | Replaced | The kilometres were those of cars registered to owners of each age, not those driven by drivers of that age. Young drivers drive cars registered to others, so their kilometres were understated and their rate overstated. Replaced by the driver-age estimate: 18–29 at 2.53 times the 45–64 rate (95% sampling interval 2.2–2.8; sensitivity range 1.49–3.63). First published as 2.57 (2.28–2.86; 1.64–3.65 across the regional profiles), before the final audit's distance corrections and coverage scenarios; then given as 2.53 (2.25–2.82) with the range 1.49–3.75, before the October 2026 method fixes ([`DRIVER_AGE_EXPOSURE.md`](../drivers/driver_age_exposure.md)) | Replaced, as stated. 2.57 became 2.53 with the distance corrections (`bd34d32`); the range's top fell from 3.75 to 3.63 when owner-age km became a bound (`eb7b70f`, `316a52f`); intervals printed to one decimal (`e74cd57`) |
 | Drivers | Drivers 75+ involved 1.43 times as often per km as drivers 65–74 | Withdrawn | Same owner-age denominator. No source measures kilometres at 75+; a conditional estimate (2.06 times the 45–64 rate if people aged 75 and over drive as much less than those aged 65–74 as in Madrid in 2018; 95% sampling interval 1.6–2.6) is given beside the sensitivity range (0.97–3.20; 0.97–3.28 before the October 2026 method fixes); see [75+ exposure](#75-exposure-constraining-the-estimate) | Withdrawn. The drivers and home pages give the conditional estimate only with its condition and beside the range (`5398f54`); range 0.97–3.20 from `316a52f` |
 | Drivers | Men died at the wheel of a car 3.63 times as often as women per licence holder, 2022–2024 | Reworded | The ratio is for drivers aged 18 and over; the headline sentence now says so (below). The denominator counts holders of any licence class; with car (B) licence holders, the ratio for 2023–2024 rises from 3.49 to 3.57, so the published figure is about 2% conservative. This is disclosed rather than changed, because B holders by sex are not available for the whole 2014–2024 series | Stands as reworded. Per km, added later: men were involved 0.91 times as often as women and killed 2.65 times as often (`bd34d32`) |
 | Overview | Recorded inappropriate speed: about twice the deaths per crash, adjusted for road type | Stands | An association in police records, worded as one; the adjusted ratio (2.00, 1.69–2.36) is a quasi-Poisson estimate on the report's provinces | Revised. The data reject one ratio for every road type (likelihood ratio 446 on 3 df). The home page gives the ratio by road type, 1.2 on dual carriageways to 5.9 on urban streets, and 2.0 only as the summary across road types (`8007e15`) |
-| Overview | Of three models, two did better on later records than a table of the same records | Replaced | The independent re-evaluation found the Catalan model's gain partly rested on a recording artefact. The model was rebuilt as the severity calculator without the artefact crashes. Over eight rolling years, with every choice of the model nested in the test, the province intercepts included, it scores ROC-AUC 0.739 (95% interval 0.725–0.753) against 0.709 for the road × crash-type table (0.743 before nesting); the original model scores 0.7475 on the same crashes. The Barcelona crash model was removed and the person model kept for research only ([`ML_MODEL_REVIEW.md`](ML_MODEL_REVIEW.md)) | Replaced. The home page gives the model's associations and says its fitting was tested only within Catalonia, with no later year left to test the published model (`fe7a76e`) |
+| Overview | Of three models, two did better on later records than a table of the same records | Replaced | The independent re-evaluation found the Catalan model's gain partly rested on a recording artefact. The model was rebuilt as the severity calculator without the artefact crashes. Over eight rolling years, with every choice of the model nested in the test, the province intercepts included, it scores ROC-AUC 0.739 (95% interval 0.725–0.753) against 0.709 for the road × crash-type table (0.743 before nesting); the original model scores 0.7475 on the same crashes. The Barcelona crash model was removed and the person model kept for research only ([`ML_MODEL_REVIEW.md`](../models/review.md)) | Replaced. The home page gives the model's associations and says its fitting was tested only within Catalonia, with no later year left to test the published model (`fe7a76e`) |
 | Trends | 1,785 deaths in 2024, 1.7% more than 2019; −1.9% per resident, +3.5% per tonne of fuel; variance 1.5, 7.7 and 68 times Poisson | Stands | Published series; the variance ratios are computed around a fitted trend and labelled so | Stands. The intervals now use Student's t on five degrees of freedom, which puts hospital admissions as a count at the edge of ordinary variation, not beyond it (`c72e359`) |
 | Long run | Joinpoint segments; deaths per tonne of fuel −76%; 2020 below its range | Stands | Turning points are described as features of the series, not as effects | Stands. The last segment is refitted on its own years: the count is below its range in 2021 as well as 2020, and the 2023–2024 excess per tonne of fuel depends on where the trend starts (`c72e359`, `84ee283`) |
 | Seasons | July 1.22 and August 1.14 times the deaths; per tonne of fuel 1.12 and 1.09; April 2020 −68% | Stands | Quasi-Poisson month effects; fuel as a proxy, stated | Stands. The summer comparisons with petrol and toll traffic, what road fuel covers and the lockdown baseline were corrected (`ce599b6`) |
 | Vehicles | Heavy trucks 10.3 times a car per vehicle and 2.5 times per km; motorcycles 2.2 and 10.1 | Stands, disclosed | Crash counts include foreign-registered vehicles; DGT's kilometres include Spanish vehicles' travel abroad. The page says so. The repository holds no nationality data, so the net direction is unknown | Stands, disclosed. Vans' involvement in fatal crashes per billion km corrected from 4.5 to 4.4, a double rounding; per km only the motorcycles' lead is called clear (`c72e359`) |
 | Speed | 6.9% of injury crashes in 2023 with inappropriate speed recorded, 21.8% of deaths; adjusted 2.00 | Stands | "Not an estimate of causation" stated on the page | Revised. 6.9% and 21.8% stand. The ratio differs by road type (1.22 to 5.90), so the page leads with the road-type ratios and calls 2.00 a weighted summary that describes no single kind of road (`8007e15`) |
 | Recorded factors | Shares and comparable windows; 33 of 135 changes are breaks | Stands | Break rule is a code constant, quoted from it | Stands (33 of 135). The summary adds the fall in recorded speed within each kind of road, about a quarter, and says the rule cannot tell recording from behaviour (`8007e15`) |
-| Crash circumstances | DGT association model: odds ratios; ROC-AUC 0.80 on 2023–2024 | Stands, labelled research only | Coefficients describe associations in police records; the unknown-alignment level is 95.7% Catalan, disclosed ([`ML_MODEL_REVIEW.md`](ML_MODEL_REVIEW.md)) | Revised; 0.80 stands. With the Catalan junction flag of 2023–2024 read the right way round, junction 0.69 (0.65–0.73; previously 0.75), head-on 5.48 and pedestrian struck 6.27 (previously 5.66 and 6.44) (`e179eb2`). The unrecorded fields alone score 0.68 (previously 0.72; `067aaeb`) |
+| Crash circumstances | DGT association model: odds ratios; ROC-AUC 0.80 on 2023–2024 | Stands, labelled research only | Coefficients describe associations in police records; the unknown-alignment level is 95.7% Catalan, disclosed ([`ML_MODEL_REVIEW.md`](../models/review.md)) | Revised; 0.80 stands. With the Catalan junction flag of 2023–2024 read the right way round, junction 0.69 (0.65–0.73; previously 0.75), head-on 5.48 and pedestrian struck 6.27 (previously 5.66 and 6.44) (`e179eb2`). The unrecorded fields alone score 0.68 (previously 0.72; `067aaeb`) |
 | Monthly deaths forecast | Model error 6.6% against 5.9% for last year's count; a 15% fall detectable four times in five | Withdrawn | Last year's count beats the model in the ordinary held-out years. The minimum detectable change came from the rejected model's errors. The page becomes a withdrawal notice. `forecast.py` no longer calls the model "the one used" | Withdrawn; the notice stands |
 | Policy | Points licence: −7% (−13% to −1%); 2019 limit not estimated after a failed placebo | Stands | Interrupted series with placebos; "cannot show that the licence caused the fall" is stated | Revised. The step is still −7% (−13% to −1%), but the page says its Newey–West intervals are too narrow: the same model's interval excludes zero at 6 of the 14 placebo Julys, and an interval set by the placebos' spread is −21% to +3%. The step did not last: averaged over 17 months, −2.5% (−7.8% to +3.2%) (`c7b8963`). The 2019 limit is still not estimated |
 | Catalonia | 24,478 crashes, 3,093 fatal (12.6%); 19.2% interurban against 6.9% urban | Stands (recounted) | Per-resident rates now use the 1 July population (below) | Stands |
@@ -113,7 +113,7 @@ points.
 * In the new per-kilometre analysis, the EMEF group 16–29 is matched to drivers aged 18–29.
   Residents aged 16–17 count in the EMEF population but cannot hold a car licence, and the 41
   drivers aged 15–17 in the 2024 tables are excluded. This is documented in
-  [`DRIVER_AGE_EXPOSURE.md`](DRIVER_AGE_EXPOSURE.md).
+  [`DRIVER_AGE_EXPOSURE.md`](../drivers/driver_age_exposure.md).
 
 ## Disclosed mismatches of scope
 
@@ -208,7 +208,7 @@ October 2026, after the coverage and stress tests. The question was whether the 
 kilometre could be better constrained than the sensitivity range then published, 0.97–3.28 times
 the 45–64 rate, without adding false precision. The range is now 0.97–3.20, after the October
 2026 method fixes (below). The full account, with every number and its table, is in
-[`DRIVER_AGE_EXPOSURE.md`](DRIVER_AGE_EXPOSURE.md#ages-75-and-over).
+[`DRIVER_AGE_EXPOSURE.md`](../drivers/driver_age_exposure.md#ages-75-and-over).
 
 **What was examined.** The CRTM Encuesta Sintética de Movilidad 2024 (ages 14–80 only, one 65–80
 band, driver and passenger merged, no km tables and no microdata: not usable for the split); the
@@ -330,7 +330,7 @@ Fixed after publication, in the follow-up to the merge `5ea4b24`: the phone draw
 narrower, so that their text is at least 11 px in the column of a 320 px phone, and each figure
 shows its phone drawing wherever its column is too narrow for the wide drawing's text to reach
 11 px. Measured at 17 widths from 320 to 1440 px in both themes, the smallest chart text is
-11.2 px and no chart scrolls ([`ACCEPTANCE_REPORT.md`](ACCEPTANCE_REPORT.md), section 8).
+11.2 px and no chart scrolls ([`ACCEPTANCE_REPORT.md`](acceptance_report.md), section 8).
 
 **The third review's method fixes (October 2026).** Three changes to the exposure method
 (`eb7b70f`, tables regenerated in `316a52f`, merged in `0370825`) moved the sensitivity ranges:
@@ -356,7 +356,7 @@ Carlo error supports (`e74cd57`): 18–29 2.53 (2.2–2.8), 30–44 1.40 (1.3–
 **What would materially improve it.** The EMEF's own aggregates for 65–74 and 75+ (or finer) with
 design-based errors, and the true age × routing table, from Institut Metròpoli or the ATM, would
 replace the Madrid transfer and settle the composition bound
-([`EMEF_DATA_REQUEST.md`](EMEF_DATA_REQUEST.md), prepared, not sent). After that: a national
+([`EMEF_DATA_REQUEST.md`](../drivers/emef_data_request.md), prepared, not sent). After that: a national
 all-days measure of driving by age that separates driver from passenger; the age mix of weekend
 and long-distance driving; a second exact-age regional survey (the Basque Encuesta de Movilidad);
 RACC km by sex and age; DGT's 2018 licence holders by age for Madrid.

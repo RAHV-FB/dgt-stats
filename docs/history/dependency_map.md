@@ -1,6 +1,6 @@
 # dgt-stats: dependency map, from raw source to published claim
 
-Audit of the repository at commit `d111da8` (the `main` head when the rebuild began), made before any analysis was changed. Line numbers refer to that commit. Every number quoted below is the one published at `d111da8`, and many have since been revised or superseded, so none should be cited from this map as a current result: the current figures are in `reports/tables/`, on the pages and in [`FINAL_REPORT.md`](FINAL_REPORT.md).
+Audit of the repository at commit `d111da8` (the `main` head when the rebuild began), made before any analysis was changed. Line numbers refer to that commit. Every number quoted below is the one published at `d111da8`, and many have since been revised or superseded, so none should be cited from this map as a current result: the current figures are in `reports/tables/`, on the pages and in [`FINAL_REPORT.md`](final_report.md).
 
 **How the map was built.**
 - Every page builder in `site.PAGE_BUILDERS` (`src/dgt_stats/site/__init__.py:94`) was run into a scratch directory. During the run, `pd.read_csv`, `components.figure` and `components.downloads` were instrumented, so the table lists below show what each page actually reads at run time, not what a grep suggests.
@@ -446,7 +446,7 @@ Figures: `d1_missingness` (figures.py:816 `_data_figures`, drawn from missingnes
 - `dgt/reports/Anuario-…-fe-de-erratas.pdf` (5), `dgt_personas_mayores_2023.pdf`, `dgt_semana_santa_2026.pdf`
 - `dgt/km_itv_2022/metodologia.pdf`, `dgt/microdata/metadata_2024.rdf.xml`
 
-The EMEF files were committed without any code reading them; their ingestion is added by this rebuild ([`EMEF_INVENTORY.md`](EMEF_INVENTORY.md)).
+The EMEF files were committed without any code reading them; their ingestion is added by this rebuild ([`EMEF_INVENTORY.md`](../drivers/emef_inventory.md)).
 
 **Staged but consumed only by tests:**
 - `km_estimados_2022` (`km_recorridos_estimados_2022.xlsx`, io_exposure.py:355)

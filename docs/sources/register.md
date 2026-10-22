@@ -6,24 +6,25 @@ where the files are grouped by the body that publishes them (`dgt/`, `ine/`, `tr
 publications sit apart in `compiled/`. Every file is listed with size, SHA-256, source URL,
 description and the date added in `data/raw/manifest.csv`, and, where it was filed under a new
 name (the regional crash files, the EMEF files and a few others), the name it was downloaded
-under; the generated [`RAW_FILE_INVENTORY.md`](RAW_FILE_INVENTORY.md) lists every
+under; the generated [`sources/raw_file_inventory.md`](raw_file_inventory.md) lists every
 file with its format, rows and unit of observation, the audit of what each supports is in
-[`data_inventory.md`](data_inventory.md), and what each dataset may be joined to is in
-[`DATA_CONTRACT.md`](DATA_CONTRACT.md). The page column names where the file's numbers appear on
+[`national/file_audit.md`](../national/file_audit.md), and what each dataset may be joined to is in
+[`sources/contract.md`](contract.md). The page column names where the file's numbers appear on
 the site; the overview, which repeats headline numbers from the other pages, is listed only for the
 road-class split, which no other page shows.
 
-Each file read by the code serves one of the four layers declared in `src/dgt_stats/layers.py`. The
-DGT, INE, Ministerio de Transportes and CORES files are the national context: trends, denominators,
-exposure, rates and aggregate comparisons (the deaths forecast that also used them was withdrawn).
-The EMEF and EDM2018 travel surveys supply car-driving kilometres by driver age to the same
-layer's rates. The Servei Català de Trànsit file
-is the Catalan crash microdata: the crash-severity model and its temporal and geographic
-validation. The Guàrdia Urbana tables are the Barcelona microdata: crash and person analysis and
-the person-severity model. The validation layer adds no file: it harmonises variables and tests
-models on these files' real records, and never creates observations. No record is linked across
+Each file belongs to one source, and each source is read by one or more of the five sections
+declared in `src/dgt_stats/catalogue.py` ([`catalogue.md`](../catalogue.md) lists, for every
+source, its files and the result tables that read it). The DGT, INE, Ministerio de Transportes and
+CORES files are the national section: trends, denominators, exposure, rates and aggregate
+comparisons (the deaths forecast that also used them was withdrawn). The EMEF and EDM2018 travel
+surveys, with MOVILIA, supply car-driving kilometres by driver age to the drivers section. The
+Servei Català de Trànsit file and the Guàrdia Urbana tables are the regional section: Catalan
+severity among serious crashes, and Barcelona's crash and person analysis. The models section
+adds no file: it trains the crash-severity models on the regional records and tests models on the
+other files' real records, and never creates observations. No record is linked across
 sources and there is no merged database. The DGT crash microdata do not train a predictive model
-([`DGT_MICRODATA_AUDIT.md`](DGT_MICRODATA_AUDIT.md)); the DGT severity regression is a supporting
+([`models/dgt_microdata_audit.md`](../models/dgt_microdata_audit.md)); the DGT severity regression is a supporting
 association analysis. MOVILIA 2006 (tables 9, 61, 64 and 72) and MOVILIA 2007 (tables 13 and 18)
 are read for sensitivity tests of the national driver-age rates (weekend and long-distance age
 mixes, and the coverage of DGT's kilometres). The Madrid MOVILIA extracts, the ECEPOV and EHMA
@@ -99,9 +100,9 @@ and, where the provider's record gives one, the publisher's date of last update 
 publishes aggregates only, and claims no endorsement from anyone. Eight files under `data/raw/`
 are not downloads: `ine/ine_poblacion_provincias_edad_sexo.csv` and
 `ine/ine_poblacion_edad_simple_sexo.csv` are extracts of INE tables 56947 and 56934 written by
-`scripts/fetch_ine.py` (nationality total where relevant and the 1 January and 1 July periods,
+`scripts/tools/fetch_ine.py` (nationality total where relevant and the 1 January and 1 July periods,
 columns renamed); the three files under `crtm/edm2018/` are extracts of the CRTM's EDM2018
-workbooks written by `scripts/fetch_edm.py` (columns and, for trips, car-driver rows kept as
+workbooks written by `scripts/tools/fetch_edm.py` (columns and, for trips, car-driver rows kept as
 published; the manifest gives each workbook's checksum); and the three files under `compiled/`
 are hand-typed from the publications they cite.
 
@@ -112,8 +113,8 @@ are hand-typed from the publications they cite.
 | INE | population (`ine/ine_poblacion_provincias_edad_sexo.csv`, `ine/ine_poblacion_edad_simple_sexo.csv`), ECEPOV 2021 and EHMA 2008 (`ine/`) | [Creative Commons Attribution 4.0](https://creativecommons.org/licenses/by/4.0/) unless a product says otherwise; processed data are cited as "Elaboración propia con datos extraídos del sitio web del INE: www.ine.es"; keep the date of last update; do not suggest that INE endorses the reuse | <https://www.ine.es/aviso_legal/> |
 | Ministerio de Transportes y Movilidad Sostenible | MOVILIA 2006 and 2007 workbooks (`transportes/movilia_2006.xls`, `transportes/movilia_2007.xls`); the toll-motorway traffic series (`transportes/peaje_trafico_total.xls`); the roads chapter of the Anuario Estadístico 2023 (`transportes/anuario_carreteras_2023.pdf`) | reusable for commercial and non-commercial purposes: cite "Origen de los datos: Ministerio de Transportes y Movilidad Sostenible", keep the date of last update, do not distort the content, do not suggest endorsement, keep the metadata | <https://www.transportes.gob.es/ministerio/aviso-legal> |
 | Comunidad de Madrid, Instituto de Estadística | five MOVILIA 2006 tables for Madrid (`comunidad_madrid/movilia_madrid/`) | copying and distribution allowed provided the pages are not used directly for commercial purposes, the source is cited, the content is neither altered nor its meaning distorted, and no sponsorship is implied. These five files carry a condition the code licence does not; a commercial reuse of them goes back to the provider | <https://www.madrid.org/iestadis/fijas/otros/avisolegal.htm> |
-| ATM (Autoritat del Transport Metropolità), on omc.cat | the EMEF microdata and dictionaries in `emef/`; the 2014, 2015, 2016, 2022 and 2023 questionnaires (`emef/<year>/emef_<year>_questionnaire.pdf`) and the methodology report 2003–2018 (`emef/docs/emef_methodology_2003_2018.pdf`, by the IERMB, now Institut Metròpoli), kept unchanged and carrying no notice of their own | the OMC legal notice's open-data clause permits reproduction, distribution, public communication and transformation worldwide and without time limit under article 8 of Ley 37/2007, on four conditions: cite the rights holder (Consorci de l'Autoritat del Transport Metropolità de l'àrea de Barcelona), do not distort the meaning, cite the source, state the date of last update (the manifest descriptions give each file's date on omc.cat). The dictionaries add that results computed from the public-use files are the user's responsibility, not official statistics, and should be cited as "ATM, Idescat i Institut Metròpoli, <year>. Enquesta de mobilitat en dia feiner <year>. Autoritat del Transport Metropolità"; they also allow an estimate to be published only if it rests on at least 20 sample observations, and a table only if at least 60% of its cells can be (note 3 of the `Sumari` sheet), and the published tables apply that rule (`src/dgt_stats/emef/publication.py`) | <https://www.omc.cat/ca/avis-legal>, read on 7 October 2026; the `Sumari` sheet of each dictionary |
-| Consorcio Regional de Transportes de Madrid (CRTM), on its ArcGIS open-data site | the EDM2018 extracts in `crtm/edm2018/` | the CRTM open-data licence permits reuse, commercial or not, on three conditions: cite the CRTM as the source, show "Powered by CRTM" with a link to www.crtm.es on any digital platform that uses the data, and distribute derived data under the same licence. The extracts keep columns and rows of the published workbooks unchanged; they and the tables derived from them (`reports/tables/edm_*.csv`, and the Madrid profiles in `risk_*.csv`) are distributed under that licence, as the site's methodology page states | <https://www.crtm.es/licencia-de-uso>, the licence linked from each ArcGIS item, read on 8 October 2026 |
+| ATM (Autoritat del Transport Metropolità), on omc.cat | the EMEF microdata and dictionaries in `emef/`; the 2014, 2015, 2016, 2022 and 2023 questionnaires (`emef/<year>/emef_<year>_questionnaire.pdf`) and the methodology report 2003–2018 (`emef/docs/emef_methodology_2003_2018.pdf`, by the IERMB, now Institut Metròpoli), kept unchanged and carrying no notice of their own | the OMC legal notice's open-data clause permits reproduction, distribution, public communication and transformation worldwide and without time limit under article 8 of Ley 37/2007, on four conditions: cite the rights holder (Consorci de l'Autoritat del Transport Metropolità de l'àrea de Barcelona), do not distort the meaning, cite the source, state the date of last update (the manifest descriptions give each file's date on omc.cat). The dictionaries add that results computed from the public-use files are the user's responsibility, not official statistics, and should be cited as "ATM, Idescat i Institut Metròpoli, <year>. Enquesta de mobilitat en dia feiner <year>. Autoritat del Transport Metropolità"; they also allow an estimate to be published only if it rests on at least 20 sample observations, and a table only if at least 60% of its cells can be (note 3 of the `Sumari` sheet), and the published tables apply that rule (`src/dgt_stats/drivers/emef/publication.py`) | <https://www.omc.cat/ca/avis-legal>, read on 7 October 2026; the `Sumari` sheet of each dictionary |
+| Consorcio Regional de Transportes de Madrid (CRTM), on its ArcGIS open-data site | the EDM2018 extracts in `crtm/edm2018/` | the CRTM open-data licence permits reuse, commercial or not, on three conditions: cite the CRTM as the source, show "Powered by CRTM" with a link to www.crtm.es on any digital platform that uses the data, and distribute derived data under the same licence. The extracts keep columns and rows of the published workbooks unchanged; they and the tables derived from them (`reports/tables/drivers/edm_*.csv`, and the Madrid profiles in `risk_*.csv`) are distributed under that licence, as the site's methodology page states | <https://www.crtm.es/licencia-de-uso>, the licence linked from each ArcGIS item, read on 8 October 2026 |
 | Idescat (Institut d'Estadística de Catalunya) | `idescat/idescat_census_2024_activity_release.html`, the release of 8 July 2026 on the 2024 census and economic activity, kept unchanged; one count from it (67,143 employed people aged 65 and over in Catalonia) is typed into `emef/exposure.py` | Idescat's legal notice, section "Intellectual property rights", allows the information on its website to be reused provided that the source is quoted, the content is not altered or denatured and the date of the latest update is mentioned; information processed afterwards is cited as "Source: created upon the basis of Idescat's own data" (unprocessed, "Source: Idescat"); no involvement, sponsorship or support by Idescat may be suggested; Idescat may limit reuse to protect other legal interests, such as privacy or third parties' intellectual property. It names no Creative Commons or other standard licence, and cites Ley 37/2007 as amended by Ley 18/2015 | <https://www.idescat.cat/institut/web/?lang=en> (legal notice), read on 8 October 2026 |
 | Àrea Metropolitana de Barcelona (AMB), on its repository RECAM (recam.amb.cat) | `emef/2024/emef_2024_executive_summary.pdf`, *Enquesta de mobilitat en dia feiner: EMEF, 2024* (Institut Metròpoli, edited by the AMB, issued 1 April 2025; <https://hdl.handle.net/20.500.14439/4922>), kept unchanged; four figures from it (the mean straight-line trip and the daily straight-line kilometres per person in three age groups) are typed into `emef/distance.py`, where they are used only to check the distance model | Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0), rights holder the Àrea Metropolitana de Barcelona, as the repository's record of the item states: the PDF may be copied and redistributed unchanged, for non-commercial purposes, with attribution and a link to the licence. The MIT licence of the code does not reach it, and a commercial reuse of the PDF goes back to the AMB | <https://creativecommons.org/licenses/by-nc-nd/4.0/>, the licence named in the item's record (`dc.rights`, `dc.rights.uri`, `dc.rights.holder`), read through the repository's API on 8 October 2026 |
 | Fundación MAPFRE | none archived; three driving-frequency rows typed into `compiled/driving_activity_by_age.csv` | a private foundation, not a public body, so the Ley 37/2007 regime applied to the DGT files does not reach it: the report offers no reuse licence and none was requested. The three shares (0.559 / 0.303 / 0.138 of Madrid drivers aged 65+, n 300, year inferred) are short quotations with attribution to "Mayores de 65 años y seguridad vial" and its URL; the PDF is not archived here and no code reads them | <https://app.mapfre.com/ccm/content/documentos/fundacion/seg-vial/investigacion/mayores-y-seguridad-vial.pdf>; the foundation's site publishes no reuse notice, only a privacy policy (<https://www.fundacionmapfre.org/politica-privacidad/>), as read on 22 September 2026 |
@@ -164,7 +165,7 @@ page is built.
 
 | File | Coverage | Role | Page |
 |---|---|---|---|
-| `accidentes_2016.xlsx` … `accidentes_2024.xlsx` | 2016–2024, 875,013 injury crashes | the crash table: location, time, road, conditions, victims by severity and road-user type. National context and the external test domain of the transfer tests; it trains no predictive model ([`DGT_MICRODATA_AUDIT.md`](DGT_MICRODATA_AUDIT.md)) | speed (scoped totals), long run (deaths outside the measured networks), road class (overview split), associations in DGT records (supporting), 2006 break (supporting: the fits of the 2019 speed-limit study, linked as a negative result), Catalonia (province-year comparison), how far the results reach (test domain), four layers of data (audit), data |
+| `accidentes_2016.xlsx` … `accidentes_2024.xlsx` | 2016–2024, 875,013 injury crashes | the crash table: location, time, road, conditions, victims by severity and road-user type. National context and the external test domain of the transfer tests; it trains no predictive model ([`models/dgt_microdata_audit.md`](../models/dgt_microdata_audit.md)) | speed (scoped totals), long run (deaths outside the measured networks), road class (overview split), associations in DGT records (supporting), 2006 break (supporting: the fits of the 2019 speed-limit study, linked as a negative result), Catalonia (province-year comparison), how far the results reach (test domain), four layers of data (audit), data |
 | `diccionario.xlsx` | all years | code lists for the 33 coded fields | the pages that use the microdata (labels), data (code checks) |
 | `metadata_2024.rdf.xml` | 2024 | official access URL, licence and issue date | manifest template |
 
@@ -196,8 +197,8 @@ published in the records held for 2016–2023, and the record gives the dictiona
 | `dgt/km_itv_2024/km_medios_tipo_2024.xlsx` | 2022–2024 | the release's table 6, mean annual km by category for 2022, 2023 and 2024 as one series (its 2022 values equal the 2022 release's), and the 2024 detail sheet of vehicles and total km, used to reconcile the owner-age table against the published fleet; set beside fuel and deaths on the 2019–2024 page | age and sex (check), 2019–2024 |
 | `dgt/km_itv_2024/km_servicio_2024.xlsx` | 2024 | vehicles and total and mean annual km by category and class of service (private; public: taxi, car hire with and without driver, driving school...): the national car-km total of the driver-age rates, less taxis and ride-hailing cars | drivers (driver-age exposure, Method B) |
 | `dgt/km_itv_2024/km_comunidades_2024.xlsx` | 2024 | the release's table 9: mean annual km by category and the owner's autonomous community, with vehicles and total km in the 2024 detail sheet; read for the regional level of the coverage of DGT's kilometres: car km and cars per resident in Spain, Spain without Madrid and Catalonia (`exposure_risk/coverage.py`, `regional_evidence`) | drivers (coverage of DGT's kilometres, sensitivity range) |
-| `ine/ine_poblacion_edad_simple_sexo.csv` | 2002–2025 | residents of Spain by single year of age and sex, 1 January and 1 July (INE table 56934, extract written by `scripts/fetch_ine.py --table single_age`), so that age groups can start at 16, 30, 45 and 65 without splitting a five-year group | drivers (driver-age exposure, Method A) |
-| `crtm/edm2018/edm2018_individuos.csv`, `crtm/edm2018/edm2018_viajes_conductor.csv`, `crtm/edm2018/edm2018_codebook.csv` | 2018 | Madrid household travel survey (EDM2018): every respondent with exact age, sex, licence and person weight; every trip whose main mode is car driver with its distance; the codebook. Extracts of the CRTM workbooks written by `scripts/fetch_edm.py`. The age profile of car driving above 65, and a regional alternative to the EMEF profile | drivers (75 and over; Method C) |
+| `ine/ine_poblacion_edad_simple_sexo.csv` | 2002–2025 | residents of Spain by single year of age and sex, 1 January and 1 July (INE table 56934, extract written by `scripts/tools/fetch_ine.py --table single_age`), so that age groups can start at 16, 30, 45 and 65 without splitting a five-year group | drivers (driver-age exposure, Method A) |
+| `crtm/edm2018/edm2018_individuos.csv`, `crtm/edm2018/edm2018_viajes_conductor.csv`, `crtm/edm2018/edm2018_codebook.csv` | 2018 | Madrid household travel survey (EDM2018): every respondent with exact age, sex, licence and person weight; every trip whose main mode is car driver with its distance; the codebook. Extracts of the CRTM workbooks written by `scripts/tools/fetch_edm.py`. The age profile of car driving above 65, and a regional alternative to the EMEF profile | drivers (75 and over; Method C) |
 | `cores/cores_consumos_pp.xlsx` | 1996–2026, monthly | national consumption of petroleum products; the automotive petrol and diesel subtotals, added together, are road fuel, the road-traffic exposure proxy, annual and monthly (petrol alone is shown only as a traffic index); each sheet also publishes the mass share of biofuel blended into its subtotal | 2019–2024, long run, seasons (deaths per tonne of road fuel), data (biofuel check), 2006 break (fuel covariate), drivers (the months outside the EMEF fieldwork, `exposure_risk/coverage.py`); formerly a predictor of the withdrawn monthly deaths forecast, which used each forecast month's own fuel sales |
 | `transportes/peaje_trafico_total.xls` | 1990–2026, monthly | average daily intensity and vehicle-kilometres on the state toll-motorway network: a traffic index, never a denominator. The 2006 break uses the intensity, because the network's vehicle-kilometres step up with its length in July 2006 | seasons (traffic index), 2006 break (intensity covariate), drivers (the months outside the EMEF fieldwork) |
 | `transportes/anuario_carreteras_2023.pdf` | 2004–2023, annual | Ministerio de Transportes, Anuario Estadístico 2023, chapter on roads; table 1.2.14 gives vehicle-kilometres measured on the State, regional and provincial interurban networks by type of road (toll motorways; autovías and free motorways; multi-lane; conventional), each with its share of heavy vehicles, parsed by `io_traffic.read_road_traffic`, which requires the four types to add up to the published total. Comparable from 2008 (new road inventory); municipal interurban roads, up to a tenth of traffic by the Ministry's estimate, are not included, and the crash microdata record 8.7%–11.2% of interurban deaths, 2016–2024, on roads of municipal, other or unspecified owners, outside these networks (`longrun_km_coverage`) | long run (per measured km), 2019–2024 (the kilometre check), road class (owners 1–3; overview split), data (assumptions tested) |
@@ -212,11 +213,11 @@ published in the records held for 2016–2023, and the record gives the dictiona
 
 The regional files arrived under generic download names, kept in the manifest's `downloaded_as`
 column; each was identified by its columns and filed under a descriptive name
-(`src/dgt_stats/microdata/sources.py`). Their source URLs were not kept at download; the manifest
+(`src/dgt_stats/regional/files.py`). Their source URLs were not kept at download; the manifest
 now gives the portal resource each was identified with (providers above). What each may be joined
 to, and the checks on its keys and definitions, are in
-[`DATA_CONTRACT.md`](DATA_CONTRACT.md); how each source came to exist is generated in
-[`SOURCE_COMPARISON.md`](SOURCE_COMPARISON.md). No record of one is linked to a record of another
+[`sources/contract.md`](contract.md); how each source came to exist is generated in
+[`sources/source_comparison.md`](source_comparison.md). No record of one is linked to a record of another
 or of the DGT microdata.
 
 | File (downloaded as) | Coverage | Role | Page |
@@ -224,7 +225,7 @@ or of the DGT microdata.
 | `catalonia/accidents_morts_ferits_greus_catalunya_2010_2023.csv` (`export.csv`) | 2010–2023, Catalonia, 24,478 crashes | Servei Català de Trànsit: one row per crash with at least one death or serious injury, with place, road, conditions, victims and units involved; no slight-injury crashes and no identifier. The Catalan crash-microdata layer: the crash-severity model, its temporal and geographic validation, and the training domain of the transfer tests | Catalonia, severity models, how far the results reach, four layers of data |
 | `barcelona/2025/accidents_gu_bcn_2025.csv` (`download.csv`) | 2025, Barcelona city, 7,741 crashes | Guàrdia Urbana: one row per crash it attended, with place, time, victim counts by severity and vehicles involved; the crash table of the Barcelona layer | Barcelona, severity models (crash severity), how far the results reach, four layers of data |
 | `barcelona/2025/accidents_persones_gu_bcn_2025.csv` (`download(1).csv`) | 2025, 17,200 person records | the people involved (drivers, passengers, pedestrians, injured or not) with age, sex, role, vehicle type and victimisation; the unit of the person-severity model | Barcelona, severity models (person severity), how far the results reach, four layers of data, drivers (car drivers per km on working days, with the EMEF) |
-| `barcelona/2025/accidents_vehicles_gu_bcn_2025.csv` (`download(2).csv`) | 2025, 16,536 vehicle records | vehicle records (type, make, model, colour, licence class and age of licence); not shown to be one row per vehicle and with no vehicle key, so only the presence of a vehicle type in a crash is used ([`BARCELONA_VEHICLE_AUDIT.md`](BARCELONA_VEHICLE_AUDIT.md)) | Barcelona (vehicle audit), severity models (vehicle-type presence) |
+| `barcelona/2025/accidents_vehicles_gu_bcn_2025.csv` (`download(2).csv`) | 2025, 16,536 vehicle records | vehicle records (type, make, model, colour, licence class and age of licence); not shown to be one row per vehicle and with no vehicle key, so only the presence of a vehicle type in a crash is used ([`regional/barcelona_vehicle_audit.md`](../regional/barcelona_vehicle_audit.md)) | Barcelona (vehicle audit), severity models (vehicle-type presence) |
 | `barcelona/2025/accidents_causes_mediates_gu_bcn_2025.csv` (`download(3).csv`) | 2025, 7,749 rows | mediate causes recorded for each crash (alcohol, speed, drugs, road surface, signals, weather, objects or animals); a single blank row means none was recorded | Barcelona (recorded causes), severity models (retrospective set only) |
 | `barcelona/2025/accidents_causa_conductor_gu_bcn_2025.csv` (`download(4).csv`) | 2025, 8,072 rows | driver-related causes recorded for each crash, with no key to the person or vehicle concerned, so they stay at crash level | Barcelona (recorded causes), severity models (retrospective set only) |
 | `barcelona/2025/accidents_tipus_gu_bcn_2025.csv` (`download(5).csv`) | 2025, 7,741 rows | the type of each crash (collision, run-over, fall...), one row per crash; "Encalç", the Catalan file's term for a rear-end collision, marks almost only serious crashes; the descriptive tables count it as a rear-end collision (`microdata/descriptive.py`), while the source models used the field as recorded | Barcelona, severity models (crash type) |
@@ -252,7 +253,7 @@ file whose `ID` values all appear in the respondent file.
 
 How the eleven years were read, harmonised and checked, and what they cannot show (no age group
 finer than 65 and over), is set out in
-[`research/EMEF_INVENTORY.md`](research/EMEF_INVENTORY.md).
+[`drivers/emef_inventory.md`](../drivers/emef_inventory.md).
 
 ## Compiled registers (`compiled/`)
 
@@ -262,7 +263,7 @@ an observation, a coefficient or an effect size, so **no code reads them** (`tes
 checks that for the two evidence registers). The two exceptions to that rule, the EMEF 2021
 distance report's road-to-straight-line ratio and benchmarks typed into `emef/distance.py` and
 the Fundació RACC 2013 survey's figures typed into `exposure_risk/national.py` (reuse terms
-above), are set out in [`DATA_CONTRACT.md`](DATA_CONTRACT.md), rule 1. The three files are
+above), are set out in [`sources/contract.md`](contract.md), rule 1. The three files are
 kept, unmodified and hashed, as the record of what was searched and of what the withdrawn
 analyses used: the speed-law simulator, the distraction and alcohol-and-drug models and the
 enforcement comparison were withdrawn because their results came from external-study
@@ -300,7 +301,7 @@ same time; nothing from them enters a table.
 
 ## Files kept but not read
 
-Raw files are never edited or deleted (`DATA_CONTRACT.md`, rule 2). The manifest is the record of
+Raw files are never edited or deleted (`sources/contract.md`, rule 2). The manifest is the record of
 what was examined, so a file that was checked and not used stays with its checksum, and the check
 can be repeated. The files below are read by no analysis; each is kept for the reason given.
 
@@ -333,7 +334,7 @@ can be repeated. The files below are read by no analysis; each is kept for the r
 - Distance driven by the **driver's** age **for Spain as a whole**. Two regional travel surveys
   measure it from their microdata: the EMEF for the Barcelona area (working days, age groups
   ending at 65+) and EDM2018 for Madrid (weekdays, exact age). The national rates transfer their
-  age profiles to Spain's population (`research/DRIVER_AGE_EXPOSURE.md`). DGT's 2024 kilometre
+  age profiles to Spain's population (`drivers/driver_age_exposure.md`). DGT's 2024 kilometre
   release gives the **owner's** age band and is kept as a comparison. MOVILIA 2006/2007 count
   trips and travel time, not kilometres, and do not separate drivers from passengers; INE's EHMA
   2008 gives mean annual kilometres per household vehicle by the age of the household's reference
@@ -341,7 +342,7 @@ can be repeated. The files below are read by no analysis; each is kept for the r
   age split. Each was checked and is registered above.
 - Car-driving distance at 75 and over in the EMEF. The public files merge 65–74 and 75+; the
   confidential records hold exact age, and a request for tables is prepared but not sent
-  (`research/EMEF_DATA_REQUEST.md`).
+  (`drivers/emef_data_request.md`).
 - Monthly vehicle-kilometres on all Spanish roads, and annual urban vehicle-kilometres. The two
   monthly series registered above are proxies with known limits: CORES measures fuel sold, not
   distance, and its petrol/diesel mix shifts over the 2000s; the toll-motorway series measures

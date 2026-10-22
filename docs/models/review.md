@@ -1,10 +1,10 @@
 # Re-evaluation of the predictive models
 
 Every model the repository fitted was refitted here with separate code
-(`src/dgt_stats/model_review.py`, `src/dgt_stats/severity_model.py`), scored against a simple
+(`src/dgt_stats/national/associations/review.py`, `src/dgt_stats/national/associations/severity_model.py`), scored against a simple
 benchmark on records it was not fitted on, and checked for calibration as well as ranking. The
-tables are written by `python scripts/severity_calculator.py all` to `reports/tables/review_*.csv`
-and `reports/tables/sev_*.csv`.
+tables are written by `python scripts/run.py models.calculator models.review` to `reports/tables/models/review_*.csv`
+and `reports/tables/models/sev_*.csv`.
 
 ## Decisions
 
@@ -43,7 +43,7 @@ whose blank and "other" values separate fatal from serious crashes this sharply 
 crash was documented, not the road. The original audit classified the field as safe. Part of the
 original model's advantage over its table therefore came from documentation, which no user of a
 calculator can choose. The rebuilt model keeps the named networks as inputs and leaves the 1,840 artefact crashes out
-of fitting and of evaluation (see [`SEVERITY_CALCULATOR.md`](SEVERITY_CALCULATOR.md)). On the
+of fitting and of evaluation (see [`models/severity_calculator.md`](severity_calculator.md)). On the
 11,611 crashes of 2016–2023 on the roads a reader can choose, the original model scores ROC-AUC
 0.7475, boosted trees on the calculator's inputs 0.7476 and the calculator 0.739 with every
 choice nested (0.743 under the earlier design, whose choices used the test years): once the
@@ -94,7 +94,7 @@ rejected model. The page is withdrawn, and the investigation is kept here.
 
 The public result for the retained model is its calibration on years whose data played no part
 in fitting or choosing it (`reports/figures/sev1_predicted_observed.svg`,
-`reports/tables/sev_calibration.csv`). The evaluation is nested
+`reports/tables/models/sev_calibration.csv`). The evaluation is nested
 (`severity_model.nested_rolling`). For each year 2016–2023, four choices are made on the years
 before it alone, by fitting on all but the last two of them and scoring those two by log loss:
 the penalty (half-decades of C from 0.001 to 32, extended while the best value is at an end),

@@ -13,7 +13,7 @@ split counted one way, DGT's owner-age kilometres made a bound, and every sampli
 printed to the precision its Monte Carlo error supports) moved the ends of those ranges, and the
 severity model was re-evaluated with every choice nested. The figures below are the current ones;
 where a first-published or later superseded figure differed, it is given and labelled as such. The
-acceptance report of that audit is [`ACCEPTANCE_REPORT.md`](ACCEPTANCE_REPORT.md).
+acceptance report of that audit is [`ACCEPTANCE_REPORT.md`](acceptance_report.md).
 
 The work is on the branch `cl/inspiring-wozniak-uqpemm`, in pull request
 [RAHV-FB/dgt-stats#25](https://github.com/RAHV-FB/dgt-stats/pull/25). The site at
@@ -91,7 +91,7 @@ corrected (point 15). No calculation in a committed table was found to be wrong.
 | DGT crash severity (association model) | **Research only**: the fields left unrecorded where they apply rank fatal crashes on their own (ROC-AUC 0.68; 0.72 as first published, before cells that do not apply were set aside) |
 | Monthly road deaths forecast | **Withdrawn** as a forecast: 6.6% error against 5.9% for last year's count in the ordinary held-out years; the page is a withdrawal notice |
 
-Source: [`ML_MODEL_REVIEW.md`](ML_MODEL_REVIEW.md).
+Source: [`ML_MODEL_REVIEW.md`](../models/review.md).
 
 ### 2. Strongest validated severity model
 
@@ -106,7 +106,7 @@ contrasts across periods and areas, and by bootstrap refits. The transfer tests 
 Catalan model, on DGT and Barcelona records, bear on its reach: its probabilities describe
 Catalonia and are likely to be low elsewhere. Gradient-boosted trees rank a little better
 (ROC-AUC 0.748 against 0.739) but give no interval for an estimate and cannot be read term by
-term. Source: [`SEVERITY_CALCULATOR.md`](SEVERITY_CALCULATOR.md).
+term. Source: [`SEVERITY_CALCULATOR.md`](../models/severity_calculator.md).
 
 ### 3. Model performance against baseline
 
@@ -132,7 +132,7 @@ province's average.
 
 All eleven years, 2014–2024: 110,819 respondents and 418,716 trips, each year's respondent file,
 trip file and dictionary (and the revised 2022 dictionary). Every year passes all of its checks.
-Source: [`EMEF_INVENTORY.md`](EMEF_INVENTORY.md).
+Source: [`EMEF_INVENTORY.md`](../drivers/emef_inventory.md).
 
 ### 5. Missing or unusable EMEF files
 
@@ -155,7 +155,7 @@ vehicles (van and lorry, motorcycle, moped), people without trips, age group (`a
 `age4` from 2019), sex, area of residence (zones 1–5 and comarca, renumbered in 2017), straight-line
 distance band (from 2021), duration, usual frequency of driving, car licence (2016) and the
 missing-value codes. Each rule was checked against every year's dictionary and the codes present
-in the file ([`EMEF_INVENTORY.md`](EMEF_INVENTORY.md), Harmonisation).
+in the file ([`EMEF_INVENTORY.md`](../drivers/emef_inventory.md), Harmonisation).
 
 ### 7. Driver-distance methodology
 
@@ -170,7 +170,7 @@ given duration, bounded at 80 km/h door to door (100 km/h as first published; bo
 100 km/h, durations capped at four hours, the unbounded mean and leaving the trips out are
 tested). Trips combining driving with another vehicle count for half their distance (0% and 100%
 tested). The method reproduces the report's benchmarks
-([`DRIVER_AGE_EXPOSURE.md`](DRIVER_AGE_EXPOSURE.md), From distance bands to road kilometres).
+([`DRIVER_AGE_EXPOSURE.md`](../drivers/driver_age_exposure.md), From distance bands to road kilometres).
 
 ### 8. Workday exposure findings
 
@@ -217,7 +217,7 @@ weekend kilometres by age, so this remains a sensitivity range.
 
 Not directly. The public EMEF files merge 65–74 and 75+; the two were sampling strata until 2016
 and the confidential records hold exact age. A request for tables has been prepared but **not
-sent** ([`EMEF_DATA_REQUEST.md`](EMEF_DATA_REQUEST.md)). The figure first published here (65–74 at
+sent** ([`EMEF_DATA_REQUEST.md`](../drivers/emef_data_request.md)). The figure first published here (65–74 at
 0.90–1.08 and 75+ at 1.32–2.19, with no single 75+ rate) has since been replaced: the drivers page
 now gives a conditional estimate for 75 and over (2.06 times the 45–64 rate if people aged 75 and
 over drive as much less than those aged 65–74 as in Madrid in 2018; 95% sampling interval
@@ -316,7 +316,7 @@ much. See [75+ exposure: constraining the estimate](#75-exposure-constraining-th
 
 ### 15. Corrected statistical errors
 
-From the audit ([`STATISTICAL_AUDIT.md`](STATISTICAL_AUDIT.md)), each with a regression test:
+From the audit ([`STATISTICAL_AUDIT.md`](statistical_audit.md)), each with a regression test:
 
 - Distances of unbanded trips truncated the distance distribution at the speed bound, making them
   10% too short overall and up to a third too short on long trips; the bound now applies to the mean.
@@ -416,7 +416,7 @@ Found in this final review and corrected:
 This list describes the pages as the rebuild left them. The final audit later removed the drivers
 page's section on why the former figure differed (it is compared like for like at the end of the
 section on crashes per kilometre) and the models page's table of every model fitted (now in
-[`ML_MODEL_REVIEW.md`](ML_MODEL_REVIEW.md), which the page links); the claim ledger records each
+[`ML_MODEL_REVIEW.md`](../models/review.md), which the page links); the claim ledger records each
 change.
 
 - **Drivers page** rebuilt: involvement per km by driver age with intervals and sensitivity ranges
@@ -440,7 +440,7 @@ change.
 
 The final status is the one measured at the end of the work, on the final commit: the test counts,
 the raw-file hashes, lint and format, the clean rebuild, CI and deployment are recorded in
-[`ACCEPTANCE_REPORT.md`](ACCEPTANCE_REPORT.md), with the commit they were measured on. They are
+[`ACCEPTANCE_REPORT.md`](acceptance_report.md), with the commit they were measured on. They are
 not repeated here, where they could drift. The table names each check and gives only the earlier
 measurements, labelled with when they were taken; none of them is the final status.
 
@@ -451,7 +451,7 @@ measurements, labelled with when they were taken; none of them is the final stat
 | Lint and format (`ruff check`, `ruff format --check`) | clean when this review was first written |
 | Clean rebuild of the EMEF tables, driver-age rates, figures and site from the raw files | every committed output reproduced byte for byte when this review was first written |
 | CI on the pull request (Python 3.11, locked dependencies, national and regional layers rebuilt from the raw files, `pytest`) | passed on all five pushes of the rebuild before this review; the result for each later push is shown on the pull request |
-| Deployment | not deployed by this work: the Pages workflow publishes the site from `main`, so the rebuilt pages went live when the pull request was merged, as `5ea4b24`, on 8 October 2026 ([`ACCEPTANCE_REPORT.md`](ACCEPTANCE_REPORT.md), section 8) |
+| Deployment | not deployed by this work: the Pages workflow publishes the site from `main`, so the rebuilt pages went live when the pull request was merged, as `5ea4b24`, on 8 October 2026 ([`ACCEPTANCE_REPORT.md`](acceptance_report.md), section 8) |
 
 The browser tests need the optional `browser` dependencies (`pip install -e .[browser]`) and skip
 without them locally. CI runs them in a job of its own (`browser` in `.github/workflows/ci.yml`),
@@ -467,7 +467,7 @@ corrections; the rebuilt site.
 **Pending, on external data:**
 
 - The EMEF request for car-driving tables by finer age group, including 75 and over, is prepared
-  but has not been sent ([`EMEF_DATA_REQUEST.md`](EMEF_DATA_REQUEST.md)). Until a reply arrives,
+  but has not been sent ([`EMEF_DATA_REQUEST.md`](../drivers/emef_data_request.md)). Until a reply arrives,
   the figure per kilometre at 75 and over is a conditional estimate beside the sensitivity range.
 - The rebuilt site goes live when the pull request is merged into `main`.
 
@@ -477,7 +477,7 @@ October 2026, after the coverage and stress tests. The question was whether the 
 kilometre could be better constrained than the sensitivity range, then 0.97–3.28 times the 45–64
 rate (0.97–3.20 since the method fixes recorded later in this section), without adding false
 precision. The full account, with every number and its table, is in
-[`DRIVER_AGE_EXPOSURE.md`](DRIVER_AGE_EXPOSURE.md#ages-75-and-over).
+[`DRIVER_AGE_EXPOSURE.md`](../drivers/driver_age_exposure.md#ages-75-and-over).
 
 **What was examined.** The CRTM Encuesta Sintética de Movilidad 2024 (ages 14–80 only, one 65–80
 band, driver and passenger merged, no km tables and no microdata: not usable for the split); the
@@ -598,11 +598,11 @@ Fixed after publication, in the follow-up to the merge `5ea4b24`: the phone draw
 narrower, so that their text is at least 11 px in the column of a 320 px phone, and each figure
 shows its phone drawing wherever its column is too narrow for the wide drawing's text to reach
 11 px. Measured at 17 widths from 320 to 1440 px in both themes, the smallest chart text is
-11.2 px and no chart scrolls ([`ACCEPTANCE_REPORT.md`](ACCEPTANCE_REPORT.md), section 8).
+11.2 px and no chart scrolls ([`ACCEPTANCE_REPORT.md`](acceptance_report.md), section 8).
 
 **The method fixes (October 2026).** A later independent review found three faults of method, and
 each was corrected (the full account is in the change log of
-[`DRIVER_AGE_EXPOSURE.md`](DRIVER_AGE_EXPOSURE.md#change-log)):
+[`DRIVER_AGE_EXPOSURE.md`](../drivers/driver_age_exposure.md#change-log)):
 
 * The Madrid profile's 65+ km per resident was Madrid's own 65+ mean, although Madrid's residents
   aged 65 and over are younger than Spain's. It is now standardised to Spain's older population
@@ -624,7 +624,7 @@ estimate, 2.06 (1.6–2.6), and the lowest combination not at odds with men's dr
 **What would materially improve it.** The EMEF's own aggregates for 65–74 and 75+ (or finer) with
 design-based errors, and the true age × routing table, from Institut Metròpoli or the ATM, would
 replace the Madrid transfer and settle the composition bound
-([`EMEF_DATA_REQUEST.md`](EMEF_DATA_REQUEST.md), prepared, not sent). After that: a national
+([`EMEF_DATA_REQUEST.md`](../drivers/emef_data_request.md), prepared, not sent). After that: a national
 all-days measure of driving by age that separates driver from passenger; the age mix of weekend
 and long-distance driving; a second exact-age regional survey (the Basque Encuesta de Movilidad);
 RACC km by sex and age; DGT's 2018 licence holders by age for Madrid.

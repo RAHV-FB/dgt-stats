@@ -82,8 +82,8 @@ deployment runs and the checks of the live site are recorded in section 8.
 - The former owner-age figure is explained and replaced.
 
 **Other claims corrected.** Every published claim at the start of the audit has a row in
-[`CLAIM_LEDGER.csv`](CLAIM_LEDGER.csv) with its final status. The rebuild's verdicts in
-[`STATISTICAL_AUDIT.md`](STATISTICAL_AUDIT.md) now carry a final-audit column. Examples:
+[`CLAIM_LEDGER.csv`](claim_ledger.csv) with its final status. The rebuild's verdicts in
+[`STATISTICAL_AUDIT.md`](statistical_audit.md) now carry a final-audit column. Examples:
 - the speed ratio is now given by road type;
 - the points-licence intervals are flagged as too narrow;
 - the monthly forecast is withdrawn;
@@ -112,7 +112,7 @@ Earlier figures are superseded:
 - 0.743 (not nested);
 - 0.741 (nested but without the province choice).
 
-The research-only models and the removed ones are listed in [`ML_MODEL_REVIEW.md`](ML_MODEL_REVIEW.md).
+The research-only models and the removed ones are listed in [`ML_MODEL_REVIEW.md`](../models/review.md).
 
 ## 4. Writing and design
 
@@ -176,7 +176,7 @@ The research-only models and the removed ones are listed in [`ML_MODEL_REVIEW.md
 
 **Inaccessible external data:**
 - The EMEF's own 65–74 and 75+ tabulations. A request to the Institut Metròpoli and the ATM is
-  prepared but not sent ([`EMEF_DATA_REQUEST.md`](EMEF_DATA_REQUEST.md)).
+  prepared but not sent ([`EMEF_DATA_REQUEST.md`](../drivers/emef_data_request.md)).
 - A national all-days driving survey by exact age, which does not exist.
 - The RACC 2013 figures, which are quoted but cannot be archived (no reuse licence).
 - The EMEF 2021 distance report, whose values are transcribed.
@@ -232,8 +232,8 @@ The review records are [`reviews/SECOND_AUDIT.md`](reviews/SECOND_AUDIT.md),
 [`reviews/FINAL_CHECK_4735d9d.md`](reviews/FINAL_CHECK_4735d9d.md). The last three list every
 finding, with the commit reviewed, its disposition, and what each reviewer checked and found
 correct.
-The claim ledger ([`CLAIM_LEDGER.md`](CLAIM_LEDGER.md)) gives the final status of every
-published claim, and [`STATISTICAL_AUDIT.md`](STATISTICAL_AUDIT.md) the final status of each
+The claim ledger ([`CLAIM_LEDGER.md`](claim_ledger.md)) gives the final status of every
+published claim, and [`STATISTICAL_AUDIT.md`](statistical_audit.md) the final status of each
 verdict.
 
 ### Task matrix

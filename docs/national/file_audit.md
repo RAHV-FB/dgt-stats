@@ -6,19 +6,19 @@ Ministry's kilometres by type of road, the move to one raw folder per publisher 
 crash files (section 1 F). Every national source file was opened and profiled with Python
 (`openpyxl`, `pandas`, `pymupdf`). This document records what each file contains, how the files
 group together, what was verified, and what must be handled before analysis. It complements the
-source register in [`data_sources.md`](data_sources.md); what each dataset may be used for, and
-what it may never be joined to, is in [`DATA_CONTRACT.md`](DATA_CONTRACT.md). Checksums, sizes,
+source register in [`sources/register.md`](../sources/register.md); what each dataset may be used for, and
+what it may never be joined to, is in [`sources/contract.md`](../sources/contract.md). Checksums, sizes,
 source URLs and download names for every file are in
-[`data/raw/manifest.csv`](../data/raw/manifest.csv). The complete machine-generated inventory of
+[`data/raw/manifest.csv`](../../data/raw/manifest.csv). The complete machine-generated inventory of
 every raw file (encoding, delimiter, rows, columns, unit of observation, coverage, duplicates) is
-[`RAW_FILE_INVENTORY.md`](RAW_FILE_INVENTORY.md), written by `python scripts/microdata.py
+[`sources/raw_file_inventory.md`](../sources/raw_file_inventory.md), written by `python scripts/run.py regional
 inventory`; this document is the hand-written audit beside it and does not repeat its counts.
 
 ## 1. Files by category
 
 All raw files live under `data/raw/<source>/`, one folder per publisher: `dgt/`, `ine/`,
 `transportes/`, `cores/`, `comunidad_madrid/`, `catalonia/` and `barcelona/2025/`, plus
-`compiled/` for registers typed by hand ([`data/README.md`](../data/README.md)). This section
+`compiled/` for registers typed by hand ([`data/README.md`](../../data/README.md)). This section
 groups them by role. Each table gives a file relative to the folder in its section heading, or to
 `data/raw/` where the column says so.
 
@@ -75,15 +75,15 @@ A second copy of the series workbook (`...2024(1).xlsx`, byte-identical, same MD
 | `dgt/km_itv_2022/media_km_antiguedad_tipo_2022.xlsx` | 2022 | Mean annual km and fleet size by vehicle type (7) × age band (5) | `Media_km_recorridos_ antiguedad_tipo de vehículo.xlsx` |
 | `dgt/km_itv_2022/metodologia.pdf` | 2014–2023 ITV | Methodology: gamma-regression (LightGBM) imputation of annualised odometer readings; explains 19–45% of variance per vehicle, valid only for aggregates. Documentation; not read by code | `KM_Recorridos_ITV_Parque.pdf` |
 | `dgt/km_itv_2024/km_edad_propietario_2024.xlsx` | 2024 | 115 rows: vehicle category (8) × owner age band (18–20, 21–24, then five-year bands to 70–74, 75+, plus "Vehículo a nombre de empresa") → vehicles, total annual km, mean annual km. The only file in the repository that gives distance driven by a person's age for the whole circulating fleet (the 2008 INE household survey below does so for a sample). The age is the **registered owner's**, not the driver's, and it does not hold as a stand-in for the driver's at either end (section 3) | `KM_Edad_Propietario.xlsx` (from `KM_Recorridos_2024_Material_Adicional.zip`) |
-| `dgt/km_itv_2024/km_medios_tipo_2024.xlsx` | 2022–2024 | The same release's table 6: vehicles and mean annual km by category, with a 2024 detail sheet. Table 6 gives mean annual km for 2022, 2023 and 2024 as one series, its 2022 values equal to the 2022 release's for mopeds, motorcycles, cars, vans and buses. Used to check the owner-age table against the published fleet and to set DGT's 2022–2024 kilometres beside road fuel and deaths (`risk_km_crosscheck.csv`) | `TAB_06-KM_Medios.xlsx` (same zip) |
+| `dgt/km_itv_2024/km_medios_tipo_2024.xlsx` | 2022–2024 | The same release's table 6: vehicles and mean annual km by category, with a 2024 detail sheet. Table 6 gives mean annual km for 2022, 2023 and 2024 as one series, its 2022 values equal to the 2022 release's for mopeds, motorcycles, cars, vans and buses. Used to check the owner-age table against the published fleet and to set DGT's 2022–2024 kilometres beside road fuel and deaths (`trends_km_crosscheck.csv`) | `TAB_06-KM_Medios.xlsx` (same zip) |
 | `dgt/km_itv_2024/km_servicio_2024.xlsx` | 2024 | 168 rows: vehicle category × class of service (private or public, with taxi, car hire with and without driver, driving school...) → vehicles, total annual km, mean annual km. Cars total 292,990,656,757 km, of which taxis 2.53 and car hire with driver 0.68 billion | `KM_Servicio.xlsx` (same zip) |
 | `dgt/km_itv_2024/km_comunidades_2024.xlsx` | 2022–2024 | Table 9: mean annual km by vehicle category and the owner's autonomous community, with a 2024 detail sheet of vehicles and total km | `TAB_09-KM_Comunidades_Autonomas.xlsx` (same zip) |
 | `cores/cores_consumos_pp.xlsx` | 1996–2026 | CORES monthly consumption of petroleum products, tonnes, 8 sheets. The `Gasolinas` and `Gasoleos` sheets carry `Subtotal gasolinas auto` and `Subtotal gasóleos auto`; their sum is national road-fuel consumption, complete monthly from January 1996. Each subtotal is the sum of the product columns before it (bioethanol, biodiesel and blends included), and each sheet gives the mass share of biofuel in its subtotal (`% biocomb. en gasolinas`, `% biocomb. en gasóleos`) | `consumos-pp.xlsx` |
 | `transportes/peaje_trafico_total.xls` | 1990–2026 | Ministerio de Transportes, Boletín Estadístico Online: annual and monthly average daily intensity and vehicle-kilometres on the whole state toll-motorway network. Complete monthly from January 1990; the `LONGITUD` column records the network length in service, which falls as concessions expire. A traffic index and a covariate, never a denominator (section 3) | `06010000.XLS` |
 | `transportes/anuario_carreteras_2023.pdf` | 2004–2023 | Ministerio de Transportes, Anuario Estadístico 2023, roads chapter (13 pages). Table 1.2.14: vehicle-kilometres and the share of heavy vehicles by type of road (toll motorways; autovías and free motorways; multi-lane; conventional) on the State, regional and provincial interurban networks; see section 3 | `carreteras_2023.pdf` |
-| `ine/ine_poblacion_provincias_edad_sexo.csv` | 2002–2025 | INE table 56947 extract: residents by province × five-year age group × sex, 1 January and 1 July; 149,460 rows, rebuilt by `scripts/fetch_ine.py` | INE CSV download |
-| `ine/ine_poblacion_edad_simple_sexo.csv` | 2002–2025 | INE table 56934 extract: residents of Spain by single year of age (0–104 and "105 y más", plus the overlapping aggregates "85 y más" and "100 y más") × sex, 1 January and 1 July; 15,369 rows, rebuilt by `scripts/fetch_ine.py --table single_age` | INE CSV download |
-| `crtm/edm2018/edm2018_individuos.csv` | 2018 | CRTM, EDM2018: 85,064 respondents (household and person id, sex, exact age, licence, activity, weekday Monday–Thursday, reason for not travelling, person weight); extract written by `scripts/fetch_edm.py` | `EDM2018INDIVIDUOS.xlsx` |
+| `ine/ine_poblacion_provincias_edad_sexo.csv` | 2002–2025 | INE table 56947 extract: residents by province × five-year age group × sex, 1 January and 1 July; 149,460 rows, rebuilt by `scripts/tools/fetch_ine.py` | INE CSV download |
+| `ine/ine_poblacion_edad_simple_sexo.csv` | 2002–2025 | INE table 56934 extract: residents of Spain by single year of age (0–104 and "105 y más", plus the overlapping aggregates "85 y más" and "100 y más") × sex, 1 January and 1 July; 15,369 rows, rebuilt by `scripts/tools/fetch_ine.py --table single_age` | INE CSV download |
+| `crtm/edm2018/edm2018_individuos.csv` | 2018 | CRTM, EDM2018: 85,064 respondents (household and person id, sex, exact age, licence, activity, weekday Monday–Thursday, reason for not travelling, person weight); extract written by `scripts/tools/fetch_edm.py` | `EDM2018INDIVIDUOS.xlsx` |
 | `crtm/edm2018/edm2018_viajes_conductor.csv` | 2018 | CRTM, EDM2018: the 67,975 trips whose main mode is car driver (private, company or rental car), with distance and trip weight | `EDM2018VIAJES.xlsx` |
 | `crtm/edm2018/edm2018_codebook.csv` | 2018 | the codebook sheets of both workbooks | both workbooks |
 | `transportes/movilia_2006.xls` | 2006 | MOVILIA 2006 daily-mobility tables (168 sheets). Tables 63–64 give trips by main mode × sex × age; the mode is "coche o moto" with **no driver/passenger split**, so it yields a car-travel intensity curve by age, not a driver share. The sex travel bracket once built from it was withdrawn. Read for sensitivity tests of the driver-age rates only: table 64 gives one weekend age mix (`exposure_risk/national.py`), and tables 9, 61 and 72 the car trips per resident of the province of Barcelona against Spain's, and the trips and their duration on a weekend day against a working day (`exposure_risk/coverage.py`) | `Movilia2006.xls` |
@@ -108,7 +108,7 @@ Only the speed report is read by code (`io_reports.py`), for the speed compariso
 tables (section 4); no code reads the other reports.
 
 The ESRA reports are not archived under `data/raw/` (Vias institute offers no reproduction licence;
-see the reuse terms in `data_sources.md`). They were consulted online: the ESRA3 (2023) Spain fact
+see the reuse terms in `sources/register.md`). They were consulted online: the ESRA3 (2023) Spain fact
 sheet and main report (935 weighted respondents, 75.9 % drive at least a few days a month, main
 report Table 6) at `https://www.esranet.eu/storage/minisites/esra2023countryfactsheetspain.pdf` and
 `https://www.esranet.eu/storage/minisites/esra3-main-report.pdf`, and the ESRA-123 dashboard
@@ -125,7 +125,7 @@ that file.
 | `evidence/factor_parameters.csv` | 112 | Register of the published values the distraction and alcohol-and-drug models and the enforcement comparison used: DGT's police record of factors in fatal crashes, the toxicology of killed drivers, measured crash risks, roadside prevalence and 17 published evaluations of enforcement, each with its source, its place in the source, the URL and a verbatim quote. Those analyses were **withdrawn**; no code reads the file | compiled by this project |
 
 These files hold values typed from publications, not observations, and no result of the project
-rests on them ([`DATA_CONTRACT.md`](DATA_CONTRACT.md)).
+rests on them ([`sources/contract.md`](../sources/contract.md)).
 
 ### F. Regional crash microdata (`data/raw/catalonia/`, `data/raw/barcelona/2025/`, added October 2026)
 
@@ -143,17 +143,17 @@ rests on them ([`DATA_CONTRACT.md`](DATA_CONTRACT.md)).
   Barcelona's Guàrdia Urbana (six tables sharing `Numero_expedient`). The source URL was not
   recorded at download; the files were renamed to say what they hold and the manifest keeps the
   browser download name in `downloaded_as`.
-- Roles (`src/dgt_stats/layers.py`): the Catalan file is the crash microdata layer (the
-  crash-severity model and its temporal and geographic validation); the Barcelona files are the
-  rich microdata layer (crash and person analysis, the person-severity model). Neither is merged
-  with the other or linked to DGT records; they meet the national layer only at province and year
-  aggregates and in held-out transfer tests, which create no observations.
+- Roles (`src/dgt_stats/catalogue.py`): both belong to the regional section; the Catalan file
+  trains the crash-severity model of the models section, and the Barcelona files hold the crash
+  and person analysis and the person-severity model. Neither is merged with the other or linked to
+  DGT records; they meet the national data only at province and year aggregates and in held-out
+  transfer tests, which create no observations.
 - The Catalan file holds no slight-injury crashes, so it describes severity among serious crashes,
   not crash frequency; its speed field is the road's limit, not a driving speed.
-- Rows, columns and encodings are in [`RAW_FILE_INVENTORY.md`](RAW_FILE_INVENTORY.md); keys,
-  cardinality and placeholders in [`DATA_QUALITY_MICRODATA.md`](DATA_QUALITY_MICRODATA.md); the
+- Rows, columns and encodings are in [`sources/raw_file_inventory.md`](../sources/raw_file_inventory.md); keys,
+  cardinality and placeholders in [`regional/data_quality.md`](../regional/data_quality.md); the
   audit of the Barcelona vehicle table, whose rows are not shown to be one per vehicle, in
-  [`BARCELONA_VEHICLE_AUDIT.md`](BARCELONA_VEHICLE_AUDIT.md). Sections 2 and 3 below cover the
+  [`regional/barcelona_vehicle_audit.md`](../regional/barcelona_vehicle_audit.md). Sections 2 and 3 below cover the
   national files only.
 
 ## 2. DGT crash microdata: schema and content
@@ -181,9 +181,9 @@ age, no coordinates, and no day of month.
 | Empty | `None` | island (usually not an island province, but also unrecorded inside them), km (not inventoried), fog and wind (absent), junction detail (not at a junction) |
 
 Missingness also depends on the province. Road alignment "unknown" is recorded for 78,990 crashes
-in 2016–2024, 75,624 of them in the four Catalan provinces (`q3_recording_regime.csv`), and most
+in 2016–2024, 75,624 of them in the four Catalan provinces (`assoc_recording_regime.csv`), and most
 candidate fields have unrecorded shares that differ between provinces by more than the audit's
-limit ([`DGT_MICRODATA_AUDIT.md`](DGT_MICRODATA_AUDIT.md), check 6).
+limit ([`models/dgt_microdata_audit.md`](../models/dgt_microdata_audit.md), check 6).
 
 ## 3. Verification results
 
@@ -223,7 +223,7 @@ No duplicate identifiers were found in any year.
 | `TIPO_VIA = 14` ("Otro") share rises from 2.9% to 17.2%, and `TITULARIDAD_VIA = 5` ("Otra") from 1.6% to 22.0%, while `TIPO_VIA = 9` ("Calle") falls from 59.9% to 47.5% | 2016 → 2024 | a coding change in the four Catalan provinces: in 2024 they record no crash as a street (code 9) and most as code 14, and from 2023 most of their crashes carry owner code 5, while both shares stay flat in the other provinces. Road-type trends must use a collapsed grouping (motorway / dual carriageway / conventional / urban / other) and be checked year by year; the street / other split is not comparable across 2023–2024. `TITULARIDAD_VIA = 5` is 7.9% in 2021, when 14.8% of rows carry 999 instead, and back near its earlier level in 2022, so its jump to 22% dates from 2023 |
 | `TIPO_VIA = 5` ("Carretera Convencional de doble calzada") falls from 6.8% to 1.8% of crashes between 2020 and 2021 while `TIPO_VIA = 6` ("Carretera Convencional de calzada única") rises from 17.9% to 21.4% and their sum stays near 23%; `TIPO_VIA = 1` ("Autopista de peaje") falls from about 2% to 0.4% in 2022 and 2024 while `TIPO_VIA = 2` ("Autopista libre") rises to 3.3%, with 2023 back at the earlier split and the sum stable near 3.7% | 2021, 2022, 2024 | interurban coding changes. The dual carriageway / conventional split is not comparable across 2020–2021, and the collapsed grouping does not fix it because `road_group` puts 5 in dual carriageway and 6 in conventional; the 2019 speed-limit study (computed but not published, as it fails its own placebo) therefore builds its two groups from the raw codes (5 and 6 against 1, 2 and 3, `policy.py`) so that the recoding stays inside the treated group, and the severity regressions (`features.py`) and `road_class.py` take conventional roads from the road-type code itself, codes 4 to 6 together, so the recoding stays inside one level. The toll/free motorway distinction is unusable, but codes 1 and 2 are pooled in every use (as `motorway` in `road_group` and in the severity regressions, as autopistas in `road_class.py`), so no group splits them |
 | `ZONA = 4` ("Autopista o autovía urbana") falls from 0.6–0.7% of crashes in 2016–2018 to 0.1% or less from 2019 (0.4% in 2021) | 2019+ | the code is almost unused from 2019 (the grouped zone is unaffected); the zone level in the DGT severity regressions is mostly an early-period estimate, and the page says so |
-| `NUDO = 1` (at a junction) rises from 38–40% of crashes in 2016–2022 to 43.5–43.7% in 2023–2024, and `NUDO_INFO = 999` from 0.5–0.7% (2.8% in 2018) to 14.5% in 2023 and 15.1% in 2024, 72% of those rows in Barcelona and 99% in the four Catalan provinces | 2023+ | the four Catalan provinces' records code `NUDO` the wrong way round from 2023 (`dgt_audit_junction_coding.csv`): their at-junction share goes from 35–42% a year to 62–63%, while elsewhere it stays at 37–40%; every Catalan crash coded `NUDO = 1` carries `NUDO_INFO = 999`, and 94% of those coded `NUDO = 2` carry a junction type, a field left empty away from a junction elsewhere. On the crashes with a death or serious injury that both files hold, DGT's 2023 Catalan crashes coded at a junction (69.5%) match the Servei Català de Trànsit file's crashes between junctions ("En secció", 69.6%); in 2016–2020 and 2022 they match its crashes within or near a junction, and in 2021 those within one. The DGT severity regressions read the flag the other way round in those province-years (`features.junction_codes`, `q3_junction_coding.csv`, methodology section 13); never read the junction share as a trend across 2022–2023, and do not use Catalan junction codes from 2023 without flipping them |
+| `NUDO = 1` (at a junction) rises from 38–40% of crashes in 2016–2022 to 43.5–43.7% in 2023–2024, and `NUDO_INFO = 999` from 0.5–0.7% (2.8% in 2018) to 14.5% in 2023 and 15.1% in 2024, 72% of those rows in Barcelona and 99% in the four Catalan provinces | 2023+ | the four Catalan provinces' records code `NUDO` the wrong way round from 2023 (`dgt_audit_junction_coding.csv`): their at-junction share goes from 35–42% a year to 62–63%, while elsewhere it stays at 37–40%; every Catalan crash coded `NUDO = 1` carries `NUDO_INFO = 999`, and 94% of those coded `NUDO = 2` carry a junction type, a field left empty away from a junction elsewhere. On the crashes with a death or serious injury that both files hold, DGT's 2023 Catalan crashes coded at a junction (69.5%) match the Servei Català de Trànsit file's crashes between junctions ("En secció", 69.6%); in 2016–2020 and 2022 they match its crashes within or near a junction, and in 2021 those within one. The DGT severity regressions read the flag the other way round in those province-years (`features.junction_codes`, `assoc_junction_coding.csv`, methodology section 13); never read the junction share as a trend across 2022–2023, and do not use Catalan junction codes from 2023 without flipping them |
 | `VISIB_RESTRINGIDA_POR` and `CONDICION_NIVEL_CIRCULA` swap between their explicit unknown code (18 "Se desconoce", 6 "Se desconoce") and 999 in 2021, 2023 and 2024: `VISIB_RESTRINGIDA_POR = 999` is 0.3% / 0.1% / 0.0% in 2019 / 2020 / 2022 but 14.9% / 14.0% / 14.8% in 2021 / 2023 / 2024 while code 18 drops from 28–30% to 4.8–5.6%, and `VISIB_RESTRINGIDA_POR = 17` ("Otras restricciones") jumps from 0.4% to 8.7–8.9% in the same three years; `CONDICION_NIVEL_CIRCULA = 999` is 9.5–10.2% in 2019 / 2020 / 2022 but 32.2% / 32.8% / 34.0% in 2021 / 2023 / 2024 while code 6 drops from 29–31% to 6.9–7.7%. `TITULARIDAD_VIA = 999` appears in 2021 (14.8%, 13,280 rows, all urban `ZONA 3` / `TIPO_VIA 9`) and in 28 rows of 2024 (0.03%, also all `ZONA 3`) | 2021, 2023, 2024 | concentrated in the four Catalan provinces (Barcelona alone is 74–79% of the `VISIB_RESTRINGIDA_POR = 999` rows in those years, Barcelona, Girona, Lleida and Tarragona together 97–100%; for `CONDICION_NIVEL_CIRCULA = 999`, which has a 10% floor everywhere, the four provinces are 65–71%); 13,412 of the 22,090 rows flagged for strong wind in 2021 are also `VISIB_RESTRINGIDA_POR = 999` rows; missingness is province- and year-dependent, so never run complete-case trend comparisons and never read these fields as a trend |
 | `CONDICION_METEO = 999` falls from 10.0–10.4% in 2016–2018 to 0.0–0.5% from 2019 on | 2018 → 2019 | missingness is year-dependent; never run complete-case trend comparisons |
 | `VISIB_RESTRINGIDA_POR = 999` falls 32.3% → 10.2% while code 1 ("Buena visibilidad") rises 29.8% → 50.8%; `CONDICION_FIRME = 9` falls 5.5% → 2.7%; `CONDICION_NIEBLA` is flagged in 0.6% → 7.3% of crashes, a rise that is Barcelona's alone (its records code fog in 33–45% of crashes a year from 2017) | 2016 → 2017 | 2016 is a separate reporting regime for the condition fields; treat 2016 as not comparable to later years |
@@ -257,14 +257,14 @@ No duplicate identifiers were found in any year.
 - The age in that table is the registered owner's. Checked against B-permit holders by age
   (`NUM_PERMISOS_B` in the 2024 census text file), it does not hold as a stand-in for the driver's
   at either end: there are 0.23 cars per B-permit holder at 18–24, 0.56 at 25–34 and 1.14 at 75+
-  (`q7_owner_age_check.csv`). The owner-age kilometres were the denominator of the former
+  (`drivers_owner_age_check.csv`). The owner-age kilometres were the denominator of the former
   driver-age figure; they are now never a driver-age denominator: they are kept as a comparison
   (Method D), as a bound for the age mix of the kilometres the travel survey does not cover
   (reported with its values and left out of the sensitivity ranges since October 2026) and as
   diagnostics of the 75-and-over checks, and the per-km rates by
   driver age divide by kilometres measured in the EMEF and EDM2018 travel surveys
-  ([`methodology.md`](methodology.md), section 7;
-  [`research/DRIVER_AGE_EXPOSURE.md`](research/DRIVER_AGE_EXPOSURE.md)).
+  ([`methodology.md`](../methodology.md), section 7;
+  [`drivers/driver_age_exposure.md`](../drivers/driver_age_exposure.md)).
 
 ### Monthly traffic series
 
@@ -321,7 +321,7 @@ No duplicate identifiers were found in any year.
   distraction and alcohol-and-drug models and the enforcement comparison, all three **withdrawn**
   because their results came from external-study coefficients: external studies may define
   variables or methods but never supply observations, coefficients or effect sizes
-  ([`DATA_CONTRACT.md`](DATA_CONTRACT.md), which states the two exceptions: the EMEF 2021
+  ([`sources/contract.md`](../sources/contract.md), which states the two exceptions: the EMEF 2021
   distance report's values in `emef/distance.py` and the Fundació RACC 2013 survey's figures in
   `exposure_risk/national.py`). The files stay in `data/raw/`, which is never edited,
   as a record; no code reads them, and `tests/test_withdrawn.py` checks that none does.
@@ -340,12 +340,12 @@ No duplicate identifiers were found in any year.
 | Question | Feasible with current files? | Why |
 |---|---|---|
 | Crash trends, seasonality, weekday/hour patterns 1993–2024 | Yes | series workbook plus microdata |
-| Severity of a crash given road type, zone, crash type, lighting, weather, surface, junction, alignment, in the DGT records | As an association only | the outcome and context variables are complete enough for a supporting association analysis ([`methodology.md`](methodology.md), section 13), with the recording levels flagged (`is_nuisance`) and a refit without the four Catalan provinces; the fields are recorded differently across provinces, so the DGT crash microdata do not train a predictive model ([`DGT_MICRODATA_AUDIT.md`](DGT_MICRODATA_AUDIT.md)) |
-| Severity among crashes with a death or serious injury, Catalonia 2010–2023 | Yes, within Catalonia | the Catalan file trains the crash-severity model; it holds no slight-injury crashes, so it says nothing about crash frequency. How far each model's evidence reaches is in [`MODEL_DECISIONS.md`](MODEL_DECISIONS.md) and [`GENERALISABILITY.md`](GENERALISABILITY.md) |
+| Severity of a crash given road type, zone, crash type, lighting, weather, surface, junction, alignment, in the DGT records | As an association only | the outcome and context variables are complete enough for a supporting association analysis ([`methodology.md`](../methodology.md), section 13), with the recording levels flagged (`is_nuisance`) and a refit without the four Catalan provinces; the fields are recorded differently across provinces, so the DGT crash microdata do not train a predictive model ([`models/dgt_microdata_audit.md`](../models/dgt_microdata_audit.md)) |
+| Severity among crashes with a death or serious injury, Catalonia 2010–2023 | Yes, within Catalonia | the Catalan file trains the crash-severity model; it holds no slight-injury crashes, so it says nothing about crash frequency. How far each model's evidence reaches is in [`models/decisions.md`](../models/decisions.md) and [`models/generalisability.md`](../models/generalisability.md) |
 | Person-level severity and recorded causes, Barcelona 2025 | Yes, for one city and one year | the Guàrdia Urbana crash, person and cause tables, which share `Numero_expedient`; a cause is what the police recorded, not an established cause |
 | Province comparisons per resident, per licensed driver, per registered vehicle | Per resident and per licence holder, yes; per registered vehicle, only for Spain as a whole | INE residents and the census files give population and drivers by province; the fleet is only national in the series |
 | Vulnerable road users (pedestrians, cyclists, moped riders, motorcyclists, VMP) fatality shares and trends | Yes | `TOT_*_MU30DF` columns |
-| Older road users, per unit of driving | Yes for 65 and over; for 75 and over as a range with a conditional estimate (2024) | the EMEF (Barcelona area, 2014–2024) measures car-driver kilometres by driver age up to 65+, and EDM2018 (Madrid, exact ages) gives the profile above 65; transferred to Spain's population and DGT's car kilometres, they divide the driver tables' car drivers involved and killed by age. The EMEF's public files merge 65–74 and 75+, so the 75+ rate is given as a sensitivity range (0.97–3.20 times the 45–64 rate) beside a conditional estimate on Madrid's 2018 age pattern (2.43, 95% sampling interval 2.0–3.0, with the average of the Barcelona and Madrid age profiles) ([`research/DRIVER_AGE_EXPOSURE.md`](research/DRIVER_AGE_EXPOSURE.md)). Deaths per driver involved need no kilometres |
+| Older road users, per unit of driving | Yes for 65 and over; for 75 and over as a range with a conditional estimate (2024) | the EMEF (Barcelona area, 2014–2024) measures car-driver kilometres by driver age up to 65+, and EDM2018 (Madrid, exact ages) gives the profile above 65; transferred to Spain's population and DGT's car kilometres, they divide the driver tables' car drivers involved and killed by age. The EMEF's public files merge 65–74 and 75+, so the 75+ rate is given as a sensitivity range (0.97–3.20 times the 45–64 rate) beside a conditional estimate on Madrid's 2018 age pattern (2.43, 95% sampling interval 2.0–3.0, with the average of the Barcelona and Madrid age profiles) ([`drivers/driver_age_exposure.md`](../drivers/driver_age_exposure.md)). Deaths per driver involved need no kilometres |
 | Heavy vehicles and buses per vehicle-km | Only for 2022, and only occupant deaths | involvement not in microdata; km by vehicle type only for 2022 (the Ministry's table 1.2.14 gives only the share of heavy vehicles on interurban roads, as one group) |
 | Alcohol, distraction, drugs, speed and illegal manoeuvres as recorded concurrent factors, year to year | Partly | DGT's speed report counts injury crashes with each factor, 2014–2023, for Spain without Cataluña and País Vasco; comparable only within runs of years without a recording break (urban distraction breaks in 2016 and 2019, urban alcohol in 2016, drugs throughout); deaths by factor are published for speed only |
 | Speed as a severity factor | Yes, as an association | the speed report's speed-related crashes and deaths by road type against microdata totals for the same provinces. The microdata restricted to the report's provinces reproduce its totals by year and zone exactly (`speed_report_scope`); the report gives no totals by road type, so the mapping of the microdata to its road types is not reconciled |
@@ -365,13 +365,13 @@ records for one city and one year (section 1 F) and do not stand in for national
 ## 5. Organisation
 
 - Raw files are tracked in Git under `data/raw/<source>/`, one folder per publisher
-  ([`data/README.md`](../data/README.md)), and are never edited in place. `data/raw/manifest.csv`
+  ([`data/README.md`](../../data/README.md)), and are never edited in place. `data/raw/manifest.csv`
   records path, size, SHA-256, source URL, description, the date added and, for renamed downloads,
   the name the file was downloaded as; any replacement must update the manifest entry, and
   `tests/test_paths.py` checks the checksums. The file count, sizes and any file missing from the
-  manifest are reported in the generated [`RAW_FILE_INVENTORY.md`](RAW_FILE_INVENTORY.md).
+  manifest are reported in the generated [`sources/raw_file_inventory.md`](../sources/raw_file_inventory.md).
 - `data/staging/<source>/`, `data/processed/` and `data/features/` are ignored by Git and rebuilt
-  from `data/raw/` by the scripts. `scripts/ingest.py` parses the national DGT files into Parquet
+  from `data/raw/` by the scripts. `scripts/run.py national.ingest` parses the national DGT files into Parquet
   under `data/staging/dgt/` on first run (`openpyxl` needs about 35 seconds per microdata year;
   Parquet loads in well under a second).
 - The RDF metadata file (`dgt/microdata/metadata_2024.rdf.xml`) holds the official access URL,

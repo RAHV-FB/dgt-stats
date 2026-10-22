@@ -2,7 +2,7 @@
 
 The state of the repository before the modelling, exposure and integrity rebuild, recorded so
 that every later change can be measured against it. The full source-to-claim map is in
-[`DEPENDENCY_MAP.md`](DEPENDENCY_MAP.md).
+[`DEPENDENCY_MAP.md`](dependency_map.md).
 
 ## Starting point
 
@@ -43,7 +43,7 @@ These are the points the later tasks take up; each is examined in the document n
    registered to owners of the same age band. The page states this, adds a reassignment scenario
    and a company-car scenario, and treats the result as a range. No source in the repository
    measured kilometres by the driver's age until the EMEF files were added
-   ([`DRIVER_AGE_EXPOSURE.md`](DRIVER_AGE_EXPOSURE.md)).
+   ([`DRIVER_AGE_EXPOSURE.md`](../drivers/driver_age_exposure.md)).
 2. **Deaths once involved** (drivers killed per 1,000 drivers involved, by age) need no exposure;
    numerator and denominator come from the same DGT tables, year and population. This result is
    sound as computed.
@@ -55,11 +55,11 @@ These are the points the later tasks take up; each is examined in the document n
 4. **The monthly deaths forecast** loses to last year's count in the ordinary held-out years (an
    error of 6.6% against 5.9%) and is replaced by it in the model decisions, yet `forecast.py`'s
    docstring still calls the model "the one used" and the page's minimum detectable change comes
-   from the rejected model's errors ([`ML_MODEL_REVIEW.md`](ML_MODEL_REVIEW.md)).
+   from the rejected model's errors ([`ML_MODEL_REVIEW.md`](../models/review.md)).
 5. **The Catalan severity model** is tested once, on 2023 (1,732 crashes, 209 fatal), with a
    calibration slope of 0.97. Its validation is careful, but the public page leads with ROC-AUC and
    permutation importance rather than predicted against observed outcomes, and there is no tool to
-   use it ([`ML_MODEL_REVIEW.md`](ML_MODEL_REVIEW.md)).
+   use it ([`ML_MODEL_REVIEW.md`](../models/review.md)).
 6. **Orphans.** Eight result tables are read by no page, link or test (`gen_population_context`,
    `ml_missingness`, `ml_recording_check`, `ml_stability`, `ml_transport_reweighting`,
    `mq_bcn_coordinates`, `mq_bcn_null_rates`, `mq_cat_placeholders`; most feed generated
@@ -68,7 +68,7 @@ These are the points the later tasks take up; each is examined in the document n
    holders of any licence class; vehicle rates divide crashes of foreign vehicles by Spanish
    kilometres; a per-fuel check sets interurban deaths against national fuel; residents are taken
    on 1 July nationally and on 1 January for Catalonia. Each is reviewed in
-   [`STATISTICAL_AUDIT.md`](STATISTICAL_AUDIT.md).
+   [`STATISTICAL_AUDIT.md`](statistical_audit.md).
 8. **The Barcelona person table** records the exact age of every driver involved, the uninjured
    included, and the date, so the city's crashes can be split by working day and matched in
    geography to EMEF trips made inside Barcelona: a check on the national design that no other
@@ -80,12 +80,12 @@ Each task is completed, tested and committed on its own.
 
 | Task | Subject | Output |
 |---|---|---|
-| 1 | Repository audit | this document, [`DEPENDENCY_MAP.md`](DEPENDENCY_MAP.md) |
-| 2–3 | Re-evaluation of every model; predicted against observed | [`ML_MODEL_REVIEW.md`](ML_MODEL_REVIEW.md) |
-| 4–6 | Interactive crash-severity model, its validation and its findings | [`SEVERITY_CALCULATOR.md`](SEVERITY_CALCULATOR.md) |
-| 7–9 | EMEF inventory, harmonisation, access to finer ages | [`EMEF_INVENTORY.md`](EMEF_INVENTORY.md), [`EMEF_DATA_REQUEST.md`](EMEF_DATA_REQUEST.md) |
-| 10–15 | Driving exposure: workday, years, weekends, Spain, 75 and over | [`DRIVER_AGE_EXPOSURE.md`](DRIVER_AGE_EXPOSURE.md) |
-| 16–20 | Crash numerator, rates by age, quasi-induced exposure, uncertainty, conclusions | [`DRIVER_AGE_EXPOSURE.md`](DRIVER_AGE_EXPOSURE.md) |
-| 21–23 | Audit of every public claim; corrections; rewritten text | [`STATISTICAL_AUDIT.md`](STATISTICAL_AUDIT.md) |
+| 1 | Repository audit | this document, [`DEPENDENCY_MAP.md`](dependency_map.md) |
+| 2–3 | Re-evaluation of every model; predicted against observed | [`ML_MODEL_REVIEW.md`](../models/review.md) |
+| 4–6 | Interactive crash-severity model, its validation and its findings | [`SEVERITY_CALCULATOR.md`](../models/severity_calculator.md) |
+| 7–9 | EMEF inventory, harmonisation, access to finer ages | [`EMEF_INVENTORY.md`](../drivers/emef_inventory.md), [`EMEF_DATA_REQUEST.md`](../drivers/emef_data_request.md) |
+| 10–15 | Driving exposure: workday, years, weekends, Spain, 75 and over | [`DRIVER_AGE_EXPOSURE.md`](../drivers/driver_age_exposure.md) |
+| 16–20 | Crash numerator, rates by age, quasi-induced exposure, uncertainty, conclusions | [`DRIVER_AGE_EXPOSURE.md`](../drivers/driver_age_exposure.md) |
+| 21–23 | Audit of every public claim; corrections; rewritten text | [`STATISTICAL_AUDIT.md`](statistical_audit.md) |
 | 24 | Site | the drivers and models pages |
-| 25 | Final review | [`FINAL_REPORT.md`](FINAL_REPORT.md) |
+| 25 | Final review | [`FINAL_REPORT.md`](final_report.md) |

@@ -1,6 +1,6 @@
 # Claim ledger
 
-[`CLAIM_LEDGER.csv`](CLAIM_LEDGER.csv) lists 402 claims published on the site at the start of the
+[`CLAIM_LEDGER.csv`](claim_ledger.csv) lists 402 claims published on the site at the start of the
 final audit (commit `4ce9e4b` and the builds before it), one row per claim, and 21 rows added
 later (ledger-B|94–98 and ledger-E|1–16). Each row records:
 

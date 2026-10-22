@@ -4,9 +4,9 @@ This file is the authority for what the project may do with each dataset: its un
 observation, its key, what it may be joined to and how, what it may never be joined to, and the
 limits that follow from how it was selected. Code that breaks a rule here is a bug. Where a
 statement depends on the data, the check that enforces it is named; the figures themselves are
-generated in [`DATA_QUALITY_MICRODATA.md`](DATA_QUALITY_MICRODATA.md),
-[`RAW_FILE_INVENTORY.md`](RAW_FILE_INVENTORY.md) and the reconciliation table
-`reports/tables/validation.csv`, so they are not repeated here where they could drift.
+generated in [`regional/data_quality.md`](../regional/data_quality.md),
+[`sources/raw_file_inventory.md`](raw_file_inventory.md) and the reconciliation table
+`reports/tables/national/reconciliation.csv`, so they are not repeated here where they could drift.
 
 ## Rules that apply to every dataset
 
@@ -15,19 +15,19 @@ generated in [`DATA_QUALITY_MICRODATA.md`](DATA_QUALITY_MICRODATA.md),
    observation, a coefficient, a relative risk, a missing variable, a join or a confirmation.
    Two exceptions remain. The first is the EMEF's road-to-straight-line distance ratio for
    driving trips (1.45) and the 2021 distance benchmarks, typed into
-   `src/dgt_stats/emef/distance.py` from the EMEF 2021 distance report, the survey producer's
+   `src/dgt_stats/drivers/emef/distance.py` from the EMEF 2021 distance report, the survey producer's
    measurement on the same survey's 2021 trips. The report is not archived and could not be
    found again, so these values rest on the transcription
-   ([`research/DRIVER_AGE_EXPOSURE.md`](research/DRIVER_AGE_EXPOSURE.md)). The second is the
+   ([`drivers/driver_age_exposure.md`](../drivers/driver_age_exposure.md)). The second is the
    Fundació RACC 2013 survey of licence holders aged 65 and over: the shares who do not drive
-   and the days a week the others drive, typed into `src/dgt_stats/exposure_risk/national.py`
+   and the days a week the others drive, typed into `src/dgt_stats/drivers/exposure_risk/national.py`
    from the published slide dossier and not archived, because RACC grants no reuse licence.
    They set the upper limit on men's kilometres at 75 and over in one split of the 65-and-over
-   kilometres ([`data_sources.md`](data_sources.md)). Definitions taken from documents are not
+   kilometres ([`sources/register.md`](register.md)). Definitions taken from documents are not
    observations and are cited where the code holds them: the 2025 public holidays of Catalonia
-   and Barcelona (`src/dgt_stats/exposure_risk/calendar.py`, from Ordre EMT/85/2024 and the
+   and Barcelona (`src/dgt_stats/drivers/exposure_risk/calendar.py`, from Ordre EMT/85/2024 and the
    city's decree) and the fourteen public holidays a year of the Estatuto de los Trabajadores
-   (`src/dgt_stats/exposure_risk/national.py`), which separate working days from the rest.
+   (`src/dgt_stats/drivers/exposure_risk/national.py`), which separate working days from the rest.
 2. **Raw files are immutable.** `data/raw/<source>/` holds files byte for byte, each listed in
    `data/raw/manifest.csv` with its SHA-256 (checked by `tests/test_paths.py`). Cleaning writes
    new files in `data/staging`, `data/processed` and `data/features`; nothing is edited by hand.
@@ -45,22 +45,24 @@ generated in [`DATA_QUALITY_MICRODATA.md`](DATA_QUALITY_MICRODATA.md),
 7. **Missing is not "no".** Blank, `NA`, "Sense especificar" and "not recorded" stay as their own
    states unless the source's own structure proves what they mean (see each dataset).
 
-## Source hierarchy: which dataset answers which question
+## Sections: which dataset answers which question
 
-Four layers, each with its own unit of observation, declared in `src/dgt_stats/layers.py` and
-shown on the site's [sources page](https://rahv-fb.github.io/dgt-stats/sources.html). No layer is
-merged into another and there is no master crash database.
+The project is divided into five sections by where the data come from, declared in
+`src/dgt_stats/catalogue.py` and mapped source by source and table by table in
+[`catalogue.md`](../catalogue.md). No section's records are merged into another's and there is no
+master crash database.
 
-| Layer | Sources | Used for | Not used for |
+| Section | Sources | Used for | Not used for |
 |---|---|---|---|
-| National context | DGT crash microdata, yearbook series and tables, driver census and kilometre estimates; INE residents; traffic and fuel series | trends, exposure and denominators, province and year comparisons, historical context, aggregate rates, benchmarks for the regional files | training a predictive model unless the [DGT audit](DGT_MICRODATA_AUDIT.md) allows it (the severity regression of `scripts/model.py` is a supporting association analysis, never used for prediction); denominators for individual crashes |
-| Crash microdata: Catalonia | Servei Català de Trànsit file | the fatal-against-serious crash model; its temporal and geographic validation; the training domain of the transfer tests | crash frequency (no slight-injury crashes); driving speed; record linkage |
-| Rich microdata: Barcelona | Guàrdia Urbana tables | person and crash severity; road users; recorded causes; diagnostics and external checks of the Catalan model | trends (one year); unique vehicles; a fatal-against-serious benchmark (too few fatal crashes) |
-| Validation and transportability | not a source: a use | models trained in one layer scored on another's real records; population comparisons | creating observations; joining records |
+| National | DGT crash microdata, yearbook series and tables, driver census and kilometre estimates, speed report; INE residents; traffic and fuel series | trends, exposure and denominators, province and year comparisons, historical context, aggregate rates, benchmarks for the regional files | training a predictive model unless the [DGT audit](../models/dgt_microdata_audit.md) allows it (the severity regression of `scripts/run.py national.associations` is a supporting association analysis, never used for prediction); denominators for individual crashes |
+| Drivers | DGT driver tables, census and kilometres; INE population by single year of age; the EMEF, EDM2018 and MOVILIA travel surveys; two sets of typed figures (EMEF 2021 distance report, Fundació RACC 2013) | crash involvement per licence holder and per kilometre by driver age and sex; Barcelona's working-day check | a kilometre measure attached to an individual crash; ages within 65 and over from the EMEF alone |
+| Regional | Servei Català de Trànsit file; Guàrdia Urbana tables | Catalonia: severity among crashes with a death or serious injury; Barcelona: person and crash severity, road users, recorded causes | crash frequency in Catalonia (no slight-injury crashes); driving speed; trends in Barcelona (one year); unique vehicles; record linkage |
+| Models | the regional records (training); DGT's and Barcelona's records (tests only) | the crash-severity models, their temporal and geographic validation and transfer tests, population comparisons | creating observations; joining records |
+| Sources | every raw file | what each file holds and how each source came to exist | — |
 
 How each source came to exist (who records it, inclusion rule, severity definition, when each
 variable is known, recording artefacts) is generated in
-[`SOURCE_COMPARISON.md`](SOURCE_COMPARISON.md). Two rules follow from the hierarchy:
+[`sources/source_comparison.md`](source_comparison.md). Two rules follow from the sections:
 
 8. **Cross-source data test models; they never manufacture observations.** A model trained on
    one source may be scored on another source's real records with harmonised variables validated
@@ -68,25 +70,29 @@ variable is known, recording artefacts) is generated in
    it, or reweighted into a synthetic population (reweighting appears only as a labelled
    sensitivity check).
 9. **A source enters a predictive model only if it passes its audit.** The DGT crash microdata
-   train a predictive model only if all seven checks of [`DGT_MICRODATA_AUDIT.md`](DGT_MICRODATA_AUDIT.md) pass
+   train a predictive model only if all seven checks of [`models/dgt_microdata_audit.md`](../models/dgt_microdata_audit.md) pass
    (unit, target, definitions, construction, severity and inclusion definitions, comparability
-   across provinces, recording artefacts); otherwise they stay the national analytical layer (the
+   across provinces, recording artefacts); otherwise they stay in the national section (the
    supporting association analysis among them) and a test domain for fields validated on the
    crashes both sources hold.
 
-## Layers on disk
+## Data layers on disk
+
+Each file passes through up to four processing layers; only `raw` is committed.
 
 | Layer | Path | Written by | Contents |
 |---|---|---|---|
-| raw | `data/raw/<source>/` | download, `scripts/microdata.py organise` | source files, manifest |
-| staging | `data/staging/<source>/` | `scripts/ingest.py`, `scripts/microdata.py build` | parsed files; source column names normalised, values unchanged |
-| processed | `data/processed/` | `scripts/build_tables.py`, `scripts/microdata.py build` | validated tables at one documented unit |
-| features | `data/features/` | `scripts/microdata.py features` | model matrices: id, target, group, features, provenance |
+| raw | `data/raw/<source>/` | download, `scripts/run.py regional.organise` | source files, manifest |
+| staging | `data/staging/<source>/` | `scripts/run.py national.ingest`, `scripts/run.py regional.build` | parsed files; source column names normalised, values unchanged |
+| processed | `data/processed/` | `scripts/run.py national.process`, `scripts/run.py regional.build` | validated tables at one documented unit |
+| features | `data/features/` | `scripts/run.py models.features` | model matrices: id, target, group, features, provenance |
 
-Sources in `data/raw`: `dgt/` (Dirección General de Tráfico), `ine/`, `transportes/`
-(Ministerio de Transportes), `cores/`, `comunidad_madrid/`, `catalonia/` (Servei Català de
-Trànsit export), `barcelona/` (Guàrdia Urbana, Open Data BCN), and `compiled/` (values typed by
-hand from publications: not source data, see below).
+Folders in `data/raw`, one per publisher: `dgt/` (Dirección General de Tráfico), `ine/`,
+`transportes/` (Ministerio de Transportes), `cores/`, `emef/` (the EMEF survey), `crtm/` (the
+Madrid survey), `idescat/`, `comunidad_madrid/`, `catalonia/` (Servei Català de Trànsit export),
+`barcelona/` (Guàrdia Urbana, Open Data BCN), and `compiled/` (values typed by hand from
+publications: not source data, see below). Which source each file belongs to, and whether any
+analysis reads it, is in [`catalogue.md`](../catalogue.md).
 
 ## National datasets
 
@@ -106,9 +112,9 @@ hand from publications: not source data, see below).
 - **Selection and quality**: reconciled with the yearbook by 482 checks; how often fields are
   left unrecorded differs by region (the share of unrecorded values by field and province, and how much of a
   model's ranking the unrecorded fields alone would carry, are measured in
-  [`DGT_MICRODATA_AUDIT.md`](DGT_MICRODATA_AUDIT.md)); coding breaks are listed on the site's
+  [`models/dgt_microdata_audit.md`](../models/dgt_microdata_audit.md)); coding breaks are listed on the site's
   data page.
-- **Role**: national analytical layer (including the supporting association analysis) and
+- **Role**: the national section's crash records (including the supporting association analysis) and
   external test domain; it trains a predictive model only if the audit allows it (decision
   regenerated each run).
 
@@ -149,7 +155,7 @@ hand from publications: not source data, see below).
   passenger stage never makes a driving trip.
 - **Allowed**: weighted kilometres, trips and shares of residents by sex and age group, as the
   denominator of car drivers' crash involvement by age once transferred to a population by
-  Methods A to C ([`research/DRIVER_AGE_EXPOSURE.md`](research/DRIVER_AGE_EXPOSURE.md)).
+  Methods A to C ([`drivers/driver_age_exposure.md`](../drivers/driver_age_exposure.md)).
   Estimates carry bootstrap intervals from the respondents (EMEF, within year and comarca) or
   households (EDM2018).
 - **Forbidden**: attaching respondents to crashes or people; publishing an EMEF estimate that
@@ -202,7 +208,7 @@ hashed, as the record of what the withdrawn models used.
   only.
 - **Recording artefacts**: the "not specified" levels of several fields are far rarer among fatal
   crashes (the file does not say why) and vary by year and place; those fields are
-  excluded from the primary model (`recording.py`, `ML_LEAKAGE_AUDIT.md`). Structural `NA`s
+  excluded from the primary model (`recording.py`, `models/leakage_audit.md`). Structural `NA`s
   (road owner on urban streets, junction type away from junctions) are kept.
 - **Allowed joins**: none at record level. Aggregates by province-year with the DGT microdata and
   INE residents (definitions above).
@@ -213,7 +219,7 @@ hashed, as the record of what the withdrawn models used.
 
 Six tables sharing `Numero_expedient` (spelt `Número_expedient` in the driver-cause file; only the
 column name is normalised). Each table holds exactly the same set of crash ids (checked in
-`DATA_QUALITY_MICRODATA.md` and `tests/test_microdata_tables.py`).
+`regional/data_quality.md` and `tests/test_microdata_tables.py`).
 
 | Table (downloaded as) | Unit | Rows per crash | Reaches the crash table by |
 |---|---|---|---|
@@ -246,7 +252,7 @@ column name is normalised). Each table holds exactly the same set of crash ids (
 - **Vehicle records**: more rows than reported vehicles and no vehicle identifier, so counting
   vehicles, per-vehicle rates, vehicle-person links and reading licence fields as a driver's are
   out of scope. Presence of a vehicle type in a crash is allowed (the set of types agrees with
-  the person records for every crash). See [`BARCELONA_VEHICLE_AUDIT.md`](BARCELONA_VEHICLE_AUDIT.md).
+  the person records for every crash). See [`regional/barcelona_vehicle_audit.md`](../regional/barcelona_vehicle_audit.md).
 - **Allowed joins**: within the six tables on `Numero_expedient`, as above.
 - **Allowed with stated limits**: car drivers involved in crashes with a victim per kilometre
   driven inside the city on working days, by age group, as ratios to the 45-64 group
@@ -261,8 +267,8 @@ column name is normalised). Each table holds exactly the same set of crash ids (
 ## Where sources meet
 
 Every cross-source comparison is listed with its key, cardinality, units before and after, the
-definitions on each side and what was validated in `reports/tables/gen_cross_source_register.csv`
-(rendered in [`GENERALISABILITY.md`](GENERALISABILITY.md)). In short:
+definitions on each side and what was validated in `reports/tables/models/gen_cross_source_register.csv`
+(rendered in [`models/generalisability.md`](../models/generalisability.md)). In short:
 
 | Comparison | Key | Status |
 |---|---|---|
@@ -274,22 +280,22 @@ definitions on each side and what was validated in `reports/tables/gen_cross_sou
 | Car drivers involved per km by age, Barcelona city working days | age group x working day, no record matched | Guàrdia Urbana drivers of 2025 against EMEF 2022-2024 residents' km inside the city: a range of ratios between ages |
 
 The harmonised fields, with exact, defensible, approximate and unusable mappings, are in
-`reports/tables/ml_common_features.csv`; only exact and defensible fields that pass the overlap
+`reports/tables/models/ml_common_features.csv`; only exact and defensible fields that pass the overlap
 check enter a cross-source model.
 
 ## Machine-learning tables
 
 Each table in `data/features/` has one row per real observation, a stable id, the target, the
 grouping key where rows share a crash, the features the catalogue allows and a provenance record
-(source files and SHA-256). The catalogue in `src/dgt_stats/microdata/ml/features.py` decides every
+(source files and SHA-256). The catalogue in `src/dgt_stats/national/associations/ml/features.py` decides every
 column's status (safe, questionable, direct leakage, excluded) and generates
-[`ML_LEAKAGE_AUDIT.md`](ML_LEAKAGE_AUDIT.md). Rows of one crash never fall on both sides of a split
+[`models/leakage_audit.md`](../models/leakage_audit.md). Rows of one crash never fall on both sides of a split
 (`tests/test_microdata_models.py`); categorical gaps are explicit categories and numeric gaps are
 imputed inside the pipeline on training rows only; no synthetic or oversampled rows are created.
 
 Every model is compared with a descriptive lookup table before it is presented, and kept only if
-it beats it (`src/dgt_stats/microdata/ml/rules.py`); the decision for every model, with where it
-works and fails, is generated in [`MODEL_DECISIONS.md`](MODEL_DECISIONS.md). Transfer results
+it beats it (`src/dgt_stats/national/associations/ml/rules.py`); the decision for every model, with where it
+works and fails, is generated in [`models/decisions.md`](../models/decisions.md). Transfer results
 are always reported beside an in-domain reference, and representativeness (how populations
 differ) is reported separately from transportability (whether a model keeps its ranking):
-[`GENERALISABILITY.md`](GENERALISABILITY.md).
+[`models/generalisability.md`](../models/generalisability.md).

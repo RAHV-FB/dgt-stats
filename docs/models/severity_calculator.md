@@ -10,7 +10,7 @@ days appear in the file as serious. The data contain only crashes, so the model 
 how likely a crash is to happen, how risky a road is per kilometre, or what changing a road or a
 condition would do. A difference between two scenarios is an association in these records.
 
-Code: `src/dgt_stats/severity_model.py` and `scripts/severity_calculator.py calculator`. Browser
+Code: `src/dgt_stats/national/associations/severity_model.py` and `scripts/run.py models.calculator`. Browser
 engine: `src/dgt_stats/site/assets/severity-engine.js`; page: `severity-calculator.js`. Tests:
 `tests/test_severity_engine.py` and the calculator tests in `tests/test_site_browser.py`.
 
@@ -21,7 +21,7 @@ Three sources could support the question.
 | Source | Unit | Fatal cases | Why chosen or not |
 |---|---|---|---|
 | Servei Català de Trànsit, 2010–2023 | crash with a death or serious injury | 2,822 of 22,638 used | **chosen**: the population the question names, fourteen years, road, conditions and units involved recorded in every row |
-| DGT crash microdata, 2016–2024 | injury crash, Spain | about 14,000 of 875,013 | not used to train: fields are blank at rates that differ by province and by outcome, and the fields left unrecorded where they apply rank fatal crashes on their own with ROC-AUC 0.68 (`dgt_audit_artefacts.csv`, deaths within 30 days; [`DGT_MICRODATA_AUDIT.md`](../DGT_MICRODATA_AUDIT.md)) |
+| DGT crash microdata, 2016–2024 | injury crash, Spain | about 14,000 of 875,013 | not used to train: fields are blank at rates that differ by province and by outcome, and the fields left unrecorded where they apply rank fatal crashes on their own with ROC-AUC 0.68 (`dgt_audit_artefacts.csv`, deaths within 30 days; [`models/dgt_microdata_audit.md`](dgt_microdata_audit.md)) |
 | Guàrdia Urbana, Barcelona 2025 | person or crash | 13 deaths | far too few fatal cases for this question |
 
 **The road owner's recording artefact.** On interurban conventional roads the owner field takes two
@@ -241,7 +241,7 @@ they are likely to be low.
 
 ## Implementation for the page
 
-`scripts/severity_calculator.py calculator` writes `reports/models/severity_model.json`, which
+`scripts/run.py models.calculator` writes `reports/models/severity_model.json`, which
 holds:
 
 - the columns and coefficients, and the lower triangle of the bootstrap covariance;

@@ -5,11 +5,11 @@ aged 16 and over on a working day (Monday to Friday, not a public holiday) in th
 the Autoritat del Transport Metropolità (ATM) of the Barcelona area. It is run by the ATM with
 Idescat and the Institut Metròpoli. This document records which public-use files exist, how
 they were read, how the eleven years were made comparable, which checks they pass, and which
-questions they cannot answer. The code is `src/dgt_stats/emef/` (`variables.py` for the year-by-year
-layout, `ingest.py` for reading and checking); `python scripts/emef.py build` writes the
-harmonised tables and the inventory, and `python scripts/emef.py validate` the reproduction of
+questions they cannot answer. The code is `src/dgt_stats/drivers/emef/` (`variables.py` for the year-by-year
+layout, `ingest.py` for reading and checking); `python scripts/run.py drivers.emef` writes the
+harmonised tables and the inventory, and `python scripts/run.py drivers.emef` the reproduction of
 published figures. Provenance and reuse terms of each file are in
-[`docs/data_sources.md`](../data_sources.md) and `data/raw/manifest.csv`.
+[`sources/register.md`](../sources/register.md) and `data/raw/manifest.csv`.
 
 ## Files
 
@@ -25,7 +25,7 @@ directly, mean the same in both. The files were published under different names 
 (`..._Indivi_...`, `..._Individus`, `..._Desplaçaments`, and `..._Opinió` for the respondent files
 of 2018, 2019, 2020 and 2023); the manifest keeps each original name. The full inventory, with
 counts, the source column of each harmonised variable, missing-value shares and the method notes
-below, is `reports/tables/emef_inventory.csv`.
+below, is `reports/tables/drivers/emef_inventory.csv`.
 
 | Year | Survey area | Respondents | Of whom made a trip | Trips | Car-driver trips | Respondents who drove | Population 16+ | Age groups |
 |---|---|---:|---:|---:|---:|---:|---:|---|
@@ -115,7 +115,7 @@ respondent (`tests/test_emef.py`).
 ## Checks
 
 `ingest.validate()` runs 154 checks, fourteen per year, and every estimate depends on all of them
-passing (`reports/tables/emef_checks.csv`; `build` refuses to write the tables otherwise):
+passing (`reports/tables/drivers/emef_checks.csv`; `build` refuses to write the tables otherwise):
 
 * the number of respondents equals the final sample, and the weighted total equals the population
   aged 16 and over, in Table 1 of the survey's technical document (exactly, every year);
@@ -131,7 +131,7 @@ passing (`reports/tables/emef_checks.csv`; `build` refuses to write the tables o
 * weights are positive and every trip has a first mode.
 
 **Reproduction of published figures.** Fifteen figures from the official 2024 results were
-recomputed from the microdata (`reports/tables/emef_reproduction.csv`): trips per working day
+recomputed from the microdata (`reports/tables/drivers/emef_reproduction.csv`): trips per working day
 (19,819.6 thousand), trips by men and by women, walking trips, the shares of active, public and
 private main modes, the car's share of private-vehicle trips, and the shares of residents who drive
 a car habitually or never, overall and by area (53.7% habitual drivers in the SIMMB). Every one
@@ -141,8 +141,8 @@ off. This confirms the weights, the mode codes and the frequency scale.
 
 **Distance benchmarks.** The distance model behind the kilometre estimates reproduces the mean
 straight-line trip and the daily straight-line kilometres per person who travelled, by age, in the
-EMEF 2024 executive summary, to within 3% (`emef_distance_validation.csv`;
-[`DRIVER_AGE_EXPOSURE.md`](DRIVER_AGE_EXPOSURE.md)). The EMEF 2021 distance report, the source of
+EMEF 2024 executive summary, to within 3% (`emef_distance_reconciliation.csv`;
+[`drivers/driver_age_exposure.md`](driver_age_exposure.md)). The EMEF 2021 distance report, the source of
 the road-to-straight-line ratio of 1.45 and of the 2021 benchmarks, is not archived and could not
 be found online again.
 
@@ -178,10 +178,10 @@ from 2017 "because of the difficulty of obtaining responses from this last age g
 results are not given disaggregated". The questionnaire also filters on exact age (for example,
 retired respondents under 75 are asked whether they did any paid work), so the confidential
 records hold it. The way to a 75 and over estimate from this survey is therefore a request to the
-data holders; [`EMEF_DATA_REQUEST.md`](EMEF_DATA_REQUEST.md) sets one out. Until a reply arrives,
+data holders; [`drivers/emef_data_request.md`](emef_data_request.md) sets one out. Until a reply arrives,
 every EMEF estimate of driving in this repository stops at 65 and over, and the split of that group
 is a conditional estimate drawn from other evidence
-([`DRIVER_AGE_EXPOSURE.md`](DRIVER_AGE_EXPOSURE.md)).
+([`drivers/driver_age_exposure.md`](driver_age_exposure.md)).
 
 **The P1b routing.** Question P1b (`V01B`, paid work last week) is filtered "P1a=3 i edat<75": it
 is not asked of respondents who answer P1a as retired, pensioner or aged 75 and over (code 3) and

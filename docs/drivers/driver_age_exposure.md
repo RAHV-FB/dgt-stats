@@ -3,12 +3,12 @@
 This document estimates how far people of each age drive a car, and then how often car drivers of
 each age are involved in injury crashes per kilometre driven (Tasks 10–20). The main source of
 exposure is the EMEF working-day mobility survey, 2014–2024
-([`EMEF_INVENTORY.md`](EMEF_INVENTORY.md)). The Madrid household travel survey of 2018 (EDM2018)
-gives the age profile above 65 and a second regional profile. The code is `src/dgt_stats/emef/`
+([`drivers/emef_inventory.md`](emef_inventory.md)). The Madrid household travel survey of 2018 (EDM2018)
+gives the age profile above 65 and a second regional profile. The code is `src/dgt_stats/drivers/emef/`
 (kilometres from distance bands, exposure estimates, intervals and sensitivity analyses),
-`src/dgt_stats/edm2018.py` (the Madrid survey) and `src/dgt_stats/exposure_risk/` (the Barcelona
-working-day check, the national methods and the rates). `python scripts/emef.py validate exposure`
-writes the `reports/tables/emef_*.csv` tables cited here, and `python scripts/exposure_risk.py all`
+`src/dgt_stats/drivers/edm2018.py` (the Madrid survey) and `src/dgt_stats/drivers/exposure_risk/` (the Barcelona
+working-day check, the national methods and the rates). `python scripts/run.py drivers.emef`
+writes the `reports/tables/drivers/emef_*.csv` tables cited here, and `python scripts/run.py drivers.exposure`
 writes the `risk_*.csv` and `edm_*.csv` tables. The method and every figure below were revised in
 October 2026 after an independent audit.
 
@@ -54,7 +54,7 @@ other defensible analytic choices.
 requirements of Eurostat and Idescat: an estimate may be published only if its cell rests on at
 least 20 sample observations, and a table only if at least 60% of its cells can be; other cells are
 marked "..". The `emef_*.csv` tables and `risk_barcelona_km.csv` apply it
-(`src/dgt_stats/emef/publication.py`): a cell below the threshold keeps its sample count, its
+(`src/dgt_stats/drivers/emef/publication.py`): a cell below the threshold keeps its sample count, its
 estimates are left empty, and, in the three tables where a cell falls below it, a `suppressed`
 column marks the row. Three cells do: trips of 100 km or more at 16–29 in `emef_km_by_band.csv`
 (11 sample trips), "less than monthly" at 16–29 in `emef_driving_frequency.csv` (17 respondents)
@@ -93,7 +93,7 @@ multiplies every age group's kilometres alike, so it changes absolute rates per 
 changes the ratios between age groups only slightly (trips without a band are bounded by a
 door-to-door speed whatever the ratio).
 
-**Validation** (`emef_distance_validation.csv`). The model is checked against the 2021 report and
+**Validation** (`emef_distance_reconciliation.csv`). The model is checked against the 2021 report and
 against the EMEF 2024 executive summary, which is archived:
 
 | Benchmark | Published | This method |
@@ -321,7 +321,7 @@ all of Catalonia, not only the province, and defines employment by its own quest
 have been calibrated to the census by place of birth since 2023, but the rise in the employed share
 began in 2022, so that change does not explain it alone. Whether the calibration keeps 65–74 and
 75 and over apart is not published; the data request asks for the calibration margins
-([`EMEF_DATA_REQUEST.md`](EMEF_DATA_REQUEST.md)).
+([`drivers/emef_data_request.md`](emef_data_request.md)).
 
 ## Usual driving
 
@@ -336,7 +336,7 @@ every age group, which confirms that the reference day captures regular driving 
 
 The national estimate transfers a regional age profile to Spain and spreads it over every day of
 the year. Barcelona allows a comparison that needs neither step: crashes and driving inside one
-city on working days (`src/dgt_stats/exposure_risk/barcelona.py`; `risk_barcelona_*.csv`). It is
+city on working days (`src/dgt_stats/drivers/exposure_risk/barcelona.py`; `risk_barcelona_*.csv`). It is
 not matched in time, because the crashes are of 2025 and the kilometres of 2022–2024, and its
 numerator holds drivers its denominator does not count. It is separate evidence about a different
 population, not a check that can confirm or bound the national ratio.
@@ -469,7 +469,7 @@ weekend mixes further, applying them to every part of DGT's total that the surve
 ## Spain: methods for putting kilometres on ages
 
 No national source measures kilometres by the driver's age. Five methods are compared
-(`src/dgt_stats/exposure_risk/national.py`; `risk_national_shares.csv`).
+(`src/dgt_stats/drivers/exposure_risk/national.py`; `risk_national_shares.csv`).
 
 * **A, demographic calibration (central).** The EMEF's working-day kilometres per resident by age
   group and sex (province of Barcelona, 2022–2024) are applied to the population of Spain on
@@ -530,7 +530,7 @@ older drivers.
 
 ## The kilometres the survey does not cover
 
-`src/dgt_stats/exposure_risk/coverage.py`; `risk_coverage.csv` (the parts),
+`src/dgt_stats/drivers/exposure_risk/coverage.py`; `risk_coverage.csv` (the parts),
 `risk_coverage_evidence.csv` (every measured value behind them), `risk_coverage_mixes.csv` (the
 age mixes tested) and `risk_coverage_scenarios.csv` (the ratios under each scenario).
 
@@ -726,7 +726,7 @@ kilometres than holders aged 45–64. The page states that and guards it.
 
 The EMEF's public files group everyone aged 65 and over; the survey sampled 65–74 and 75 and over
 as separate strata only until 2016 and never published either group
-([`EMEF_INVENTORY.md`](EMEF_INVENTORY.md)). The Madrid household survey of 2018 has exact ages
+([`drivers/emef_inventory.md`](emef_inventory.md)). The Madrid household survey of 2018 has exact ages
 (`edm_profile.csv`, `edm_older_split.csv`):
 
 | Age (Madrid, 2018) | 45–64 | 65–69 | 70–74 | 75–79 | 80–84 | 85+ |
@@ -794,7 +794,7 @@ ratio to each sex is mis-specified (it gives 2.19) and is not used.
   men 0.48 (0.36–0.63), women 0.99 (0.56–1.58)). The agreement is nearly automatic, because
   Spain's and Madrid's prevalence gradients are nearly equal: a consistency check, not support.
 * In the EMEF itself, retirees aged 75 and over can be identified through the routing of
-  question P1b (see [`EMEF_INVENTORY.md`](EMEF_INVENTORY.md)). In 2014 and 2016, the years whose
+  question P1b (see [`drivers/emef_inventory.md`](emef_inventory.md)). In 2014 and 2016, the years whose
   routing share matches INE's, an exploratory calculation gives about 0.25 for the 75+/65–74
   ratio of km per resident (single years 0.29 and 0.20; 2014–2016 pooled 0.27, 0.20–0.34),
   against Madrid's 0.30. Validation only; not built into the pipeline (P2).
@@ -1071,7 +1071,7 @@ narrows the range. Values not computed in the pipeline are marked *quoted* or *e
 ### Missing data that would help
 
 In order of what they would resolve, with the holder and the route (details in
-[`EMEF_DATA_REQUEST.md`](EMEF_DATA_REQUEST.md)):
+[`drivers/emef_data_request.md`](emef_data_request.md)):
 
 1. **EMEF aggregates for 65–74, 75–84 and 85+** (fallback 75+), by sex, 2014–2016 and 2022–2024
    pooled: car-driver km per resident, trips, respondents, drivers, licence holders, design-based
@@ -1370,7 +1370,7 @@ taken together would widen them.
    45–64, or by how much. Involvement per licence holder at 75 and over is 0.95 times the 45–64 rate. In
    Barcelona the four splits give 0.80–1.70 and disagree with each other. The EMEF's own aggregates
    for 65–74 and 75 and over would replace the Madrid transfer
-   ([`EMEF_DATA_REQUEST.md`](EMEF_DATA_REQUEST.md)).
+   ([`drivers/emef_data_request.md`](emef_data_request.md)).
 5. **Severity once involved** (counted). Car drivers aged 65 and over were killed in 11.4 of every
    1,000 involvements in 2024 (9.6–13.4), against 4.6 (4.0–5.4) at 45–64; drivers aged 75 and over
    in 15.9 (12.6–20.0). This needs no kilometres. Driver deaths per kilometre at 65 and over are

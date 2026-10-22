@@ -5,21 +5,21 @@ information on ages within 65 and over is used, from the public files, and only 
 under the survey's 20-observation rule: the routing of question P1b, which identifies retirees
 aged 75 and over, sets one sensitivity bound (the share of people aged 75 and over in the 65+
 sample, `emef.older_routing`, `emef_routing_older.csv`) and an exploratory validation of the
-Madrid split documented in [`DRIVER_AGE_EXPOSURE.md`](DRIVER_AGE_EXPOSURE.md). The request asks
+Madrid split documented in [`drivers/driver_age_exposure.md`](driver_age_exposure.md). The request asks
 the data holders to confirm that reading. Nothing else will use finer ages until the holders reply
 and the reply is filed under `data/raw/` with its terms of use.
 
 ## Why the request is needed
 
 The public EMEF files publish age only as 16–29, 30–64 and 65 and over (2014–2018) or 16–29,
-30–44, 45–64 and 65 and over (2019–2024) ([`EMEF_INVENTORY.md`](EMEF_INVENTORY.md)). Drivers aged
+30–44, 45–64 and 65 and over (2019–2024) ([`drivers/emef_inventory.md`](emef_inventory.md)). Drivers aged
 75 and over are the group whose crash risk per kilometre is most disputed, and the 65 and over
 group mixes them with drivers aged 65–74, who drive more and probably differently. Without a
 split, the figure per kilometre at 75 and over is a conditional estimate: it assumes that people
 aged 75 and over drive as much less than those aged 65–74 as in Madrid in 2018 (EDM2018), and its
 sampling error comes mostly from that survey. Three other splits, with every other choice tested,
 widen the sensitivity range to 0.97–3.20 times the 45–64 rate (0.97–3.28 before the October 2026
-method fixes in [`DRIVER_AGE_EXPOSURE.md`](DRIVER_AGE_EXPOSURE.md)).
+method fixes in [`drivers/driver_age_exposure.md`](driver_age_exposure.md)).
 
 The split exists in the data holders' records. From 2008 to 2016, 65–74 and 75 and over were
 separate sampling strata (methodology report 2003–2018, Table 5). The strata were merged from
@@ -42,7 +42,7 @@ Catalonia on 1 January 2024 (4.3%), but 6.0–8.3% in 2022–2024 (`emef_employm
 Employed older residents drive more on working days, so an excess of them raises the 65 and over
 kilometres; reweighting the group to the census share raises the national 65 and over ratio of
 involvement per kilometre from 1.19 to 1.23
-([`DRIVER_AGE_EXPOSURE.md`](DRIVER_AGE_EXPOSURE.md)). The 2024 technical sheet says that the
+([`drivers/driver_age_exposure.md`](driver_age_exposure.md)). The 2024 technical sheet says that the
 weights are calibrated to the census of 1 January 2025, by place of birth since 2023, but not which
 margins are used, nor whether 65–74 and 75 and over are calibrated separately. If they are not,
 the weighted 65 and over group could hold too many of the younger and more active old.
@@ -120,9 +120,9 @@ Madrid transfer, in order of priority:
 
 The reply would be filed as `data/raw/emef/requested/emef_age_tables_<years>.csv` (one row per
 year, area, age group and sex, with the fields above), registered in `data/raw/manifest.csv` with
-its date and terms of use, and read by a new function in `src/dgt_stats/emef/`. It would replace
+its date and terms of use, and read by a new function in `src/dgt_stats/drivers/emef/`. It would replace
 the Madrid transfer, the central condition of the conditional estimate for 75 and over described
-in [`DRIVER_AGE_EXPOSURE.md`](DRIVER_AGE_EXPOSURE.md), and the largest part of its sampling error,
+in [`drivers/driver_age_exposure.md`](driver_age_exposure.md), and the largest part of its sampling error,
 with the profile region's own measurement; the routing table would settle the composition bound;
 and the published 65 and over totals of the public files would serve as a check: the age groups
 of a reply must add up to them. The
@@ -229,7 +229,7 @@ English one.
 |---|---|---|
 | EMEF publications and annual reports (2014–2016 STI reports, 2024 results and publication, the 2013–2023 trend report) | No; every table stops at 65 and over | none |
 | EMEF confidential files | Yes (exact age) | the request above |
-| Madrid household travel survey, EDM 2018 (Consorcio Regional de Transportes de Madrid; public microdata with exact age, licence, weekday and straight-line trip distance) | Yes | the split of the conditional estimate at 75 and over, and the like-for-like check of men's driving per licence holder ([`DRIVER_AGE_EXPOSURE.md`](DRIVER_AGE_EXPOSURE.md)) |
+| Madrid household travel survey, EDM 2018 (Consorcio Regional de Transportes de Madrid; public microdata with exact age, licence, weekday and straight-line trip distance) | Yes | the split of the conditional estimate at 75 and over, and the like-for-like check of men's driving per licence holder ([`drivers/driver_age_exposure.md`](driver_age_exposure.md)) |
 | CRTM Encuesta Sintética de Movilidad 2024 (8,200 respondents, Comunidad de Madrid) | No: ages 14–80 only, one 65–80 band, driver and passenger merged, no km tables and no microdata on datos.crtm.es (checked 8 October 2026) | context only: older private-vehicle trips relative to 46–64 about as in 2018 |
 | Fundació RACC, *Mayores al volante* (2013; 3,003 licence holders aged 65+, Spain) | Yes, 65–69, 70–74, 75+, but days, not km, and frequency not by sex | the men's limit of the RACC split (quoted, not archived) |
 | EMQ 2006 (Catalonia) via Fundació RACC/CED 2011 | Five-year bands, driving frequency only | validation; microdata on request through the Generalitat |
