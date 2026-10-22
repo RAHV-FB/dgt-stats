@@ -12,22 +12,23 @@ are known. Each answer carries its basis:
 * ``documentation``: the publisher's dictionary, catalogue record or download page (in the
   manifest), used for definitions only, never for observations.
 
-Writes ``reports/tables/source_comparison.csv`` (one row per source and question) and
-``docs/SOURCE_COMPARISON.md``. The layer each source belongs to is :mod:`dgt_stats.layers`.
+Writes ``reports/tables/sources/source_comparison.csv`` (one row per source and question) and
+``docs/sources/source_comparison.md``. The section each source belongs to is declared in
+:mod:`dgt_stats.catalogue`.
 """
 
 from __future__ import annotations
 
 import pandas as pd
 
-from dgt_stats import layers
+from dgt_stats import catalogue
 from dgt_stats.national import io_population
-from dgt_stats.paths import DGT_PROCESSED_CRASHES, DOCS_DIR, PROCESSED_DATA_DIR, TABLES_DIR
+from dgt_stats.paths import DGT_PROCESSED_CRASHES, DOCS_DIR, PROCESSED_DATA_DIR, table_path
 
-DOC = DOCS_DIR / "SOURCE_COMPARISON.md"
-TABLE = TABLES_DIR / "source_comparison.csv"
+DOC = DOCS_DIR / "sources" / "source_comparison.md"
+TABLE = table_path("source_comparison")
 QUESTIONS = (
-    "layer",
+    "section",
     "who records",
     "unit of observation",
     "inclusion rule",
@@ -45,7 +46,7 @@ QUESTIONS = (
 
 
 def _table(name: str) -> pd.DataFrame | None:
-    path = TABLES_DIR / f"{name}.csv"
+    path = table_path(name)
     return pd.read_csv(path) if path.exists() else None
 
 
@@ -282,7 +283,7 @@ def catalonia_file() -> list[tuple[str, str, str]]:
             + "; these fields enter only the retrospective administrative model"
         )
     else:
-        artefact_text = "see docs/ML_LEAKAGE_AUDIT.md"
+        artefact_text = "see docs/models/leakage_audit.md"
     fatal = frame.D_GRAVETAT.astype(str).str.contains("mortal", case=False).sum()
     return [
         (
@@ -355,7 +356,7 @@ def catalonia_file() -> list[tuple[str, str, str]]:
 def barcelona_files() -> list[tuple[str, str, str]]:
     crashes = pd.read_parquet(PROCESSED_DATA_DIR / "barcelona_accidents.parquet")
     people = pd.read_parquet(PROCESSED_DATA_DIR / "barcelona_people.parquet")
-    structure = _table("mq_bcn_structure")
+    structure = _table("bcn_quality_structure")
     vehicles = _table("bcn_vehicle_audit_counts")
     victim = people.victimisation.astype(str).value_counts()
     vehicle_text = ""
@@ -451,18 +452,20 @@ def barcelona_files() -> list[tuple[str, str, str]]:
     ]
 
 
+# The sources compared, each with the section of the project it belongs to.
 SOURCES = (
-    ("DGT crash microdata", layers.NATIONAL, dgt_microdata),
-    ("DGT and INE published aggregates", layers.NATIONAL, dgt_aggregates),
-    ("Catalonia, Servei Català de Trànsit", layers.CATALONIA, catalonia_file),
-    ("Barcelona, Guàrdia Urbana", layers.BARCELONA, barcelona_files),
+    ("DGT crash microdata", "national", dgt_microdata),
+    ("DGT and INE published aggregates", "national", dgt_aggregates),
+    ("Catalonia, Servei Català de Trànsit", "regional", catalonia_file),
+    ("Barcelona, Guàrdia Urbana", "regional", barcelona_files),
 )
 
 
 def build() -> pd.DataFrame:
     rows = []
-    for name, layer, facts in SOURCES:
-        rows.append({"source": name, "question": "layer", "answer": layer.title, "basis": "file"})
+    for name, section, facts in SOURCES:
+        title = catalogue.SECTION_BY_KEY[section].title
+        rows.append({"source": name, "question": "section", "answer": title, "basis": "file"})
         for question, answer, basis in facts():
             rows.append({"source": name, "question": question, "answer": answer, "basis": basis})
     frame = pd.DataFrame(rows)
@@ -483,20 +486,21 @@ def document(frame: pd.DataFrame) -> str:
         "answer comes from: measured from the file, reconciled against another source, read off "
         "the file's own columns, or taken from the publisher's documentation (definitions only).",
         "",
-        "## Layers",
+        "## Sections",
         "",
-        "| Layer | Unit | Answers | Not for |",
-        "|---|---|---|---|",
+        "The project's sections and what each answers; which source feeds which result table "
+        "is mapped in [`catalogue.md`](../catalogue.md).",
+        "",
+        "| Section | What it answers |",
+        "|---|---|",
     ]
-    for layer in layers.LAYERS:
-        lines.append(
-            f"| {layer.title} | {layer.unit} | {'; '.join(layer.answers)} | "
-            f"{'; '.join(layer.not_for)} |"
-        )
+    for section in catalogue.SECTIONS:
+        lines.append(f"| {section.title} | {section.question} |")
     lines += [
         "",
-        "No layer is merged into another and no record is linked across sources. Cross-source "
-        "data test models (a model trained in one source scored on another's real records) or "
+        "No section's records are merged into another's and no record is linked across sources. "
+        "Cross-source data test models (a model trained in one source scored on another's real "
+        "records) or "
         "meet at a shared published aggregate (province and year); they never create "
         "observations.",
         "",

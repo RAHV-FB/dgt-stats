@@ -136,7 +136,7 @@ ROLES: tuple[Role, ...] = (
         cardinality="one or more rows per crash",
         description=(
             "Barcelona, Guàrdia Urbana: vehicle records in the crashes (type, make, model, colour, "
-            "licence class and age of licence); see docs/BARCELONA_VEHICLE_AUDIT.md"
+            "licence class and age of licence); see docs/regional/barcelona_vehicle_audit.md"
         ),
         file_stem="accidents_vehicles_gu_bcn",
         portal=BCN_PORTAL + "accidents-vehicles-gu-bcn",

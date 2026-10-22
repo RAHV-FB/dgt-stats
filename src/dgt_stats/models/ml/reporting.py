@@ -14,12 +14,12 @@ import pandas as pd
 
 from dgt_stats.models.ml import features, modelling, recording, rules
 from dgt_stats.models.validation.decisions import STATUS
-from dgt_stats.paths import DOCS_DIR, FEATURES_DATA_DIR, TABLES_DIR
+from dgt_stats.paths import DOCS_DIR, FEATURES_DATA_DIR, TABLES_DIR, table_path
 from dgt_stats.regional import barcelona
 from dgt_stats.regional.common import read_provenance
 
-MODEL_DOCS = DOCS_DIR / "models"
-LEAKAGE_DOC = DOCS_DIR / "ML_LEAKAGE_AUDIT.md"
+MODEL_DOCS = DOCS_DIR / "models" / "cards"
+LEAKAGE_DOC = DOCS_DIR / "models" / "leakage_audit.md"
 
 CARD_NAMES = {
     "catalonia_crash_severity": "catalonia_fatal_severity",
@@ -33,8 +33,8 @@ RETIRED = {
         "**Retired.** This is the original Catalan model. Its strongest predictor was the road's "
         "owner, a field that records how a crash was documented rather than the road, so it was "
         "replaced by the Catalan severity model behind the site's calculator "
-        "([`SEVERITY_CALCULATOR.md`](../research/SEVERITY_CALCULATOR.md), "
-        "[`ML_MODEL_REVIEW.md`](../research/ML_MODEL_REVIEW.md)). The decision and results below "
+        "([`models/severity_calculator.md`](../severity_calculator.md), "
+        "[`models/review.md`](../review.md)). The decision and results below "
         "are those of the original evaluation, kept as a record."
     ),
 }
@@ -204,9 +204,8 @@ def write_tables(results: list[modelling.TaskResult]) -> dict[str, pd.DataFrame]
         "ml_recording_check": pd.concat(checks, ignore_index=True),
         "ml_rare_causes": rare_causes(),
     }
-    TABLES_DIR.mkdir(parents=True, exist_ok=True)
     for name, frame in tables.items():
-        frame.to_csv(TABLES_DIR / f"{name}.csv", index=False, float_format="%.6g")
+        frame.to_csv(table_path(name), index=False, float_format="%.6g")
     return tables
 
 
@@ -306,10 +305,10 @@ def model_card(task: modelling.TaskResult, tables: dict[str, pd.DataFrame]) -> s
             for v in provenance["sources"].values()
         )
         + ".",
-        f"- **Layer:** {decision.layer}.",
+        f"- **Section:** {decision.section}.",
         (
             f"- **Status:** {STATUS[name]}, after the model review "
-            "([`ML_MODEL_REVIEW.md`](../research/ML_MODEL_REVIEW.md)). The decision rules "
+            "([`models/review.md`](../review.md)). The decision rules "
             f"gave: {decision.decision} ({decision.usefulness})."
             if name in STATUS
             else f"- **Decision:** {decision.decision} ({decision.usefulness})."
@@ -347,7 +346,7 @@ def model_card(task: modelling.TaskResult, tables: dict[str, pd.DataFrame]) -> s
         "",
         "Excluded for other reasons: " + ", ".join(f"`{f.column}`" for f in excluded) + ".",
         "",
-        "Every decision and its reason: [`ML_LEAKAGE_AUDIT.md`](../ML_LEAKAGE_AUDIT.md).",
+        "Every decision and its reason: [`models/leakage_audit.md`](../leakage_audit.md).",
         "",
         "## Performance on the test rows",
         "",
@@ -426,7 +425,7 @@ def model_card(task: modelling.TaskResult, tables: dict[str, pd.DataFrame]) -> s
         "## Validation outside its own test rows",
         "",
         f"Highest validated level on the outward path "
-        f"([`GENERALISABILITY.md`](../GENERALISABILITY.md)): "
+        f"([`models/generalisability.md`](../generalisability.md)): "
         f"{decision.highest_validated_level_name}; the next level is blocked by "
         f"{decision.next_level_blocked_by}. Transfer evidence: {decision.transfer_evidence}.",
         "",
@@ -520,18 +519,17 @@ def write_docs(results: list[modelling.TaskResult], tables: dict[str, pd.DataFra
 
 
 def write_csvs(tables: dict[str, pd.DataFrame]) -> None:
-    TABLES_DIR.mkdir(parents=True, exist_ok=True)
     for name, frame in tables.items():
-        frame.to_csv(TABLES_DIR / f"{name}.csv", index=False, float_format="%.6g")
+        frame.to_csv(table_path(name), index=False, float_format="%.6g")
 
 
 def read_tables(
-    prefixes: tuple[str, ...] = ("ml_", "cat_", "bcn_", "mq_"),
+    prefixes: tuple[str, ...] = ("ml_", "cat_", "bcn_"),
 ) -> dict[str, pd.DataFrame]:
     """The result tables a later step needs, read back from ``reports/tables``."""
     return {
         path.stem: pd.read_csv(path)
-        for path in sorted(TABLES_DIR.glob("*.csv"))
+        for path in sorted(TABLES_DIR.glob("*/*.csv"), key=lambda path: path.stem)
         if path.stem.startswith(prefixes)
     }
 

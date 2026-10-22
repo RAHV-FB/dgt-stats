@@ -25,7 +25,7 @@ from __future__ import annotations
 import pandas as pd
 
 from dgt_stats.national import io_population
-from dgt_stats.paths import DGT_PROCESSED_CRASHES, TABLES_DIR
+from dgt_stats.paths import DGT_PROCESSED_CRASHES, table_path
 from dgt_stats.regional import catalonia
 
 PROVINCES = catalonia.DEMARCATION_PROVINCE_CODE
@@ -119,5 +119,5 @@ def write() -> dict[str, pd.DataFrame]:
         "cat_per_resident_province_year": catalonia_per_resident(),
     }
     for name, frame in tables.items():
-        frame.to_csv(TABLES_DIR / f"{name}.csv", index=False, float_format="%.6g")
+        frame.to_csv(table_path(name), index=False, float_format="%.6g")
     return tables

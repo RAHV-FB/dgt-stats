@@ -47,6 +47,7 @@ REPORTS_DIR = PROJECT_ROOT / "reports"
 FIGURES_DIR = REPORTS_DIR / "figures"
 # The same figures drawn for a phone's column (``plots.narrow``), which the site serves to phones.
 NARROW_FIGURES_DIR = FIGURES_DIR / "narrow"
+# Result tables, one folder per section (``reports/tables/<section>/``); see :func:`table_path`.
 TABLES_DIR = REPORTS_DIR / "tables"
 DOCS_DIR = PROJECT_ROOT / "docs"
 
@@ -111,3 +112,14 @@ def tables_raw_path(year: int, chapter: int | None = None) -> Path:
         suffix = "xls" if year == 2014 else "xlsx"
         return RAW_TABLES_DIR / "chapters" / str(year) / f"grupo_{chapter}.{suffix}"
     return RAW_TABLES_DIR / f"tablas_estadisticas_{year}.xlsx"
+
+
+def table_path(name: str) -> Path:
+    """A result table's CSV, in the folder of the section whose stage writes it.
+
+    The section comes from the table's entry in :mod:`dgt_stats.catalogue`, so a table the
+    catalogue does not know can be neither written nor read.
+    """
+    from dgt_stats.catalogue import table
+
+    return TABLES_DIR / table(name).section / f"{name}.csv"

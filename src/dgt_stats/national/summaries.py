@@ -28,7 +28,7 @@ from dgt_stats.national import (
     speed,
     vehicles,
 )
-from dgt_stats.paths import DGT_PROCESSED_CRASHES, TABLES_DIR
+from dgt_stats.paths import DGT_PROCESSED_CRASHES, table_path
 
 PROCESSED_CRASHES = DGT_PROCESSED_CRASHES
 
@@ -132,34 +132,34 @@ def other_road_by_period() -> pd.DataFrame:
 # Written by ``national.associations`` (the fits take several minutes); the results stage, the
 # figures and the site only read them.
 MODEL_TABLES = (
-    "q3_model_coefficients",
-    "q3_marginal_effects",
-    "q3_calibration",
-    "q3_holdout_summary",
-    "q3_year_stability",
-    "q3_period_refits",
-    "q3_location_contrasts",
-    "q3_profiles",
-    "q3_adverse_conditions",
-    "q3_adverse_composition",
-    "q3_adverse_exclusions",
-    "q3_recording_regime",
-    "q3_regime_sensitivity",
-    "q3_groupings",
-    "q3_junction_coding",
-    "q3_junction_sensitivity",
+    "assoc_model_coefficients",
+    "assoc_marginal_effects",
+    "assoc_calibration",
+    "assoc_holdout_summary",
+    "assoc_year_stability",
+    "assoc_period_refits",
+    "assoc_location_contrasts",
+    "assoc_profiles",
+    "assoc_adverse_conditions",
+    "assoc_adverse_composition",
+    "assoc_adverse_exclusions",
+    "assoc_recording_regime",
+    "assoc_regime_sensitivity",
+    "assoc_groupings",
+    "assoc_junction_coding",
+    "assoc_junction_sensitivity",
 )
 
 
 def model_tables_present() -> bool:
-    return all((TABLES_DIR / f"{name}.csv").exists() for name in MODEL_TABLES)
+    return all(table_path(name).exists() for name in MODEL_TABLES)
 
 
 def read_model_table(name: str) -> pd.DataFrame:
     """One of the Q3 result tables; a clear error when the models have not been fitted yet."""
     if name not in MODEL_TABLES:
         raise KeyError(f"not a model table: {name}")
-    path = TABLES_DIR / f"{name}.csv"
+    path = table_path(name)
     if not path.exists():
         raise FileNotFoundError(
             f"{path.name} missing: run `python scripts/run.py national.associations` first"
@@ -174,7 +174,7 @@ _speed_limit = cache(policy.speed_limit_fits)
 
 
 def _policy_table(name: str):
-    source = _points_licence if name.startswith("q8_points") else _speed_limit
+    source = _points_licence if name.startswith("policy_points") else _speed_limit
     return lambda: source()[name].copy()
 
 
@@ -201,12 +201,12 @@ def _recording_by_year() -> pd.DataFrame:
 
 SUMMARIES = {
     # 2019 to 2024: counts against exposure
-    "risk_annual_panel": risk_trends.annual_panel,
-    "risk_index": risk_trends.risk_index,
-    "risk_dispersion": risk_trends.year_to_year_dispersion,
-    "risk_frequency_severity": risk_trends.frequency_severity,
-    "risk_fuel_efficiency": risk_trends.fuel_efficiency_sensitivity,
-    "risk_km_crosscheck": risk_trends.km_crosscheck,
+    "trends_annual_panel": risk_trends.annual_panel,
+    "trends_risk_index": risk_trends.trends_risk_index,
+    "trends_dispersion": risk_trends.year_to_year_dispersion,
+    "trends_frequency_severity": risk_trends.frequency_severity,
+    "trends_fuel_efficiency": risk_trends.fuel_efficiency_sensitivity,
+    "trends_km_crosscheck": risk_trends.km_crosscheck,
     # The long run and the pandemic
     "longrun_series": risk_trends.long_run_series,
     "longrun_segments": risk_trends.long_run_segments,
@@ -233,34 +233,34 @@ SUMMARIES = {
     "factor_changes": factors.factor_consistency,
     "factor_windows": factors.comparable_windows,
     # Context: the long-run headline series, darkness by zone and the 2024 road-type recoding
-    "q1_annual_headline": annual_headline,
-    "q2_night_share": night_share_by_year_zone,
-    "q2_other_road_by_period": other_road_by_period,
-    "q9_infraction_shares": speed.infraction_shares,
+    "longrun_headline": annual_headline,
+    "night_share": night_share_by_year_zone,
+    "other_road_by_period": other_road_by_period,
+    "speed_infraction_shares": speed.infraction_shares,
     # The data page's missing-values chart: the audited fields by the audit's applicability rule
     "missingness_where_applicable": _recording_by_year,
     # Vehicles per kilometre
-    "q6_vehicle_groups": vehicles.vehicle_groups_table,
-    "q6_vehicle_km_2022": vehicles.vehicle_km,
-    "q6_rates_2022": vehicles.rates_2022,
-    "q6_summary_2022": vehicles.summary_2022,
-    "q6_van_light_truck_split": vehicles.van_light_truck_split,
+    "vehicles_groups": vehicles.vehicle_groups_table,
+    "vehicles_km_2022": vehicles.vehicle_km,
+    "vehicles_rates_2022": vehicles.rates_2022,
+    "vehicles_summary_2022": vehicles.summary_2022,
+    "vehicles_van_light_truck_split": vehicles.van_light_truck_split,
     # Policy
     **{
         name: _policy_table(name)
         for name in (
-            "q8_points_fit",
-            "q8_points_series",
-            "q8_points_sensitivity",
-            "q8_points_trend_choice",
-            "q8_points_placebo",
-            "q8_points_calendar_placebo",
-            "q8_points_calibration",
-            "q8_points_death_definitions",
-            "q8_points_transitions",
-            "q8_points_forecast",
-            "q8_speed_placebo",
-            "q8_speed_sensitivity",
+            "policy_points_fit",
+            "policy_points_series",
+            "policy_points_sensitivity",
+            "policy_points_trend_choice",
+            "policy_points_placebo",
+            "policy_points_calendar_placebo",
+            "policy_points_calibration",
+            "policy_points_death_definitions",
+            "policy_points_transitions",
+            "policy_points_forecast",
+            "policy_speed_placebo",
+            "policy_speed_sensitivity",
         )
     },
 }

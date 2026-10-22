@@ -250,7 +250,7 @@ def year_to_year_dispersion(years: tuple[int, int] = SCATTER_YEARS) -> pd.DataFr
     Seven years leave five residual degrees of freedom (``df_resid``), so each factor is itself
     uncertain: ``pearson_dispersion`` is the estimate before the floor, ``dispersion_low`` and
     ``dispersion_high`` its chi-square interval, and ``t_quantile`` the Student-t quantile with
-    which ``risk_index`` widens its intervals instead of the normal one.
+    which ``trends_risk_index`` widens its intervals instead of the normal one.
     """
     panel = annual_panel().set_index("year").loc[years[0] : years[1]]
     t = (panel.index.to_numpy(dtype=float) - years[0]).reshape(-1, 1)
@@ -281,7 +281,7 @@ def year_to_year_dispersion(years: tuple[int, int] = SCATTER_YEARS) -> pd.DataFr
     return pd.DataFrame.from_records(records)
 
 
-def risk_index(base_year: int = BASE_YEAR) -> pd.DataFrame:
+def trends_risk_index(base_year: int = BASE_YEAR) -> pd.DataFrame:
     """Each outcome under each denominator it can be paired with, as a rate and a ratio to 2019.
 
     The numerator is the outcome itself, or for licence holders and the registered fleet only the

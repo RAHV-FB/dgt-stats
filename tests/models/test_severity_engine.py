@@ -28,7 +28,7 @@ import pandas as pd
 import pytest
 
 from dgt_stats.models import severity_model as sm
-from dgt_stats.paths import PROJECT_ROOT, REPORTS_DIR
+from dgt_stats.paths import PROJECT_ROOT, REPORTS_DIR, table_path
 from dgt_stats.site import tool_calculator
 
 MODEL = REPORTS_DIR / "models" / "severity_model.json"
@@ -253,7 +253,7 @@ def test_hard_rules_hold_in_the_training_records() -> None:
     ).value_counts()
     for rule in sm.CRASH_ERRORS:
         assert broken.get(rule, 0) <= 1, (rule, broken.get(rule, 0))
-    report = (PROJECT_ROOT / "docs" / "research" / "SEVERITY_CALCULATOR.md").read_text()
+    report = (PROJECT_ROOT / "docs" / "models" / "severity_calculator.md").read_text()
     total = len(scenarios)
     for rule in sm.CONDITION_ERRORS:
         count = int(broken.get(rule, 0))
@@ -362,10 +362,9 @@ process.stdout.write(JSON.stringify(pairs.map(p => e.compare(p[0], p[1]))));
 @needs_model
 def test_worked_examples_use_the_calculators_arithmetic() -> None:
     """The page's table of one-input changes and the calculator give the same intervals."""
-    from dgt_stats.paths import TABLES_DIR
 
     model = _model()
-    contrasts = pd.read_csv(TABLES_DIR / "sev_contrasts.csv")
+    contrasts = pd.read_csv(table_path("sev_contrasts"))
     for base_name, base in (("interurban", sm.REFERENCE_SCENARIO), ("urban", sm.URBAN_REFERENCE)):
         rows = contrasts[contrasts.base == base_name].set_index(["input", "level"])
         for name, level, scenario in sm._variants(base):

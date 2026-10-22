@@ -61,7 +61,7 @@ STAGES: tuple[Stage, ...] = (
         "reconcile",
         "dgt_stats.national.stages:reconcile_checks",
         "tie the staging layer to DGT's published totals (482 checks); stop if one fails",
-        "validation.csv, missingness_by_year.csv",
+        "reconciliation.csv, missingness_by_year.csv",
         1,
     ),
     Stage(
@@ -78,7 +78,7 @@ STAGES: tuple[Stage, ...] = (
         "associations",
         "dgt_stats.national.stages:run_associations",
         "fit the supporting association analysis of DGT crash records; the crash explorer's counts",
-        "q3_*.csv, explore_dgt_crashes.csv",
+        "assoc_*.csv, explore_dgt_crashes.csv",
         8,
     ),
     Stage(
@@ -86,7 +86,7 @@ STAGES: tuple[Stage, ...] = (
         "results",
         "dgt_stats.national.stages:results",
         "every other national result table",
-        "risk_*, longrun_*, season_*, road_class_*, speed_*, factor_*, q1/q2/q6/q8/q9_*.csv",
+        "trends_*, longrun_*, season_*, road_class_*, vehicles_*, speed_*, factor_*, policy_*.csv",
         2,
     ),
     Stage(
@@ -103,7 +103,7 @@ STAGES: tuple[Stage, ...] = (
         "quality",
         "dgt_stats.regional.stages:run_quality",
         "the data-quality report and the Barcelona vehicle audit",
-        "mq_*.csv, bcn_vehicle_audit_counts.csv, two documents",
+        "cat_quality_*, bcn_quality_*, bcn_vehicle_audit_counts.csv, two documents",
         0.2,
     ),
     Stage(
@@ -119,7 +119,7 @@ STAGES: tuple[Stage, ...] = (
         "tables",
         "dgt_stats.drivers.stages:tables",
         "driver rates by sex and by the car owner's age, from DGT's tables and census",
-        "drivers_sex_*.csv, q7_*.csv",
+        "drivers_*.csv",
         1,
     ),
     Stage(
@@ -185,7 +185,7 @@ STAGES: tuple[Stage, ...] = (
         "cards",
         "dgt_stats.national.stages:cards",
         "the cards of the national models (after models.validate, which they quote)",
-        "docs/models/dgt_*.md",
+        "docs/models/cards/dgt_*.md",
         0.2,
     ),
     Stage(
@@ -219,6 +219,14 @@ STAGES: tuple[Stage, ...] = (
         "the static site, from the committed result tables and figures only",
         "site/",
         0.5,
+    ),
+    Stage(
+        "sources",
+        "catalogue",
+        "dgt_stats.sources.stages:catalogue",
+        "the map of sections, sources and tables, and an index in each table folder",
+        "docs/catalogue.md, reports/tables/*/README.md",
+        0.1,
     ),
     # Run by name only.
     Stage(

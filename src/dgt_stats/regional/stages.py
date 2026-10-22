@@ -36,7 +36,7 @@ def build(force: bool = False) -> None:
 def run_quality() -> None:
     """The data-quality report and the Barcelona vehicle audit."""
     quality.build()
-    log.info("wrote %s and %s", quality.REPORT.name, "BARCELONA_VEHICLE_AUDIT.md")
+    log.info("wrote %s and %s", quality.REPORT.name, "barcelona_vehicle_audit.md")
 
 
 def analyse() -> None:

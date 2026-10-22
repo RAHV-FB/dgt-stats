@@ -504,7 +504,7 @@ def domain_strategies(
 
 
 # ----------------------------------------------------------------------------- reading
-def verdicts(components: pd.DataFrame, strategies_frame: pd.DataFrame) -> pd.DataFrame:
+def verdicts(components: pd.DataFrame) -> pd.DataFrame:
     """One line per question, read off the tables by a rule declared here.
 
     A component is *material* when its interval excludes zero and it is at least
@@ -555,6 +555,6 @@ def run(results: dict[str, modelling.TaskResult]) -> dict[str, pd.DataFrame]:
     return {
         "ml_barcelona_diagnosis": scores,
         "ml_barcelona_diagnosis_components": components,
-        "ml_barcelona_diagnosis_verdicts": verdicts(components, strat),
+        "ml_barcelona_diagnosis_verdicts": verdicts(components),
         "ml_domain_strategies": strat,
     }

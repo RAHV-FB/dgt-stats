@@ -23,7 +23,7 @@ scored apart by the forecast module, are reported beside the decision.
 Every row also carries the furthest level its evidence reaches on the outward path (same source,
 later time, another region, another recording source, Spain), the in-domain and transferred
 scores of its external tests with the gap, and what it does not answer. Writes
-``reports/tables/ml_model_decisions.csv`` and ``docs/MODEL_DECISIONS.md``.
+``reports/tables/models/ml_model_decisions.csv`` and ``docs/models/decisions.md``.
 """
 
 from __future__ import annotations
@@ -32,10 +32,10 @@ import math
 
 import pandas as pd
 
-from dgt_stats import layers
-from dgt_stats.paths import DOCS_DIR, TABLES_DIR
+from dgt_stats.catalogue import SECTION_BY_KEY
+from dgt_stats.paths import DOCS_DIR, table_path
 
-DOC = DOCS_DIR / "MODEL_DECISIONS.md"
+DOC = DOCS_DIR / "models" / "decisions.md"
 
 KEEP_PREDICTIVE = "KEEP as useful predictive model"
 KEEP_RANKING = "KEEP but ranking-only"
@@ -44,7 +44,7 @@ REPLACE = "REPLACE with descriptive table"
 DROP = "DROP"
 OUTCOMES = (KEEP_PREDICTIVE, KEEP_RANKING, KEEP_RESEARCH, REPLACE, DROP)
 FEATURED = (KEEP_PREDICTIVE, KEEP_RANKING)
-# What the independent re-evaluation (docs/research/ML_MODEL_REVIEW.md) did with a model after
+# What the independent re-evaluation (docs/models/review.md) did with a model after
 # the rules above had decided it. The rules' decision is kept as the record; the site follows this,
 # and every document names a model by its status here.
 AFTER_REVIEW = {
@@ -52,7 +52,7 @@ AFTER_REVIEW = {
         "retired: its strongest predictor, the road's owner, records how a crash was documented "
         "(a blank owner on a conventional road is far commoner on fatal records). The published "
         "Catalan model is the crash-severity calculator's (`severity_model.py`), tested in "
-        "[`GENERALISABILITY.md`](GENERALISABILITY.md)"
+        "[`models/generalisability.md`](generalisability.md)"
     ),
     "barcelona_crash_severity": "removed; the site reports its table of shares by accident type",
     "barcelona_person_severity": "kept for research only; the site shows no probability from it",
@@ -71,7 +71,7 @@ STATUS = {
 }
 # The model the site publishes, the crash-severity calculator's, was built by the re-evaluation
 # (``severity_model.py``) and decided there, not by the rules above; its scores are in
-# docs/research/SEVERITY_CALCULATOR.md, and the decision document points to them.
+# docs/models/severity_calculator.md, and the decision document points to them.
 CALCULATOR = {
     "model": "catalonia_severity_calculator",
     "variant": "penalised logistic regression",
@@ -79,11 +79,11 @@ CALCULATOR = {
     "target": "fatal (a death within 24 hours) rather than serious",
     "source": "Servei Català de Trànsit, 2010-2023",
     "baseline": "road x crash type table, scored on the same years "
-    "([`SEVERITY_CALCULATOR.md`](research/SEVERITY_CALCULATOR.md))",
+    "([`models/severity_calculator.md`](severity_calculator.md))",
     "ml": "nested rolling origin, 2016-2023; 2023 is the file's last year, so no later year is "
-    "left for a separate holdout ([`SEVERITY_CALCULATOR.md`](research/SEVERITY_CALCULATOR.md))",
-    "transfer_evidence": "[`GENERALISABILITY.md`](GENERALISABILITY.md)",
-    "usefulness": "decided by the model review ([`ML_MODEL_REVIEW.md`](research/ML_MODEL_REVIEW.md))",
+    "left for a separate holdout ([`models/severity_calculator.md`](severity_calculator.md))",
+    "transfer_evidence": "[`models/generalisability.md`](generalisability.md)",
+    "usefulness": "decided by the model review ([`models/review.md`](review.md))",
     "decision": "not run through these rules",
     "status": "the published model, behind the calculator",
 }
@@ -104,7 +104,7 @@ SOURCE_MODELS = {
         "unit": "one Catalan crash with a death or serious injury",
         "target": "fatal (a death) rather than serious",
         "source": "Servei Català de Trànsit, 2010-2023",
-        "layer": layers.CATALONIA.title,
+        "section": SECTION_BY_KEY["regional"].title,
         "purpose": "ranking",
         "question": "ranks recorded serious-or-fatal crashes by how likely they were fatal, from "
         "road, crash and environmental circumstances",
@@ -115,7 +115,7 @@ SOURCE_MODELS = {
         "unit": "one person recorded in a Barcelona crash",
         "target": "serious or fatal injury",
         "source": "Guàrdia Urbana, 2025",
-        "layer": layers.BARCELONA.title,
+        "section": SECTION_BY_KEY["regional"].title,
         "purpose": "ranking",
         "question": "ranks the people recorded in crashes by how likely they were seriously or "
         "fatally injured, from road role, vehicle, age, sex and crash circumstances",
@@ -126,7 +126,7 @@ SOURCE_MODELS = {
         "unit": "one Barcelona crash",
         "target": "a serious or fatal injury in the crash",
         "source": "Guàrdia Urbana, 2025",
-        "layer": layers.BARCELONA.title,
+        "section": SECTION_BY_KEY["regional"].title,
         "purpose": "ranking",
         "question": "ranks recorded crashes by how likely they involved a serious or fatal injury",
         "not_answered": "anyone's risk per trip; the behaviour of a person; other cities or years",
@@ -135,7 +135,7 @@ SOURCE_MODELS = {
         "unit": "one Catalan crash with a death or serious injury",
         "target": "fatal (a death within 24 hours) rather than serious",
         "source": "Servei Català de Trànsit, restricted to the variables DGT records alike",
-        "layer": layers.VALIDATION.title,
+        "section": SECTION_BY_KEY["models"].title,
         "purpose": "transfer",
         "question": "measures whether a Catalan model keeps its ranking on crashes recorded "
         "elsewhere in Spain",
@@ -145,7 +145,7 @@ SOURCE_MODELS = {
         "unit": "one Catalan crash with a death or serious injury",
         "target": "fatal rather than serious",
         "source": "Servei Català de Trànsit, restricted to the variables Barcelona records alike",
-        "layer": layers.VALIDATION.title,
+        "section": SECTION_BY_KEY["models"].title,
         "purpose": "transfer",
         "question": "measures whether a Catalan model keeps its ranking on Barcelona's crashes",
         "not_answered": "a fatal-against-serious benchmark on Barcelona 2025 (too few fatal "
@@ -253,7 +253,7 @@ def source_rows(tables: dict[str, pd.DataFrame]) -> list[dict]:
             "unit": spec["unit"],
             "target": spec["target"],
             "source": spec["source"],
-            "layer": spec["layer"],
+            "section": spec["section"],
             "baseline": baseline,
             "ml": f"{primary.estimator.replace('_', ' ')}: ROC-AUC {primary.roc_auc:.3f} "
             f"({primary.roc_auc_low:.3f}-{primary.roc_auc_high:.3f}), PR-AUC "
@@ -312,18 +312,18 @@ def national_rows(tables: dict[str, pd.DataFrame]) -> list[dict]:
     # The national models are decided from tables other scripts write; a missing one would drop
     # its model from the decision table silently.
     for name, script in (
-        ("q3_holdout_summary", "scripts/run.py national.associations"),
+        ("assoc_holdout_summary", "scripts/run.py national.associations"),
         ("forecast_validation", "scripts/run.py national.withdrawn"),
     ):
-        if not (TABLES_DIR / f"{name}.csv").exists():
+        if not table_path(name).exists():
             raise FileNotFoundError(f"{name}.csv is missing: run {script} before the validation")
     rows = []
     checks = tables.get("dgt_audit_checks")
     artefacts = tables.get("dgt_audit_artefacts")
-    q3_path = TABLES_DIR / "q3_holdout_summary.csv"
-    if q3_path.exists() and checks is not None:
-        q3 = pd.read_csv(q3_path).set_index("outcome")
-        fatal = q3.loc["fatal"] if "fatal" in q3.index else q3.iloc[0]
+    holdout_path = table_path("assoc_holdout_summary")
+    if holdout_path.exists() and checks is not None:
+        holdout = pd.read_csv(holdout_path).set_index("outcome")
+        fatal = holdout.loc["fatal"] if "fatal" in holdout.index else holdout.iloc[0]
         audit = checks.decision.iloc[0]
         allowed = audit.startswith("DGT microdata may train")
         failing = ", ".join(checks.loc[~checks.passed, "check"]) or "none"
@@ -344,7 +344,7 @@ def national_rows(tables: dict[str, pd.DataFrame]) -> list[dict]:
                 "unit": "one DGT crash with victims",
                 "target": "a death within 30 days",
                 "source": "DGT crash microdata",
-                "layer": layers.NATIONAL.title,
+                "section": SECTION_BY_KEY["national"].title,
                 "baseline": baseline,
                 "ml": f"logistic regression: ROC-AUC {fatal.auc:.3f} on {fatal.test_years}; "
                 f"n={int(fatal.test_crashes):,}, positives={int(fatal.test_events):,}",
@@ -371,7 +371,7 @@ def national_rows(tables: dict[str, pd.DataFrame]) -> list[dict]:
                 ),
             }
         )
-    validation = TABLES_DIR / "forecast_validation.csv"
+    validation = table_path("forecast_validation")
     if validation.exists():
         from dgt_stats.national import forecast
 
@@ -401,7 +401,7 @@ def national_rows(tables: dict[str, pd.DataFrame]) -> list[dict]:
                     "unit": "one month, Spain",
                     "target": "road deaths in the month (yearbook series)",
                     "source": "DGT yearbook series, CORES fuel",
-                    "layer": layers.NATIONAL.title,
+                    "section": SECTION_BY_KEY["national"].title,
                     "baseline": f"{best_naive.method_label}: held-out error {best_naive.rmse:.3f}",
                     "ml": f"Poisson regression, {c.method_label}: held-out error {c.rmse:.3f} "
                     f"over {int(c.years)} ordinary years{shock_text}",
@@ -466,9 +466,9 @@ def _md(frame: pd.DataFrame) -> str:
 
 
 def document(frame: pd.DataFrame, path: pd.DataFrame | None = None) -> str:
-    """``docs/MODEL_DECISIONS.md`` from the decision table and, for the calculator's row, the
+    """``docs/models/decisions.md`` from the decision table and, for the calculator's row, the
     outward path (``ml_outward_path``)."""
-    level = "see [`GENERALISABILITY.md`](GENERALISABILITY.md)"
+    level = "see [`models/generalisability.md`](generalisability.md)"
     if path is not None and path.model.eq(CALCULATOR_PATH_NAME).any():
         level = _level(path, CALCULATOR_PATH_NAME)[1]
     calculator = {**CALCULATOR, "highest_validated_level_name": level}
@@ -506,10 +506,10 @@ def document(frame: pd.DataFrame, path: pd.DataFrame | None = None) -> str:
         "features was decided by the review instead (below).",
         "",
         "Levels: 1 same source, 2 later time, 3 another region, 4 another recording source, 5",
-        "Spain nationally ([`GENERALISABILITY.md`](GENERALISABILITY.md)).",
+        "Spain nationally ([`models/generalisability.md`](generalisability.md)).",
         "",
         "The decisions are those the rules gave the original models. An independent",
-        "re-evaluation ([`research/ML_MODEL_REVIEW.md`](research/ML_MODEL_REVIEW.md)) then",
+        "re-evaluation ([`models/review.md`](review.md)) then",
         "changed what the site does with some of them. Its status is the one every page and",
         "document gives; the decision by the rules is kept as the record:",
         "",
@@ -518,7 +518,7 @@ def document(frame: pd.DataFrame, path: pd.DataFrame | None = None) -> str:
         "The re-evaluation also built the model the site publishes, the crash-severity",
         "calculator's (`catalonia_severity_calculator`, `severity_model.py`), and decided it",
         "itself. Its benchmark, scores and calibration are in",
-        "[`research/SEVERITY_CALCULATOR.md`](research/SEVERITY_CALCULATOR.md), and its card is",
+        "[`models/severity_calculator.md`](severity_calculator.md), and its card is",
         "[`models/catalonia_severity_calculator.md`](models/catalonia_severity_calculator.md).",
         "",
         _md(summary),
@@ -531,7 +531,7 @@ def document(frame: pd.DataFrame, path: pd.DataFrame | None = None) -> str:
             "",
             f"- **Decision by the rules:** {row.decision}.",
             *([f"- **Status after the review:** {after}."] if after else []),
-            f"- **Unit / target / source:** {row.unit}; {row.target}; {row.source} ({row.layer}).",
+            f"- **Unit / target / source:** {row.unit}; {row.target}; {row.source} ({row.section}).",
             f"- **What it does:** {row.question_answered}.",
             f"- **Not answered:** {row.question_not_answered}.",
             f"- **Baseline:** {row.baseline}. **ML:** {row.ml}. **Usefulness:** {row.usefulness}.",
@@ -549,6 +549,6 @@ def run(tables: dict[str, pd.DataFrame]) -> dict[str, pd.DataFrame]:
     unknown = set(frame.decision) - set(OUTCOMES)
     if unknown:
         raise ValueError(f"decisions outside the declared outcomes: {unknown}")
-    frame.to_csv(TABLES_DIR / "ml_model_decisions.csv", index=False)
+    frame.to_csv(table_path("ml_model_decisions"), index=False)
     DOC.write_text(document(frame, tables.get("ml_outward_path")), encoding="utf-8")
     return {"ml_model_decisions": frame}

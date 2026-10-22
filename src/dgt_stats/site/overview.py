@@ -85,7 +85,7 @@ def _finding(answer: str, evidence: str, links: list[tuple[str, str]]) -> str:
 
 
 def _deaths() -> str:
-    headline = read_table("q1_annual_headline").set_index("year").deaths_30d
+    headline = read_table("longrun_headline").set_index("year").deaths_30d
     first, last = int(headline.index.min()), int(headline.index.max())
     segments = _long_run_numbers()["segments"]
     count = segments[segments.measure == "count"].sort_values("start")

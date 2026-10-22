@@ -1142,16 +1142,18 @@ def points_licence_fits() -> dict[str, pd.DataFrame]:
     trend_choice = pd.concat([trend_choice.head(8), straight]).drop_duplicates(subset="label")
     calendar = calendar_placebo_fits(series, it)
     return {
-        "q8_points_fit": coefficients,
-        "q8_points_series": series_out,
-        "q8_points_sensitivity": sensitivity,
-        "q8_points_trend_choice": trend_choice,
-        "q8_points_placebo": placebo_fits(series, it),
-        "q8_points_calendar_placebo": calendar,
-        "q8_points_calibration": placebo_calibration(calendar),
-        "q8_points_death_definitions": death_definition_ratio(series, monthly_series("deaths_24h")),
-        "q8_points_transitions": seasonal_transitions(series),
-        "q8_points_forecast": forecast_validation(series, it),
+        "policy_points_fit": coefficients,
+        "policy_points_series": series_out,
+        "policy_points_sensitivity": sensitivity,
+        "policy_points_trend_choice": trend_choice,
+        "policy_points_placebo": placebo_fits(series, it),
+        "policy_points_calendar_placebo": calendar,
+        "policy_points_calibration": placebo_calibration(calendar),
+        "policy_points_death_definitions": death_definition_ratio(
+            series, monthly_series("deaths_24h")
+        ),
+        "policy_points_transitions": seasonal_transitions(series),
+        "policy_points_forecast": forecast_validation(series, it),
     }
 
 
@@ -1201,6 +1203,6 @@ def speed_limit_fits() -> dict[str, pd.DataFrame]:
     # Every row is a fit of a design that fails its placebo test: none is an estimate.
     sensitivity.insert(0, "status", "not an estimate: the design fails its placebo test")
     return {
-        "q8_speed_placebo": did_placebos(panel, it),
-        "q8_speed_sensitivity": sensitivity,
+        "policy_speed_placebo": did_placebos(panel, it),
+        "policy_speed_sensitivity": sensitivity,
     }

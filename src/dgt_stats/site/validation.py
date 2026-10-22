@@ -38,7 +38,7 @@ from dgt_stats.site.components import (
 from dgt_stats.site.regional_common import _check
 
 PAGE = "validation"
-REVIEW = f'<a href="{DOCS_URL}/research/ML_MODEL_REVIEW.md">model review</a>'
+REVIEW = f'<a href="{DOCS_URL}/models/review.md">model review</a>'
 
 # Reader-facing names for the variables compared between sources and populations.
 VARIABLES = {
@@ -1251,7 +1251,7 @@ def page_validation(captions: dict[str, str]) -> str:
             "model and its versions come from each model's own test on that year, which "
             "recorded no interval or calibration slope.",
         )
-        + f'<p>The <a href="{DOCS_URL}/GENERALISABILITY.md">generalisability report</a> lists '
+        + f'<p>The <a href="{DOCS_URL}/models/generalisability.md">generalisability report</a> lists '
         "every test with its fitting and test periods, for both logistic regression and "
         "gradient-boosted trees, and the Catalan severity model's tests beside the table of "
         "fatal shares by road and crash type.</p>",

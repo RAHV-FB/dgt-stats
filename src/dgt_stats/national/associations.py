@@ -509,7 +509,7 @@ def holdout_check(
     ``brier_test_mean`` scores the held-out years' own mean, an oracle shown for comparison only.
 
     Part of any ranking from these records comes from how the form was filled in rather than from
-    the crash (``docs/DGT_MICRODATA_AUDIT.md``, check 7). Two refits on the same years measure it
+    the crash (``docs/models/dgt_microdata_audit.md``, check 7). Two refits on the same years measure it
     for this model's own predictors: ``auc_recorded_only`` folds every missing-state level into
     its reference, and ``auc_missing_only`` sees nothing but which fields were left unrecorded.
     """

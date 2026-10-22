@@ -259,7 +259,7 @@ NOT_AT_JUNCTION = "not at a junction"
 INVERTED_TYPE_SHARE = 0.5
 # How the model reads the junction flag of the inverted province-years, and the alternatives
 # ``models.junction_sensitivity`` fits beside it. The flag read the other way round is the one
-# the rest of each record supports crash by crash (``q3_junction_coding``): the crashes it places
+# the rest of each record supports crash by crash (``assoc_junction_coding``): the crashes it places
 # away from a junction carry neither a junction type nor a right-of-way flag, and those it places
 # at one carry a junction type or, lacking one, right-of-way flags, as junction crashes do in the
 # earlier years. Reading the junction type alone would place the junction crashes that have no

@@ -5,7 +5,7 @@ findings retired it. It is not a forecast in the ordinary sense: it conditions o
 road-fuel sales, which are known only once the month is over, so it estimates the deaths a month's
 traffic would have brought rather than predicting them ahead. And on the ordinary held-out years it
 lost to repeating last year's count (an error of 6.6% of a year's deaths against 5.9%;
-``reports/tables/review_forecast.csv``, ``docs/research/ML_MODEL_REVIEW.md``). The description
+``reports/tables/models/review_forecast.csv``, ``docs/models/review.md``). The description
 below is of the model as it was built.
 
 Any before-and-after reading of the death counts compares the deaths after a change with the
@@ -47,7 +47,7 @@ The result is a split verdict. In the years when the trend moved (the selection 
 collapsed (the lockdowns) the model beats last year's count by a wide margin; in the flat
 held-back years, the only ones that played no part in choosing it, last year's count does better
 (an error of 5.9% of the year's deaths against 6.6%). The independent review of every model
-(``docs/research/ML_MODEL_REVIEW.md``) therefore removed the model as a published forecast, and
+(``docs/models/review.md``) therefore removed the model as a published forecast, and
 with it the minimum detectable change derived from its errors: the module is kept as the record
 of the analysis and is no longer read by the site. The trees, tuned
 the same way, do worse than the model in every zone and every kind of year: a tree cannot extend

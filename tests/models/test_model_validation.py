@@ -5,13 +5,12 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from dgt_stats import layers
 from dgt_stats.models.ml import modelling, rules
-from dgt_stats.paths import TABLES_DIR
+from dgt_stats.paths import table_path
 
 
 def _table(name: str) -> pd.DataFrame:
-    path = TABLES_DIR / f"{name}.csv"
+    path = table_path(name)
     if not path.exists():
         pytest.skip(f"run `python scripts/run.py models.validate` first ({name}.csv missing)")
     return pd.read_csv(path)
@@ -77,17 +76,6 @@ def test_barcelona_descriptive_tables_read_the_outcome_dependent_term_as_rear_en
     assert merged.nunique() == 1 and merged.iloc[0] == barcelona.ACCIDENT_TYPES["Abast"]
     # The source models, fitted earlier, keep the field as recorded.
     assert barcelona.ACCIDENT_TYPES["Encalç"] != barcelona.ACCIDENT_TYPES["Abast"]
-
-
-def test_the_layers_never_share_a_source() -> None:
-    sources = [s for layer in layers.LAYERS for s in layer.sources]
-    assert len(sources) == len(set(sources))
-    assert [layer.key for layer in layers.LAYERS] == [
-        "national",
-        "catalonia",
-        "barcelona",
-        "validation",
-    ]
 
 
 def test_absence_coded_dgt_field_counts_blanks_as_recorded() -> None:
@@ -445,13 +433,13 @@ def test_every_model_has_one_status_and_a_card() -> None:
     document = d.DOC.read_text(encoding="utf-8")
     assert f"| {d.CALCULATOR['model']} |" in document
     for model, card in reporting.CARD_NAMES.items():
-        text = (DOCS_DIR / "models" / f"{card}.md").read_text(encoding="utf-8")
+        text = (DOCS_DIR / "models" / "cards" / f"{card}.md").read_text(encoding="utf-8")
         if model in d.STATUS:
             assert f"- **Status:** {d.STATUS[model]}, after the model review" in text, card
             assert "- **Decision:**" not in text, card
-    forecast = (DOCS_DIR / "models" / "dgt_monthly_deaths_forecast.md").read_text("utf-8")
+    forecast = (DOCS_DIR / "models" / "cards" / "dgt_monthly_deaths_forecast.md").read_text("utf-8")
     assert forecast.count("**Status:** withdrawn") == 1 and "**Decision:**" not in forecast
-    assert (DOCS_DIR / "models" / f"{d.CALCULATOR['model']}.md").exists()
+    assert (DOCS_DIR / "models" / "cards" / f"{d.CALCULATOR['model']}.md").exists()
 
 
 def test_the_decision_rules_apply_in_the_declared_order() -> None:

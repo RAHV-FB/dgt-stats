@@ -12,13 +12,13 @@ import pytest
 
 from dgt_stats import site
 from dgt_stats.national import summaries
-from dgt_stats.paths import FIGURES_DIR, TABLES_DIR
+from dgt_stats.paths import FIGURES_DIR, table_path
 from dgt_stats.site import components
 from dgt_stats.site.style import FIGURE_SWITCH_REMS, STYLE
 
 pytestmark = pytest.mark.skipif(
     not (FIGURES_DIR / "captions.json").exists()
-    or not (TABLES_DIR / "q1_annual_headline.csv").exists()
+    or not table_path("longrun_headline").exists()
     or not summaries.model_tables_present(),
     reason="run `python scripts/run.py national.associations` and `python scripts/run.py national.results charts national.cards` first",
 )

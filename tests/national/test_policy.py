@@ -248,18 +248,18 @@ def test_did_fit_recovers_a_treated_change_and_a_flat_control() -> None:
 def test_points_licence_fits_assembles_the_published_tables() -> None:
     tables = policy.points_licence_fits()
     assert set(tables) == {
-        "q8_points_fit",
-        "q8_points_series",
-        "q8_points_sensitivity",
-        "q8_points_trend_choice",
-        "q8_points_placebo",
-        "q8_points_calendar_placebo",
-        "q8_points_calibration",
-        "q8_points_death_definitions",
-        "q8_points_transitions",
-        "q8_points_forecast",
+        "policy_points_fit",
+        "policy_points_series",
+        "policy_points_sensitivity",
+        "policy_points_trend_choice",
+        "policy_points_placebo",
+        "policy_points_calendar_placebo",
+        "policy_points_calibration",
+        "policy_points_death_definitions",
+        "policy_points_transitions",
+        "policy_points_forecast",
     }
-    sens = tables["q8_points_sensitivity"]
+    sens = tables["policy_points_sensitivity"]
     assert sens.variant.iloc[0] == "main"
     assert set(sens.variant) >= {
         "main",
@@ -296,21 +296,21 @@ def test_points_licence_fits_assembles_the_published_tables() -> None:
     no_slope = sens[sens.variant == "no_slope"].iloc[0]
     assert no_slope.mean_change == pytest.approx(no_slope.level_change)
     assert np.isnan(no_slope.months_to_zero)
-    trend = tables["q8_points_trend_choice"]
+    trend = tables["policy_points_trend_choice"]
     assert trend.chosen.sum() == 1
     straight = trend[trend.label == "one linear trend"].iloc[0]
     assert straight.delta_qaic > 2  # the pre-period prefers a bend
     assert trend[trend.chosen].delta_qaic.iloc[0] == 0
-    calibration = tables["q8_points_calibration"].iloc[0]
+    calibration = tables["policy_points_calibration"].iloc[0]
     assert calibration.n_placebos == 14
     assert calibration.expected_excluding_zero == pytest.approx(0.7)
     assert calibration.n_excluding_zero > 2 * calibration.expected_excluding_zero
     assert calibration.calibrated_low < calibration.nominal_low < calibration.level_change
-    forecast = tables["q8_points_forecast"]
+    forecast = tables["policy_points_forecast"]
     assert (forecast["rank"] == forecast.log_ratio.rank(method="min")).all()
-    series = tables["q8_points_series"]
+    series = tables["policy_points_series"]
     assert {"fitted_main", "counterfactual_main", "counterfactual_linear"} <= set(series.columns)
-    placebo = tables["q8_points_placebo"]
+    placebo = tables["policy_points_placebo"]
     assert placebo.is_true.sum() == 1 and int(placebo[placebo.is_true]["rank"].iloc[0]) >= 1
 
 
@@ -419,14 +419,14 @@ def test_exposure_covariate_is_a_centred_log_series() -> None:
 
 def test_speed_limit_fits_keep_only_the_negative_result_tables() -> None:
     tables = policy.speed_limit_fits()
-    assert set(tables) == {"q8_speed_placebo", "q8_speed_sensitivity"}
-    sens = tables["q8_speed_sensitivity"]
+    assert set(tables) == {"policy_speed_placebo", "policy_speed_sensitivity"}
+    sens = tables["policy_speed_sensitivity"]
     it = policy.INTERVENTIONS["speed_limit_90"]
     main = policy.did_fit(policy.monthly_by_road_group(), it)
     assert sens.variant.iloc[0] == "main"
     assert sens.level_change.iloc[0] == pytest.approx(main.level_change)
     assert sens.control_change.notna().all()
-    placebo = tables["q8_speed_placebo"]
+    placebo = tables["policy_speed_placebo"]
     assert placebo.is_true.sum() == 1
     assert sorted(pd.to_datetime(placebo.break_date)) == sorted([*it.placebo_dates, it.date])
     # The design fails: at least one placebo break moves the two groups apart on its own.

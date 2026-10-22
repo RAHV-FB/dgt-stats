@@ -6,6 +6,7 @@ on every page, numbered findings on the front page, raw database field names in 
 headings phrased as questions.
 """
 
+import html
 import re
 from html.parser import HTMLParser
 
@@ -13,13 +14,13 @@ import pytest
 
 from dgt_stats import site
 from dgt_stats.national import summaries
-from dgt_stats.paths import FIGURES_DIR, TABLES_DIR
+from dgt_stats.paths import FIGURES_DIR, table_path
 from dgt_stats.site import components
 
 pytestmark = pytest.mark.skipif(
     not (FIGURES_DIR / "captions.json").exists()
-    or not (TABLES_DIR / "q1_annual_headline.csv").exists()
-    or not (TABLES_DIR / "ml_model_decisions.csv").exists()
+    or not table_path("longrun_headline").exists()
+    or not table_path("ml_model_decisions").exists()
     or not summaries.model_tables_present(),
     reason="run `python scripts/run.py national.associations`, `python scripts/run.py national.results charts national.cards` and "
     "`python scripts/run.py regional models sources` first",
@@ -70,31 +71,47 @@ def _main(text: str) -> str:
     return text[text.find("<main>") : text.find("</main>")]
 
 
-def test_navigation_follows_the_argument(built: dict[str, str]) -> None:
+def test_navigation_follows_the_sections(built: dict[str, str]) -> None:
     assert [group for group, _ in site.NAV_GROUPS] == [
         "Overview",
         "Explore",
-        "Over time",
-        "Drivers, vehicles and factors",
-        "Crash severity",
+        "National statistics",
+        "Drivers",
+        "Catalonia and Barcelona",
+        "Severity model",
         "Data and methods",
     ]
     groups = dict(site.NAV_GROUPS)
-    assert [slug for slug, _ in groups["Crash severity"]][-2:] == ["severity-models", "validation"]
-    assert [slug for slug, _ in groups["Crash severity"]][1:3] == ["catalonia", "barcelona"]
+    assert [slug for slug, _ in groups["Severity model"]] == ["severity-models", "validation"]
+    assert [slug for slug, _ in groups["Catalonia and Barcelona"]] == ["catalonia", "barcelona"]
     assert [slug for slug, _ in groups["Data and methods"]] == ["sources", "data"]
     assert dict(groups["Data and methods"])["sources"] == "Data sources and scope"
     nav = re.search(r'<nav aria-label="Sections">(.*?)</nav>', built["speed"], re.S).group(1)
     links = re.findall(r'href="([a-z-]+)\.html"', nav)
     assert links == [slug for _, pages in site.NAV_GROUPS for slug, _ in pages]
     # Each page names its group above the title and links to its neighbours in reading order.
-    assert '<p class="eyebrow">Drivers, vehicles and factors</p>' in built["speed"]
+    assert '<p class="eyebrow">National statistics</p>' in built["speed"]
     assert 'href="vehicles.html" rel="prev"' in built["speed"]
     assert 'href="factors.html" rel="next"' in built["speed"]
-    assert '<p class="eyebrow">Over time</p>' in built["policy"]
+    assert '<p class="eyebrow">National statistics</p>' in built["policy"]
+    assert '<p class="eyebrow">Drivers</p>' in built["drivers"]
     assert '<p class="eyebrow">Explore</p>' in built["calculator"]
-    assert '<p class="eyebrow">Crash severity</p>' in built["validation"]
+    assert '<p class="eyebrow">Severity model</p>' in built["validation"]
     assert '<p class="eyebrow">' not in built["index"]
+
+
+def test_every_analysis_page_names_the_sources_of_its_tables(built: dict[str, str]) -> None:
+    from dgt_stats import catalogue
+
+    for slug, text in built.items():
+        names = re.findall(r'href="tables/([^"/]+)\.csv"', text)
+        block = re.search(r'<section class="data-method".*?</section>', text, re.S)
+        if not block:
+            continue
+        expected = [s.name for s in catalogue.sources_of(names) if s.read]
+        line = re.search(r"<dt>Sources</dt><dd>(.*?)</dd>", block.group(0))
+        assert line, slug
+        assert html.unescape(line.group(1)).split(" · ") == expected, slug
 
 
 def test_the_old_page_names_and_framing_are_gone(built: dict[str, str]) -> None:
@@ -247,7 +264,7 @@ def test_the_validation_page_does_not_claim_national_transferability(
 ) -> None:
     import pandas as pd
 
-    path = pd.read_csv(TABLES_DIR / "ml_outward_path.csv")
+    path = pd.read_csv(table_path("ml_outward_path"))
     visible = _visible(built["validation"])
     if not path.verdict.eq("potentially nationally transferable").any():
         assert "nationally transferable" not in visible
@@ -295,7 +312,7 @@ def test_record_pages_are_short_and_keep_their_detail_on_the_methodology_page(
     assert 'href="calculator.html"' in _main(built["catalonia"])
     # Barcelona's records are one city's in one year, named in the opening, and the models
     # fitted on them give no probability.
-    year = _year_label(pd.read_csv(TABLES_DIR / "bcn_person_severity_share.csv"))
+    year = _year_label(pd.read_csv(table_path("bcn_person_severity_share")))
     opening = re.search(r'<p class="summary">(.*?)</p>', built["barcelona"]).group(1)
     assert f"crashes in {year}:" in opening
     visible = " ".join(_visible(built["barcelona"]).split())
@@ -364,9 +381,9 @@ def test_the_conditional_75_plus_estimate_is_never_read_alone(built: dict[str, s
 
     from dgt_stats.drivers.exposure_risk import national
 
-    split = pd.read_csv(TABLES_DIR / "risk_older_split.csv")
+    split = pd.read_csv(table_path("risk_older_split"))
     madrid = split[(split.assumption == national.REFERENCE_SPLIT) & (split.group == "75+")].iloc[0]
-    older = pd.read_csv(TABLES_DIR / "risk_older_sensitivity.csv").ratio_75_plus
+    older = pd.read_csv(table_path("risk_older_sensitivity")).ratio_75_plus
     low, high = float(older.min()), float(older.max())
     ranges = (f"{low:.2f}–{high:.2f}", f"{low:.2f} to {high:.2f}")
     values = [f"{madrid.ratio_to_45_64:.2f}", f"{madrid.ratio_to_45_64:.1f}"]

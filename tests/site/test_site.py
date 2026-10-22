@@ -9,7 +9,7 @@ import pytest
 from dgt_stats import site
 from dgt_stats.drivers.exposure_risk import national
 from dgt_stats.national import summaries
-from dgt_stats.paths import FIGURES_DIR, PROJECT_ROOT, TABLES_DIR
+from dgt_stats.paths import FIGURES_DIR, PROJECT_ROOT, TABLES_DIR, table_path
 from dgt_stats.site import components
 from dgt_stats.site import numbers as site_numbers
 from dgt_stats.site.script import JS_FLAG
@@ -21,7 +21,7 @@ REGIONAL_PAGES = ("catalonia", "barcelona", "severity-models", "validation", "so
 
 pytestmark = pytest.mark.skipif(
     not (FIGURES_DIR / "captions.json").exists()
-    or not (TABLES_DIR / "q1_annual_headline.csv").exists()
+    or not table_path("longrun_headline").exists()
     or not summaries.model_tables_present(),
     reason="run `python scripts/run.py national.associations` and `python scripts/run.py national.results charts national.cards` first",
 )
@@ -43,16 +43,16 @@ def test_every_page_is_written_with_one_heading(built: Path) -> None:
         _runs_no_script(slug, text)
         assert 'lang="en"' in text
         assert f'href="{slug}.html" aria-current="page"' in text
-    # The navigation follows the questions a reader brings: the interactive tools; deaths over
-    # time; drivers, vehicles and recorded factors; how deadly a crash is once it has happened; and
-    # the data and methods. Old pages that no builder writes (renamed pages, withdrawn analyses)
-    # are gone.
+    # The navigation has the interactive tools, then one group per section of the project, so
+    # the menu says where each page's data come from. Old pages that no builder writes (renamed
+    # pages, withdrawn analyses) are gone.
     assert [group for group, _ in site.NAV_GROUPS] == [
         "Overview",
         "Explore",
-        "Over time",
-        "Drivers, vehicles and factors",
-        "Crash severity",
+        "National statistics",
+        "Drivers",
+        "Catalonia and Barcelona",
+        "Severity model",
         "Data and methods",
     ]
     assert [slug for slug, _ in dict(site.NAV_GROUPS)["Explore"]] == [
@@ -62,10 +62,15 @@ def test_every_page_is_written_with_one_heading(built: Path) -> None:
         "crash-explorer",
         "trends-explorer",
     ]
-    assert [slug for slug, _ in dict(site.NAV_GROUPS)["Crash severity"]] == [
+    assert [slug for slug, _ in dict(site.NAV_GROUPS)["National statistics"]][-2:] == [
+        "factors",
         "severity",
+    ]
+    assert [slug for slug, _ in dict(site.NAV_GROUPS)["Catalonia and Barcelona"]] == [
         "catalonia",
         "barcelona",
+    ]
+    assert [slug for slug, _ in dict(site.NAV_GROUPS)["Severity model"]] == [
         "severity-models",
         "validation",
     ]
@@ -202,7 +207,7 @@ def test_full_result_tables_are_published_as_csv(built: Path) -> None:
     }
     assert published == linked
     assert {f"{name}.csv" for name in summaries.MODEL_TABLES} <= published
-    assert "validation.csv" in published
+    assert "reconciliation.csv" in published
     # Withdrawn analyses leave no download behind.
     withdrawn = {f"{name}.csv" for name in summaries.WITHDRAWN_SUMMARIES}
     assert not published & (withdrawn | {"review_forecast.csv", "q7_breakeven_km.csv"})
@@ -277,7 +282,7 @@ def test_severity_page_leads_with_the_adverse_finding(built: Path) -> None:
     notes = data[data.index('id="severity-method"') :]
     notes = notes[: notes.index("<h2", 1)]
     assert 'href="data.html#severity-method"' in text
-    adverse = pd.read_csv(TABLES_DIR / "q3_adverse_conditions.csv")
+    adverse = pd.read_csv(table_path("assoc_adverse_conditions"))
     fatal = adverse[adverse.outcome == "fatal"].set_index(["variant", "level"])
     wet_alone = float(fatal.loc[("no_weather", "wet"), "odds_ratio"])
     # The headline number is computed from the table, not typed.
@@ -293,27 +298,27 @@ def test_severity_page_leads_with_the_adverse_finding(built: Path) -> None:
         assert phrase not in text + notes, phrase
     # The missing-value levels are nuisance terms: flagged, quantified by province and refitted
     # without the provinces that record most of them; the numbers come from the tables.
-    coefficients = pd.read_csv(TABLES_DIR / "q3_model_coefficients.csv")
+    coefficients = pd.read_csv(table_path("assoc_model_coefficients"))
     nuisance = coefficients[coefficients.is_nuisance.astype(bool)]
     assert set(nuisance.level) <= {"unknown", "not specified", "not applicable"}
-    regime = pd.read_csv(TABLES_DIR / "q3_recording_regime.csv").set_index(["predictor", "level"])
+    regime = pd.read_csv(table_path("assoc_recording_regime")).set_index(["predictor", "level"])
     alignment = regime.loc[("alignment", "unknown")]
     assert components._fmt_pct(float(alignment.catalan_share_of_level)) in notes
     assert components._fmt_pct(float(alignment.share_of_catalan_crashes)) in notes
-    assert 'href="tables/q3_regime_sensitivity.csv"' in text
-    sensitivity = pd.read_csv(TABLES_DIR / "q3_regime_sensitivity.csv")
+    assert 'href="tables/assoc_regime_sensitivity.csv"' in text
+    sensitivity = pd.read_csv(table_path("assoc_regime_sensitivity"))
     wet = sensitivity[(sensitivity.outcome == "fatal") & (sensitivity.level == "wet")].iloc[0]
     assert f"moves from {wet.odds_ratio:.2f} to {wet.odds_ratio_without:.2f}" in notes
     # The holdout is reported with its Brier skill against the training years' base rate.
-    holdout = pd.read_csv(TABLES_DIR / "q3_holdout_summary.csv").set_index("outcome")
+    holdout = pd.read_csv(table_path("assoc_holdout_summary")).set_index("outcome")
     assert components._fmt_pct(float(holdout.loc["fatal", "brier_skill"])) in notes
     # The full coefficient table is linked, not printed.
-    assert 'href="tables/q3_model_coefficients.csv"' in text
+    assert 'href="tables/assoc_model_coefficients.csv"' in text
     assert text.count("<table>") <= 4
     # The summary names location beside crash type, from the joint zone and road-type contrast,
     # and gives the junction association with the inverted Catalan flag read the other way round.
     opening = re.search(r'<p class="summary">(.*?)</p>', text, re.S).group(1)
-    locations = pd.read_csv(TABLES_DIR / "q3_location_contrasts.csv")
+    locations = pd.read_csv(table_path("assoc_location_contrasts"))
     conventional = locations[
         (locations.outcome == "fatal")
         & (locations.zone == "interurban road")
@@ -330,16 +335,16 @@ def test_severity_page_leads_with_the_adverse_finding(built: Path) -> None:
     # The page states the junction coding problem, how it was corrected, the period refits and
     # the flag as published; the notes add the evidence and every alternative reading, every
     # number from the tables.
-    sensitivity = pd.read_csv(TABLES_DIR / "q3_junction_sensitivity.csv")
+    sensitivity = pd.read_csv(table_path("assoc_junction_sensitivity"))
     full = sensitivity[(sensitivity.outcome == "fatal") & (sensitivity.fit == "full")]
     full = full.set_index("treatment")
     for treatment in ("junction type", "unrecorded", "as published"):
         assert f"{full.loc[treatment, 'odds_ratio']:.2f}" in notes, treatment
     published = full.loc["as published"]
     assert f"{published.odds_ratio:.2f} ({published.or_low:.2f}–{published.or_high:.2f})" in text
-    recoded = int(pd.read_csv(TABLES_DIR / "q3_junction_coding.csv").recoded.sum())
+    recoded = int(pd.read_csv(table_path("assoc_junction_coding")).recoded.sum())
     assert f"{recoded:,} crashes" in text and f"{recoded:,} crashes" in notes
-    periods = pd.read_csv(TABLES_DIR / "q3_period_refits.csv")
+    periods = pd.read_csv(table_path("assoc_period_refits"))
     later = periods[
         (periods.outcome == "fatal")
         & (periods.level == "at a junction")
@@ -347,7 +352,7 @@ def test_severity_page_leads_with_the_adverse_finding(built: Path) -> None:
         & (periods.period == "from")
     ].iloc[0]
     assert f"{later.odds_ratio:.2f} ({later.or_low:.2f}–{later.or_high:.2f})" in text
-    assert 'href="tables/q3_junction_sensitivity.csv"' in text
+    assert 'href="tables/assoc_junction_sensitivity.csv"' in text
     for phrase in ("until the coding changed", "only the junction term"):
         assert phrase not in text + notes, phrase
     # The ranking is quoted with what the missing-value levels contribute to it, as ROC-AUC to
@@ -361,7 +366,7 @@ def test_severity_page_leads_with_the_adverse_finding(built: Path) -> None:
     # The yearly refits are the regression for a death's; the term of the other regression that
     # does vary between years is named with its p-value.
     assert "the regression for a death gives" in notes
-    stability = pd.read_csv(TABLES_DIR / "q3_year_stability.csv")
+    stability = pd.read_csv(table_path("assoc_year_stability"))
     serious = stability[stability.outcome == "serious"].drop_duplicates(["predictor", "level"])
     varying = serious[serious.heterogeneity_p < 0.05]
     assert not varying.empty
@@ -447,10 +452,10 @@ def _driver_notes(built: Path) -> tuple[str, str, str]:
 def test_drivers_page_separates_the_two_questions(built: Path) -> None:
     text = (built / "drivers.html").read_text(encoding="utf-8")
     body = text[text.find("<main>") : text.find("</main>")]
-    rates = pd.read_csv(TABLES_DIR / "risk_national_rates.csv")
+    rates = pd.read_csv(table_path("risk_national_rates"))
     rates = rates[rates.km_total == "less taxi and ride-hailing"]
     central = rates[rates.method == national.CENTRAL_METHOD].set_index("group")
-    severity = pd.read_csv(TABLES_DIR / "risk_severity_and_licences.csv").set_index("group")
+    severity = pd.read_csv(table_path("risk_severity_and_licences")).set_index("group")
     young = central.loc["18-29"]
     # A short opening states the results, from the tables: involvement per km by driver age, an
     # estimate, and deaths once involved, a count. No big-number callout repeats it.
@@ -478,7 +483,7 @@ def test_drivers_page_separates_the_two_questions(built: Path) -> None:
     assert "average of two travel surveys" in per_km
     assert site_numbers.rate_interval(young, "involved_ratio") in per_km
     assert f"{central.loc['30-44', 'involved_ratio']:.2f} times" in per_km
-    split = pd.read_csv(TABLES_DIR / "risk_older_split.csv")
+    split = pd.read_csv(table_path("risk_older_split"))
     split = split[
         (split.assumption == national.REFERENCE_SPLIT) & (split.profile == national.CENTRAL_METHOD)
     ].set_index("group")
@@ -490,7 +495,7 @@ def test_drivers_page_separates_the_two_questions(built: Path) -> None:
     assert 'src="figures/dr1_involved_per_km.svg"' in per_km
     # The caveat on the figure for 75 and over is said once, quickly, beside the figure: the
     # range of the other assumptions and the wording the tables allow, with the reasons linked.
-    older = pd.read_csv(TABLES_DIR / "risk_older_sensitivity.csv").ratio_75_plus
+    older = pd.read_csv(table_path("risk_older_sensitivity")).ratio_75_plus
     full = f"{older.min():.2f} to {older.max():.2f}"
     caveat = re.search(r'<p id="ages-75-and-over">(.*?)</p>', per_km, re.S).group(1)
     assert full in caveat and body.count(full) == 1
@@ -526,22 +531,22 @@ def test_drivers_page_separates_the_two_questions(built: Path) -> None:
         assert phrase not in text, phrase
     assert "doi.org" not in text  # no external study interprets these results
     # Sex: the ratio per driver involved with its interval, and the per-km ratio.
-    sex = pd.read_csv(TABLES_DIR / "drivers_sex_ratios.csv").set_index(["scope", "band", "measure"])
+    sex = pd.read_csv(table_path("drivers_sex_ratios")).set_index(["scope", "band", "measure"])
     fatality_men = sex.loc[("car", "18+", "deaths_per_1000_involved")]
     assert f"{fatality_men.ratio:.2f}" in sexes
     assert f"({fatality_men.low:.2f}–{fatality_men.high:.2f})" in sexes
-    per_km_sex = pd.read_csv(TABLES_DIR / "risk_sex_per_km.csv").set_index("measure")
+    per_km_sex = pd.read_csv(table_path("risk_sex_per_km")).set_index("measure")
     assert f"{per_km_sex.loc['involved per km', 'ratio_men_to_women']:.2f} times" in sexes
     assert 'src="figures/a3_sex_ratios.svg"' in sexes
 
 
 def test_drivers_technical_notes_hold_the_method_and_the_checks(built: Path) -> None:
     notes, per_km, section = _driver_notes(built)
-    rates = pd.read_csv(TABLES_DIR / "risk_national_rates.csv")
+    rates = pd.read_csv(table_path("risk_national_rates"))
     rates = rates[rates.km_total == "less taxi and ride-hailing"]
     young = rates[rates.method == national.CENTRAL_METHOD].set_index("group").loc["18-29"]
     # The method: the average of the two surveys' age profiles, with each one's shares.
-    shares = pd.read_csv(TABLES_DIR / "risk_national_shares.csv")
+    shares = pd.read_csv(table_path("risk_national_shares"))
     for method in (national.BARCELONA_METHOD, national.MADRID_METHOD, national.CENTRAL_METHOD):
         share = shares[(shares.method == method) & (shares.group == "65+")].share_of_km.iloc[0]
         assert components._fmt_pct(share) in per_km, method
@@ -561,14 +566,14 @@ def test_drivers_technical_notes_hold_the_method_and_the_checks(built: Path) -> 
     assert "professionals&#x27; work trips</td>" not in notes
     assert "which makes an interval too narrow;" not in notes
     # Barcelona's working-day check, with the ratios for 65 and over from its table.
-    city = pd.read_csv(TABLES_DIR / "risk_barcelona_rates.csv")
+    city = pd.read_csv(table_path("risk_barcelona_rates"))
     city = city[city.numerator == city.numerator.iloc[0]]
     assert "matched in place and time" not in notes
     for value in city[city.age4 == "65+"].ratio_to_45_64:
         assert f"{value:.2f}" in per_km
     # The former owner-age figures are explained, not hidden, and are no longer the result: a
     # short note closes the per-km notes, compared like with like on today's age groups.
-    owner = pd.read_csv(TABLES_DIR / "risk_owner_age_comparison.csv")
+    owner = pd.read_csv(table_path("risk_owner_age_comparison"))
     old = owner[owner.denominator.str.endswith("(former figure)")].set_index("group")
     same = owner[owner.denominator.str.endswith("same age groups")].set_index("group")
     assert f"{same.loc['18-29', 'ratio_to_reference']:.2f} times the 45–64 rate" in per_km
@@ -578,7 +583,7 @@ def test_drivers_technical_notes_hold_the_method_and_the_checks(built: Path) -> 
     assert "Why the former figure differed" not in notes and "Ratio to 35–54" not in notes
     assert "was not established and gave no figure" not in notes
     # Men and women per licence holder, combined.
-    sex = pd.read_csv(TABLES_DIR / "drivers_sex_ratios.csv").set_index(["scope", "band", "measure"])
+    sex = pd.read_csv(table_path("drivers_sex_ratios")).set_index(["scope", "band", "measure"])
     killed_men = sex.loc[("car", "18+", "deaths_per_million_licences")]
     assert f"died at the wheel {killed_men.ratio:.2f}" in per_km
     # Ages 75 and over: counted results, the conditional estimate and the range are told apart.
@@ -587,12 +592,12 @@ def test_drivers_technical_notes_hold_the_method_and_the_checks(built: Path) -> 
     assert '<details class="technical"><summary>Why this assumption' in section
     for label in national.public_split_labels().values():
         assert components.esc(label) in section, label
-    licences = pd.read_csv(TABLES_DIR / "risk_severity_and_licences.csv").set_index("group")
+    licences = pd.read_csv(table_path("risk_severity_and_licences")).set_index("group")
     for group in ("75+", "65-74", "45-64"):
         assert f"{licences.loc[group, 'involved_per_1000_licence_holders']:.2f}" in section
     assert "Drivers who drive few kilometres, at any age" in section
     assert "These rates are averages over everyone of an age" in section
-    split = pd.read_csv(TABLES_DIR / "risk_older_split.csv")
+    split = pd.read_csv(table_path("risk_older_split"))
     barcelona = split[split.profile == national.BARCELONA_METHOD]
     split = split[split.profile == national.CENTRAL_METHOD]
     madrid = split[(split.assumption == national.REFERENCE_SPLIT) & (split.group == "75+")].iloc[0]
@@ -611,7 +616,7 @@ def test_drivers_technical_notes_hold_the_method_and_the_checks(built: Path) -> 
     # with their values from the tables.
     assert "Each split was combined with every alternative" in section
     assert "were varied one at a time" in section
-    scenarios = pd.read_csv(TABLES_DIR / "risk_coverage_scenarios.csv")
+    scenarios = pd.read_csv(table_path("risk_coverage_scenarios"))
     for mix, part in scenarios[~scenarios.credible].groupby("remainder_mix"):
         span = f"{part.ratio_75_plus.min():.2f}–{part.ratio_75_plus.max():.2f}"
         assert span in section, mix
@@ -627,7 +632,7 @@ def test_drivers_technical_notes_hold_the_method_and_the_checks(built: Path) -> 
     # What moves the 75+ figure is a short table, not a chart of grey bars, and the drivers
     # page's charts are linked, not numbered from here.
     data = (built / "data.html").read_text(encoding="utf-8")
-    decomposition = pd.read_csv(TABLES_DIR / "risk_older_decomposition.csv")
+    decomposition = pd.read_csv(table_path("risk_older_decomposition"))
     whole = decomposition[decomposition.kind == "all"].iloc[0]
     assert "What moves the figure for drivers aged 75 and over" in section
     assert f"{whole.low:.2f} to {whole.high:.2f}" in section
@@ -635,7 +640,7 @@ def test_drivers_technical_notes_hold_the_method_and_the_checks(built: Path) -> 
     assert 'href="drivers.html#figure-dr2_killed_per_involved"' in section
     assert "[[figure:" not in data
     # Barcelona's check of the splits carries sampling intervals and its count.
-    city_older = pd.read_csv(TABLES_DIR / "risk_barcelona_older.csv")
+    city_older = pd.read_csv(table_path("risk_barcelona_older"))
     city_madrid = city_older[
         (city_older.assumption == national.REFERENCE_SPLIT) & (city_older.age == "75+")
     ]
@@ -658,7 +663,7 @@ def test_drivers_technical_notes_hold_the_method_and_the_checks(built: Path) -> 
 
 def test_policy_page_reports_the_falsification_not_the_headline(built: Path) -> None:
     text = (built / "policy.html").read_text(encoding="utf-8")
-    sensitivity = pd.read_csv(TABLES_DIR / "q8_points_sensitivity.csv").set_index("variant")
+    sensitivity = pd.read_csv(table_path("policy_points_sensitivity")).set_index("variant")
     main = float(sensitivity.loc["main", "level_change"])
     linear = float(sensitivity.loc["linear_trend", "level_change"])
     # Signed percentages are typeset with a real minus sign, not a hyphen.
@@ -666,10 +671,10 @@ def test_policy_page_reports_the_falsification_not_the_headline(built: Path) -> 
     assert signed(main) in text and signed(linear) in text
     assert "-7%" not in text and "-12%" not in text
     assert main > linear  # the preferred specification gives the smaller drop
-    calendar = pd.read_csv(TABLES_DIR / "q8_points_calendar_placebo.csv")
+    calendar = pd.read_csv(table_path("policy_points_calendar_placebo"))
     true = calendar[calendar.is_true].iloc[0]
     assert int(true["rank"]) == 1 and f"largest of {int(true.n_fits)}" in text
-    forecast = pd.read_csv(TABLES_DIR / "q8_points_forecast.csv")
+    forecast = pd.read_csv(table_path("policy_points_forecast"))
     true_forecast = forecast[forecast.is_true].iloc[0]
     ordinal = components._ordinal(int(true_forecast["rank"]))
     assert f"{ordinal} largest of {int(true_forecast.n_fits)}" in text
@@ -684,7 +689,7 @@ def test_policy_page_reports_the_falsification_not_the_headline(built: Path) -> 
     main_row = sensitivity.loc["main"]
     assert f"{abs(main_row.mean_change) * 100:.1f}% below the projection" in opening
     assert components._signed_pct(float(main_row.mean_high), 1) in opening
-    calibration = pd.read_csv(TABLES_DIR / "q8_points_calibration.csv").iloc[0]
+    calibration = pd.read_csv(table_path("policy_points_calibration")).iloc[0]
     assert f"at {int(calibration.n_excluding_zero)} of the {int(calibration.n_placebos)}" in opening
     assert "too narrow" in opening
     assert components._signed_pct(float(calibration.calibrated_low)) in text
@@ -695,7 +700,7 @@ def test_policy_page_reports_the_falsification_not_the_headline(built: Path) -> 
     notes = data[data.index('id="policy-method"') :]
     notes = notes[: notes.index("<h2", 1)]
     assert "2019 speed limit on conventional roads" in notes
-    assert 'href="tables/q8_speed_placebo.csv"' in notes
+    assert 'href="tables/policy_speed_placebo.csv"' in notes
     assert 'src="figures/q8_speed_series.svg"' not in text + data
     assert 'href="data.html#policy-method"' in text
     # The exposure series are named and their effect reported; the toll series is its
@@ -708,7 +713,7 @@ def test_policy_page_reports_the_falsification_not_the_headline(built: Path) -> 
 
 def test_speed_page_carries_severity_and_the_recording_discontinuity(built: Path) -> None:
     text = (built / "speed.html").read_text(encoding="utf-8")
-    pooled = pd.read_csv(TABLES_DIR / "speed_severity_pooled.csv").set_index("road_type")
+    pooled = pd.read_csv(table_path("speed_severity_pooled")).set_index("road_type")
     adjusted = pooled.loc["adjusted"]
     opening = re.search(r'<p class="summary">(.*?)</p>', text, re.S).group(1)
     assert f"{adjusted.rate_ratio:.2f} times" in opening
@@ -732,7 +737,7 @@ def test_speed_page_carries_severity_and_the_recording_discontinuity(built: Path
     # once, on the factors page, which this page links to.
     assert "which would raise it" in text and "which would lower it" in text
     assert 'href="factors.html#recorded-factors"' in text
-    shares = pd.read_csv(TABLES_DIR / "q9_infraction_shares.csv")
+    shares = pd.read_csv(table_path("speed_infraction_shares"))
     all_roads = shares[shares.zone == "all"].set_index("year")
     for year in (2014, 2016, int(all_roads.index.max())):
         assert f"{all_roads.loc[year, 'share_unknown'] * 100:.0f}%" in text
@@ -763,7 +768,7 @@ def test_speed_page_carries_severity_and_the_recording_discontinuity(built: Path
 
 def test_factors_page_reads_trends_only_within_comparable_runs(built: Path) -> None:
     text = (built / "factors.html").read_text(encoding="utf-8")
-    windows = pd.read_csv(TABLES_DIR / "factor_windows.csv")
+    windows = pd.read_csv(table_path("factor_windows"))
     alcohol = windows[(windows.zone == "interurban") & (windows.factor == "Alcohol")]
     assert len(alcohol) == 1  # no recording break in the interurban alcohol series
     assert f"{alcohol.share_first.iloc[0] * 100:.1f}%" in text
@@ -789,13 +794,13 @@ def test_factors_page_reads_trends_only_within_comparable_runs(built: Path) -> N
     notes = notes[: notes.index("<h2", 1)]
     assert 'href="data.html#factors-method"' in text
     assert "break in comparability" in notes and "point to changes in recording" not in notes
-    changes = pd.read_csv(TABLES_DIR / "factor_changes.csv")
+    changes = pd.read_csv(table_path("factor_changes"))
     assert f"Of the {len(changes)} year-to-year changes, {int(changes.is_break.sum())} are" in notes
 
 
 def test_trend_pages_show_every_denominator_and_the_projection(built: Path) -> None:
     trends = (built / "trends.html").read_text(encoding="utf-8")
-    index = pd.read_csv(TABLES_DIR / "risk_index.csv")
+    index = pd.read_csv(table_path("trends_risk_index"))
     for label in index.denominator_label.unique():
         assert site.esc(label) in trends, label
     # Licence holders and the fleet divide only drivers and occupants, and the page says so.
@@ -819,19 +824,19 @@ def test_trend_pages_show_every_denominator_and_the_projection(built: Path) -> N
         assert f'src="figures/{name}.svg"' in notes and name not in long_run, name
     assert "Observed deaths against the pre-pandemic trend under other projections" in notes
     assert 'href="data.html#long-run-method"' in long_run
-    series = pd.read_csv(TABLES_DIR / "longrun_series.csv")
+    series = pd.read_csv(table_path("longrun_series"))
     fuel = series[(series.measure == "road_fuel") & (series.period == "projected")]
     last = fuel[fuel.year == fuel.year.max()].iloc[0]
     assert site._signed_pct(float(last.ratio) - 1, 0) in long_run
     # The per-km headline and the municipal-road gap beside it come from the tables.
-    km_check = pd.read_csv(TABLES_DIR / "longrun_km_check.csv")
+    km_check = pd.read_csv(table_path("longrun_km_check"))
     per_km = km_check[km_check.measure == "per_km"]
     km_last = per_km[per_km.year == per_km.year.max()].iloc[0]
     # The per-km year is read against the trend's own range around it, not against the interval
     # of the ratio, which contains the ratio by construction.
     assert f"{components._fmt_pct(abs(float(km_last.ratio) - 1), 0)} above the trend" in long_run
     assert f"range of ±{components._fmt_pct(float(km_last.range_high) - 1, 0)}" in long_run
-    coverage = pd.read_csv(TABLES_DIR / "longrun_km_coverage.csv")
+    coverage = pd.read_csv(table_path("longrun_km_coverage"))
     assert components._fmt_pct(float(coverage.outside_share.min())) in long_run
     assert components._fmt_pct(float(coverage.outside_share.max())) in long_run
     assert "carries more traffic" not in long_run and "carried more traffic" not in long_run
@@ -851,7 +856,7 @@ def test_trend_pages_show_every_denominator_and_the_projection(built: Path) -> N
     # The per-fuel excess is qualified by the extra growth in kilometres per tonne that would
     # bring each of the last two years inside the trend's range, read from the drift table.
     fit_end = int(series[series.period == "fitted"].year.max())
-    drifts = pd.read_csv(TABLES_DIR / "longrun_efficiency.csv")
+    drifts = pd.read_csv(table_path("longrun_efficiency"))
     at_pace = drifts[drifts.hypothetical_extra_annual_gain == 0].set_index("year")
     for year in (int(fuel.year.max()) - 1, int(fuel.year.max())):
         needed = float(at_pace.loc[year, "ratio_low"]) ** (1 / (year - fit_end)) - 1
@@ -869,9 +874,9 @@ def test_trend_pages_show_every_denominator_and_the_projection(built: Path) -> N
         for ratio in fuel[fuel.year >= fuel.year.max() - 1].sort_values("year").ratio
     ]
     assert f"{excess[0]} and {excess[1]} above the projected trend" in trends
-    counts = pd.read_csv(TABLES_DIR / "q1_annual_headline.csv").set_index("year").deaths_30d
+    counts = pd.read_csv(table_path("longrun_headline")).set_index("year").deaths_30d
     plateau = int(
-        pd.read_csv(TABLES_DIR / "longrun_segments.csv").query("measure == 'count'").start.max()
+        pd.read_csv(table_path("longrun_segments")).query("measure == 'count'").start.max()
     )
     for year in range(plateau, int(fuel.year.max()) + 1):
         assert f'<td class="num">{components._fmt_int(counts.loc[year])}</td>' in long_run, year
@@ -882,7 +887,7 @@ def test_trend_pages_show_every_denominator_and_the_projection(built: Path) -> N
     for name in ("m1_season_profile", "m2_month_effects", "m3_lockdown"):
         assert f'src="figures/{name}.svg"' in seasons
     # Deaths are divided only by road fuel; under it July and August stay above 1.
-    effects = pd.read_csv(TABLES_DIR / "season_month_effects.csv")
+    effects = pd.read_csv(table_path("season_month_effects"))
     assert set(effects.exposure) == {"none", "road_fuel_tonnes"}
     fuel_effects = effects[effects.exposure == "road_fuel_tonnes"].set_index("month")
     for month in (7, 8):
@@ -961,13 +966,13 @@ def test_front_page_is_an_overview_of_the_study(built: Path) -> None:
     linked = re.findall(r'href="([a-z-]+)\.html"', sections["The pages"])
     assert sorted(linked) == sorted(slug for slug, _ in site.ALL_PAGES if slug != "index")
     # The headline numbers are computed from the tables.
-    risk = pd.read_csv(TABLES_DIR / "risk_index.csv")
+    risk = pd.read_csv(table_path("trends_risk_index"))
     latest = risk[(risk.year == risk.year.max()) & (risk.outcome == "deaths_30d")]
     deaths = latest[latest.denominator == "count"].iloc[0]
     assert components._fmt_int(deaths["count"]) in sections["Main findings"]
-    counts = pd.read_csv(TABLES_DIR / "q1_annual_headline.csv").set_index("year").deaths_30d
+    counts = pd.read_csv(table_path("longrun_headline")).set_index("year").deaths_30d
     steep_end = int(
-        pd.read_csv(TABLES_DIR / "longrun_segments.csv").query("measure == 'count'").start.max()
+        pd.read_csv(table_path("longrun_segments")).query("measure == 'count'").start.max()
     )
     first = int(counts.index.min())
     assert "fell by about three quarters" in sections["Main findings"]
@@ -976,7 +981,7 @@ def test_front_page_is_an_overview_of_the_study(built: Path) -> None:
         f"{components._fmt_int(counts.loc[steep_end])} in {steep_end}"
     ) in sections["Main findings"]
     heavy = (
-        pd.read_csv(TABLES_DIR / "sev_contrasts.csv")
+        pd.read_csv(table_path("sev_contrasts"))
         .query("base == 'interurban'")
         .set_index(["input", "level"])
         .loc[("users", "heavy_vehicle")]
@@ -985,12 +990,12 @@ def test_front_page_is_an_overview_of_the_study(built: Path) -> None:
         f"{heavy.ratio:.1f} times as high with a lorry or bus involved (95% interval "
         f"{heavy.ratio_low:.1f}–{heavy.ratio_high:.1f})"
     ) in sections["Main findings"]
-    severity = pd.read_csv(TABLES_DIR / "risk_severity_and_licences.csv").set_index("group")
+    severity = pd.read_csv(table_path("risk_severity_and_licences")).set_index("group")
     oldest = float(severity.loc["75+", "killed_per_1000_involved"]) / float(
         severity.loc["45-64", "killed_per_1000_involved"]
     )
     assert f"{oldest:.1f} times as often" in sections["Main findings"]
-    rates = pd.read_csv(TABLES_DIR / "risk_national_rates.csv")
+    rates = pd.read_csv(table_path("risk_national_rates"))
     young = rates[
         (rates.method == national.CENTRAL_METHOD)
         & (rates.km_total == "less taxi and ride-hailing")
@@ -1017,7 +1022,7 @@ def test_front_page_is_an_overview_of_the_study(built: Path) -> None:
     # a link to where the drivers page sets it out; no per-km figure for them here.
     finding = sections["Main findings"]
     assert 'href="drivers.html#deaths-once-a-crash-has-happened"' in finding
-    older_rows = pd.read_csv(TABLES_DIR / "risk_older_sensitivity.csv")
+    older_rows = pd.read_csv(table_path("risk_older_sensitivity"))
     full = f"{older_rows.ratio_75_plus.min():.2f} to {older_rows.ratio_75_plus.max():.2f}"
     assert full not in finding
     assert "nearly seven" not in sections["Main findings"]
@@ -1049,7 +1054,7 @@ def test_any_closing_synthesis_follows_the_evidence(built: Path) -> None:
 def test_supporting_pages_name_their_group(built: Path) -> None:
     # The section line above the title names the page's group; the prose does not restate the
     # site's structure.
-    for slug, group in (("severity", "Crash severity"), ("policy", "Over time")):
+    for slug, group in (("severity", "National statistics"), ("policy", "National statistics")):
         text = (built / f"{slug}.html").read_text(encoding="utf-8")
         body = text[text.find("<main>") : text.find("</main>")]
         assert body.startswith(
@@ -1106,20 +1111,20 @@ def test_methodology_lists_every_assumption_the_methods_document_tests(built: Pa
     assert "was tested" not in transfer and "were tested" not in transfer
     # The split at 75 is a conditional estimate beside its sensitivity range.
     oldest = row("People aged 75 and over drive as much less")
-    split = pd.read_csv(TABLES_DIR / "risk_older_split.csv")
+    split = pd.read_csv(table_path("risk_older_split"))
     split = split[split.profile == national.CENTRAL_METHOD]
     madrid = split[(split.assumption == national.REFERENCE_SPLIT) & (split.group == "75+")].iloc[0]
-    older_rows = pd.read_csv(TABLES_DIR / "risk_older_sensitivity.csv").ratio_75_plus
+    older_rows = pd.read_csv(table_path("risk_older_sensitivity")).ratio_75_plus
     assert "Conditional." in oldest and "at odds with" in oldest
     assert (
         f"{madrid.ratio_to_45_64:.2f} (95% sampling interval {site_numbers.joint_interval(madrid)})"
     ) in oldest
     assert f"{older_rows.min():.2f}–{older_rows.max():.2f}" in oldest
     # The rows added by the national corrections carry numbers from their tables.
-    split = pd.read_csv(TABLES_DIR / "risk_frequency_severity.csv").set_index("year").iloc[-1]
+    split = pd.read_csv(table_path("trends_frequency_severity")).set_index("year").iloc[-1]
     fall = components._fmt_pct(1 - float(split.deaths_per_fuel_index) / 100, 0)
     assert f"Deaths per tonne fell {fall}" in row("The fall in deaths per tonne")
-    panel = pd.read_csv(TABLES_DIR / "risk_annual_panel.csv").set_index("year")
+    panel = pd.read_csv(table_path("trends_annual_panel")).set_index("year")
     ratio = panel.deaths_30d / panel.deaths_24h
     for year in (2010, 2011):
         assert f"{ratio.loc[year]:.3f} in {year}" in row("The 30-day death series")
@@ -1128,12 +1133,12 @@ def test_methodology_lists_every_assumption_the_methods_document_tests(built: Pa
     assert "a step in the ratio" not in row("The 30-day death series")
     # Poisson variation is rejected for admissions and crashes only; for deaths the interval
     # of the dispersion includes 1.
-    scatter_rows = pd.read_csv(TABLES_DIR / "risk_dispersion.csv").set_index("outcome")
+    scatter_rows = pd.read_csv(table_path("trends_dispersion")).set_index("outcome")
     chance = row("A year's count varies")
     assert scatter_rows.loc["deaths_30d", "dispersion_low"] < 1
     assert "Not established for deaths" in chance
     assert "any of the three counts" not in chance
-    projection = pd.read_csv(TABLES_DIR / "longrun_projection_sensitivity.csv")
+    projection = pd.read_csv(table_path("longrun_projection_sensitivity"))
     later = projection[
         (projection.measure == "road_fuel")
         & (projection.variant.isin(["main"]) | projection.variant.str.startswith("start_"))
@@ -1143,7 +1148,7 @@ def test_methodology_lists_every_assumption_the_methods_document_tests(built: Pa
         assert components._fmt_pct(float(value) - 1, 0) in row("The excess of deaths per tonne")
     # The dispersion factors are given on the trends page, not repeated here: the factor as a
     # number of its own, not the last digits of another ratio in the text.
-    scatter = pd.read_csv(TABLES_DIR / "risk_dispersion.csv").set_index("outcome").dispersion
+    scatter = pd.read_csv(table_path("trends_dispersion")).set_index("outcome").dispersion
     factor = components._fmt_dec(scatter["crashes"], 0)
     assert not re.search(rf"(?<![\d.,]){re.escape(factor)} times", main)
 
@@ -1157,9 +1162,7 @@ def test_coding_breaks_describe_the_inverted_catalan_junction_flag(built: Path) 
     block = components.html.unescape(block[: block.index("<p>The fog and strong-wind fields")])
     assert "the junction flag the wrong way round" in block
     assert "changes how it marks a missing value" not in block
-    matched = dgt_audit.catalan_junction_years(
-        pd.read_csv(TABLES_DIR / "dgt_audit_junction_coding.csv")
-    )
+    matched = dgt_audit.catalan_junction_years(pd.read_csv(table_path("dgt_audit_junction_coding")))
     first = matched[matched.junction_flag_inverted].iloc[0]
     assert components._fmt_pct(first.dgt_share_at_junction) in block
     assert components._fmt_pct(first.cat_share_between_junctions) in block
@@ -1168,7 +1171,7 @@ def test_coding_breaks_describe_the_inverted_catalan_junction_flag(built: Path) 
     # How the association analysis treats the inverted years, from the table it reads.
     assert "reads the flag the other way round in those province-years" in block
     assert "read from the years before it" not in block
-    read = pd.read_csv(TABLES_DIR / "q3_junction_coding.csv")
+    read = pd.read_csv(table_path("assoc_junction_coding"))
     read = read[(read.region == "Catalonia") & (read.recoded > 0)]
     for row in read.itertuples():
         assert f"{components._fmt_pct(row.share_at_junction, 0)} in {row.year}" in block
@@ -1187,7 +1190,7 @@ def test_coding_breaks_name_the_fog_and_wind_fields_coded_another_way(built: Pat
     data = (built / "data.html").read_text(encoding="utf-8")
     start = data.index('id="coding-breaks"')
     block = components.html.unescape(data[start : data.index('id="models"', start)])
-    presence = pd.read_csv(TABLES_DIR / "dgt_audit_presence_coding.csv")
+    presence = pd.read_csv(table_path("dgt_audit_presence_coding"))
     breaks = dgt_audit.presence_breaks(presence)
     fog = breaks[breaks.field == "CONDICION_NIEBLA"].iloc[0]
     assert fog.province_name == "Barcelona"
@@ -1211,7 +1214,7 @@ def test_the_missing_values_figure_reads_the_audit_rule(built: Path) -> None:
     block = components.html.unescape(block)
     assert "figure reads the fields the audit examines by the same rule" in block
     assert "In the figure an empty fog or strong-wind field counts as recorded" in block
-    applicability = pd.read_csv(TABLES_DIR / "missingness_where_applicable.csv")
+    applicability = pd.read_csv(table_path("missingness_where_applicable"))
     junction_type = applicability[applicability.column == "NUDO_INFO"]
     away = 1 - junction_type.applies.sum() / junction_type.rows.sum()
     assert f"the junction type in {components._fmt_pct(away, 0)}" in block
@@ -1248,12 +1251,13 @@ def test_navigation_groups_its_pages_under_labels(built: Path) -> None:
     links = re.findall(r'href="([a-z-]+)\.html"', nav)
     assert links == [slug for _, pages in site.NAV_GROUPS for slug, _ in pages]
     # A page names its section and links to its neighbours in reading order.
-    assert '<p class="eyebrow">Drivers, vehicles and factors</p>' in text
+    assert '<p class="eyebrow">National statistics</p>' in text
     assert 'href="vehicles.html" rel="prev"' in text and 'href="factors.html" rel="next"' in text
     # Each group leads on to the next in reading order.
     for slug, before, after in (
-        ("policy", "seasons", "drivers"),
-        ("factors", "speed", "severity"),
+        ("policy", "seasons", "vehicles"),
+        ("severity", "factors", "drivers"),
+        ("drivers", "severity", "catalonia"),
         ("validation", "severity-models", "sources"),
     ):
         page = (built / f"{slug}.html").read_text(encoding="utf-8")
@@ -1265,7 +1269,7 @@ def test_navigation_groups_its_pages_under_labels(built: Path) -> None:
 def test_drivers_page_chains_crashes_and_deaths_per_crash(built: Path) -> None:
     # Deaths per km, the two measures combined, are set out in the drivers page's technical notes.
     text, _, _ = _driver_notes(built)
-    rates = pd.read_csv(TABLES_DIR / "risk_national_rates.csv")
+    rates = pd.read_csv(table_path("risk_national_rates"))
     for _, row in rates.iterrows():
         # Involved per km x killed per involved = killed per km, in every method and variant.
         per_involved = row.killed / row.involved
@@ -1284,7 +1288,7 @@ def test_drivers_page_chains_crashes_and_deaths_per_crash(built: Path) -> None:
 
 def test_vehicles_page_quotes_per_km_rates_for_all_roads_only(built: Path) -> None:
     text = (built / "vehicles.html").read_text(encoding="utf-8")
-    summary = pd.read_csv(TABLES_DIR / "q6_summary_2022.csv").set_index("group")
+    summary = pd.read_csv(table_path("vehicles_summary_2022")).set_index("group")
     truck, car, bike = summary.loc["heavy_truck"], summary.loc["car"], summary.loc["motorcycle"]
     per_vehicle = (
         truck.fatal_involvement_per_100k_vehicles / car.fatal_involvement_per_100k_vehicles
@@ -1297,7 +1301,7 @@ def test_vehicles_page_quotes_per_km_rates_for_all_roads_only(built: Path) -> No
     assert f"{bike.occupant_deaths_per_fatal_involvement:.2f} for a motorcycle" in text
     assert f"A figure of {truck.occupant_deaths_per_fatal_involvement:.2f}" in text
     # Zone counts are not divided by all-road kilometres, and the download says so.
-    rates = pd.read_csv(TABLES_DIR / "q6_rates_2022.csv")
+    rates = pd.read_csv(table_path("vehicles_rates_2022"))
     assert rates[rates.zone != "all"].per_billion_km.isna().all()
     assert rates[rates.zone == "all"].per_billion_km.notna().all()
     assert "urban and interurban roads only as counts and rates per vehicle" in text

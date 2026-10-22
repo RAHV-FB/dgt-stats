@@ -35,7 +35,7 @@ from dgt_stats.paths import (
     DGT_PROCESSED_CRASHES,
     MICRODATA_YEARS,
     PROCESSED_DATA_DIR,
-    TABLES_DIR,
+    table_path,
 )
 
 log = logging.getLogger(__name__)
@@ -56,7 +56,7 @@ def reconcile_checks() -> None:
     failed = int((~results.passed).sum())
     if failed:
         raise SystemExit(
-            f"reconciliation failed: {failed} checks did not pass; see {reconcile.VALIDATION_PATH}"
+            f"reconciliation failed: {failed} checks did not pass; see {reconcile.RECONCILIATION_PATH}"
         )
 
 
@@ -81,9 +81,8 @@ def process(force: bool = False) -> Path:
 
 
 def run_associations() -> None:
-    """The supporting association analysis of DGT's crash records (``q3_*``) and the crash
+    """The supporting association analysis of DGT's crash records (``assoc_*``) and the crash
     explorer's counts, from the same processed records."""
-    TABLES_DIR.mkdir(parents=True, exist_ok=True)
     crashes = features.read_crashes()
     frame = features.model_frame(crashes)
     log.info("model frame: %s crashes, %d predictors", f"{len(frame):,}", len(features.PREDICTORS))
@@ -128,37 +127,36 @@ def run_associations() -> None:
     junction = associations.junction_sensitivity(crashes)
     log.info("junction: %d treatments refitted", junction.treatment.nunique())
     outputs = {
-        "q3_model_coefficients": pd.concat(coefficients, ignore_index=True),
-        "q3_marginal_effects": pd.concat(effects, ignore_index=True),
-        "q3_calibration": pd.concat(calibrations, ignore_index=True),
-        "q3_holdout_summary": pd.concat(holdout, ignore_index=True),
-        "q3_year_stability": pd.concat(stability, ignore_index=True),
-        "q3_period_refits": pd.concat(periods, ignore_index=True),
-        "q3_location_contrasts": pd.concat(locations, ignore_index=True),
-        "q3_profiles": associations.profiles(frame, fits),
-        "q3_adverse_conditions": adverse,
-        "q3_adverse_composition": composition,
-        "q3_adverse_exclusions": exclusions,
-        "q3_recording_regime": regime,
-        "q3_regime_sensitivity": regime_fits,
-        "q3_groupings": features.grouping_table(frame),
-        "q3_junction_coding": features.junction_coding_table(crashes),
-        "q3_junction_sensitivity": junction,
+        "assoc_model_coefficients": pd.concat(coefficients, ignore_index=True),
+        "assoc_marginal_effects": pd.concat(effects, ignore_index=True),
+        "assoc_calibration": pd.concat(calibrations, ignore_index=True),
+        "assoc_holdout_summary": pd.concat(holdout, ignore_index=True),
+        "assoc_year_stability": pd.concat(stability, ignore_index=True),
+        "assoc_period_refits": pd.concat(periods, ignore_index=True),
+        "assoc_location_contrasts": pd.concat(locations, ignore_index=True),
+        "assoc_profiles": associations.profiles(frame, fits),
+        "assoc_adverse_conditions": adverse,
+        "assoc_adverse_composition": composition,
+        "assoc_adverse_exclusions": exclusions,
+        "assoc_recording_regime": regime,
+        "assoc_regime_sensitivity": regime_fits,
+        "assoc_groupings": features.grouping_table(frame),
+        "assoc_junction_coding": features.junction_coding_table(crashes),
+        "assoc_junction_sensitivity": junction,
         crash_cells.NAME: crash_cells.crash_cells(),
     }
     for name, table in outputs.items():
-        target = TABLES_DIR / f"{name}.csv"
+        target = table_path(name)
         table.to_csv(target, index=False, float_format="%.6g")
         log.info("table %-24s %5d rows -> %s", name, len(table), target.name)
 
 
 def write_registry(registry: dict[str, Callable[[], pd.DataFrame]]) -> dict[str, pd.DataFrame]:
     """Build and write every table of a registry of result tables."""
-    TABLES_DIR.mkdir(parents=True, exist_ok=True)
     frames = {}
     for name, builder in registry.items():
         frame = builder()
-        target = TABLES_DIR / f"{name}.csv"
+        target = table_path(name)
         # Ten significant digits: enough for every number the pages print, and stable across
         # library versions, which differ in the last bits of the fitted coefficients.
         frame.to_csv(target, index=False, float_format="%.10g")

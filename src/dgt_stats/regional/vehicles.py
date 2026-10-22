@@ -16,13 +16,13 @@ from __future__ import annotations
 
 import pandas as pd
 
-from dgt_stats.paths import DOCS_DIR, TABLES_DIR
+from dgt_stats.paths import DOCS_DIR, table_path
 from dgt_stats.regional import barcelona
 from dgt_stats.regional.common import blank
 
 KEY = barcelona.KEY
-AUDIT_DOC = DOCS_DIR / "BARCELONA_VEHICLE_AUDIT.md"
-AUDIT_TABLE = TABLES_DIR / "bcn_vehicle_audit_counts.csv"
+AUDIT_DOC = DOCS_DIR / "regional" / "barcelona_vehicle_audit.md"
+AUDIT_TABLE = table_path("bcn_vehicle_audit_counts")
 
 CONTENT_COLUMNS = [
     "Descripcio_tipus_vehicle",

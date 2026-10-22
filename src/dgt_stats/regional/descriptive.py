@@ -18,7 +18,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-from dgt_stats.paths import TABLES_DIR
+from dgt_stats.paths import table_path
 from dgt_stats.regional import barcelona, catalonia
 from dgt_stats.regional.common import wilson
 
@@ -410,7 +410,6 @@ def write() -> dict[str, pd.DataFrame]:
         "bcn_people_by_severity": bcn_people_counts,
         "bcn_cause_profiles": cause_profiles(),
     }
-    TABLES_DIR.mkdir(parents=True, exist_ok=True)
     for name, frame in tables.items():
-        frame.to_csv(TABLES_DIR / f"{name}.csv", index=False, float_format="%.6g")
+        frame.to_csv(table_path(name), index=False, float_format="%.6g")
     return tables

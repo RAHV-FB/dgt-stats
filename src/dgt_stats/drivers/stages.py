@@ -19,7 +19,7 @@ from dgt_stats.drivers import driver_risk, edm2018
 from dgt_stats.drivers.emef import distance, exposure, ingest, older_routing
 from dgt_stats.drivers.exposure_risk import barcelona, coverage, national
 from dgt_stats.national.stages import write_registry
-from dgt_stats.paths import TABLES_DIR
+from dgt_stats.paths import table_path
 
 log = logging.getLogger(__name__)
 
@@ -30,8 +30,7 @@ def tables() -> None:
 
 
 def _write_emef(frame: pd.DataFrame, name: str) -> None:
-    TABLES_DIR.mkdir(parents=True, exist_ok=True)
-    frame.to_csv(TABLES_DIR / f"{name}.csv", index=False, float_format="%.10g")
+    frame.to_csv(table_path(name), index=False, float_format="%.10g")
     log.info("%s: %d rows", name, len(frame))
 
 
@@ -65,13 +64,12 @@ GROUP_LABELS = {"risk_licence_prevalence": {"16-29": "15-29"}}
 
 
 def _write_exposure(frame: pd.DataFrame, name: str) -> None:
-    TABLES_DIR.mkdir(parents=True, exist_ok=True)
     frame = frame.copy()
     labels = GROUP_LABELS.get(name, {} if name in RESIDENT_TABLES else DRIVER_LABELS)
     for column in frame.columns:
         if frame[column].dtype == object or pd.api.types.is_string_dtype(frame[column]):
             frame[column] = frame[column].replace(labels)
-    frame.to_csv(TABLES_DIR / f"{name}.csv", index=False, float_format="%.10g")
+    frame.to_csv(table_path(name), index=False, float_format="%.10g")
     log.info("%s: %d rows", name, len(frame))
 
 

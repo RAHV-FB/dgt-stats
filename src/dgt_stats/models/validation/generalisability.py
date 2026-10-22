@@ -20,8 +20,8 @@ or measured on the national records (stage 5), and passes by the rule declared b
 :data:`MAX_TRANSFER_GAP` and :data:`MAX_RESEMBLANCE_JSD`. "Potentially nationally transferable"
 is reserved for a model that passes all five.
 
-Writes ``reports/tables/gen_*.csv``, ``ml_outward_path.csv``, ``reports/model_metrics.json`` and
-``docs/GENERALISABILITY.md``.
+Writes ``reports/tables/models/gen_*.csv``, ``ml_outward_path.csv``, ``reports/model_metrics.json`` and
+``docs/models/generalisability.md``.
 """
 
 from __future__ import annotations
@@ -34,12 +34,12 @@ import pandas as pd
 
 from dgt_stats.models.validation import harmonise, transport
 from dgt_stats.national import derive, io_population
-from dgt_stats.paths import DGT_PROCESSED_CRASHES, DOCS_DIR, REPORTS_DIR, TABLES_DIR
+from dgt_stats.paths import DGT_PROCESSED_CRASHES, DOCS_DIR, REPORTS_DIR, table_path
 from dgt_stats.regional import catalonia
 from dgt_stats.regional.common import wilson
 from dgt_stats.regional.crosssource import RESIDENTS_REFERENCE
 
-DOC = DOCS_DIR / "GENERALISABILITY.md"
+DOC = DOCS_DIR / "models" / "generalisability.md"
 METRICS_JSON = REPORTS_DIR / "model_metrics.json"
 CATALAN = harmonise.CATALAN_PROVINCES
 BARCELONA_CITY = "08019"
@@ -993,7 +993,7 @@ def document(tables: dict[str, pd.DataFrame]) -> str:
             f"DGT's 'alignment unknown' code covers {a.share_a:.1%} of these crashes in Catalonia "
             f"and {a.share_b:.1%} elsewhere. 'Unknown' describes the record, not the road; the "
             "data do not show whether the roads differ. Differences in how often a field is left "
-            "unrecorded are measured in [`DGT_MICRODATA_AUDIT.md`](DGT_MICRODATA_AUDIT.md).",
+            "unrecorded are measured in [`models/dgt_microdata_audit.md`](dgt_microdata_audit.md).",
             "",
         ]
     coding = tables["gen_coding_by_region"]
@@ -1060,7 +1060,7 @@ def document(tables: dict[str, pd.DataFrame]) -> str:
         "two), so the rolling and temporal tests are the nested evaluation of",
         "`sev_rolling_scores`; the temporal test is its last year, 2023, not a separate holdout.",
         "Their ROC-AUC intervals come from this document's own bootstrap and can differ in the",
-        "third decimal from those of `sev_comparison` quoted in `SEVERITY_CALCULATOR.md`. Each test sits",
+        "third decimal from those of `sev_comparison` quoted in `models/severity_calculator.md`. Each test sits",
         "beside the same choices fitted and cross-validated inside the test population and",
         "beside the table of fatal shares by road and crash type fitted on the same training",
         "crashes (`table_roc_auc`). A province left out is scored without province intercepts.",
@@ -1237,7 +1237,7 @@ def run(tables: dict[str, pd.DataFrame]) -> dict[str, pd.DataFrame]:
     out["ml_outward_path"] = outward_path(merged)
     merged.update(out)
     for name, frame in out.items():
-        frame.to_csv(TABLES_DIR / f"{name}.csv", index=False, float_format="%.6g")
+        frame.to_csv(table_path(name), index=False, float_format="%.6g")
     DOC.write_text(document(merged), encoding="utf-8")
     return out
 

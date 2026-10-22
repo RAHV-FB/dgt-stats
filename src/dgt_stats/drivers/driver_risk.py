@@ -603,11 +603,11 @@ TABLES = {
     "drivers_sex_trend": sex_trend,
     "drivers_sex_b_licence": sex_b_licence,
     # Age, per kilometre driven by cars of owners of that age (a comparison only)
-    "q7_km_by_owner_age": car_kilometres,
-    "q7_km_rates": km_rates,
-    "q7_km_ratio": km_rate_ratios,
-    "q7_km_ratio_65_74": lambda: km_rate_ratios(reference_band="65-74"),
-    "q7_company_km": company_km_sensitivity,
-    "q7_owner_age_check": owner_age_check,
-    "q7_denominator_contrast": denominator_contrast,
+    "drivers_km_by_owner_age": car_kilometres,
+    "drivers_km_rates": km_rates,
+    "drivers_km_ratio": km_rate_ratios,
+    "drivers_km_ratio_65_74": lambda: km_rate_ratios(reference_band="65-74"),
+    "drivers_company_km": company_km_sensitivity,
+    "drivers_owner_age_check": owner_age_check,
+    "drivers_denominator_contrast": denominator_contrast,
 }

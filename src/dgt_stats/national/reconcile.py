@@ -1,6 +1,6 @@
 """Reconciliation checks between the staging layer and the published DGT totals.
 
-Each check returns :class:`Result` rows. ``run_all`` writes them to ``reports/tables/validation.csv``
+Each check returns :class:`Result` rows. ``run_all`` writes them to ``reports/tables/national/reconciliation.csv``
 together with a per-year missingness profile of the crash microdata.
 """
 
@@ -8,17 +8,16 @@ from __future__ import annotations
 
 import logging
 from dataclasses import asdict, dataclass
-from pathlib import Path
 
 import pandas as pd
 
 from dgt_stats.national import codes, io_exposure, io_microdata, io_reports, io_tables, vehicles
-from dgt_stats.paths import MICRODATA_YEARS, TABLES_DIR
+from dgt_stats.paths import MICRODATA_YEARS, table_path
 
 log = logging.getLogger(__name__)
 
-VALIDATION_PATH = TABLES_DIR / "validation.csv"
-MISSINGNESS_PATH = TABLES_DIR / "missingness_by_year.csv"
+RECONCILIATION_PATH = table_path("reconciliation")
+MISSINGNESS_PATH = table_path("missingness_by_year")
 
 CENSUS_TOLERANCE = 0.005
 CENSUS_AGE_TOLERANCE = 0.02
@@ -562,19 +561,18 @@ def run_checks(crashes: pd.DataFrame | None = None) -> pd.DataFrame:
     return pd.DataFrame([asdict(result) for result in results])
 
 
-def run_all(output_dir: Path = TABLES_DIR) -> tuple[pd.DataFrame, pd.DataFrame]:
-    output_dir.mkdir(parents=True, exist_ok=True)
+def run_all() -> tuple[pd.DataFrame, pd.DataFrame]:
     crashes = io_microdata.read_all()
     results = run_checks(crashes)
-    results.to_csv(output_dir / VALIDATION_PATH.name, index=False)
+    results.to_csv(RECONCILIATION_PATH, index=False)
     summary = results.groupby("check").passed.agg(["size", "sum"])
     for check, (size, passed) in summary.iterrows():
-        log.info("validate %-20s %4d checks, %4d passed", check, size, passed)
+        log.info("reconcile %-20s %4d checks, %4d passed", check, size, passed)
     failed = results[~results.passed]
     if not failed.empty:
-        log.warning("validate: %d checks failed", len(failed))
+        log.warning("reconcile: %d checks failed", len(failed))
 
     profile = missingness_profile(crashes)
-    profile.to_csv(output_dir / MISSINGNESS_PATH.name, index=False)
-    log.info("validate: wrote %s and %s", VALIDATION_PATH.name, MISSINGNESS_PATH.name)
+    profile.to_csv(MISSINGNESS_PATH, index=False)
+    log.info("reconcile: wrote %s and %s", RECONCILIATION_PATH.name, MISSINGNESS_PATH.name)
     return results, profile

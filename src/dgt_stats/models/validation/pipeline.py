@@ -55,7 +55,7 @@ def documents() -> dict[str, pd.DataFrame]:
     from dgt_stats.models.validation import harmonise
 
     results = reporting.load()
-    tables = reporting.read_tables(("ml_", "cat_", "bcn_", "mq_", "dgt_audit_"))
+    tables = reporting.read_tables(("ml_", "cat_", "bcn_", "dgt_audit_"))
     tables["ml_common_feature_validation"] = harmonise.validate_dgt()
     audit = {name: tables[name] for name in tables if name.startswith("dgt_audit_")}
     if audit:

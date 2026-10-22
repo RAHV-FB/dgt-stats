@@ -5,7 +5,7 @@ import re
 import pandas as pd
 import pytest
 
-from dgt_stats.paths import FIGURES_DIR, PROJECT_ROOT, TABLES_DIR
+from dgt_stats.paths import FIGURES_DIR, PROJECT_ROOT, table_path
 from dgt_stats.site.components import _fmt_int, _fmt_pct
 
 PAGES = ("catalonia", "barcelona", "severity-models", "validation", "sources", "calculator")
@@ -29,7 +29,7 @@ NEEDED = (
 )
 
 pytestmark = pytest.mark.skipif(
-    not all((TABLES_DIR / f"{name}.csv").exists() for name in NEEDED)
+    not all(table_path(name).exists() for name in NEEDED)
     or not (FIGURES_DIR / "captions.json").exists(),
     reason="run `python scripts/run.py regional models sources` and `python scripts/run.py national.results charts national.cards` first",
 )
@@ -48,7 +48,7 @@ def pages(tmp_path_factory: pytest.TempPathFactory) -> dict[str, str]:
 
 
 def _table(name: str) -> pd.DataFrame:
-    return pd.read_csv(TABLES_DIR / f"{name}.csv")
+    return pd.read_csv(table_path(name))
 
 
 def _notes(data: str, anchor: str) -> str:
@@ -171,7 +171,7 @@ def test_barcelona_headline_numbers_come_from_the_tables(pages: dict[str, str]) 
     people = _table("bcn_person_severity_share")
     pedestrian = people[(people.dimension == "road user") & (people.level == "pedestrian")]
     assert _fmt_pct(float(pedestrian.share.iloc[0])) in pages["barcelona"]
-    structure = _table("mq_bcn_structure").set_index("table")
+    structure = _table("bcn_quality_structure").set_index("table")
     assert _fmt_int(structure.loc["bcn_accidents", "rows"]) in pages["barcelona"]
 
 
@@ -241,7 +241,7 @@ def test_models_page_follows_the_decisions(pages: dict[str, str]) -> None:
     # other model's probabilities are shown.
     assert "are not used as predictors" in text
     assert "can only rank" in text
-    assert "ML_MODEL_REVIEW.md" in text and "SEVERITY_CALCULATOR.md" in text
+    assert "models/review.md" in text and "models/severity_calculator.md" in text
 
 
 def _options(form: str, control: str) -> list[str]:
@@ -355,7 +355,7 @@ def test_sources_page_states_the_dgt_audit_decision(pages: dict[str, str]) -> No
     died = artefacts[artefacts.target.str.contains("30 days")].iloc[0]
     assert f"{died.roc_auc_unrecorded_flags_only:.2f}" in text
     assert f"{died.roc_auc_recorded_values:.2f}" in text
-    assert "DGT_MICRODATA_AUDIT.md" in text and 'id="scope"' in text
+    assert "models/dgt_microdata_audit.md" in text and 'id="scope"' in text
     # Fields that do not apply are not unrecorded, and a narrow pass of a limit is called narrow.
     assert "in a crash it applies to" in text
     if died.artefacts_dominate and died.artefact_share_of_lift - 0.5 < 0.1:
@@ -371,5 +371,5 @@ def test_the_models_group_holds_only_models_that_beat_their_comparator() -> None
 
     decisions = _table("ml_model_decisions")
     forecast = decisions[decisions.model.eq("dgt_monthly_deaths_forecast")].decision.iloc[0]
-    in_models = "forecast" in [slug for slug, _ in dict(site.NAV_GROUPS)["Crash severity"]]
+    in_models = "forecast" in [slug for slug, _ in dict(site.NAV_GROUPS)["Severity model"]]
     assert in_models == (forecast in rules.FEATURED)

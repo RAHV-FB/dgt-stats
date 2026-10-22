@@ -8,12 +8,12 @@ import pytest
 
 from dgt_stats.drivers.exposure_risk import national
 from dgt_stats.national import risk_trends
-from dgt_stats.paths import TABLES_DIR
+from dgt_stats.paths import table_path
 from dgt_stats.site import explore, tool_driver_risk, tool_trends
 
 
 def _table(name: str) -> pd.DataFrame:
-    return pd.read_csv(TABLES_DIR / f"{name}.csv")
+    return pd.read_csv(table_path(name))
 
 
 # --------------------------------------------------------------------------- landing page
@@ -30,7 +30,7 @@ def test_every_tool_says_what_it_computes_where_and_what_kind() -> None:
 
 
 def test_trends_counts_are_the_panel_and_rates_are_recomputed() -> None:
-    panel = _table("risk_annual_panel").set_index("year")
+    panel = _table("trends_annual_panel").set_index("year")
     km = _table("longrun_km_panel").set_index("year")
     km = km[km.comparable.astype(bool)]
     found = {item["id"]: item for item in tool_trends.indicators()}

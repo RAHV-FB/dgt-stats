@@ -11,7 +11,7 @@ import pytest
 from dgt_stats.charts import figures, plots
 from dgt_stats.charts import regional as regional_charts
 from dgt_stats.national import summaries
-from dgt_stats.paths import TABLES_DIR
+from dgt_stats.paths import table_path
 
 # build_all writes these from the summary tables plus missingness_by_year.csv; the Q3 ones need
 # the model tables.
@@ -40,15 +40,15 @@ EXPECTED_MODEL_FIGURES = {
 # The driver-age figures, drawn from the committed risk tables (scripts/run.py drivers.exposure).
 EXPECTED_DRIVER_FIGURES = (
     {"dr1_involved_per_km", "dr2_killed_per_involved"}
-    if (TABLES_DIR / "risk_national_rates.csv").exists()
+    if table_path("risk_national_rates").exists()
     else set()
 )
 # The calculator's predicted-against-observed figure, drawn when its table is committed.
 EXPECTED_CALCULATOR_FIGURES = (
-    {"sev1_predicted_observed"} if (TABLES_DIR / "sev_calibration.csv").exists() else set()
+    {"sev1_predicted_observed"} if table_path("sev_calibration").exists() else set()
 )
 _TABLES_PRESENT = all(
-    (TABLES_DIR / f"{name}.csv").exists() for name in (*figures.REGISTRY, "missingness_by_year")
+    table_path(name).exists() for name in (*figures.REGISTRY, "missingness_by_year")
 )
 
 
@@ -189,9 +189,9 @@ def test_the_missing_values_chart_reads_the_audit_rule() -> None:
     """On the committed tables, the chart's audited rows are the audit's: the fog and strong-wind
     fields are always recorded, and, with the inverted Catalan junction flag read the other way
     round, the junction fields are not recorded less often in the inverted years."""
-    profile_path = TABLES_DIR / "missingness_by_year.csv"
-    audited_path = TABLES_DIR / "missingness_where_applicable.csv"
-    junctions_path = TABLES_DIR / "dgt_audit_junction_coding.csv"
+    profile_path = table_path("missingness_by_year")
+    audited_path = table_path("missingness_where_applicable")
+    junctions_path = table_path("dgt_audit_junction_coding")
     if not (profile_path.exists() and audited_path.exists() and junctions_path.exists()):
         pytest.skip("the missing-values tables are not built")
     applicability = pd.read_csv(audited_path)
@@ -693,7 +693,7 @@ def test_breaks_are_marked_and_a_series_that_always_breaks_is_unjoined(
     not _TABLES_PRESENT, reason="run `python scripts/run.py national.results` first"
 )
 def test_build_all_writes_every_registered_figure(tmp_path: Path) -> None:
-    frames = {name: pd.read_csv(TABLES_DIR / f"{name}.csv") for name in figures.REGISTRY}
+    frames = {name: pd.read_csv(table_path(name)) for name in figures.REGISTRY}
     captions = figures.build_all(tmp_path, frames=frames)
     # The regional figures are whatever the microdata chart module draws from its tables.
     regional: dict[str, str] = {}
@@ -730,10 +730,10 @@ def test_build_all_writes_every_registered_figure(tmp_path: Path) -> None:
     assert captions["f1_speed_severity"].endswith(
         f"n = {n_speed:,} crashes with inappropriate speed recorded."
     )
-    n_drivers = int(frames["q9_infraction_shares"].query("zone == 'all'").total.sum())
+    n_drivers = int(frames["speed_infraction_shares"].query("zone == 'all'").total.sum())
     assert captions["c3_speed_status"].endswith(f"n = {n_drivers:,} drivers.")
     if EXPECTED_DRIVER_FIGURES:
-        severity = pd.read_csv(TABLES_DIR / "risk_severity_and_licences.csv")
+        severity = pd.read_csv(table_path("risk_severity_and_licences"))
         n_involved = int(severity[severity.group != "65+"].involved.sum())
         assert captions["dr2_killed_per_involved"].endswith(f"n = {n_involved:,} drivers involved.")
         # The per-km chart shows each estimate and its sampling interval, no sensitivity bands.
@@ -750,7 +750,7 @@ def test_build_all_removes_a_figure_that_is_no_longer_registered(tmp_path: Path)
     (tmp_path / "narrow").mkdir()
     stale_narrow = tmp_path / "narrow" / "ml9_withdrawn.svg"
     stale_narrow.write_text("<svg></svg>", encoding="utf-8")
-    frames = {name: pd.read_csv(TABLES_DIR / f"{name}.csv") for name in figures.REGISTRY}
+    frames = {name: pd.read_csv(table_path(name)) for name in figures.REGISTRY}
     figures.build_all(tmp_path, frames=frames)
     assert not stale.exists() and not stale_narrow.exists()
 
@@ -1026,7 +1026,7 @@ def test_season_long_run_and_sex_ratio_charts(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     drawn = _capture_axes(monkeypatch)
-    frames = {name: pd.read_csv(TABLES_DIR / f"{name}.csv") for name in figures.REGISTRY}
+    frames = {name: pd.read_csv(table_path(name)) for name in figures.REGISTRY}
 
     def summary(name: str) -> pd.DataFrame:
         return frames[name].copy()

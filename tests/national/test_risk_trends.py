@@ -71,7 +71,7 @@ def test_annual_panel_has_every_denominator_where_its_source_runs() -> None:
 
 @pytestmark_data
 def test_licence_holders_and_the_fleet_divide_only_the_casualties_they_can_contain() -> None:
-    index = risk_trends.risk_index()
+    index = risk_trends.trends_risk_index()
     pairs = index.drop_duplicates(["outcome", "denominator"]).set_index(["outcome", "denominator"])
     for outcome in ("deaths_30d", "hospitalised_30d"):
         assert pairs.loc[(outcome, "licence_holders"), "numerator"] == f"drivers_{outcome}"
@@ -88,7 +88,7 @@ def test_licence_holders_and_the_fleet_divide_only_the_casualties_they_can_conta
 
 @pytestmark_data
 def test_risk_index_is_relative_to_the_base_year_under_every_denominator() -> None:
-    index = risk_trends.risk_index()
+    index = risk_trends.trends_risk_index()
     base = index[index.year == risk_trends.BASE_YEAR]
     assert (base.ratio_to_base == 1.0).all() and (base["index"] == 100).all()
     assert set(index.denominator) == set(risk_trends.DENOMINATORS)
@@ -139,7 +139,7 @@ def test_the_fuel_drift_grid_is_labelled_hypothetical_and_zero_reproduces_the_in
     grid = risk_trends.fuel_efficiency_sensitivity()
     assert tuple(sorted(grid.hypothetical_annual_gain.unique())) == risk_trends.HYPOTHETICAL_GAINS
     at_zero = grid[(grid.hypothetical_annual_gain == 0) & (grid.outcome == "deaths_30d")]
-    index = risk_trends.risk_index()
+    index = risk_trends.trends_risk_index()
     fuel = index[(index.outcome == "deaths_30d") & (index.denominator == "road_fuel")]
     assert at_zero.ratio_to_base.to_numpy() == pytest.approx(fuel.ratio_to_base.to_numpy())
     extra = risk_trends.long_run_efficiency_sensitivity()
@@ -193,7 +193,7 @@ def test_ordinary_variation_uses_t_with_the_scatter_fits_degrees_of_freedom() ->
     assert (scatter.dispersion_low < scatter.pearson_dispersion).all()
     assert (scatter.pearson_dispersion < scatter.dispersion_high).all()
     assert (scatter.dispersion == scatter.pearson_dispersion.clip(lower=1)).all()
-    index = risk_trends.risk_index()
+    index = risk_trends.trends_risk_index()
     row = index[(index.year == index.year.max()) & (index.denominator == "count")].iloc[0]
     base = index[
         (index.year == risk_trends.BASE_YEAR)

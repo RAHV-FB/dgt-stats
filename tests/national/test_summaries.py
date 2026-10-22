@@ -72,17 +72,23 @@ def test_registry_holds_only_tables_the_site_or_a_figure_uses() -> None:
         "q8",
         "q9",
     }
-    assert not any(name.startswith("q3_") for name in names)
+    assert not any(name.startswith("assoc_") for name in names)
     assert "q4_province_rates" not in names  # the province ranking was dropped, not hidden
     assert not names & set(driver_risk.TABLES)
-    assert {"q7_km_rates", "q7_km_ratio", "q7_denominator_contrast"} <= set(driver_risk.TABLES)
-    assert {"q8_points_calendar_placebo", "q8_points_forecast", "q8_points_transitions"} <= names
+    assert {"drivers_km_rates", "drivers_km_ratio", "drivers_denominator_contrast"} <= set(
+        driver_risk.TABLES
+    )
+    assert {
+        "policy_points_calendar_placebo",
+        "policy_points_forecast",
+        "policy_points_transitions",
+    } <= names
 
 
 def test_model_table_access_is_guarded() -> None:
     with pytest.raises(KeyError):
-        summaries.read_model_table("q3_not_a_table")
-    assert "q3_adverse_conditions" in summaries.MODEL_TABLES
+        summaries.read_model_table("assoc_not_a_table")
+    assert "assoc_adverse_conditions" in summaries.MODEL_TABLES
     if summaries.model_tables_present():
-        adverse = summaries.read_model_table("q3_adverse_conditions")
+        adverse = summaries.read_model_table("assoc_adverse_conditions")
         assert {"fatal", "serious"} == set(adverse.outcome)

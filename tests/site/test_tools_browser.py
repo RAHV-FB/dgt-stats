@@ -18,7 +18,7 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from dgt_stats.paths import PROJECT_ROOT, TABLES_DIR
+from dgt_stats.paths import PROJECT_ROOT, table_path
 from dgt_stats.site import tool_driver_risk, tool_trends
 
 REQUIRED = bool(os.environ.get("REQUIRE_BROWSER"))
@@ -152,7 +152,7 @@ def test_comparing_two_indicators_shows_indices_and_reset_restores(browser, serv
     page.select_option("[name='indicator']", "deaths_30d")
     page.select_option("[name='compare']", "crashes")
     assert "Index" in _text(page, "[data-chart]")
-    panel = pd.read_csv(TABLES_DIR / "risk_annual_panel.csv").set_index("year")
+    panel = pd.read_csv(table_path("trends_annual_panel")).set_index("year")
     start, end = int(page.input_value("[name='from']")), int(page.input_value("[name='to']"))
     crashes = panel.crashes.loc[end] / panel.crashes.loc[start] - 1
     assert f"Injury crashes: {_pct(crashes)} over the same years" in _text(page, "[data-change]")

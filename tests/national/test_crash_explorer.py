@@ -13,9 +13,9 @@ from scipy import stats
 
 from dgt_stats import regions
 from dgt_stats.national import crash_cells, derive, features, labels
-from dgt_stats.paths import DGT_PROCESSED_CRASHES, TABLES_DIR
+from dgt_stats.paths import DGT_PROCESSED_CRASHES, table_path
 
-TABLE = TABLES_DIR / f"{crash_cells.NAME}.csv"
+TABLE = table_path(crash_cells.NAME)
 needs_table = pytest.mark.skipif(
     not TABLE.exists(), reason="run `python scripts/run.py national.associations` first"
 )
@@ -119,7 +119,7 @@ def test_the_table_has_one_row_per_non_empty_cell(table: pd.DataFrame) -> None:
 
 @needs_table
 def test_the_table_reconciles_with_the_published_yearly_totals(table: pd.DataFrame) -> None:
-    published = pd.read_csv(TABLES_DIR / "q1_annual_headline.csv").set_index("year")
+    published = pd.read_csv(table_path("longrun_headline")).set_index("year")
     yearly = table.groupby("year")[["injury_crashes", "deaths_30d"]].sum()
     assert set(yearly.index) <= set(published.index)
     for year, row in yearly.iterrows():

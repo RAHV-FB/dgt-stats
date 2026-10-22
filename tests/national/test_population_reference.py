@@ -2,7 +2,7 @@
 
 The national rates always did; the Catalan per-resident rates and the provincial rates of the
 generalisability check used 1 January until the statistical audit aligned them
-(``docs/research/STATISTICAL_AUDIT.md``). These tests read the committed tables, so they run
+(``docs/history/statistical_audit.md``). These tests read the committed tables, so they run
 without the data layers.
 """
 
@@ -12,7 +12,7 @@ import pandas as pd
 import pytest
 
 from dgt_stats.national import io_population
-from dgt_stats.paths import TABLES_DIR
+from dgt_stats.paths import table_path
 from dgt_stats.regional import crosssource
 
 
@@ -31,7 +31,7 @@ def test_the_shared_reference_is_mid_year() -> None:
     [("cat_per_resident_province_year", "year"), ("gen_province_rates", "year")],
 )
 def test_committed_rates_use_the_1_july_population(table: str, year_column: str) -> None:
-    frame = pd.read_csv(TABLES_DIR / f"{table}.csv")
+    frame = pd.read_csv(table_path(table))
     for year, rows in frame.groupby(year_column):
         july = _july(int(year))
         expected = rows.province_code.map(july)

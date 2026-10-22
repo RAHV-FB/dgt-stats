@@ -69,7 +69,7 @@ def _facts() -> SimpleNamespace:
     urban_alcohol_jump = changes[
         (changes.zone == "urban") & (changes.factor == "Alcohol") & changes.jump
     ]
-    status = read_table("q9_infraction_shares")
+    status = read_table("speed_infraction_shares")
     status = status[status.zone == "all"].set_index("year").share_unknown
     status_jump = int(status.diff().idxmax())
     rise, fall = urban_distraction.iloc[0], urban_distraction.iloc[-1]

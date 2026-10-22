@@ -10,7 +10,7 @@ where rows share a crash, and only the candidate features the leakage audit allo
 ``direct_leakage``  encodes the target (a casualty count, the severity label); never in a matrix
 ``excluded``        not used for another reason (identifier, duplicate, too granular, constant)
 
-The same catalogue writes ``docs/ML_LEAKAGE_AUDIT.md`` and is checked by the tests, so a column
+The same catalogue writes ``docs/models/leakage_audit.md`` and is checked by the tests, so a column
 cannot reach a model without a recorded decision. Joins happen here and only on real keys: the
 person table receives crash context through ``Numero_expedient`` with ``validate="many_to_one"``.
 Categorical gaps become an explicit "not recorded" category; numeric gaps stay missing and are

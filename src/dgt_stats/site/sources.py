@@ -116,7 +116,7 @@ def _source_table(numbers: dict[str, str], inventory: pd.DataFrame) -> str:
     census_text = min(_inventory_years(inventory, "raw/dgt/census/censo_conductores"))
     km_years = _inventory_years(inventory, "raw/dgt/km_itv_")
     km_owner = _span(_inventory_years(inventory, "raw/dgt/km_itv_", "edad_propietario"))
-    km_type = _span_of(read_table("q6_rates_2022").year)
+    km_type = _span_of(read_table("vehicles_rates_2022").year)
     _check(
         len(km_years) == 2 and km_type != km_owner,
         "sources",
@@ -316,7 +316,7 @@ def _source_table(numbers: dict[str, str], inventory: pd.DataFrame) -> str:
         [f'<a href="{slug}.html">{esc(TITLES[slug])}</a>' for slug in ("long-run", "policy")]
     )
     long_run = read_table("longrun_projection_sensitivity")
-    policy = read_table("q8_points_sensitivity")
+    policy = read_table("policy_points_sensitivity")
     _check(
         long_run.variant.eq("deaths_24h").any() and policy.variant.eq("24h").any(),
         "sources",
@@ -332,7 +332,7 @@ def _source_table(numbers: dict[str, str], inventory: pd.DataFrame) -> str:
 
 
 def _crash_records(numbers: dict[str, str]) -> str:
-    quality = f'<a href="{DOCS_URL}/DATA_QUALITY_MICRODATA.md">data-quality report</a>'
+    quality = f'<a href="{DOCS_URL}/regional/data_quality.md">data-quality report</a>'
     return (
         "<h2>The three sets of crash records</h2>"
         "<p>DGT's national file has one row per crash with at least one victim. It records the "
@@ -591,7 +591,7 @@ def _audit() -> str:
         "Catalan file, as an external test of a version of the original Catalan model. They "
         "train reference and diagnostic models for those tests, but no published predictive "
         "model. The full audit is published as the "
-        f'<a href="{DOCS_URL}/DGT_MICRODATA_AUDIT.md">DGT microdata audit</a>.</p>'
+        f'<a href="{DOCS_URL}/models/dgt_microdata_audit.md">DGT microdata audit</a>.</p>'
     )
 
 
@@ -600,15 +600,15 @@ def _scope() -> str:
     items = "".join(f"<li>{esc(what)}. {why}</li>" for what, why in SCOPE)
     return (
         f'<h2 id="scope">What the files do not record</h2><ul>{items}</ul>'
-        f'<p>The <a href="{DOCS_URL}/SOURCE_COMPARISON.md">source comparison</a> describes how '
+        f'<p>The <a href="{DOCS_URL}/sources/source_comparison.md">source comparison</a> describes how '
         "each file is produced, and the "
-        f'<a href="{DOCS_URL}/DATA_CONTRACT.md">usage rules</a> state how each may be used.</p>'
+        f'<a href="{DOCS_URL}/sources/contract.md">usage rules</a> state how each may be used.</p>'
     )
 
 
 # ----------------------------------------------------------------------------- sources
 def page_sources(captions: dict[str, str]) -> str:
-    validation = read_table("validation")
+    validation = read_table("reconciliation")
     inventory = read_table("data_inventory")
     rows = validation[validation.check == "row_count"]
     _check(
@@ -618,8 +618,8 @@ def page_sources(captions: dict[str, str]) -> str:
     )
     shares = read_table("cat_fatal_share")
     overall = shares[(shares.dimension == "unit type involved") & (shares.level == "all")].iloc[0]
-    structure = read_table("mq_bcn_structure").set_index("table")
-    semantics = read_table("mq_bcn_count_semantics").set_index("check").value
+    structure = read_table("bcn_quality_structure").set_index("table")
+    semantics = read_table("bcn_quality_count_semantics").set_index("check").value
     vehicles = read_table("bcn_vehicle_audit_counts").set_index("measure").value
     people = read_table("bcn_people_by_severity").groupby("injury_severity").person_records.sum()
     person_shares = read_table("bcn_person_severity_share")
@@ -642,9 +642,9 @@ def page_sources(captions: dict[str, str]) -> str:
     numbers = {
         "dgt_rows": _fmt_int(rows.actual.sum()),
         "dgt_span": _span_of(rows.year),
-        "yearbook_span": _span_of(read_table("q1_annual_headline").year),
+        "yearbook_span": _span_of(read_table("longrun_headline").year),
         "factor_span": _span_of(read_table("factor_shares").year),
-        "fuel_span": _span_of(read_table("risk_frequency_severity").year),
+        "fuel_span": _span_of(read_table("trends_frequency_severity").year),
         "km_span": _span_of(read_table("longrun_km_panel").year),
         "cat_span": _span_of(read_table("cat_frequency").year),
         "cat_rows": _fmt_int(overall.n),

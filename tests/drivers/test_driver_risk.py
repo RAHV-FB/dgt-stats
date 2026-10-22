@@ -148,9 +148,9 @@ def driver_risk_label(band: str) -> str:
 
 
 def test_rates_are_written_to_the_result_tables() -> None:
-    from dgt_stats.paths import TABLES_DIR
+    from dgt_stats.paths import table_path
 
-    path = TABLES_DIR / "q7_km_rates.csv"
+    path = table_path("drivers_km_rates")
     if not path.exists():
         pytest.skip("run `python scripts/run.py drivers.tables` first")
     published = pd.read_csv(path)

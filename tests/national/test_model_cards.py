@@ -1,10 +1,10 @@
 import pytest
 
 from dgt_stats.national import model_cards
-from dgt_stats.paths import TABLES_DIR
+from dgt_stats.paths import table_path
 
 tables = pytest.mark.skipif(
-    not all((TABLES_DIR / f"{name}.csv").exists() for name in model_cards.FORECAST_TABLES),
+    not all(table_path(name).exists() for name in model_cards.FORECAST_TABLES),
     reason="run `python scripts/run.py national.results charts national.cards` first",
 )
 
@@ -38,7 +38,7 @@ def test_the_forecast_card_states_its_design_and_its_limits() -> None:
 
 
 severity_tables = pytest.mark.skipif(
-    not all((TABLES_DIR / f"{name}.csv").exists() for name in model_cards.SEVERITY_TABLES),
+    not all(table_path(name).exists() for name in model_cards.SEVERITY_TABLES),
     reason="run `python scripts/run.py national.associations` first",
 )
 

@@ -33,7 +33,7 @@ from sklearn.metrics import average_precision_score, brier_score_loss, log_loss,
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, OrdinalEncoder
 
-from dgt_stats.paths import FEATURES_DATA_DIR
+from dgt_stats.paths import FEATURES_DATA_DIR, table_path
 
 SEED = 20261007
 N_BOOT = 1000
@@ -357,10 +357,9 @@ def barcelona_split_scores(table_name: str) -> pd.DataFrame:
 
     Columns come from the original feature catalogue (a definition, not a result); estimators,
     encodings and the benchmark are this module's own. ``estimator`` and its parameters are
-    those the original pipeline selected (``reports/tables/ml_selected.csv``).
+    those the original pipeline selected (``reports/tables/models/ml_selected.csv``).
     """
     from dgt_stats.models.ml import features as catalogue
-    from dgt_stats.paths import TABLES_DIR
 
     table = {t.name: t for t in catalogue.TABLES}[table_name]
     frame = pd.read_parquet(table.path)
@@ -372,7 +371,7 @@ def barcelona_split_scores(table_name: str) -> pd.DataFrame:
     train = frame[month < BARCELONA_TEST_FROM_MONTH]
     test = frame[month >= BARCELONA_TEST_FROM_MONTH]
     y_train, y_test = train[table.target].to_numpy(), test[table.target].to_numpy()
-    selected = pd.read_csv(TABLES_DIR / "ml_selected.csv")
+    selected = pd.read_csv(table_path("ml_selected"))
     row = selected[(selected.model == table_name) & selected.primary].iloc[0]
     params = dict(
         (key.strip(), float(value) if "." in value else int(value))

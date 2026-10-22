@@ -17,7 +17,7 @@ from pathlib import Path
 import pandas as pd
 
 from dgt_stats.charts import plots
-from dgt_stats.paths import TABLES_DIR
+from dgt_stats.paths import table_path
 
 MIN_N = 30
 CAT_SOURCE = "Servei Català de Trànsit, crashes with a death or serious injury"
@@ -41,7 +41,6 @@ VALIDATION_MODELS = {
 }
 # The published model behind the calculator, as the site names it.
 CALCULATOR_MODEL = "Catalan severity model"
-MODEL_LABELS = {**REGIONAL_MODELS, **VALIDATION_MODELS}
 # Barcelona road users as the person table names them (role and vehicle type), where English has
 # a natural word; the other labels are shown as recorded. The regional page uses the same map.
 ROAD_USER_LABELS = {
@@ -260,7 +259,7 @@ def _caption(shown: str, source: str, n: int | str | None = None) -> str:
 
 
 def table(name: str) -> pd.DataFrame:
-    return pd.read_csv(TABLES_DIR / f"{name}.csv")
+    return pd.read_csv(table_path(name))
 
 
 def _labelled(frame: pd.DataFrame, label: str = "label") -> pd.DataFrame:
@@ -480,7 +479,7 @@ def _test_records(design: str, bcn_year: str) -> str:
 
 def _featured_models(selected: pd.DataFrame) -> list[str]:
     """The models the site features (the decision table's keepers), in the figures' order."""
-    decisions_path = TABLES_DIR / "ml_model_decisions.csv"
+    decisions_path = table_path("ml_model_decisions")
     if not decisions_path.exists():
         return [model for model in REGIONAL_MODELS if model in set(selected.model)]
     from dgt_stats.models.validation.decisions import FEATURED
@@ -494,7 +493,7 @@ def model_figures(figures_dir: Path, captions: dict[str, str]) -> None:
     selected = table("ml_selected")
     variants = table("ml_variants")
     test = variants[(variants.evaluated_on == "test")]
-    rule_path = TABLES_DIR / "ml_rule_comparison.csv"
+    rule_path = table_path("ml_rule_comparison")
     rules = pd.read_csv(rule_path).set_index("model") if rule_path.exists() else pd.DataFrame()
     bcn_year = str(table("bcn_person_severity_share").dataset.iloc[0]).replace("Barcelona ", "")
     primary = selected[selected.primary].set_index("model")
@@ -786,7 +785,7 @@ def build(figures_dir: Path, captions: dict[str, str]) -> None:
         "ml_transport_validation",
         "ml_variants",
     )
-    if not all((TABLES_DIR / f"{name}.csv").exists() for name in needed):
+    if not all(table_path(name).exists() for name in needed):
         return
     catalonia_figures(figures_dir, captions)
     barcelona_figures(figures_dir, captions)

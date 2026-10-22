@@ -25,7 +25,7 @@ from dgt_stats.models import severity_model
 from dgt_stats.models.ml import features as feature_tables
 from dgt_stats.models.ml import reporting
 from dgt_stats.models.validation import pipeline as validation
-from dgt_stats.paths import REPORTS_DIR, TABLES_DIR
+from dgt_stats.paths import REPORTS_DIR, table_path
 
 log = logging.getLogger(__name__)
 MODELS_DIR = REPORTS_DIR / "models"
@@ -66,8 +66,7 @@ def documents() -> None:
 
 
 def write(frame: pd.DataFrame, name: str) -> None:
-    TABLES_DIR.mkdir(parents=True, exist_ok=True)
-    frame.to_csv(TABLES_DIR / f"{name}.csv", index=False, float_format="%.10g")
+    frame.to_csv(table_path(name), index=False, float_format="%.10g")
     log.info("%s: %d rows", name, len(frame))
 
 
@@ -255,7 +254,7 @@ def calculator() -> None:
     )
     write(coefficients, "sev_coefficients")
 
-    scores = pd.read_csv(TABLES_DIR / "sev_rolling_scores.csv")
+    scores = pd.read_csv(table_path("sev_rolling_scores"))
     pooled = scores[(scores.subset == _pooled_label()) & (scores.estimator == "calculator")].iloc[0]
     evaluation = {
         "design": "nested rolling origin: each year "

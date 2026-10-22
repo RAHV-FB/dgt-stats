@@ -6,7 +6,7 @@ The reader describes what happened in plain words; the page script (``SeverityBu
 turns that description into the model's own inputs: the crash type, the kinds of road user
 involved and the number of vehicles and pedestrians. The selects of that description are
 declared here (``WHAT`` and ``GROUPS``); the mapping is documented in
-``docs/research/SEVERITY_CALCULATOR.md`` ("The page's crash description")."""
+``docs/models/severity_calculator.md`` ("The page's crash description")."""
 
 from __future__ import annotations
 
@@ -19,7 +19,7 @@ from dgt_stats.site.components import DOCS_URL, esc
 from dgt_stats.site.tool_frame import tool_page
 
 MODEL_PATH = REPORTS_DIR / "models" / "severity_model.json"
-CALCULATOR_DOC = f"{DOCS_URL}/research/SEVERITY_CALCULATOR.md"
+CALCULATOR_DOC = f"{DOCS_URL}/models/severity_calculator.md"
 
 # "What happened?": the kinds of crash the reader chooses from, then the selects each one shows.
 WHAT = (

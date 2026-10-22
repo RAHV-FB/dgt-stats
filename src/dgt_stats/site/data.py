@@ -20,7 +20,7 @@ from dgt_stats.models.ml import modelling, recording, rules
 from dgt_stats.models.validation import dgt_audit, transport
 from dgt_stats.national import codes, features, io_exposure, risk_trends
 from dgt_stats.national.derive import ROAD_GROUP_BY_TYPE
-from dgt_stats.paths import RAW_DATA_DIR, TABLES_DIR
+from dgt_stats.paths import RAW_DATA_DIR, table_path
 from dgt_stats.site.components import (
     ALL_PAGES,
     DEFINITION_IDS,
@@ -129,10 +129,10 @@ def _path_year(prefix: str, contains: str) -> int:
 
 # ----------------------------------------------------------------------------- definitions
 def _definitions() -> str:
-    semantics = read_table("mq_bcn_count_semantics").set_index("check").value
+    semantics = read_table("bcn_quality_count_semantics").set_index("check").value
     no_victim = int(semantics["blank cells in Numero_victimes"])
     _require({"some Barcelona crashes record no victim": no_victim > 0})
-    victims = read_table("validation")
+    victims = read_table("reconciliation")
     victims = victims[victims.check == "victim_total"].pivot_table(
         index="year", columns="unit", values="actual"
     )
@@ -234,7 +234,7 @@ def _definitions() -> str:
 
 # ----------------------------------------------------------------------------- rates
 def _rates() -> str:
-    scatter = read_table("risk_dispersion").set_index("outcome")
+    scatter = read_table("trends_dispersion").set_index("outcome")
     _require(
         {
             "deaths, admissions and crashes scatter more than Poisson chance": all(
@@ -329,7 +329,7 @@ def _pct_range(values: pd.Series) -> str:
 
 
 def _coding_breaks() -> str:
-    other = read_table("q2_other_road_by_period")
+    other = read_table("other_road_by_period")
     earlier, later = other.iloc[0], other.iloc[-1]
     earlier_years = [int(year) for year in re.findall(r"\d{4}", str(earlier.period))]
     earlier_count = earlier_years[-1] - earlier_years[0] + 1
@@ -405,7 +405,7 @@ def _coding_breaks() -> str:
     wider = matched[~matched.junction_flag_inverted.astype(bool) & ~matched.year.isin(narrow_years)]
     before = [year for year in cat_share.loc[: flip - 1].index if int(year) not in narrow_years]
     # How the association analysis reads those province-years (``features.junction_codes``).
-    read = read_table("q3_junction_coding").set_index(["region", "year"])
+    read = read_table("assoc_junction_coding").set_index(["region", "year"])
     read_cat = read.loc["Catalonia"]
     read_rest = read.loc["rest of Spain"]
     near = read_cat.near_junction_fields
@@ -658,7 +658,7 @@ def _missingness_alt(missing: pd.DataFrame, applicability: pd.DataFrame) -> str:
 def _records(captions: dict[str, str]) -> str:
     regional = read_table("dgt_audit_regional")
     artefacts = read_table("ml_recording_artefacts")
-    semantics = read_table("mq_bcn_count_semantics").set_index("check").value
+    semantics = read_table("bcn_quality_count_semantics").set_index("check").value
     missing = read_table("missingness_by_year")
     applicability = read_table("missingness_where_applicable")
     limit = recording.RATIO_LIMIT
@@ -827,8 +827,7 @@ def _records(captions: dict[str, str]) -> str:
         f"least {_fmt_dec(limit)} times as often in non-fatal crashes as in fatal ones; these "
         "fields are left out of every published model. The road owner is the reverse case, "
         "blank far more often on fatal records, and the calculator leaves out the crashes it "
-        f'affects (<a href="{DOCS_URL}/research/ML_MODEL_REVIEW.md">model review</a>).</p>'
-        + _coding_breaks()
+        f'affects (<a href="{DOCS_URL}/models/review.md">model review</a>).</p>' + _coding_breaks()
     )
 
 
@@ -841,7 +840,7 @@ def _models() -> str:
     common = read_table("ml_common_feature_validation")
     shared = read_table("ml_common_features")
     catalogue = read_table("ml_feature_catalogue")
-    cat_checks = read_table("mq_cat_checks").set_index("check").value
+    cat_checks = read_table("cat_quality_checks").set_index("check").value
     outward = read_table("ml_outward_path").set_index(["model", "stage"])
     bcn_year = _year_label(read_table("bcn_person_severity_share"))
     scores = read_table("sev_rolling_scores")
@@ -931,8 +930,8 @@ def _models() -> str:
     overlap = read_table("cat_vs_dgt_province_year").year
     validation = '<a href="validation.html">Model method and tests</a>'
     calculator = f'<a href="severity-models.html">{TITLES["severity-models"]}</a>'
-    review = f'<a href="{DOCS_URL}/research/ML_MODEL_REVIEW.md">model review</a>'
-    report = f'<a href="{DOCS_URL}/research/SEVERITY_CALCULATOR.md">calculator report</a>'
+    review = f'<a href="{DOCS_URL}/models/review.md">model review</a>'
+    report = f'<a href="{DOCS_URL}/models/severity_calculator.md">calculator report</a>'
     published = choices[choices.fit == "published model"].iloc[0]
     return (
         '<h2 id="models">How the models were built and judged</h2>'
@@ -1027,7 +1026,7 @@ def _models() -> str:
         "Variables the outcome may shape, such as police causes and the Catalan influence "
         "fields, enter only separate comparison versions of the original models, and variables "
         "that encode the outcome enter none "
-        f'(<a href="{DOCS_URL}/ML_LEAKAGE_AUDIT.md">audit of the variables</a>). The check for '
+        f'(<a href="{DOCS_URL}/models/leakage_audit.md">audit of the variables</a>). The check for '
         "fields recorded differently when a crash was fatal looked only for placeholders rarer "
         "among fatal crashes, pooled over zones, and did not catch the road-owner field; the "
         "re-evaluation found it.</p>"
@@ -1036,7 +1035,7 @@ def _models() -> str:
 
 # ----------------------------------------------------------------------------- checks
 def _checks() -> str:
-    validation = pd.read_csv(TABLES_DIR / "validation.csv")
+    validation = pd.read_csv(table_path("reconciliation"))
     passed = int(validation.passed.astype(bool).sum())
     total = int(len(validation))
     tables_year = int(validation[validation.check.eq("table_1_1_province")].year.max())
@@ -1061,21 +1060,21 @@ def _checks() -> str:
         f"DGT's published totals. {outcome}The kilometre table by owner's age reconciles with "
         "the same release's published fleet to within "
         f"{_fmt_pct(io_exposure.KM_OWNER_TOLERANCE)}, the margin left by owners DGT could not "
-        'classify. The <a href="tables/validation.csv">full list of checks</a> is published as '
+        'classify. The <a href="tables/reconciliation.csv">full list of checks</a> is published as '
         "a table.</p>"
     )
 
 
 def _assumption_rows() -> list[tuple[str, str, str]]:
     """Every assumption the methods document tests, with how and what the test found."""
-    scatter = read_table("risk_dispersion").set_index("outcome")
+    scatter = read_table("trends_dispersion").set_index("outcome")
     dispersion = {key: float(scatter.loc[key, "dispersion"]) for key in scatter.index}
     scatter_df = int(scatter.loc["deaths_30d", "df_resid"])
 
     def spread(outcome: str, bound: str = "") -> float:
         return float(scatter.loc[outcome, f"dispersion_{bound}" if bound else "dispersion"])
 
-    panel = read_table("risk_annual_panel").set_index("year")
+    panel = read_table("trends_annual_panel").set_index("year")
     km = read_table("longrun_km_panel").set_index("year")
     km_check = read_table("longrun_km_check").set_index(["measure", "year"])
     km_last = int(km.index.max())
@@ -1083,7 +1082,7 @@ def _assumption_rows() -> list[tuple[str, str, str]]:
     fuel_start = int(segments[segments.measure == "road_fuel"].start.max())
     count_start = int(segments[segments.measure == "count"].start.max())
     bio = read_table("longrun_fuel_bio").set_index("year").bio_share
-    owner = read_table("q7_owner_age_check").set_index("band")
+    owner = read_table("drivers_owner_age_check").set_index("band")
     owner_year = _path_year("dgt/km_itv_", "edad_propietario")
     drivers = _driver_numbers()
     ranges = drivers["ranges"]
@@ -1127,7 +1126,7 @@ def _assumption_rows() -> list[tuple[str, str, str]]:
     weekend_shares = sorted(mixes.non_working_share_of_km.astype(float).unique())
     weekend_older = mixes[mixes.group == "65+"].ratio_to_45_64
     weekend_young = mixes[mixes.group == "18-29"].ratio_to_45_64
-    split = read_table("risk_frequency_severity").set_index("year")
+    split = read_table("trends_frequency_severity").set_index("year")
     split_first, split_last = int(split.index.min()), int(split.index.max())
     end = split.loc[split_last]
     frequency = float(end.frequency_index) / 100
@@ -1428,7 +1427,7 @@ def _assumption_rows() -> list[tuple[str, str, str]]:
 def _assumptions() -> str:
     """The assumptions behind the results that the data can test, each with what testing found."""
     frame = pd.DataFrame(_assumption_rows(), columns=["Assumption", "Check", "Result"])
-    review = f'<a href="{DOCS_URL}/research/ML_MODEL_REVIEW.md">model review</a>'
+    review = f'<a href="{DOCS_URL}/models/review.md">model review</a>'
     return (
         '<h2 id="assumptions-tested">Assumptions tested</h2>'
         "<p>Several results rest on assumptions that the data can test in full or in part. "
@@ -1459,11 +1458,11 @@ def _reproduce() -> str:
         "tests rerun the checks on every change.</p>"
         f'<p>The repository also holds the <a href="{DOCS_URL}/methodology.md">implementation '
         "notes</a>, with the module behind each method, the "
-        f'<a href="{DOCS_URL}/data_sources.md">source register</a>, with what each source is '
+        f'<a href="{DOCS_URL}/sources/register.md">source register</a>, with what each source is '
         "and its terms of use, the manifest of the "
         f'<a href="{REPO_URL}/tree/main/data/raw">raw files</a>, with each file\'s checksum '
         "and, where recorded, its download address, and the "
-        f'<a href="{DOCS_URL}/data_inventory.md">data inventory</a>.</p>'
+        f'<a href="{DOCS_URL}/national/file_audit.md">data inventory</a>.</p>'
         "<p>The project was developed through a reproducible, source-driven workflow. The "
         "research questions, the choice of sources, the statistical design, the interpretation "
         "and the decision to publish each result are the author's, and so is responsibility for "
@@ -1612,7 +1611,7 @@ def _reuse() -> str:
         'EDM2018 data (<a href="https://www.crtm.es">Powered by CRTM</a>), and the tables '
         "derived from them are distributed under the CRTM's licence, as it requires.</p>"
         "<p>Every published figure is an aggregate, and nothing identifies a person. The "
-        f'file-by-file terms and dates are in the <a href="{DOCS_URL}/data_sources.md">source '
+        f'file-by-file terms and dates are in the <a href="{DOCS_URL}/sources/register.md">source '
         "register</a>.</p>"
     )
 
@@ -1665,8 +1664,8 @@ def page_data(captions: dict[str, str]) -> str:
     body += _reuse()
     body += downloads(
         [
-            ("validation", "reconciliation checks"),
-            ("risk_dispersion", "year-to-year dispersion"),
+            ("reconciliation", "reconciliation checks"),
+            ("trends_dispersion", "year-to-year dispersion"),
             ("missingness_by_year", "missing values by field and year"),
             ("missingness_where_applicable", "values recorded where each field applies"),
             ("dgt_audit_presence_coding", "fog and wind coding by province and year"),

@@ -1,7 +1,7 @@
 """The crash explorer's table: DGT's injury crashes counted by year, region, road type and crash type.
 
 One row per cell of year x autonomous community x road type x crash type that holds at least one
-recorded injury crash (``reports/tables/explore_dgt_crashes.csv``, written by ``scripts/run.py national.associations``
+recorded injury crash (``reports/tables/national/explore_dgt_crashes.csv``, written by ``scripts/run.py national.associations``
 beside the association analysis, from the same processed records). Each row counts the injury
 crashes, the crashes with at least one death within 30 days and those deaths, in total and by
 road-user type. No cell is filled with zeros and nothing is interpolated: a combination with no

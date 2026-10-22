@@ -23,7 +23,7 @@ from dgt_stats.charts import regional as regional_charts
 from dgt_stats.drivers import driver_risk
 from dgt_stats.models.validation import dgt_audit
 from dgt_stats.national import codes, factors, policy, summaries
-from dgt_stats.paths import FIGURES_DIR, NARROW_FIGURES_DIR, TABLES_DIR
+from dgt_stats.paths import FIGURES_DIR, NARROW_FIGURES_DIR, table_path
 
 CAPTIONS_PATH = FIGURES_DIR / "captions.json"
 # The title the page prints above each figure; the SVGs carry none (``plots.TITLES``).
@@ -181,7 +181,7 @@ def _draw_all(figures_dir: Path, captions: dict[str, str], summary) -> None:
 
 
 def _speed_status_figure(figures_dir: Path, captions: dict[str, str], summary) -> None:
-    shares = summary("q9_infraction_shares")
+    shares = summary("speed_infraction_shares")
     block = shares[shares.zone == "all"]
     too_slow = block[TOO_SLOW] / block[[*SPEED_STATUS_LABELS, TOO_SLOW]].sum(axis=1)
     if not (too_slow < TOO_SLOW_MAX_SHARE).all():
@@ -227,7 +227,7 @@ SHORT_DENOMINATORS = {
 
 
 def _trend_figures(figures_dir: Path, captions: dict[str, str], summary) -> None:
-    index = summary("risk_index")
+    index = summary("trends_risk_index")
     base, last = int(index.year.min()), int(index.year.max())
     latest = index[index.year == last].assign(
         denominator_short=lambda f: f.denominator.map(SHORT_DENOMINATORS)
@@ -383,7 +383,7 @@ def _long_run_figures(figures_dir: Path, captions: dict[str, str], summary) -> N
         f"{SERIES_SOURCE}; {FUEL_SOURCE}; {ROAD_TRAFFIC_SOURCE}",
     )
 
-    split = summary("risk_frequency_severity")
+    split = summary("trends_frequency_severity")
     per_fuel = "Deaths per tonne of fuel"
     panels = {
         "Split by injury crashes": {
@@ -662,7 +662,7 @@ FOREST_LEVELS = {"autovía": "dual carriageway"}
 
 
 def _severity_figures(figures_dir: Path, captions: dict[str, str]) -> None:
-    coefficients = summaries.read_model_table("q3_model_coefficients")
+    coefficients = summaries.read_model_table("assoc_model_coefficients")
     n_model = int(coefficients.n.iloc[0])
     fatal_rows = coefficients[
         (coefficients.outcome == "fatal") & (coefficients.predictor != "year")
@@ -718,7 +718,7 @@ def _severity_figures(figures_dir: Path, captions: dict[str, str]) -> None:
         f"{n_model:,} crashes",
     )
 
-    adverse = summaries.read_model_table("q3_adverse_conditions")
+    adverse = summaries.read_model_table("assoc_adverse_conditions")
     fatal = adverse[adverse.outcome == "fatal"].copy()
     plots.dot_interval_panels(
         fatal.assign(panel=fatal.level.map(str.capitalize)),
@@ -777,7 +777,7 @@ def _driver_exposure_figures(figures_dir: Path, captions: dict[str, str]) -> Non
     interval, and no sensitivity bands, which the methodology page sets out in words."""
     from dgt_stats.drivers.exposure_risk import national
 
-    path = TABLES_DIR / "risk_national_rates.csv"
+    path = table_path("risk_national_rates")
     if not path.exists():
         log.warning("risk_national_rates.csv missing: run scripts/run.py drivers.exposure")
         return
@@ -785,11 +785,11 @@ def _driver_exposure_figures(figures_dir: Path, captions: dict[str, str]) -> Non
     rates = rates[
         (rates.km_total == "less taxi and ride-hailing") & (rates.method == national.CENTRAL_METHOD)
     ].set_index("group")
-    split = pd.read_csv(TABLES_DIR / "risk_older_split.csv")
+    split = pd.read_csv(table_path("risk_older_split"))
     split = split[
         (split.assumption == national.REFERENCE_SPLIT) & (split.profile == national.CENTRAL_METHOD)
     ].set_index("group")
-    counts = pd.read_csv(TABLES_DIR / "risk_severity_and_licences.csv").set_index("group").involved
+    counts = pd.read_csv(table_path("risk_severity_and_licences")).set_index("group").involved
     rows = [
         {
             "label": GROUP_LABELS[group],
@@ -836,7 +836,7 @@ def _driver_exposure_figures(figures_dir: Path, captions: dict[str, str]) -> Non
         "involved",
     )
 
-    severity = pd.read_csv(TABLES_DIR / "risk_severity_and_licences.csv")
+    severity = pd.read_csv(table_path("risk_severity_and_licences"))
     severity = severity[severity.group != "65+"].assign(label=lambda f: f.group.map(GROUP_LABELS))
     plots.dot_interval(
         severity,
@@ -865,7 +865,7 @@ def _driver_exposure_figures(figures_dir: Path, captions: dict[str, str]) -> Non
 
 
 def _vehicle_figures(figures_dir: Path, captions: dict[str, str], summary) -> None:
-    rates = summary("q6_rates_2022")
+    rates = summary("vehicles_rates_2022")
     rates = rates[rates.zone == "all"]
     # Unrounded rates in the group order of the rates table, so the printed values round like the
     # page's table.
@@ -910,7 +910,7 @@ def _vehicle_figures(figures_dir: Path, captions: dict[str, str], summary) -> No
 
 def _policy_figures(figures_dir: Path, captions: dict[str, str], summary) -> None:
     points = policy.INTERVENTIONS["points_licence"]
-    series = summary("q8_points_series")
+    series = summary("policy_points_series")
     series["period"] = pd.to_datetime(series.period)
     # The lower panel enlarges the months around the change, from the January of the year before.
     zoom_from = pd.Timestamp(year=points.date.year - 1, month=1, day=1)
@@ -956,7 +956,7 @@ def _policy_figures(figures_dir: Path, captions: dict[str, str], summary) -> Non
         f"{int(series.deaths.sum()):,} deaths",
     )
 
-    placebo = summary("q8_points_calendar_placebo")
+    placebo = summary("policy_points_calendar_placebo")
     placebo["label"] = pd.to_datetime(placebo.break_date).dt.strftime("%Y")
     # The Julys whose windows hold the change are left out of the placebos; a note row stands in
     # each run of them, so the axis does not read as consecutive years.
@@ -1140,8 +1140,8 @@ def inverted_junction_years(shown: pd.DataFrame, junctions: pd.DataFrame) -> lis
 
 
 def _data_figures(figures_dir: Path, captions: dict[str, str]) -> None:
-    profile = pd.read_csv(TABLES_DIR / "missingness_by_year.csv")
-    applicability = pd.read_csv(TABLES_DIR / "missingness_where_applicable.csv")
+    profile = pd.read_csv(table_path("missingness_by_year"))
+    applicability = pd.read_csv(table_path("missingness_where_applicable"))
     matrix = recorded_where_applicable(profile, applicability)
     plots.missingness_heatmap(
         matrix,
@@ -1172,7 +1172,7 @@ def _data_figures(figures_dir: Path, captions: dict[str, str]) -> None:
         or any(c in audited and c not in junction_only for c in OPTIONAL_FIELDS)
     ):
         raise ValueError("d1 caption: the fields whose empty cells it describes have changed")
-    junctions = pd.read_csv(TABLES_DIR / "dgt_audit_junction_coding.csv")
+    junctions = pd.read_csv(table_path("dgt_audit_junction_coding"))
     years = inverted_junction_years(matrix, junctions)
     priority = profile[profile.column.isin(codes.PRIORI_COLUMNS)].column.nunique()
     optional_names = _join_words([MISSINGNESS_FIELDS[c].lower() for c in OPTIONAL_FIELDS])
@@ -1204,7 +1204,7 @@ def _data_figures(figures_dir: Path, captions: dict[str, str]) -> None:
 def _severity_calculator_figures(figures_dir: Path, captions: dict[str, str]) -> None:
     """Predicted against observed for the Catalan severity model, the published model behind the
     calculator, on years it was not fitted on."""
-    path = TABLES_DIR / "sev_calibration.csv"
+    path = table_path("sev_calibration")
     if not path.exists():
         log.warning("sev_calibration.csv missing: run scripts/run.py models.calculator")
         return

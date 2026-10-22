@@ -7,7 +7,7 @@ over, the sensitivity range beside the conditional estimate and the assumption i
 deaths once involved, which need no kilometres; and men against women. ``technical_notes`` gives
 the methodology page the rest: how the kilometres by age were estimated from the EMEF working-day
 survey, Spain's population and DGT's car kilometres (``scripts/run.py drivers.exposure``;
-``docs/research/DRIVER_AGE_EXPOSURE.md``), what DGT's kilometres are made of and what the
+``docs/drivers/driver_age_exposure.md``), what DGT's kilometres are made of and what the
 sensitivity range spans, deaths per kilometre, the check in Barcelona on working days, men and
 women per licence holder, the former owner-age figure, and the split at 75 and what moves it.
 
@@ -76,21 +76,10 @@ LABELS = {
     "75+": "75 and over",
 }
 CRTM_URL = "https://www.crtm.es"
-EXPOSURE_DOC = "https://github.com/RAHV-FB/dgt-stats/blob/main/docs/research/DRIVER_AGE_EXPOSURE.md"
+EXPOSURE_DOC = "https://github.com/RAHV-FB/dgt-stats/blob/main/docs/drivers/driver_age_exposure.md"
 # The sections of the methodology page that hold this page's technical notes.
 NOTES_ANCHOR = "drivers-per-km"
 OLDER_NOTES_ANCHOR = "drivers-75-and-over"
-
-# The opening's one clause on the older groups, in the words each wording tier allows; the section
-# on ages 75 and over gives the tier's full wording (``OLDER_CONCLUSION``) beside the range.
-SUMMARY_OLDER = {
-    PASS: "for drivers aged 65 and over a difference is not established, while at 75 and over "
-    "every combination tested that agrees with surveys of men's driving puts them above the "
-    "45–64 rate",
-    INTERMEDIATE: "for drivers aged 65 and over, and 75 and over, a higher rate is not established",
-    FAIL: "for drivers aged 65 and over, and 75 and over, a higher or lower rate is not "
-    "established",
-}
 
 
 def _check(holds: bool, claim: str) -> None:
@@ -1165,10 +1154,6 @@ def _facts() -> SimpleNamespace:
 
     older_75 = _fmt_span(*older_range["75+"])
     full_75 = _to(*older_range["75+"])
-    madrid_pattern = (
-        "if people aged 75 and over drive as much less than those aged 65–74 as in Madrid in "
-        f"{madrid_year}"
-    )
     direction = OLDER_CONCLUSION[tier]
     return SimpleNamespace(**locals())
 
@@ -1307,7 +1292,7 @@ def page_drivers(captions: dict[str, str]) -> str:
             ("risk_licence_prevalence", "car-licence holders per resident, Spain and province"),
             ("emef_employment_benchmark", "survey's employed share at 65 and over"),
             ("risk_owner_age_comparison", "owner-age against driver-age kilometres"),
-            ("q7_km_by_owner_age", "DGT kilometres by owner age"),
+            ("drivers_km_by_owner_age", "DGT kilometres by owner age"),
             ("risk_severity_and_licences", "deaths once involved, by age"),
             ("risk_barcelona_rates", "Barcelona working days, three versions of the kilometres"),
             ("risk_barcelona_day_type", "Barcelona crashes by type of day"),
@@ -1822,7 +1807,7 @@ def _older_notes(f: SimpleNamespace, captions: dict[str, str]) -> str:
         "respondent's exact age, so its kilometres at 65–74 and at 75 and over, tabulated by "
         "the Institut Metròpoli or the ATM, would replace the transfer of Madrid's pattern; a "
         "request for those tables has been prepared but not sent "
-        f'(<a href="{DOCS_URL}/research/EMEF_DATA_REQUEST.md">the data request</a>). A survey '
+        f'(<a href="{DOCS_URL}/drivers/emef_data_request.md">the data request</a>). A survey '
         "of driving on every day of the week across Spain, by exact age, would replace the "
         "assumptions about weekends and about the kilometres the working-day survey does not "
         "cover.</p>"

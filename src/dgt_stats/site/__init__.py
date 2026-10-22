@@ -1,9 +1,11 @@
 """Static site builder: plain HTML and one CSS file, from the result tables and figures.
 
 No template engine, one small script (``script``) that only makes reading easier (every page
-works without it) and two self-hosted open fonts (``fonts``). The navigation (``NAV_GROUPS``) follows the argument: the
-national picture from DGT and INE with three supporting analyses, the Catalan and Barcelona crash
-records, the two severity models and their external validation, and the sources and methods.
+works without it) and two self-hosted open fonts (``fonts``). The navigation (``NAV_GROUPS``) has
+the interactive tools, then one group for each section of the project (``dgt_stats.catalogue``):
+national statistics, drivers, Catalonia and Barcelona, the severity model, and the data and
+methods, so that the menu says where each page's data come from, and each page's closing block
+names the sources of the tables it links.
 Every sentence that carries a number computes it from a committed result table at build time, so
 the prose cannot drift from the tables; full tables are linked as CSV rather than printed. Only
 the tables a page links are copied into ``site/tables``, and only the figures a page shows into
@@ -30,7 +32,7 @@ import re
 import shutil
 from pathlib import Path
 
-from dgt_stats.paths import FIGURES_DIR, PROJECT_ROOT, TABLES_DIR
+from dgt_stats.paths import FIGURES_DIR, PROJECT_ROOT, table_path
 from dgt_stats.site import explore
 from dgt_stats.site.components import (
     ALL_PAGES,
@@ -188,7 +190,7 @@ def build(site_dir: Path = SITE_DIR) -> list[Path]:
 TABLE_REFERENCE = re.compile(r'href="tables/([^"/]+\.csv)"')
 
 
-def publish_tables(site_dir: Path, pages: list[Path], source_dir: Path = TABLES_DIR) -> list[Path]:
+def publish_tables(site_dir: Path, pages: list[Path]) -> list[Path]:
     """Copy into ``site_dir/tables`` the result tables that ``pages`` link, and nothing else: a
     table no page links (a withdrawn analysis's record, a check behind a generated document) stays
     in the repository and is not published. A page that links a table the reports do not hold
@@ -202,8 +204,11 @@ def publish_tables(site_dir: Path, pages: list[Path], source_dir: Path = TABLES_
     }
     written = []
     for name in sorted(linked):
-        source = source_dir / name
-        if not source.exists():
+        try:
+            source = table_path(name.removesuffix(".csv"))
+        except KeyError:
+            source = None
+        if source is None or not source.exists():
             raise FileNotFoundError(f"a page links tables/{name}, which no step wrote")
         target = target_dir / name
         shutil.copyfile(source, target)
