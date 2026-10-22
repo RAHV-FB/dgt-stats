@@ -1,10 +1,10 @@
 """The catalogue written out: ``docs/catalogue.md`` and a ``README.md`` in each table folder.
 
 ``docs/catalogue.md`` is the map of the project: for each section, the question it answers, its
-sources, its pipeline stages, its tables, documents and pages; then every source with the files it
-owns and the tables that read it. Each folder ``reports/tables/<section>/`` gets a ``README.md``
-listing its tables: what each holds, the sources it is computed from, the stage that writes it and
-the site pages that link it for download. Both are generated from :mod:`dgt_stats.catalogue`,
+sources, its pipeline stages, its documents and pages, and every one of its tables with what it
+holds, the sources it is computed from, the stage that writes it and the site pages that link it
+for download; then every source with the files it owns and the sections that read it. Each folder
+``reports/tables/<section>/`` gets a ``README.md`` listing the same rows for its own tables. Both are generated from :mod:`dgt_stats.catalogue`,
 :mod:`dgt_stats.pipeline` and the built pages, so they cannot drift from the code; a test compares
 them with what this module would write.
 """
@@ -87,8 +87,9 @@ def section_stages(section: str) -> list[pipeline.Stage]:
     return [stage for stage in pipeline.STAGES if stage.section == section]
 
 
-def document() -> str:
+def document(site_dir: Path = SITE_DIR) -> str:
     titles = _page_titles()
+    published = published_on(site_dir)
     owned = files_by_source()
     by_section: dict[str, list[catalogue.Table]] = defaultdict(list)
     for entry in catalogue.TABLES:
@@ -105,6 +106,11 @@ def document() -> str:
         "aggregate both genuinely have (province and year) or as a model trained on one and "
         "tested on the other's records.",
         "",
+        "Below the summary, each section lists its stages and every one of its result tables, "
+        "with the sources the table is computed from, the stage that writes it and the site pages "
+        "that publish it; [the last part](#sources-list) lists every source with its files. To "
+        "find where a figure comes from, search this page for its table or its source.",
+        "",
         "| Section | What it answers | Sources | Result tables | Pages |",
         "|---|---|---|---|---|",
     ]
@@ -120,13 +126,16 @@ def document() -> str:
             f"[{_count(len(tables), 'table')}](../reports/tables/{section.key}/) | {pages} |"
         )
     for section in catalogue.SECTIONS:
-        lines += _section_block(section, by_section[section.key], titles)
+        lines += _section_block(section, by_section[section.key], titles, published)
     lines += _sources_block(owned)
     return "\n".join(lines) + "\n"
 
 
 def _section_block(
-    section: catalogue.Section, tables: list[catalogue.Table], titles: dict[str, str]
+    section: catalogue.Section,
+    tables: list[catalogue.Table],
+    titles: dict[str, str],
+    published: dict[str, list[str]],
 ) -> list[str]:
     docs = sorted((DOCS_DIR / section.key).rglob("*.md"))
     lines = [
@@ -160,6 +169,28 @@ def _section_block(
         note = "" if stage.in_all else " (run by name only)"
         count = f" ({_count(len(written), 'table')})" if written else ""
         lines.append(f"| `{stage.key}`{note} | {stage.does} | {sources} | {stage.writes}{count} |")
+    lines += ["", f"### {section.short}: the result tables", ""]
+    lines += _table_rows(tables, titles, published, f"../reports/tables/{section.key}/")
+    return lines
+
+
+def _table_rows(
+    tables: list[catalogue.Table],
+    titles: dict[str, str],
+    published: dict[str, list[str]],
+    folder: str = "",
+) -> list[str]:
+    """One row per table: what it holds, its sources, the stage that writes it, its pages."""
+    lines = [
+        "| Table | What it holds | Sources | Written by | On the site |",
+        "|---|---|---|---|---|",
+    ]
+    for entry in tables:
+        pages = ", ".join(_link_page(slug, titles) for slug in published.get(entry.name, []))
+        lines.append(
+            f"| [`{entry.name}`]({folder}{entry.name}.csv) | {entry.description} | "
+            f"{_source_names(entry.sources)} | `{entry.stage}` | {pages or '—'} |"
+        )
     return lines
 
 
@@ -173,8 +204,8 @@ def _sources_block(owned: dict[str, list[str]]) -> list[str]:
         "Each raw file under `data/raw` belongs to exactly one source, by the patterns below "
         "(relative to `data/raw`); the manifest "
         "(`data/raw/manifest.csv`) records its size, checksum, URL and the date it was added, and "
-        "the [raw-file inventory](sources/raw_file_inventory.md) profiles it. Two sources are "
-        "figures typed from documents that are not archived, and say so. The terms on which "
+        "the [raw-file inventory](sources/raw_file_inventory.md) profiles it. A source with no "
+        "files holds figures typed from a document that is not archived. The terms on which "
         "each may be reused are in the [source register](sources/register.md).",
         "",
         "| Source | Publisher | Coverage | One record | Files | Read by |",
@@ -232,23 +263,16 @@ def folder_readme(section: catalogue.Section, site_dir: Path = SITE_DIR) -> str:
         "published on the site as downloads; the others stand behind a document, a figure or a "
         "check. The map of all sections is [`docs/catalogue.md`](../../../docs/catalogue.md).",
         "",
-        "| Table | What it holds | Sources | Written by | On the site |",
-        "|---|---|---|---|---|",
     ]
-    for entry in catalogue.TABLES:
-        if entry.section != section.key:
-            continue
-        pages = ", ".join(_link_page(slug, titles) for slug in published.get(entry.name, []))
-        lines.append(
-            f"| [`{entry.name}`]({entry.name}.csv) | {entry.description} | "
-            f"{_source_names(entry.sources)} | `{entry.stage}` | {pages or '—'} |"
-        )
+    lines += _table_rows(
+        [entry for entry in catalogue.TABLES if entry.section == section.key], titles, published
+    )
     return "\n".join(lines) + "\n"
 
 
 def outputs(site_dir: Path = SITE_DIR) -> dict[Path, str]:
     """Every file this module writes, with its text."""
-    out = {CATALOGUE_DOC: document()}
+    out = {CATALOGUE_DOC: document(site_dir)}
     for section in catalogue.SECTIONS:
         out[TABLES_DIR / section.key / "README.md"] = folder_readme(section, site_dir)
     return out

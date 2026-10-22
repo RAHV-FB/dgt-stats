@@ -7,8 +7,7 @@ Idescat and the Institut Metròpoli. This document records which public-use file
 they were read, how the eleven years were made comparable, which checks they pass, and which
 questions they cannot answer. The code is `src/dgt_stats/drivers/emef/` (`variables.py` for the year-by-year
 layout, `ingest.py` for reading and checking); `python scripts/run.py drivers.emef` writes the
-harmonised tables and the inventory, and `python scripts/run.py drivers.emef` the reproduction of
-published figures. Provenance and reuse terms of each file are in
+harmonised tables, the inventory, the checks and the reproduction of published figures. Provenance and reuse terms of each file are in
 [`sources/register.md`](../sources/register.md) and `data/raw/manifest.csv`.
 
 ## Files
@@ -110,7 +109,7 @@ Two dictionary errors were found and the file followed: the 2015 trip dictionary
 variable `V23_R1` (the 2016 name) where the file has `V15_R1` with the same codes; and the 2024
 respondent dictionary lists `S02_R3`, `S03A`, `COMARCA2` and `V01D1` where the file has `S02`,
 `S03`, `COMARCA` and `V01A`. Each renamed 2024 column equals its trip-file counterpart for every
-respondent (`tests/test_emef.py`).
+respondent (`tests/drivers/test_emef.py`).
 
 ## Checks
 
@@ -141,7 +140,7 @@ off. This confirms the weights, the mode codes and the frequency scale.
 
 **Distance benchmarks.** The distance model behind the kilometre estimates reproduces the mean
 straight-line trip and the daily straight-line kilometres per person who travelled, by age, in the
-EMEF 2024 executive summary, to within 3% (`emef_distance_reconciliation.csv`;
+EMEF 2024 executive summary, to within 3% (`emef_distance_validation.csv`;
 [`drivers/driver_age_exposure.md`](driver_age_exposure.md)). The EMEF 2021 distance report, the source of
 the road-to-straight-line ratio of 1.45 and of the 2021 benchmarks, is not archived and could not
 be found online again.

@@ -49,17 +49,19 @@ Other findings:
 **One division, used everywhere.** Five sections, by where the data come from: national
 statistics (DGT, INE, Transport, CORES), drivers (DGT's driver tables with the travel surveys),
 Catalonia and Barcelona (the regional crash records), the severity model (trained on the regional
-records, tested on the others) and sources and methods. The code (`src/dgt_stats/<section>/`), the
+records, tested on the others) and data and methods. The code (`src/dgt_stats/<section>/`), the
 pipeline stages (`scripts/run.py <section>`), the result tables (`reports/tables/<section>/`), the
 documents (`docs/<section>/`), the tests (`tests/<section>/`) and the site's menu all use them.
 
 **A catalogue.** `src/dgt_stats/catalogue.py` declares the sections, every source (each raw file
-belongs to exactly one; the two sets of figures typed from unarchived documents are listed as
+belongs to exactly one; figures typed from documents that are not archived are listed as
 sources; the files kept only as a record are marked as read by no analysis) and every result
 table, with the stage that writes it, the sources it is computed from and what it holds. Tables
 are read and written only through `paths.table_path(name)`, which takes their folder from the
-catalogue. The catalogue is written out as [`docs/catalogue.md`](../catalogue.md) and a `README.md`
-in each table folder, and the site names, on every page, the sources of the tables the page links.
+catalogue. The catalogue is written out as [`docs/catalogue.md`](../catalogue.md), which lists
+every table with its sources, stage and pages, and a `README.md` in each table folder; the site
+names, on every analysis page, the sources of the tables the page links, and its sources page lists
+every source under the same name.
 `tests/test_catalogue.py` fails if any of it falls out of step with the files.
 
 **One command.** `scripts/run.py` runs the stages declared in `src/dgt_stats/pipeline.py`, by
@@ -111,7 +113,7 @@ modules were renamed for what they do: `validate` → `national.reconcile`, `mod
 | `docs/MODEL_DECISIONS.md`, `GENERALISABILITY.md`, `ML_LEAKAGE_AUDIT.md`, `DGT_MICRODATA_AUDIT.md` | `docs/models/decisions.md`, `generalisability.md`, `leakage_audit.md`, `dgt_microdata_audit.md` |
 | `docs/research/ML_MODEL_REVIEW.md`, `SEVERITY_CALCULATOR.md` | `docs/models/review.md`, `severity_calculator.md` |
 | `docs/models/*.md` (model cards) | `docs/models/cards/*.md` |
-| `docs/research/ACCEPTANCE_REPORT.md`, `AUDIT_BASELINE.md`, `CLAIM_LEDGER.*`, `DEPENDENCY_MAP.md`, `FINAL_REPORT.md`, `STATISTICAL_AUDIT.md`, `reviews/` | `docs/history/` (lower-case names) |
+| `docs/research/ACCEPTANCE_REPORT.md`, `AUDIT_BASELINE.md`, `CLAIM_LEDGER.*`, `DEPENDENCY_MAP.md`, `FINAL_REPORT.md`, `STATISTICAL_AUDIT.md`, `reviews/` | `docs/history/` (lower-case names; `reviews/` keeps its file names) |
 
 ### Code
 
@@ -225,4 +227,32 @@ Every table also moved from `reports/tables/` into `reports/tables/<section>/`; 
 
 ## Verification
 
-The full rebuild from the raw files with the reorganised code, compared with a build of the code before the reorganisation, is recorded here when it completes.
+Everything was rebuilt from the raw files with the reorganised code (`python scripts/run.py` over
+every stage of `all`, in its order) and compared, file by file, with a build of the code before the
+reorganisation (`e593b6b`) on the same machine, a four-core container; the full build took 93
+minutes.
+
+- **Result tables.** 199 of the 202 tables are byte for byte the same as the earlier code's. The
+  other three differ only as intended: `ml_model_decisions` and `source_comparison` give each
+  model's or source's *section* where they gave its *layer*, and `data_inventory` gives the
+  current path of the Barcelona vehicle audit in one description.
+- **Figures and captions** are identical, and so is the calculator's exported model.
+- **Model scores that depend on the machine.** Seven model tables (`ml_geography`, `ml_variants`,
+  `ml_domain_strategies`, `dgt_audit_artefacts`, `gen_calculator_transfer`, `sev_geography`,
+  `sev_penalty`) came out with a few last digits different from the committed copies, and so did
+  the earlier code on the same machine: refitting the models on a different processor moves them.
+  The committed copies were kept. Where a regenerated document or `model_metrics.json` carries such
+  numbers, only the reorganisation's own changes were applied to the committed copy (a three-way
+  merge: the earlier code's output, the committed copy, the reorganised code's output).
+- **The site.** Every number on every page is the same as on the pages built before the
+  reorganisation; the differences are the menu, the previous and next links that follow it, the
+  sources named under each page's tables, the new rows of the sources page and the names of the
+  renamed downloadable tables.
+- **An independent review.** Eleven reviewers read the change (references, the pipeline's
+  behaviour, the entry documents, the hand-written documents, the tests, the site and the
+  catalogue's entries, table by table) and three skeptics checked each of their findings. The
+  confirmed ones were fixed: test paths, skip reasons and two tests that the move had left checking
+  nothing; the ignore rules for the new table folders; links in generated documents; leftover
+  "layer" wording; a table name the renames had changed by mistake; descriptions and sources of six
+  catalogue entries; and the source names, which are now the same on the sources page as under each
+  page's tables.

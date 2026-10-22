@@ -673,7 +673,7 @@ def technical_notes(captions: dict[str, str]) -> str:
     orr, without, numbers = f.orr, f.without, f.numbers
     fatal_holdout, serious_holdout = f.fatal_holdout, f.serious_holdout
     page = f'<a href="severity.html">{TITLES["severity"]}</a>'
-    card = f'<a href="{DOCS_URL}/models/dgt_crash_severity.md">model card</a>'
+    card = f'<a href="{DOCS_URL}/models/cards/dgt_crash_severity.md">model card</a>'
     document = f'<a href="{DOCS_URL}/methodology.md">methods document</a>'
     coding = '<a href="#coding-breaks">coding breaks</a>'
     flipped = _join([str(y) for y in f.flipped_years])

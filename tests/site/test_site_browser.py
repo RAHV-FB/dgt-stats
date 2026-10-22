@@ -37,7 +37,7 @@ from pathlib import Path
 import pytest
 
 from dgt_stats.models import severity_model as sm
-from dgt_stats.paths import PROJECT_ROOT, REPORTS_DIR
+from dgt_stats.paths import PROJECT_ROOT, REPORTS_DIR, table_path
 from dgt_stats.site.components import FIGURE_SCALE
 
 # With REQUIRE_BROWSER set (as in CI), a missing browser library or an unbuilt site is an error,
@@ -886,7 +886,7 @@ def test_without_scripting_the_fallback_is_shown(browser, server) -> None:
 # ------------------------------------------------------------- the crash statistics explorer
 
 EXPLORER = "crash-explorer.html"
-CRASH_TABLE = REPORTS_DIR / "tables" / "explore_dgt_crashes.csv"
+CRASH_TABLE = table_path("explore_dgt_crashes")
 CRASH_COUNTS = [
     "injury_crashes",
     "fatal_crashes",

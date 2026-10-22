@@ -33,8 +33,9 @@ Run by name only: `national.withdrawn` (the withdrawn forecast's tables, slow),
 `regional.organise` (file loose regional downloads under `data/raw/<source>/`) and
 `models.documents` (re-render the validation documents from saved tables).
 
-Scripts are thin: the logic of each stage is in its section's `stages.py` under `src/dgt_stats/`
-and is covered by tests.
+Scripts are thin: each stage is a function in its section's `stages.py` under `src/dgt_stats/`
+(the figures and the site in `src/dgt_stats/pipeline.py`), which calls the library code the tests
+cover.
 
 ## Tools outside the build (`tools/`)
 

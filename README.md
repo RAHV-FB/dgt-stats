@@ -17,25 +17,28 @@ could drift from the data: they are on the site and in the generated documents.
 
 ## How the project is organised
 
-The project is divided into five sections by **where the data come from**. The same five names are
-used for the code, the pipeline, the result tables, the documents and the site's menu, so a result
-can be followed from its page back to its table, its code and its source files.
+The project is divided into five sections by **where the data come from**. The same five sections
+organise the code, the pipeline, the result tables and the documents (in folders named `national`,
+`drivers`, `regional`, `models` and `sources`) and the site's menu (under the names below), so a
+result can be followed from its page back to its table, its code and its source files.
 
 | Section | What it answers | Sources | Code · results · documents | On the site |
 |---|---|---|---|---|
 | **National statistics** | How deaths and injuries in Spain have changed since 1993, and how they differ between vehicles, roads, months and recorded circumstances, set against residents, licence holders, vehicles, fuel and kilometres | DGT crash microdata, yearbook series and tables, driver census, kilometre estimates and speed report; INE population; Ministry of Transport traffic and road-km; CORES fuel | [`src/dgt_stats/national`](src/dgt_stats/national) · [`reports/tables/national`](reports/tables/national) · [`docs/national`](docs/national) | Long-run trends, Since 2019, Seasons, The 2006 points licence, Vehicles, Speed, Recorded factors, Crash circumstances in Spain |
-| **Drivers** | How often drivers of each age and sex are in crashes per licence holder and per kilometre driven, and how often a crash kills them | DGT driver tables, census and kilometres; INE population; the EMEF, EDM2018 and MOVILIA travel surveys, which put kilometres on driver ages; Barcelona's crash records for a working-day check | [`src/dgt_stats/drivers`](src/dgt_stats/drivers) · [`reports/tables/drivers`](reports/tables/drivers) · [`docs/drivers`](docs/drivers) | Drivers |
-| **Catalonia and Barcelona** | What police crash records with more detail show: Catalonia's crashes with a death or serious injury (2010–2023) and Barcelona's crashes and people (2025) | Servei Català de Trànsit; Guàrdia Urbana | [`src/dgt_stats/regional`](src/dgt_stats/regional) · [`reports/tables/regional`](reports/tables/regional) · [`docs/regional`](docs/regional) | Catalonia, Barcelona |
-| **Severity model** | Which severe crashes in Catalonia were fatal, as a model kept only if it beats a simple table on later records, and how far the models hold elsewhere | the Catalan records (training); DGT's and Barcelona's records (tests only) | [`src/dgt_stats/models`](src/dgt_stats/models) · [`reports/tables/models`](reports/tables/models) · [`docs/models`](docs/models) | Crash severity model, Model method and tests |
-| **Sources and methods** | What every raw file holds and how each source came to exist | every raw file | [`src/dgt_stats/sources`](src/dgt_stats/sources) · [`reports/tables/sources`](reports/tables/sources) · [`docs/sources`](docs/sources) | Data sources and scope, Methodology |
+| **Drivers** | How often drivers of each age and sex are in crashes per licence holder and per kilometre driven, and how often a crash kills them | DGT driver tables, census and kilometres; INE population; the EMEF, EDM2018 and MOVILIA travel surveys, which put kilometres on driver ages, with figures typed from the EMEF 2021 distance report and the RACC 2013 survey; the Idescat census; CORES fuel and toll-motorway traffic (the km outside the surveys); Barcelona's crash records for a working-day check | [`src/dgt_stats/drivers`](src/dgt_stats/drivers) · [`reports/tables/drivers`](reports/tables/drivers) · [`docs/drivers`](docs/drivers) | Drivers |
+| **Catalonia and Barcelona** | What police crash records with more detail show: Catalonia's crashes with a death or serious injury (2010–2023) and Barcelona's crashes and people (2025) | Servei Català de Trànsit; Guàrdia Urbana; DGT crash microdata and INE population (province-year comparison only) | [`src/dgt_stats/regional`](src/dgt_stats/regional) · [`reports/tables/regional`](reports/tables/regional) · [`docs/regional`](docs/regional) | Catalonia, Barcelona |
+| **Severity model** | Which severe crashes in Catalonia were fatal, as a model kept only if it beats a simple table on later records, and how far the models hold elsewhere | the Catalan records (training of the published model); Barcelona's records (two research models, and tests); DGT's records and series, INE population and CORES fuel (tests, and the review of the withdrawn forecast) | [`src/dgt_stats/models`](src/dgt_stats/models) · [`reports/tables/models`](reports/tables/models) · [`docs/models`](docs/models) | Crash severity model, Model method and tests |
+| **Data and methods** | What every raw file holds, how each source came to exist and how the results are made | every raw file | [`src/dgt_stats/sources`](src/dgt_stats/sources) · [`reports/tables/sources`](reports/tables/sources) · [`docs/sources`](docs/sources) | Data sources and scope, Methodology |
 
-The interactive tools on the site's Explore menu each compute from one section's tables.
+The interactive tools on the site's Explore menu each compute from one section's tables; the crash
+statistics explorer also takes the caveat on DGT's junction coding from the severity model's audit
+of the DGT records.
 
 **What comes from where.** [`docs/catalogue.md`](docs/catalogue.md) is the map: for every section
-its sources, its pipeline stages, its tables and pages, and for every source the files it owns and
-the tables that read it. Each folder of result tables has a `README.md` listing every table, what
+its sources, its pipeline stages, its pages and every one of its tables with the sources it is
+computed from, and for every source the files it owns. Each folder of result tables has a `README.md` listing every table, what
 it holds, the sources it is computed from, the stage that writes it and the page that publishes it.
-On the site, every page's closing "Data and method" block lists the sources of the tables it
+On the site, every analysis page's closing "Data and method" block lists the sources of the tables it
 links. All three are generated from one registry, [`src/dgt_stats/catalogue.py`](src/dgt_stats/catalogue.py),
 and the tests fail if a table, a raw file or a source is missing from it.
 
@@ -59,6 +62,7 @@ scripts/run.py          the one command that builds everything (tools/: utilitie
 reports/tables/<section>/   result tables (CSV), committed, each folder with a README index
 reports/figures/        figures (SVG) and their captions; narrow/ holds the phone versions
 reports/models/         the calculator's exported model
+reports/model_metrics.json   the severity models' test metrics (models.validate)
 docs/                   documents by section, the methodology and the catalogue (docs/README.md)
 site/                   the built site, committed
 tests/<section>/        tests by section; tests/test_catalogue.py keeps the map in step
@@ -73,7 +77,7 @@ python -m venv .venv && source .venv/bin/activate   # Windows PowerShell: .venv\
 python -m pip install -r requirements.lock          # pinned and hashed
 
 python scripts/run.py --list      # every stage, in order, with what it does and writes
-python scripts/run.py all         # everything, in order (about two hours)
+python scripts/run.py all         # everything, in order (about 95 minutes on four cores)
 python scripts/run.py national    # or one section: national, regional, drivers, models,
                                   # sources, charts, site
 python scripts/run.py national.ingest --force   # or one stage
@@ -86,7 +90,9 @@ reconciliation checks, the processed crash table, the result tables), regional (
 Barcelona tables), drivers (the travel surveys and the rates per kilometre), models (fits,
 validation, the calculator and the model review), the national model cards, the source documents,
 the figures, the site and finally the catalogue. Each stage runs in its own process; the
-travel-survey stages run on one BLAS thread so that their tables reproduce on any machine.
+travel-survey stages run on one BLAS thread so that their tables reproduce on any machine. Refitting
+the severity models on another machine can move the last digit of a few model scores; the committed
+tables are the reference.
 `national.withdrawn` (the withdrawn forecast's tables, slow) and `regional.organise` (filing new
 regional downloads) run only by name.
 

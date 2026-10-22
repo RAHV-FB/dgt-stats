@@ -690,7 +690,8 @@ def test_breaks_are_marked_and_a_series_that_always_breaks_is_unjoined(
 
 
 @pytest.mark.skipif(
-    not _TABLES_PRESENT, reason="run `python scripts/run.py national.results` first"
+    not _TABLES_PRESENT,
+    reason="run `python scripts/run.py national.reconcile national.results drivers.tables` first",
 )
 def test_build_all_writes_every_registered_figure(tmp_path: Path) -> None:
     frames = {name: pd.read_csv(table_path(name)) for name in figures.REGISTRY}
@@ -742,7 +743,8 @@ def test_build_all_writes_every_registered_figure(tmp_path: Path) -> None:
 
 
 @pytest.mark.skipif(
-    not _TABLES_PRESENT, reason="run `python scripts/run.py national.results` first"
+    not _TABLES_PRESENT,
+    reason="run `python scripts/run.py national.reconcile national.results drivers.tables` first",
 )
 def test_build_all_removes_a_figure_that_is_no_longer_registered(tmp_path: Path) -> None:
     stale = tmp_path / "q9_report_day_hour.svg"
@@ -1020,7 +1022,8 @@ def test_the_season_series_differ_in_colour_and_marker() -> None:
 
 
 @pytest.mark.skipif(
-    not _TABLES_PRESENT, reason="run `python scripts/run.py national.results` first"
+    not _TABLES_PRESENT,
+    reason="run `python scripts/run.py national.reconcile national.results drivers.tables` first",
 )
 def test_season_long_run_and_sex_ratio_charts(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch

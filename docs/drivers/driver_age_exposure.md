@@ -9,7 +9,7 @@ gives the age profile above 65 and a second regional profile. The code is `src/d
 `src/dgt_stats/drivers/edm2018.py` (the Madrid survey) and `src/dgt_stats/drivers/exposure_risk/` (the Barcelona
 working-day check, the national methods and the rates). `python scripts/run.py drivers.emef`
 writes the `reports/tables/drivers/emef_*.csv` tables cited here, and `python scripts/run.py drivers.exposure`
-writes the `risk_*.csv` and `edm_*.csv` tables. The method and every figure below were revised in
+writes the `risk_*.csv`, `edm_*.csv` and `emef_routing_older.csv` tables. The method and every figure below were revised in
 October 2026 after an independent audit.
 
 The Madrid survey data are © Consorcio Regional de Transportes de Madrid, reused under its
@@ -93,7 +93,7 @@ multiplies every age group's kilometres alike, so it changes absolute rates per 
 changes the ratios between age groups only slightly (trips without a band are bounded by a
 door-to-door speed whatever the ratio).
 
-**Validation** (`emef_distance_reconciliation.csv`). The model is checked against the 2021 report and
+**Validation** (`emef_distance_validation.csv`). The model is checked against the 2021 report and
 against the EMEF 2024 executive summary, which is archived:
 
 | Benchmark | Published | This method |

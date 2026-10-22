@@ -5,7 +5,7 @@ from dgt_stats.paths import table_path
 
 tables = pytest.mark.skipif(
     not all(table_path(name).exists() for name in model_cards.FORECAST_TABLES),
-    reason="run `python scripts/run.py national.results charts national.cards` first",
+    reason="run `python scripts/run.py national.withdrawn` first",
 )
 
 

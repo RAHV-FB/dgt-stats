@@ -12,8 +12,7 @@ navigation:
 ``sources``   what every raw file holds and how each source came to exist
 
 :data:`SOURCES` lists every source: the files it owns under ``data/raw`` (each raw file belongs to
-exactly one source) or, for the two sets of figures typed from documents that are not archived,
-none. :data:`TABLES` lists every result table: the stage that writes it, and so its section and
+exactly one source) or, for the figures typed from documents that are not archived, none. :data:`TABLES` lists every result table: the stage that writes it, and so its section and
 folder, the sources it is computed from, and what it holds. ``tests/test_catalogue.py`` keeps the
 three in step with the files: a table on disk that is not catalogued, a catalogued table that is
 not on disk, a raw file no source owns and a source no table reads all fail the tests, and a table
@@ -116,7 +115,7 @@ SECTIONS: tuple[Section, ...] = (
     ),
     Section(
         "sources",
-        "Sources and methods",
+        "Data and methods: sources and how results are made",
         "Data and methods",
         "What every raw file holds, how each source came to exist, and how the results are made "
         "from them.",
@@ -222,13 +221,23 @@ SOURCES: tuple[Source, ...] = (
     ),
     Source(
         "emef_distance_2021",
-        "EMEF 2021 distance report (typed)",
+        "EMEF 2021 distance report",
         "Institut Metròpoli for the ATM",
         "Barcelona area, 2021",
         "the road-to-straight-line distance ratio of driving trips (1.45) and the 2021 distance "
         "benchmarks, typed into src/dgt_stats/drivers/emef/distance.py",
         (),
         note="the report is not archived here and could not be found again",
+    ),
+    Source(
+        "emef_technical",
+        "EMEF technical document",
+        "Autoritat del Transport Metropolità (ATM)",
+        "Barcelona area, 2014–2024",
+        "each year's population aged 16 and over and final sample, typed into "
+        "src/dgt_stats/drivers/emef/variables.py as the totals the respondent files must match",
+        (),
+        note="a check target only, entering no estimate; the document is not archived here",
     ),
     Source(
         "edm2018",
@@ -256,7 +265,7 @@ SOURCES: tuple[Source, ...] = (
     ),
     Source(
         "racc_2013",
-        "Survey of older licence holders, Mayores al volante (typed)",
+        "Survey of older licence holders (Mayores al volante)",
         "Fundació RACC",
         "Spain, licence holders aged 65 and over, published 2013",
         "shares who do not drive and days a week the others drive, typed into "
@@ -342,7 +351,7 @@ def table(name: str) -> Table:
         return TABLE_BY_NAME[name]
     except KeyError:
         raise KeyError(
-            f"{name!r} is not a catalogued result table: add it to src/dgt_stats/_tables.py"
+            f"{name!r} is not a catalogued result table: add it to TABLES in src/dgt_stats/catalogue.py"
         ) from None
 
 
@@ -733,7 +742,7 @@ TABLES: tuple[Table, ...] = (
     Table(
         "trends_km_crosscheck",
         "national.results",
-        "DGT vehicle-km estimates for 2022–2024 beside road fuel and deaths, with ratios to 2022",
+        "DGT km per car 2022–2024 and vehicle-km 2022 and 2024, beside road fuel and deaths, ratios to 2022",
         ("dgt_series", "dgt_km", "cores_fuel"),
     ),
     Table(
@@ -942,7 +951,7 @@ TABLES: tuple[Table, ...] = (
         "emef_checks",
         "drivers.emef",
         "EMEF file checks by year, 2014–2024: sample size, weights, keys and file consistency, passed or not",
-        ("emef",),
+        ("emef", "emef_technical"),
     ),
     Table(
         "emef_distance_validation",
@@ -1097,7 +1106,7 @@ TABLES: tuple[Table, ...] = (
         "risk_coverage_evidence",
         "drivers.exposure",
         "Measured figures behind the km coverage decomposition: regional, seasonal, travel, calendar, fleet",
-        ("dgt_km", "ine_population", "cores_fuel", "transport_toll", "movilia"),
+        ("dgt_km", "ine_population", "cores_fuel", "transport_toll", "emef", "movilia"),
     ),
     Table(
         "risk_coverage_mixes",
@@ -1330,7 +1339,7 @@ TABLES: tuple[Table, ...] = (
     Table(
         "ml_geography",
         "models.fit",
-        "Training, validation and test ROC-AUC of each source model with no, broad or granular geography",
+        "Train, validation and test ROC-AUC of each source model by geography: none, broad, comarca, granular",
         ("dgt_microdata", "sct_catalonia", "gu_barcelona"),
     ),
     Table(
@@ -1665,11 +1674,13 @@ TABLES: tuple[Table, ...] = (
     Table(
         "source_comparison",
         "sources.profile",
-        "How each data source came to exist, one row per source and question, with the basis of the answer",
+        "How the DGT, INE, Catalan and Barcelona sources came to exist: one row per source and question",
         (
             "dgt_microdata",
             "dgt_series",
             "dgt_tables",
+            "dgt_census",
+            "dgt_km",
             "ine_population",
             "sct_catalonia",
             "gu_barcelona",

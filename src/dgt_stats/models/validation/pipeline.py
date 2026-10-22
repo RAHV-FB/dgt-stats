@@ -1,7 +1,7 @@
 """The validation step: test the fitted source models outside their own held-out rows.
 
 Runs after ``scripts/run.py models.fit`` (which fits the models and writes their own tables) and
-``analyse`` (which writes the Catalan-DGT reconciliation). In order:
+``regional.analyse`` (which writes the Catalan-DGT reconciliation). In order:
 
 1. transfer tests with in-domain references (:mod:`transport`);
 2. the Barcelona transfer diagnosis and domain-specific against pooled models (:mod:`diagnosis`);

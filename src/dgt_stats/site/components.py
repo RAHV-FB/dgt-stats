@@ -451,8 +451,8 @@ def downloads(items: list[tuple[str, str]], method: tuple[str, str] | None = Non
     documented.
 
     ``method`` is ``(href, label)``, for example ``("data.html#rates", "how rates are built")``.
-    The sources are the catalogue's for the tables listed (:mod:`dgt_stats.catalogue`), so the
-    line cannot name a source the page's results do not use or leave one out.
+    The sources line is computed from the catalogue (:mod:`dgt_stats.catalogue`) for the tables
+    listed, so it names exactly the sources those tables are computed from.
     """
     links = "".join(
         f'<li><a href="tables/{name}.csv">{esc(label[:1].upper() + label[1:])}</a></li>'
@@ -462,7 +462,10 @@ def downloads(items: list[tuple[str, str]], method: tuple[str, str] | None = Non
     rows = f"<dt>Result tables (CSV)</dt><dd><ul{many}>{links}</ul></dd>"
     sources = [s for s in catalogue.sources_of(name for name, _ in items) if s.read]
     if sources:
-        rows += f"<dt>Sources</dt><dd>{esc(' · '.join(source.name for source in sources))}</dd>"
+        rows += (
+            "<dt>Sources of these tables</dt>"
+            f"<dd>{esc(' · '.join(source.name for source in sources))}</dd>"
+        )
     if method:
         label = method[1][:1].upper() + method[1][1:]
         rows += f'<dt>Method</dt><dd><a href="{method[0]}">{esc(label)}</a></dd>'
@@ -654,17 +657,19 @@ def _toc_lists(entries: list[tuple[str, str]]) -> tuple[str, str]:
 def _nav(slug: str) -> str:
     """The site navigation: each section a menu of its pages, the current one marked.
 
-    On a wide screen each section is a button opening its list; on a small screen the whole list
-    is shown under a 'Menu' button, sections as labels. Without scripting every list is reachable
+    On a wide screen each section is a button opening its list, and a section of one page is a
+    link to it; on a small screen the whole list is shown under a 'Menu' button, sections as labels. Without scripting every list is reachable
     from the keyboard and the small-screen list is shown open.
     """
     groups = []
     for label, pages in NAV_GROUPS:
-        if label == OVERVIEW:
-            current = ' aria-current="page"' if slug == "index" else ""
+        if len(pages) == 1:
+            # A group of one page, such as the overview, is a link, not a menu of one link.
+            page = pages[0][0]
+            current = ' aria-current="page"' if slug == page else ""
             groups.append(
-                f'<li class="nav-group"><a class="nav-top" href="index.html"{current}>'
-                f"{esc(pages[0][1])}</a></li>"
+                f'<li class="nav-group"><a class="nav-top" href="{page}.html"{current}>'
+                f"{esc(label)}</a></li>"
             )
             continue
         key = _slug(label)

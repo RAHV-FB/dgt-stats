@@ -12,7 +12,7 @@ condition would do. A difference between two scenarios is an association in thes
 
 Code: `src/dgt_stats/models/severity_model.py` and `scripts/run.py models.calculator`. Browser
 engine: `src/dgt_stats/site/assets/severity-engine.js`; page: `severity-calculator.js`. Tests:
-`tests/test_severity_engine.py` and the calculator tests in `tests/test_site_browser.py`.
+`tests/models/test_severity_engine.py` and the calculator tests in `tests/site/test_site_browser.py`.
 
 ## Data
 
@@ -78,7 +78,7 @@ The vehicle kinds offered are car or van, motorcycle, moped, bicycle, heavy vehi
 and other vehicle (tram, tractor and others), one per road-user flag. Two vehicles of the same
 kind set one flag, as in the records. Every crash type, every road-user flag and every number
 involved can be reached, and no description breaks a rule below (tests in
-`tests/test_severity_engine.py`). Some combinations the engine accepts cannot be described: a
+`tests/models/test_severity_engine.py`). Some combinations the engine accepts cannot be described: a
 pedestrian with no vehicle (44 recorded crashes), a collision with one unit involved (73), more
 than three kinds of road user (7), or a pedestrian with a crash type other than pedestrian struck
 or other. They are rare, and the engine keeps its warnings for inputs that come from elsewhere.
@@ -296,7 +296,7 @@ with no named owning network. Scenarios A and B are compared by `compare`, and t
 difference as an association between recorded crashes.
 
 The worked examples (`sev_contrasts`) use the same formulae, so they and the engine always give
-the same numbers for the same inputs; a test requires it. `tests/test_severity_engine.py` runs
+the same numbers for the same inputs; a test requires it. `tests/models/test_severity_engine.py` runs
 the engine under Node on more than 300 random valid scenarios and every edge case (every road in
 every province, every level of every input on three roads, the boundaries of the rules). It
 requires:
@@ -316,7 +316,7 @@ requires:
 - the engine to refuse a scenario that breaks an error rule;
 - the calculator's text to frame the estimate as a conditional share.
 
-The browser tests (`tests/test_site_browser.py`) drive the page itself: the derivations, the
+The browser tests (`tests/site/test_site_browser.py`) drive the page itself: the derivations, the
 conditions, the comparison of scenarios A and B against `compare_exported`, the keyboard, a phone
 and a laptop, and random sequences of changes, none of which may pass a refused scenario to the
 engine.

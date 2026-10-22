@@ -1237,8 +1237,13 @@ def test_navigation_groups_its_pages_under_labels(built: Path) -> None:
     text = (built / "speed.html").read_text(encoding="utf-8")
     nav = re.search(r'<nav aria-label="Sections">(.*?)</nav>', text, re.S).group(1)
     labels = re.findall(r'<span class="nav-label" id="(label-[a-z-]+)">([^<]+)</span>', nav)
-    # Every section but the overview link is labelled, in navigation order.
-    assert [label for _, label in labels] == [group for group, _ in site.NAV_GROUPS][1:]
+    # Every section of more than one page is labelled, in navigation order; a section of one
+    # page, such as the overview, is a plain link to it.
+    assert [label for _, label in labels] == [
+        group for group, pages in site.NAV_GROUPS if len(pages) > 1
+    ]
+    tops = re.findall(r'<a class="nav-top" href="([a-z-]+)\.html"[^>]*>([^<]+)</a>', nav)
+    assert tops == [(pages[0][0], group) for group, pages in site.NAV_GROUPS if len(pages) == 1]
     # Every link sits in a list labelled by its group, opened by a button that names the group;
     # no label is itself a link, so a group's name can never be mistaken for a page. The section
     # holding the current page says so.

@@ -1,10 +1,10 @@
 /*
  * The crash-severity calculator's arithmetic, separate from its page so that it can be tested
- * against the Python model (tests/test_severity_engine.py runs it under Node).
+ * against the Python model (tests/models/test_severity_engine.py runs it under Node).
  *
  * It reads the exported model (reports/models/severity_model.json, copied to
  * site/models/severity_model.json) and, for a scenario, builds the same 0/1 design vector as
- * dgt_stats.severity_model.design_matrix, the predicted probability expit(x'b) and its 95%
+ * dgt_stats.models.severity_model.design_matrix, the predicted probability expit(x'b) and its 95%
  * interval expit(x'b +- z sqrt(x'Vx)), z the normal quantile of a two-sided 95% interval.
  * Nothing here is estimated: every number comes from the exported coefficients and covariance.
  * The probability is conditional: the share that were fatal among recorded crashes with a death
@@ -21,9 +21,9 @@
   "use strict";
 
   var Z = 1.959964;
-  // "4+" means four or more: no upper bound (dgt_stats.severity_model.UNIT_COUNTS).
+  // "4+" means four or more: no upper bound (dgt_stats.models.severity_model.UNIT_COUNTS).
   var UNITS = { "1": 1, "2": 2, "3": 3, "4+": Infinity };
-  // The rules a scenario must not break (dgt_stats.severity_model.ERRORS): the crash itself, and
+  // The rules a scenario must not break (dgt_stats.models.severity_model.ERRORS): the crash itself, and
   // conditions that cannot occur together. predict and compare refuse a scenario that breaks one.
   var ERROR_RULES = {
     at_least_one_user: true,
@@ -32,7 +32,7 @@
     heavy_rain_on_dry_surface: true,
     lighting_outside_hours: true
   };
-  // Time bands that hold all year in Catalonia (dgt_stats.severity_model.DAYLIGHT and the two
+  // Time bands that hold all year in Catalonia (dgt_stats.models.severity_model.DAYLIGHT and the two
   // bands after it): no daylight before 06:00 or from 22:00; only daylight from 10:00 to 13:59.
   var DAYLIGHT = ["day", "overcast"];
   var HOURS_WITHOUT_DAYLIGHT = ["00-05", "22-23"];
@@ -158,7 +158,7 @@
     }
 
     // The first scenario against the second: ratio and difference of the predicted fatal shares,
-    // each with a 95% delta-method interval (dgt_stats.severity_model.compare_exported).
+    // each with a 95% delta-method interval (dgt_stats.models.severity_model.compare_exported).
     function compare(first, second) {
       refuse(first);
       refuse(second);
@@ -210,7 +210,7 @@
       return { key: key, crashes: found ? found[0] : 0, fatal: found ? found[1] : 0 };
     }
 
-    // Rule ids broken by a scenario, as dgt_stats.severity_model.check_scenario, plus the two
+    // Rule ids broken by a scenario, as dgt_stats.models.severity_model.check_scenario, plus the two
     // warnings that need the training counts: few similar crashes in the zone, and an input level
     // rarely or never recorded on the chosen road.
     function check(scenario) {
@@ -222,7 +222,7 @@
       }
       if (chosen.length === 1 && chosen[0] === "pedestrian") broken.push("pedestrian_without_vehicle");
       // Roads through towns get the average instead of an estimate only when the published model
-      // was chosen that way (model.through_town, dgt_stats.severity_model.select).
+      // was chosen that way (model.through_town, dgt_stats.models.severity_model.select).
       if (model.through_town === "average" && zoneOf(scenario.road) === "through_town") {
         broken.push("through_town");
       }

@@ -27,7 +27,7 @@ dev = [
   "pytest>=8.0",
   "ruff>=0.6",
 ]
-# The browser tests of the built site (tests/test_site_browser.py); they skip without it.
+# The browser tests of the built site (tests/site/test_site_browser.py); they skip without it.
 browser = [
   "playwright>=1.56",
 ]

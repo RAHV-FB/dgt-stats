@@ -17,7 +17,7 @@ and `reports/tables/models/sev_*.csv`.
 | Barcelona crash severity (logistic) | serious or fatal injury in the crash; one 2025 Barcelona crash | accident-type table: 0.734 | 0.737 (1,994 crashes, 58 positive) | slope 0.84 | **REMOVE**: no gain over the table |
 | Catalan model on DGT-common or Barcelona-common variables | fatal rather than serious | not a predictive model | transfer tests | — | **RESEARCH ONLY**: validation instruments |
 | DGT crash severity (logistic, association analysis) | a death within 30 days; one DGT injury crash, 2016–2024 | not compared | 0.803 on 2023–2024 (203,302 crashes, 3,336 fatal; 0.801 before the Catalan 2023–2024 junction flag was read the right way round) | every decile within half a point | **RESEARCH ONLY**: recording artefacts (below) |
-| Monthly road deaths forecast (Poisson regression) | deaths in a month, Spain | last year's count: 5.9% error in ordinary held-out years | 6.6% | — | **WITHDRAWN**: its page is a withdrawal notice (below) |
+| Monthly road deaths forecast (Poisson regression) | deaths in a month, Spain | last year's count: 5.9% error in ordinary held-out years | 6.6% | — | **WITHDRAWN**: its page was removed from the site (below) |
 
 Read each row as follows. The benchmark is a table any analyst could make, scored on the same
 held-out records. ROC-AUC is the chance that a randomly chosen fatal crash is ranked above a

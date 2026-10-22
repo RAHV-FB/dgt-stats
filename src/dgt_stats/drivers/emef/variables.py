@@ -8,7 +8,7 @@ files; where the two disagree the file wins and the disagreement is noted:
   same three codes (the 2016 name was copied into the 2015 value-label sheet).
 * 2024: the respondent dictionary lists ``S02_R3``, ``S03A``, ``COMARCA2`` and ``V01D1``; the file
   has ``S02``, ``S03``, ``COMARCA`` and ``V01A`` instead, and each matches its trip-file counterpart
-  respondent by respondent (``tests/test_emef.py``).
+  respondent by respondent (``tests/drivers/test_emef.py``).
 
 Age is published only in groups: 16–29, 30–64 and 65 and over in 2014–2018, and 16–29, 30–44,
 45–64 and 65 and over from 2019. No public file separates 65–74 from 75 and over.

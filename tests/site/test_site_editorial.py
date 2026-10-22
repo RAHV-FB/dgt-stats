@@ -109,7 +109,7 @@ def test_every_analysis_page_names_the_sources_of_its_tables(built: dict[str, st
         if not block:
             continue
         expected = [s.name for s in catalogue.sources_of(names) if s.read]
-        line = re.search(r"<dt>Sources</dt><dd>(.*?)</dd>", block.group(0))
+        line = re.search(r"<dt>Sources of these tables</dt><dd>(.*?)</dd>", block.group(0))
         assert line, slug
         assert html.unescape(line.group(1)).split(" · ") == expected, slug
 

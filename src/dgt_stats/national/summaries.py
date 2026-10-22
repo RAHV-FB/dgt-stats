@@ -1,9 +1,12 @@
 """Result tables for the site, and the registry that names them.
 
-``SUMMARIES`` is the whole published set: the context series, the kilometre-based driver-risk
-tables (``driver_risk``), the per-kilometre vehicle rates (``vehicles``), the interrupted time
-series (``policy``) and the speed-status shares (``speed``). The severity models are written
-separately by ``scripts/run.py national.associations`` and read back with :func:`read_model_table`.
+``SUMMARIES`` is the national result tables that ``scripts/run.py national.results`` writes: the
+trends and the long run, road classes, seasons, speed and the other factors, the context series,
+the per-kilometre vehicle rates (``vehicles``), the interrupted time series (``policy``) and the
+speed-status shares (``speed``). The withdrawn forecast's tables are ``WITHDRAWN_SUMMARIES``
+(``national.withdrawn``) and the driver tables ``dgt_stats.drivers.driver_risk.TABLES``
+(``drivers.tables``). The severity associations are written separately by ``scripts/run.py
+national.associations`` and read back with :func:`read_model_table`.
 
 Every function returns a tidy ``pandas.DataFrame`` built from the staging or processed layers. The
 column names are stable because the site and the tests key on them.

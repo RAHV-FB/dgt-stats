@@ -13,7 +13,7 @@ dataset may be used for, and what it may never be joined to, is in the
 |---|---|---|---|
 | `raw/<source>/` | source files byte for byte, listed in `raw/manifest.csv` (path, size, SHA-256, source URL, description, date added, name it was downloaded as) | download; `python scripts/run.py regional.organise` for new regional files | yes |
 | `staging/<source>/` | parsed files: harmonised column names and types, values unchanged | `scripts/run.py national.ingest` (`staging/dgt`), `scripts/run.py regional.build` (`staging/barcelona`, `staging/catalonia`) | no |
-| `processed/` | validated tables at one documented unit of observation | `scripts/run.py national.process`, `scripts/run.py regional.build` | no |
+| `processed/` | validated tables at one documented unit of observation | `scripts/run.py national.process`, `scripts/run.py regional.build`, `scripts/run.py drivers.emef` | no |
 | `features/` | model matrices: id, target, grouping key, features and a provenance record | `scripts/run.py models.features` | no |
 
 The raw sources:
@@ -71,6 +71,7 @@ sources.
 | `processed/barcelona_accidents.parquet` | one Barcelona crash | crash table + accident type (one-to-one) + aggregated causes, vehicle-type presence and person-role counts; corrected UTM beside the source columns |
 | `processed/barcelona_people.parquet` | one person record | raw victimisation kept; `serious_or_fatal` target with blanks and natural deaths left missing |
 | `processed/barcelona_crash_*.parquet` | one crash | the cause and vehicle-type aggregates on their own |
+| `processed/emef_persons.parquet`, `processed/emef_trips.parquet` | one EMEF respondent; one trip | the eleven survey years, 2014–2024, harmonised into one layout (`docs/drivers/emef_inventory.md`) |
 | `features/*.parquet` | one observation per model | see `models/leakage_audit.md`; each file has a `.json` provenance record beside it |
 
 Existing outputs of the national layers are skipped unless `--force` is given; the regional

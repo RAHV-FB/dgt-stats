@@ -14,7 +14,9 @@ INVENTORY = "data_inventory"
 
 def test_every_table_on_disk_is_catalogued_in_its_sections_folder() -> None:
     assert not list(TABLES_DIR.glob("*.csv")), "a table outside every section's folder"
-    on_disk = {path.stem: path.parent.name for path in TABLES_DIR.glob("*/*.csv")}
+    found = [(path.stem, path.parent.name) for path in TABLES_DIR.glob("*/*.csv")]
+    on_disk = dict(found)
+    assert len(found) == len(on_disk), "a table in two section folders"
     catalogued = {entry.name: entry.section for entry in catalogue.TABLES}
     assert on_disk == catalogued
     assert len(catalogue.TABLES) == len(catalogue.TABLE_BY_NAME)

@@ -11,14 +11,14 @@ what it may never be joined to, is in [`sources/contract.md`](../sources/contrac
 source URLs and download names for every file are in
 [`data/raw/manifest.csv`](../../data/raw/manifest.csv). The complete machine-generated inventory of
 every raw file (encoding, delimiter, rows, columns, unit of observation, coverage, duplicates) is
-[`sources/raw_file_inventory.md`](../sources/raw_file_inventory.md), written by `python scripts/run.py regional
-inventory`; this document is the hand-written audit beside it and does not repeat its counts.
+[`sources/raw_file_inventory.md`](../sources/raw_file_inventory.md), written by `python scripts/run.py
+sources.inventory`; this document is the hand-written audit beside it and does not repeat its counts.
 
 ## 1. Files by category
 
 All raw files live under `data/raw/<source>/`, one folder per publisher: `dgt/`, `ine/`,
-`transportes/`, `cores/`, `comunidad_madrid/`, `catalonia/` and `barcelona/2025/`, plus
-`compiled/` for registers typed by hand ([`data/README.md`](../../data/README.md)). This section
+`transportes/`, `cores/`, `crtm/`, `comunidad_madrid/`, `emef/`, `idescat/`, `catalonia/` and
+`barcelona/2025/`, plus `compiled/` for registers typed by hand ([`data/README.md`](../../data/README.md)). This section
 groups them by role. Each table gives a file relative to the folder in its section heading, or to
 `data/raw/` where the column says so.
 
@@ -227,7 +227,7 @@ No duplicate identifiers were found in any year.
 | `VISIB_RESTRINGIDA_POR` and `CONDICION_NIVEL_CIRCULA` swap between their explicit unknown code (18 "Se desconoce", 6 "Se desconoce") and 999 in 2021, 2023 and 2024: `VISIB_RESTRINGIDA_POR = 999` is 0.3% / 0.1% / 0.0% in 2019 / 2020 / 2022 but 14.9% / 14.0% / 14.8% in 2021 / 2023 / 2024 while code 18 drops from 28–30% to 4.8–5.6%, and `VISIB_RESTRINGIDA_POR = 17` ("Otras restricciones") jumps from 0.4% to 8.7–8.9% in the same three years; `CONDICION_NIVEL_CIRCULA = 999` is 9.5–10.2% in 2019 / 2020 / 2022 but 32.2% / 32.8% / 34.0% in 2021 / 2023 / 2024 while code 6 drops from 29–31% to 6.9–7.7%. `TITULARIDAD_VIA = 999` appears in 2021 (14.8%, 13,280 rows, all urban `ZONA 3` / `TIPO_VIA 9`) and in 28 rows of 2024 (0.03%, also all `ZONA 3`) | 2021, 2023, 2024 | concentrated in the four Catalan provinces (Barcelona alone is 74–79% of the `VISIB_RESTRINGIDA_POR = 999` rows in those years, Barcelona, Girona, Lleida and Tarragona together 97–100%; for `CONDICION_NIVEL_CIRCULA = 999`, which has a 10% floor everywhere, the four provinces are 65–71%); 13,412 of the 22,090 rows flagged for strong wind in 2021 are also `VISIB_RESTRINGIDA_POR = 999` rows; missingness is province- and year-dependent, so never run complete-case trend comparisons and never read these fields as a trend |
 | `CONDICION_METEO = 999` falls from 10.0–10.4% in 2016–2018 to 0.0–0.5% from 2019 on | 2018 → 2019 | missingness is year-dependent; never run complete-case trend comparisons |
 | `VISIB_RESTRINGIDA_POR = 999` falls 32.3% → 10.2% while code 1 ("Buena visibilidad") rises 29.8% → 50.8%; `CONDICION_FIRME = 9` falls 5.5% → 2.7%; `CONDICION_NIEBLA` is flagged in 0.6% → 7.3% of crashes, a rise that is Barcelona's alone (its records code fog in 33–45% of crashes a year from 2017) | 2016 → 2017 | 2016 is a separate reporting regime for the condition fields; treat 2016 as not comparable to later years |
-| `KM` null share 62% in most years but 46–48% in 2019, 2020 and 2022, where a placeholder stands in the empty cell's place (1000 in 2019, 9999 in 2020 and 2022) | 2019, 2020, 2022 | counting the placeholder, the km post is unrecorded in about 62% of crashes in every year; `validate.missingness_profile` counts it as not observed, so the profile shows no improvement where there was none. Investigate before using km-post analyses |
+| `KM` null share 62% in most years but 46–48% in 2019, 2020 and 2022, where a placeholder stands in the empty cell's place (1000 in 2019, 9999 in 2020 and 2022) | 2019, 2020, 2022 | counting the placeholder, the km post is unrecorded in about 62% of crashes in every year; `reconcile.missingness_profile` counts it as not observed, so the profile shows no improvement where there was none. Investigate before using km-post analyses |
 | `ISLA = 0`, absent from the dictionary, appears from 2018 (7 rows) and grows to 605 rows in 2024, almost only in the Balearic and Canary provinces | 2018+ | treated as "island not specified" (`codes.UNDOCUMENTED_CODES`); an empty island field usually means the crash was not in an island province, but 11,430 empty rows are in the Balearic and Canary provinces themselves (376 in 2016 rising to 2,371 in 2024), so empty is not evidence of a mainland crash |
 | `CONDICION_VIENTO = 1` share jumps from 0.2–1.2% in every other year (1.1–1.2% in 2017 and 2018) to 24.6% in 2021 only | 2021 | reporting artefact; exclude the wind flag from cross-year comparisons |
 

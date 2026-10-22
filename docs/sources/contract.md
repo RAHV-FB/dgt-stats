@@ -84,7 +84,7 @@ Each file passes through up to four processing layers; only `raw` is committed.
 |---|---|---|---|
 | raw | `data/raw/<source>/` | download, `scripts/run.py regional.organise` | source files, manifest |
 | staging | `data/staging/<source>/` | `scripts/run.py national.ingest`, `scripts/run.py regional.build` | parsed files; source column names normalised, values unchanged |
-| processed | `data/processed/` | `scripts/run.py national.process`, `scripts/run.py regional.build` | validated tables at one documented unit |
+| processed | `data/processed/` | `scripts/run.py national.process`, `scripts/run.py regional.build`, `scripts/run.py drivers.emef` | validated tables at one documented unit |
 | features | `data/features/` | `scripts/run.py models.features` | model matrices: id, target, group, features, provenance |
 
 Folders in `data/raw`, one per publisher: `dgt/` (Dirección General de Tráfico), `ine/`,
@@ -99,7 +99,7 @@ analysis reads it, is in [`catalogue.md`](../catalogue.md).
 ### DGT crash microdata, 2016-2024 (`dgt/microdata/`)
 
 - **Unit**: one road crash with at least one victim, Spain. **Key**: (`ANYO`, `ID_ACCIDENTE`),
-  unique (validate.py check 4). Processed: `data/processed/dgt_accidentes.parquet`.
+  unique (`national/reconcile.py` check 4). Processed: `data/processed/dgt_accidentes.parquet`.
 - **Variables**: date parts, province, municipality (coarsened to `00000` below 5,000
   inhabitants), zone, road type and owner, crash type, junction, priority, surface, lighting,
   weather, alignment, victims by severity at 24 hours and 30 days, deaths by vehicle type, total
@@ -219,7 +219,7 @@ hashed, as the record of what the withdrawn models used.
 
 Six tables sharing `Numero_expedient` (spelt `Número_expedient` in the driver-cause file; only the
 column name is normalised). Each table holds exactly the same set of crash ids (checked in
-`regional/data_quality.md` and `tests/test_microdata_tables.py`).
+`regional/data_quality.md` and `tests/regional/test_regional_tables.py`).
 
 | Table (downloaded as) | Unit | Rows per crash | Reaches the crash table by |
 |---|---|---|---|
@@ -290,7 +290,7 @@ grouping key where rows share a crash, the features the catalogue allows and a p
 (source files and SHA-256). The catalogue in `src/dgt_stats/models/ml/features.py` decides every
 column's status (safe, questionable, direct leakage, excluded) and generates
 [`models/leakage_audit.md`](../models/leakage_audit.md). Rows of one crash never fall on both sides of a split
-(`tests/test_microdata_models.py`); categorical gaps are explicit categories and numeric gaps are
+(`tests/models/test_model_features.py`); categorical gaps are explicit categories and numeric gaps are
 imputed inside the pipeline on training rows only; no synthetic or oversampled rows are created.
 
 Every model is compared with a descriptive lookup table before it is presented, and kept only if

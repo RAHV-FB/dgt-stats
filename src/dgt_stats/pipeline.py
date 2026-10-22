@@ -29,6 +29,7 @@ class Stage:
     target: str
     does: str
     writes: str
+    # wall-clock minutes of a full build on a four-core machine
     minutes: float
     single_thread: bool = False
     # run by ``all`` and by its section; the others are run by name
@@ -62,7 +63,7 @@ STAGES: tuple[Stage, ...] = (
         "dgt_stats.national.stages:reconcile_checks",
         "tie the staging layer to DGT's published totals (482 checks); stop if one fails",
         "reconciliation.csv, missingness_by_year.csv",
-        1,
+        0.7,
     ),
     Stage(
         "national",
@@ -79,7 +80,7 @@ STAGES: tuple[Stage, ...] = (
         "dgt_stats.national.stages:run_associations",
         "fit the supporting association analysis of DGT crash records; the crash explorer's counts",
         "assoc_*.csv, explore_dgt_crashes.csv",
-        8,
+        10,
     ),
     Stage(
         "national",
@@ -87,7 +88,7 @@ STAGES: tuple[Stage, ...] = (
         "dgt_stats.national.stages:results",
         "every other national result table",
         "trends_*, longrun_*, season_*, road_class_*, vehicles_*, speed_*, factor_*, policy_*.csv",
-        2,
+        1.5,
     ),
     Stage(
         "regional",
@@ -95,7 +96,7 @@ STAGES: tuple[Stage, ...] = (
         "dgt_stats.regional.stages:build",
         "stage the Catalan and Barcelona files and write their canonical tables",
         "data/staging/{catalonia,barcelona}/, data/processed/{catalonia,barcelona}_*.parquet",
-        0.5,
+        0.2,
         takes_force=True,
     ),
     Stage(
@@ -118,9 +119,9 @@ STAGES: tuple[Stage, ...] = (
         "drivers",
         "tables",
         "dgt_stats.drivers.stages:tables",
-        "driver rates by sex and by the car owner's age, from DGT's tables and census",
+        "driver rates by sex and by the car owner's age, from DGT's tables, census and km estimates",
         "drivers_*.csv",
-        1,
+        0.2,
     ),
     Stage(
         "drivers",
@@ -128,7 +129,7 @@ STAGES: tuple[Stage, ...] = (
         "dgt_stats.drivers.stages:emef",
         "read and check the EMEF survey; car-driving exposure by age, sex, area and year",
         "data/processed/emef_*.parquet, emef_*.csv",
-        6,
+        2.5,
         single_thread=True,
     ),
     Stage(
@@ -137,7 +138,7 @@ STAGES: tuple[Stage, ...] = (
         "dgt_stats.drivers.stages:exposure_all",
         "kilometres by driver age (EMEF, EDM2018, MOVILIA) and car drivers involved per km",
         "risk_*.csv (driver age), edm_*.csv, emef_routing_older.csv",
-        10,
+        4.5,
         single_thread=True,
     ),
     Stage(
@@ -152,17 +153,17 @@ STAGES: tuple[Stage, ...] = (
         "models",
         "fit",
         "dgt_stats.models.stages:fit",
-        "fit the source models and their rule baselines; cards and the leakage audit",
-        "ml_*.csv, model cards, ML leakage audit",
-        15,
+        "fit the source models and their rule baselines; the leakage audit",
+        "ml_*.csv, harmonised cross-source tables, ML leakage audit",
+        12,
     ),
     Stage(
         "models",
         "validate",
         "dgt_stats.models.stages:validate",
-        "transfer tests, Barcelona diagnosis, DGT microdata audit, generalisability, decisions",
-        "ml_*, gen_*, dgt_audit_*.csv, model_metrics.json, decisions and generalisability documents",
-        15,
+        "transfer tests, Barcelona diagnosis, DGT microdata audit, generalisability, decisions, cards",
+        "ml_*, gen_*, dgt_audit_*.csv, model_metrics.json, model cards, decisions and other documents",
+        27,
     ),
     Stage(
         "models",
@@ -170,7 +171,7 @@ STAGES: tuple[Stage, ...] = (
         "dgt_stats.models.stages:calculator",
         "the crash-severity calculator's model, by nested rolling origin, and its export",
         "sev_*.csv, reports/models/severity_model.json",
-        20,
+        22,
     ),
     Stage(
         "models",
@@ -178,7 +179,7 @@ STAGES: tuple[Stage, ...] = (
         "dgt_stats.models.stages:review",
         "the independent re-evaluation of every model",
         "review_*.csv",
-        10,
+        7.5,
     ),
     Stage(
         "national",
@@ -210,7 +211,7 @@ STAGES: tuple[Stage, ...] = (
         "dgt_stats.pipeline:draw_figures",
         "every figure, wide and narrow, with its caption and title",
         "reports/figures/",
-        3,
+        0.6,
     ),
     Stage(
         "site",
@@ -251,8 +252,8 @@ STAGES: tuple[Stage, ...] = (
         "models",
         "documents",
         "dgt_stats.models.stages:documents",
-        "re-render the validation documents from the saved tables",
-        "model decisions and generalisability documents",
+        "re-render the validation documents and model cards from the saved tables",
+        "model cards, decisions and other documents",
         0.1,
         in_all=False,
     ),

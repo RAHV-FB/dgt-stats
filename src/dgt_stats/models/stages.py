@@ -1,15 +1,15 @@
 """The models section's pipeline stages, run by ``scripts/run.py models``.
 
 In order: ``features`` writes the model matrices (``data/features``); ``fit`` fits the source
-models with their rule baselines and writes their tables, cards and the leakage audit;
-``validate`` tests them outside their own rows (transfer tests, the Barcelona diagnosis, the DGT
-microdata audit, generalisability) and decides each model; ``calculator`` fits the published
+models with their rule baselines and writes their tables and the leakage audit; ``validate``
+tests them outside their own rows (transfer tests, the Barcelona diagnosis, the DGT microdata
+audit, generalisability), decides each model and writes the model cards; ``calculator`` fits the published
 crash-severity calculator's model by nested rolling origin and exports it for the browser;
 ``review`` re-evaluates every model with separate code. ``documents`` re-renders the validation
-documents from saved tables and is run by hand.
+documents and the model cards from saved tables and is run by hand.
 
 ``calculator`` takes about twenty minutes (the nested choices refit the model a few hundred
-times), ``review`` about ten, ``fit`` and ``validate`` about half an hour together.
+times), ``review`` about eight, ``fit`` and ``validate`` about forty together.
 """
 
 from __future__ import annotations
@@ -39,7 +39,7 @@ def features() -> None:
 
 
 def fit() -> None:
-    """The source models, their rule baselines, their result tables and cards."""
+    """The source models, their rule baselines, their result tables and the leakage audit."""
     tables = reporting.run()
     for row in tables["ml_selected"].itertuples():
         log.info(

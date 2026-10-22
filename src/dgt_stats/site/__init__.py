@@ -4,8 +4,8 @@ No template engine, one small script (``script``) that only makes reading easier
 works without it) and two self-hosted open fonts (``fonts``). The navigation (``NAV_GROUPS``) has
 the interactive tools, then one group for each section of the project (``dgt_stats.catalogue``):
 national statistics, drivers, Catalonia and Barcelona, the severity model, and the data and
-methods, so that the menu says where each page's data come from, and each page's closing block
-names the sources of the tables it links.
+methods, so that the menu says where each page's data come from, and each analysis page's
+closing block names the sources of the tables it links.
 Every sentence that carries a number computes it from a committed result table at build time, so
 the prose cannot drift from the tables; full tables are linked as CSV rather than printed. Only
 the tables a page links are copied into ``site/tables``, and only the figures a page shows into

@@ -14,7 +14,7 @@ for the junction type away from junctions) is not a recording artefact. A field 
 *outcome-dependent* when its placeholder covers at least :data:`MIN_RATE` of crashes, is not
 structurally explained, and its rate among fatal crashes differs from the rate among serious
 crashes by a factor of :data:`RATIO_LIMIT` or more. Those fields stay out of the primary model and
-enter only the retrospective administrative model; ``tests/test_microdata_models.py`` checks that
+enter only the retrospective administrative model; ``tests/regional/test_regional_tables.py`` checks that
 the catalogue agrees with this verdict.
 """
 

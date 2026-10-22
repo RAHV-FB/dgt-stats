@@ -10,7 +10,7 @@ read as an effect. The grouping maps are data, so the severity page can print th
 
 Levels with fewer than ``MIN_LEVEL_CRASHES`` crashes are merged into the reference on the counts of
 the frame passed in, all years together; the counts are of predictors only, never of outcomes.
-``models.holdout_check`` repeats the merge on the training years alone, so the held-out years
+``associations.holdout_check`` repeats the merge on the training years alone, so the held-out years
 decide nothing about the model scored on them.
 
 The junction predictor is the one place the frame corrects DGT's coding rather than reading it.
@@ -18,7 +18,7 @@ In the province-years whose junction flag is the wrong way round (:func:`inverte
 the DGT microdata audit's rule: the four Catalan provinces in 2023 and 2024), the flag is read the
 other way round (:func:`junction_codes`). The processed layer keeps the flag as DGT publishes it,
 so the audit can still find the inversion; the other treatments are fitted as a sensitivity
-(``models.junction_sensitivity``).
+(``associations.junction_sensitivity``).
 """
 
 from __future__ import annotations
@@ -38,7 +38,7 @@ UNKNOWN = "unknown"
 # The three missing states together: levels that record what the form says, not what happened.
 MISSING_LEVELS = frozenset({NOT_SPECIFIED, NOT_APPLICABLE, UNKNOWN})
 # Cataluña's four provinces (Barcelona, Girona, Lleida, Tarragona; INE codes). Their crashes carry
-# road alignment "unknown" far more often than any other province's (``models.recording_regime``),
+# road alignment "unknown" far more often than any other province's (``associations.recording_regime``),
 # so the model is refitted without them as a check on the recording regime.
 CATALAN_PROVINCES = ("8", "17", "25", "43")
 # A level with fewer crashes than this is merged into the reference level: it cannot be estimated
@@ -134,7 +134,7 @@ PREDICTORS: dict[str, dict[str, object]] = {
     "junction": {
         # The yes/no field, read the other way round in the province-years whose flag is
         # inverted (:func:`junction_codes`); the junction type (NUDO_INFO) only decides which
-        # province-years those are. ``models.period_refits`` fits 2016-2022 and 2023-2024 apart
+        # province-years those are. ``associations.period_refits`` fits 2016-2022 and 2023-2024 apart
         # as a check that the corrected flag means the same in both.
         "source": "NUDO",
         "levels": ["not at a junction", "at a junction"],
@@ -258,7 +258,7 @@ NOT_AT_JUNCTION = "not at a junction"
 # the same province-years.
 INVERTED_TYPE_SHARE = 0.5
 # How the model reads the junction flag of the inverted province-years, and the alternatives
-# ``models.junction_sensitivity`` fits beside it. The flag read the other way round is the one
+# ``associations.junction_sensitivity`` fits beside it. The flag read the other way round is the one
 # the rest of each record supports crash by crash (``assoc_junction_coding``): the crashes it places
 # away from a junction carry neither a junction type nor a right-of-way flag, and those it places
 # at one carry a junction type or, lacking one, right-of-way flags, as junction crashes do in the

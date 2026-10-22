@@ -1,6 +1,7 @@
 """The drivers section's pipeline stages, run by ``scripts/run.py drivers``.
 
-In order: ``tables`` writes the driver tables that need only DGT's driver tables and census;
+In order: ``tables`` writes the driver rates by sex and by the car owner's age, from DGT's
+driver tables, driver census and kilometre estimates (and INE population for one of them);
 ``emef`` reads and checks the EMEF microdata and estimates car-driving exposure by age;
 ``exposure`` puts kilometres on driver ages (EMEF, EDM2018, MOVILIA) and divides DGT's car
 drivers involved in crashes by them, for Spain and for Barcelona city's working days. ``emef``

@@ -1,8 +1,8 @@
 # Documents
 
 The documents follow the project's five sections. Start with the
-[catalogue](catalogue.md), which maps every source to the tables that read it and every table to
-the page that publishes it; the [methodology](methodology.md) says how every result is made.
+[catalogue](catalogue.md), which lists every result table with the sources it is computed from,
+the stage that writes it and the page that publishes it, and every source with its files; the [methodology](methodology.md) says how every result is made.
 Documents marked *generated* are written by the pipeline stage named beside them and must not be
 edited by hand; the others are written by hand.
 
@@ -11,7 +11,7 @@ edited by hand; the others are written by hand.
 | [`catalogue.md`](catalogue.md) | the map: sections, sources, stages, tables and pages | generated (`sources.catalogue`) |
 | [`methodology.md`](methodology.md) | how every result is produced, section by section, with the assumptions tested | by hand |
 
-## Sources and methods (`sources/`)
+## Data and methods (`sources/`)
 
 | Document | What it holds | Written |
 |---|---|---|
@@ -51,7 +51,7 @@ edited by hand; the others are written by hand.
 | [`generalisability.md`](models/generalisability.md) | representativeness and transfer tests, measured separately | generated (`models.validate`) |
 | [`dgt_microdata_audit.md`](models/dgt_microdata_audit.md) | whether the DGT microdata may train a model (they may not) | generated (`models.validate`) |
 | [`leakage_audit.md`](models/leakage_audit.md) | which variables each model may use | generated (`models.fit`) |
-| [`cards/`](models/cards) | one card per model, the retired and withdrawn ones included | generated (`models.fit`, `national.cards`), except the calculator's |
+| [`cards/`](models/cards) | one card per model, the retired and withdrawn ones included | generated (`models.validate`, `national.cards`), except the calculator's |
 
 ## History (`history/`)
 

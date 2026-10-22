@@ -53,25 +53,26 @@ def test_registry_holds_only_tables_the_site_or_a_figure_uses() -> None:
     # The withdrawn forecast's tables are rebuilt only on request (``scripts/run.py national.withdrawn``).
     assert {name.split("_")[0] for name in summaries.WITHDRAWN_SUMMARIES} == {"forecast"}
     assert not names & set(summaries.WITHDRAWN_SUMMARIES)
-    # One prefix per page: the five national pillars (risk, longrun, season, speed, factor), the
-    # road classes (road), the earlier analyses they keep (q6 vehicles, q8 policy, q9 speed
-    # status), the context tables (q1, q2) and the data page's missing-values chart
-    # (missingness). The association analysis is written by national.associations and the
-    # driver tables by drivers.tables (``driver_risk.TABLES``); neither is here.
+    # One prefix per page: the five national pillars (trends, longrun, season, speed, factor; the
+    # speed-status shares are speed_infraction_shares), the road classes (road), the earlier
+    # analyses they keep (vehicles, policy), the context tables (night_share,
+    # other_road_by_period) and the data page's missing-values chart (missingness). The
+    # association analysis is written by national.associations and the driver tables by
+    # drivers.tables (``driver_risk.TABLES``); neither is here.
     assert {name.split("_")[0] for name in names} == {
         "missingness",
-        "risk",
+        "trends",
         "road",
         "longrun",
         "season",
         "speed",
         "factor",
-        "q1",
-        "q2",
-        "q6",
-        "q8",
-        "q9",
+        "night",
+        "other",
+        "vehicles",
+        "policy",
     }
+    assert {"night_share", "other_road_by_period", "speed_infraction_shares"} <= names
     assert not any(name.startswith("assoc_") for name in names)
     assert "q4_province_rates" not in names  # the province ranking was dropped, not hidden
     assert not names & set(driver_risk.TABLES)

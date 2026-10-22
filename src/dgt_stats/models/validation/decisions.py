@@ -59,7 +59,7 @@ AFTER_REVIEW = {
     "dgt_monthly_deaths_forecast": (
         "withdrawn: it forecast the held-out ordinary years less accurately than last year's "
         "count, and the detectable change computed from its errors was withdrawn with it; its "
-        "page is a withdrawal notice and its tables are kept as the record"
+        "page was removed from the site and its tables are kept as the record"
     ),
 }
 # The same status in a word or two, as the site gives it.
@@ -519,7 +519,7 @@ def document(frame: pd.DataFrame, path: pd.DataFrame | None = None) -> str:
         "calculator's (`catalonia_severity_calculator`, `severity_model.py`), and decided it",
         "itself. Its benchmark, scores and calibration are in",
         "[`models/severity_calculator.md`](severity_calculator.md), and its card is",
-        "[`models/catalonia_severity_calculator.md`](models/catalonia_severity_calculator.md).",
+        "[`models/cards/catalonia_severity_calculator.md`](cards/catalonia_severity_calculator.md).",
         "",
         _md(summary),
         "",
