@@ -1,7 +1,8 @@
 """Shared helpers for the regional, model, validation and sources pages.
 
-Every number on those pages is read from a committed table in ``reports/tables`` written by
-``scripts/microdata.py``; qualitative sentences are guarded by ``_check``, which stops the build
+Every number on those pages is read from a committed table in ``reports/tables/regional`` or
+``reports/tables/models``, written by ``scripts/run.py regional`` and ``scripts/run.py models``;
+qualitative sentences are guarded by ``_check``, which stops the build
 when the tables no longer support them.
 """
 
@@ -11,9 +12,7 @@ import re
 
 import pandas as pd
 
-from dgt_stats.site.components import (
-    esc,
-)
+from dgt_stats.site.components import esc
 
 MIN_N = 30
 

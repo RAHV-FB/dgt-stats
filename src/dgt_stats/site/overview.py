@@ -11,7 +11,7 @@ page is written.
 
 from __future__ import annotations
 
-from dgt_stats.exposure_risk import national as national_rates
+from dgt_stats.drivers.exposure_risk import national as national_rates
 from dgt_stats.site.components import (
     ALL_PAGES,
     NAV_GROUPS,
@@ -24,12 +24,7 @@ from dgt_stats.site.components import (
     render_page,
     summary,
 )
-from dgt_stats.site.numbers import (
-    _driver_numbers,
-    _long_run_numbers,
-    _speed_numbers,
-    rate_interval,
-)
+from dgt_stats.site.numbers import _driver_numbers, _long_run_numbers, _speed_numbers, rate_interval
 from dgt_stats.site.regional_common import _year_label
 
 TITLES = dict(ALL_PAGES)
@@ -90,7 +85,7 @@ def _finding(answer: str, evidence: str, links: list[tuple[str, str]]) -> str:
 
 
 def _deaths() -> str:
-    headline = read_table("q1_annual_headline").set_index("year").deaths_30d
+    headline = read_table("longrun_headline").set_index("year").deaths_30d
     first, last = int(headline.index.min()), int(headline.index.max())
     segments = _long_run_numbers()["segments"]
     count = segments[segments.measure == "count"].sort_values("start")

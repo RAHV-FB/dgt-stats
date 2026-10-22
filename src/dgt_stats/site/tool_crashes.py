@@ -1,7 +1,7 @@
 """The crash statistics explorer: Spain's police-recorded injury crashes, fatal crashes and deaths
 within 30 days, by year, region, road type and crash type.
 
-It reads ``reports/tables/explore_dgt_crashes.csv`` (:mod:`dgt_stats.crash_cells`), whose rows
+It reads ``reports/tables/national/explore_dgt_crashes.csv`` (:mod:`dgt_stats.national.crash_cells`), whose rows
 are the non-empty cells of year x autonomous community x road type x crash type, and publishes it
 compactly as ``tools/crash-explorer.json``: one label list per dimension and each row as the
 positions of its labels followed by its counts. The page script (``assets/crash-explorer.js``)
@@ -14,7 +14,8 @@ from __future__ import annotations
 
 from scipy import stats
 
-from dgt_stats import crash_cells, regions
+from dgt_stats import regions
+from dgt_stats.national import crash_cells
 from dgt_stats.site.components import DOCS_URL, esc, read_table
 from dgt_stats.site.tool_frame import tool_page
 
@@ -57,7 +58,7 @@ def _coding_breaks() -> dict[str, object]:
     coding = read_table("gen_coding_by_region")
     catalonia = coding[coding.region == "Catalonia"].set_index("year")
     switch = int(catalonia[catalonia.road_type_5_dual_carriageway.eq(0)].index.min())
-    other = read_table("q2_other_road_by_period")
+    other = read_table("other_road_by_period")
     junctions = read_table("dgt_audit_junction_coding")
     inverted = sorted(
         int(year) for year in junctions[junctions.junction_flag_inverted.astype(bool)].year.unique()

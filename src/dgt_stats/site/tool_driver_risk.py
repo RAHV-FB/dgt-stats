@@ -22,7 +22,7 @@ import math
 import pandas as pd
 from scipy import stats
 
-from dgt_stats.exposure_risk import national
+from dgt_stats.drivers.exposure_risk import national
 from dgt_stats.site.components import read_table
 from dgt_stats.site.numbers import (
     CENTRAL_KM,

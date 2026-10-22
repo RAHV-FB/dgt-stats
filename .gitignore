@@ -37,7 +37,11 @@ reports/figures/**
 !reports/figures/titles.json
 reports/tables/**
 !reports/tables/.gitkeep
+# a table written outside its section folder shows up as untracked, which CI rejects
 !reports/tables/*.csv
+!reports/tables/*/
+!reports/tables/*/*.csv
+!reports/tables/*/README.md
 
 # The site's figures and downloadable tables are copied from reports/ at build time
 site/figures/

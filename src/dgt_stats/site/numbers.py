@@ -8,10 +8,10 @@ from dgt_stats.site.components import read_table
 
 
 def _severity_numbers() -> dict[str, object]:
-    holdout = read_table("q3_holdout_summary").set_index("outcome")
-    coefficients = read_table("q3_model_coefficients")
+    holdout = read_table("assoc_holdout_summary").set_index("outcome")
+    coefficients = read_table("assoc_model_coefficients")
     fatal = coefficients[coefficients.outcome == "fatal"]
-    adverse = read_table("q3_adverse_conditions")
+    adverse = read_table("assoc_adverse_conditions")
     fatal_adverse = adverse[adverse.outcome == "fatal"].set_index(["variant", "level"])
     return {
         "n": int(fatal.n.iloc[0]),
@@ -25,16 +25,16 @@ def _severity_numbers() -> dict[str, object]:
 
 
 def _policy_numbers() -> dict[str, object]:
-    sensitivity = read_table("q8_points_sensitivity").set_index("variant")
-    calendar = read_table("q8_points_calendar_placebo")
-    forecast = read_table("q8_points_forecast")
-    transitions = read_table("q8_points_transitions")
-    trend = read_table("q8_points_trend_choice")
+    sensitivity = read_table("policy_points_sensitivity").set_index("variant")
+    calendar = read_table("policy_points_calendar_placebo")
+    forecast = read_table("policy_points_forecast")
+    transitions = read_table("policy_points_transitions")
+    trend = read_table("policy_points_trend_choice")
     return {
         "sensitivity": sensitivity,
         "calendar": calendar,
-        "calibration": read_table("q8_points_calibration").iloc[0],
-        "definitions": read_table("q8_points_death_definitions"),
+        "calibration": read_table("policy_points_calibration").iloc[0],
+        "definitions": read_table("policy_points_death_definitions"),
         "forecast": forecast,
         "transitions": transitions,
         "trend": trend,
@@ -48,7 +48,7 @@ def _policy_numbers() -> dict[str, object]:
 def _risk_numbers() -> dict[str, object]:
     """``latest``: the last year's rows by (outcome, denominator). Licence holders and the fleet
     divide only driver and occupant casualties (``numerator``) and have no injury-crash rows."""
-    index = read_table("risk_index")
+    index = read_table("trends_risk_index")
     last = int(index.year.max())
     latest = index[index.year == last].set_index(["outcome", "denominator"])
     return {"index": index, "base": int(index.year.min()), "last": last, "latest": latest}
@@ -115,7 +115,7 @@ def _driver_numbers() -> dict[str, object]:
     profiles; Method A, from which the sensitivity analysis varies each choice; the
     licence-calibrated A2; every sensitivity), the Barcelona working-day check and the split at
     75 (``older``: the central profile's rows), read from ``risk_*``."""
-    from dgt_stats.exposure_risk import national
+    from dgt_stats.drivers.exposure_risk import national
 
     rates = read_table("risk_national_rates")
     rates = rates[rates.km_total == CENTRAL_KM]
@@ -268,7 +268,7 @@ def _older_numbers() -> dict[str, object]:
     PASS needs the lowest unmarked combination above the 45-64 rate even at the bottom of its
     sampling interval, and the conditional estimate's interval above it too; INTERMEDIATE, the
     lowest unmarked combination above it at its point value; otherwise FAIL."""
-    from dgt_stats.exposure_risk import national
+    from dgt_stats.drivers.exposure_risk import national
 
     split = read_table("risk_older_split")
     older = read_table("risk_older_sensitivity")

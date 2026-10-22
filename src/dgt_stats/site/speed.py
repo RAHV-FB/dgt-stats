@@ -43,7 +43,7 @@ def _facts() -> SimpleNamespace:
     adjusted = pooled.loc["adjusted"]
     last = int(all_roads.index.max())
     latest = all_roads.loc[last]
-    shares = read_table("q9_infraction_shares")
+    shares = read_table("speed_infraction_shares")
     status = shares[shares.zone == "all"].set_index("year")
     first_status, last_status = int(status.index.min()), int(status.index.max())
     yearly = numbers["yearly"]
@@ -245,7 +245,7 @@ def page_speed(captions: dict[str, str]) -> str:
         [
             ("speed_severity", "by year and road type"),
             ("speed_severity_pooled", f"pooled {f.types_span}, and adjusted"),
-            ("q9_infraction_shares", "speed status in the driver tables"),
+            ("speed_infraction_shares", "speed status in the driver tables"),
         ],
         method=(f"data.html#{NOTES}", "how the speed ratios are estimated"),
     )

@@ -3,7 +3,7 @@ period the reader chooses, with the change between its two ends.
 
 Question: how road deaths, hospital admissions and injury crashes in Spain have changed, as counts
 and against residents, registered vehicles, road fuel sold or measured kilometres. Unit: the
-calendar year. Sources: DGT's yearbook series (``risk_annual_panel``: deaths within 30 and 24
+calendar year. Sources: DGT's yearbook series (``trends_annual_panel``: deaths within 30 and 24
 hours, people admitted to hospital, injury crashes, the registered fleet; INE residents; CORES road
 fuel) and the Ministerio de Transportes' measured vehicle-kilometres on interurban roads with the
 interurban deaths (``longrun_km_panel``). Each indicator is published only for the years both its
@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import pandas as pd
 
-from dgt_stats import risk_trends
+from dgt_stats.national import risk_trends
 from dgt_stats.site.components import read_table
 from dgt_stats.site.tool_frame import tool_page
 
@@ -132,7 +132,7 @@ def _notes() -> dict[str, str]:
 
 
 def _series() -> pd.DataFrame:
-    panel = read_table("risk_annual_panel").set_index("year")
+    panel = read_table("trends_annual_panel").set_index("year")
     km = read_table("longrun_km_panel").set_index("year")
     km = km[km.comparable.astype(bool)]
     return panel.join(km[["deaths_interurban", "vehicle_km"]], how="left")

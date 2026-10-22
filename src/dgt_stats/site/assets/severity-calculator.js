@@ -5,7 +5,7 @@
  * the engine (severity-engine.js) gives the estimated share of fatal crashes, its interval and
  * the comparison of two scenarios. Every number comes from the exported model
  * (models/severity_model.json); this file only moves values between the form and the engine.
- * Under Node, require() returns SeverityBuilder alone (tests/test_severity_engine.py).
+ * Under Node, require() returns SeverityBuilder alone (tests/models/test_severity_engine.py).
  * Without scripting the form stays hidden and the fallback line remains.
  */
 (function (global) {

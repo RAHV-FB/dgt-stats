@@ -10,8 +10,9 @@ from pathlib import Path
 
 import pandas as pd
 
-from dgt_stats.paths import FIGURES_DIR, NARROW_FIGURES_DIR, TABLES_DIR
-from dgt_stats.risk_trends import BASE_YEAR
+from dgt_stats import catalogue
+from dgt_stats.national.risk_trends import BASE_YEAR
+from dgt_stats.paths import FIGURES_DIR, NARROW_FIGURES_DIR, table_path
 from dgt_stats.site.script import CONTENT_SECURITY_POLICY, JS_FLAG
 from dgt_stats.site.style import FIGURE_SWITCH_REMS
 
@@ -24,63 +25,52 @@ PROFILE_URL = "https://github.com/RAHV-FB"
 DOCS_URL = f"{REPO_URL}/blob/main/docs"
 
 
-# The navigation follows the questions a reader brings: the interactive tools first, then how
-# deaths have changed over time, which drivers, vehicles and recorded circumstances go with crashes
-# and deaths, how deadly a crash is once it has happened (in Spain's records, in Catalonia's and
-# Barcelona's, and in the model built on Catalonia's), and where the data and methods come from.
-# The home page lists the same groups.
+# Every page's title, as the navigation and the home page list it.
+PAGE_TITLES = {
+    "index": "Overview",
+    "explore": "Interactive tools",
+    "calculator": "Crash severity calculator",
+    "driver-risk": "Driver risk comparison",
+    "crash-explorer": "Crash statistics explorer",
+    "trends-explorer": "Trends and rates explorer",
+    "long-run": "Long-run trends",
+    "trends": f"Since {BASE_YEAR}",
+    "seasons": "Seasons",
+    "policy": "The 2006 points licence",
+    "vehicles": "Vehicles",
+    "speed": "Speed",
+    "factors": "Recorded factors",
+    "severity": "Crash circumstances in Spain",
+    "drivers": "Drivers",
+    "catalonia": "Catalonia",
+    "barcelona": "Barcelona",
+    "severity-models": "Crash severity model",
+    "validation": "Model method and tests",
+    "sources": "Data sources and scope",
+    "data": "Methodology",
+}
+# The interactive tools, each on a page of its own under ``explore``.
+TOOL_SLUGS = ("calculator", "driver-risk", "crash-explorer", "trends-explorer")
+# The navigation: the interactive tools first, then one group for each section of the project
+# (``dgt_stats.catalogue``), so that the menu says where a page's data come from: Spain's
+# official statistics, the drivers with their travel surveys, the Catalan and Barcelona crash
+# records, the severity model built on them, and the data and methods. The tools draw on one
+# section each and are listed under Explore. The home page lists the same groups.
 OVERVIEW = "Overview"
 EXPLORE = "Explore"
-OVER_TIME = "Over time"
-WHO = "Drivers, vehicles and factors"
-SEVERITY = "Crash severity"
-METHODS = "Data and methods"
 NAV_GROUPS: tuple[tuple[str, tuple[tuple[str, str], ...]], ...] = (
-    (OVERVIEW, (("index", "Overview"),)),
-    (
-        EXPLORE,
+    (OVERVIEW, (("index", PAGE_TITLES["index"]),)),
+    (EXPLORE, tuple((slug, PAGE_TITLES[slug]) for slug in ("explore", *TOOL_SLUGS))),
+    *(
         (
-            ("explore", "Interactive tools"),
-            ("calculator", "Crash severity calculator"),
-            ("driver-risk", "Driver risk comparison"),
-            ("crash-explorer", "Crash statistics explorer"),
-            ("trends-explorer", "Trends and rates explorer"),
-        ),
+            section.short,
+            tuple((slug, PAGE_TITLES[slug]) for slug in section.pages if slug not in TOOL_SLUGS),
+        )
+        for section in catalogue.SECTIONS
     ),
-    (
-        OVER_TIME,
-        (
-            ("long-run", "Long-run trends"),
-            ("trends", f"Since {BASE_YEAR}"),
-            ("seasons", "Seasons"),
-            ("policy", "The 2006 points licence"),
-        ),
-    ),
-    (
-        WHO,
-        (
-            ("drivers", "Drivers"),
-            ("vehicles", "Vehicles"),
-            ("speed", "Speed"),
-            ("factors", "Recorded factors"),
-        ),
-    ),
-    (
-        SEVERITY,
-        (
-            ("severity", "Crash circumstances in Spain"),
-            ("catalonia", "Catalonia"),
-            ("barcelona", "Barcelona"),
-            ("severity-models", "Crash severity model"),
-            ("validation", "Model method and tests"),
-        ),
-    ),
-    (METHODS, (("sources", "Data sources and scope"), ("data", "Methodology"))),
 )
 # The line above a page's title: the group it belongs to.
 EYEBROWS = {group: group for group, _ in NAV_GROUPS}
-# The interactive tools, each on a page of its own under ``explore``.
-TOOL_SLUGS = ("calculator", "driver-risk", "crash-explorer", "trends-explorer")
 # What each page answers, one line each, for the home page's list of pages.
 PAGE_QUESTIONS = {
     "explore": "Calculators and explorers that compute results from the site's data.",
@@ -120,12 +110,12 @@ PAGES: tuple[tuple[str, str], ...] = tuple(
 SUPPORTING_PAGES: tuple[tuple[str, str], ...] = tuple(
     page for _, pages in NAV_GROUPS for page in pages if page[0] in SUPPORTING_SLUGS
 )
+# The analyses of Spain as a whole: the national statistics and the drivers.
 SPAIN_PAGES: tuple[tuple[str, str], ...] = tuple(
-    page
-    for group, pages in NAV_GROUPS
-    if group in (OVER_TIME, WHO)
-    for page in pages
-    if page[0] not in SUPPORTING_SLUGS
+    (slug, PAGE_TITLES[slug])
+    for key in ("national", "drivers")
+    for slug in catalogue.SECTION_BY_KEY[key].pages
+    if slug not in TOOL_SLUGS and slug not in SUPPORTING_SLUGS
 )
 
 
@@ -182,7 +172,7 @@ def esc(text: object) -> str:
 
 
 def read_table(name: str) -> pd.DataFrame:
-    return pd.read_csv(TABLES_DIR / f"{name}.csv")
+    return pd.read_csv(table_path(name))
 
 
 def read_captions() -> dict[str, str]:
@@ -452,14 +442,17 @@ def table(
     )
 
 
-SOURCE_REGISTER = f"{DOCS_URL}/data_sources.md"
+SOURCE_REGISTER = f"{DOCS_URL}/sources/register.md"
 
 
 def downloads(items: list[tuple[str, str]], method: tuple[str, str] | None = None) -> str:
-    """The page's closing 'Data and method' block: its result tables as CSV files, where its
-    method is set out, and where its sources are documented.
+    """The page's closing 'Data and method' block: its result tables as CSV files, the sources
+    those tables are computed from, where its method is set out, and where its sources are
+    documented.
 
     ``method`` is ``(href, label)``, for example ``("data.html#rates", "how rates are built")``.
+    The sources line is computed from the catalogue (:mod:`dgt_stats.catalogue`) for the tables
+    listed, so it names exactly the sources those tables are computed from.
     """
     links = "".join(
         f'<li><a href="tables/{name}.csv">{esc(label[:1].upper() + label[1:])}</a></li>'
@@ -467,6 +460,12 @@ def downloads(items: list[tuple[str, str]], method: tuple[str, str] | None = Non
     )
     many = ' class="many"' if len(items) > 5 else ""
     rows = f"<dt>Result tables (CSV)</dt><dd><ul{many}>{links}</ul></dd>"
+    sources = [s for s in catalogue.sources_of(name for name, _ in items) if s.read]
+    if sources:
+        rows += (
+            "<dt>Sources of these tables</dt>"
+            f"<dd>{esc(' · '.join(source.name for source in sources))}</dd>"
+        )
     if method:
         label = method[1][:1].upper() + method[1][1:]
         rows += f'<dt>Method</dt><dd><a href="{method[0]}">{esc(label)}</a></dd>'
@@ -658,17 +657,19 @@ def _toc_lists(entries: list[tuple[str, str]]) -> tuple[str, str]:
 def _nav(slug: str) -> str:
     """The site navigation: each section a menu of its pages, the current one marked.
 
-    On a wide screen each section is a button opening its list; on a small screen the whole list
-    is shown under a 'Menu' button, sections as labels. Without scripting every list is reachable
+    On a wide screen each section is a button opening its list, and a section of one page is a
+    link to it; on a small screen the whole list is shown under a 'Menu' button, sections as labels. Without scripting every list is reachable
     from the keyboard and the small-screen list is shown open.
     """
     groups = []
     for label, pages in NAV_GROUPS:
-        if label == OVERVIEW:
-            current = ' aria-current="page"' if slug == "index" else ""
+        if len(pages) == 1:
+            # A group of one page, such as the overview, is a link, not a menu of one link.
+            page = pages[0][0]
+            current = ' aria-current="page"' if slug == page else ""
             groups.append(
-                f'<li class="nav-group"><a class="nav-top" href="index.html"{current}>'
-                f"{esc(pages[0][1])}</a></li>"
+                f'<li class="nav-group"><a class="nav-top" href="{page}.html"{current}>'
+                f"{esc(label)}</a></li>"
             )
             continue
         key = _slug(label)

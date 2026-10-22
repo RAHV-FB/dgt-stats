@@ -6,7 +6,7 @@ file: its audit keeps it out. The page gives the results; how the regressions ar
 checked, the inverted junction flag, the model variants and the missing-value levels are technical
 notes on the methodology page (``technical_notes``).
 
-Every number is read from the ``q3_*`` tables that ``scripts/model.py`` writes; the qualitative
+Every number is read from the ``assoc_*`` tables that ``scripts/run.py national.associations`` writes; the qualitative
 sentences are guarded by checks that stop the build when the tables stop supporting them. The
 levels that stand for a missing value are nuisance terms (``is_nuisance`` in the tables): they are
 reported and explained, never read as an effect.
@@ -19,8 +19,8 @@ from types import SimpleNamespace
 
 import pandas as pd
 
-from dgt_stats import features
-from dgt_stats.microdata.validation import dgt_audit
+from dgt_stats.models.validation import dgt_audit
+from dgt_stats.national import features
 from dgt_stats.site.components import (
     ALL_PAGES,
     DOCS_URL,
@@ -55,7 +55,7 @@ CONDITION_LABELS = {
     "at a junction": "At a junction",
 }
 
-# The profile labels in ``q3_profiles`` use DGT's Spanish name for a dual carriageway.
+# The profile labels in ``assoc_profiles`` use DGT's Spanish name for a dual carriageway.
 PROFILE_TERMS = {"Autovía": "Dual carriageway"}
 
 NUMBER_WORDS = ("zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine")
@@ -123,40 +123,40 @@ def _junction_break_year() -> int:
 
 
 def _facts() -> SimpleNamespace:
-    """Every figure the page and its technical notes quote, read from the ``q3_*`` tables, with
+    """Every figure the page and its technical notes quote, read from the ``assoc_*`` tables, with
     the checks that the sentences built on them still hold."""
     numbers = _severity_numbers()
     adverse = numbers["adverse"]
     coefficients = numbers["coefficients"]
     holdout = numbers["holdout"]
     fatal = coefficients[coefficients.outcome == "fatal"].set_index(["predictor", "level"])
-    variants = read_table("q3_adverse_conditions")
-    regime = read_table("q3_recording_regime").set_index(["predictor", "level"])
-    sensitivity = read_table("q3_regime_sensitivity")
+    variants = read_table("assoc_adverse_conditions")
+    regime = read_table("assoc_recording_regime").set_index(["predictor", "level"])
+    sensitivity = read_table("assoc_regime_sensitivity")
     other_road = sensitivity[
         (sensitivity.outcome == "fatal")
         & (sensitivity.predictor == "road")
         & (sensitivity.level == "other road")
     ].iloc[0]
     sensitivity = sensitivity[sensitivity.outcome == "fatal"].set_index(["predictor", "level"])
-    stability_all = read_table("q3_year_stability")
+    stability_all = read_table("assoc_year_stability")
     stability = stability_all[stability_all.outcome == "fatal"]
     # The regression for a death or a hospitalisation, tested the same way.
     serious_terms = stability_all[stability_all.outcome == "serious"].drop_duplicates(
         ["predictor", "level"]
     )
     serious_varying = serious_terms[serious_terms.heterogeneity_p < 0.05]
-    exclusions = read_table("q3_adverse_exclusions")
-    composition = read_table("q3_adverse_composition")
-    periods = read_table("q3_period_refits")
+    exclusions = read_table("assoc_adverse_exclusions")
+    composition = read_table("assoc_adverse_composition")
+    periods = read_table("assoc_period_refits")
     periods = periods[periods.outcome == "fatal"].set_index(
         ["period", "scope", "predictor", "level"]
     )
-    locations = read_table("q3_location_contrasts")
+    locations = read_table("assoc_location_contrasts")
     locations = locations[locations.outcome == "fatal"]
     # The junction flag as published and as the model reads it, and the alternatives.
-    junction_coding = read_table("q3_junction_coding")
-    junction_sensitivity = read_table("q3_junction_sensitivity")
+    junction_coding = read_table("assoc_junction_coding")
+    junction_sensitivity = read_table("assoc_junction_sensitivity")
     junction_sensitivity = junction_sensitivity[junction_sensitivity.outcome == "fatal"]
     artefacts = read_table("dgt_audit_artefacts")
     audit = read_table("dgt_audit_checks")
@@ -314,7 +314,7 @@ def _facts() -> SimpleNamespace:
     rain_row = adverse.loc[("no_surface", "rain")]
 
     # Illustrative crash profiles, with DGT's Spanish road-type name in English.
-    profiles = read_table("q3_profiles")
+    profiles = read_table("assoc_profiles")
     for spanish, english in PROFILE_TERMS.items():
         profiles["profile"] = profiles.profile.str.replace(spanish, english, regex=False)
     lowest = profiles.loc[profiles.fatal.idxmin()]
@@ -632,22 +632,25 @@ def page_severity(captions: dict[str, str]) -> str:
     )
     body += downloads(
         [
-            ("q3_model_coefficients", "all coefficients"),
-            ("q3_adverse_conditions", "model variants"),
-            ("q3_adverse_composition", "where hail and snow crashes happen"),
-            ("q3_adverse_exclusions", "hail and snow with the top provinces removed"),
-            ("q3_recording_regime", "missing-value levels in Catalonia and elsewhere"),
-            ("q3_regime_sensitivity", "every odds ratio with and without Catalonia"),
-            ("q3_marginal_effects", "average marginal effects"),
-            ("q3_holdout_summary", "scores on later years"),
-            ("q3_calibration", "calibration on later years"),
-            ("q3_year_stability", "year-by-year refits"),
-            ("q3_period_refits", "refits before and after the junction coding change"),
-            ("q3_junction_coding", "the junction flag as published and as read, by year"),
-            ("q3_junction_sensitivity", "the junction odds ratio under each reading of the flag"),
-            ("q3_location_contrasts", "zone and road type together"),
-            ("q3_profiles", "crash profiles"),
-            ("q3_groupings", "how DGT's codes map to these levels"),
+            ("assoc_model_coefficients", "all coefficients"),
+            ("assoc_adverse_conditions", "model variants"),
+            ("assoc_adverse_composition", "where hail and snow crashes happen"),
+            ("assoc_adverse_exclusions", "hail and snow with the top provinces removed"),
+            ("assoc_recording_regime", "missing-value levels in Catalonia and elsewhere"),
+            ("assoc_regime_sensitivity", "every odds ratio with and without Catalonia"),
+            ("assoc_marginal_effects", "average marginal effects"),
+            ("assoc_holdout_summary", "scores on later years"),
+            ("assoc_calibration", "calibration on later years"),
+            ("assoc_year_stability", "year-by-year refits"),
+            ("assoc_period_refits", "refits before and after the junction coding change"),
+            ("assoc_junction_coding", "the junction flag as published and as read, by year"),
+            (
+                "assoc_junction_sensitivity",
+                "the junction odds ratio under each reading of the flag",
+            ),
+            ("assoc_location_contrasts", "zone and road type together"),
+            ("assoc_profiles", "crash profiles"),
+            ("assoc_groupings", "how DGT's codes map to these levels"),
         ],
         method=(f"data.html#{NOTES}", "how the regressions are fitted and checked"),
     )
@@ -670,7 +673,7 @@ def technical_notes(captions: dict[str, str]) -> str:
     orr, without, numbers = f.orr, f.without, f.numbers
     fatal_holdout, serious_holdout = f.fatal_holdout, f.serious_holdout
     page = f'<a href="severity.html">{TITLES["severity"]}</a>'
-    card = f'<a href="{DOCS_URL}/models/dgt_crash_severity.md">model card</a>'
+    card = f'<a href="{DOCS_URL}/models/cards/dgt_crash_severity.md">model card</a>'
     document = f'<a href="{DOCS_URL}/methodology.md">methods document</a>'
     coding = '<a href="#coding-breaks">coding breaks</a>'
     flipped = _join([str(y) for y in f.flipped_years])

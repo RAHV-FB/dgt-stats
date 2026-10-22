@@ -19,12 +19,15 @@ order:
 4. **External validation.** Whether a model holds in later years, other places and another
    recording source, and how the training population differs from Spain (section 21).
 
-The data are in four layers, each with one role (`src/dgt_stats/layers.py`): the **national
-context** (DGT and INE, with the travel surveys for kilometres by driver age: trends,
-denominators, exposure, rates and aggregate comparison); the **crash microdata of Catalonia** (the crash-severity model and its temporal and
-geographic validation); the **rich microdata of Barcelona** (crash and person analysis and the
-person-severity model); and **validation** (harmonisation and transfer tests only, never creating
-observations). No record is linked across sources and no merged database is built. Every result
+The project is divided into five sections by where the data come from, and the code, the pipeline,
+the result tables, the documents and the site all use the same five
+([`catalogue.md`](catalogue.md) lists every result table with its sources, stage and pages): **national** (DGT, INE,
+the Ministerio de Transportes and CORES: trends, denominators, rates and aggregate comparisons);
+**drivers** (DGT's driver tables and census with the travel surveys that put kilometres on driver
+ages); **regional** (the Catalan and Barcelona crash records); **models** (the crash-severity
+models trained on those records, and their tests on other years, places and sources, which never
+create observations); and **sources** (what every file holds and how each source came to exist).
+No record is linked across sources and no merged database is built. Every result
 comes from rows of the files in `data/raw/`; studies published elsewhere may define a variable or
 a method but never supply an observation, a coefficient or an effect size. Two exceptions remain:
 the road-to-straight-line distance ratio of driving trips (1.45) and the 2021 distance benchmarks
@@ -34,11 +37,11 @@ and over who do not drive and their driving days are typed from its published sl
 archived because RACC grants no reuse licence, and set the upper limit on men's kilometres at 75
 and over in one split of the 65-and-over kilometres (section 7). The speed-law
 simulator, the distraction and alcohol-and-drug models and the enforcement comparison drew their
-results from coefficients in external studies and were withdrawn; their old pages are short
-notices (section 16). Every method below names the module that implements it. What each dataset
-may be used for and joined to is in [`DATA_CONTRACT.md`](DATA_CONTRACT.md); how each source came
-to exist is compared in [`SOURCE_COMPARISON.md`](SOURCE_COMPARISON.md); what the published files
-can and cannot support is in [`data_inventory.md`](data_inventory.md).
+results from coefficients in external studies and were withdrawn, and their pages removed
+(section 16). Every method below names the module that implements it. What each dataset
+may be used for and joined to is in the [data contract](sources/contract.md); how each source came
+to exist is compared in the [source comparison](sources/source_comparison.md); what the published
+national files can and cannot support is in the [national file audit](national/file_audit.md).
 
 ## 1. Units and sources
 
@@ -51,7 +54,7 @@ records exist only in the Barcelona files (sections 20 and 21).
 
 | Source | Unit | Years | Used for |
 |---|---|---|---|
-| crash microdata | injury crash | 2016–2024 | scoped totals for the speed comparison, the association analysis of severity (section 13), darkness shares (`q2_night_share`, published as a table only), road-class deaths per measured km (`road_class.py`) and the share of interurban deaths on roads the measured km leave out (section 5); in the validation layer, the audit and the national transfer test (section 21) |
+| crash microdata | injury crash | 2016–2024 | scoped totals for the speed comparison, the association analysis of severity (section 13), darkness shares (`night_share`, published as a table only), road-class deaths per measured km (`road_class.py`) and the share of interurban deaths on roads the measured km leave out (section 5); in the models section, the DGT microdata audit and the national transfer test (section 21) |
 | yearbook series | year, month or province totals | 1993–2024 | 2019–2024 risk, the long run, seasonality, the monthly deaths of the forecasting model, the 2006 case study, reference totals |
 | yearly statistical tables | aggregate cells | 2014–2024 | vehicles involved by type, driver deaths and involvements by age and vehicle, drivers by recorded infraction |
 | ITV kilometre estimates 2022 | fleet and mean km by vehicle type and age | 2022 | vehicle rates per km |
@@ -62,21 +65,22 @@ records exist only in the Barcelona files (sections 20 and 21).
 | toll-motorway traffic | month | 1990– | a traffic index shown beside deaths (seasons) and an intensity covariate in the 2006 case study; never a denominator |
 | Ministerio de Transportes, yearbook table 1.2.14 | year, road type | 2004–2023 | measured interurban vehicle-km: the long run per measured km and road-class deaths per measured km (section 5) |
 | DGT speed-factor report | year, factor, road type | 2014–2023 | speed as a severity factor; the other recorded factors |
-| Servei Català de Trànsit export | crash with a death or serious injury | 2010–2023 | the crash microdata layer of Catalonia (sections 19 to 21) |
-| Guàrdia Urbana, six tables | crash; person record | 2025 | the rich microdata layer of Barcelona (sections 19 to 21) |
+| Servei Català de Trànsit export | crash with a death or serious injury | 2010–2023 | the regional section, Catalonia (sections 19 to 21) |
+| Guàrdia Urbana, six tables | crash; person record | 2025 | the regional section, Barcelona (sections 19 to 21) |
 
 Raw files are never edited (`data/raw/<source>/`, listed in `data/raw/manifest.csv` with SHA-256,
-the source URL where one was recorded and the name each file was downloaded as). `ingest.py`
-parses the national files into typed Parquet tables (`data/staging/dgt/`), `build_tables.py` adds
-the derived fields (`data/processed/`), and every national result table and figure is written by
-`model.py` and `analyse.py` from those layers; `scripts/microdata.py` builds the regional layers
-(section 19). The site reads only the committed result tables.
+the source URL where one was recorded and the name each file was downloaded as). `scripts/run.py national.ingest` parses the national files
+into typed Parquet tables (`data/staging/dgt/`), `national.reconcile` checks them against DGT's
+own totals (section 2), `national.process` adds the derived fields (`data/processed/`), and
+`national.associations` and `national.results` write the national result tables from those
+layers; `scripts/run.py regional` builds the regional layers (section 19), and `charts.figures`
+draws every figure from the result tables. The site reads only the committed result tables.
 
 ## 2. Reconciliation before analysis
 
 No summary is published until the crash microdata, the yearbook tables and the driver census
-reconcile with DGT's own totals (`validate.py`, 482 checks, all enforced by
-`tests/test_validate.py`):
+reconcile with DGT's own totals (`national/reconcile.py`, 482 checks, all enforced by
+`tests/national/test_reconcile.py`):
 
 | Check | What must agree | Tolerance |
 |---|---|---|
@@ -90,7 +94,7 @@ reconcile with DGT's own totals (`validate.py`, 482 checks, all enforced by
 | table_6_1_drivers | the blocks of table 6.1 that publish a total agree (two in 2014–2015, six from 2016), within 1.5 % of table 4.2 | 1.5 % |
 | speed_report_scope | the speed report's own crashes and deaths by year and zone against the microdata restricted to its provinces, 2016–2023 | exact |
 
-Three inputs are checked in their readers rather than in `validation.csv`, because no separate
+Three inputs are checked in their readers rather than in `reconciliation.csv`, because no separate
 publication gives a total to check them against. The 2024 kilometres by owner age must reproduce
 the same release's published fleet and kilometres by category to within 0.5 % (`io_exposure.py`,
 the margin left by owners DGT could not classify). The two monthly traffic series must be complete
@@ -107,7 +111,7 @@ than mixing them: licence holders by age come from the published class-by-age ta
 the text files from 2024; 24-hour and 30-day deaths are never combined; provisional figures are not
 used.
 
-## 3. Definitions and derived fields (`derive.py`, `codes.py`)
+## 3. Definitions and derived fields (`national/derive.py`, `national/codes.py`)
 
 - **Injury crash**: at least one person killed or injured. **Death**: within 30 days. **Serious
   crash**: at least one death or one person admitted to hospital for more than 24 hours.
@@ -129,7 +133,7 @@ used.
   improvement in recording. Two undocumented quirks are handled as the data page states: code 0 in
   the island field from 2018, and the strong-wind flag in 2021.
 
-**The crash explorer's table** (`crash_cells.py`, `regions.py`; written by `scripts/model.py` as
+**The crash explorer's table** (`crash_cells.py`, `regions.py`; written by `scripts/run.py national.associations` as
 `explore_dgt_crashes.csv`). One row per cell of year × autonomous community × road group × crash
 type that holds at least one injury crash in the processed records (2016 onwards), with injury
 crashes, fatal crashes (at least one death within 30 days), 30-day deaths and those deaths by
@@ -140,15 +144,15 @@ twelve per-crash death counts form eight groups: van and light-truck occupants t
 bus occupants together, and other vehicles, unspecified vehicles and personal mobility vehicles
 (counted separately only from 2020) together. A record without a road type or a crash type counts
 under "not recorded", so nothing drops out. The tests reconcile the table exactly with the
-published yearly totals of injury crashes and 30-day deaths (`q1_annual_headline`) for every year
+published yearly totals of injury crashes and 30-day deaths (`longrun_headline`) for every year
 it covers, and check that the road-user deaths of every cell add up to its 30-day deaths. The
 explorer adds up the rows the reader selects in the browser; the interval of a fatal share is the
 95% Wilson interval (`rates.wilson_interval`, `Tools.wilson`).
 
-## 4. Counts against risk, 2019–2024 (`risk_trends.py`)
+## 4. Counts against risk, 2019–2024 (`national/risk_trends.py`)
 
 Each annual outcome, 30-day deaths, injured admitted to hospital and injury crashes, is set against
-up to four denominators and indexed to 2019 (`risk_index`). Each denominator divides only the
+up to four denominators and indexed to 2019 (`trends_risk_index`). Each denominator divides only the
 casualties it can contain (`numerator_for`):
 
 | Denominator | Source | Years | What it counts | What it divides |
@@ -177,7 +181,7 @@ year's count varies only by chance. Spain's annual counts scatter more than that
 trend: fitted log-linearly over the 2013–2019 plateau, the Pearson dispersion is about 1.5 for
 deaths, 8 for hospital admissions and 68 for injury crashes. Each numerator has its own: 1.0 for
 driver deaths (0.92 before the floor), 1.76 for drivers admitted to hospital, 2.35 for occupant
-deaths and 3.83 for occupants admitted to hospital (`risk_dispersion.csv`). The dispersion is a
+deaths and 3.83 for occupants admitted to hospital (`trends_dispersion.csv`). The dispersion is a
 ratio of variances (floored at 1): the variance of crashes around their trend is about 68 times
 that of a Poisson count of the same size, so their spread is about √68 ≈ 8 times the Poisson
 spread. The page reads every change against the interval widened by the square root of that ratio
@@ -190,7 +194,7 @@ five degrees of freedom (2.571, `t_quantile`) instead of the normal 1.96, which 
 The crash factor does not describe an ordinary year: between 2013 and 2016 recorded urban injury
 crashes rose 26 % while interurban ones fell 2 %, a step a straight trend cannot follow, so the
 crash intervals are too wide to judge the falls since 2019 either way (`crashes_urban`,
-`crashes_interurban` in `risk_annual_panel.csv`).
+`crashes_interurban` in `trends_annual_panel.csv`).
 
 In 2024, against 2019, no change in injury crashes is beyond an ordinary year; a pure Poisson
 interval would flag the falls as a count and per resident. Hospital admissions per tonne of road
@@ -229,7 +233,7 @@ deaths per kilometre by DGT's estimate rose 3.9 % and deaths per tonne of fuel 0
 starts after 2019, so it cannot replace fuel as the denominator of the comparison with 2019 or of
 the long run.
 
-## 5. The long run and the pandemic (`risk_trends.py`)
+## 5. The long run and the pandemic (`national/risk_trends.py`)
 
 A segmented log-linear (joinpoint) trend is fitted to the yearbook's 30-day deaths, 1993–2019, in
 three forms: the count; occupant deaths of motorcycles, cars, vans, trucks and buses with the log
@@ -291,7 +295,7 @@ para el cálculo de fallecidos a 30 días"; `risk_trends.DEATHS_30D_COUNTED_FROM
 to 24-hour deaths falls from 1.155 in 2010 to 1.121 in 2011, the lowest in the series, stays
 between 1.121 and 1.144 until 2015, and from 2016 is 1.151–1.173, inside its 1993–2010 range of
 1.141–1.195: a temporary dip, not a lasting step. The police count 24-hour deaths
-directly throughout (`deaths_24h` in `risk_annual_panel.csv`), and the trends refitted on them
+directly throughout (`deaths_24h` in `trends_annual_panel.csv`), and the trends refitted on them
 place the turning points in the same years, so the long-run results do not rest on the change.
 
 The per-fuel trend's last segment runs from 2011, so its projection carries whatever kilometres per
@@ -361,7 +365,7 @@ and autopistas and autovías 2.15 (`road_class_risk.csv`): recorded rates by cla
 of the class of road. `baseline` gives the mean annual crashes and casualties by road class over
 2022–2024, which add up to the yearbook totals (`road_class_baseline.csv`).
 
-## 6. Seasonality and mobility (`seasonality.py`)
+## 6. Seasonality and mobility (`national/seasonality.py`)
 
 Monthly 30-day deaths from the yearbook series are set beside three monthly traffic series
 (`TRAFFIC_SERIES`), and only one of them is used as an offset or denominator: road fuel (petrol
@@ -392,14 +396,14 @@ in April 2017–2019). Petrol and toll traffic were already 9 % to 16 % above th
 and February 2020, so their April falls measured from that level would be larger; deaths fell less
 than both on either reckoning.
 
-## 7. Age and driving exposure (`exposure_risk/`, `emef/`, `edm2018.py`, `driver_risk.py`)
+## 7. Age and driving exposure (`drivers/`: `exposure_risk/`, `emef/`, `edm2018.py`, `driver_risk.py`)
 
 Two questions are asked of car drivers by age, and kept apart. How often a driver already
 involved in an injury crash dies needs no measure of driving. How often drivers of each age are
 involved in crashes is set against **kilometres driven by drivers of that age**, estimated from two
 travel surveys. The full analysis, with every table and sensitivity analysis, is
-[`research/DRIVER_AGE_EXPOSURE.md`](research/DRIVER_AGE_EXPOSURE.md); how the surveys were read,
-harmonised and checked is [`research/EMEF_INVENTORY.md`](research/EMEF_INVENTORY.md). The method
+[`drivers/driver_age_exposure.md`](drivers/driver_age_exposure.md); how the surveys were read,
+harmonised and checked is [`drivers/emef_inventory.md`](drivers/emef_inventory.md). The method
 was revised in October 2026 after an independent audit.
 
 - **Numerator** (`exposure_risk.national.drivers_involved`): drivers of private cars, with or
@@ -606,7 +610,9 @@ Three quantities, reported separately because they answer different questions:
    exposure at all, so the kilometre estimate cannot affect it.
 3. `killed_per_bn_km`: drivers of this age killed per billion km; the product of the two.
 
-**The former owner-age figure** (`driver_risk.py`; `q7_*` tables, kept as the record). Before the
+**The former owner-age figure** (`drivers/driver_risk.py`; the `drivers_km_*`,
+`drivers_company_km`, `drivers_owner_age_check` and `drivers_denominator_contrast` tables, kept
+as the record). Before the
 rebuild, the per-km rates divided car drivers involved in 2024, taxi and ride-hailing drivers
 included, by DGT's 2024 kilometres of cars registered to owners of each age band (18–24, 25–34,
 35–54 as the reference, 55–64, 65–74, 75+), from the release *Kilómetros anualizados recorridos
@@ -623,7 +629,7 @@ the raw release, and the drivers page's technical notes, on the methodology page
 difference.
 
 **Sources considered and not used as exposure**, with the reason (registered in
-[`data_sources.md`](data_sources.md)): MOVILIA 2006/2007 count trips and travel time, not
+[`sources/register.md`](sources/register.md)): MOVILIA 2006/2007 count trips and travel time, not
 kilometres, and do not separate drivers from passengers, so they give no exposure. They supply
 only sensitivity inputs: MOVILIA 2006 table 64 one weekend age mix, tables 9, 61 and 72 the
 province's car trips per resident against Spain's and the weekend against the working day, and
@@ -649,7 +655,7 @@ pages print every sampling interval at the precision that error supports. Ranges
 18–29 1.49–3.75 → 1.49–3.63; 30–44 1.12–1.72 (unchanged); 65+ 0.85–1.75 → 0.85–1.82; 65–74
 0.66–1.63 → 0.67–1.70; 75+ 0.97–3.28 → 0.97–3.20. The conditional 75+ estimate, 2.06 (1.6–2.6),
 and the lowest unmarked combination, 1.21 (0.9–1.8), are unchanged. The full account is in the
-change log of [`research/DRIVER_AGE_EXPOSURE.md`](research/DRIVER_AGE_EXPOSURE.md).
+change log of [`drivers/driver_age_exposure.md`](drivers/driver_age_exposure.md).
 
 ### 7.1 Sex (`driver_risk.py`)
 
@@ -678,7 +684,7 @@ holders of any class; `driver_risk.sex_b_licence` (`drivers_sex_b_licence.csv`) 
 only B-permit holders raises the men's excess in deaths per licence holder in 2023–2024 from 3.49
 (2.96–4.11) to 3.57 (3.03–4.20).
 
-## 8. Vehicles per kilometre (`vehicles.py`)
+## 8. Vehicles per kilometre (`national/vehicles.py`)
 
 A 2022 cross-section. The numerator is vehicles involved in injury crashes and in fatal crashes by
 type, from yearbook table 2.3, and occupant deaths by vehicle from table 2.2. The denominator is
@@ -697,13 +703,13 @@ cannot be measured and its direction is unknown; it bears most on heavy trucks a
 page says so in its limitations. The kilometres are annualised over inspection readings taken
 across 2014–2023, so they describe a normal year imputed to the 2022 fleet rather than 2022
 travel. DGT's 2024 release gives mean kilometres by type for 2022–2024 on the same basis (section
-4); the comparison is made for 2022 only. Rates are kept unrounded in `q6_summary_2022.csv` and
+4); the comparison is made for 2022 only. Rates are kept unrounded in `vehicles_summary_2022.csv` and
 rounded once, where they are printed. Some neighbouring ranks are not separated by the 95 %
 intervals: per kilometre, mopeds (20.7, 14.7 to 28.3) and buses (15.7, 11.3 to 21.2); and heavy
 trucks' own occupants killed per kilometre (1.93, 1.43 to 2.53) against cars' (2.25, 2.08 to 2.42).
 Motorcycles' lead per kilometre (43.5, 39.5 to 47.8) is clear.
 
-## 9. Speed as a severity factor and speed status (`factors.py`, `speed.py`, `io_reports.py`)
+## 9. Speed as a severity factor and speed status (`national/factors.py`, `national/speed.py`, `national/io_reports.py`)
 
 **Speed as a severity factor** (`factors.speed_severity`). The report gives injury crashes and
 deaths with inappropriate speed recorded, by year and by road type (motorways, dual carriageways,
@@ -741,7 +747,7 @@ staging layer (`data/staging/dgt/speed_report.parquet`). Two of its tables are i
 breakdowns is republished on the site**, and its territory (Spain without Cataluña and País Vasco)
 differs from every other source here, so its figures are never added to yearbook totals.
 
-## 10. Other recorded factors (`factors.py`)
+## 10. Other recorded factors (`national/factors.py`)
 
 DGT's speed-factor report gives, for 2014–2023 and Spain without Cataluña and País Vasco, the injury
 crashes with each of five police-recorded concurrent factors (distraction, inappropriate speed,
@@ -767,18 +773,18 @@ urban): the rest is the shift of crashes towards urban streets (40.6 % of crashe
 in 2014, 34.2 % in 2023), and at the 2014 zone mix the 2023 share would be 7.6 %, not 6.9 %. The
 page leads with the within-zone falls.
 
-## 11. Predicting deaths, and what a before-and-after comparison can see (`forecast.py`; withdrawn)
+## 11. Predicting deaths, and what a before-and-after comparison can see (`national/forecast.py`; withdrawn)
 
 **Status: withdrawn.** The forecast does worse than last year's count in the ordinary held-out
-years, so it is no longer used, and its page is a withdrawal notice that says why
-([`research/ML_MODEL_REVIEW.md`](research/ML_MODEL_REVIEW.md) explains the reason: with a flat
+years, so it is no longer used and its page has been removed from the site
+([`models/review.md`](models/review.md) explains the reason: with a flat
 trend, estimating the trend adds variance and no information). The investigation below is kept as
 the record; nothing on the site quotes it.
 
 Any before-and-after reading compares the deaths after a change with the deaths that would have
 been recorded without it, and the second number is a forecast whose error decides what the
 comparison can see. The model card is
-[`models/dgt_monthly_deaths_forecast.md`](models/dgt_monthly_deaths_forecast.md).
+[`models/cards/dgt_monthly_deaths_forecast.md`](models/cards/dgt_monthly_deaths_forecast.md).
 
 **The model.** A Poisson regression of monthly 30-day deaths (the yearbook series) fitted on the
 four years before the year it predicts: month of year, a linear trend, the log of the month's road
@@ -814,7 +820,7 @@ ratio), by set of years:
 In the flat held-back years the model does slightly worse than repeating last year (6.6 % against
 5.9 %); it does far better in the selection years and the lockdowns, when the trend or the traffic
 moved. Because it does not beat last year's count in the held-back ordinary years, the generated
-decision table does not feature it as a model ([`MODEL_DECISIONS.md`](MODEL_DECISIONS.md)), and
+decision table does not feature it as a model ([`models/decisions.md`](models/decisions.md)), and
 its page was withdrawn. Its worst held-back year is 2022, forecast from a
 window that contains the lockdowns. The tuned trees do worse than the model on every kind of
 road (all roads, interurban roads, urban streets) and in every set of years: a tree cannot extend
@@ -854,7 +860,7 @@ listed with their results on the data page.
 
 | Assumption | Test | Result |
 |---|---|---|
-| A year's count varies only by chance | dispersion around the 2013–2019 trend | fails for hospital admissions (7.7, 95 % interval 3.0–46.3) and injury crashes (68, 26–407); not established for deaths (1.45, 0.57–8.72, an interval that includes 1) (`risk_dispersion.csv`); intervals widened, with Student's t for the five degrees of freedom the factors rest on (section 4); against 2019, the 2024 rise in admissions is beyond an ordinary year per tonne of road fuel and at its edge as a count, and no change in injury crashes is beyond it, though the crash factor reflects a 2013–2016 step in urban crashes |
+| A year's count varies only by chance | dispersion around the 2013–2019 trend | fails for hospital admissions (7.7, 95 % interval 3.0–46.3) and injury crashes (68, 26–407); not established for deaths (1.45, 0.57–8.72, an interval that includes 1) (`trends_dispersion.csv`); intervals widened, with Student's t for the five degrees of freedom the factors rest on (section 4); against 2019, the 2024 rise in admissions is beyond an ordinary year per tonne of road fuel and at its edge as a count, and no change in injury crashes is beyond it, though the crash factor reflects a 2013–2016 step in urban crashes |
 | Road fuel tracks the kilometres driven | measured interurban vehicle-km against national road fuel (the scopes differ, so a diagnostic of the proxy, not a rate) | cannot be tested on all roads: the measured kilometres cover only State, regional and provincial interurban roads; per measured km, interurban deaths in 2023 are +5 % on trend, inside the interval; 8.7 % to 11.2 % of interurban deaths are on roads the kilometres leave out (section 5) |
 | CORES road fuel includes the biofuel blended into it, and a tonne means the same every year | each subtotal against the sum of its products, biofuels included, every month; the published biofuel share | holds: biofuel was 6.6 % of road fuel by mass in 2019 and 7.8 % in 2023, and as it carries less energy per tonne it cannot explain the rise in interurban kilometres per tonne (section 5) |
 | The owner's age stands for the driver's | cars and km per B-permit holder by band | does not hold at either end (0.23 cars per B-permit holder at 18–24, 0.56 at 25–34, 1.14 at 75+); the owner-age kilometres are replaced by kilometres driven by drivers of each age (section 7) |
@@ -866,15 +872,16 @@ listed with their results on the data page.
 | The projected per-fuel excess of 2023–2024 does not depend on the trend's start | last segment refitted from 2013 instead of 2011 | it does: from 2013, 2023 lies at the edge of the range and 2024 inside it (section 5) |
 | A forecast can show a change in the counts | out-of-sample forecast errors | the forecast loses to last year's count in the ordinary held-out years and was withdrawn, with the detectable changes computed from its errors (section 11) |
 
-## 13. Supporting analysis: associations in DGT crash records (not a predictive model) (`features.py`, `models.py`, `scripts/model.py`)
+## 13. Supporting analysis: associations in DGT crash records (not a predictive model) (`national/features.py`, `national/associations.py`, `scripts/run.py national.associations`)
 
-Listed under "Spain: supporting" in the navigation, with a note that says why. DGT's national crash
+Listed in the navigation under National statistics, as a supporting analysis whose page says
+why. DGT's national crash
 microdata carry one row per crash, with counts of the people killed and injured but no record of
 individual drivers, vehicles or people and no speed field, and their audit
-([`DGT_MICRODATA_AUDIT.md`](DGT_MICRODATA_AUDIT.md), section 21) keeps them out of model training:
+([`models/dgt_microdata_audit.md`](models/dgt_microdata_audit.md), section 21) keeps them out of model training:
 the DGT microdata do not train a predictive model. This analysis describes which recorded
 circumstances go with a fatal or serious outcome, given an injury crash. The model card is
-[`models/dgt_crash_severity.md`](models/dgt_crash_severity.md).
+[`models/cards/dgt_crash_severity.md`](models/cards/dgt_crash_severity.md).
 
 Two logistic regressions on all 875,013 crashes: the odds that a crash is fatal, and that it is
 serious. Predictors are the circumstances the crash record carries: zone, road type, crash type,
@@ -902,24 +909,24 @@ levels are merged on the training years alone, so the held-out years decide noth
 model scored on them (lighting and surface "not specified" are the levels merged). The Brier skill
 is measured against giving every held-out crash the training years' share of the outcome (1.6 %
 fatal, 9.4 % serious): it is 0.043 for the fatal outcome and 0.054 for the serious one
-(`q3_holdout_summary.csv`). The fatal ROC-AUC of 0.80 is partly recording: refitted with every
+(`assoc_holdout_summary.csv`). The fatal ROC-AUC of 0.80 is partly recording: refitted with every
 missing-state level folded into its reference it is 0.78, and the missing-state levels alone give
 0.54 (`auc_recorded_only`, `auc_missing_only`); over the audit's wider set of 30 fields, which
 fields were left unrecorded where they apply gives 0.68 on its own (`dgt_audit_artefacts.csv`).
 The page states this beside the AUC.
 
-**Zone and road type together** (`models.location_contrasts`). The two predictors describe one
+**Zone and road type together** (`associations.location_contrasts`). The two predictors describe one
 location between them, so each odds ratio is read against the other's reference. The joint
 contrast of every zone and road-type combination with at least 500 crashes against a street-zone
 urban street adds the two log odds ratios and takes its variance from their covariance
-(`q3_location_contrasts.csv`): a conventional interurban road has 6.63 (4.95–8.89) times the odds
+(`assoc_location_contrasts.csv`): a conventional interurban road has 6.63 (4.95–8.89) times the odds
 of a death, of the same size as a head-on collision (5.48) or a pedestrian struck (6.27); the four
 interurban road types run from 5.66 to 7.23, and a conventional road through a town (zone "urban
 crossing") reaches 8.75. The page names crash type and location together as the strongest
 associations.
 
-**The junction coding break** (`features.junction_codes`, `q3_junction_coding.csv`,
-`q3_junction_sensitivity.csv`, `models.period_refits`, `dgt_audit_junction_coding.csv`). In 2023
+**The junction coding break** (`features.junction_codes`, `assoc_junction_coding.csv`,
+`assoc_junction_sensitivity.csv`, `associations.period_refits`, `dgt_audit_junction_coding.csv`). In 2023
 and 2024 DGT's records for the four Catalan provinces code the junction flag (`NUDO`) the wrong
 way round. The share of their crashes coded at a junction goes from 38–42 % a year in 2016–2022
 (35 % in 2021, under the narrower definition below) to 62 % in 2023 and 63 % in 2024, while
@@ -971,11 +978,11 @@ Catalan crashes coded away from a junction carry a junction type or a right-of-w
 those coded away, against 0–7 crashes in each other year before 2023): crashes near a junction
 coded away from it. This narrows the definition for one year; it does not invert the flag, and
 the model leaves it as published. Placing those crashes at a junction (`flip and near junctions`
-in `q3_junction_sensitivity.csv`) brings the 2021 severe count to 456 against the Catalan file's
+in `assoc_junction_sensitivity.csv`) brings the 2021 severe count to 456 against the Catalan file's
 458, and moves the full-model fatal junction odds ratio from 0.690 to 0.692 and the 2021 yearly
 estimate from 0.66 to 0.67, inside its interval (0.56–0.78).
 
-**Year-by-year refits** (`models.year_stability`). Each yearly estimate has its own sampling
+**Year-by-year refits** (`associations.year_stability`). Each yearly estimate has its own sampling
 error, so a yearly odds ratio outside the full model's interval is expected now and then. The
 table also says whether the full model's value lies inside the year's own interval, and gives
 Cochran's Q for each term across years with its chi-squared p-value. For the fatal outcome 36 of
@@ -988,19 +995,19 @@ in 2024. With the flag as published the junction term varied (p = 0.005), at 1.0
 the junction term varied as published (p = 0.001) and does not now (p = 0.06); road type "other
 road" varies (p = 0.01), the level the 2024 Catalan coding of urban streets fills.
 
-**Nuisance levels and the recording regime** (`features.is_nuisance`, `models.recording_regime`,
-`models.regime_sensitivity`). The missing states record how a police force fills in the form,
+**Nuisance levels and the recording regime** (`features.is_nuisance`, `associations.recording_regime`,
+`associations.regime_sensitivity`). The missing states record how a police force fills in the form,
 which differs between forces and years. They are kept so that no crash is dropped, flagged
 `is_nuisance` in the coefficient and marginal-effect tables, and never read as an effect.
 Alignment "unknown" is the clearest case: 78,990 crashes, 95.7 % of them in the four Catalan
 provinces (8, 17, 25, 43), where the level is 34.7 % of crashes against 0.5 % elsewhere, while
-Cataluña has 24.9 % of all crashes (`q3_recording_regime.csv`). Both models are refitted without
-those provinces (657,047 crashes, `q3_regime_sensitivity.csv`): for the fatal outcome all 32 odds
+Cataluña has 24.9 % of all crashes (`assoc_recording_regime.csv`). Both models are refitted without
+those provinces (657,047 crashes, `assoc_regime_sensitivity.csv`): for the fatal outcome all 32 odds
 ratios that are not nuisance terms stay inside the full model's interval, and for the serious
 outcome 30 of 32 do (zone "urban crossing" and road type "other road" move outside it). The
 fatal odds ratio of alignment "unknown" moves from 0.12 to 0.44.
 
-### 13.1 The adverse-conditions sensitivity (`models.adverse_conditions`)
+### 13.1 The adverse-conditions sensitivity (`associations.adverse_conditions`)
 
 The finding the page leads with, that rain, a wet road and junctions go with *lower* odds of a
 death, is tested rather than asserted. Four levels (`ADVERSE_LEVELS`) are refitted under eight
@@ -1021,9 +1028,10 @@ variants (`ADVERSE_VARIANTS`):
 
 Both outcomes are run. The page proposes no mechanism; these data cannot identify one.
 
-## 14. Supporting analysis: the 2006 case study (`policy.py`)
+## 14. Supporting analysis: the 2006 case study (`national/policy.py`)
 
-Listed under "Spain: supporting" in the navigation: the site makes no causal claim about policies
+Listed in the navigation under National statistics, as a supporting analysis: the site makes no
+causal claim about policies
 or campaigns, and this analysis shows how weak even a dated policy break is as evidence.
 
 A segmented Poisson regression of the yearbook's monthly 30-day deaths on a pre-trend, eleven
@@ -1049,14 +1057,14 @@ interval +1.4 % to +14.0 %), which brings fitted deaths back to the projection a
 months; by November 2007 they are 2.3 % above it. Averaged over the 17 post-period months the
 change in log deaths, `post + 8 × post_t`, is −2.5 % (−7.8 % to +3.2 %). Only the straight-line
 pre-trend gives an average fall whose interval excludes zero (−9.5 %). Every specification in
-`q8_points_sensitivity.csv` carries the average and the last-month change beside the step, and the
+`policy_points_sensitivity.csv` carries the average and the last-month change beside the step, and the
 page quotes the step only with them.
 
 Four falsification tests, each aimed at a specific alternative explanation:
 
 - **Calendar-matched placebos** (`calendar_placebo_fits`). Spanish road deaths usually peak in July
   or August (the deadliest month in 27 of the 32 years 1993–2024, `peak_month` in
-  `q8_points_transitions.csv`), so moving the break to arbitrary months does not answer whether the
+  `policy_points_transitions.csv`), so moving the break to arbitrary months does not answer whether the
   summer of 2006 was unusual. The same model is refitted with the break at 1 July of every year
   whose window is clean: 60 months before, 17 after, never containing the true intervention or the
   pandemic. The true break is refitted on the same shape. July 2006 ranks first of fifteen, so the
@@ -1068,7 +1076,7 @@ Four falsification tests, each aimed at a specific alternative explanation:
   error. The model's intervals are therefore too narrow, most likely because a straight or
   once-bent trend does not capture how the series wanders. An interval set by the placebo spread
   (the July 2006 step plus or minus the t quantile on 13 degrees of freedom times the placebo
-  standard deviation) runs from −21 % to +3 % (`q8_points_calibration.csv`). It is computed only
+  standard deviation) runs from −21 % to +3 % (`policy_points_calibration.csv`). It is computed only
   for the calendar-matched fit, which has the placebos' window shape; the page labels every other
   interval model-based.
 - **Seasonality-free transitions** (`seasonal_transitions`). For each year, the log change from
@@ -1104,7 +1112,7 @@ dispersion is set by moments from the Poisson fit; and the window extended to De
 second break at the Penal Code reform. The 24-hour fit is not an independent check: until 2010 DGT
 estimated 30-day deaths from 24-hour deaths with correction factors (Anuario estadístico de
 accidentes 2014, annex II), so the 30-day counts of the window are derived from the 24-hour ones.
-The within-year spread of the monthly ratio (`q8_points_death_definitions.csv`, at most 0.024 up to
+The within-year spread of the monthly ratio (`policy_points_death_definitions.csv`, at most 0.024 up to
 2010 against at least 0.027 from 2011) is consistent with that but does not show it, because
 monthly counts fell by about two thirds over those years and smaller counts scatter more. The Penal Code reform and the 2008 recession bear on the extended window, not on the
 17-month window, which ends before both; inside that window the step competes with the 2003
@@ -1116,7 +1124,7 @@ its own falsification check: a break placed in January 2017 makes the two groups
 with an interval that excludes zero, so a divergence at February 2019 cannot be told from the
 ordinary divergence of the two series. Improving it would need road-section identifiers, section
 limits, measured speeds and traffic volumes, none of which is published (see
-[`data_sources.md`](data_sources.md), "Not available"). `speed_limit_fits` keeps the two tables that
+[`sources/register.md`](sources/register.md), "Not available"). `speed_limit_fits` keeps the two tables that
 record the negative result, the placebos and the sensitivity fits, and nothing else.
 
 ## 15. Rates and intervals (`rates.py`)
@@ -1135,7 +1143,7 @@ Figures are matplotlib SVG with no date metadata, so a rebuild in the same envir
 (`requirements.lock`) changes nothing unless a number changes. One axis per chart, intervals drawn
 where they exist, direct labels where a legend would be ambiguous, colour never the only encoding.
 `figures.build_all` writes the national figures and then the regional crash-record figures
-(Catalonia, Barcelona, models, generalisability; `microdata/charts.py`, skipped when the microdata
+(Catalonia, Barcelona, models, generalisability; `charts/regional.py`, skipped when the microdata
 tables are not built), and deletes any SVG in its output directory that no longer has a caption, so
 a removed figure cannot linger. It draws every figure twice from the same data: 8 inches wide for a
 desktop column, and 3.6 inches wide into `reports/figures/narrow/` for a phone's (`plots.narrow`),
@@ -1144,29 +1152,36 @@ shows the whole chart with its smallest text at 11 pixels or more. The build fai
 figure comes out wider than that allows. The site serves the narrow drawing to screens up to 40rem
 wide and publishes only the figures its pages show.
 
-The navigation (`NAV_GROUPS` in `src/dgt_stats/site/components.py`) follows the source hierarchy of
-`layers.py`:
+The navigation (`NAV_GROUPS` in `src/dgt_stats/site/components.py`) is built from the sections of
+`src/dgt_stats/catalogue.py`, so that the menu says where each page's data come from:
 
 - **Overview**: what the study is, its data, its main results and where to read on. It quotes no
   model metric.
-- **Spain**: trends since 2019, the long run, seasons, drivers (age and sex), vehicles, speed and
-  recorded factors, with two **supporting analyses** inside it: crash circumstances (section 13)
-  and the 2006 points licence (section 14). The line above each supporting page's title says so.
-- **Regional data**: Catalonia's serious and fatal crashes, and Barcelona's crashes and people.
-- **Models**: the crash-severity model and its calculator (section 20) and the external
+- **Explore**: the interactive tools, each computing from the result tables of one section.
+- **National statistics**: the long run, trends since 2019, seasons, vehicles, speed and recorded
+  factors, with two **supporting analyses**: the 2006 points licence (section 14) and crash
+  circumstances (section 13).
+- **Drivers**: crash involvement per licence holder and per kilometre by age and sex (section 7).
+- **Catalonia and Barcelona**: Catalonia's serious and fatal crashes, and Barcelona's crashes and
+  people (section 19).
+- **Severity model**: the crash-severity model and its calculator (section 20) and the external
   validation of the severity models (section 21).
-- **Methods**: data sources and scope, and methodology (definitions, with the assumptions tested,
-  section 12).
+- **Data and methods**: data sources and scope, and methodology (definitions, with the assumptions
+  tested, section 12).
+
+Every analysis page's closing "Data and method" block lists its result tables and, beside them,
+the sources those tables are computed from, read from the catalogue; the tools under Explore say in
+their notes which records they compute from.
 
 Every page opens with a summary of its main result and says near the start what kind of analysis
 it is (a rate comparison, an association, a predictive model or a data check); each important
 limitation is stated once, beside the result it changes.
 
-Pages renamed in an earlier reorganisation (`older-drivers.html`, `context.html`) are kept as
-pointers that refresh to their successors. The five withdrawn analyses (`simulator.html`,
-`distraction.html`, `alcohol-drugs.html`, `enforcement.html`, `forecast.html`) are kept as short
-notices, not redirects, that say what the page was, why it was withdrawn and which live pages hold
-what the repository's own data show on the subject; no live page links to them.
+Pages that no builder writes any more are removed when the site is built: the pointers left by
+pages renamed in an earlier reorganisation (`older-drivers.html`, `context.html`) and the notices
+of the five withdrawn analyses (`simulator.html`, `distraction.html`, `alcohol-drugs.html`,
+`enforcement.html`, `forecast.html`). Why each analysis was withdrawn is recorded in this document
+and, for the forecast, in its model card.
 
 Nearly every number in a page's sentences, the front-page digest included, is computed from the
 result tables at build time, so a rebuilt table rewrites the text that quotes it; where a sentence
@@ -1175,11 +1190,11 @@ supports it. The full result tables a page links are copied into `site/tables/` 
 CSV rather than printed; a table no page links is not published: the default on a page is one figure, one interpretation and one limits note per finding.
 Tests check that every internal link and anchor resolves, every image has alt text, every page has
 one heading and a description, that no page runs a script other than the site's reading aid and,
-on the models page, the calculator, that no year or result is typed into page code, and that each
+on the four tool pages, the tools' shared helpers and the tool's own script, that no year or result is typed into page code, and that each
 page's headline numbers match the tables they come from. The calculator's arithmetic
-(`site/assets/severity-engine.js`) is tested against the Python model under Node, and the built
+(`src/dgt_stats/site/assets/severity-engine.js`) is tested against the Python model under Node, and the built
 page is tested in Chromium: the probabilities it shows, the keyboard, a phone's width and the
-page without scripting (`tests/test_site_browser.py`, which needs the optional `browser`
+page without scripting (`tests/site/test_site_browser.py`, which needs the optional `browser`
 dependencies). The site builder is the `dgt_stats.site` package: one module per
 page (the Catalonia and Barcelona pages share `regional`), the result tables several pages quote in
 `numbers`, and the shared furniture in `components`.
@@ -1198,13 +1213,13 @@ page (the Catalonia and Barcelona pages share `regional`), the result tables sev
 - All logic in `src/dgt_stats/` and `scripts/`; no notebooks. The gradient-boosted trees of the
   forecast comparison are given a fixed seed and, at these sizes, draw nothing at random. The
   regional severity models, their cross-validation folds and bootstrap resamples use one fixed seed
-  (`microdata/ml/modelling.SEED`); the calculator model's bootstrap and the travel-survey and
+  (`models/ml/modelling.SEED`); the calculator model's bootstrap and the travel-survey and
   driver-age bootstraps use theirs (`severity_model.SEED`, `emef.exposure.SEED`,
   `edm2018.SEED`, `exposure_risk.national.SEED`, `exposure_risk.barcelona.SEED`); every other fit
   is deterministic and needs no seed.
-- The travel-survey layers are rebuilt from the raw files by `scripts/emef.py all` and
-  `scripts/exposure_risk.py all` (about three minutes together), and the severity model and its
-  exported file by `scripts/severity_calculator.py all`.
+- The travel-survey layers are rebuilt from the raw files by `scripts/run.py drivers.emef` and
+  `scripts/run.py drivers.exposure` (about three minutes together), and the severity model and its
+  exported file by `scripts/run.py models.calculator models.review`.
 - A rebuild from empty staging, processed and feature layers, with every result table, figure and
   model card removed first, reproduces the committed result tables (checked for this release to a
   relative tolerance of 1e-4).
@@ -1231,7 +1246,7 @@ page (the Catalonia and Barcelona pages share `regional`), the result tables sev
   junction flag the wrong way round from 2023, which the association analysis reads the other way
   round (section 13).
 
-## 19. The crash-level microdata layer (`src/dgt_stats/microdata/`, `scripts/microdata.py`)
+## 19. Catalonia and Barcelona: the crash records (`src/dgt_stats/regional/`, `scripts/run.py regional`)
 
 Two regional sources add what the national files lack: records of individual crashes and, in
 Barcelona, of the people in them.
@@ -1248,24 +1263,24 @@ Barcelona, of the people in them.
   records (row meaning not established: only type presence is used).
 
 Files are identified by their columns, de-duplicated by SHA-256 and by content, and a conflict
-between two files claiming the same table and year stops the pipeline (`sources.py`). Column
+between two files claiming the same table and year stops the pipeline (`regional/files.py`). Column
 names are normalised; values never are. Every cleaning rule that interprets a value is checked
 on the data on every build and reported in the generated
-[`DATA_QUALITY_MICRODATA.md`](DATA_QUALITY_MICRODATA.md): blank Barcelona counts are zeros
+[`regional/data_quality.md`](regional/data_quality.md): blank Barcelona counts are zeros
 (the victim identity holds on every row only that way, and the person table agrees), the crash
 file's UTM labels are exchanged (decided by magnitude, confirmed by a constant ED50/WGS84 offset),
 `hor` is hours and minutes, and the Catalan speed-limit field is a code wherever the generic
 limit applies. The vehicle table is audited in
-[`BARCELONA_VEHICLE_AUDIT.md`](BARCELONA_VEHICLE_AUDIT.md). The rules for what may be joined to
-what are in [`DATA_CONTRACT.md`](DATA_CONTRACT.md).
+[`regional/barcelona_vehicle_audit.md`](regional/barcelona_vehicle_audit.md). The rules for what may be joined to
+what are in [`sources/contract.md`](sources/contract.md).
 
-## 20. Severity models (`microdata/ml/`: `features.py`, `modelling.py`, `rules.py`, `reporting.py`)
+## 20. Severity models (`models/ml/`: `features.py`, `modelling.py`, `rules.py`, `reporting.py`)
 
 Three tasks on real rows: fatal against serious among Catalan serious-or-fatal crashes (one row
 per crash), serious-or-fatal injury of a Barcelona person (one row per person record with a
 recorded victimisation), and a Barcelona crash with a serious or fatal injury (one row per
 crash). A single feature catalogue classes every candidate column as safe, questionable, direct
-leakage or excluded and generates [`ML_LEAKAGE_AUDIT.md`](ML_LEAKAGE_AUDIT.md); the primary model
+leakage or excluded and generates [`models/leakage_audit.md`](models/leakage_audit.md); the primary model
 of each task uses safe features only. Questionable features (police judgements of what
 influenced a crash, recorded causes, and Catalan fields whose "not specified" level is far rarer
 among fatal crashes, measured on the training years by `recording.py`) enter only a labelled
@@ -1293,7 +1308,7 @@ recalibration; probabilities are shown as estimates only when a pre-declared rul
 Permutation importance on the test rows says what a model uses, not what causes severity.
 Geography enters at three grains so that memorisation of places shows up as a gap between
 training and test scores. No synthetic or oversampled rows are used. Model cards:
-[`docs/models/`](models/).
+[`docs/models/cards/`](models/cards).
 
 Before a model is presented it must beat the simplest honest competitor: a lookup table of the
 outcome share of each group in the training rows (crash subtype by zone detail in Catalonia, road
@@ -1302,13 +1317,13 @@ prevalence and scored on the same test rows (`rules.py`). A model adds signal wh
 exceeds the table's by at least 0.02 and the paired bootstrap interval of the difference excludes
 zero; a model that does not is replaced by its table on the site and kept only as a diagnostic.
 The decision for every model, with where it works and fails, is generated in
-[`MODEL_DECISIONS.md`](MODEL_DECISIONS.md) (`validation/decisions.py`).
+[`models/decisions.md`](models/decisions.md) (`validation/decisions.py`).
 
-**Re-evaluation and the public model** (`model_review.py`, `severity_model.py`,
-`scripts/severity_calculator.py`). Every model above was refitted with separate code and scored
+**Re-evaluation and the public model** (`models/review.py`, `severity_model.py`,
+`scripts/run.py models.calculator`). Every model above was refitted with separate code and scored
 by rolling origin: each year 2016–2023 is predicted by a model fitted only on the years before it,
 against a table of the same records, with calibration checked as well as ranking
-([`research/ML_MODEL_REVIEW.md`](research/ML_MODEL_REVIEW.md)). The original Catalan model's lead
+([`models/review.md`](models/review.md)). The original Catalan model's lead
 over a table rested partly on a recording artefact (the road owner recorded as "other" or left blank,
 which separates fatal from serious crashes by how they were documented), so it was rebuilt as a
 penalised logistic regression on circumstances a reader can describe (province, zone and road,
@@ -1328,18 +1343,19 @@ against 12.3 % observed. The earlier, non-nested design, whose choices used test
 0.743. In all ten groups of predicted risk the mean prediction lies within the 95 % interval
 of the observed share; by province and zone it misses on interurban roads in Girona and Tarragona
 (too low) and on urban streets in the province of Barcelona (too high). It is the model behind the
-calculator on the models page, whose browser engine reproduces the Python predictions and their delta-method intervals to 10⁻¹⁰
-([`research/SEVERITY_CALCULATOR.md`](research/SEVERITY_CALCULATOR.md)). The retrospective
+crash severity calculator (a page of its own under Explore), whose browser engine reproduces the Python predictions and their delta-method intervals to 10⁻¹⁰
+([`models/severity_calculator.md`](models/severity_calculator.md)). The retrospective
 variant and the Barcelona crash model were removed; the Barcelona person model and the DGT
 association model are research only.
 
-## 21. Validation: transportability, representativeness and the outward path (`microdata/validation/`)
+## 21. Validation: transportability, representativeness and the outward path (`models/validation/`)
 
-The source hierarchy (`src/dgt_stats/layers.py`) gives each dataset one role: DGT and INE are the
-national context, the Catalan file is the crash microdata the severity model is trained on, the
-Barcelona files are the rich microdata, and validation tests models across them without merging
-records. How each source came to exist is compared against the same questions in
-[`SOURCE_COMPARISON.md`](SOURCE_COMPARISON.md) (`source_profile.py`).
+The catalogue (`src/dgt_stats/catalogue.py`) gives each source one section: DGT and INE belong to
+the national statistics, the Catalan and Barcelona crash files to the regional section, and the
+Catalan file is the one the severity model is trained on. This section tests the models on the
+records of other sources (later years, the Barcelona files, the DGT microdata) without merging or
+linking records. How each source came to exist is compared against the same questions in
+[`sources/source_comparison.md`](sources/source_comparison.md) (`sources/profile.py`).
 
 **Can the DGT microdata train a model?** Seven checks are declared before any result is read
 (`dgt_audit.py`): one row per crash, target observed, definitions documented, construction
@@ -1370,7 +1386,7 @@ file remains the national analytical layer and
 an external test domain for fields validated against the Catalan file on the crashes both hold;
 the decision is regenerated on every run. The national transfer test itself is checked: same
 target (24-hour death), same inclusion rule, no Catalan record in the test, coding validated,
-missingness and prevalence reported. Generated: [`DGT_MICRODATA_AUDIT.md`](DGT_MICRODATA_AUDIT.md).
+missingness and prevalence reported. Generated: [`models/dgt_microdata_audit.md`](models/dgt_microdata_audit.md).
 
 **Transportability** (`transport.py`). Each model is tested on records it could not have seen:
 inside the Catalan file (Barcelona municipality from the rest and the reverse, each demarcation
@@ -1424,4 +1440,4 @@ aggregates showing whether the training population resembles Spain. A transfer s
 the ROC-AUC interval stays above 0.5 and the transfer gap is no worse than −0.05; stage 5 passes
 when no shared variable's mix differs by more than 0.02 (Jensen-Shannon). Only a model that
 passes all five would be called potentially nationally transferable. Everything is
-generated in [`GENERALISABILITY.md`](GENERALISABILITY.md) and `reports/model_metrics.json`.
+generated in [`models/generalisability.md`](models/generalisability.md) and `reports/model_metrics.json`.

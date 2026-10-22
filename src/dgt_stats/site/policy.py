@@ -12,7 +12,7 @@ from types import SimpleNamespace
 
 import pandas as pd
 
-from dgt_stats import policy, risk_trends
+from dgt_stats.national import policy, risk_trends
 from dgt_stats.site.components import (
     ALL_PAGES,
     DOCS_URL,
@@ -29,7 +29,7 @@ from dgt_stats.site.components import (
 )
 from dgt_stats.site.numbers import _long_run_numbers, _policy_numbers
 
-# Human labels for the specifications in ``q8_points_sensitivity``. The two whose labels carry a
+# Human labels for the specifications in ``policy_points_sensitivity``. The two whose labels carry a
 # date keep the table's own wording, lightly rephrased (see ``_specification_label``).
 SPECIFICATIONS = {
     "main": "Preferred: pre-trend with one bend, chosen on the earlier months",
@@ -155,9 +155,9 @@ def _facts() -> SimpleNamespace:
     negative_binomial = sensitivity.loc["negative_binomial"]
     extended = sensitivity.loc["long"]
     day_deaths = sensitivity.loc["24h"]
-    fit = read_table("q8_points_fit")
+    fit = read_table("policy_points_fit")
     hinge = fit[fit.term.str.startswith("t_hinge")]
-    speed_placebo = read_table("q8_speed_placebo")
+    speed_placebo = read_table("policy_speed_placebo")
     failed_placebo = speed_placebo[
         ~speed_placebo.is_true.astype(bool) & ((speed_placebo.low > 0) | (speed_placebo.high < 0))
     ]
@@ -181,7 +181,7 @@ def _facts() -> SimpleNamespace:
     # true July.
     placebo_years = sorted(int(year) for year in calendar.year)
     left_out = sorted(set(range(placebo_years[0], placebo_years[-1] + 1)) - set(placebo_years))
-    series = read_table("q8_points_series")
+    series = read_table("policy_points_series")
     after = series[series.post.astype(bool)]
     crosses = sensitivity[sensitivity.level_high > 0]
     checks = {
@@ -414,14 +414,14 @@ def page_policy(captions: dict[str, str]) -> str:
     )
     body += downloads(
         [
-            ("q8_points_calendar_placebo", "July placebos"),
-            ("q8_points_calibration", "how the July placebos calibrate the intervals"),
-            ("q8_points_forecast", "forecasts made before each July"),
-            ("q8_points_transitions", "twelve months either side of each July"),
-            ("q8_points_trend_choice", "pre-trend candidates"),
-            ("q8_points_sensitivity", "every specification"),
-            ("q8_points_death_definitions", "30-day and 24-hour deaths by year"),
-            ("q8_points_placebo", "placebo breaks at arbitrary months"),
+            ("policy_points_calendar_placebo", "July placebos"),
+            ("policy_points_calibration", "how the July placebos calibrate the intervals"),
+            ("policy_points_forecast", "forecasts made before each July"),
+            ("policy_points_transitions", "twelve months either side of each July"),
+            ("policy_points_trend_choice", "pre-trend candidates"),
+            ("policy_points_sensitivity", "every specification"),
+            ("policy_points_death_definitions", "30-day and 24-hour deaths by year"),
+            ("policy_points_placebo", "placebo breaks at arbitrary months"),
         ],
         method=(f"data.html#{NOTES}", "the model, the placebos and every specification"),
     )
@@ -625,7 +625,7 @@ def technical_notes(captions: dict[str, str]) -> str:
         f"{_month(f.failed_placebo.break_date.iloc[0])}, before the change, produces a "
         f"divergence of its own ({_signed_pct(float(f.failed_placebo.level_change.iloc[0]))}, "
         "with an interval that excludes zero), so no estimate of the speed-limit change is "
-        'reported. The fits are published (<a href="tables/q8_speed_placebo.csv">placebos</a>, '
-        '<a href="tables/q8_speed_sensitivity.csv">specifications</a>).</p>'
+        'reported. The fits are published (<a href="tables/policy_speed_placebo.csv">placebos</a>, '
+        '<a href="tables/policy_speed_sensitivity.csv">specifications</a>).</p>'
     )
     return body

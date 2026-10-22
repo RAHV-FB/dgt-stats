@@ -10,8 +10,8 @@ from types import SimpleNamespace
 
 import pandas as pd
 
-from dgt_stats.microdata.charts import ROAD_USER_LABELS
-from dgt_stats.microdata.validation import decisions as rules
+from dgt_stats.charts.regional import ROAD_USER_LABELS
+from dgt_stats.models.validation import decisions as rules
 from dgt_stats.site.components import (
     ALL_PAGES,
     DOCS_URL,
@@ -28,14 +28,9 @@ from dgt_stats.site.components import (
     summary,
     table,
 )
-from dgt_stats.site.regional_common import (
-    MIN_N,
-    _check,
-    _dimension,
-    _year_label,
-)
+from dgt_stats.site.regional_common import MIN_N, _check, _dimension, _year_label
 
-DATA_QUALITY = f'<a href="{DOCS_URL}/DATA_QUALITY_MICRODATA.md">data-quality report</a>'
+DATA_QUALITY = f'<a href="{DOCS_URL}/regional/data_quality.md">data-quality report</a>'
 TITLES = dict(ALL_PAGES)
 # The sections of the methodology page that hold each page's technical notes.
 CAT_NOTES = "catalonia-method"
@@ -134,7 +129,7 @@ def _catalonia_facts() -> SimpleNamespace:
     dgt = read_table("cat_vs_dgt_province_year")
     per_resident = read_table("cat_per_resident_province_year")
     artefacts = read_table("ml_recording_artefacts")
-    checks = read_table("mq_cat_checks").set_index("check").value
+    checks = read_table("cat_quality_checks").set_index("check").value
 
     overall = shares[(shares.dimension == "unit type involved") & (shares.level == "all")].iloc[0]
     years = shares[shares.dimension == "year"].level.astype(int)
@@ -604,7 +599,7 @@ def _barcelona_facts() -> SimpleNamespace:
     the checks that the sentences built on them still hold."""
     people = read_table("bcn_person_severity_share")
     crashes = read_table("bcn_crash_severity_share")
-    structure = read_table("mq_bcn_structure").set_index("table")
+    structure = read_table("bcn_quality_structure").set_index("table")
     profiles = read_table("bcn_cause_profiles")
     outcomes = read_table("bcn_people_by_severity").groupby("injury_severity").person_records.sum()
 
@@ -730,7 +725,7 @@ def _barcelona_facts() -> SimpleNamespace:
         "the crash model gave way to its table, and the person model only ranks people and is "
         "kept for research only",
     )
-    semantics = read_table("mq_bcn_count_semantics").set_index("check").value
+    semantics = read_table("bcn_quality_count_semantics").set_index("check").value
     no_victim = int(semantics["blank cells in Numero_victimes"])
     injury_share = crash_all.events / (crash_all.n - no_victim)
     _check(
@@ -878,7 +873,7 @@ def page_barcelona(captions: dict[str, str]) -> str:
             ("bcn_crash_severity_share", "crashes with a serious or fatal injury"),
             ("bcn_frequency", "crashes by month, hour, weekday and district"),
             ("bcn_cause_profiles", "alcohol- and speed-recorded crashes"),
-            ("mq_bcn_structure", "record counts by table"),
+            ("bcn_quality_structure", "record counts by table"),
         ],
         method=(f"data.html#{BCN_NOTES}", "people left out, rear-end codes and recorded causes"),
     )

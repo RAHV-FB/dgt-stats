@@ -9,8 +9,9 @@ from types import SimpleNamespace
 
 import pandas as pd
 
-from dgt_stats import driver_risk, vehicles
-from dgt_stats.risk_trends import NORMAL_QUANTILE
+from dgt_stats.drivers import driver_risk
+from dgt_stats.national import vehicles
+from dgt_stats.national.risk_trends import NORMAL_QUANTILE
 from dgt_stats.site.components import (
     ALL_PAGES,
     DOCS_URL,
@@ -78,10 +79,10 @@ def _facts() -> SimpleNamespace:
     that the sentences built on them still hold."""
     risk = _risk_numbers()
     index, latest, base, last = risk["index"], risk["latest"], risk["base"], risk["last"]
-    efficiency = read_table("risk_fuel_efficiency")
-    crosscheck = read_table("risk_km_crosscheck").set_index("year")
-    scatter = read_table("risk_dispersion").set_index("outcome")
-    panel = read_table("risk_annual_panel").set_index("year")
+    efficiency = read_table("trends_fuel_efficiency")
+    crosscheck = read_table("trends_km_crosscheck").set_index("year")
+    scatter = read_table("trends_dispersion").set_index("outcome")
+    panel = read_table("trends_annual_panel").set_index("year")
     panel_first = int(panel.index.min())
     segments = read_table("longrun_segments")
     scatter_first = int(scatter.loc["deaths_30d", "first_year"])
@@ -414,11 +415,11 @@ def page_trends(captions: dict[str, str]) -> str:
     )
     body += downloads(
         [
-            ("risk_index", "every outcome, denominator and year"),
-            ("risk_annual_panel", f"annual outcomes and denominators since {f.panel_first}"),
-            ("risk_dispersion", "the year-to-year scatter of each count"),
-            ("risk_fuel_efficiency", "the per-fuel change under hypothetical drifts"),
-            ("risk_km_crosscheck", "DGT kilometre estimates beside road fuel"),
+            ("trends_risk_index", "every outcome, denominator and year"),
+            ("trends_annual_panel", f"annual outcomes and denominators since {f.panel_first}"),
+            ("trends_dispersion", "the year-to-year scatter of each count"),
+            ("trends_fuel_efficiency", "the per-fuel change under hypothetical drifts"),
+            ("trends_km_crosscheck", "DGT kilometre estimates beside road fuel"),
         ],
         method=(f"data.html#{NOTES}", "ordinary variation, denominators and kilometres"),
     )

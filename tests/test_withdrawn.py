@@ -3,8 +3,10 @@
 import re
 from pathlib import Path
 
-from dgt_stats import summaries
-from dgt_stats.paths import PROJECT_ROOT
+from dgt_stats import catalogue
+from dgt_stats.drivers import driver_risk
+from dgt_stats.national import summaries
+from dgt_stats.paths import PROJECT_ROOT, TABLES_DIR
 
 SOURCE_DIRS = (PROJECT_ROOT / "src" / "dgt_stats", PROJECT_ROOT / "scripts")
 # The hand-typed registers of external-study values. The files stay in data/raw, which is
@@ -28,8 +30,8 @@ def test_no_code_reads_the_external_evidence_registers() -> None:
 
 def test_the_withdrawn_models_and_their_scripts_are_gone() -> None:
     package = PROJECT_ROOT / "src" / "dgt_stats"
-    for name in ("simulator.py", "factor_models.py", "site/simulator.py", "site/factor_pages.py"):
-        assert not (package / name).exists(), name
+    for name in ("simulator.py", "factor_models.py", "factor_pages.py"):
+        assert not list(package.rglob(name)), name
     # The scripts in the package are the interactive tools'. The severity calculator's engine
     # computes from the exported model and holds no coefficient of its own (its only decimal
     # constant is the 97.5% normal quantile). The tools' shared helpers hold only the geometry of
@@ -62,7 +64,12 @@ def test_the_withdrawn_models_and_their_scripts_are_gone() -> None:
 
 
 def test_no_summary_table_carries_a_withdrawn_result() -> None:
-    names = set(summaries.SUMMARIES)
+    # Every table a stage can write is catalogued (paths.table_path refuses any other name).
+    names = (
+        {entry.name for entry in catalogue.TABLES}
+        | set(summaries.SUMMARIES)
+        | set(driver_risk.TABLES)
+    )
     assert not any(name.startswith("simulator_") for name in names)
     withdrawn = {
         "factor_casualties",
@@ -96,8 +103,9 @@ EXTERNAL_RESULTS = (
 
 
 def test_no_committed_result_table_is_a_withdrawn_one() -> None:
-    tables = PROJECT_ROOT / "reports" / "tables"
-    assert not [path.name for path in tables.glob("*.csv") if WITHDRAWN_TABLES.match(path.name)]
+    found = sorted(TABLES_DIR.rglob("*.csv"))
+    assert found, "no result tables found"
+    assert not [path.name for path in found if WITHDRAWN_TABLES.match(path.name)]
 
 
 def test_the_committed_site_carries_no_withdrawn_result() -> None:

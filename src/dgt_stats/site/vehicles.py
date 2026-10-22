@@ -57,14 +57,14 @@ def _label(text: object) -> str:
 def _facts() -> SimpleNamespace:
     """Every figure the page and its technical notes quote, read from the tables, with the checks
     that the sentences built on them still hold."""
-    rates = read_table("q6_summary_2022").set_index("group")
-    split = read_table("q6_van_light_truck_split").set_index("group")
-    year = int(read_table("q6_rates_2022").year.iloc[0])
+    rates = read_table("vehicles_summary_2022").set_index("group")
+    split = read_table("vehicles_van_light_truck_split").set_index("group")
+    year = int(read_table("vehicles_rates_2022").year.iloc[0])
     car, truck, bike = rates.loc["car"], rates.loc["heavy_truck"], rates.loc["motorcycle"]
     # DGT's kilometre series, as its later release sets it out.
-    km_years = sorted(int(year) for year in read_table("risk_km_crosscheck").year)
+    km_years = sorted(int(year) for year in read_table("trends_km_crosscheck").year)
     # The rates with their 95% intervals, all roads.
-    intervals = read_table("q6_rates_2022")
+    intervals = read_table("vehicles_rates_2022")
     intervals = intervals[intervals.zone == "all"].set_index(["measure", "group"])
 
     def bounds(measure: str, group: str) -> tuple[float, float]:
@@ -250,15 +250,15 @@ def page_vehicles(captions: dict[str, str]) -> str:
     )
     body += downloads(
         [
-            ("q6_summary_2022", "rates by vehicle type"),
+            ("vehicles_summary_2022", "rates by vehicle type"),
             (
-                "q6_rates_2022",
+                "vehicles_rates_2022",
                 "rates with 95% intervals (urban and interurban roads only as counts and "
                 "rates per vehicle)",
             ),
-            ("q6_vehicle_km_2022", "fleet and kilometres"),
-            ("q6_vehicle_groups", "how the source categories map to these groups"),
-            ("q6_van_light_truck_split", "vans and light trucks separately"),
+            ("vehicles_km_2022", "fleet and kilometres"),
+            ("vehicles_groups", "how the source categories map to these groups"),
+            ("vehicles_van_light_truck_split", "vans and light trucks separately"),
         ],
         method=("data.html#rates", "rates and denominators"),
     )

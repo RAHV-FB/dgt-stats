@@ -7,8 +7,8 @@ tests page (``validation.py``) carries it. The calculator has its own page (``to
 
 Every number is read from the ``sev_*`` tables and the exported model
 (``reports/models/severity_model.json``), and every qualitative sentence is checked against them.
-The model is ``docs/research/SEVERITY_CALCULATOR.md``; the re-evaluation of every model is
-``docs/research/ML_MODEL_REVIEW.md``.
+The model is ``docs/models/severity_calculator.md``; the re-evaluation of every model is
+``docs/models/review.md``.
 """
 
 from __future__ import annotations
@@ -18,9 +18,9 @@ from types import SimpleNamespace
 
 import pandas as pd
 
-from dgt_stats.microdata.validation import decisions as rules
+from dgt_stats.models.severity_model import PREVIOUS_VALIDATION_YEARS
+from dgt_stats.models.validation import decisions as rules
 from dgt_stats.paths import REPORTS_DIR
-from dgt_stats.severity_model import PREVIOUS_VALIDATION_YEARS
 from dgt_stats.site.components import (
     DOCS_URL,
     _fmt_dec,
@@ -37,8 +37,8 @@ from dgt_stats.site.components import (
 )
 
 MODEL_PATH = REPORTS_DIR / "models" / "severity_model.json"
-REVIEW_DOC = f"{DOCS_URL}/research/ML_MODEL_REVIEW.md"
-CALCULATOR_DOC = f"{DOCS_URL}/research/SEVERITY_CALCULATOR.md"
+REVIEW_DOC = f"{DOCS_URL}/models/review.md"
+CALCULATOR_DOC = f"{DOCS_URL}/models/severity_calculator.md"
 # The contrasts quoted as worked examples, each a change of one input from the reference crash.
 # The reference is in daylight at 10:00-13:59, so changes of the hour or the lighting alone would
 # describe conditions the calculator refuses; none is quoted.
@@ -416,7 +416,6 @@ def _facts() -> SimpleNamespace:
     top, bottom = _fifth(model_groups, True), _fifth(model_groups, False)
     top_table, bottom_table = _fifth(table_groups, True), _fifth(table_groups, False)
     _check(top > top_table and bottom < bottom_table, "the model separates the extremes better")
-    miss_provinces = sorted(set(misses.province))
     yearly_scores = scores[(scores.estimator == "calculator") & scores.subset.str.isdigit()]
     miss_years = [str(row.subset) for row in yearly_scores.itertuples() if _outside(row)]
     _check(not misses.empty, "the heading says that the estimates miss in some provinces")

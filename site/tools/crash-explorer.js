@@ -1,5 +1,5 @@
 /* The crash statistics explorer. It adds up the rows of tools/crash-explorer.json (built from
-   reports/tables/explore_dgt_crashes.csv) that the reader selects, and shows the chosen outcome
+   reports/tables/national/explore_dgt_crashes.csv) that the reader selects, and shows the chosen outcome
    as a headline, a chart, the figures behind it and one line per caveat that applies. Every
    number comes from that file; this script only selects, adds and divides. */
 (function () {

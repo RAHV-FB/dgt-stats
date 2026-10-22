@@ -1,0 +1,119 @@
+"""The microdata source registry: files found by their columns, copies processed once."""
+
+import datetime as dt
+
+import pandas as pd
+import pytest
+
+from dgt_stats.regional import files
+
+CRASH_HEADER = (
+    "﻿Numero_expedient,NK_Any,Numero_morts,Numero_lesionats_lleus,Numero_lesionats_greus,"
+    "Numero_victimes,Numero_vehicles_implicats\n"
+)
+CAUSE_HEADER = "﻿Número_expedient,Nk_Any,Causa conductor\n"
+
+
+def _write(path, header, rows):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(header + "".join(rows), encoding="utf-8")
+    return path
+
+
+def test_column_names_are_normalised_but_values_are_not(tmp_path) -> None:
+    assert files.normalise_column_name("Número_expedient") == "Numero_expedient"
+    assert files.normalise_column_name("NK_ Any") == "NK_Any"
+    assert files.normalise_column_name("Mes_ any") == "Mes_any"
+    assert files.normalise_column_name("Nk_Any") == "NK_Any"
+    assert files.normalise_column_name("Num_postal ") == "Num_postal"
+    assert files.normalise_column_name("Causa conductor") == "Causa_conductor"
+    path = _write(tmp_path / "c.csv", CAUSE_HEADER, ["2025S000001,2025,Manca d'atenció\n"])
+    frame = files.read_raw(path)
+    assert list(frame.columns) == ["source_row", "Numero_expedient", "NK_Any", "Causa_conductor"]
+    assert frame.Causa_conductor.iloc[0] == "Manca d'atenció"
+
+
+def test_files_are_identified_by_columns_not_names(tmp_path) -> None:
+    crash = _write(tmp_path / "download(7).csv", CRASH_HEADER, ["2025S1,2025,,1,,1,2\n"])
+    cause = _write(tmp_path / "export.csv", CAUSE_HEADER, ["2025S1,2025,Altres\n"])
+    assert files.identify(files.header(crash)).name == "bcn_accidents"
+    assert files.identify(files.header(cause)).name == "bcn_driver_causes"
+    assert files.identify(["a", "b"]) is None
+
+
+def test_a_byte_identical_copy_is_processed_once(tmp_path) -> None:
+    rows = ["2025S1,2025,,1,,1,2\n", "2025S2,2025,1,,,1,1\n"]
+    _write(tmp_path / "bcn" / "a.csv", CRASH_HEADER, rows)
+    _write(tmp_path / "bcn" / "b.csv", CRASH_HEADER, rows)
+    found = files.discover(roots=(tmp_path / "bcn",))
+    assert len(found) == 2
+    assert sum(item.duplicate_of is not None for item in found) == 1
+    assert len(files.resolve("bcn_accidents", found)) == 1
+
+
+def test_same_rows_in_another_order_count_as_a_copy(tmp_path) -> None:
+    _write(
+        tmp_path / "bcn" / "a.csv", CRASH_HEADER, ["2025S1,2025,,1,,1,2\n", "2025S2,2025,1,,,1,1\n"]
+    )
+    _write(
+        tmp_path / "bcn" / "b.csv", CRASH_HEADER, ["2025S2,2025,1,,,1,1\n", "2025S1,2025,,1,,1,2\n"]
+    )
+    found = files.discover(roots=(tmp_path / "bcn",))
+    assert all(item.duplicate_of is None for item in found)
+    chosen = files.resolve("bcn_accidents", found)
+    assert len(chosen) == 1
+
+
+def test_two_different_files_for_one_role_and_year_stop_the_pipeline(tmp_path) -> None:
+    _write(tmp_path / "bcn" / "a.csv", CRASH_HEADER, ["2025S1,2025,,1,,1,2\n"])
+    _write(tmp_path / "bcn" / "b.csv", CRASH_HEADER, ["2025S1,2025,1,,,1,2\n"])
+    found = files.discover(roots=(tmp_path / "bcn",))
+    with pytest.raises(files.SourceConflict):
+        files.resolve("bcn_accidents", found)
+
+
+def test_organise_files_a_new_download_and_leaves_a_duplicate_in_place(tmp_path) -> None:
+    raw = tmp_path / "data" / "raw"
+    raw.mkdir(parents=True)
+    manifest = raw / "manifest.csv"
+    files.write_manifest([], manifest)
+    rows = ["2025S1,2025,,1,,1,2\n"]
+    new = _write(tmp_path / "data" / "download.csv", CRASH_HEADER, rows)
+    result = files.organise(raw_dir=raw, manifest=manifest, today=dt.date(2026, 1, 1))
+    target = raw / "barcelona" / "2025" / "accidents_gu_bcn_2025.csv"
+    assert result.moved == [(new, target)] and target.exists()
+    listed = pd.read_csv(manifest, dtype=str)
+    assert listed.downloaded_as.tolist() == ["download.csv"]
+    # A new file is registered with the portal it is published on and its licence.
+    assert listed.source_url.tolist() == [
+        "https://opendata-ajuntament.barcelona.cat/data/ca/dataset/accidents-gu-bcn"
+    ]
+    assert "Creative Commons Attribution 4.0" in listed.description.iloc[0]
+    copy = _write(tmp_path / "data" / "download(1).csv", CRASH_HEADER, rows)
+    again = files.organise(raw_dir=raw, manifest=manifest, today=dt.date(2026, 1, 1))
+    assert again.duplicates == [(copy, "barcelona/2025/accidents_gu_bcn_2025.csv")]
+    assert copy.exists() and len(pd.read_csv(manifest)) == 1
+
+
+def test_every_regional_source_names_its_portal_and_licence() -> None:
+    for role in files.ROLES:
+        assert role.portal.startswith("https://"), role.name
+        assert "licence" in role.licence.lower() or "llicència" in role.licence.lower(), role.name
+
+
+def test_the_manifest_records_a_source_url_for_every_regional_file() -> None:
+    listed = pd.read_csv(files.MANIFEST, dtype=str)
+    regional = listed[listed.path.str.startswith(("barcelona/", "catalonia/"))]
+    assert not regional.empty
+    assert regional.source_url.str.startswith("https://").all()
+    assert not regional.source_url.str.contains("not recorded").any()
+
+
+def test_every_registered_raw_microdata_file_is_readable_and_recognised() -> None:
+    found = files.discover()
+    if not found:
+        pytest.skip("no regional microdata under data/raw")
+    roles = {item.role.name for item in found if item.duplicate_of is None}
+    assert roles == {role.name for role in files.ROLES}
+    for item in found:
+        assert len(files.read_raw(item.path)) > 0

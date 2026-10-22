@@ -10,10 +10,12 @@ import re
 
 import pandas as pd
 
-from dgt_stats import codes
-from dgt_stats.exposure_risk import national as national_rates
-from dgt_stats.microdata.ml import recording
-from dgt_stats.microdata.validation import dgt_audit
+from dgt_stats import catalogue
+from dgt_stats.drivers.emef import distance
+from dgt_stats.drivers.exposure_risk import national as national_rates
+from dgt_stats.models.ml import recording
+from dgt_stats.models.validation import dgt_audit
+from dgt_stats.national import codes
 from dgt_stats.site.components import (
     ALL_PAGES,
     DOCS_URL,
@@ -116,7 +118,7 @@ def _source_table(numbers: dict[str, str], inventory: pd.DataFrame) -> str:
     census_text = min(_inventory_years(inventory, "raw/dgt/census/censo_conductores"))
     km_years = _inventory_years(inventory, "raw/dgt/km_itv_")
     km_owner = _span(_inventory_years(inventory, "raw/dgt/km_itv_", "edad_propietario"))
-    km_type = _span_of(read_table("q6_rates_2022").year)
+    km_type = _span_of(read_table("vehicles_rates_2022").year)
     _check(
         len(km_years) == 2 and km_type != km_owner,
         "sources",
@@ -151,7 +153,7 @@ def _source_table(numbers: dict[str, str], inventory: pd.DataFrame) -> str:
     )
     rows = [
         (
-            "National crash records",
+            "dgt_microdata",
             "DGT",
             f"Spain, every province, {numbers['dgt_span']}",
             f"One row per crash with at least one victim ({numbers['dgt_rows']} crashes).",
@@ -160,7 +162,7 @@ def _source_table(numbers: dict[str, str], inventory: pd.DataFrame) -> str:
             "restricted to the variables both record alike.",
         ),
         (
-            "Yearbook series",
+            "dgt_series",
             "DGT",
             f"Spain and its provinces, {numbers['yearbook_span']}",
             "Annual, monthly and provincial totals of crashes and casualties.",
@@ -168,7 +170,7 @@ def _source_table(numbers: dict[str, str], inventory: pd.DataFrame) -> str:
             "are checked against.",
         ),
         (
-            "Statistical tables",
+            "dgt_tables",
             "DGT",
             f"Spain, {_span(stats_years)}",
             "Drivers involved and killed by age, sex and vehicle; vehicles involved by type; "
@@ -177,14 +179,14 @@ def _source_table(numbers: dict[str, str], inventory: pd.DataFrame) -> str:
             "per kilometre by driver age; drivers recorded with a speed infraction.",
         ),
         (
-            "Speed-factor report",
+            "dgt_speed_report",
             "DGT",
             f"Spain outside Catalonia and the Basque Country, {numbers['factor_span']}",
             "Injury crashes with each police-recorded factor, and deaths in those with speed.",
             "Speed and the other recorded factors; never added to national totals.",
         ),
         (
-            "Driver census",
+            "dgt_census",
             "DGT",
             f"Spain by province, {_span(census_years)}",
             "Licence holders by province, sex and age band; holders of a car licence (B permit) "
@@ -192,7 +194,7 @@ def _source_table(numbers: dict[str, str], inventory: pd.DataFrame) -> str:
             "Rates per licence holder; car-licence holders by age for the analysis of drivers.",
         ),
         (
-            "Kilometre estimates",
+            "dgt_km",
             "DGT",
             f"Spain, {_span(km_years)}",
             "Circulating fleet and mean annual kilometres by vehicle type, from the odometer "
@@ -203,22 +205,16 @@ def _source_table(numbers: dict[str, str], inventory: pd.DataFrame) -> str:
             "owner's age band, as a comparison only.",
         ),
         (
-            "Resident population",
+            "ine_population",
             "INE",
-            f"Spain by province, {residents}",
-            "Residents by five-year age group and sex.",
-            "Rates per resident; crashes per resident by province.",
+            f"Spain by province, {residents}; Spain by single year of age, {single_ages}",
+            "Residents by province, five-year age group and sex; residents of Spain by single year "
+            "of age and sex.",
+            "Rates per resident; crashes per resident by province; the population the survey age "
+            "profiles are applied to for the national rates per kilometre by driver age.",
         ),
         (
-            "Population by single year of age",
-            "INE",
-            f"Spain, {single_ages}",
-            "Residents of Spain by single year of age and sex.",
-            "The population the survey age profiles are applied to for the national rates per "
-            "kilometre by driver age.",
-        ),
-        (
-            "Working-day mobility survey (EMEF)",
+            "emef",
             "Autoritat del Transport Metropolità, Idescat and Institut Metròpoli",
             f"Barcelona area, working days, {emef_years}",
             "Public-use microdata of residents aged 16 and over of the ATM's planning area: one "
@@ -228,7 +224,25 @@ def _source_table(numbers: dict[str, str], inventory: pd.DataFrame) -> str:
             "working-day rates.",
         ),
         (
-            "Madrid household travel survey (EDM2018)",
+            "emef_distance_2021",
+            "Institut Metròpoli for the Autoritat del Transport Metropolità",
+            catalogue.SOURCE_BY_KEY["emef_distance_2021"].coverage,
+            "Typed from the report, which is not archived here: the ratio of road to "
+            f"straight-line distance on driving trips ({distance.ROAD_RATIO['driving']:.2f}) "
+            "and the report's mean distances.",
+            "Road kilometres from the straight-line distances the survey records, and a check "
+            "of the modelled distances.",
+        ),
+        (
+            "emef_technical",
+            "Autoritat del Transport Metropolità",
+            f"Barcelona area, {emef_years}",
+            "Typed from the survey's technical document, which is not archived here: each year's "
+            "population aged 16 and over and final sample.",
+            "A check only: each year's respondent file must reproduce both.",
+        ),
+        (
+            "edm2018",
             "Consorcio Regional de Transportes de Madrid",
             f"Comunidad de Madrid, Monday to Thursday, {edm_year}",
             "Public microdata: respondents with exact age and sex, and their trips as car "
@@ -237,7 +251,7 @@ def _source_table(numbers: dict[str, str], inventory: pd.DataFrame) -> str:
             "for the national rates per kilometre by driver age.",
         ),
         (
-            "Mobility survey of Spain (MOVILIA)",
+            "movilia",
             "Ministerio de Transportes",
             f"Spain, {movilia[0]} and {movilia[1]}",
             f"Published tables: trips by age, main mode and type of day ({movilia[0]}); car "
@@ -248,7 +262,7 @@ def _source_table(numbers: dict[str, str], inventory: pd.DataFrame) -> str:
             "over.",
         ),
         (
-            "Survey of older licence holders (Mayores al volante)",
+            "racc_2013",
             "Fundació RACC",
             f"Spain, licence holders aged 65 and over, published {national_rates.RACC_YEAR}",
             "Published slides: the shares of licence holders who do not drive and the days a "
@@ -259,7 +273,7 @@ def _source_table(numbers: dict[str, str], inventory: pd.DataFrame) -> str:
             "surveys of men's driving.",
         ),
         (
-            "Population census, relation with economic activity",
+            "idescat_census",
             "Idescat",
             f"Catalonia, 1 January {int(census.year.iloc[0])}",
             "Employed residents aged 65 and over.",
@@ -267,7 +281,7 @@ def _source_table(numbers: dict[str, str], inventory: pd.DataFrame) -> str:
             "in the sensitivity range of the rates per kilometre by driver age.",
         ),
         (
-            "Road fuel",
+            "cores_fuel",
             "CORES",
             f"Spain, monthly; the analysis uses {numbers['fuel_span']}",
             "Tonnes of automotive petrol and diesel sold, biofuels included.",
@@ -275,7 +289,7 @@ def _source_table(numbers: dict[str, str], inventory: pd.DataFrame) -> str:
             "points-licence study.",
         ),
         (
-            "Toll-motorway traffic",
+            "transport_toll",
             "Ministerio de Transportes",
             f"State toll motorways, monthly from {toll_from}",
             "Average daily traffic and vehicle-kilometres on the toll network.",
@@ -283,14 +297,14 @@ def _source_table(numbers: dict[str, str], inventory: pd.DataFrame) -> str:
             "never a denominator.",
         ),
         (
-            "Interurban vehicle-kilometres",
+            "transport_road_km",
             "Ministerio de Transportes",
             f"State, regional and provincial road networks, {numbers['km_span']}",
             "Vehicle-kilometres by road type.",
             "Interurban deaths per measured kilometre, overall and by road type.",
         ),
         (
-            "Catalan crash records",
+            "sct_catalonia",
             "Servei Català de Trànsit",
             f"Catalonia, {numbers['cat_span']}",
             "One row per crash with at least one death or serious injury "
@@ -299,7 +313,7 @@ def _source_table(numbers: dict[str, str], inventory: pd.DataFrame) -> str:
             "and its tests; the original Catalan model, now retired.",
         ),
         (
-            "Barcelona crash records",
+            "gu_barcelona",
             "Ajuntament de Barcelona (Guàrdia Urbana)",
             f"Barcelona city, {numbers['bcn_year']}",
             f"Six linked tables: {numbers['bcn_crashes']} crashes, {numbers['bcn_people']} "
@@ -309,14 +323,24 @@ def _source_table(numbers: dict[str, str], inventory: pd.DataFrame) -> str:
             "per kilometre by age on working days, with the EMEF.",
         ),
     ]
+    # One row per source the analyses read, under the catalogue's name for it, which is the name
+    # every page's Sources line uses.
+    read = [source.key for source in catalogue.SOURCES if source.read]
+    _check(
+        sorted(row[0] for row in rows) == sorted(read),
+        "sources",
+        "the table has one row for each source the analyses read",
+    )
+    rows.sort(key=lambda row: read.index(row[0]))
     frame = pd.DataFrame(
-        rows, columns=["Source", "Published by", "Coverage", "Records", "Used for"]
+        [(catalogue.SOURCE_BY_KEY[row[0]].name, *row[1:]) for row in rows],
+        columns=["Source", "Published by", "Coverage", "Records", "Used for"],
     )
     pages = _join(
         [f'<a href="{slug}.html">{esc(TITLES[slug])}</a>' for slug in ("long-run", "policy")]
     )
     long_run = read_table("longrun_projection_sensitivity")
-    policy = read_table("q8_points_sensitivity")
+    policy = read_table("policy_points_sensitivity")
     _check(
         long_run.variant.eq("deaths_24h").any() and policy.variant.eq("24h").any(),
         "sources",
@@ -331,8 +355,36 @@ def _source_table(numbers: dict[str, str], inventory: pd.DataFrame) -> str:
     )
 
 
+def _by_section() -> str:
+    """Which sources each section of the site draws on: the sources of every result table the
+    section's stages write, from the catalogue (``dgt_stats.catalogue``)."""
+    rows = []
+    for section in catalogue.SECTIONS:
+        pages = [TITLES[slug] for slug in section.pages if slug in TITLES]
+        if section.key == "sources":
+            # The inventory reads every raw file; the section analyses none of them.
+            rows.append((section.short, "; ".join(pages), "every raw file, profiled"))
+            continue
+        names = [entry.name for entry in catalogue.TABLES if entry.section == section.key]
+        sources = [source.name for source in catalogue.sources_of(names) if source.read]
+        rows.append((section.short, "; ".join(pages), "; ".join(sources)))
+    frame = pd.DataFrame(rows, columns=["Section", "Pages", "Sources"])
+    return (
+        "<h2>Which sources each section uses</h2>"
+        + table(
+            frame,
+            "Sources by section of the site. A section's sources are those of all its result "
+            "tables, including the tables behind its documents and checks that no page links.",
+        )
+        + f'<p>The <a href="{DOCS_URL}/catalogue.md">catalogue</a> in the repository lists every '
+        "result table with the sources it is computed from and the page that publishes it, and "
+        "every source with its files. Each analysis page's closing block names the sources of the "
+        "tables it links; the tools say in their notes which records they compute from.</p>"
+    )
+
+
 def _crash_records(numbers: dict[str, str]) -> str:
-    quality = f'<a href="{DOCS_URL}/DATA_QUALITY_MICRODATA.md">data-quality report</a>'
+    quality = f'<a href="{DOCS_URL}/regional/data_quality.md">data-quality report</a>'
     return (
         "<h2>The three sets of crash records</h2>"
         "<p>DGT's national file has one row per crash with at least one victim. It records the "
@@ -591,7 +643,7 @@ def _audit() -> str:
         "Catalan file, as an external test of a version of the original Catalan model. They "
         "train reference and diagnostic models for those tests, but no published predictive "
         "model. The full audit is published as the "
-        f'<a href="{DOCS_URL}/DGT_MICRODATA_AUDIT.md">DGT microdata audit</a>.</p>'
+        f'<a href="{DOCS_URL}/models/dgt_microdata_audit.md">DGT microdata audit</a>.</p>'
     )
 
 
@@ -600,15 +652,15 @@ def _scope() -> str:
     items = "".join(f"<li>{esc(what)}. {why}</li>" for what, why in SCOPE)
     return (
         f'<h2 id="scope">What the files do not record</h2><ul>{items}</ul>'
-        f'<p>The <a href="{DOCS_URL}/SOURCE_COMPARISON.md">source comparison</a> describes how '
+        f'<p>The <a href="{DOCS_URL}/sources/source_comparison.md">source comparison</a> describes how '
         "each file is produced, and the "
-        f'<a href="{DOCS_URL}/DATA_CONTRACT.md">usage rules</a> state how each may be used.</p>'
+        f'<a href="{DOCS_URL}/sources/contract.md">usage rules</a> state how each may be used.</p>'
     )
 
 
 # ----------------------------------------------------------------------------- sources
 def page_sources(captions: dict[str, str]) -> str:
-    validation = read_table("validation")
+    validation = read_table("reconciliation")
     inventory = read_table("data_inventory")
     rows = validation[validation.check == "row_count"]
     _check(
@@ -618,8 +670,8 @@ def page_sources(captions: dict[str, str]) -> str:
     )
     shares = read_table("cat_fatal_share")
     overall = shares[(shares.dimension == "unit type involved") & (shares.level == "all")].iloc[0]
-    structure = read_table("mq_bcn_structure").set_index("table")
-    semantics = read_table("mq_bcn_count_semantics").set_index("check").value
+    structure = read_table("bcn_quality_structure").set_index("table")
+    semantics = read_table("bcn_quality_count_semantics").set_index("check").value
     vehicles = read_table("bcn_vehicle_audit_counts").set_index("measure").value
     people = read_table("bcn_people_by_severity").groupby("injury_severity").person_records.sum()
     person_shares = read_table("bcn_person_severity_share")
@@ -642,9 +694,9 @@ def page_sources(captions: dict[str, str]) -> str:
     numbers = {
         "dgt_rows": _fmt_int(rows.actual.sum()),
         "dgt_span": _span_of(rows.year),
-        "yearbook_span": _span_of(read_table("q1_annual_headline").year),
+        "yearbook_span": _span_of(read_table("longrun_headline").year),
         "factor_span": _span_of(read_table("factor_shares").year),
-        "fuel_span": _span_of(read_table("risk_frequency_severity").year),
+        "fuel_span": _span_of(read_table("trends_frequency_severity").year),
         "km_span": _span_of(read_table("longrun_km_panel").year),
         "cat_span": _span_of(read_table("cat_frequency").year),
         "cat_rows": _fmt_int(overall.n),
@@ -671,6 +723,7 @@ def page_sources(captions: dict[str, str]) -> str:
     )
     body += "<h2>The sources</h2>"
     body += _source_table(numbers, inventory)
+    body += _by_section()
     body += _crash_records(numbers)
     body += _meeting(read_table("cat_vs_dgt_province_year"))
     body += _audit()

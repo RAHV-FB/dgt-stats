@@ -12,7 +12,7 @@ from types import SimpleNamespace
 
 import pandas as pd
 
-from dgt_stats import risk_trends
+from dgt_stats.national import risk_trends
 from dgt_stats.site.components import (
     ALL_PAGES,
     DOCS_URL,
@@ -103,8 +103,8 @@ def _facts() -> SimpleNamespace:
     sensitivity = read_table("longrun_projection_sensitivity").set_index(
         ["measure", "variant", "year"]
     )
-    headline = read_table("q1_annual_headline").set_index("year")
-    panel = read_table("risk_annual_panel").set_index("year")
+    headline = read_table("longrun_headline").set_index("year")
+    panel = read_table("trends_annual_panel").set_index("year")
     first = int(series.year.min())
     fit_end = int(series[series.period == "fitted"].year.max())
     pandemic = int(projected.index.get_level_values("year").min())
@@ -172,13 +172,13 @@ def _facts() -> SimpleNamespace:
 
     # The trends page reads the same per-fuel rate against its base year, with an ordinary
     # year's variation measured around the count's last pre-pandemic segment.
-    index = read_table("risk_index")
+    index = read_table("trends_risk_index")
     per_fuel_index = index[
         (index.year == last) & (index.outcome == "deaths_30d") & (index.denominator == "road_fuel")
     ].iloc[0]
     base_year = int(index.year.min())
     ordinary_scatter = float(
-        read_table("risk_dispersion").set_index("outcome").loc["deaths_30d", "dispersion"]
+        read_table("trends_dispersion").set_index("outcome").loc["deaths_30d", "dispersion"]
     )
     # The per-fuel projection keeps falling after the fit ends; how far it fell by the last year.
     refit_slope = float(projection["road_fuel"].projection_annual_change)
@@ -187,7 +187,7 @@ def _facts() -> SimpleNamespace:
     count_observed = series[series.measure == "count"].set_index("year").observed
 
     # Deaths per tonne of road fuel split two ways: by injury crashes and by people admitted.
-    split = read_table("risk_frequency_severity").set_index("year")
+    split = read_table("trends_frequency_severity").set_index("year")
     split_first, split_last = int(split.index.min()), int(split.index.max())
     end = split.loc[split_last]
     frequency = float(end.frequency_index) / 100
@@ -268,7 +268,7 @@ def _facts() -> SimpleNamespace:
     )
     road_years = all_roads.conventional / all_roads.motorway
     # DGT's inspection-based kilometres, the other source, over their own years.
-    crosscheck = read_table("risk_km_crosscheck").dropna(subset=["billion_km_ratio"])
+    crosscheck = read_table("trends_km_crosscheck").dropna(subset=["billion_km_ratio"])
     dgt_km_end = crosscheck.iloc[-1]
     dgt_per_tonne = float(dgt_km_end.billion_km_ratio / dgt_km_end.road_fuel_tonnes_ratio) - 1
     dgt_first, dgt_last = int(crosscheck.year.iloc[0]), int(dgt_km_end.year)
@@ -611,7 +611,7 @@ def page_long_run(captions: dict[str, str]) -> str:
             ("longrun_segments", "trend segments"),
             ("longrun_model_choice", "choice of turning points"),
             ("longrun_projection_sensitivity", "the projection under other choices"),
-            ("risk_frequency_severity", "crash frequency and severity"),
+            ("trends_frequency_severity", "crash frequency and severity"),
             ("longrun_efficiency", "hypothetical fuel drifts"),
             ("longrun_km_panel", "interurban deaths, kilometres and fuel"),
             ("longrun_km_check", "trend per measured kilometre, with the fuel check"),
