@@ -162,7 +162,7 @@ analysis reads it, is in [`catalogue.md`](../catalogue.md).
   rests on fewer than 20 sample observations (the data holders' rule); splitting the EMEF's 65+
   group, which no public file allows, except under a stated assumption (the conditional estimate
   beside its sensitivity range) or, for one bound and one validation, through the questionnaire's
-  P1b routing, as aggregates under the 20-observation rule (`emef/older_routing.py`).
+  P1b routing, as aggregates under the 20-observation rule (`drivers/emef/older_routing.py`).
 
 ### Traffic and fuel (`transportes/`, `cores/`) and surveys (`ine/` EHMA, ECEPOV; MOVILIA)
 
@@ -287,14 +287,14 @@ check enter a cross-source model.
 
 Each table in `data/features/` has one row per real observation, a stable id, the target, the
 grouping key where rows share a crash, the features the catalogue allows and a provenance record
-(source files and SHA-256). The catalogue in `src/dgt_stats/national/associations/ml/features.py` decides every
+(source files and SHA-256). The catalogue in `src/dgt_stats/models/ml/features.py` decides every
 column's status (safe, questionable, direct leakage, excluded) and generates
 [`models/leakage_audit.md`](../models/leakage_audit.md). Rows of one crash never fall on both sides of a split
 (`tests/test_microdata_models.py`); categorical gaps are explicit categories and numeric gaps are
 imputed inside the pipeline on training rows only; no synthetic or oversampled rows are created.
 
 Every model is compared with a descriptive lookup table before it is presented, and kept only if
-it beats it (`src/dgt_stats/national/associations/ml/rules.py`); the decision for every model, with where it
+it beats it (`src/dgt_stats/models/ml/rules.py`); the decision for every model, with where it
 works and fails, is generated in [`models/decisions.md`](../models/decisions.md). Transfer results
 are always reported beside an in-domain reference, and representativeness (how populations
 differ) is reported separately from transportability (whether a model keeps its ranking):

@@ -1,7 +1,7 @@
 # Re-evaluation of the predictive models
 
 Every model the repository fitted was refitted here with separate code
-(`src/dgt_stats/national/associations/review.py`, `src/dgt_stats/national/associations/severity_model.py`), scored against a simple
+(`src/dgt_stats/models/review.py`, `src/dgt_stats/models/severity_model.py`), scored against a simple
 benchmark on records it was not fitted on, and checked for calibration as well as ranking. The
 tables are written by `python scripts/run.py models.calculator models.review` to `reports/tables/models/review_*.csv`
 and `reports/tables/models/sev_*.csv`.

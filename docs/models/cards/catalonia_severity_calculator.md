@@ -22,7 +22,7 @@ that were fatal vary with the recorded road, conditions and crash?
   left out of fitting and of evaluation.
 - **Target:** fatal (someone died within 24 hours) rather than serious, as the source file defines
   it.
-- **Method:** penalised logistic regression (`src/dgt_stats/national/associations/severity_model.py`,
+- **Method:** penalised logistic regression (`src/dgt_stats/models/severity_model.py`,
   `scripts/run.py models.calculator`), exported to `reports/models/severity_model.json`;
   the page's engine (`src/dgt_stats/site/assets/severity-engine.js`) reproduces its predictions and
   their intervals.

@@ -88,7 +88,7 @@ groups' shares of the 2019 respondents aged 30–64.
 road distance (Google Distance Matrix) of every trip with coordinates. Driving trips averaged
 8.9 km in a straight line and 12.9 km by road, a ratio of 1.45. That ratio is applied to every
 trip. The report is not archived in this repository and could not be found online again, so the
-ratio and the 2021 benchmarks below rest on the transcription in `emef/distance.py`. A common ratio
+ratio and the 2021 benchmarks below rest on the transcription in `drivers/emef/distance.py`. A common ratio
 multiplies every age group's kilometres alike, so it changes absolute rates per kilometre and
 changes the ratios between age groups only slightly (trips without a band are bounded by a
 door-to-door speed whatever the ratio).

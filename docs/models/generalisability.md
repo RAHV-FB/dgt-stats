@@ -159,7 +159,7 @@ original model, gradient-boosted trees whose features include the road's owner
 (`D_TITULARITAT_VIA`). That field was later found to record how a crash was documented
 (a blank owner is far commoner on fatal records), and the model was retired; its results
 are kept as a record. The published model is the calculator's
-(`dgt_stats.national.associations.severity_model`).
+(`dgt_stats.models.severity_model`).
 
 ### The published calculator's model
 

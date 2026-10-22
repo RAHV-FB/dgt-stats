@@ -10,7 +10,7 @@ days appear in the file as serious. The data contain only crashes, so the model 
 how likely a crash is to happen, how risky a road is per kilometre, or what changing a road or a
 condition would do. A difference between two scenarios is an association in these records.
 
-Code: `src/dgt_stats/national/associations/severity_model.py` and `scripts/run.py models.calculator`. Browser
+Code: `src/dgt_stats/models/severity_model.py` and `scripts/run.py models.calculator`. Browser
 engine: `src/dgt_stats/site/assets/severity-engine.js`; page: `severity-calculator.js`. Tests:
 `tests/test_severity_engine.py` and the calculator tests in `tests/test_site_browser.py`.
 
