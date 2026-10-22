@@ -86,7 +86,9 @@ jobs:
 
   browser:
     name: Build the site and test it in a browser
-    runs-on: ubuntu-latest
+    # Playwright 1.56 installs Chromium and its system libraries on Ubuntu 24.04 but refuses
+    # Ubuntu 26.04, which ubuntu-latest became in October 2026.
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
