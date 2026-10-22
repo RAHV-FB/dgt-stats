@@ -69,9 +69,14 @@ def _source_names(keys) -> str:
     return ", ".join(names) if names else "definitions in the code"
 
 
-def _folders(files: list[str]) -> str:
-    folders = sorted({str(Path(f).parent) for f in files})
-    return ", ".join(f"`{folder}/`" for folder in folders)
+def _count(n: int, noun: str) -> str:
+    return f"{n} {noun}{'' if n == 1 else 's'}"
+
+
+def _files(source: catalogue.Source, files: list[str]) -> str:
+    """The source's file patterns under ``data/raw`` and how many files they hold."""
+    patterns = ", ".join(f"`{pattern}`" for pattern in source.files)
+    return f"{patterns} ({_count(len(files), 'file')})"
 
 
 def _link_page(slug: str, titles: dict[str, str]) -> str:
@@ -82,7 +87,7 @@ def section_stages(section: str) -> list[pipeline.Stage]:
     return [stage for stage in pipeline.STAGES if stage.section == section]
 
 
-def document(site_dir: Path = SITE_DIR) -> str:
+def document() -> str:
     titles = _page_titles()
     owned = files_by_source()
     by_section: dict[str, list[catalogue.Table]] = defaultdict(list)
@@ -112,7 +117,7 @@ def document(site_dir: Path = SITE_DIR) -> str:
         pages = ", ".join(_link_page(slug, titles) for slug in section.pages)
         lines.append(
             f"| [{section.title}](#{section.key}) | {section.question} | {source_text} | "
-            f"[{len(tables)} tables](../reports/tables/{section.key}/) | {pages} |"
+            f"[{_count(len(tables), 'table')}](../reports/tables/{section.key}/) | {pages} |"
         )
     for section in catalogue.SECTIONS:
         lines += _section_block(section, by_section[section.key], titles)
@@ -153,7 +158,7 @@ def _section_block(
         else:
             sources = "—"
         note = "" if stage.in_all else " (run by name only)"
-        count = f" ({len(written)} tables)" if written else ""
+        count = f" ({_count(len(written), 'table')})" if written else ""
         lines.append(f"| `{stage.key}`{note} | {stage.does} | {sources} | {stage.writes}{count} |")
     return lines
 
@@ -165,7 +170,8 @@ def _sources_block(owned: dict[str, list[str]]) -> list[str]:
         "",
         "## Every source",
         "",
-        "Each raw file under `data/raw` belongs to exactly one source; the manifest "
+        "Each raw file under `data/raw` belongs to exactly one source, by the patterns below "
+        "(relative to `data/raw`); the manifest "
         "(`data/raw/manifest.csv`) records its size, checksum, URL and the date it was added, and "
         "the [raw-file inventory](sources/raw_file_inventory.md) profiles it. Two sources are "
         "figures typed from documents that are not archived, and say so. The terms on which "
@@ -180,7 +186,7 @@ def _sources_block(owned: dict[str, list[str]]) -> list[str]:
             unread.append(source)
             continue
         files = owned.get(source.key, [])
-        file_text = f"{_folders(files)} ({len(files)} files)" if files else "typed; not archived"
+        file_text = _files(source, files) if files else "typed; not archived"
         lines.append(
             f"| {source.name} | {source.publisher} | {source.coverage} | {source.record}"
             + (f" ({source.note})" if source.note else "")
@@ -195,7 +201,7 @@ def _sources_block(owned: dict[str, list[str]]) -> list[str]:
     ]
     for source in unread:
         files = owned.get(source.key, [])
-        lines.append(f"| {_folders(files)} ({len(files)} files) | {source.name}: {source.record} |")
+        lines.append(f"| {_files(source, files)} | {source.name}: {source.record} |")
     return lines
 
 
@@ -242,7 +248,7 @@ def folder_readme(section: catalogue.Section, site_dir: Path = SITE_DIR) -> str:
 
 def outputs(site_dir: Path = SITE_DIR) -> dict[Path, str]:
     """Every file this module writes, with its text."""
-    out = {CATALOGUE_DOC: document(site_dir)}
+    out = {CATALOGUE_DOC: document()}
     for section in catalogue.SECTIONS:
         out[TABLES_DIR / section.key / "README.md"] = folder_readme(section, site_dir)
     return out

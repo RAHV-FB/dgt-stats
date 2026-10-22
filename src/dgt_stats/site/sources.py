@@ -10,6 +10,7 @@ import re
 
 import pandas as pd
 
+from dgt_stats import catalogue
 from dgt_stats.drivers.exposure_risk import national as national_rates
 from dgt_stats.models.ml import recording
 from dgt_stats.models.validation import dgt_audit
@@ -328,6 +329,32 @@ def _source_table(numbers: dict[str, str], inventory: pd.DataFrame) -> str:
         "yearbook's deaths within 24 hours are used only to check the crash records and in "
         f"sensitivity tests on {pages} "
         '(<a href="data.html#definitions">definitions</a>).</p>'
+    )
+
+
+def _by_section() -> str:
+    """Which sources each section of the site draws on: the sources of the result tables the
+    section's stages write, from the catalogue (``dgt_stats.catalogue``)."""
+    rows = []
+    for section in catalogue.SECTIONS:
+        if section.key == "sources":
+            continue
+        names = [entry.name for entry in catalogue.TABLES if entry.section == section.key]
+        sources = [source.name for source in catalogue.sources_of(names) if source.read]
+        pages = [TITLES[slug] for slug in section.pages if slug in TITLES]
+        rows.append((section.short, "; ".join(pages), "; ".join(sources)))
+    frame = pd.DataFrame(rows, columns=["Section", "Pages", "Sources"])
+    return (
+        "<h2>Which sources each section uses</h2>"
+        + table(
+            frame,
+            "Sources by section of the site. A section's sources are those its result tables "
+            "are computed from.",
+        )
+        + f'<p>The <a href="{DOCS_URL}/catalogue.md">catalogue</a> in the repository lists every '
+        "result table with the sources it is computed from and the page that publishes it, and "
+        "every source with its files. Each page's closing block names the sources of the tables "
+        "it links.</p>"
     )
 
 
@@ -671,6 +698,7 @@ def page_sources(captions: dict[str, str]) -> str:
     )
     body += "<h2>The sources</h2>"
     body += _source_table(numbers, inventory)
+    body += _by_section()
     body += _crash_records(numbers)
     body += _meeting(read_table("cat_vs_dgt_province_year"))
     body += _audit()

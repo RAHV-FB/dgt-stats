@@ -58,6 +58,7 @@ edited by hand; the others are written by hand.
 The audit trail of the 2026 rebuild: the [baseline](history/audit_baseline.md), the
 [dependency map](history/dependency_map.md), the [claim ledger](history/claim_ledger.md), the
 [statistical audit](history/statistical_audit.md), the reviews, the
-[final report](history/final_report.md) and the [acceptance report](history/acceptance_report.md).
+[final report](history/final_report.md) and the [acceptance report](history/acceptance_report.md), and the
+[reorganisation by section](history/reorganisation.md) that followed, with a map of everything that moved.
 They describe earlier commits and may quote figures and file names that have since changed; the
 current results are in the result tables and on the site. See [`history/README.md`](history/README.md).

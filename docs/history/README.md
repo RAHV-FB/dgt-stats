@@ -18,3 +18,4 @@ here should be cited as a current result. The current results are in
 | [`final_report.md`](final_report.md) | the final review of the rebuild |
 | [`acceptance_report.md`](acceptance_report.md) | the acceptance of the rebuild and its follow-up |
 | [`reviews/`](reviews) | the independent reviews and rechecks, by commit |
+| [`reorganisation.md`](reorganisation.md) | the audit that led to organising the repository by section, what changed and where everything moved |
