@@ -236,7 +236,9 @@ minutes.
   other three differ only as intended: `ml_model_decisions` and `source_comparison` give each
   model's or source's *section* where they gave its *layer*, and `data_inventory` gives the
   current path of the Barcelona vehicle audit in one description.
-- **Figures and captions** are identical, and so is the calculator's exported model.
+- **Figures and captions** are identical, and so is the calculator's exported model. The
+  withdrawn forecast's six tables, which `all` does not build, were rebuilt with
+  `national.withdrawn` and are identical to the committed copies.
 - **Model scores that depend on the machine.** Seven model tables (`ml_geography`, `ml_variants`,
   `ml_domain_strategies`, `dgt_audit_artefacts`, `gen_calculator_transfer`, `sev_geography`,
   `sev_penalty`) came out with a few last digits different from the committed copies, and so did

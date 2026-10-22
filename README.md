@@ -93,7 +93,7 @@ the figures, the site and finally the catalogue. Each stage runs in its own proc
 travel-survey stages run on one BLAS thread so that their tables reproduce on any machine. Refitting
 the severity models on another machine can move the last digit of a few model scores; the committed
 tables are the reference.
-`national.withdrawn` (the withdrawn forecast's tables, slow) and `regional.organise` (filing new
+`national.withdrawn` (the withdrawn forecast's tables) and `regional.organise` (filing new
 regional downloads) run only by name.
 
 Raw files are tracked under `data/raw/<publisher>/` with their size, SHA-256, source URL, a

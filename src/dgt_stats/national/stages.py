@@ -171,7 +171,7 @@ def results() -> None:
 
 
 def withdrawn() -> None:
-    """The withdrawn forecast's tables: slow, and read only by its card and the model review."""
+    """The withdrawn forecast's tables, read only by its card and the model review."""
     write_registry(summaries.WITHDRAWN_SUMMARIES)
 
 

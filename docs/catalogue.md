@@ -34,7 +34,7 @@ How road deaths and injuries in Spain have changed since 1993, and how they diff
 | `national.associations` | fit the supporting association analysis of DGT crash records; the crash explorer's counts | DGT crash microdata | assoc_*.csv, explore_dgt_crashes.csv (17 tables) |
 | `national.results` | every other national result table | DGT crash microdata, DGT yearbook historical series, DGT statistical tables, DGT driver census, DGT kilometre estimates, DGT speed-factor report, INE resident population, CORES road fuel, Toll-motorway traffic, Interurban vehicle-kilometres | trends_*, longrun_*, season_*, road_class_*, vehicles_*, speed_*, factor_*, policy_*.csv (49 tables) |
 | `national.cards` | the cards of the national models (after models.validate, which they quote) | — | docs/models/cards/dgt_*.md |
-| `national.withdrawn` (run by name only) | the withdrawn monthly forecast's tables, the record behind its card (slow) | DGT yearbook historical series, CORES road fuel | forecast_*.csv (6 tables) |
+| `national.withdrawn` (run by name only) | the withdrawn monthly forecast's tables, the record behind its card | DGT yearbook historical series, CORES road fuel | forecast_*.csv (6 tables) |
 
 ### National statistics: the result tables
 

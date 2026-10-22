@@ -29,7 +29,7 @@ The stages, in the order `all` runs them:
 | charts | `figures` |
 | site | `build` |
 
-Run by name only: `national.withdrawn` (the withdrawn forecast's tables, slow),
+Run by name only: `national.withdrawn` (the withdrawn forecast's tables),
 `regional.organise` (file loose regional downloads under `data/raw/<source>/`) and
 `models.documents` (re-render the validation documents from saved tables).
 

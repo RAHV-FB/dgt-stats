@@ -234,9 +234,9 @@ STAGES: tuple[Stage, ...] = (
         "national",
         "withdrawn",
         "dgt_stats.national.stages:withdrawn",
-        "the withdrawn monthly forecast's tables, the record behind its card (slow)",
+        "the withdrawn monthly forecast's tables, the record behind its card",
         "forecast_*.csv",
-        30,
+        1.2,
         in_all=False,
     ),
     Stage(
