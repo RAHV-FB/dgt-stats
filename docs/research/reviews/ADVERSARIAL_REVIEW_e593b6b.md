@@ -2,15 +2,16 @@
 
 Independent agents attacked the study at commit `e593b6b`. Twenty each tried to disprove one major
 published finding. Seven each examined one dimension across the whole study: data leakage, biases,
-uncertainty, model assumptions, statistical significance and multiplicity, reproducibility, and
-data integrity. They recomputed the numbers with their own code, from the raw files or, where parsing them was impractical, the built data layers, and took no study document's
-statement as evidence.
+uncertainty, model assumptions, statistical significance and multiplicity, reproducibility, and data
+integrity. They recomputed the numbers with their own code, from the raw files or, where parsing
+them was impractical, the built data layers, and took no study document's statement as evidence.
 
-Every issue they raised went to a separate verifier (seven that only repeated an issue already sent were matched to it), who tried to refute it and confirmed only what
-it reproduced. Each issue confirmed as critical or major went to a second checker, who redid it from
-scratch. A completeness critic then compared the attack with every published page, and
-two further attackers took the two gaps it ranked highest. The whole pipeline was rebuilt from `data/raw` in
-a clean checkout. The review was done on 5 November 2026.
+Every issue they raised went to a separate verifier (seven that only repeated an issue already sent
+were matched to it), who tried to refute it and confirmed only what it reproduced. Each issue
+confirmed as critical or major went to a second checker, who redid it from scratch. A completeness
+critic then compared the attack with every published page, and two further attackers took the
+two gaps it ranked highest. The whole pipeline was rebuilt from `data/raw` in a clean checkout. The
+review was done on 5 November 2026.
 
 The issue register, one row per issue raised with the verifier's reproduction and verdict, is
 [`ADVERSARIAL_REVIEW_e593b6b.csv`](ADVERSARIAL_REVIEW_e593b6b.csv).
@@ -18,18 +19,19 @@ The issue register, one row per issue raised with the verifier's reproduction an
 ## Summary
 
 **No published number was found to be miscomputed.** Every attacker reproduced its finding's
-numbers, nearly all of them, mostly from the raw files and most of them exactly. The clean rebuild reproduced every page of the
-site byte for byte. What the attack established is about what the numbers are said to show.
+numbers, nearly all of them, mostly from the raw files and most of them exactly. The clean rebuild
+reproduced every page of the site byte for byte. What the attack established is about what the
+numbers are said to show.
 
 - **One critical issue (C1).** Catalonia's road-type figures describe a change in how the source
   file codes road type, not the roads. 'Most fatal crashes were on conventional roads: 1,981 of the
-  3,093' is not supported. About half were, and motorways, put at 224 crashes, had three to five and a half
-  times as many.
-- **Five major issues, each confirmed twice** (seven rows of the register, which lists M5 under
-  each of the three statements it affects).
+  3,093' is not supported. About half were, and motorways, put at 224 crashes, had three to five and
+  a half times as many.
+- **Five major issues, each confirmed twice** (seven rows of the register, which lists M5 under each
+  of the three statements it affects).
   - (M1) The home page's 2.68 for young drivers per km carries only a ±7% sampling interval. The
-    last substantive commit (`268caf2`) removed the study's own 1.49–3.63 sensitivity range from the home page, the
-    drivers page, its figure and the tool.
+    last substantive commit (`268caf2`) removed the study's own 1.49–3.63 sensitivity range from the
+    home page, the drivers page, its figure and the tool.
   - (M2) The driver risk comparison opens on the 75+ per-km figure and states it as established,
     though the drivers page says the data do not establish it.
   - (M3) The national location odds ratios (6.63; 8.75 'largest') are inflated by an
@@ -37,9 +39,9 @@ site byte for byte. What the attack established is about what the numbers are sa
   - (M4) 'An immediate fall of about 7% that did not last' after the 2006 points licence rests on
     one of several pre-trends the data cannot tell apart. Under an equally simple one that fits
     better, the fall lasts.
-  - (M5) The data page treats DGT's 2022–2024 kilometre estimates as one series. DGT itself says
-    it changed method for 2024, so the site's 'the other source of kilometres points the other way'
-    has no valid support. An earlier version of the site said the figures could not be joined; an
+  - (M5) The data page treats DGT's 2022–2024 kilometre estimates as one series. DGT itself says it
+    changed method for 2024, so the site's 'the other source of kilometres points the other way' has
+    no valid support. An earlier version of the site said the figures could not be joined; an
     internal audit removed that caveat, and a test now forbids it.
 - **33 moderate and 93 minor issues.** They are mostly missing qualifications:
   - confounded crude comparisons;
@@ -65,12 +67,11 @@ What weakens is the precision and generality the pages attach to them.
 
 ## How the review was done
 
-**Attack.** Twenty-seven agents worked independently, each in its own folder, with read-only
-access to the repository at `e593b6b`. None saw another's work. Twenty each took one published
-finding and were told to disprove it. Seven each took one methodological dimension across the
-whole study: data leakage, selection and measurement biases, uncertainty, model assumptions,
-statistical significance and multiplicity, reproducibility, and data integrity. Every attacker
-was told to:
+**Attack.** Twenty-seven agents worked independently, each in its own folder, with read-only access
+to the repository at `e593b6b`. None saw another's work. Twenty each took one published finding and
+were told to disprove it. Seven each took one methodological dimension across the whole study: data
+leakage, selection and measurement biases, uncertainty, model assumptions, statistical significance
+and multiplicity, reproducibility, and data integrity. Every attacker was told to:
 
 - recompute the numbers with its own code from `data/raw`, or from the built layers where parsing
   the raw files was impractical;
@@ -91,18 +92,18 @@ attacker's overall verdict. The verifier was told that attackers over-claim, and
 - check whether the site discloses the problem where a reader of the claim would see it;
 - assign its own severity.
 
-Every issue a verifier confirmed as critical or major then went to a second, independent checker
-who saw only the attacker's claim. That checker recomputed the key quantities from scratch. Where
-both confirm, the lower of the two severities is used.
+Every issue a verifier confirmed as critical or major then went to a second, independent checker who
+saw only the attacker's claim. That checker recomputed the key quantities from scratch. Where both
+confirm, the lower of the two severities is used.
 
-**Gaps.** A completeness critic compared the attack with every published page and listed the
-claims it had not examined. The highest-priority gaps went to new attackers, and their issues to
-verifiers, in the same way.
+**Gaps.** A completeness critic compared the attack with every published page and listed the claims
+it had not examined. The highest-priority gaps went to new attackers, and their issues to verifiers,
+in the same way.
 
 **Rebuild.** The README's Reproduce sequence was run in full in a clean checkout of `e593b6b`, with
 Python 3.11 and the locked, hashed dependencies, on one BLAS thread. Then `pytest` ran, then the
-withdrawn step, and the result was compared with the committed files. The CI-equivalent build of
-the data layers was also run in the main checkout.
+withdrawn step, and the result was compared with the committed files. The CI-equivalent build of the
+data layers was also run in the main checkout.
 
 **Scales.** An issue's severity:
 
@@ -113,8 +114,8 @@ the data layers was also run in the main checkout.
 | moderate | a real weakness that qualifies but does not overturn the finding, or one disclosed only in part or away from the claim |
 | minor | a small numerical, wording or documentation problem |
 
-The scale corresponds roughly to the P0, P1 and P2 of the earlier reviews (critical to P0, major
-to P1, moderate and minor to P2).
+The scale corresponds roughly to the P0, P1 and P2 of the earlier reviews (critical to P0, major to
+P1, moderate and minor to P2).
 
 A finding's verdict:
 
@@ -128,10 +129,9 @@ A finding's verdict:
 
 ## Verdicts on the published findings
 
-One attacker took each finding. The verdict below is the review's, set after verification: it
-rests only on issues a verifier reproduced, and the column on what withstood attack lists checks
-the finding passed. Issue severities are in brackets. Duplicates found by other attackers are
-folded in.
+One attacker took each finding. The verdict below is the review's, set after verification: it rests
+only on issues a verifier reproduced, and the column on what withstood attack lists checks the
+finding passed. Issue severities are in brackets. Duplicates found by other attackers are folded in.
 
 | # | Finding (page) | Verdict | What the attack established | What withstood attack |
 |---|---|---|---|---|
@@ -175,9 +175,9 @@ motorways (`Autopista`) and dual carriageways (`Autovia`) as such almost only in
 - 204 of the 224 motorway crashes and 414 of the 496 dual-carriageway crashes are from those three
   years.
 - In the other eleven years, crashes on the same roads are coded `Carretera convencional`. The AP-7,
-  a motorway along its whole length, is coded as a motorway in 108 of 108 crashes in 2013–2015 and as
-  a conventional road in 413 of 422 crashes in the other years. The A-2, C-32, C-17, B-23 and T-11
-  switch the same way.
+  a motorway along its whole length, is coded as a motorway in 108 of 108 crashes in 2013–2015 and
+  as a conventional road in 413 of 422 crashes in the other years. The A-2, C-32, C-17, B-23 and
+  T-11 switch the same way.
 - DGT's microdata hold the same Catalan crashes for 2016–2023: 12,957 against the file's 12,961,
   with the same 1,627 fatal ones. DGT codes 1,572 of them as motorways or autovías; the file codes
   73. A record-level link (91.6% linked, fatal flags agreeing in every case) confirms it.
@@ -196,12 +196,13 @@ file's own 2013–2015 coding as a template, and the named motorways):
 reports reverses. The rest of the page stands: the totals, the zone, heavy-vehicle and lighting
 contrasts, and the equality with DGT's fatal crashes. The verifier noted a knock-on effect it did
 not quantify. The calculator's 'Conventional road, State network' and regional levels contain about
-a quarter to two fifths motorway and dual-carriageway crashes, and its test years include only 7 motorway and 65
-dual-carriageway crashes. So the published out-of-sample test says almost nothing about the
-calculator's motorway and dual-carriageway options.
+a quarter to two fifths motorway and dual-carriageway crashes, and its test years include only 7
+motorway and 65 dual-carriageway crashes. So the published out-of-sample test says almost nothing
+about the calculator's motorway and dual-carriageway options.
 
 **Disclosure.** None on catalonia.html, Figure 1 or Table 18. The related remarks on data.html and
-validation.html concern the cross-source model and put road-type coding breaks down to DGT's records.
+validation.html concern the cross-source model and put road-type coding breaks down to DGT's
+records.
 
 **Reproduce** (from the repository root):
 
@@ -220,8 +221,8 @@ breaks on data.html. Check the calculator's road levels.
 ### M1 (major). The 18–29 per-km ratio is published without the uncertainty that dominates it
 
 **Published** (index.html, drivers.html, Figure 1, driver-risk tool): "an estimated 2.68 times as
-often as drivers aged 45–64 in 2024 (95% sampling interval 2.5–2.9)"; on drivers.html also "drivers aged
-30–44 1.24 times (1.18–1.31) and drivers aged 65–74 1.11 times (1.0–1.2)".
+often as drivers aged 45–64 in 2024 (95% sampling interval 2.5–2.9)"; on drivers.html also "drivers
+aged 30–44 1.24 times (1.18–1.31) and drivers aged 65–74 1.11 times (1.0–1.2)".
 
 **What is wrong.** The sampling interval covers survey and count chance for a fixed 50/50 average of
 two metropolitan age profiles. It leaves out the transfer of those profiles to Spain. The study's
@@ -230,8 +231,8 @@ outside the printed 2.5–2.9.
 
 That range was printed beside the estimate until commit `268caf2`, which removed it from the home
 page, the drivers page, Figure 1 and the tool; tests now forbid it there (`tests/test_site.py:501`,
-`:1006`). The methodology page still says the ratios 'are published with these ranges' and that 'only
-the direction at 18–29 is firm' (`src/dgt_stats/site/data.py:1337`). The same applies to 30–44
+`:1006`). The methodology page still says the ratios 'are published with these ranges' and that
+'only the direction at 18–29 is firm' (`src/dgt_stats/site/data.py:1337`). The same applies to 30–44
 (range 1.12–1.72) and 65–74 (0.67–1.70). At 30–44 and 65+ the two surveys disagree beyond chance,
 and the printed interval contains neither survey's own estimate.
 
@@ -258,36 +259,36 @@ sensitivity analysis.
 involved in injury crashes 2.43 times as often as drivers aged 45–64." The detail reads "75 and
 over: 95% sampling interval 2.0–3.0".
 
-**What is wrong.** The drivers page says this estimate "rests on Madrid's survey alone" (the methodology page
-gives its condition: that people aged 75 and over "drive as much less than those aged 65–74 as in
-Madrid in 2018"). It says that under other plausible
-assumptions it runs from 0.97 to 3.20, "so the data do not establish that they are involved more
-often per kilometre than drivers aged 45–64". The tool opens on exactly this comparison and gives
-neither the condition nor the range nor the conclusion. A 2.0–3.0 interval reads as an established
-excess. Commit `268caf2` removed the condition, the conclusion and the range from
-`site/tools/driver-risk.json`. The editorial guard checks only the drivers, home and data pages
-(`tests/test_site_editorial.py:352`). STATISTICAL_AUDIT.md's writing rule 4 requires a conditional
-estimate to appear only with its condition and its full range.
+**What is wrong.** The drivers page says this estimate "rests on Madrid's survey alone" (the
+methodology page gives its condition: that people aged 75 and over "drive as much less than those
+aged 65–74 as in Madrid in 2018"). It says that under other plausible assumptions it runs from 0.97
+to 3.20, "so the data do not establish that they are involved more often per kilometre than drivers
+aged 45–64". The tool opens on exactly this comparison and gives neither the condition nor the range
+nor the conclusion. A 2.0–3.0 interval reads as an established excess. Commit `268caf2` removed the
+condition, the conclusion and the range from `site/tools/driver-risk.json`. The editorial guard
+checks only the drivers, home and data pages (`tests/test_site_editorial.py:352`).
+STATISTICAL_AUDIT.md's writing rule 4 requires a conditional estimate to appear only with its
+condition and its full range.
 
 Three moderate issues compound it:
 
 - Figure 1 on the drivers page draws 75+ at 2.0–3.0 with no range.
 - The heading 'Crashes per kilometre: highest among drivers aged 18–29' ranks 18–29 above 75+. The
   ordering holds with about 80% probability under sampling error and reverses on the Madrid profile.
-- The documented upward alternatives, crossed like the four splits, would take the top of the range to about
-  3.4–3.6.
+- The documented upward alternatives, crossed like the four splits, would take the top of the range
+  to about 3.4–3.6.
 
 **Fix.** Show the condition, the range and the conclusion whenever the tool shows 75+ (or 65–74) per
-km, or open the tool on another comparison. Extend the guard to the tool. Add the ranges to
-Figure 1, and make the heading say 'highest among the groups with an established figure', or drop
-the ranking.
+km, or open the tool on another comparison. Extend the guard to the tool. Add the ranges to Figure
+1, and make the heading say 'highest among the groups with an established figure', or drop the
+ranking.
 
 ### M3 (major). The DGT location odds ratios are inflated by an outcome-dependent recording level
 
 **Published** (severity.html): "a crash on a conventional interurban road 6.63 times the odds
 (against an urban street)". Table 1 gives 5.66–7.23 for the four interurban road types, and "a
-conventional road where it runs through a town ... 8.75 times". A build check asserts that this
-is the largest location contrast.
+conventional road where it runs through a town ... 8.75 times". A build check asserts that this is
+the largest location contrast.
 
 **What is wrong.** In DGT's records for the four Catalan provinces, road alignment
 (`TRAZADO_PLANTA`) on non-street crashes is filled in almost only when someone died or was admitted
@@ -306,10 +307,10 @@ out; province fixed effects):
 | Four interurban road types | 5.66–7.23 | about 4.4–5.8 (at most 6.2) |
 | Urban crossing, conventional | 8.75 (6.52–11.75), 'largest' | 3.76–6.87; 3.76–5.63 in every same-population fit, below the published lower bound |
 
-The directions hold, and the crash-type and junction odds ratios barely move. The data
-page does warn that a recording practice could distort other coefficients through such a level. Its
-check, refitting without Catalonia, was applied only to the 32 single-term odds ratios, never to the
-joint location contrasts.
+The directions hold, and the crash-type and junction odds ratios barely move. The data page does
+warn that a recording practice could distort other coefficients through such a level. Its check,
+refitting without Catalonia, was applied only to the 32 single-term odds ratios, never to the joint
+location contrasts.
 
 **Reproduce:**
 
@@ -327,24 +328,24 @@ for name, region in [('Catalonia', cat), ('rest of Spain', ~cat)]:
 # Catalonia 0.998 0.284; rest of Spain 0.015 0.008
 ```
 
-**Fix.** Fit the location contrasts without the alignment term, or with Catalan alignment treated
-as missing. Drop the 'largest location contrast' wording and its build check, and give the
-leakage-free values (for example conventional interurban 5.7, 4.7–6.9).
+**Fix.** Fit the location contrasts without the alignment term, or with Catalan alignment treated as
+missing. Drop the 'largest location contrast' wording and its build check, and give the leakage-free
+values (for example conventional interurban 5.7, 4.7–6.9).
 
 ### M4 (major). The 2006 points licence: 'did not last' depends on an unidentified pre-trend
 
 **Published** (policy.html): the heading "An immediate fall of about 7% that did not last". The text
 reads "fitted deaths rejoin the projected path in about July 2007 and end the window 2.3% above it;
 averaged over the 17 months, the change is −2.5%". It also says a straight line "fits the months
-before the change less well than a trend that bends once, in August 2003 ... That difference
-favours the bend without being decisive."
+before the change less well than a trend that bends once, in August 2003 ... That difference favours
+the bend without being decisive."
 
 **What is wrong.** The pre-trend is chosen by QAIC on the months before July 2006, but only among a
-straight line and a single continuous bend (`src/dgt_stats/policy.py:772–830`). Apply the same rule (same months,
-same c = 1.6076, same two parameters per change) to an equally simple trend with a one-off level
-drop, and the January 2004 drop fits better than the August 2003 bend: QAIC 473.4 against 476.2. It
-does so at every c from 1.0 to 1.86. In the raw counts, 2003 deaths (5,399) exceeded 2002's
-(5,347), and the drop starts in January 2004. Under that pre-trend:
+straight line and a single continuous bend (`src/dgt_stats/policy.py:772–830`). Apply the same rule
+(same months, same c = 1.6076, same two parameters per change) to an equally simple trend with a
+one-off level drop, and the January 2004 drop fits better than the August 2003 bend: QAIC 473.4
+against 476.2. It does so at every c from 1.0 to 1.86. In the raw counts, 2003 deaths (5,399)
+exceeded 2002's (5,347), and the drop starts in January 2004. Under that pre-trend:
 
 | | Bend, August 2003 (published) | Level drop, January 2004 | Two bends at least 12 months apart (ties the one bend) |
 |---|---|---|---|
@@ -353,30 +354,30 @@ does so at every c from 1.0 to 1.86. In the raw counts, 2003 deaths (5,399) exce
 | End of window | +2.3% | −10.4% | |
 
 The single-bend answer also flips with the window's start, which is not justified anywhere: starts
-in 1995–1997 give about −9%. On those longer windows one bend is misspecified; allowing two
-returns them to about −3%, but then starts in 1998, 1999, 2001 and 2002 give −7.5% to −10.5%.
+in 1995–1997 give about −9%. On those longer windows one bend is misspecified; allowing two returns
+them to about −3%, but then starts in 1998, 1999, 2001 and 2002 give −7.5% to −10.5%.
 
 The −11.5% is the top of the range. The level drop forces a slope (−2.6% a year) flatter than the
-local decline of 2004–2006 (−5.1% a year); pre-trends that keep the local slope give a lasting
-−6% to −7%. Averaging over pre-trends by QAIC gives a 17-month change of about −7% to −8%, with an
+local decline of 2004–2006 (−5.1% a year); pre-trends that keep the local slope give a lasting −6%
+to −7%. Averaging over pre-trends by QAIC gives a 17-month change of about −7% to −8%, with an
 interval reaching zero.
 
 The data cannot tell which pre-trend is right. In simulation:
 
-- when the true fall lasted, the published procedure still reports 'did not last' in about 30–40%
-  of series;
+- when the true fall lasted, the published procedure still reports 'did not last' in about 30–40% of
+  series;
 - when the truth is the published bend, a rule that also allows level drops picks a drop about half
   the time.
 
-So the page's lead, 'the series cannot show ... that it lasted', is correct. But the
-heading's 'did not last', 'rejoin the projected path in about July 2007' and the single −2.5%
-report one unidentified choice as the finding. The page's disclosure tells readers the pre-period
-favours the transient pattern. Under an equally simple extension it slightly favours a lasting fall.
-'Cannot be attributed to the licence' is unaffected.
+So the page's lead, 'the series cannot show ... that it lasted', is correct. But the heading's 'did
+not last', 'rejoin the projected path in about July 2007' and the single −2.5% report one
+unidentified choice as the finding. The page's disclosure tells readers the pre-period favours the
+transient pattern. Under an equally simple extension it slightly favours a lasting fall. 'Cannot be
+attributed to the licence' is unaffected.
 
-**Fix.** Make the heading say that whether the fall lasted depends on the earlier trend (for
-example 'A fall of 7% to 13% at the change; whether it lasted depends on the earlier trend'). Give
-the level-shift and two-bend results beside the bend, or a QAIC-weighted average with its interval.
+**Fix.** Make the heading say that whether the fall lasted depends on the earlier trend (for example
+'A fall of 7% to 13% at the change; whether it lasted depends on the earlier trend'). Give the
+level-shift and two-bend results beside the bend, or a QAIC-weighted average with its interval.
 Compute the intervals with model-based quasi-Poisson or negative-binomial errors (see the moderate
 issues).
 
@@ -415,10 +416,10 @@ Its Table 6, the source of the site's series, is "los tres ejercicios de estimac
 
 On the like-for-like step, kilometres per tonne rose, as the Ministry's measured interurban series
 (+3.4%) and the toll motorways (+5.1%) did. Deaths per kilometre then rose less than deaths per
-tonne (+2.6% against +4.5%), the reverse of the ordering the site reports. About 2.7 points
-of the 6.0% fall in cars' mean distance over 2022–2024 is genuine fleet ageing; the rest sits in
-the youngest band, mostly model-imputed because those cars have had no inspection (−22% in 2024
-alone), while every older band rose.
+tonne (+2.6% against +4.5%), the reverse of the ordering the site reports. About 2.7 points of the
+6.0% fall in cars' mean distance over 2022–2024 is genuine fleet ageing; the rest sits in the
+youngest band, mostly model-imputed because those cars have had no inspection (−22% in 2024 alone),
+while every older band rose.
 
 'Points the other way' therefore has no valid support. The sign of the 2022–2024 changes is not
 identified; deaths per kilometre run from about −1.8% to +3.9% under the alternatives tested.
@@ -435,7 +436,9 @@ repository's `data/raw/dgt/km_itv_2024/` files.
 **Prominence.** The statements sit in supporting notes, not in a headline: the trend pages use road
 fuel, the vehicles page uses 2022 alone, and the drivers page uses 2024 alone. But this is the
 site's only all-roads kilometre evidence against road fuel, and it is used to present the
-km-per-tonne evidence as pointing both ways.
+km-per-tonne evidence as pointing both ways. That is why the verifier and the second checker rated
+it major rather than critical, although G1's statement is refuted: the premise is false as
+published, but no headline rests on it.
 
 **Fix.** Restore the caveat: three estimation exercises, with DGT's stated change of method in
 2024. Report 2022–2023 as the only like-for-like step. Drop 'points the other way' and the 2022–2024
@@ -445,8 +448,8 @@ ledger-B|66, and archive DGT's 2023 and 2024 reports with the raw files if their
 ## Moderate issues and their fixes
 
 Every row was confirmed, at least in part, by a verifier who reproduced it. The issue register
-([`ADVERSARIAL_REVIEW_e593b6b.csv`](ADVERSARIAL_REVIEW_e593b6b.csv)) gives each one's factual core as the
-verifier confirmed it, its materiality, its disclosure and a suggested fix.
+([`ADVERSARIAL_REVIEW_e593b6b.csv`](ADVERSARIAL_REVIEW_e593b6b.csv)) gives each one's factual core
+as the verifier confirmed it, its materiality, its disclosure and a suggested fix.
 
 | Finding | Issue | Fix |
 |---|---|---|
@@ -486,8 +489,8 @@ verifier confirmed it, its materiality, its disclosure and a suggested fix.
 
 ## Minor issues
 
-93 issues were confirmed as minor. They are in the register with the verifier's reading of
-each, which often narrows the attacker's claim, and a fix. By kind:
+93 issues were confirmed as minor, 61 of them only in part. They are in the register
+with the verifier's reading of each, which often narrows the attacker's claim, and a fix. By kind:
 
 | Kind | Issues |
 |---|---|
@@ -502,12 +505,15 @@ each, which often narrows the attacker's claim, and a fix. By kind:
 | Data integrity | 4 |
 | Other (leakage process, selection, computation) | 7 |
 
-The minor issues with a visible effect on a page are in the verdicts table above. Two
-documentation items recur and are worth one pass each:
+The verdicts table above names the minor issues that bear most on each finding. Many others also
+change a sentence on a page (for example the Catalan speed-limit gradient, the speed page's 'urban
+streets' label, the vehicles page's foreign-registration caveat and the trends explorer's unmarked
+series steps); the register lists them all. Two documentation items recur and are worth one pass
+each:
 
-- The research documents and the data page still describe Method A (the Barcelona-area profile, 2.53)
-  as the central driver-age estimate, and the sensitivity alternatives are centred on it, while the
-  pages publish the two-survey average (2.68).
+- The research documents and the data page still describe Method A (the Barcelona-area profile,
+  2.53) as the central driver-age estimate, and the sensitivity alternatives are centred on it,
+  while the pages publish the two-survey average (2.68).
 - Several documents carry intervals that later commits changed: `docs/methodology.md`,
   `STATISTICAL_AUDIT.md` and `DRIVER_AGE_EXPOSURE.md`.
 
@@ -527,23 +533,26 @@ documentation items recur and are worth one pass each:
 The leakage that exists comes in through recording that depends on the outcome:
 
 - DGT's Catalan road alignment, which inflates the national location contrasts (M3, major).
-- The Barcelona file's Catalan-language rear-end code, used on 26 of its 43 crashes for a serious
-  injury against 2 of 1,672 for the force's own code. Both Barcelona models read it. The person
-  model's published score on districts left out, 0.86, is 0.82 without it (moderate).
-- The Catalan road-owner exclusion, decided on all years. A blank owner is 53% fatal and 'other'
-  3%. The exclusion moves the calculator's reference estimate (13.4% against 11.6–17.5% under other
+- The Barcelona file's Catalan-language rear-end code, recorded on 43 crashes, 26 of them with a
+  serious injury against 2 of 1,672 for the force's own code. Both Barcelona models read it. The
+  person model's published score on districts left out, 0.86, is 0.82 without it (moderate).
+- The Catalan road-owner exclusion, decided on all years. A blank owner is 53% fatal and 'other' 3%.
+  The exclusion moves the calculator's reference estimate (13.4% against 11.6–17.5% under other
   handlings) and creates two of the three province misses named on the model page (two issues,
   moderate).
 
-Two process points are minor. The leakage audit can flag only placeholder levels, so an outcome-coded
-ordinary level passes it as safe. The claim that the decision rules were set before any result was
-read cannot be verified, because rules and results arrive in the same commit; no sign of tuning was
-found.
+Three process points are minor. The options the nested rule chooses from (the province intercepts
+among them) and the owner exclusion were introduced after the 2016–2023 rolling results had been
+seen; without the province option, 5 of the 12 province-and-zone cells miss instead of 3. The
+leakage audit can flag only placeholder levels, so an outcome-coded ordinary level passes it as
+safe. The claim that the decision rules were set before any result was read cannot be verified,
+because rules and results arrive in the same commit; no sign of tuning was found.
 
 **Biases.** The selection and measurement biases that matter here are the ones that move a published
 magnitude:
 
-- The metropolitan transfer of driving by age (M1).
+- The metropolitan transfer of driving by age, which probably overstates the 18–29 ratio by about
+  10% (F5a, moderate; the uncertainty it adds is M1).
 - The age mix in the sex ratios (F7, moderate).
 - The freight in road fuel, as a denominator of the seasonal pattern (F3, moderate).
 - The new road users in the admissions series (F2, moderate).
@@ -552,20 +561,20 @@ magnitude:
 
 Some checks the site's design passed:
 
-- The collider check: conditioning on a death or serious injury can flip signs. Pedestrians go
-  from 1.62 among all Catalan injury crashes to 0.85 within severe ones, and rain from 0.70 to
-  1.10. The site already warns that a lower fatal share among severe crashes (in rain, at a
-  junction) does not make them safer, and keeps the model's contrasts scoped to severe crashes; no
-  published statement is falsified by the reversal.
+- The collider check: conditioning on a death or serious injury can flip signs. Pedestrians go from
+  1.62 among all Catalan injury crashes to 0.85 within severe ones, and rain from 0.70 to 1.10. The
+  site already warns that a lower fatal share among severe crashes (in rain, at a junction) does not
+  make them safer, and keeps the model's contrasts scoped to severe crashes; no published statement
+  is falsified by the reversal.
 - Conditioning on severity attenuates the heavy-vehicle association rather than creating it, and the
   association stays above 2 under every stratification.
 - The older-driver death ratio barely moves with road mix (3.43 to 3.33).
 - The speed ratio's numerator and denominator exclude the same regions.
 
-The 24-hour definition of a Catalan death narrows the urban–interurban gap that 30-day deaths would
-show (2.8 to about 2.3), but the page states its definition (minor).
+The 24-hour definition of a Catalan death widens the urban–interurban gap: on 30-day deaths the
+published 2.8 would be about 2.3, but the page states its definition (minor).
 
-**Uncertainty.** Most intervals are computed correctly and say what they cover. Three were found
+**Uncertainty.** Most intervals are computed correctly and say what they cover. Four were found
 anti-conservative or missing where a reader needs them:
 
 - The per-km age ratios carry a sampling interval that omits the dominant uncertainty (M1).
@@ -598,7 +607,7 @@ Four assumptions failed in ways that change what a reader is told:
   streets and interurban roads (F11, moderate).
 - Additive road-user flags in the Catalan model: on urban streets the heavy-vehicle excess is
   confined to crashes with vulnerable road users (F14a, moderate).
-- A pre-trend limited to one bend in the points-licence model (F4).
+- A pre-trend limited to one bend in the points-licence model (M4, major).
 
 **Statistical significance.** The highlighted results mostly survive multiplicity:
 
@@ -617,13 +626,15 @@ Four do not:
 - The dual-carriageway speed ratio's interval crosses 1 under the study's own t convention.
 
 Several nulls are read as near-equivalence with low power. 'No clear rise' since 2013 had about 40%
-power for the observed rise. 'Within ordinary variation' for 2024 deaths could not detect changes
-under about 15%. The Barcelona 'no better than the table' had 17–47% power for the gains that matter.
-One threshold sits on a knife edge: the illegal-manoeuvres run, at 1.223 against 1.25.
+power for the observed rise. 'Within ordinary variation' for 2024 deaths had 80% power only for
+changes of about 15% or more; a real 10% rise would have been flagged about half the time. The
+Barcelona 'no better than the table' had 17–47% power for the gains that matter. One threshold sits
+on a knife edge: the illegal-manoeuvres run, at 1.223 against 1.25.
 
 **Reproducibility.** See the section on reproducibility and data integrity: every published number
 reproduces from the raw files. The exceptions are minor drift in seven secondary model tables, the
-undocumented step that renders two generated documents, and stale numbers in the methods documents.
+step, missing from the README's sequence, that renders two generated documents, and stale numbers in
+the methods documents.
 
 ## Reproducibility and data integrity
 
@@ -631,33 +642,34 @@ Every number printed on the site reproduces from the raw files.
 
 - **Raw files.** All 168 raw files match the SHA-256 values in `data/raw/manifest.csv`.
 - **CI-equivalent build** (main checkout). `ingest.py all` passed its 482 reconciliation checks.
-  After it, `build_tables.py`, the five regional steps that CI runs and `emef.py build`
-  regenerated their committed files byte for byte (`git status` empty).
-- **Full clean rebuild** (separate checkout of `e593b6b`). It ran the README's Reproduce sequence
-  in order: `ingest.py all`, `build_tables.py`, `model.py`, `analyse.py tables`,
-  `microdata.py all`, `severity_calculator.py all`, `emef.py all`, `exposure_risk.py all`,
-  `analyse.py figures` and `cards`, `build_site.py`, `pytest`, `analyse.py withdrawn`.
+  After it, `build_tables.py`, the five regional steps that CI runs and `emef.py build` regenerated
+  their committed files byte for byte (`git status` empty).
+- **Full clean rebuild** (separate checkout of `e593b6b`). It ran the README's Reproduce sequence in
+  order, except that the optional `analyse.py withdrawn`, which the README lists fifth, ran last:
+  `ingest.py all`, `build_tables.py`, `model.py`, `analyse.py tables`, `microdata.py all`,
+  `severity_calculator.py all`, `emef.py all`, `exposure_risk.py all`, `analyse.py figures` and
+  `cards`, `build_site.py`, `pytest`, `analyse.py withdrawn`.
   - Every step exited with code 0. A container restart stopped the run during `microdata.py all`.
     The four steps before it had finished, and the run resumed from that step.
-  - `pytest`: 483 passed. The 2 skipped are the browser tests, which need Python Playwright. The
-    1 deselected is the SHA-256 test, run separately above.
-  - Reproduced byte for byte: every page of `site/`, every national table, every EMEF and
-    driver-age table (the 2.68 headline included), the calculator's exported model and `sev_*`
-    tables, the forecast tables and the model cards.
+  - `pytest`: 483 passed. The 2 skipped are the browser tests, which need Python Playwright. The 1
+    deselected is the SHA-256 test, run separately above.
+  - Reproduced byte for byte: every page of `site/`, every national table, every EMEF and driver-age
+    table (the 2.68 headline included), the calculator's exported model and `sev_*` tables, the
+    forecast tables and the model cards.
 - **Independent recomputation.** Every attacker recomputed its target's numbers with its own code.
   The data-integrity attacker used its own raw-XML reader for the DGT workbooks and recomputed more
-  than 60 published values. It found no parsing or coding error that changes a published number.
-  Two disputed claims were confirmed independently:
-  - DGT's records for the four Catalan provinces code the junction flag the wrong way round in
-    2023 and 2024;
-  - the Catalan file's fatal crashes equal DGT's 24-hour fatal crashes in all 32 province-years
-    of 2016–2023.
+  than 60 published values. It found no parsing or coding error that changes a published number. Two
+  of the site's specific claims about its sources were confirmed independently:
+  - DGT's records for the four Catalan provinces code the junction flag the wrong way round in 2023
+    and 2024;
+  - the Catalan file's fatal crashes equal DGT's 24-hour fatal crashes in all 32 province-years of
+    2016–2023.
 
 Eleven committed files are not reproduced byte for byte. No number on any page changes.
 
 | Issue | Severity | Finding |
 |---|---|---|
-| Thread-dependent fits | minor | The logistic fits in `microdata/ml/modelling.py:137`, `model_review.py:109` and `microdata/validation/dgt_audit.py:530` use lbfgs at its default tolerance of 1e-4, and no script pins the BLAS thread count. The same model-review fit gives three different results on 1, 2 and 4 threads; the committed `review_catalonia_2023.csv` matches 4 threads. Seven tables differ: `dgt_audit_artefacts`, `gen_calculator_transfer`, `ml_domain_strategies`, `ml_geography`, `ml_variants`, `review_catalonia_2023` and `review_catalonia_rolling`. So does the transfer figure `tr0_calculator_transfer.svg`, by about 0.001 px. Of the 159 cells that move, 95 exceed a relative 1e-4: up to 4.7e-4 on an ROC-AUC and 0.008 on a calibration intercept. The calculator model (newton-cholesky at 1e-10) is unaffected. Methodology §17 says the rebuild 'reproduces the committed result tables (checked for this release to a relative tolerance of 1e-4)'; that is not true for this release. Fix: tighten the tolerance or use newton-cholesky, pin threads in `scripts/microdata.py` and `scripts/severity_calculator.py`, and regenerate. |
+| Thread-dependent fits | minor | The logistic fits in `microdata/ml/modelling.py:137`, `model_review.py:109` and `microdata/validation/dgt_audit.py:530` use lbfgs at its default tolerance of 1e-4, and neither `scripts/microdata.py` nor `scripts/severity_calculator.py` pins the BLAS thread count (only `scripts/emef.py` and `scripts/exposure_risk.py` do). The same model-review fit gives three different results on 1, 2 and 4 threads; the committed `review_catalonia_2023.csv` matches 4 threads. Seven tables differ: `dgt_audit_artefacts`, `gen_calculator_transfer`, `ml_domain_strategies`, `ml_geography`, `ml_variants`, `review_catalonia_2023` and `review_catalonia_rolling`. So does the transfer figure `tr0_calculator_transfer.svg`, by about 0.001 px. Of the 159 cells that move, 95 exceed a relative 1e-4: up to 4.7e-4 (absolute) on an ROC-AUC and 0.008 (absolute) on a calibration intercept. The calculator model (newton-cholesky at 1e-10) is unaffected. Methodology §17 says the rebuild 'reproduces the committed result tables (checked for this release to a relative tolerance of 1e-4)'; that is not true for this release. Fix: tighten the tolerance or use newton-cholesky, pin threads in `scripts/microdata.py` and `scripts/severity_calculator.py`, and regenerate. |
 | Generated documents from an unlisted step | minor | The committed `docs/GENERALISABILITY.md` and `reports/model_metrics.json` were rendered by `microdata.py documents`, which re-reads the CSVs at six significant digits. The README's `microdata.py all` renders from memory. The two differ: an interval end is 0.709 committed (a double rounding) and 0.708 from `all`, and two empty cells print as `NA`. |
 | What CI checks | minor | CI regenerates and compares only `ingest`, `build_tables`, `model.py` and five regional steps. It never runs `analyse.py tables`, `figures` or `cards`, `emef.py`, `exposure_risk.py`, `severity_calculator.py`, or the regional model and validation steps. Its data-layer cache key omits `requirements.lock` and `src/dgt_stats/paths.py`. The drift above went unnoticed for this reason. |
 | Reconciliation wording | minor | The README and the data contract say the 482 checks 'tie' the data to DGT's published totals. Sixty-four of them are internal or dictionary checks. Every gap the integrity attacker filled reconciled, so this is wording. |
@@ -670,25 +682,30 @@ The attackers worked blind to each other, and on several points they reached opp
 The verifiers settled each one.
 
 - **'No clear rise' since 2013.** One attacker said correctly sized tests find a significant
-  2013–2019 rise; two others said the null was adequately powered. The verifier found the printed
-  test correctly sized: the estimated dispersion (1.45) is above the floor, so the interval is that
-  of an unfloored quasi-Poisson t(5) test. A rise is significant only if the dispersion is treated
-  as known and below about 2. Result: wording (minor). Say 'no fall, and a rise that is not
-  statistically clear'.
+  2013–2019 rise; three others found the printed test sound, and one of them (D5) also that the null
+  was adequately powered. On power the first attacker was right (about 40% for the observed rise);
+  on test size the others were. The verifier found the printed test correctly sized: the estimated
+  dispersion (1.45) is above the floor, so the interval is that of an unfloored quasi-Poisson t(5)
+  test. A rise is significant only if the dispersion is treated as known and below about 2. Result:
+  wording (minor). Say that deaths have not fallen since 2013, and that a rise of about 1% a year to
+  2019 is not statistically clear.
 - **The points-licence heading.** Attackers attacked it from opposite sides: a lasting fall under
   other pre-trends, and no established fall or persistence under valid intervals. Both lead to the
   same correction. The size and persistence of the fall cannot be pinned down, while 'cannot be
   attributed to the licence' stands and is strengthened.
 - **Recording bias in the speed ratios.** One attacker found fatal crashes' fields recorded only
   about 1.1 times as often as slight crashes', 'far too small' to make a 5.9 ratio. Another found
-  modest differentials enough to make the interurban ratios. Both hold. The urban ratio would need
-  about five-fold differential recording; the interurban ratios only 1.2–1.7 times (minor).
+  modest differentials enough to make the interurban ratios. Both hold, because the first measured
+  other fields (traffic level, visibility), not speed, whose own recording differential nothing in
+  the repository can measure. The urban ratio would need about five-fold differential recording; the
+  interurban ratios only 1.2–1.7 times (minor).
 - **Intervals of the Catalan model.** For the heavy-vehicle contrast, a bootstrap that re-chooses
   the specification and penalty gives 1.71–2.18: the published contrast interval is adequate. For
   individual calculator estimates, coverage falls to about 92–94% (moderate).
-- **The speed summary interval.** The verifier sided with the attacker who judged the pooling
-  sound. For the weighted summary the page defines, the interval errs on the wide side. Only a
-  'typical road type' reading, which the page disclaims, needs random-effects intervals.
+- **The speed summary interval.** The verifier sided with the attacker who judged the pooling sound.
+  For the weighted summary the page defines, the interval errs on the wide side. Only a 'typical
+  road type' reading, which the page disclaims, needs random-effects intervals. Describing the
+  interval as 'widened to allow for how much the ratios differ' remains a minor wording issue.
 - **Province clustering in the DGT model.** An exact delete-one-province jackknife removes the
   significance of one thin Table 1 row, not two (minor).
 - **The late switch to the averaged driving profile** (commit `268caf2`). No evidence was found that
@@ -713,10 +730,10 @@ raised again.
 | December 2025's low serious share suggests incomplete follow-up (F13) | No artefact is established, and the page makes no claim by month. |
 | 'Nearly as well as a model fitted there' holds only against a restricted reference (F15) | A richer reference widens the gap to −0.03, still inside the study's 0.05 tolerance. |
 | 'No model has passed every kind of test' is true by construction (F15) | The heading is literally true and matches the page's conclusion; the failing column is a declared stage. |
-| The national road-class ratio reflects the mix of networks (F16) | Within each network conventional roads still have 2.6–4.4 times the motorway rate. |
+| The national road-class ratio reflects the mix of networks (F16) | Within each network conventional roads still have 2.6–5.1 times the motorway rate. |
 | One dispersion for all months misfits December, March and April (F3) | No evidence against a common dispersion (p about 0.7). |
 | Calendar length inflates the lead's July and August figures (F3) | Per day they are 1.20 and 1.12, inside the published intervals; the raw panel's caption discloses it. |
-| 'Most of all on urban streets' holds only on the ratio scale (F9) | The sentence says it is a ratio, and urban streets also lead on the absolute excess. |
+| 'Most of all on urban streets' holds only on the ratio scale (F9) | The sentence says it is a ratio, and urban streets also lead on the point estimate of the absolute excess, though not clearly ahead of other interurban roads. |
 
 Two issues could not be settled with the data available:
 
@@ -733,7 +750,9 @@ every number on them appears in some attacker's reproduction or reasoning. The u
 in supporting text on data.html, validation.html and sources.html. Two of those claims have their
 own pipelines and had stood untested. Both went to new attackers (G1 and G2 in the verdicts).
 
-The critic's other gaps were not attacked:
+The critic's other gaps were not given to new attackers. One, a joint verdict on the points-licence
+heading (medium), was settled by the verifiers of M4 and its interval issues (see 'Where attackers
+disagreed'). The rest were not attacked:
 
 - **The scope of the fleet denominator** (medium). The registered fleet may include vehicle types
   whose occupants the per-vehicle numerator leaves out.
@@ -747,7 +766,10 @@ The critic's other gaps were not attacked:
 - **The DGT regression's stability statements and its 2019 negative result** (low).
 
 The critic also listed eleven points where attackers disagreed. The verifiers settled each one. The
-section above describes those that bear on a published statement.
+section above describes eight of them. The other three also bear on published statements and are
+settled in the verdicts and the register: how robust the 'beyond' on trends.html is (moderate, F2),
+how many near-duplicate rows the Catalan file holds (minor), and extra-Poisson scatter in the
+per-licence sex ratio (no conclusion depends on it).
 
 ## Recommendations, in order
 
@@ -783,16 +805,20 @@ section above describes those that bear on a published statement.
 ## Limits of this review
 
 - **Scope.** The review examined the site and documents at `e593b6b`, working from the repository's
-  raw files. It used publishers' documents from outside the repository in one place: DGT's 2023 and
-  2024 kilometre reports behind M5. The verifier and the second checker fetched these from dgt.es
-  themselves and checked them against the archived tables.
-- **Time and judgement.** Each attacker had about thirty to fifty minutes. Absence of an issue for
-  a finding means the attacks tried failed, not that none exists. Severity is a judgement on a
-  stated scale, set by the verifiers and, for critical and major issues, by a second checker; the
-  author may weigh some issues differently.
-- **Evidence.** The verifiers' reproductions were run in the review's own working folders, which
-  are not committed. The register records what each verifier ran and found, and the critical and
-  major issues carry short reproduction snippets above.
+  raw files. It used material from outside the repository in a few places. For one minor and two
+  refuted issues, verifiers used DGT's 2022 report on transport vehicles and Eurostat road-freight
+  data (F8), the Catalan open-data portal's metadata (F14a) and Barcelona's open-data files for
+  2016–2024 (F13). The main use is DGT's 2023 and 2024 kilometre reports behind M5. The verifier and
+  the second checker fetched these from dgt.es themselves and checked them against the archived
+  tables.
+- **Time and judgement.** Each attacker had about thirty to fifty minutes. Absence of an issue for a
+  finding means the attacks tried failed, not that none exists. Severity is a judgement on a stated
+  scale, set by the verifiers and, for critical and major issues, by a second checker; the author
+  may weigh some issues differently.
+- **Evidence.** The verifiers' reproductions were run in the review's own working folders, which are
+  not committed. The register records what each verifier ran and found, and the critical and major
+  issues C1, M1 and M3 carry short reproduction snippets above (M2, M4 and M5 have none; their
+  reproductions are in the register).
 - **Restart.** A container restart interrupted eight attackers and the rebuild. The attackers were
   run again from the start. The rebuild resumed from the interrupted step, after the four steps
   before it had finished.
