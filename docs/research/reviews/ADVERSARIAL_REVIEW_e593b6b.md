@@ -3,13 +3,13 @@
 Independent agents attacked the study at commit `e593b6b`. Twenty each tried to disprove one major
 published finding. Seven each examined one dimension across the whole study: data leakage, biases,
 uncertainty, model assumptions, statistical significance and multiplicity, reproducibility, and
-data integrity. They worked from the raw files with their own code and accepted no document's
+data integrity. They recomputed the numbers with their own code, from the raw files or, where parsing them was impractical, the built data layers, and took no study document's
 statement as evidence.
 
-Every issue they raised went to a separate verifier, who tried to refute it and confirmed only what
+Every issue they raised went to a separate verifier (seven that only repeated an issue already sent were matched to it), who tried to refute it and confirmed only what
 it reproduced. Each issue confirmed as critical or major went to a second checker, who redid it from
 scratch. A completeness critic then compared the attack with every published page, and
-two further attackers took the gaps it found. The whole pipeline was rebuilt from `data/raw` in
+two further attackers took the two gaps it ranked highest. The whole pipeline was rebuilt from `data/raw` in
 a clean checkout. The review was done on 5 November 2026.
 
 The issue register, one row per issue raised with the verifier's reproduction and verdict, is
@@ -18,17 +18,17 @@ The issue register, one row per issue raised with the verifier's reproduction an
 ## Summary
 
 **No published number was found to be miscomputed.** Every attacker reproduced its finding's
-numbers from the raw files, most of them exactly. The clean rebuild reproduced every page of the
+numbers, nearly all of them, mostly from the raw files and most of them exactly. The clean rebuild reproduced every page of the
 site byte for byte. What the attack established is about what the numbers are said to show.
 
 - **One critical issue (C1).** Catalonia's road-type figures describe a change in how the source
   file codes road type, not the roads. 'Most fatal crashes were on conventional roads: 1,981 of the
-  3,093' is not supported. About half were, and motorways, put at 224 crashes, had three to five
+  3,093' is not supported. About half were, and motorways, put at 224 crashes, had three to five and a half
   times as many.
 - **Five major issues, each confirmed twice** (seven rows of the register, which lists M5 under
   each of the three statements it affects).
   - (M1) The home page's 2.68 for young drivers per km carries only a ±7% sampling interval. The
-    final commit removed the study's own 1.49–3.63 sensitivity range from the home page, the
+    last substantive commit (`268caf2`) removed the study's own 1.49–3.63 sensitivity range from the home page, the
     drivers page, its figure and the tool.
   - (M2) The driver risk comparison opens on the 75+ per-km figure and states it as established,
     though the drivers page says the data do not establish it.
@@ -48,8 +48,8 @@ site byte for byte. What the attack established is about what the numbers are sa
   - denominators that do not measure what a rate implies;
   - a few figures from a single peak year;
   - stale documentation and loose numerical tolerances.
-- **12 issues an attacker raised were refuted by verification**, and 27 were duplicates
-  of others.
+- **12 issues an attacker raised were refuted by verification**, two could not be settled with
+  the data available, and 27 were duplicates of others.
 
 Of the twenty findings, none survives every attack. Eight survive with caveats, seven are
 weakened, four are overstated, and one, Catalonia's road types, is refuted in part. The
@@ -123,7 +123,7 @@ A finding's verdict:
 | refuted | the statement is false as published |
 | overstated | the direction holds, but the statement says materially more than the evidence |
 | weakened | the finding holds, but an important qualification or uncertainty is missing |
-| survives with caveats | the finding holds; only minor qualifications |
+| survives with caveats | the finding holds; its qualifications are minor, or moderate ones that leave its main statement standing |
 | survives | every attack failed |
 
 ## Verdicts on the published findings
@@ -135,25 +135,25 @@ folded in.
 
 | # | Finding (page) | Verdict | What the attack established | What withstood attack |
 |---|---|---|---|---|
-| F1a | Deaths fell about three quarters 1993–2013 and have shown 'no clear rise or fall since' (home, long-run) | survives with caveats | 'No clear rise or fall' is symmetric where the evidence is not. There is no fall, and a rise of 1.2% a year to 2019 is not statistically clear (p = 0.07, about 40% power) (minor). The 30-day count stepped up about 6% in 2016, as the 30-day/24-hour ratio left its 2011–2015 dip (minor). | Every number reproduces from the raw yearbook. On 24-hour deaths the 1993–2013 fall is 73.0%, with the same turning points, so it does not rest on DGT's pre-2011 correction factors. The 10.9% a year is robust: endpoint −11.0%, bootstrap −11.0%. |
-| F1b | Deaths per tonne of fuel fell 76%; 2023 and 2024 were 16% and 14% above trend, 'outside its range' (long-run) | weakened | 'Outside its range' assumes the 2011–2019 slope carried on. By the page's own method, ranges set before 2020 missed 14 of 24 outcomes four to five years ahead, and a smooth-trend model puts 2023 and 2024 inside (moderate). The interurban fuel check is outside by 4.9 deaths (minor). | The 76% reproduces. The Ministry's measured interurban kilometres, in a raw file the analysis does not use, give a fall of 78–81% per km, so 76% is if anything conservative. The point excess, 1.08–1.20, holds under every specification tried. |
-| F16 | Conventional roads 3.45 times the deaths per vehicle-km of motorways (long-run) | survives with caveats | In DGT's Catalan records the road-owner code depends on whether a crash was fatal. Keeping owners 1–3 drops deaths on regional roads whose kilometres stay in the denominator: the rates are 2–3% low, the ratio becomes 3.40, and the '8.7% to 11.2%' of interurban deaths on unmeasured roads is about 6.6–9.1% (moderate). The interval treats the kilometres as exact; 2023 was partly extrapolated (minor). 'Deaths per kilometre of motorways' in the heading reverses if read per km of road (minor). | Every number reproduces. Annual ratios run from 2.91 to 4.23 under every mapping tried, and all round to '3 to 4'. Within each network conventional roads still have 2.6–4.4 times the motorway rate. |
-| F2 | 2024 against 2019: deaths within ordinary variation; admissions +13.0% per tonne of fuel, 'beyond it' (trends) | weakened | The page's only 'beyond' is borderline: t = 2.96 on 5 df, not significant after Holm over its 13 rows, and sensitive to the scatter window (moderate). About 80% of the extra admissions are riders of personal mobility vehicles (VMP) and motorcyclists, whose travel road fuel does not measure. Without VMP riders and the yearbook's 'Otros' column, which held them before 2020, the change is +8.8% (−2.6% to +21.5%), within ordinary variation; the page never says so (moderate). | All 13 changes and intervals reproduce. 'Deaths within ordinary variation' survives every construction: 24 scatter windows, leave-one-year-out fits, the rate's own dispersion. No change of definition in the admissions series was found (HG30DF/HG24H is 0.972–0.976 every year). |
+| F1a | Deaths fell about three quarters 1993–2013 and have shown 'no clear rise or fall since' (home, long-run) | survives with caveats | 'No clear rise or fall' is symmetric where the evidence is not. Only a fall faster than about 0.2% a year is excluded, and a rise of 1.2% a year to 2019 is not statistically clear (p = 0.07, about 40% power) (minor). The 30-day count stepped up about 6% in 2016, as the 30-day/24-hour ratio left its 2011–2015 dip (minor). | Every number reproduces from the raw yearbook. On 24-hour deaths the 1993–2013 fall is 73.0%, with the same turning points, so it does not rest on DGT's pre-2011 correction factors. The 10.9% a year is robust: endpoint −11.0%, bootstrap −11.0%. |
+| F1b | Deaths per tonne of fuel fell 76%; 2023 and 2024 were 16% and 14% above trend, 'outside its range' (long-run) | weakened | 'Outside its range' assumes the 2011–2019 slope carried on. By the page's own method, ranges set before 2020 missed 14 of 24 outcomes four to five years ahead, and a smooth-trend model puts 2023 and 2024 inside, though a random walk with drift and an OLS fit keep them outside (moderate). The interurban fuel check is outside by 4.9 deaths (minor). | The 76% reproduces. The Ministry's measured interurban kilometres since 1996, in a yearbook table (1.2.13) the analysis does not use, give a fall of 78–81% per km, so 76% is if anything conservative. Every specification tried leaves a point excess, from 1.08 to about 1.4. |
+| F16 | Conventional roads 3.45 times the deaths per vehicle-km of motorways (long-run) | survives with caveats | In DGT's Catalan records the road-owner code depends on whether a crash was fatal. Keeping owners 1–3 drops deaths on regional roads whose kilometres stay in the denominator: the rates are 2–3% low, the ratio becomes 3.40, and the '8.7% to 11.2%' of interurban deaths on unmeasured roads is about 6.6–9.1% (moderate). The interval treats the kilometres as exact; 2023 was partly extrapolated (minor). 'Deaths per kilometre of motorways' in the heading reverses if read per km of road (minor). | Every number reproduces. Annual ratios run from 2.91 to 4.23 under every mapping tried, and all round to '3 to 4'. Within each network conventional roads still have 2.6–5.1 times the motorway rate. |
+| F2 | 2024 against 2019: deaths within ordinary variation; admissions +13.0% per tonne of fuel, 'beyond it' (trends) | weakened | The page's only 'beyond' is borderline: t = 2.96 on 5 df, not significant after Holm over its 13 rows, and sensitive to the scatter window (moderate). About 80% of the extra admissions are riders of personal mobility vehicles (VMP), whose travel burns no road fuel, and motorcyclists. Without VMP riders and the yearbook's 'Otros' column, which held them before 2020, the change is +8.8% (−2.6% to +21.5%), within ordinary variation; the page never says so. For motor-vehicle occupants, motorcyclists included, the rise per tonne is still beyond it (+10.8%, +0.9% to +21.6%) in three of four constructions (moderate). | All 13 changes and intervals reproduce. 'Deaths within ordinary variation' survives every construction: 24 scatter windows, leave-one-year-out fits, the rate's own dispersion. No change of definition in the admissions series was found (HG30DF/HG24H is 0.972–0.976 every year). |
 | F3 | Summer peak; per tonne July and August above the average month; April 2020 deaths −68%, per tonne −24% (seasons) | weakened | The April 2020 '−24% per tonne' has no interval. On 40 deaths it is −48% to +11%, so 'deaths fell more than road fuel sold' is not established (moderate). The per-tonne pattern for February and August depends on the freight in road fuel: per tonne of petrol, February is 0.99 (moderate). February fails a 12-month family-wise correction, and February 2020 has 29 days (minor). | Every number reproduces, and the monthly deaths equal the microdata in all 108 months. The raw summer peak holds in every window, per calendar day and under Bonferroni. Per tonne, July and September above and April–May below hold under every denominator. |
-| F4 | 2006 points licence: 'An immediate fall of about 7% that did not last'; it cannot be attributed to the licence (policy) | overstated | 'Did not last' and the −2.5% estimate hold only for pre-trends limited to one continuous bend. Under the page's own QAIC rule a January 2004 level drop fits the pre-period better (473.4 against 476.2) and gives a lasting fall (−11.5%, −14.9% to −8.0%). Two bends tie and give −9.5%, and window starts in 1995–1997 give about −9%; the pre-trend is not identified (major). The Newey–West(12) intervals undercover; with valid errors neither the step nor the slope change excludes zero (moderate). | Every number reproduces from the raw monthly series. 'Cannot be attributed to the licence' holds and is strengthened: every placebo-calibrated interval for the 17-month change includes zero. Every specification gives some fall at July 2006 (−3.6% to −12.6%), and no fall appears before it. |
+| F4 | 2006 points licence: 'An immediate fall of about 7% that did not last'; it cannot be attributed to the licence (policy) | overstated | 'Did not last' and the −2.5% estimate hold only for pre-trends limited to one continuous bend. Under the page's own QAIC rule a January 2004 level drop fits the pre-period better (473.4 against 476.2) and gives a lasting fall (−11.5%, −14.9% to −8.0%), the top of the range: pre-trends that keep the 2004–2006 slope give a lasting −6% to −7%. Two bends at least a year apart tie and give −9.5%, and window starts in 1995–1997 give about −9%; the pre-trend is not identified (major). The Newey–West(12) intervals undercover; with valid errors neither the step nor the slope change excludes zero (moderate). | Every number reproduces from the raw monthly series. 'Cannot be attributed to the licence' holds and is strengthened: every placebo-calibrated interval for the 17-month change includes zero. Every specification gives some fall at July 2006 (−3.6% to −12.6%), and no fall appears before it. |
 | F5a | Car drivers 18–29 involved 2.68 times as often per km as 45–64 (95% sampling interval 2.5–2.9) (home, drivers) | overstated | The 1.49–3.63 sensitivity range was removed from the home page, the drivers page, Figure 1 and the tool by commit `268caf2`; it is 5.7 times as wide as the sampling interval, and 65% of the study's own variants fall outside the printed 2.5–2.9 (major). Both source regions have Spain's lowest young licence holding; the study's own licence calibration, applied to both surveys, gives 2.37 (moderate). The averaged interval is narrower than either survey's (moderate). | 2.68 reproduces from the raw tables and surveys. The direction holds under every alternative, the lowest being 1.49. The road-to-straight-line factor cancels. The survey bootstrap respects the one-person-per-household design. |
-| F5b | Drivers 75+ per km 2.43 (2.0–3.0), range 0.97–3.20, 'the data do not establish' a higher rate; 65–74 1.11 (drivers) | overstated (tool and figure) | The driver-risk tool opens on 75+ against 45–64 and states 2.43 'times as often' with only its sampling interval: no condition, no range, no 'do not establish' (major). Figure 1 shows 75+ at 2.0–3.0 without the range, and the heading 'highest among drivers aged 18–29' ranks 18–29 above 75+, an order that reverses on the Madrid profile (moderate). The range probably understates the upside, about 3.4–3.6 (moderate). The 65–74 figure, 1.11 (1.0–1.2), is shown without its 0.67–1.70 range (moderate, part of M1). | The text on the drivers page states the condition and the range, and its conclusion stands. 2.43 and 0.97–3.20 reproduce. |
+| F5b | Drivers 75+ per km 2.43 (2.0–3.0), range 0.97–3.20, 'the data do not establish' a higher rate; 65–74 1.11 (drivers) | overstated (tool and figure) | The driver-risk tool opens on 75+ against 45–64 and states 2.43 'times as often' with only its sampling interval: no condition, no range, no 'do not establish' (major). Figure 1 shows 75+ at 2.0–3.0 without the range, and the heading 'highest among drivers aged 18–29' ranks 18–29 above 75+, an order that reverses on the Madrid profile (moderate). The range probably understates the upside, about 3.4–3.6 (moderate). The 65–74 figure, 1.11 (1.0–1.2), is shown without its 0.67–1.70 range (moderate, part of M1). | The text on the drivers page says the figure rests on Madrid's survey and gives the range, and its conclusion stands. 2.43 and 0.97–3.20 reproduce. |
 | F6 | Once in a crash, drivers 75+ died 3.4 times as often as 45–64 (home, drivers) | survives with caveats | 3.4 is printed without its 95% interval, 2.6–4.5 (minor). The crude ratio is partly sex mix: for drivers of the same sex it is about 3.0 (2.3–4.0) (minor). | 15.9, 8.5, 4.6 and 3.43 reproduce from one table universe. The rounding of 3.4 is correct (3.46 is the quotient of two rounded rates). Lowering the ratio to 2.0 would need 42% of 75+ involvements to be missing, and no proxy suggests that. |
 | F7 | Men 0.91 times women per km, killed 2.63 times; 1.39 per licence holder; 2.62 once involved 'in every age band' (drivers) | weakened | Every ratio is crude and age distorts it. Once involved it is 2.35 at equal age; per licence holder 1.45, outside the printed 1.38–1.40 (moderate). Per km the 0.91 hides a reversal: men aged 18–29 are involved about 1.3 times as often as women (1.19–1.63 across every profile), so 'which ... comes from their driving further' is false for young drivers (moderate). The per-licence denominator counts any licence class: per car-licence holder the ratio is 1.42, and 1.60 rather than 1.43 at 75+ (minor). The lede's 'men 2.6 times' pools 2022–2024; 2024 alone gives 2.9 (minor). | All four figures reproduce exactly; the intervals are correctly computed; 'in every age band' holds at nominal 95%. |
 | F8 | 2022: heavy truck 10.3 times a car in fatal crashes per vehicle, 2.5 times per km; motorcycles 10.1 per km (vehicles) | weakened | 2022 is the peak year. 2023 and 2024 give 1.7–2.0 times per km and 7.9–8.3 per vehicle; pooled 2016–2024, 2.2 (moderate). 'About the same rate per kilometre' for truck occupants hides a pooled gap of about a fifth (minor). | Every number reproduces from the raw tables and kilometre file. The qualitative pattern (frequency for motorcycles, severity for trucks, the ranking depending on the denominator) holds in every year 2020–2024. The 82% logic is right. |
 | F9 | Speed-recorded crashes 2.0 times the deaths per crash within road type, 1.2 to 5.9 (home, speed) | survives with caveats | With the study's own t convention the dual-carriageway ratio is 1.22 (0.98–1.52), so 'every interval lies above one' fails for one road type (moderate). Outcome-dependent recording of 1.2–1.7 times would produce every interurban ratio (minor). | Every number reproduces from the raw report and the microdata. Catalonia and the Basque Country are excluded alike on both sides. 'Most of all on urban streets' holds on the ratio and on the absolute excess. The summary interval is conservative for the weighted summary it describes. |
-| F10 | Recorded alcohol 5.5% to 8.2% of interurban crashes; recorded speed fell about a quarter (factors) | weakened | Interurban illegal manoeuvres count as 'comparable 2014–2023, +49%' only because the 25% break threshold sits 2% above the series' own 2017 jump (×1.223). At 20% the run splits into 2014–2016 +26% and 2017–2023 −3% (moderate). The 2014 urban baseline sits inside a step in recorded urban crashes, so the size of the urban speed fall is uncertain (moderate). 'As crashes shifted to urban streets' describes mostly a recording step; Table 1's changes are endpoint ratios with no interval (minor). | Every share reproduces from the raw report. The lead's alcohol rise and quarter fall in recorded speed hold with overdispersed trend intervals. Every other comparable run is the same for any threshold from 1.22 to 1.57. |
-| F11 | DGT regression: head-on OR 5.48, conventional interurban road 6.63 against urban street, junction 0.69, wet 0.56 (severity) | overstated | In DGT's Catalan records road alignment is filled in almost only when someone died or was admitted within 24 hours, and its 'unknown' level stands in for the outcome. Fitted without that leak, the conventional-road contrast is 4.9–6.2, not 6.63; urban crossing/conventional is 3.8–6.9, not 8.75, and not the 'largest location contrast' (major). Crash-type odds ratios differ by zone: head-on 2.8 on urban streets against 5.6 interurban, so the ranking sentence holds only on interurban roads (moderate). Catalan surface coding depends on severity, so wet is about 0.60, not 0.56 (moderate). The Catalan 2024 'other road' coding moves two rows of Table 1 (moderate). | Every odds ratio reproduces. The Catalan junction inversion is real, and the re-reading is justified. The junction OR (0.685–0.707) and wet below 1 hold in every specification. Crash-type and junction ORs barely move without alignment. |
-| F12 | Catalonia 2010–2023: 12.6% of serious crashes fatal; by road type, 'most fatal crashes were on conventional roads' (catalonia) | refuted in part | The road-type field codes motorways and dual carriageways as such only in 2013–2015; in the other eleven years their crashes are coded as conventional roads. 'Most fatal crashes were on conventional roads: 1,981 of the 3,093' becomes about 1,460–1,620 (47–52%), at most 1,801. Motorways had about 700–1,250 crashes, not 224, with a fatal share of 22–25%, clearly above conventional roads (about 18%), so 'overlaps that of conventional roads' reverses (critical). | 24,478, 3,093, 12.6%, 19.2% against 6.9% and 27.8% reproduce. The 32 province-year equality with DGT holds, and extends to 2014. The headline contrasts keep their direction within zone. |
-| F13 | Barcelona 2025: who is seriously hurt; the crash model 'no better than the shares' (barcelona) | survives with caveats | 'Ranked crashes no better than the shares by crash type' rests on one test with 58 serious crashes: gain +0.003 (−0.04 to +0.05), with 17–47% power for gains of 0.02–0.04. It shows 'not shown to be better', not 'no better' (moderate). Speed 'most often' is the largest of 17 causes; the pedestrian-struck ranking is within chance of two others (minor). | Every descriptive number reproduces from the six raw files, through exclusions, clustering, night definitions and the rear-end code. The decision to publish the table instead of the model stands. |
+| F10 | Recorded alcohol 5.5% to 8.2% of interurban crashes; recorded speed fell about a quarter (factors) | weakened | Interurban illegal manoeuvres count as 'comparable 2014–2023, +49%' only because the 25% break threshold sits 2% above the series' own 2017 jump (×1.223). At 20% the run splits into 2014–2016 +26% and 2017–2023 −3% (moderate). The 2014 urban baseline sits inside a step in recorded urban crashes, so the size of the urban speed fall is uncertain (moderate). 'As crashes shifted to urban streets' describes mostly a recording step; Table 1's changes are endpoint ratios with no interval (minor). | Every share reproduces from the raw report. The lead's alcohol rise and fall in recorded speed hold in direction: their overdispersed trend intervals exclude zero. Every other comparable run is the same for any threshold from 1.22 to 1.57. |
+| F11 | DGT regression: head-on OR 5.48, conventional interurban road 6.63 against urban street, junction 0.69, wet 0.56 (severity) | overstated | In DGT's Catalan records road alignment is filled in almost only when someone died or was admitted within 24 hours, and its 'unknown' level stands in for the outcome. Fitted without that leak, the conventional-road contrast is 4.9–6.2, not 6.63; urban crossing/conventional is 3.8–6.9, not 8.75, and the 'largest location contrast' only when the zone terms come from outside Catalonia (major). Crash-type odds ratios differ by zone: head-on 2.8 on urban streets against 5.6 interurban, so the ranking sentence holds only on interurban roads (moderate). Catalan surface coding depends on severity, so wet is about 0.60, not 0.56 (moderate). The Catalan 2024 'other road' coding moves two rows of Table 1 (moderate). | Every odds ratio reproduces. The Catalan junction inversion is real, and the re-reading is justified. The junction OR (0.685–0.707) and wet below 1 hold in every specification. Crash-type and junction ORs barely move without alignment. |
+| F12 | Catalonia 2010–2023: 12.6% of serious crashes fatal; by road type, 'most fatal crashes were on conventional roads' (catalonia) | refuted in part | The road-type field codes motorways and dual carriageways as such almost only in 2013–2015; in the other eleven years their crashes are coded as conventional roads. 'Most fatal crashes were on conventional roads: 1,981 of the 3,093' becomes about 1,460–1,620 (47–52%), at most 1,801. Motorways had about 700–1,250 crashes, not 224, with a fatal share of 22–25%, clearly above conventional roads (about 18%), so 'overlaps that of conventional roads' reverses (critical). | 24,478, 3,093, 12.6%, 19.2% against 6.9% and 27.8% reproduce. The 32 province-year equality with DGT holds, and extends to 2014. The headline contrasts keep their direction within zone. |
+| F13 | Barcelona 2025: who is seriously hurt; the crash model 'no better than the shares' (barcelona) | survives with caveats | 'Ranked crashes no better than the shares by crash type' rests on one test with 58 serious crashes: gain +0.003 (−0.04 to +0.05), with 17–47% power for gains of 0.02–0.04. It shows 'not shown to be better', not 'no better' (moderate). Speed 'most often' is the largest of 17 causes; the pedestrian-struck ranking is within chance of two others (minor). | Every descriptive number reproduces exactly from the six raw files, and the contrasts hold against the exclusions, clustering, the night definition and merging the rear-end code. The decision to publish the table instead of the model stands. |
 | F14a | Catalan model: a heavy vehicle 2.0 times the fatal share (1.7–2.2) (home, severity-models) | survives with caveats | On urban streets the heavy-vehicle excess sits only in crashes with a pedestrian or two-wheeler. The model's additive flags spread it to car-versus-lorry crashes, so the calculator's urban car-versus-lorry ×2.55 is about ×1.7 (moderate). The home page gives a ratio from one reference crash (minor). | The refit matches the exported coefficients to 5e-9. 'About twice' survives an unpenalised fit (2.02), a bootstrap that re-chooses the penalty (1.71–2.18), interactions (1.88–2.32) and either period. Standardised over all crashes it is 1.97 (1.79–2.16). |
-| F14b | Catalan model: ROC-AUC 0.74 against 0.71, 12.4% against 12.3%, nested rolling-origin test (severity-models, validation) | survives with caveats | The road-owner exclusion depends on the outcome. Two of the three misses the page names in the later-years test (interurban Girona and Tarragona) disappear when the excluded crashes are kept; the province-left-out misses persist (moderate). The benchmark table is the weakest declared one: adding the heavy-vehicle flag halves the lead to about 0.015, with the model ahead in six of eight years (minor). 'All ten groups inside' clears its bound by 0.08 points (minor). The options menu was designed after test-year scores were seen (minor). | An independent re-implementation reproduced the nested test exactly (AUC 0.7395 against 0.7090, mean 12.37% against 12.31%, slope 1.033). It found no code-level leakage. The lead over the declared table holds in every year, and overall calibration is good (Hosmer–Lemeshow p = 0.28). |
-| F15 | Validation: ranking held across provinces and Spain; national records unfit for a predictive model (validation, sources) | survives with caveats | The Barcelona 'no better' wording (as F13). The Barcelona outcome-recording crash code inflates the person model's district-transfer score, 0.86 to 0.82 (moderate). 'Train no published model' lacks 'predictive' (minor). | Leave-one-province-out reproduces (0.69–0.78), with every gain over the table excluding zero. The national transfer (0.709) and its reference reproduce. The DGT audit's failures are far beyond noise. |
+| F14b | Catalan model: ROC-AUC 0.74 against 0.71, 12.4% against 12.3%, nested rolling-origin test (severity-models, validation) | survives with caveats | The road-owner exclusion depends on the outcome. Two of the three misses the page names in the later-years test (interurban Girona and Tarragona) disappear when the excluded crashes are kept (moderate). The benchmark is the two-variable table declared in advance: adding the heavy-vehicle flag halves the lead to about 0.015, with the model ahead in six of eight years (minor). 'All ten groups inside' clears its bound by 0.08 points (minor). The options menu was designed after test-year scores were seen (minor). | An independent re-implementation reproduced the nested test exactly (AUC 0.7395 against 0.7090, mean 12.37% against 12.31%, slope 1.033). It found no code-level leakage. The lead over the declared table holds in every year, and overall calibration is good (Hosmer–Lemeshow p = 0.28). The leakage attacker found that the province-left-out calibration misses persist with the excluded crashes restored (not rechecked by a verifier). |
+| F15 | Validation: ranking held across provinces and Spain; national records unfit for a predictive model (validation, sources) | survives with caveats | The Barcelona 'no better' wording (as F13). The Barcelona outcome-recording crash code inflates the person model's district-transfer score, 0.86 to 0.82 (moderate). 'Train no published model' lacks 'predictive' (minor). | Leave-one-province-out reproduces closely (0.69–0.78 against the published 0.68–0.77), with every gain over the table excluding zero. The national transfer (0.709) and its reference reproduce. The DGT audit's failures are far beyond noise. |
 | G1 | DGT's inspection-based kilometres 2022–2024 'as one series', against road fuel: 'points the other way' (data.html, sources.html; found by the completeness critic) | refuted | DGT's own 2024 report says the 2024 estimates use a different method from the 2022 and 2023 exercises (a new contractor, 2024 inspections only, a new filter). The whole 2022–2024 fall in kilometres per tonne (−3.0%) lies in the step that crosses that change. On DGT's like-for-like step, 2022–2023, kilometres per tonne rose 1.9%, as the Ministry's interurban (+3.4%) and toll-motorway (+5.1%) series did. So 'points the other way' has no valid support, and the sign of 'deaths per kilometre rose 3.9%' is not identified (major). An earlier version of the site said these figures 'cannot be joined'; an internal audit removed that, and a test now forbids it. | Every number reproduces. The repository's 2024 workbooks are byte-identical to DGT's release. The categories and fleet definitions match. The Spain-against-Catalonia kilometre ratio (1.18–1.25) is robust to the change. |
 | G2 | Barcelona working-day check: 65+ involved 0.80–1.11 times the 45–64 rate per km across three versions, 18–29 2.14–2.61 (data.html; found by the completeness critic) | survives with caveats | The three versions do not bound the 65+ ratio. Capping the in-city part of crossing trips at a plausible 3–10 km gives 1.06–1.16, at or above the top of the published range (moderate). The on-duty variant removes only part of the on-duty drivers, because trip motive is unknown for about half of them (minor). The 18–29 kilometres rest on 49 respondents; single EMEF years give 2.05–3.99 (minor). | Every number reproduces from the raw Guàrdia Urbana and EMEF files. The design checks hold: every driver listed, no-victim crashes excluded, the 248-day calendar, the inside-city definition. Under every single change the 65+ interval includes 1 and the 18–29 interval lies above 1. |
 | F19 | Interactive tools | weakened | The driver-risk tool's 75+ default (as F5b) (major). The calculator's interval assumes one specification and penalty: coverage about 92–94%, and 85–90% for unusual combinations (moderate). The crash explorer shows unflagged Basque and Murcian road-type recodings, while data.html says all road-type and junction breaks are Catalan (moderate). | The tools' arithmetic is exact. The JS engine matches the model, every crash-explorer cell matches, and the tool JSON regenerates byte for byte. |
@@ -188,7 +188,7 @@ file's own 2013–2015 coding as a template, and the named motorways):
 | | Published | Consistently classified |
 |---|---|---|
 | Fatal crashes on conventional roads | 1,981 of 3,093 (64%) | about 1,460–1,620 (47–52%); at most 1,801 (58%) under the strictest rule |
-| Share of serious crashes fatal, conventional roads | 18.8% of 10,540 | about 17.6–17.9% of about 8,300–8,600 |
+| Share of serious crashes fatal, conventional roads | 18.8% of 10,540 | about 17.6–18.0% of about 8,300–8,600; 18.9% under the strictest rule |
 | Motorway crashes | 224 | about 700–1,250 |
 | Share fatal, motorways | 20.5% (15.8–26.3%), overlapping conventional roads | 22.4–25.0%, lower 95% bound 20.2–22.3%, above every conventional upper bound |
 
@@ -196,7 +196,7 @@ file's own 2013–2015 coding as a template, and the named motorways):
 reports reverses. The rest of the page stands: the totals, the zone, heavy-vehicle and lighting
 contrasts, and the equality with DGT's fatal crashes. The verifier noted a knock-on effect it did
 not quantify. The calculator's 'Conventional road, State network' and regional levels contain about
-a third motorway and dual-carriageway crashes, and its test years include only 7 motorway and 65
+a quarter to two fifths motorway and dual-carriageway crashes, and its test years include only 7 motorway and 65
 dual-carriageway crashes. So the published out-of-sample test says almost nothing about the
 calculator's motorway and dual-carriageway options.
 
@@ -210,7 +210,7 @@ import pandas as pd
 df = pd.read_csv('data/raw/catalonia/accidents_morts_ferits_greus_catalunya_2010_2023.csv', dtype=str)
 print(pd.crosstab(df.Any, df.D_TIPUS_VIA)[['Autopista', 'Autovia']].T)
 ap7 = df[df.via == 'AP-7']
-print(pd.crosstab(ap7.Any, ap7.D_TIPUS_VIA).T)  # Autopista only in 2013-2015
+print(pd.crosstab(ap7.Any, ap7.D_TIPUS_VIA).T)  # Autopista almost only in 2013-2015
 ```
 
 **Fix.** Either restrict the road-type shares to 2013–2015, or classify roads by name and kilometre
@@ -220,8 +220,8 @@ breaks on data.html. Check the calculator's road levels.
 ### M1 (major). The 18–29 per-km ratio is published without the uncertainty that dominates it
 
 **Published** (index.html, drivers.html, Figure 1, driver-risk tool): "an estimated 2.68 times as
-often as drivers aged 45–64 in 2024 (95% sampling interval 2.5–2.9)"; on drivers.html also "30–44
-1.24 times (1.18–1.31) and 65–74 1.11 times (1.0–1.2)".
+often as drivers aged 45–64 in 2024 (95% sampling interval 2.5–2.9)"; on drivers.html also "drivers aged
+30–44 1.24 times (1.18–1.31) and drivers aged 65–74 1.11 times (1.0–1.2)".
 
 **What is wrong.** The sampling interval covers survey and count chance for a fixed 50/50 average of
 two metropolitan age profiles. It leaves out the transfer of those profiles to Spain. The study's
@@ -244,7 +244,7 @@ Two related issues were confirmed as moderate:
 - Averaging the two surveys makes the interval narrower than either survey's own (log width 0.14
   against 0.23 and 0.16) without adding information about Spain.
 
-**Reproduce:** `git show 268caf2^:site/index.html | grep -o 'sensitivity range 1.49–3.63'`;
+**Reproduce:** `git show 268caf2^:site/index.html | grep -o 'sensitivity range</a> 1.49–3.63'`;
 `reports/tables/risk_national_sensitivity.csv` (18–29: 1.491 to 3.634).
 
 **Fix.** Restore the range beside each per-km ratio (for example "2.68 times (95% sampling interval
@@ -258,8 +258,9 @@ sensitivity analysis.
 involved in injury crashes 2.43 times as often as drivers aged 45–64." The detail reads "75 and
 over: 95% sampling interval 2.0–3.0".
 
-**What is wrong.** The drivers page says this estimate holds only "if people aged 75 and over drive
-as much less than those aged 65–74 as in Madrid in 2018". It says that under other plausible
+**What is wrong.** The drivers page says this estimate "rests on Madrid's survey alone" (the methodology page
+gives its condition: that people aged 75 and over "drive as much less than those aged 65–74 as in
+Madrid in 2018"). It says that under other plausible
 assumptions it runs from 0.97 to 3.20, "so the data do not establish that they are involved more
 often per kilometre than drivers aged 45–64". The tool opens on exactly this comparison and gives
 neither the condition nor the range nor the conclusion. A 2.0–3.0 interval reads as an established
@@ -273,7 +274,7 @@ Three moderate issues compound it:
 - Figure 1 on the drivers page draws 75+ at 2.0–3.0 with no range.
 - The heading 'Crashes per kilometre: highest among drivers aged 18–29' ranks 18–29 above 75+. The
   ordering holds with about 80% probability under sampling error and reverses on the Madrid profile.
-- The documented upward alternatives, crossed like the four splits, would take the range to about
+- The documented upward alternatives, crossed like the four splits, would take the top of the range to about
   3.4–3.6.
 
 **Fix.** Show the condition, the range and the conclusion whenever the tool shows 75+ (or 65–74) per
@@ -302,10 +303,10 @@ out; province fixed effects):
 | Contrast | Published | Without the leak |
 |---|---|---|
 | Conventional interurban road vs urban street | 6.63 (4.95–8.89) | 4.9–6.2 |
-| Four interurban road types | 5.66–7.23 | about 4.4–5.8 |
+| Four interurban road types | 5.66–7.23 | about 4.4–5.8 (at most 6.2) |
 | Urban crossing, conventional | 8.75 (6.52–11.75), 'largest' | 3.76–6.87; 3.76–5.63 in every same-population fit, below the published lower bound |
 
-The directions hold, and the crash-type, junction and wet-road odds ratios barely move. The data
+The directions hold, and the crash-type and junction odds ratios barely move. The data
 page does warn that a recording practice could distort other coefficients through such a level. Its
 check, refitting without Catalonia, was applied only to the 32 single-term odds ratios, never to the
 joint location contrasts.
@@ -334,25 +335,31 @@ leakage-free values (for example conventional interurban 5.7, 4.7–6.9).
 
 **Published** (policy.html): the heading "An immediate fall of about 7% that did not last". The text
 reads "fitted deaths rejoin the projected path in about July 2007 and end the window 2.3% above it;
-averaged over the 17 months, the change is −2.5%". It also says the bend "fits the months before the
-change ... better ... That difference favours the bend without being decisive."
+averaged over the 17 months, the change is −2.5%". It also says a straight line "fits the months
+before the change less well than a trend that bends once, in August 2003 ... That difference
+favours the bend without being decisive."
 
 **What is wrong.** The pre-trend is chosen by QAIC on the months before July 2006, but only among a
-straight line and a single continuous bend (`policy.py:772–830`). Apply the same rule (same months,
+straight line and a single continuous bend (`src/dgt_stats/policy.py:772–830`). Apply the same rule (same months,
 same c = 1.6076, same two parameters per change) to an equally simple trend with a one-off level
 drop, and the January 2004 drop fits better than the August 2003 bend: QAIC 473.4 against 476.2. It
 does so at every c from 1.0 to 1.86. In the raw counts, 2003 deaths (5,399) exceeded 2002's
 (5,347), and the drop starts in January 2004. Under that pre-trend:
 
-| | Bend, August 2003 (published) | Level drop, January 2004 | Two bends (ties the one bend) |
+| | Bend, August 2003 (published) | Level drop, January 2004 | Two bends at least 12 months apart (ties the one bend) |
 |---|---|---|---|
 | Step at July 2006 | −7.1% (−13.2% to −0.5%) | −12.6% (−16.6% to −8.5%) | −10.9% |
 | Mean change over 17 months | −2.5% (−7.8% to +3.2%) | −11.5% (−14.9% to −8.0%) | −9.5% (−14.2% to −4.4%) |
 | End of window | +2.3% | −10.4% | |
 
 The single-bend answer also flips with the window's start, which is not justified anywhere: starts
-in 1995–1997 give about −9%. Averaging over pre-trends by QAIC gives a 17-month change of about −7%
-to −8%, with an interval reaching zero.
+in 1995–1997 give about −9%. On those longer windows one bend is misspecified; allowing two
+returns them to about −3%, but then starts in 1998, 1999, 2001 and 2002 give −7.5% to −10.5%.
+
+The −11.5% is the top of the range. The level drop forces a slope (−2.6% a year) flatter than the
+local decline of 2004–2006 (−5.1% a year); pre-trends that keep the local slope give a lasting
+−6% to −7%. Averaging over pre-trends by QAIC gives a 17-month change of about −7% to −8%, with an
+interval reaching zero.
 
 The data cannot tell which pre-trend is right. In simulation:
 
@@ -399,7 +406,7 @@ the Observatorio Nacional de Seguridad Vial's) states on p. 4:
 Its Table 6, the source of the site's series, is "los tres ejercicios de estimación". Its 2022 and
 2023 rows are copied from the earlier releases. Split at the declared change:
 
-| | 2022 → 2023 (same method) | 2023 → 2024 (across the change) | 2022 → 2024 (published) |
+| | 2022 → 2023 (same approach) | 2023 → 2024 (across the change) | 2022 → 2024 (published) |
 |---|---|---|---|
 | Vehicle-km | +0.8% | −2.3% | −1.6% |
 | Road fuel sold | −1.0% | +2.5% | +1.5% |
@@ -408,9 +415,10 @@ Its Table 6, the source of the site's series, is "los tres ejercicios de estimac
 
 On the like-for-like step, kilometres per tonne rose, as the Ministry's measured interurban series
 (+3.4%) and the toll motorways (+5.1%) did. Deaths per kilometre then rose less than deaths per
-tonne (+2.6% against +4.5%), the reverse of the ordering the site reports. The 2024 fall in cars'
-mean distance sits in the youngest band, mostly model-imputed because those cars have had no
-inspection (−22% in one year), while every older band rose.
+tonne (+2.6% against +4.5%), the reverse of the ordering the site reports. About 2.7 points
+of the 6.0% fall in cars' mean distance over 2022–2024 is genuine fleet ageing; the rest sits in
+the youngest band, mostly model-imputed because those cars have had no inspection (−22% in 2024
+alone), while every older band rose.
 
 'Points the other way' therefore has no valid support. The sign of the 2022–2024 changes is not
 identified; deaths per kilometre run from about −1.8% to +3.9% under the alternatives tested.
@@ -437,19 +445,19 @@ ledger-B|66, and archive DGT's 2023 and 2024 reports with the raw files if their
 ## Moderate issues and their fixes
 
 Every row was confirmed, at least in part, by a verifier who reproduced it. The issue register
-([`ADVERSARIAL_REVIEW_e593b6b.csv`](ADVERSARIAL_REVIEW_e593b6b.csv)) gives each one's evidence, the
-verifier's reproduction and its disclosure.
+([`ADVERSARIAL_REVIEW_e593b6b.csv`](ADVERSARIAL_REVIEW_e593b6b.csv)) gives each one's factual core as the
+verifier confirmed it, its materiality, its disclosure and a suggested fix.
 
 | Finding | Issue | Fix |
 |---|---|---|
-| F1b | 'Outside its range' (2023–2024 per tonne of fuel) assumes the 2011–2019 decline went on; the method's ranges missed most pre-2020 outcomes four to five years ahead, and a smooth-trend model puts both years inside. | Say the range assumes the trend continued, or call the years 'above the continued 2011–2019 trend' and give the smooth-trend interval beside it. |
-| F2 | About 80% of the 2019–2024 rise in admissions is VMP riders (the yearbook's new column, in 'Otros' before 2020) and motorcyclists. Without VMP and 'Otros', admissions per tonne are +8.8% (−2.6% to +21.5%), within ordinary variation. | Give the change without VMP and 'Otros' beside the per-tonne figure, and add the road-user mix to the explanations of more admissions per crash. |
+| F1b | 'Outside its range' (2023–2024 per tonne of fuel) assumes the 2011–2019 decline went on; the method's ranges missed most pre-2020 outcomes four to five years ahead, and a smooth-trend model puts both years inside, though random-walk and OLS forms keep them outside. | Say the range assumes the trend continued, or call the years 'above the continued 2011–2019 trend' and give the smooth-trend interval beside it. |
+| F2 | About 80% of the 2019–2024 rise in admissions is VMP riders (the yearbook's new column, in 'Otros' before 2020) and motorcyclists. Without VMP and 'Otros', admissions per tonne are +8.8% (−2.6% to +21.5%), within ordinary variation; motor-vehicle occupants alone are still beyond it, +10.8% (+0.9% to +21.6%). | Give the change without VMP and 'Otros' beside the per-tonne figure, and add the road-user mix to the explanations of more admissions per crash. |
 | F2 | The single 'beyond' (lower bound +1.6%) is borderline: t = 2.96 on 5 df, not significant after Holm over 13 rows, sensitive to the scatter window and to dropping a year. | Call it borderline and stop singling it out in the summary without that qualifier. |
 | F2 | 'Beyond' rests on 0.3% a year of km-per-tonne drift being hypothetical, while the only measured series (interurban) drifted about 1.9% a year in 2019–2023. | Put the measured drift next to the 0.3% threshold. |
 | F3 | The April 2020 '−24% per tonne' has no interval (about −48% to +11% on 40 deaths), and the heading's 'deaths fell more than road fuel sold' is not established. | Add the interval and the baseline sensitivity (−15% to −28%), and soften the heading. |
 | F3 | Road fuel weights freight heavily, so February below and August above depend on the denominator (per tonne of petrol February is 0.99). | Say the measures disagree about February too; April–May below and July and September above hold under both. |
 | F4 | The Newey–West(12) intervals undercover even under a correct model; with quasi-Poisson or NB errors neither the step (−14% to +1%) nor the slope change excludes zero. | Use model-based quasi-Poisson or NB2 errors throughout, and report the residual diagnostics (Ljung–Box p at least 0.33). |
-| F4 | 'Did not last' rests on intervals the page's own placebos show to be about 2.5 to 4 times too narrow; the data cannot rule out a lasting fall of 10–15%. | Reword the heading so that the size and persistence of the fall are not pinned down. |
+| F4 | 'Did not last' rests on intervals that placebos matched to the main fit show to be about 2.5 to 2.8 times too narrow (the page's own straight-line placebos give about 4, which overstates it); the data cannot rule out a lasting fall of 10–15%. | Reword the heading so that the size and persistence of the fall are not pinned down. |
 | F5a | Both survey regions have Spain's lowest young licence holding. The study's own calibration, applied to both, gives 2.37, below the printed interval. | Add the symmetric calibration to the sensitivity analysis, and say the transfer probably overstates the 18–29 ratio. |
 | F5a | The averaged profile's interval is narrower than either survey's; at 30–44 and 65+ the surveys differ beyond chance and the interval contains neither. | Show both surveys' estimates, or the range, beside the average. |
 | F5b | Figure 1 shows 75+ at 2.0–3.0 with no range. | Draw the 65–74 and 75+ ranges, or add them to the caption and alt text. |
@@ -458,7 +466,7 @@ verifier's reproduction and its disclosure.
 | F5b | The 65–74 figure, 1.11 (1.0–1.2), appears without its 0.67–1.70 range. | Print the range beside it, as for 75+ (part of M1). |
 | F7 | The sex ratios are crude, and age distorts them. Once involved: 2.35 at equal age, against 2.62. Per licence holder: 1.45, outside the printed 1.38–1.40. | Give age-standardised ratios beside the crude ones, and say the excess once involved falls with age. |
 | F7 | Per km, men aged 18–29 are involved about 1.3 times as often as women (1.19–1.63 across every profile), so 'which ... comes from their driving further' holds only from age 30. | Limit the sentence to drivers aged 30 and over, or add the 18–29 figure. |
-| F8 | The heavy-truck multiples come from 2022, the highest year: 2023 and 2024 give 1.7–2.0 times per km. | Say 2022 was the highest year, and give the 2022–2024 figure (2.0, 1.9–2.2). |
+| F8 | The heavy-truck multiples come from 2022, the highest year: 2023 and 2024 give 1.7–2.0 times per km with each year's DGT kilometres, and 2.03 and 1.95 on the 2022 kilometres; about half the 2022–2024 gap comes from DGT's revised kilometres. | Say 2022 was the highest year, and give the 2022–2024 figure (2.0, 1.9–2.2). |
 | F9 | Under the study's own t convention the dual-carriageway ratio's interval is 0.98–1.52. | Use t(7), and say 'clearly on three road types'. |
 | F10 | The +49% for interurban illegal manoeuvres counts as comparable only because the 2017 jump (×1.223) sits just under the 25% rule; at 20% the run splits and is flat after 2017. | Show the run as 2014–2016 and 2017–2023, or say the 2017 rise was just under the rule. |
 | F10 | The 2014 urban baseline sits inside a step in recorded urban crashes. | Say so beside the urban speed fall. |
@@ -471,7 +479,7 @@ verifier's reproduction and its disclosure.
 | F14b, calculator | The owner exclusion moves the reference estimate (13.4% against 11.6–17.5% under other handlings). | State the alternative estimate beside Table 1. |
 | F15 | The Barcelona outcome-recording crash code lifts the person model's district score (0.86, but 0.82 without it). | Refit without the code, or report both. |
 | F16 | The road-owner codes in DGT's Catalan records depend on the outcome, so the numerator drops deaths whose kilometres are counted. | Set coverage from the road name in the Catalan provinces, and recompute (3.40; the '8.7% to 11.2%' becomes about 6.6–9.1%). |
-| F19 | The calculator's interval is conditional on one specification and penalty: about 92–94% coverage, and 85–90% for unusual combinations. | Say so, or widen it with a bootstrap that repeats the selection. |
+| F19 | The calculator's interval leaves out the shrinkage bias of the penalised fit: even when the model is right it covers about 92–94% for recorded crash profiles and 85–90% for unusual combinations. It is also conditional on one specification and penalty, which the linked report states and the page only implies. | Say so, or widen it with a bootstrap that repeats the selection. |
 | F19 | The crash explorer shows Basque (2017, 2021) and Murcian (2017) road-type recodings without a caveat, and data.html says all road-type and junction breaks are Catalan. | Add them to the coding breaks, and make the explorer's caveat fire for them. |
 | G1 | DGT's 2022 kilometres are pure model output, while its 2024 figures use observed inspection readings where valid. About 0.8 points of the −3.0% in kilometres per tonne comes from that difference of basis alone. | State it in the caveat that M5 restores. |
 | G2 | The three versions of Barcelona's working-day kilometres do not bound the 65+ ratio. Capping the in-city part of crossing trips at a plausible 3–10 km gives 1.06–1.16, at or above the top of the published 0.80–1.11. | Say the versions are not bounds, and give the capped values. |
@@ -500,7 +508,7 @@ documentation items recur and are worth one pass each:
 - The research documents and the data page still describe Method A (the Barcelona-area profile, 2.53)
   as the central driver-age estimate, and the sensitivity alternatives are centred on it, while the
   pages publish the two-survey average (2.68).
-- Several documents carry intervals that the final commit changed: `docs/methodology.md`,
+- Several documents carry intervals that later commits changed: `docs/methodology.md`,
   `STATISTICAL_AUDIT.md` and `DRIVER_AGE_EXPOSURE.md`.
 
 ## The six questions asked
@@ -686,8 +694,9 @@ The verifiers settled each one.
 - **The late switch to the averaged driving profile** (commit `268caf2`). No evidence was found that
   it was chosen on outcomes. The documents were not updated around it (minor).
 - **The owner exclusion and the province misses.** The misses in the later-years test (interurban
-  Girona and Tarragona) come from the exclusion. The misses when each province is left out of
-  fitting persist without it. The model page's single 'missed in some provinces' covers both.
+  Girona and Tarragona) come from the exclusion. The leakage attacker found that the misses when
+  each province is left out of fitting persist without it; no verifier rechecked that. The model
+  page's single 'missed in some provinces' covers both.
 
 ## Claims the verifiers refuted
 
@@ -745,7 +754,7 @@ section above describes those that bear on a published statement.
 1. **Correct the Catalonia road-type paragraph** (C1). Restrict it to 2013–2015, or classify roads
    by name and kilometre point. Add the break to the coding breaks, and check the calculator's road
    levels.
-2. **Restore the uncertainty the final commit removed** (M1, M2). Put the sensitivity ranges
+2. **Restore the uncertainty that commit `268caf2` removed** (M1, M2). Put the sensitivity ranges
    beside the per-km ratios on the home page, the drivers page, Figure 1 and the driver-risk tool.
    Put the Madrid condition and 'the data do not establish' wherever the tool shows 75+ per km.
    Extend the editorial guard to the tool, and relax the tests that forbid the ranges.
