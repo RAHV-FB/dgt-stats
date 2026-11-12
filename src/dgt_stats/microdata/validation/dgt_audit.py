@@ -1,68 +1,40 @@
-"""Does the DGT crash microdata belong in a severity model, or only in the national layer?
+"""How the DGT crash microdata record circumstances: unrecorded values, junction and presence coding.
 
-The DGT microdata (one row per police-recorded crash with victims, all of Spain, 2016-2024) are the
-national analytical layer: trends, province and year comparisons, the denominator-free shares the
-site reports. Using them to *train* or *test* a severity model is a different claim, and it is
-allowed only if the file passes seven checks, declared here before any result is read:
+The DGT microdata (one row per police-recorded crash with victims, all of Spain, 2016-2024) are
+the national layer. This module measures three things about how its circumstance fields are
+filled in, and the tables it writes are read by the models, the figures and the pages:
 
-1. **unit**: one row is one crash (unique key; rows equal the yearbook's crash totals);
-2. **target observed**: the outcome columns are present on every row and internally consistent
-   (deaths within 30 days are never fewer than deaths within 24 hours);
-3. **feature definitions**: every candidate column has a dictionary entry and every code that
-   appears is in the dictionary;
-4. **sample construction**: the rows reproduce the published totals of crashes, deaths and
-   injuries each year, so the file is the complete published universe, not a sample;
-5. **severity and inclusion definitions**: 24-hour and 30-day deaths and hospitalised injuries
-   are separate columns that reconcile with the yearbook;
-6. **comparable across regions**: a field's share of unrecorded values ("not specified",
-   "unknown", blank), among the crashes the field applies to, varies by no more than
-   :data:`MAX_REGIONAL_SPREAD` between provinces with at least :data:`MIN_PROVINCE_CRASHES`
-   crashes;
-7. **recording artefacts do not dominate**: a model that sees only *which fields were left
-   unrecorded* reaches less than :data:`MAX_ARTEFACT_SHARE` of the ranking ability (ROC-AUC above
-   0.5) of a model that sees the recorded values.
+* **unrecorded shares** by field and province (:func:`regional_recording`,
+  ``dgt_audit_regional``): the share of values "not specified", "unknown" or blank, among the
+  crashes the field applies to, and how far the provinces differ;
+* **the junction flag** (:func:`junction_coding`, ``dgt_audit_junction_coding``): from 2023 the
+  records of the four Catalan provinces give the junction flag inverted, crashes away from a
+  junction counting as at one;
+* **fog and wind** (:func:`presence_coding`, ``dgt_audit_presence_coding``): these fields record a
+  condition only when it was present, so an empty cell is a recorded "no"; some province-years
+  code them the other way;
+* **road type** (:func:`coding_by_region`, ``gen_coding_by_region``): the use of road-type codes 5,
+  6 and 14 by year, for Catalonia and the rest of Spain.
 
 A cell where the field does not apply is not unrecorded (:func:`statuses`): a 998 "No aplica"
-code, an empty fog or wind field (they record only a condition that was present), and an empty or
-999 junction type or right-of-way flag in a crash recorded away from a junction.
-
-Checks 1-5 are about the file; 6-7 about whether its variables mean the same everywhere. A field
-that fails 6 can still be used where it was validated against another source on the same crashes
-(the common-feature tests do exactly that); a file that fails 7 cannot be used to train a
-national model without its recording regime becoming part of what the model learns.
-
-The second half audits the one place the DGT file does enter the modelling: the national test of
-the Catalan common-feature model (target and inclusion equivalence, no Catalan records in the
-national test, prevalence, coding, missingness, in-domain reference and transfer gap).
+code, an empty fog or wind field, and an empty or 999 junction type or right-of-way flag in a
+crash recorded away from a junction.
 """
 
 from __future__ import annotations
 
-import logging
 import re
 
 import numpy as np
 import pandas as pd
-from sklearn.compose import ColumnTransformer
-from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import roc_auc_score
-from sklearn.model_selection import StratifiedKFold, cross_val_predict
-from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import OneHotEncoder
 
 from dgt_stats import codes
 from dgt_stats.microdata import catalonia
-from dgt_stats.microdata.ml import modelling
-from dgt_stats.microdata.validation import harmonise, transport
-from dgt_stats.paths import DGT_PROCESSED_CRASHES, DOCS_DIR, TABLES_DIR
+from dgt_stats.paths import DGT_PROCESSED_CRASHES, TABLES_DIR
 
-log = logging.getLogger(__name__)
-
-DOC = DOCS_DIR / "DGT_MICRODATA_AUDIT.md"
 MAX_REGIONAL_SPREAD = 0.10
 MIN_PROVINCE_CRASHES = 2000
-MAX_ARTEFACT_SHARE = 0.5
-SAMPLE_ROWS = 200_000
+CATALAN_PROVINCES = tuple(catalonia.DEMARCATION_PROVINCE_CODE.values())
 UNRECORDED = ("not_specified", "unknown", "empty")
 
 # Circumstance columns a severity model could use: every coded column of the dictionary except
@@ -254,7 +226,7 @@ def presence_coding(frame: pd.DataFrame) -> pd.DataFrame:
     out = flags.groupby(["province", "year"]).sum().astype(int).reset_index()
     names = codes.labels_for("COD_PROVINCIA")
     out.insert(1, "province_name", [names.get(str(p), str(p)) for p in out.province])
-    out.insert(3, "catalan", out.province.isin(harmonise.CATALAN_PROVINCES))
+    out.insert(3, "catalan", out.province.isin(CATALAN_PROVINCES))
     for column in present:
         out[f"{column}_share"] = out[f"{column}_recorded"] / out.crashes
         out[f"{column}_coding_break"] = out[f"{column}_share"] > MAX_PRESENCE_SHARE
@@ -318,7 +290,7 @@ def junction_coding(frame: pd.DataFrame, status: pd.DataFrame) -> pd.DataFrame:
     out = flags.groupby(["province", "year"]).sum().astype(int).reset_index()
     names = codes.labels_for("COD_PROVINCIA")
     out.insert(1, "province_name", [names.get(str(p), str(p)) for p in out.province])
-    out.insert(3, "catalan", out.province.isin(harmonise.CATALAN_PROVINCES))
+    out.insert(3, "catalan", out.province.isin(CATALAN_PROVINCES))
     out["junction_flag_inverted"] = out.away_with_junction_type > 0.5 * out.away_from_junction
     cat = pd.read_parquet(catalonia.PROCESSED, columns=["year", "province_code", "D_INTER_SECCIO"])
     place = {
@@ -400,73 +372,6 @@ def catalan_junction_years(coding: pd.DataFrame) -> pd.DataFrame:
     return year.reset_index()
 
 
-# ----------------------------------------------------------------------------- checks 1-5
-def file_checks(frame: pd.DataFrame) -> list[dict]:
-    validation = pd.read_csv(TABLES_DIR / "validation.csv")
-
-    def passed(check: str) -> tuple[int, int]:
-        rows = validation[validation.check.eq(check)]
-        return int(rows.passed.sum()), len(rows)
-
-    key_ok, key_n = passed("unique_key")
-    rows_ok, rows_n = passed("row_count")
-    victims_ok, victims_n = passed("victim_total")
-    domain_ok, domain_n = passed("code_domain")
-    duplicated = int(frame.duplicated(["ANYO", "ID_ACCIDENTE"]).sum())
-    missing_outcome = {
-        c: int(pd.to_numeric(frame[c], errors="coerce").isna().sum()) for c in OUTCOMES
-    }
-    d24 = pd.to_numeric(frame.TOTAL_MU24H, errors="coerce")
-    d30 = pd.to_numeric(frame.TOTAL_MU30DF, errors="coerce")
-    inconsistent = int((d30 < d24).sum())
-    undocumented = [c for c in CANDIDATES if not codes.labels_for(c)]
-    return [
-        {
-            "check": "1 unit",
-            "criterion": "one row per crash: no duplicate (year, ID_ACCIDENTE); rows per year "
-            "equal the yearbook's crash totals",
-            "evidence": f"{duplicated} duplicate keys in {len(frame):,} rows; yearly key checks "
-            f"{key_ok}/{key_n} and row-count reconciliations {rows_ok}/{rows_n} passed",
-            "passed": duplicated == 0 and key_ok == key_n and rows_ok == rows_n,
-        },
-        {
-            "check": "2 target observed",
-            "criterion": "outcome columns present on every row; 30-day deaths never below "
-            "24-hour deaths",
-            "evidence": "missing values: "
-            + ", ".join(f"{c} {n}" for c, n in missing_outcome.items())
-            + f"; rows with fewer 30-day than 24-hour deaths: {inconsistent}",
-            "passed": not any(missing_outcome.values()) and inconsistent == 0,
-        },
-        {
-            "check": "3 feature definitions",
-            "criterion": "every candidate column documented in the dictionary; every code that "
-            "appears is a dictionary code",
-            "evidence": f"{len(CANDIDATES) - len(undocumented)}/{len(CANDIDATES)} candidate "
-            f"columns have dictionary labels; code-domain checks {domain_ok}/{domain_n} passed",
-            "passed": not undocumented and domain_ok == domain_n,
-        },
-        {
-            "check": "4 sample construction",
-            "criterion": "rows reproduce the published annual totals of crashes, deaths and "
-            "injuries (the file is the complete published universe, not a sample)",
-            "evidence": f"crash-count reconciliations {rows_ok}/{rows_n}, victim-total "
-            f"reconciliations {victims_ok}/{victims_n} passed",
-            "passed": rows_ok == rows_n and victims_ok == victims_n,
-        },
-        {
-            "check": "5 severity and inclusion definitions",
-            "criterion": "24-hour and 30-day deaths and hospitalised injuries are separate "
-            "columns that reconcile with the yearbook",
-            "evidence": "TOTAL_MU24H, TOTAL_MU30DF, TOTAL_HG24H, TOTAL_HG30DF present; the "
-            f"victim-total reconciliations ({victims_ok}/{victims_n}) cover 30-day victims and "
-            "24-hour deaths",
-            "passed": victims_ok == victims_n,
-        },
-    ]
-
-
-# ----------------------------------------------------------------------------- check 6
 def regional_recording(
     frame: pd.DataFrame, status: pd.DataFrame, coding: pd.DataFrame
 ) -> pd.DataFrame:
@@ -482,7 +387,7 @@ def regional_recording(
     sizes = province.value_counts()
     large = sizes[sizes >= MIN_PROVINCE_CRASHES].index
     names = codes.labels_for("COD_PROVINCIA")
-    catalan = province.isin(harmonise.CATALAN_PROVINCES)
+    catalan = province.isin(CATALAN_PROVINCES)
     inverted = _inverted_rows(frame, coding)
     rows = []
     for column in CANDIDATES:
@@ -512,258 +417,13 @@ def regional_recording(
                     f"{names.get(str(p), p)} {v:.0%}" for p, v in top.head(3).items()
                 ),
                 "catalan_provinces_in_top_five": int(
-                    top.head(5).index.isin(harmonise.CATALAN_PROVINCES).sum()
+                    top.head(5).index.isin(CATALAN_PROVINCES).sum()
                 ),
                 "provinces_compared": int(len(by_province)),
                 "comparable_across_provinces": spread <= MAX_REGIONAL_SPREAD,
             }
         )
     return pd.DataFrame(rows)
-
-
-# ----------------------------------------------------------------------------- check 7
-def _cv_predictions(x: pd.DataFrame, y: np.ndarray) -> np.ndarray:
-    """Out-of-fold probabilities of a one-hot logistic regression."""
-    prep = ColumnTransformer(
-        [("cat", OneHotEncoder(handle_unknown="ignore", min_frequency=50), list(x.columns))]
-    )
-    model = Pipeline([("prep", prep), ("model", LogisticRegression(max_iter=2000))])
-    folds = StratifiedKFold(modelling.N_FOLDS, shuffle=True, random_state=modelling.SEED)
-    return cross_val_predict(model, x, y, cv=folds, method="predict_proba")[:, 1]
-
-
-def _share_of_lift(y: np.ndarray, flags: np.ndarray, values: np.ndarray) -> float:
-    lift = roc_auc_score(y, values) - 0.5
-    return float((roc_auc_score(y, flags) - 0.5) / lift) if lift > 0 else np.nan
-
-
-def share_interval(y: np.ndarray, flags: np.ndarray, values: np.ndarray) -> tuple[float, float]:
-    """Paired percentile interval for the artefact share: both models' out-of-fold scores are
-    resampled together, so the interval covers the sampling of the evaluated crashes, not the
-    refitting of the models."""
-    shares = [
-        _share_of_lift(y[idx], flags[idx], values[idx])
-        for idx in modelling.resamples(len(y), None, modelling.N_BOOT)
-        if 0 < y[idx].sum() < len(idx)
-    ]
-    low, high = np.nanpercentile(shares, [2.5, 97.5])
-    return float(low), float(high)
-
-
-def artefact_strength(frame: pd.DataFrame, status: pd.DataFrame) -> pd.DataFrame:
-    """Ranking ability from *which fields are unrecorded* against from the recorded values."""
-    deaths24 = pd.to_numeric(frame.TOTAL_MU24H, errors="coerce").fillna(0)
-    serious24 = pd.to_numeric(frame.TOTAL_HG24H, errors="coerce").fillna(0)
-    deaths30 = pd.to_numeric(frame.TOTAL_MU30DF, errors="coerce").fillna(0)
-    universes = (
-        (
-            "every crash with victims",
-            np.ones(len(frame), dtype=bool),
-            (deaths30 > 0).to_numpy(),
-            "death within 30 days",
-        ),
-        (
-            "crashes with a death or serious injury within 24 hours (the transfer test's universe)",
-            ((deaths24 + serious24) > 0).to_numpy(),
-            (deaths24 > 0).to_numpy(),
-            "death within 24 hours",
-        ),
-    )
-    rng = np.random.default_rng(modelling.SEED)
-    rows = []
-    for universe, mask, target, target_label in universes:
-        index = np.flatnonzero(mask)
-        if len(index) > SAMPLE_ROWS:
-            index = np.sort(rng.choice(index, SAMPLE_ROWS, replace=False))
-        y = target[index].astype(int)
-        values = frame.iloc[index][list(CANDIDATES)].astype(str)
-        flags = status.iloc[index].isin(UNRECORDED).astype(int).astype(str)
-        log.info("DGT audit: artefact strength on %s (%d rows)", universe, len(index))
-        p_values = _cv_predictions(values, y)
-        p_flags = _cv_predictions(flags, y)
-        share = _share_of_lift(y, p_flags, p_values)
-        low, high = share_interval(y, p_flags, p_values)
-        rows.append(
-            {
-                "universe": universe,
-                "target": target_label,
-                "rows": int(len(index)),
-                "positives": int(y.sum()),
-                "prevalence": float(y.mean()),
-                "roc_auc_recorded_values": float(roc_auc_score(y, p_values)),
-                "roc_auc_unrecorded_flags_only": float(roc_auc_score(y, p_flags)),
-                "artefact_share_of_lift": share,
-                "artefact_share_low": low,
-                "artefact_share_high": high,
-                # The criterion, fixed in advance, is on the estimate; the interval is reported.
-                "artefacts_dominate": bool(share >= MAX_ARTEFACT_SHARE),
-            }
-        )
-    return pd.DataFrame(rows)
-
-
-def outcome_recording(frame: pd.DataFrame, status: pd.DataFrame) -> pd.DataFrame:
-    """Unrecorded share among fatal (30-day) and non-fatal crashes the field applies to, per field
-    and region."""
-    fatal = pd.to_numeric(frame.TOTAL_MU30DF, errors="coerce").fillna(0).gt(0)
-    catalan = pd.to_numeric(frame.COD_PROVINCIA, errors="coerce").isin(harmonise.CATALAN_PROVINCES)
-    rows = []
-    for column in CANDIDATES:
-        applies = status[column].ne("not_applicable")
-        unrecorded = status[column].isin(UNRECORDED)
-        for region, area in (("Catalonia", catalan), ("rest of Spain", ~catalan)):
-            mask = area & applies
-            a = float(unrecorded[mask & fatal].mean())
-            b = float(unrecorded[mask & ~fatal].mean())
-            rows.append(
-                {
-                    "field": column,
-                    "region": region,
-                    "unrecorded_share_fatal": a,
-                    "unrecorded_share_not_fatal": b,
-                    "ratio_fatal_to_not_fatal": a / b if b > 0 else np.nan,
-                }
-            )
-    return pd.DataFrame(rows)
-
-
-# ----------------------------------------------------------------------------- the transfer test
-def transfer_checks(tables: dict[str, pd.DataFrame]) -> list[dict]:
-    """Is the Catalonia -> Spain test what it says it is?"""
-    comparison = pd.read_csv(TABLES_DIR / "cat_vs_dgt_province_year.csv")
-    dgt = harmonise.read(harmonise.DGT_COMMON_PATH)
-    cat = harmonise.read(harmonise.CAT_COMMON_PATH)
-    validation = tables["ml_common_feature_validation"]
-    moved = tables["ml_transport_validation"]
-    national = moved[
-        moved.experiment.eq("Catalonia -> Spain outside Catalonia")
-        & moved.estimator.ne("baseline_prior")
-        & moved.status.eq("reported")
-    ].iloc[0]
-    test = dgt[dgt.domain.eq(transport.NATIONAL)]
-    leaked = int(test.province_code.isin(harmonise.CATALAN_PROVINCES).sum())
-    no_province = int(test.province_code.isna().sum())
-    fatal_equal = int((comparison.ratio_fatal_24h == 1).sum())
-    severe = comparison.cat_crashes_fatal_or_serious / comparison.dgt_crashes_fatal_or_serious_24h
-    used = validation[validation.enters_cross_source_tests]
-    fields = [f"dgt_{f}" for f in used.field]
-    ns = harmonise.NOT_SPECIFIED
-    miss = {
-        name: float(np.mean([frame[f].astype(str).eq(ns).mean() for f in fields if f in frame]))
-        for name, frame in (
-            ("Catalan file", cat),
-            ("DGT Catalonia", dgt[dgt.domain.eq(transport.DGT_CATALONIA)]),
-            ("DGT outside Catalonia", test),
-        )
-    }
-    gap = float(national.roc_auc - national.in_domain_cv_roc_auc)
-    return [
-        {
-            "check": "target equivalence",
-            "criterion": "the Catalan file's fatal crashes are DGT's crashes with a death "
-            "within 24 hours (same count in every province-year both hold)",
-            "evidence": f"{fatal_equal} of {len(comparison)} province-years equal",
-            "passed": fatal_equal == len(comparison),
-        },
-        {
-            "check": "inclusion equivalence",
-            "criterion": "the Catalan file holds the crashes DGT records with a death or serious "
-            "injury within 24 hours (counts within 2% in every province-year)",
-            "evidence": f"Catalan / DGT count ratio {severe.min():.3f} to {severe.max():.3f}",
-            "passed": bool(severe.between(0.98, 1.02).all()),
-        },
-        {
-            "check": "no Catalan records in the national test",
-            "criterion": "test rows exclude the four Catalan provinces; the model is trained on "
-            "the Catalan file only",
-            "evidence": f"{leaked} test rows in a Catalan province, {no_province} without a "
-            f"province, of {len(test):,}",
-            "passed": leaked == 0 and no_province == 0,
-        },
-        {
-            "check": "prevalence",
-            "criterion": "reported, not a pass/fail: a shift moves calibration, not ranking",
-            "evidence": f"training {national.train_prevalence:.1%}, national test "
-            f"{national.test_prevalence:.1%}; mean predicted {national.mean_predicted:.1%}",
-            "passed": True,
-        },
-        {
-            "check": "feature coding",
-            "criterion": "only fields whose two codings agree on the crashes both sources hold "
-            f"(Jensen-Shannon divergence at most {harmonise.MAX_OVERLAP_JSD})",
-            "evidence": f"{len(used)} fields used, largest divergence "
-            f"{used.overlap_jsd.max():.2g}; excluded: "
-            + ", ".join(validation.loc[~validation.enters_cross_source_tests, "field"]),
-            "passed": bool(used.overlap_jsd.max() <= harmonise.MAX_OVERLAP_JSD),
-        },
-        {
-            "check": "missingness",
-            "criterion": "reported: mean share 'not specified' over the fields used",
-            "evidence": "; ".join(f"{k} {v:.1%}" for k, v in miss.items()),
-            "passed": True,
-        },
-        {
-            "check": "in-domain reference and transfer gap",
-            "criterion": "a model trained on DGT crashes outside Catalonia, same fields "
-            "(5-fold CV), against the transferred Catalan model on the same crashes",
-            "evidence": f"target-domain native ROC-AUC {national.in_domain_cv_roc_auc:.3f}, "
-            f"transferred {national.roc_auc:.3f} ({national.roc_auc_low:.3f}-"
-            f"{national.roc_auc_high:.3f}); gap (transferred minus native) {gap:+.3f}; "
-            f"n={int(national.test_n):,}, positives={int(national.test_positives):,}, "
-            f"calibration slope {national.calibration_slope:.2f}",
-            "passed": True,
-        },
-    ]
-
-
-# ----------------------------------------------------------------------------- verdict and document
-def decide(checks: pd.DataFrame) -> str:
-    failed = checks[~checks.passed & checks.check.str.match(r"\d")]
-    if failed.empty:
-        return "DGT microdata may train a severity model"
-    return (
-        "DGT microdata stay the national analytical layer and an external test domain for "
-        "fields validated against another source; they do not train a severity model here"
-    )
-
-
-def _md(frame: pd.DataFrame, pct: tuple[str, ...] = (), dec: tuple[str, ...] = ()) -> str:
-    head = "| " + " | ".join(frame.columns) + " |"
-    sep = "|" + "---|" * len(frame.columns)
-    lines = [head, sep]
-    for row in frame.itertuples(index=False):
-        cells = []
-        for column, value in zip(frame.columns, row):
-            if column in pct and pd.notna(value):
-                cells.append(f"{value:.1%}")
-            elif column in dec and pd.notna(value):
-                cells.append(f"{value:.3f}")
-            elif isinstance(value, (bool, np.bool_)):
-                cells.append("yes" if value else "no")
-            else:
-                cells.append(str(value).replace("|", "/"))
-        lines.append("| " + " | ".join(cells) + " |")
-    return "\n".join(lines)
-
-
-def _join(items: list[str]) -> str:
-    return items[0] if len(items) == 1 else ", ".join(items[:-1]) + " and " + items[-1]
-
-
-def _span(years: list[int]) -> str:
-    """Years as runs: 2016-2020 and 2022."""
-    runs: list[list[int]] = []
-    for year in sorted({int(y) for y in years}):
-        if runs and year == runs[-1][-1] + 1:
-            runs[-1].append(year)
-        else:
-            runs.append([year])
-    return _join([f"{r[0]}-{r[-1]}" if len(r) > 1 else str(r[0]) for r in runs])
-
-
-def _range(values: pd.Series) -> str:
-    low, high = float(values.min()), float(values.max())
-    return f"{low:.1%}" if f"{low:.1%}" == f"{high:.1%}" else f"{low:.1%}-{high:.1%}"
 
 
 PRESENCE_NAMES = {"CONDICION_NIEBLA": "fog", "CONDICION_VIENTO": "strong wind"}
@@ -791,361 +451,58 @@ def presence_breaks(presence: pd.DataFrame) -> pd.DataFrame:
     )
 
 
-def _presence_section(presence: pd.DataFrame) -> list[str]:
-    """The presence fields' coding breaks, worded from the presence table."""
-    breaks = presence_breaks(presence)
-    if breaks.empty:
-        return []
-    groups: dict[tuple, list[str]] = {}
-    for row in breaks.itertuples():
-        key = (row.field, tuple(row.years), f"{row.share_low:.0%}", f"{row.share_high:.0%}")
-        groups.setdefault(key, []).append(row.province_name)
-    where = "; ".join(
-        f"{PRESENCE_NAMES[field]} in the records for {_join(names)} in {_span(list(years))} "
-        f"({low if low == high else f'{low}-{high}'})"
-        for (field, years, low, high), names in groups.items()
+def coding_by_region() -> pd.DataFrame:
+    """Codes whose use changes in DGT's records, by year, for Catalonia and the rest of Spain.
+
+    Road-type code 5 (a conventional road with a dual carriageway) against code 6 (single
+    carriageway), code 14 ("other"), and the junction-type field left blank or marked "not
+    specified" (999). Each count is of injury crashes, so a change confined to one region shows as
+    a jump in that region's row only.
+    """
+    dgt = pd.read_parquet(
+        DGT_PROCESSED_CRASHES, columns=["ANYO", "COD_PROVINCIA", "TIPO_VIA", "NUDO_INFO"]
     )
-    flags = [f"{column}_coding_break" for column in PRESENCE_NAMES]
-    others = presence[~presence[flags].astype(bool).any(axis=1)]
-    highest = max(float(others[f"{column}_share"].max()) for column in PRESENCE_NAMES)
-    lines = [
-        "A presence field is read that way only where it records the condition in few crashes: "
-        f"elsewhere fog or strong wind is recorded in at most {highest:.1%} of a province-year's "
-        f"crashes. A field records its condition in more than {MAX_PRESENCE_SHARE:.0%} of "
-        f"crashes in these province-years: {where} (`dgt_audit_presence_coding.csv`). There the "
-        "field is coded another way: neither a value nor a blank says whether the condition "
-        "was present."
-    ]
-    fog = presence[presence.CONDICION_NIEBLA_coding_break.astype(bool)]
-    matched = fog[fog.cat_file_severe_crashes.notna()]
-    if not matched.empty:
-        dgt, cat = matched.severe_CONDICION_NIEBLA_recorded, matched.cat_file_fog
-        gap = int((dgt - cat).abs().max())
-        lines[0] += (
-            " The Servei Català de Trànsit's file shows the same fog coding: of the crashes with "
-            "a death or serious injury within 24 hours in those province-years that it holds, "
-            f"DGT records fog in {int(dgt.sum()):,} and the Catalan file in {int(cat.sum()):,}"
-            + (", the same number every year." if gap == 0 else f", at most {gap} apart a year.")
-        )
-    return [*lines, ""]
-
-
-def _junction_section(coding: pd.DataFrame, regional: pd.DataFrame) -> list[str]:
-    """The province-years whose junction flag reads inverted, worded from the coding table."""
-    inverted = coding[coding.junction_flag_inverted]
-    if inverted.empty:
-        return [
-            "In every province-year the junction type is recorded for crashes at a junction and "
-            "left empty away from one.",
-            "",
-        ]
-    by_years: dict[tuple[int, ...], list[str]] = {}
-    for name, years in inverted.groupby("province_name").year.apply(tuple).items():
-        by_years.setdefault(years, []).append(str(name))
-    where = "; ".join(f"{_join(names)} in {_span(list(y))}" for y, names in by_years.items())
-    typed = inverted.away_with_junction_type / inverted.away_from_junction
-    others = coding[~coding.junction_flag_inverted]
-    typed_elsewhere = others.away_with_junction_type / others.away_from_junction
-    blank_at = inverted.at_junction_type_not_specified / inverted.at_junction
-    lines = [
-        f"In {where}, {_range(typed)} of the crashes DGT records away from a junction carry a "
-        f"junction type, against at most {float(typed_elsewhere.max()):.1%} in any other "
-        "province-year, and "
-        f"{_range(blank_at)} of the crashes it records at a junction carry 999 for it. The junction "
-        "flag reads the wrong way round there.",
-    ]
-    years = catalan_junction_years(coding)
-    if not years.empty:
-        matched = years.groupby("dgt_at_junction_matches", sort=False).year.apply(list)
-        lines[0] += (
-            " The Servei Català de Trànsit's file holds the same crashes with a death or serious "
-            "injury within 24 hours. DGT's count of those it records at a junction in the Catalan "
-            "provinces matches, within "
-            f"{MATCH_TOLERANCE:.0%} of the year's crashes, the Catalan file's crashes "
-            + _join(
-                [
-                    f"{place} in {_span(y)}" if place != "none" else f"no place in {_span(y)}"
-                    for place, y in matched.items()
-                ]
-            )
-            + "."
-        )
-    junction = regional[regional.field.isin(JUNCTION_FIELDS)].set_index("field")
-    priority = junction.loc[[f for f in codes.PRIORI_COLUMNS if f in junction.index]]
-    if "NUDO_INFO" in junction.index and not priority.empty:
-        info_spread = float(
-            junction.loc["NUDO_INFO"].province_spread_without_inverted_junction_years
-        )
-        priority_spread = float(priority.province_spread_without_inverted_junction_years.max())
-
-        def verdict(spread: float) -> str:
-            return "within" if spread <= MAX_REGIONAL_SPREAD else "beyond"
-
-        lines[0] += (
-            " In those province-years the 999 junction fields of the crashes recorded at a "
-            "junction count as unrecorded, so the spreads above include them. Without those "
-            "province-years the junction type's spread between provinces is "
-            f"{info_spread * 100:.1f} percentage points, {verdict(info_spread)} the limit, and the "
-            f"right-of-way flags' {priority_spread * 100:.1f}, {verdict(priority_spread)} it (the "
-            "largest province share is "
-            f"{float(priority.province_max_without_inverted_junction_years.max()):.1%})."
-        )
-    lines.append("")
-    if not years.empty:
-        shown = [
-            "year",
-            "severe_crashes",
-            "dgt_share_at_junction",
-            "cat_share_within_a_junction",
-            "cat_share_within_or_near_a_junction",
-            "cat_share_between_junctions",
-            "dgt_at_junction_matches",
-        ]
-        lines += [
-            "Crashes with a death or serious injury within 24 hours in the four Catalan provinces "
-            "(`dgt_audit_junction_coding.csv`):",
-            "",
-            _md(years[shown], pct=tuple(c for c in shown if "share" in c)),
-            "",
-        ]
-    return lines
-
-
-def _sentence(text: str) -> str:
-    return text[:1].upper() + text[1:] + "."
-
-
-def _margin(row) -> str:
-    share, limit = float(row.artefact_share_of_lift), MAX_ARTEFACT_SHARE
-    side = "above" if share >= limit else "below"
-    return (
-        f"{row.target}: {share:.1%} (95% interval {float(row.artefact_share_low):.1%} to "
-        f"{float(row.artefact_share_high):.1%}), {abs(share - limit) * 100:.1f} percentage points "
-        f"{side} the {limit:.0%} limit"
-    )
-
-
-def _meaning(checks: pd.DataFrame, artefacts: pd.DataFrame) -> list[str]:
-    """What the checks imply, worded from their results."""
-    status = checks.set_index("check").passed
-    file_ok = all(status[c] for c in status.index if c[:1] in "12345")
-    lines = [
-        "- The file checks (1-5) "
-        + (
-            "pass: the file is the complete published universe, so it is the right source for "
-            "national counts, trends, province comparisons and descriptive shares."
-            if file_ok
-            else "do not all pass: national counts from it are read with the failing checks above."
-        )
-    ]
-    if not status.get("6 comparable across regions", True):
-        lines.append(
-            "- Several fields are left unrecorded at very different rates in different provinces, "
-            "among the crashes they apply to. A field's unrecorded share then varies with where "
-            "the crash was recorded as well as with the crash; the data do not establish whether "
-            "the difference lies in recording practice or in the crashes. A model trained on all "
-            "of Spain would learn it."
-        )
-    if not status.get("7 recording artefacts do not dominate", True):
-        failing = artefacts[artefacts.artefacts_dominate.astype(bool)]
-        lines.append(
-            "- Which fields were left unrecorded ranks the outcome on its own (check 7): "
-            + "; ".join(_margin(r) for r in failing.itertuples())
-            + ". A model's score on these records would partly measure how completely crashes "
-            "were recorded."
-        )
-    lines.append(
-        "- The file enters modelling only through fields validated against the Catalan file on "
-        "the crashes both hold, as an external test: the Catalan model scored on crashes recorded "
-        "outside Catalonia, its transfer gap always beside the target domain's native score."
-        if decide(checks).startswith("DGT microdata stay")
-        else "- The file passes every check and may train a model."
-    )
-    return lines
-
-
-def document(out: dict[str, pd.DataFrame]) -> str:
-    checks, regional, artefacts = (
-        out["dgt_audit_checks"],
-        out["dgt_audit_regional"],
-        out["dgt_audit_artefacts"],
-    )
-    transfer = out["dgt_audit_transfer"]
-    coding = out.get("dgt_audit_junction_coding")
-    presence = out.get("dgt_audit_presence_coding")
-    failing = regional[~regional.comparable_across_provinces]
-    applies = regional[regional.applies_share < 1].set_index("field").applies_share
-    priority = [f for f in codes.PRIORI_COLUMNS if f in applies.index]
-    na_coded = [c for c in CANDIDATES if str(codes.NOT_APPLICABLE_CODE) in codes.labels_for(c)]
-    present = [c for c in CANDIDATES if presence_field(c)]
-    junction_names = ["NUDO_INFO", "PRIORI_*"]
-    applies_text = _join(
-        [
-            f"{name} {float(applies[field]):.1%}"
-            for field, name in (
-                ("NUDO_INFO", "the junction type"),
-                (priority[0] if priority else "", "the right-of-way flags"),
-                ("ACERA", "the pavement field"),
-                ("TRAZADO_PLANTA", "the road alignment"),
-            )
-            if field in applies.index
-        ]
-    )
-    lines = [
-        "# DGT microdata audit",
-        "",
-        "Generated by `src/dgt_stats/microdata/validation/dgt_audit.py`; every number below is "
-        "computed from `data/processed/dgt_accidentes.parquet`, the Catalan file "
-        "`data/processed/catalonia_severe_crashes.parquet` and the reconciliation table "
-        "`reports/tables/validation.csv`. Do not edit by hand.",
-        "",
-        "The question: may the DGT crash microdata train a severity model in this project, or do "
-        "they stay the national analytical layer (trends, province and year comparisons, "
-        "exposure) and a test domain? The checks and their thresholds are declared in the "
-        "module before any result is read.",
-        "",
-        f"**Decision: {decide(checks)}.**",
-        "",
-        "## What counts as unrecorded",
-        "",
-        'A field is unrecorded in a crash when it is 999 ("Sin especificar"), its own '
-        '"unknown" code, or blank, and only in a crash the field applies to. Two kinds of cell '
-        "are therefore not unrecorded:",
-        "",
-        '- a cell where the field does not apply, which is "not applicable" and left out of '
-        'every share below: a 998 "No aplica" code, which DGT\'s dictionary gives '
-        + _join(na_coded)
-        + ", and a blank or 999 junction type or right-of-way flag ("
-        + ", ".join(junction_names)
-        + ") in a crash NUDO records away from a junction. DGT leaves the junction type blank "
-        'there and, having no "not applicable" code for the right-of-way flags, mostly writes 999 '
-        "in them. A recorded value counts as recorded wherever the crash is;",
-        "- a blank presence field ("
-        + _join(present)
-        + '), which is the recorded "no" and counts as recorded. Every other condition field has '
-        'a "Sin especificar" code; these record a condition only when it was present (the wind '
-        'field\'s dictionary codes its absence as ".", the fog field\'s lists only "Niebla '
-        'ligera" and "Niebla intensa").',
-        "",
-        f"Share of crashes each such field applies to: {applies_text}.",
-        "",
-        *(_presence_section(presence) if presence is not None else []),
-        "## Checks on the file",
-        "",
-        _md(checks[["check", "criterion", "evidence", "passed"]]),
-        "",
-        "## Check 6: are the fields recorded alike across Spain?",
-        "",
-        "Share of unrecorded values (not specified, unknown or blank) per field, among the "
-        "crashes it applies to; spread between "
-        f"the {int(regional.provinces_compared.iloc[0])} provinces with at least "
-        f"{MIN_PROVINCE_CRASHES:,} crashes. {len(failing)} of {len(regional)} fields vary by more "
-        f"than {MAX_REGIONAL_SPREAD:.0%} between provinces.",
-        "",
-        _md(
-            regional[
-                [
-                    "field",
-                    "applies_share",
-                    "unrecorded_share",
-                    "unrecorded_share_catalonia",
-                    "unrecorded_share_rest_of_spain",
-                    "province_spread",
-                    "highest_provinces",
-                    "comparable_across_provinces",
-                ]
-            ],
-            pct=(
-                "applies_share",
-                "unrecorded_share",
-                "unrecorded_share_catalonia",
-                "unrecorded_share_rest_of_spain",
-                "province_spread",
+    road = pd.to_numeric(dgt.TIPO_VIA, errors="coerce")
+    junction = pd.to_numeric(dgt.NUDO_INFO, errors="coerce")
+    frame = pd.DataFrame(
+        {
+            "year": pd.to_numeric(dgt.ANYO, errors="coerce").astype(int),
+            "region": np.where(
+                pd.to_numeric(dgt.COD_PROVINCIA, errors="coerce").isin(CATALAN_PROVINCES),
+                "Catalonia",
+                "Spain outside Catalonia",
             ),
-        ),
-        "",
-        *(_junction_section(coding, regional) if coding is not None else []),
-        "## Check 7: how much of a model's ranking would come from the recording itself?",
-        "",
-        "Two logistic regressions per universe, 5-fold cross-validation on a random sample: one "
-        "sees the recorded values of every candidate field (unrecorded values kept as their own "
-        "codes), the other sees only whether each field was left unrecorded where it applies. "
-        "The share is the second model's lift over 0.5 as a fraction of the first's. Its 95% "
-        "interval resamples the evaluated crashes with both models' out-of-fold scores held "
-        "fixed; it does not cover refitting the models. The criterion, fixed in advance, is read "
-        "on the share itself.",
-        "",
-        _md(
-            artefacts,
-            pct=(
-                "prevalence",
-                "artefact_share_of_lift",
-                "artefact_share_low",
-                "artefact_share_high",
-            ),
-            dec=("roc_auc_recorded_values", "roc_auc_unrecorded_flags_only"),
-        ),
-        "",
-        _sentence("; ".join(_margin(r) for r in artefacts.itertuples())),
-        "",
-        "## The one place DGT records enter the modelling: the national transfer test",
-        "",
-        "The Catalan common-feature model is scored on DGT crashes outside Catalonia. These checks "
-        "establish what that test measures.",
-        "",
-        _md(transfer[["check", "criterion", "evidence", "passed"]]),
-        "",
-        "## What this means",
-        "",
-        *_meaning(checks, artefacts),
-        "",
-    ]
-    return "\n".join(lines)
+            "road_type_5_dual_carriageway": road.eq(5),
+            "road_type_6_single_carriageway": road.eq(6),
+            "road_type_14_other": road.eq(14),
+            "junction_type_blank": dgt.NUDO_INFO.isna(),
+            "junction_type_not_specified": junction.eq(999),
+        }
+    )
+    out = frame.groupby(["year", "region"]).agg(
+        crashes=("year", "size"),
+        **{
+            column: (column, "sum")
+            for column in frame.columns
+            if column.startswith(("road_type", "junction_type"))
+        },
+    )
+    return out.reset_index().astype({c: int for c in out.columns})
 
 
-def run(tables: dict[str, pd.DataFrame]) -> dict[str, pd.DataFrame]:
+def write() -> dict[str, pd.DataFrame]:
+    """Write ``dgt_audit_regional``, ``dgt_audit_junction_coding``,
+    ``dgt_audit_presence_coding`` and ``gen_coding_by_region`` to ``reports/tables``."""
     frame = read()
     status = statuses(frame)
-    checks = file_checks(frame)
     coding = junction_coding(frame, status)
-    regional = regional_recording(frame, status, coding)
-    artefacts = artefact_strength(frame, status)
-    comparable = bool(regional.comparable_across_provinces.all())
-    checks.append(
-        {
-            "check": "6 comparable across regions",
-            "criterion": "every candidate field's unrecorded share, among the crashes it applies "
-            f"to, within {MAX_REGIONAL_SPREAD:.0%} between provinces with at least "
-            f"{MIN_PROVINCE_CRASHES:,} crashes",
-            "evidence": f"{int(regional.comparable_across_provinces.sum())}/{len(regional)} "
-            "fields within the limit; failing: "
-            + (", ".join(regional.loc[~regional.comparable_across_provinces, "field"]) or "none"),
-            "passed": comparable,
-        }
-    )
-    dominate = bool(artefacts.artefacts_dominate.any())
-    checks.append(
-        {
-            "check": "7 recording artefacts do not dominate",
-            "criterion": f"a model of unrecorded-field flags reaches under {MAX_ARTEFACT_SHARE:.0%}"
-            " of the lift of a model of recorded values",
-            "evidence": "; ".join(
-                f"{r.target}: {r.artefact_share_of_lift:.0%} (95% interval "
-                f"{r.artefact_share_low:.0%} to {r.artefact_share_high:.0%})"
-                for r in artefacts.itertuples()
-            ),
-            "passed": not dominate,
-        }
-    )
-    out = {
-        "dgt_audit_checks": pd.DataFrame(checks),
-        "dgt_audit_regional": regional,
-        "dgt_audit_artefacts": artefacts,
-        "dgt_audit_outcome_recording": outcome_recording(frame, status),
+    tables = {
+        "dgt_audit_regional": regional_recording(frame, status, coding),
         "dgt_audit_junction_coding": coding,
         "dgt_audit_presence_coding": presence_coding(frame),
-        "dgt_audit_transfer": pd.DataFrame(transfer_checks(tables)),
+        "gen_coding_by_region": coding_by_region(),
     }
-    out["dgt_audit_checks"]["decision"] = decide(out["dgt_audit_checks"])
-    DOC.write_text(document(out), encoding="utf-8")
-    return out
+    TABLES_DIR.mkdir(parents=True, exist_ok=True)
+    for name, table in tables.items():
+        table.to_csv(TABLES_DIR / f"{name}.csv", index=False, float_format="%.6g")
+    return tables

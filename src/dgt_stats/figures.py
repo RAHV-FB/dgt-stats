@@ -165,10 +165,10 @@ def _draw_all(figures_dir: Path, captions: dict[str, str], summary) -> None:
     _vehicle_figures(figures_dir, captions, summary)
     _policy_figures(figures_dir, captions, summary)
     _data_figures(figures_dir, captions)
-    # The regional crash-record figures (Catalonia, Barcelona, models, generalisability); skipped
+    # The regional crash-record figures (Catalonia, Barcelona, the severity model's tests); skipped
     # when the microdata tables are not built.
     microdata_charts.build(figures_dir, captions)
-    _severity_calculator_figures(figures_dir, captions)
+    _severity_model_figures(figures_dir, captions)
 
 
 # --------------------------------------------------------------------------- context
@@ -1192,30 +1192,29 @@ def _data_figures(figures_dir: Path, captions: dict[str, str]) -> None:
     )
 
 
-# --------------------------------------------------------------------------- severity calculator
+# --------------------------------------------------------------------------- severity model
 
 
-def _severity_calculator_figures(figures_dir: Path, captions: dict[str, str]) -> None:
-    """Predicted against observed for the Catalan severity model, the published model behind the
-    calculator, on years it was not fitted on."""
+def _severity_model_figures(figures_dir: Path, captions: dict[str, str]) -> None:
+    """Predicted against observed for the Catalan severity model, on years it was not fitted on."""
     path = TABLES_DIR / "sev_calibration.csv"
     if not path.exists():
-        log.warning("sev_calibration.csv missing: run scripts/severity_calculator.py calculator")
+        log.warning("sev_calibration.csv missing: run scripts/severity_model.py")
         return
     groups = pd.read_csv(path)
-    groups = groups[groups.estimator.isin(["calculator", "road_x_crash_table"])]
+    groups = groups[groups.estimator.isin(["model", "road_x_crash_table"])]
     plots.calibration_comparison(
         groups,
         figures_dir / "sev1_predicted_observed.svg",
         "Predicted and observed: the share of severe crashes that were fatal",
-        {"calculator": "the model", "road_x_crash_table": "a table by road and crash type"},
+        {"model": "the model", "road_x_crash_table": "a table by road and crash type"},
         xlabel="Predicted chance that the crash was fatal (average in the group)",
         ylabel="Share of the crashes that were fatal",
     )
-    model = groups[groups.estimator == "calculator"]
+    model = groups[groups.estimator == "model"]
     captions["sev1_predicted_observed"] = _caption(
         "Crashes in Catalonia in which someone was killed or seriously injured, 2016–2023, on "
-        "the roads the calculator offers. Each year was predicted by a model fitted only on the "
+        "the roads the model covers. Each year was predicted by a model fitted only on the "
         "years before it, with its penalty, form, roads-through-towns rule and whether each "
         "province has a starting level of its own also chosen on those years alone. The crashes are split into ten equal groups by the model's prediction "
         f"(about {int(model.n.median()):,} crashes each), and separately by the table's. Each dot "
