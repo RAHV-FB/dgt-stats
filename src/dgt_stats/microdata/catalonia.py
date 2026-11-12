@@ -93,9 +93,10 @@ DEMARCATION_PROVINCE_CODE = {"Barcelona": 8, "Girona": 17, "Lleida": 25, "Tarrag
 
 
 def stage(force: bool = False) -> Path:
-    item = sources.resolve_one(ROLE)
+    item = sources.SOURCES[ROLE]
+    digest = item.sha256
     if STAGING.exists() and not force:
-        if read_provenance(STAGING).get("source_sha256") == item.sha256:
+        if read_provenance(STAGING).get("source_sha256") == digest:
             return STAGING
     frame = sources.read_raw(item.path)
     frame.insert(1, "source_file", item.relative)
@@ -104,10 +105,9 @@ def stage(force: bool = False) -> Path:
         STAGING,
         {
             "table": ROLE,
-            "unit_of_observation": item.role.unit,
+            "unit_of_observation": item.unit,
             "source_file": item.relative,
-            "source_sha256": item.sha256,
-            "years": list(item.years),
+            "source_sha256": digest,
         },
     )
     log.info("staged %s: %s rows from %s", ROLE, f"{len(frame):,}", item.relative)

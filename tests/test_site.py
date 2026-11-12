@@ -13,10 +13,9 @@ from dgt_stats.site import components
 from dgt_stats.site import numbers as site_numbers
 from dgt_stats.site.script import JS_FLAG
 
-# The national analysis pages in navigation order; then the regional, model, validation and
-# sources pages.
+# The national analysis pages in navigation order; then the regional, model and sources pages.
 ANALYSIS_PAGES = tuple(slug for slug, _ in components.SPAIN_PAGES)
-REGIONAL_PAGES = ("catalonia", "barcelona", "severity-models", "validation", "sources")
+REGIONAL_PAGES = ("catalonia", "barcelona", "severity-models", "sources")
 
 pytestmark = pytest.mark.skipif(
     not (FIGURES_DIR / "captions.json").exists()
@@ -55,7 +54,6 @@ def test_every_page_is_written_with_one_heading(built: Path) -> None:
     ]
     assert [slug for slug, _ in dict(site.NAV_GROUPS)["Explore"]] == [
         "explore",
-        "calculator",
         "driver-risk",
         "crash-explorer",
     ]
@@ -64,18 +62,12 @@ def test_every_page_is_written_with_one_heading(built: Path) -> None:
         "catalonia",
         "barcelona",
         "severity-models",
-        "validation",
     ]
     assert {slug for slug, _ in site.ALL_PAGES} == {p.stem for p in built.glob("*.html")}
-    # The site's one site-wide script is its own reading aid. The calculator's engine, page script and exported model live
-    # apart in models/, the other tools' scripts and data in tools/, and only the tool pages load
-    # them.
+    # The site's one site-wide script is its own reading aid. The tools' scripts and data live
+    # apart in tools/, and only the tool pages load them.
     assert [p.name for p in built.glob("*.js")] == ["site.js"]
-    assert sorted(p.name for p in (built / "models").iterdir()) == [
-        "severity-calculator.js",
-        "severity-engine.js",
-        "severity_model.json",
-    ]
+    assert not (built / "models").exists()
     tools = {p.name for p in (built / "tools").iterdir()}
     assert {"tools.js", "driver-risk.js", "crash-explorer.js"} <= tools
     assert "trends-explorer.js" not in tools
@@ -84,26 +76,16 @@ def test_every_page_is_written_with_one_heading(built: Path) -> None:
     assert not published & {"simulator_evidence.csv", "factor_evidence.csv"}
 
 
-CALCULATOR_SCRIPTS = [
-    '<script src="models/severity-engine.js" defer>',
-    '<script src="models/severity-calculator.js" defer>',
-]
-
-
 def _runs_no_script(slug: str, text: str) -> None:
     """No page runs a script of its own, except the tools.
 
     Every page loads the site's reading aid (menus and contents), after a one-line flag that says
-    scripting is on; each tool page also loads the tools' shared helpers and its own script, and
-    the calculator its engine, which computes only from the exported model.
+    scripting is on; each tool page also loads the tools' shared helpers and its own script.
     """
     expected = ["<script>", '<script src="site.js" defer>']
     if slug in site.components.TOOL_SLUGS:
         expected.append('<script src="tools/tools.js" defer>')
-        if slug == "calculator":
-            expected += CALCULATOR_SCRIPTS
-        else:
-            expected.append(f'<script src="tools/{slug}.js" defer>')
+        expected.append(f'<script src="tools/{slug}.js" defer>')
     assert re.findall(r"<script[^>]*>", text) == expected, slug
     assert JS_FLAG in text, slug
 
@@ -120,6 +102,8 @@ DEFUNCT_PAGES = (
     "enforcement",
     "trends",
     "trends-explorer",
+    "calculator",
+    "validation",
 )
 
 
@@ -253,12 +237,10 @@ def test_figures_are_copied_and_captioned(built: Path) -> None:
     for path in (built / "figures").rglob("*.svg"):
         source = FIGURES_DIR / path.relative_to(built / "figures")
         assert path.read_bytes() == source.read_bytes(), path.name
-    # A figure that is drawn but shown on no page, such as the models' test ROC-AUC chart, is
-    # not published.
+    # A figure that is drawn but shown on no page is not published.
     captions = site.read_captions()
     for name in set(captions) - shown:
         assert not (built / "figures" / f"{name}.svg").exists(), name
-    assert "ml1_test_auc" in captions and "ml1_test_auc" not in published
     text = (built / "long-run.html").read_text(encoding="utf-8")
     # The caption is set in two parts: what is shown, then its source on a line of its own.
     shown, source = components._split_source(captions["l1_trend_projection"])
@@ -398,6 +380,8 @@ def test_severity_page_leads_with_the_adverse_finding(built: Path) -> None:
     assert 'href="tables/q3_junction_sensitivity.csv"' in text
     for phrase in ("until the coding changed", "only the junction term", "Cochran"):
         assert phrase not in text + notes, phrase
+    # The ranking is quoted with what the missing-value levels contribute to it, as ROC-AUC to
+    # two decimals, the scale of the severity model page.
     recorded_only = holdout.loc["fatal", "auc_recorded_only"]
     missing_only = holdout.loc["fatal", "auc_missing_only"]
     assert (
@@ -865,7 +849,6 @@ def test_front_page_is_an_overview_of_the_study(built: Path) -> None:
         assert re.search(r'<p class="finding-more"><a href="[a-z-]+\.html', item), item
     for slug in ("long-run", "drivers", "factors", "severity-models"):
         assert f'href="{slug}.html' in sections["Main findings"], slug
-    assert 'href="validation.html' in sections["Main findings"]
     # The list of pages follows the navigation's groups and lists every page once.
     groups = re.findall(r"<h3[^>]*>([^<]+)</h3>", sections["The pages"])
     assert groups == [group for group, _ in site.NAV_GROUPS][1:]
@@ -1147,7 +1130,7 @@ def test_navigation_groups_its_pages_under_labels(built: Path) -> None:
     for slug, before, after in (
         ("policy", "seasons", "drivers"),
         ("factors", "vehicles", "severity"),
-        ("validation", "severity-models", "sources"),
+        ("severity-models", "barcelona", "sources"),
     ):
         page = (built / f"{slug}.html").read_text(encoding="utf-8")
         pager = re.search(r'<nav class="pager"[^>]*>(.*?)</nav>', page, re.S).group(1)

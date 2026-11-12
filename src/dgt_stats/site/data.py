@@ -15,8 +15,9 @@ import pandas as pd
 from dgt_stats import codes, edm2018, features, io_exposure, risk_trends, severity_model
 from dgt_stats import figures as figure_data
 from dgt_stats.derive import ROAD_GROUP_BY_TYPE
-from dgt_stats.microdata.ml import modelling, recording, rules
-from dgt_stats.microdata.validation import dgt_audit, transport
+from dgt_stats.microdata.ml import features as catalan_features
+from dgt_stats.microdata.ml import recording
+from dgt_stats.microdata.validation import dgt_audit
 from dgt_stats.paths import RAW_DATA_DIR, TABLES_DIR
 from dgt_stats.site.components import (
     ALL_PAGES,
@@ -507,7 +508,7 @@ def _coding_breaks() -> str:
         "<p>Road-type series are therefore read year by year and alongside zone, the two kinds "
         "of conventional road form one group, and no road-type trend is drawn. Comparisons of "
         "Catalonia with the rest of Spain group every conventional road together for the same "
-        'reason (<a href="validation.html">Model method and tests</a>).</p>'
+        "reason.</p>"
         f"<p>Junction shares as published are not compared across {flip}. The association of "
         "junctions with fatal outcomes reads the flag the other way round in those "
         "province-years, which puts the Catalan share at a junction at "
@@ -544,7 +545,7 @@ def _presence_breaks() -> str:
         for spec in features.PREDICTORS.values()
         if str(spec["source"]) in dgt_audit.PRESENCE_NAMES
     }
-    calculator_source = inspect.getsource(severity_model)
+    model_source = inspect.getsource(severity_model)
     _require(
         {
             "the presence fields are fog and strong wind": set(dgt_audit.PRESENCE_NAMES)
@@ -562,9 +563,9 @@ def _presence_breaks() -> str:
             )
             > 0
             and bool((overlap.severe_CONDICION_NIEBLA_recorded == overlap.cat_file_fog).all()),
-            "neither field enters the national association analysis or the calculator": not unread
+            "neither field enters the national association analysis or the severity model": not unread
             and not any(
-                field in calculator_source for field in ("D_BOIRA", "D_VENT", "NIEBLA", "VIENTO")
+                field in model_source for field in ("D_BOIRA", "D_VENT", "NIEBLA", "VIENTO")
             ),
         }
     )
@@ -602,7 +603,7 @@ def _presence_breaks() -> str:
         + (f"Strong wind is recorded {wind_text}. " if not wind.empty else "")
         + "In those province-years the field is coded another way: neither a value nor a "
         "blank says whether there was fog or strong wind. Neither field enters the "
-        "national association analysis or the calculator.</p>"
+        "national association analysis or the severity model.</p>"
     )
 
 
@@ -639,10 +640,12 @@ def _records(captions: dict[str, str]) -> str:
     missing = read_table("missingness_by_year")
     limit = recording.RATIO_LIMIT
     catalan = artefacts[artefacts.verdict == "outcome-dependent recording"]
-    catalogue = read_table("ml_feature_catalogue")
-    catalogue = catalogue[catalogue.feature_table == "catalonia_crash_severity"]
-    in_main = catalogue[catalogue.feature_sets.str.contains("context")].column
-    calculator_source = inspect.getsource(severity_model)
+    in_main = [
+        feature.column
+        for feature in catalan_features.CATALONIA_TABLE.catalogue
+        if "context" in feature.sets
+    ]
+    model_source = inspect.getsource(severity_model)
     explicit_zeros = int(semantics.filter(like="explicit zero").iloc[0])
     adds_up = int(semantics["crashes where victims = deaths + serious + minor (blank read as 0)"])
     _require(
@@ -653,12 +656,12 @@ def _records(captions: dict[str, str]) -> str:
                 (catalan.ratio_fatal_to_serious <= 1 / limit).all()
             )
             and not catalan.empty,
-            "the outcome-dependent Catalan fields stay out of the original model": not set(
+            "the outcome-dependent Catalan fields stay out of the feature set the severity model reads": not set(
                 catalan.column
             )
             & set(in_main),
-            "the calculator reads none of the outcome-dependent Catalan fields": not any(
-                re.search(rf"\b{re.escape(column)}\b", calculator_source)
+            "the severity model reads none of the outcome-dependent Catalan fields": not any(
+                re.search(rf"\b{re.escape(column)}\b", model_source)
                 for column in set(catalan.column)
             ),
         }
@@ -764,212 +767,24 @@ def _records(captions: dict[str, str]) -> str:
         f"fatal ones. In the Catalan file, {_words(levels)} placeholder levels in "
         f"{_words(fields)} fields (“not specified” or an unexplained blank) are recorded at "
         f"least {_fmt_dec(limit)} times as often in non-fatal crashes as in fatal ones; these "
-        "fields are left out of every published model. The road owner is the reverse case, "
-        "blank far more often on fatal records, and the calculator leaves out the crashes it "
-        f'affects (<a href="{DOCS_URL}/research/ML_MODEL_REVIEW.md">model review</a>).</p>'
-        + _coding_breaks()
+        "fields are left out of the severity model. The road owner is the reverse case, "
+        "blank far more often on fatal records, and the model leaves out the crashes it "
+        f'affects (<a href="{DOCS_URL}/SEVERITY_MODEL.md">model note</a>).</p>' + _coding_breaks()
     )
 
 
 # ----------------------------------------------------------------------------- models
 def _models() -> str:
-    split = read_table("ml_split_isolation").set_index("model")
-    comparison = read_table("ml_rule_comparison").set_index("model")
-    selected = read_table("ml_selected")
-    primary = selected[selected.primary].set_index("model")
-    common = read_table("ml_common_feature_validation")
-    shared = read_table("ml_common_features")
-    catalogue = read_table("ml_feature_catalogue")
-    cat_checks = read_table("mq_cat_checks").set_index("check").value
-    outward = read_table("ml_outward_path").set_index(["model", "stage"])
-    bcn_year = _year_label(read_table("bcn_person_severity_share"))
-    scores = read_table("sev_rolling_scores")
-    choices = read_table("sev_choices")
-    cells = scores[
-        scores.subset.str.startswith("province and zone: ") & (scores.estimator == "calculator")
-    ]
-    pooled = scores[scores.subset.str.fullmatch(r"\d{4}-\d{4}")]
-    rolling = _span(pd.Series([int(y) for y in re.findall(r"\d{4}", pooled.subset.iloc[0])]))
-    pooled = pooled.set_index("estimator")
-    calc, lookup = pooled.loc["calculator"], pooled.loc["road_x_crash_table"]
-    gaps = read_table("sev_comparison").set_index(["estimator", "metric"])
-    against = gaps.loc[("road_x_crash_table", "roc_auc_minus_calculator")]
-    gain_low, gain_high = -float(against.high), -float(against.low)
-    catalan_years = read_table("cat_frequency").year
-    cat_years = re.findall(r"\d{4}", split.loc["catalonia_crash_severity", "design"])
-    bcn_numbers = re.findall(r"\d+", split.loc["barcelona_person_severity", "design"])
-    candidates = common[common.a_priori_status.isin(["exact", "defensible"])]
-    used = candidates[candidates.enters_cross_source_tests.astype(bool)]
-    dropped = candidates[~candidates.enters_cross_source_tests.astype(bool)]
-    bcn_pair = shared[shared.pair.str.contains("Barcelona")]
-    bcn_shared = bcn_pair[bcn_pair.enters_cross_source_tests.astype(bool)]
-    mappable = bcn_pair.status.isin(["exact", "defensible"])
-    catalan_last = int(catalan_years.max())
-    main_sets = catalogue.feature_sets.str.contains("context")
-    adds = comparison.model_adds_signal_over_table.astype(bool)
-    low, high = modelling.CALIBRATION_SLOPE_RANGE
-    tolerance = modelling.CALIBRATION_LARGE_TOLERANCE
-    _require(
-        {
-            "the calculator's model beats its table by the rule": float(
-                calc.roc_auc - lookup.roc_auc
-            )
-            >= rules.MIN_GAIN
-            and gain_low > 0,
-            "the calculator's estimates pass the calibration rule": low
-            <= float(calc.calibration_slope)
-            <= high
-            and abs(float(calc.mean_predicted - calc.prevalence)) <= tolerance * calc.prevalence,
-            "the original Catalan design names training, choice and test years": len(cat_years)
-            == 5,
-            "the Barcelona design names months and folds": len(bcn_numbers) == 5,
-            "no crash or group straddles a split": bool(
-                (split.shared_ids == 0).all() and (split.shared_groups == 0).all()
-            ),
-            "the Barcelona crash model does not beat its table": not bool(
-                adds["barcelona_crash_severity"]
-            ),
-            "the Barcelona person-severity model is for ranking only": not bool(
-                primary.loc["barcelona_person_severity", "probabilities_shown_as_estimates"]
-            ),
-            "the main models use only circumstances of the crash or person": bool(
-                (catalogue[main_sets].status == "safe").all()
-            ),
-            "variables that encode the outcome are in no model": bool(
-                (catalogue[catalogue.status == "direct_leakage"].feature_sets == "none").all()
-            ),
-            "some candidate variables fail the overlap check": not dropped.empty,
-            "the Barcelona variables are exactly those that map exactly or defensibly": bool(
-                (bcn_pair.enters_cross_source_tests.astype(bool) == mappable).all()
-            ),
-            "the Barcelona records share no year with the Catalan file": int(bcn_year[:4])
-            > catalan_last,
-            "the calculator's and the original model are tested on places left out": all(
-                outward.loc[(model, 3), "status"] == "passed"
-                for model in ("calculator", "catalonia_crash_severity")
-            ),
-            "the calculator's model has no test on another source": outward.loc[
-                ("calculator", 4), "status"
-            ]
-            == "not run",
-            "every choice of the calculator's model is nested in its test": bool(
-                (choices.fit != "published model").sum() == len(severity_model.ROLLING_TEST_YEARS)
-            )
-            and bool((choices.c_bracketed | choices.c_at_weak_limit).all())
-            and bool(choices[choices.fit == "published model"].c_bracketed.all()),
-            "some province's estimates by kind of road miss the observed interval": bool(
-                (
-                    (cells.mean_predicted < cells.observed_low)
-                    | (cells.mean_predicted > cells.observed_high)
-                ).any()
-            ),
-        }
-    )
-    provinces = int(cat_checks["demarcations"])
-    excluded = _join([FIELD_LABELS.get(field, field.replace("_", " ")) for field in dropped.field])
-    overlap = read_table("cat_vs_dgt_province_year").year
-    validation = '<a href="validation.html">Model method and tests</a>'
-    calculator = f'<a href="severity-models.html">{TITLES["severity-models"]}</a>'
-    review = f'<a href="{DOCS_URL}/research/ML_MODEL_REVIEW.md">model review</a>'
-    report = f'<a href="{DOCS_URL}/research/SEVERITY_CALCULATOR.md">calculator report</a>'
-    published = choices[choices.fit == "published model"].iloc[0]
+    model = f'<a href="severity-models.html">{TITLES["severity-models"]}</a>'
+    note = f'<a href="{DOCS_URL}/SEVERITY_MODEL.md">model note</a>'
     return (
-        '<h2 id="models">How the models were built and judged</h2>'
-        "<p>The published model is the calculator's: a penalised logistic regression of whether "
-        "a crash with a death or serious injury in Catalonia was fatal, with a death within 24 "
-        f"hours, given circumstances a reader can describe ({calculator}). Crashes on "
-        "conventional roads whose owner is recorded as “other” or left blank are left out, "
-        f"because that field records how a crash was documented ({review}), so the model and "
-        "its tests describe crashes on roads with a named owning network or of another "
-        "type.</p>"
-        "<p>The model is tested by nested rolling origin. For each year of "
-        f"{rolling}, three settings are chosen by fitting on the earlier years except the last "
-        "two and scoring those two:</p>"
-        "<ul><li>The strength of the penalty, from "
-        f"{_words(len(severity_model.C_EXPONENTS))} values and more if the best lies at either "
-        "end.</li>"
-        "<li>Whether each circumstance may count differently on urban streets and interurban "
-        "roads.</li>"
-        "<li>Whether roads through towns get the model's estimate or the average of such roads "
-        "in the province.</li></ul>"
-        "<p>The model is then fitted on all the earlier years and predicts the year, beside a "
-        "table of fatal shares by road and crash type fitted on the same years, so no choice "
-        "sees the year it predicts. The published model was chosen by the same rule, scoring "
-        f"{published.validation_years.replace('-', '–')} after fitting on "
-        f"{published.train_years.replace('-', '–')}, and then fitted on every year. Its "
-        f"intervals come from {_fmt_int(severity_model.N_BOOTSTRAP)} refits on resampled "
-        f"crashes. Its method is set out in the {report}.</p>"
-        "<p>ROC-AUC measures how well a model ranks: it is the probability that the model "
-        "places a randomly chosen case with the outcome above a randomly chosen case without "
-        "it. A value of 0.5 is no better than chance and 1 is a perfect ranking. The site gives "
-        f"it to two decimals: the Catalan severity model's ROC-AUC of {calc.roc_auc:.2f} over "
-        f"{rolling} means that it ranks a fatal crash above a non-fatal one in "
-        f"{calc.roc_auc * 100:.0f}% of such pairs. When the outcome is rare, as "
-        "deaths are, ROC-AUC can be high while most of the cases ranked highest are still "
-        "cases without it.</p>"
-        "<p>A model that ranks well may still add nothing to what a simple table shows. Each "
-        "model is therefore compared, on the same test records, with a table fixed before the "
-        "test: the share of severe outcomes in each group of the training records. A model is "
-        f"kept only if its ROC-AUC exceeds the table's by at least {rules.MIN_GAIN:.2f} and the "
-        "95% interval of the difference excludes zero. Over "
-        f"{rolling} the Catalan severity model scores {calc.roc_auc:.2f} against "
-        f"{lookup.roc_auc:.2f} for its table, a gain of {calc.roc_auc - lookup.roc_auc:.2f} "
-        f"(95% interval {gain_low:.2f}–{gain_high:.2f}).</p>"
-        "<p>A model can rank well and still give probabilities that are too high or too low. "
-        "Calibration compares the predicted probabilities with the observed shares in groups "
-        "of test records; its slope is 1 when the predictions spread exactly as widely as the "
-        "outcomes, and above 1 when they are not spread widely enough. Probabilities are shown "
-        f"as estimates only if the slope lies between {low} and {high} and the mean predicted "
-        f"probability is within {_fmt_pct(tolerance, 0)} of the observed share, a rule fixed in "
-        "advance.</p>"
-        "<p>Over all the test years the Catalan severity model passes this rule: the slope of "
-        f"its recalibration fit is {_fmt_dec(calc.calibration_slope, 2)} and its mean "
-        f"prediction is {_fmt_pct(calc.mean_predicted)} against {_fmt_pct(calc.prevalence)} "
-        "observed, but it does not pass in every province and kind of road "
-        f"({calculator}). The fit's intercept is {_fmt_dec(calc.calibration_intercept, 2)}; for "
-        "estimates that match the outcomes the slope is 1 and the intercept 0. Intervals "
-        f"for the scores come from {_fmt_int(modelling.N_BOOT)} bootstrap resamples of the test "
-        f"records, {_fmt_int(transport.N_BOOT_TRANSPORT)} in the external tests.</p>"
-        "<p>The project's earlier models used a single split by time. The original Catalan "
-        f"model was trained on the crashes of {cat_years[0]}–{cat_years[1]}, its settings were "
-        f"chosen on {cat_years[2]}–{cat_years[3]}, it was refitted on {cat_years[0]}–"
-        f"{cat_years[3]} and tested once on {cat_years[4]}. It was replaced by the Catalan "
-        "severity model, because its strongest predictor was the road's owner.</p>"
-        "<p>The Barcelona models were "
-        f"trained on months {bcn_numbers[0]}–{bcn_numbers[1]} of {bcn_year}, with settings "
-        f"chosen by {bcn_numbers[2]}-fold cross-validation that keeps the people of one crash "
-        f"in the same fold, and tested on months {bcn_numbers[3]}–{bcn_numbers[4]}; no crash "
-        "appears on both sides of a split. The Barcelona crash-severity model ranked unseen "
-        "crashes no better than its table of shares by accident type, so the study reports the "
-        "table instead. The Barcelona person-severity model ranks people without giving "
-        "probabilities and is kept for research. Every model the project fitted was "
-        f"re-evaluated in the {review}."
-        "</p>"
-        "<p>The external tests set each model beside a model of the same kind trained in the "
-        "test population. The Catalan severity model and the original Catalan model are tested "
-        f"with each of the {_words(provinces)} provinces left out in turn and with Barcelona "
-        "city against the rest of Catalonia, and the Barcelona models on one district at a "
-        "time.</p>"
-        "<p>No other source records the calculator's inputs, so it has no test outside the "
-        "Catalan file. For DGT's records elsewhere in Spain, a harmonised version of the "
-        "original model refits the "
-        f"original model's specification on the {len(used)} of {len(candidates)} candidate "
-        "variables whose mapped distributions match on the Catalan crashes of "
-        f"{_span(overlap)}, which both files contain ({excluded} "
-        + ("does" if len(dropped) == 1 else "do")
-        + " not). Barcelona's records "
-        f"share no crash with the Catalan file, so the {_words(len(bcn_shared))} variables "
-        "used for Barcelona were chosen only because their codings map exactly or defensibly "
-        f"({validation}).</p>"
-        "<p>Before fitting, each variable was classified by how far the outcome could shape "
-        "it. The models use only circumstances recorded about the crash or the person. "
-        "Variables the outcome may shape, such as police causes and the Catalan influence "
-        "fields, enter only separate comparison versions of the original models, and variables "
-        "that encode the outcome enter none "
-        f'(<a href="{DOCS_URL}/ML_LEAKAGE_AUDIT.md">audit of the variables</a>). The check for '
-        "fields recorded differently when a crash was fatal looked only for placeholders rarer "
-        "among fatal crashes, pooled over zones, and did not catch the road-owner field; the "
-        "re-evaluation found it.</p>"
+        '<h2 id="models">The one fitted model</h2>'
+        "<p>The study fits one model: a penalised logistic regression of whether a crash with "
+        "a death or serious injury in Catalonia was fatal. Its penalty, form and treatment of "
+        "roads through towns are chosen on earlier years only, each year of 2016–2023 is "
+        "predicted from the years before it, and the result is compared with a table of fatal "
+        f"shares by road and crash type. The results, the tests and the limits are on {model}; "
+        f"the method is in the {note}.</p>"
     )
 
 
@@ -1471,6 +1286,7 @@ NOTE_MODULES = (
     "factors",
     "severity",
     "regional",
+    "models",
 )
 
 
@@ -1489,8 +1305,8 @@ def _technical_notes(captions: dict[str, str]) -> str:
 def page_data(captions: dict[str, str]) -> str:
     body = summary(
         "This page defines the terms the site uses and explains how each rate is built, how a "
-        "change is judged against the variation of an ordinary year, and how the models were "
-        "tested. The technical notes of the analysis pages follow, page by page: definitions, "
+        "change is judged against the variation of an ordinary year, and the "
+        "model was tested. The technical notes of the analysis pages follow, page by page: definitions, "
         "assumptions, sensitivity analyses and corrections. The last sections list the checks "
         "on the data and every assumption the data can test, with what the test found."
     )
@@ -1509,10 +1325,6 @@ def page_data(captions: dict[str, str]) -> str:
             ("risk_dispersion", "year-to-year dispersion"),
             ("missingness_by_year", "missing values by field and year"),
             ("dgt_audit_presence_coding", "fog and wind coding by province and year"),
-            ("ml_split_isolation", "training and test splits"),
-            ("ml_rule_comparison", "models against their tables"),
-            ("ml_common_feature_validation", "harmonised variables"),
-            ("ml_feature_catalogue", "variable classification"),
         ]
     )
     return render_page(

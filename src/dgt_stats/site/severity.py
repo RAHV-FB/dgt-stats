@@ -1,8 +1,8 @@
 """Crash circumstances and fatal outcomes: associations in DGT's national crash records.
 
 A description of which recorded circumstances go with a fatal outcome in DGT's injury-crash
-records (the crash-severity regressions). The project does not train a predictive model on DGT's
-file: its audit keeps it out. The page gives the results; how the regressions are specified and
+records (the crash-severity regressions). The regressions describe associations and are not used
+to predict. The page gives the results; how the regressions are specified and
 checked, the inverted junction flag, the model variants and the missing-value levels are technical
 notes on the methodology page (``technical_notes``).
 
@@ -152,7 +152,6 @@ def _facts() -> SimpleNamespace:
     junction_coding = read_table("q3_junction_coding")
     junction_sensitivity = read_table("q3_junction_sensitivity")
     junction_sensitivity = junction_sensitivity[junction_sensitivity.outcome == "fatal"]
-    audit = read_table("dgt_audit_checks")
     calibration = read_table("q3_calibration")
     calibration = calibration[calibration.outcome == "fatal"].sort_values("decile")
 
@@ -273,9 +272,6 @@ def _facts() -> SimpleNamespace:
             other_road.odds_ratio_without
         )
         > float(other_road.odds_ratio),
-        "the audit keeps DGT's file out of model training": not str(
-            audit.decision.iloc[0]
-        ).startswith("DGT microdata may train"),
         "the two largest odds ratios are a head-on collision and a pedestrian struck": set(
             zip(ranked.predictor.iloc[:2], ranked.level.iloc[:2], strict=True)
         )

@@ -40,7 +40,6 @@ NAV_GROUPS: tuple[tuple[str, tuple[tuple[str, str], ...]], ...] = (
         EXPLORE,
         (
             ("explore", "Interactive tools"),
-            ("calculator", "Crash severity calculator"),
             ("driver-risk", "Driver risk comparison"),
             ("crash-explorer", "Crash statistics explorer"),
         ),
@@ -68,7 +67,6 @@ NAV_GROUPS: tuple[tuple[str, tuple[tuple[str, str], ...]], ...] = (
             ("catalonia", "Catalonia"),
             ("barcelona", "Barcelona"),
             ("severity-models", "Crash severity model"),
-            ("validation", "Model method and tests"),
         ),
     ),
     (METHODS, (("sources", "Data sources and scope"), ("data", "Methodology"))),
@@ -76,12 +74,10 @@ NAV_GROUPS: tuple[tuple[str, tuple[tuple[str, str], ...]], ...] = (
 # The line above a page's title: the group it belongs to.
 EYEBROWS = {group: group for group, _ in NAV_GROUPS}
 # The interactive tools, each on a page of its own under ``explore``.
-TOOL_SLUGS = ("calculator", "driver-risk", "crash-explorer")
+TOOL_SLUGS = ("driver-risk", "crash-explorer")
 # What each page answers, one line each, for the home page's list of pages.
 PAGE_QUESTIONS = {
-    "explore": "Calculators and explorers that compute results from the site's data.",
-    "calculator": "The estimated fatal share of a severe crash in Catalonia, for a crash you "
-    "describe.",
+    "explore": "Explorers that compute results from the site's data.",
     "driver-risk": "Crash involvement and deaths of drivers of two age groups or sexes, side by "
     "side.",
     "crash-explorer": "Spain's recorded injury crashes and deaths by year, region, road and crash "
@@ -98,9 +94,8 @@ PAGE_QUESTIONS = {
     "severity": "Which recorded circumstances go with a death in Spain's injury crashes.",
     "catalonia": "Crashes with a death or serious injury in Catalonia, 2010–2023.",
     "barcelona": "Every crash the Guàrdia Urbana attended in Barcelona in 2025.",
-    "severity-models": "A model of which severe crashes in Catalonia were fatal, and a "
-    "calculator to try it.",
-    "validation": "How the Catalan models held up on other years, places and records.",
+    "severity-models": "A model of which severe crashes in Catalonia were fatal, and how well "
+    "it holds up.",
     "sources": "Where every figure comes from, what it covers and what it cannot show.",
     "data": "How the results are produced, the checks they pass and the assumptions tested.",
 }

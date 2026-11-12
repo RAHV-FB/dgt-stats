@@ -21,13 +21,6 @@
   "bcn1_severity_by_road_user": "Serious or fatal injury by road user (role and vehicle type on the record)",
   "bcn2_severity_by_age": "Serious or fatal injury by age band",
   "bcn4_crash_severity_by_type": "Crashes with a serious or fatal injury, by crash type",
-  "ml1_test_auc": "Test ROC-AUC: each model against its descriptive table and the baseline",
-  "ml2_calibration": "Calibration on the test records: observed share against predicted probability",
-  "ml3_importance_catalonia_crash_severity": "Original Catalan model (retired): the variables it relies on most",
-  "ml3_importance_barcelona_person_severity": "Barcelona person-severity model: the variables it relies on most",
-  "tr0_calculator_transfer": "The Catalan severity model on held-out years and places",
-  "tr1_catalonia_transfer": "Original Catalan model (retired) on held-out places and years",
-  "tr2_dgt_transfer": "Harmonised version of the original model on other sources, years and Spain",
-  "tr3_province_auc": "Harmonised version of the original model, province by province outside Catalonia",
+  "sev2_held_out": "The Catalan severity model on held-out years and places",
   "sev1_predicted_observed": "Predicted and observed: the share of severe crashes that were fatal"
 }

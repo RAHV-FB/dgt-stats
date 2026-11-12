@@ -213,7 +213,7 @@ def _heavy_vehicles() -> str:
         f"the fatal share {float(heavy.ratio):.1f} times as high with a lorry or bus involved "
         f"(95% interval {float(heavy.ratio_low):.1f}–{float(heavy.ratio_high):.1f}), other "
         "recorded circumstances held equal; the model has been tested only within Catalonia.",
-        [("severity-models", ""), ("validation", "")],
+        [("severity-models", "")],
     )
 
 
