@@ -1,4 +1,4 @@
-"""Crash-severity logistic models: fitting, tidy odds ratios, marginal effects and diagnostics.
+"""Crash-severity logistic models: fitting, tidy odds ratios and diagnostics.
 
 The design is main effects only, built by hand from the ordered categoricals of
 :mod:`dgt_stats.features` (reference level dropped), fitted by iteratively reweighted least squares
@@ -16,31 +16,16 @@ import numpy as np
 import pandas as pd
 from sklearn.metrics import brier_score_loss, roc_auc_score
 
-from dgt_stats import codes, features
+from dgt_stats import features
 
 log = logging.getLogger(__name__)
 
 HOLDOUT_YEARS = (2023, 2024)
-STABILITY_TERMS = 10
-# Terms the yearly refits always follow besides the largest ones: the two adverse conditions the
-# severity page leads with, the junction among them because DGT's records for the Catalan
-# provinces code its flag the wrong way round from 2023 (``features.junction_codes`` reads it
-# the other way round there).
-STABILITY_EXTRA_TERMS: tuple[tuple[str, str], ...] = (
-    ("junction", "at a junction"),
-    ("surface", "wet"),
-)
 # The first year DGT's records for the Catalan provinces code the junction flag the wrong way
 # round (data.html's coding breaks). ``period_refits`` fits the years before it and from it apart,
 # and ``junction_sensitivity`` refits the years from it, to check the corrected flag.
 JUNCTION_RECODING_YEAR = 2023
-PERIOD_TERMS: tuple[tuple[str, str], ...] = (
-    ("junction", "at a junction"),
-    ("surface", "wet"),
-    ("weather", "rain"),
-    ("crash_type", "head-on collision"),
-    ("crash_type", "pedestrian struck"),
-)
+PERIOD_TERMS: tuple[tuple[str, str], ...] = (("junction", "at a junction"),)
 PROFILE_YEAR = "2024"
 
 # Named crash profiles for the predicted-probability table; unspecified predictors sit at reference.
@@ -380,69 +365,6 @@ def predict(fit: Fit, design: pd.DataFrame) -> np.ndarray:
     return 1 / (1 + np.exp(-linear))
 
 
-def marginal_effects(frame: pd.DataFrame, fit: Fit) -> pd.DataFrame:
-    """Average marginal effect of each level against its reference, in probability points.
-
-    For each predictor and level, every crash is set to that level (all else as observed) and the
-    mean predicted probability is compared with the mean when every crash is set to the reference.
-    A level the fit left out (no event of its own, or an exact repeat of another column) has no
-    effect to report and carries NaN, not zero.
-    """
-    design = design_matrix(frame, fit.predictors).reindex(columns=fit.params.index, fill_value=0.0)
-    matrix = design.to_numpy(dtype=float)
-    beta = fit.params.to_numpy()
-    records = []
-    for name in fit.predictors:
-        level_columns = [c for c in fit.columns if c.startswith(f"{name}=")]
-        # Linear predictor with this predictor at its reference for every crash; a level is then
-        # one added coefficient, so no copy of the design is needed.
-        indices = [design.columns.get_loc(c) for c in level_columns]
-        eta_reference = matrix @ beta - matrix[:, indices] @ beta[indices]
-        p_reference = (1 / (1 + np.exp(-np.clip(eta_reference, -30, 30)))).mean()
-        records.append(
-            {
-                "outcome": fit.outcome,
-                "predictor": name,
-                "predictor_label": features.PREDICTOR_LABELS.get(name, name),
-                "level": str(frame[name].cat.categories[0]),
-                "is_reference": True,
-                "probability": float(p_reference),
-                "effect": 0.0,
-            }
-        )
-        for column in level_columns:
-            eta_level = eta_reference + fit.params[column]
-            p_level = (1 / (1 + np.exp(-np.clip(eta_level, -30, 30)))).mean()
-            records.append(
-                {
-                    "outcome": fit.outcome,
-                    "predictor": name,
-                    "predictor_label": features.PREDICTOR_LABELS.get(name, name),
-                    "level": column.split("=", 1)[1],
-                    "is_reference": False,
-                    "probability": float(p_level),
-                    "effect": float(p_level - p_reference),
-                }
-            )
-        for column in [*fit.separated, *fit.aliased]:
-            if not column.startswith(f"{name}="):
-                continue
-            records.append(
-                {
-                    "outcome": fit.outcome,
-                    "predictor": name,
-                    "predictor_label": features.PREDICTOR_LABELS.get(name, name),
-                    "level": column.split("=", 1)[1],
-                    "is_reference": False,
-                    "probability": np.nan,
-                    "effect": np.nan,
-                }
-            )
-    out = pd.DataFrame.from_records(records)
-    out["is_nuisance"] = out.level.map(features.is_nuisance)
-    return out
-
-
 def _merge_small_levels(
     train: pd.DataFrame, test: pd.DataFrame, predictors: tuple[str, ...]
 ) -> tuple[pd.DataFrame, pd.DataFrame, dict[str, list[str]]]:
@@ -574,88 +496,6 @@ def holdout_check(
     return calibration, summary
 
 
-def year_stability(
-    frame: pd.DataFrame,
-    full: Fit,
-    terms: int = STABILITY_TERMS,
-    extra: tuple[tuple[str, str], ...] = STABILITY_EXTRA_TERMS,
-) -> pd.DataFrame:
-    """Refit per year (without the year predictor) for the largest effects of the full model.
-
-    The three missing states, not specified, not applicable and a field's explicit unknown code,
-    are left out of the selection: their odds ratios reflect reporting practice, which is exactly
-    what changes from year to year. The ``extra`` terms are followed whatever their size
-    (``is_largest`` marks the ``terms`` largest). The per-year fits are clustered by province,
-    like the full model, so the intervals are comparable.
-
-    A yearly estimate outside the full model's interval (``within_full_interval``) is expected now
-    and then even when nothing changes, because each year's estimate has its own sampling error.
-    Two columns account for it. ``full_within_year_interval`` says whether the full model's odds
-    ratio lies inside the year's own interval. ``heterogeneity_q`` is Cochran's Q for the term
-    across years, the inverse-variance weighted sum of squared deviations of the yearly log odds
-    ratios from their weighted mean, and ``heterogeneity_p`` its chi-squared p-value on one fewer
-    degrees of freedom than there are years; a small p says the term varies between years by more
-    than the yearly errors allow, whatever the cause.
-    """
-    from scipy import stats
-
-    ranked = odds_ratios(full)
-    ranked = ranked[(ranked.predictor != "year") & (~ranked.level.isin(features.MISSING_LEVELS))]
-    ranked = ranked.reindex(ranked.log_odds.abs().sort_values(ascending=False).index)
-    largest = ranked.head(terms)
-    keyed = ranked.set_index(["predictor", "level"])
-    chosen = set(zip(largest.predictor, largest.level, strict=True))
-    added = [key for key in extra if key in keyed.index and key not in chosen]
-    keep = pd.concat([largest, keyed.loc[added].reset_index()], ignore_index=True)
-    keep["is_largest"] = [index < len(largest) for index in range(len(keep))]
-    predictors = tuple(name for name in full.predictors if name != "year")
-    records = []
-    for year, group in frame.groupby("crash_year"):
-        fit = fit_severity(group, full.outcome, predictors)
-        table = odds_ratios(fit).set_index(["predictor", "level"])
-        for row in keep.itertuples():
-            key = (row.predictor, row.level)
-            if key not in table.index:
-                continue
-            got = table.loc[key]
-            records.append(
-                {
-                    "outcome": full.outcome,
-                    "year": int(year),
-                    "predictor": row.predictor,
-                    "predictor_label": row.predictor_label,
-                    "level": row.level,
-                    "is_largest": bool(row.is_largest),
-                    "log_odds": float(got.log_odds),
-                    "se": float(got.se),
-                    "odds_ratio": float(got.odds_ratio),
-                    "or_low": float(got.or_low),
-                    "or_high": float(got.or_high),
-                    "full_model_odds_ratio": float(row.odds_ratio),
-                    "full_model_or_low": float(row.or_low),
-                    "full_model_or_high": float(row.or_high),
-                }
-            )
-    out = pd.DataFrame.from_records(records)
-    out["within_full_interval"] = (out.odds_ratio >= out.full_model_or_low) & (
-        out.odds_ratio <= out.full_model_or_high
-    )
-    out["full_within_year_interval"] = (out.full_model_odds_ratio >= out.or_low) & (
-        out.full_model_odds_ratio <= out.or_high
-    )
-    q_values, p_values = {}, {}
-    for key, group in out.groupby(["predictor", "level"], sort=False):
-        weights = 1 / group.se**2
-        mean = float((weights * group.log_odds).sum() / weights.sum())
-        q = float((weights * (group.log_odds - mean) ** 2).sum())
-        q_values[key] = q
-        p_values[key] = float(stats.chi2.sf(q, len(group) - 1)) if len(group) > 1 else np.nan
-    keys = list(zip(out.predictor, out.level, strict=True))
-    out["heterogeneity_q"] = [q_values[key] for key in keys]
-    out["heterogeneity_p"] = [p_values[key] for key in keys]
-    return out
-
-
 def period_refits(
     frame: pd.DataFrame,
     outcome: str = "fatal",
@@ -725,11 +565,10 @@ def junction_sensitivity(
 ) -> pd.DataFrame:
     """The junction odds ratio with the inverted province-years read each way.
 
-    For every treatment in ``features.JUNCTION_TREATMENTS`` the model frame is rebuilt from
-    ``crashes`` and the junction term refitted three ways: the full model (``fit`` "full"), the
-    full model on the years from ``break_year`` ("from break"), and every year apart without the
-    year predictor ("year", as in :func:`year_stability`), whose rows carry Cochran's Q for the
-    junction term across years. ``recoded`` counts the fit's crashes whose junction level differs
+    For every treatment in ``features.JUNCTION_TREATMENTS`` (the flag as published and read the
+    other way round) the model frame is rebuilt from ``crashes`` and the junction term refitted
+    two ways: the full model (``fit`` "full") and the full model on the years from
+    ``break_year`` ("from break"). ``recoded`` counts the fit's crashes whose junction level differs
     from the flag as published, ``unrecorded`` those whose junction is a missing level, and
     ``share_at_junction_catalonia`` is the share of the fit's Catalan crashes at a junction.
     """
@@ -771,16 +610,6 @@ def junction_sensitivity(
             later = _drop_unused(frame[frame.crash_year >= break_year])
             table = odds_ratios(fit_severity(later, outcome)).set_index(["predictor", "level"])
             records.append(record(outcome, "from break", later.index, table.loc[key]))
-            yearly = year_stability(frame, full, terms=0, extra=(key,))
-            for row in yearly.itertuples():
-                rows = frame.index[frame.crash_year == row.year]
-                records.append(
-                    {
-                        **record(outcome, "year", rows, row),
-                        "heterogeneity_q": float(row.heterogeneity_q),
-                        "heterogeneity_p": float(row.heterogeneity_p),
-                    }
-                )
     return pd.DataFrame.from_records(records)
 
 
@@ -874,37 +703,38 @@ def profiles(frame: pd.DataFrame, fits: dict[str, Fit]) -> pd.DataFrame:
 # whose adjusted odds of a fatal outcome are below the reference.
 ADVERSE_LEVELS: tuple[tuple[str, str], ...] = (
     ("weather", "rain"),
-    ("weather", "hail or snow"),
     ("surface", "wet"),
     ("junction", "at a junction"),
 )
 
 # Model variants that test the two obvious explanations: that weather and surface are measuring
-# each other, and that the effect is really about where adverse weather falls.
+# each other (each left out in turn), and that the effect is really about where adverse weather
+# falls (interurban roads and urban streets fitted apart, for the wet surface and the junction).
 ADVERSE_VARIANTS: dict[str, dict[str, object]] = {
-    "full": {"label": "Full model", "drop": (), "subset": None},
-    "no_surface": {"label": "Without road surface", "drop": ("surface",), "subset": None},
-    "no_weather": {"label": "Without weather", "drop": ("weather",), "subset": None},
-    "no_weather_or_surface": {
-        "label": "Without weather or surface",
-        "drop": ("weather", "surface"),
+    "full": {"label": "Full model", "drop": (), "subset": None, "levels": ADVERSE_LEVELS},
+    "no_surface": {
+        "label": "Without road surface",
+        "drop": ("surface",),
         "subset": None,
+        "levels": ADVERSE_LEVELS,
     },
-    "no_lighting": {"label": "Without lighting", "drop": ("lighting",), "subset": None},
+    "no_weather": {
+        "label": "Without weather",
+        "drop": ("weather",),
+        "subset": None,
+        "levels": ADVERSE_LEVELS,
+    },
     "interurban": {
         "label": "Interurban roads only",
         "drop": ("zone",),
         "subset": ("zone", "interurban road"),
+        "levels": ADVERSE_LEVELS[1:],
     },
     "street": {
         "label": "Urban streets only",
         "drop": ("zone", "road"),
         "subset": ("zone", "street"),
-    },
-    "conventional": {
-        "label": "Conventional roads only",
-        "drop": ("zone", "road"),
-        "subset": ("road", "conventional"),
+        "levels": ADVERSE_LEVELS[1:],
     },
 }
 
@@ -914,7 +744,7 @@ def adverse_conditions(frame: pd.DataFrame, outcome: str = "fatal") -> pd.DataFr
 
     Weather and road surface describe overlapping things (it rains, the road is wet), so a model
     carrying both can be splitting one effect between two predictors. Dropping each in turn says
-    whether either result depends on the other. The three subsets say whether the result is really
+    whether either result depends on the other. The two subsets say whether the result is really
     about *where* adverse weather falls: a stratified fit holds the road context fixed by
     construction instead of adjusting for it.
     """
@@ -936,7 +766,7 @@ def adverse_conditions(frame: pd.DataFrame, outcome: str = "fatal") -> pd.DataFr
         predictors = tuple(name for name in features.PREDICTORS if name not in drop)
         fit = fit_severity(rows, outcome, predictors=predictors)
         table = odds_ratios(fit).set_index(["predictor", "level"])
-        for predictor, level in ADVERSE_LEVELS:
+        for predictor, level in spec.get("levels", ADVERSE_LEVELS):  # type: ignore[attr-defined]
             if predictor in drop or (predictor, level) not in table.index:
                 continue
             row = table.loc[(predictor, level)]
@@ -956,82 +786,6 @@ def adverse_conditions(frame: pd.DataFrame, outcome: str = "fatal") -> pd.DataFr
                     "or_high": float(row.or_high),
                 }
             )
-    return pd.DataFrame.from_records(records)
-
-
-def level_composition(
-    frame: pd.DataFrame, predictor: str, level: str, top: int = 5
-) -> pd.DataFrame:
-    """Where the crashes at one level actually are: province, zone and road type shares.
-
-    Hail and snow are 1,577 crashes out of 875,013 and they do not fall evenly over Spain, so the
-    question of whether the coefficient is a weather effect or a mountain-province effect has to be
-    asked of the data rather than assumed away.
-    """
-    rows = frame[frame[predictor] == level]
-    names = codes.labels_for("COD_PROVINCIA")
-    records = []
-    for name, column in (("province", "province"), ("zone", "zone"), ("road", "road")):
-        counts = rows[column].value_counts().head(top)
-        overall = frame[column].value_counts()
-        for key, count in counts.items():
-            label = names.get(str(key).lstrip("0"), names.get(str(key), str(key)))
-            records.append(
-                {
-                    "predictor": predictor,
-                    "level": level,
-                    "dimension": name,
-                    "category": str(label) if name == "province" else str(key),
-                    "crashes": int(count),
-                    "share_of_level": float(count) / len(rows),
-                    "share_overall": float(overall.get(key, 0)) / len(frame),
-                }
-            )
-    out = pd.DataFrame.from_records(records)
-    out.attrs["n_level"] = len(rows)
-    return out
-
-
-def level_exclusions(
-    frame: pd.DataFrame, predictor: str, level: str, outcome: str = "fatal", top: int = 3
-) -> pd.DataFrame:
-    """The same odds ratio refitted with the level's most concentrated provinces left out.
-
-    If a level's effect is really the effect of the few places that record it, dropping those
-    places should move it.
-    """
-    rows = frame[frame[predictor] == level]
-    provinces = list(rows.province.value_counts().head(top).index)
-    records = []
-    for cut in range(top + 1):
-        excluded = provinces[:cut]
-        kept = frame[~frame.province.isin(excluded)]
-        kept = kept.assign(
-            **{
-                name: kept[name].cat.remove_unused_categories()
-                for name in kept.columns
-                if isinstance(kept[name].dtype, pd.CategoricalDtype)
-            }
-        )
-        fit = fit_severity(kept, outcome)
-        table = odds_ratios(fit).set_index(["predictor", "level"])
-        if (predictor, level) not in table.index:
-            continue
-        row = table.loc[(predictor, level)]
-        records.append(
-            {
-                "outcome": outcome,
-                "predictor": predictor,
-                "level": level,
-                "excluded_provinces": ", ".join(excluded) if excluded else "none",
-                "n_excluded": cut,
-                "n_crashes": len(kept),
-                "n_level": int((kept[predictor] == level).sum()),
-                "odds_ratio": float(row.odds_ratio),
-                "or_low": float(row.or_low),
-                "or_high": float(row.or_high),
-            }
-        )
     return pd.DataFrame.from_records(records)
 
 
