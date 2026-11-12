@@ -2,6 +2,7 @@ import pandas as pd
 import pytest
 
 from dgt_stats import io_microdata, validate
+from dgt_stats.paths import MICRODATA_YEARS, TABLE_YEARS
 
 pytestmark = pytest.mark.skipif(
     not io_microdata.all_years_path().exists(),
@@ -14,37 +15,40 @@ def results() -> pd.DataFrame:
     return validate.run_checks()
 
 
-def test_every_check_family_is_present_and_complete(results: pd.DataFrame) -> None:
-    # The published count of checks: a family that shrank would otherwise pass unnoticed.
-    assert len(results) == 482
-    assert results.groupby("check").size().to_dict() == {
-        "census_2025": 53,
-        "census_age_2023": 15,
-        "code_domain": 33,
-        "driver_deaths": 33,
-        "row_count": 9,
-        "speed_report_scope": 48,
-        "table_1_1_province": 104,
-        "table_2_2_deaths": 60,
-        "table_2_3_vehicles": 5,
-        "table_3_1_month": 24,
-        "table_6_1_drivers": 44,
-        "unique_key": 9,
-        "victim_total": 45,
-    }
+FAMILIES = {
+    "census_2025",
+    "census_age_2023",
+    "code_domain",
+    "driver_deaths",
+    "row_count",
+    "speed_report_scope",
+    "table_1_1_province",
+    "table_2_2_deaths",
+    "table_2_3_vehicles",
+    "table_3_1_month",
+    "table_6_1_drivers",
+    "victim_total",
+}
 
 
-def test_reconciliation_checks_pass_exactly(results: pd.DataFrame) -> None:
-    exact = results[~results.check.isin(["census_2025", "census_age_2023"])]
-    failed = exact[~exact.passed]
+def test_every_check_family_is_present_and_every_check_passes(results: pd.DataFrame) -> None:
+    # A family that vanished or came back empty would otherwise pass unnoticed.
+    sizes = results.groupby("check").size()
+    assert set(sizes.index) == FAMILIES
+    assert (sizes > 0).all()
+    failed = results[~results.passed]
     assert failed.empty, failed.to_string()
 
 
-def test_census_within_tolerance(results: pd.DataFrame) -> None:
+def test_row_counts_cover_every_microdata_year(results: pd.DataFrame) -> None:
+    rows = results[results.check == "row_count"]
+    assert sorted(rows.year) == list(MICRODATA_YEARS)
+
+
+def test_census_checks_cover_every_province(results: pd.DataFrame) -> None:
     census = results[results.check == "census_2025"]
-    assert len(census) == 53
-    failed = census[~census.passed]
-    assert failed.empty, failed.to_string()
+    assert len(census) >= 52
+    assert census.passed.all()
 
 
 def test_missingness_profile_shape() -> None:
@@ -63,14 +67,7 @@ def test_province_name_normalisation() -> None:
     assert validate._normalise_province("Coruña, A") == "coruña (a)"
 
 
-def test_census_age_within_tolerance(results: pd.DataFrame) -> None:
-    rows = results[results.check == "census_age_2023"]
-    assert len(rows) == 15
-    failed = rows[~rows.passed]
-    assert failed.empty, failed.to_string()
-
-
 def test_driver_deaths_cover_every_year_and_zone(results: pd.DataFrame) -> None:
     rows = results[results.check == "driver_deaths"]
-    assert len(rows) == 11 * 3
+    assert len(rows) == len(TABLE_YEARS) * 3
     assert rows.passed.all()

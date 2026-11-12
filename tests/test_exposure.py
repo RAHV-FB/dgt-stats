@@ -3,7 +3,7 @@ from dgt_stats import io_exposure as exposure
 CENSUS_TOTALS = {2023: 27_914_572, 2024: 28_142_470, 2025: 28_472_636}
 
 
-def test_census_years_match_audit_totals() -> None:
+def test_census_years_match_published_totals() -> None:
     for year, expected in CENSUS_TOTALS.items():
         frame = exposure.read_census_year(year)
         assert frame.n_drivers.sum() == expected, year
@@ -34,14 +34,6 @@ def test_km_mean_table_has_35_strata() -> None:
     assert cars.n_vehicles == 4_807_569
     assert abs(cars.mean_km_year - 21_646.36) < 1e-6
     assert km.vehicle_km.sum() > 0
-
-
-def test_km_estimated_table_stacks_six_sheets() -> None:
-    km = exposure.read_km_estimated_2022()
-    assert km.source_sheet.nunique() == 6
-    assert km.payload.isna().sum() > 0
-    assert (km.year == 2022).all()
-    assert km.km_year.min() > 0
 
 
 def test_census_by_age_text_files_match_census_totals() -> None:

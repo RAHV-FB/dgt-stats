@@ -7,8 +7,7 @@ workbooks hold about 31 MB; the extracts keep what the exposure analysis reads (
 * ``edm2018_individuos.csv``: every respondent, with sex, exact age, driving licence, activity,
   the reference weekday, the reason for not travelling and the person weight;
 * ``edm2018_viajes_conductor.csv``: every trip whose main mode is car driver (codes 11-13:
-  private, company or rental car), with its distance and trip weight;
-* ``edm2018_codebook.csv``: the "LIBRO DE CODIGOS" sheets of both workbooks.
+  private, company or rental car), with its distance and trip weight.
 
 Licence: CRTM open-data licence (https://www.crtm.es/licencia-de-uso): reuse, commercial or not,
 is allowed if the CRTM is cited as the source, "Powered by CRTM" is shown with a link to
@@ -95,11 +94,6 @@ def extract(directory: Path, target: Path = TARGET_DIR) -> None:
     trips = trips.loc[trips.MODO_PRIORITARIO.isin(CAR_DRIVER_MODES), list(TRIP_COLUMNS)]
     trips.to_csv(target / "edm2018_viajes_conductor.csv", index=False)
     log.info("car-driver trips: %s", f"{len(trips):,}")
-    books = []
-    for name in ITEMS:
-        book = pd.read_excel(directory / name, sheet_name="LIBRO DE CODIGOS", header=None)
-        books.append(book.assign(workbook=name))
-    pd.concat(books, ignore_index=True).to_csv(target / "edm2018_codebook.csv", index=False)
 
 
 def main(argv: list[str] | None = None) -> int:

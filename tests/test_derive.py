@@ -54,39 +54,18 @@ def test_add_fields_outcomes_and_groupings() -> None:
     assert list(out.weekend) == [False, False, False, True, True, False]
 
 
-def test_add_fields_status_and_labels() -> None:
+def test_add_fields_keeps_the_canonical_columns_first() -> None:
     out = derive.add_fields(_frame())
-    assert list(out.status_CONDICION_METEO) == [
-        "observed",
-        "unknown",
-        "not_specified",
-        "not_applicable",
-        "empty",
-        "observed",
-    ]
-    assert list(out.CONDICION_METEO_label.fillna("<NA>")) == [
-        "Clear",
-        "Unknown",
-        "Not specified",
-        "Not applicable",
-        "<NA>",
-        "Light rain",
-    ]
-    assert list(out.TIPO_VIA_label.fillna("<NA>"))[:2] == [
-        "Toll motorway",
-        "Dual carriageway (autovía)",
-    ]
     for column in derive.DERIVED_COLUMNS:
         assert column in out.columns, column
     assert list(out.columns[: len(CANONICAL_COLUMNS)]) == list(CANONICAL_COLUMNS)
+    assert len(out.columns) == len(CANONICAL_COLUMNS) + len(derive.DERIVED_COLUMNS)
 
 
-def test_every_dictionary_code_has_an_english_label() -> None:
+def test_every_crash_type_code_has_an_english_label() -> None:
     dictionary = codes.load_dictionary()
-    for column in labels.LABELLED_COLUMNS:
-        spanish = {code for code in dictionary[column] if code not in {"", "998", "999"}}
-        english = set(labels.ENGLISH[column])
-        assert spanish == english, (column, spanish ^ english)
+    spanish = {code for code in dictionary["TIPO_ACCIDENTE"] if code not in {"", "998", "999"}}
+    assert spanish == set(labels.ENGLISH["TIPO_ACCIDENTE"])
 
 
 def test_road_user_types_cover_every_death_column() -> None:

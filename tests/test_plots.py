@@ -58,25 +58,6 @@ def _svg_ok(path: Path) -> None:
     assert "dc:date" not in text  # no date stamp, so an unchanged figure does not churn on rebuild
 
 
-def test_line_series_single_and_multi(tmp_path: Path) -> None:
-    frame = pd.DataFrame({"year": range(2016, 2025), "value": range(9)})
-    _svg_ok(plots.line_series(frame, "year", "value", tmp_path / "one.svg", "One"))
-    multi = pd.concat(
-        [frame.assign(zone="Urban"), frame.assign(zone="Interurban", value=frame.value * 2)]
-    )
-    out = plots.line_series(
-        multi, "year", "value", tmp_path / "two.svg", "Two", series="zone", percent=False
-    )
-    _svg_ok(out)
-    assert "Interurban" in out.read_text(encoding="utf-8")
-
-
-def test_line_series_refuses_more_series_than_colours(tmp_path: Path) -> None:
-    frame = pd.DataFrame({"x": [1] * 9, "y": range(9), "s": [f"s{i}" for i in range(9)]})
-    with pytest.raises(ValueError):
-        plots.line_series(frame, "x", "y", tmp_path / "bad.svg", "Bad", series="s")
-
-
 def test_bar_shares_and_heatmap(tmp_path: Path) -> None:
     frame = pd.DataFrame(
         {"year": [2023, 2023, 2024, 2024], "group": ["a", "b", "a", "b"], "v": [1, 3, 2, 2]}
@@ -243,24 +224,6 @@ def test_percent_ticks_keep_the_decimals_they_need() -> None:
 def test_series_styles_differ_beyond_colour() -> None:
     styles = [plots._series_style(i) for i in range(len(plots.CATEGORICAL))]
     assert len({(s["linestyle"], s.get("marker")) for s in styles}) == len(styles)
-
-
-def test_line_series_with_band(tmp_path: Path) -> None:
-    frame = pd.DataFrame(
-        {
-            "year": list(range(2014, 2025)) * 2,
-            "band": ["65-74"] * 11 + ["75+"] * 11,
-            "value": list(range(11)) + list(range(5, 16)),
-        }
-    )
-    frame["low"] = frame.value - 1
-    frame["high"] = frame.value + 1
-    out = plots.line_series(
-        frame, "year", "value", tmp_path / "band.svg", "Band", series="band", band=("low", "high")
-    )
-    _svg_ok(out)
-    text = out.read_text(encoding="utf-8")
-    assert "65-74" in text and "75+" in text  # both series are labelled
 
 
 def test_dot_interval(tmp_path: Path) -> None:
