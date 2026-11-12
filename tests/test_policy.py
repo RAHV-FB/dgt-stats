@@ -2,11 +2,11 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from dgt_stats import io_tables, policy, summaries
+from dgt_stats import io_tables, policy
 
 pytestmark = pytest.mark.skipif(
-    not (io_tables.staging_path("series_monthly").exists() and policy.PROCESSED_CRASHES.exists()),
-    reason="run `python scripts/ingest.py tables` and `python scripts/build_tables.py` first",
+    not io_tables.staging_path("series_monthly").exists(),
+    reason="run `python scripts/ingest.py tables` first",
 )
 
 
@@ -30,70 +30,13 @@ def test_monthly_series_is_complete_and_matches_the_yearbook() -> None:
     assert (day.deaths <= series.deaths).all()
 
 
-def test_road_group_panel_covers_every_month_and_sums_to_the_microdata() -> None:
-    panel = policy.monthly_by_road_group()
-    assert set(panel.group) == {policy.TREATED, policy.CONTROL}
-    assert panel.groupby("group").size().eq(9 * 12).all()
-    treated = panel[panel.group == policy.TREATED].set_index("period").deaths
-    control = panel[panel.group == policy.CONTROL].set_index("period").deaths
-    # Snapshots of the two series, kept as a tripwire on the shape of the panel.
-    assert treated.loc["2016-01-01"] == 67 and treated.loc["2016-07-01"] == 110
-    assert control.loc["2016-01-01"] == 24 and control.loc["2016-07-01"] == 30
-    # The panel reconciles to the microdata for the road-type codes methodology section 14 names.
-    crashes = summaries.read_crashes(["TIPO_VIA", "TOTAL_MU30DF"])
-    codes = [*policy.TREATED_CODES, *policy.CONTROL_CODES]
-    assert panel.deaths.sum() == crashes[crashes.TIPO_VIA.isin(codes)].TOTAL_MU30DF.sum() == 10_741
-    assert (
-        panel[panel.group == policy.TREATED].deaths.sum()
-        == crashes[crashes.TIPO_VIA.isin(policy.TREATED_CODES)].TOTAL_MU30DF.sum()
-    )
-    micro = pd.read_parquet(
-        summaries.PROCESSED_CRASHES, columns=["ANYO", "MES", "TIPO_VIA", "TOTAL_MU30DF"]
-    )
-    by_year = panel.groupby([panel.period.dt.year, "group"]).deaths.sum().unstack()
-    treated_raw = (
-        micro[micro.TIPO_VIA.isin(policy.TREATED_CODES)].groupby("ANYO").TOTAL_MU30DF.sum()
-    )
-    control_raw = (
-        micro[micro.TIPO_VIA.isin(policy.CONTROL_CODES)].groupby("ANYO").TOTAL_MU30DF.sum()
-    )
-    assert (by_year[policy.TREATED] == treated_raw.loc[by_year.index]).all()
-    assert (by_year[policy.CONTROL] == control_raw.loc[by_year.index]).all()
-    raw = pd.DataFrame(
-        {
-            "ANYO": [2016, 2016, 2016, 2016, 2016],
-            "MES": [1, 1, 2, 3, 3],
-            "TIPO_VIA": [6, 9, 1, 4, 5],
-            "TOTAL_MU30DF": [2, 5, 1, 3, 4],
-        }
-    )
-    small = policy.monthly_by_road_group(raw)
-    # Code 9 (street) and code 4 (vía para automóviles) belong to neither group.
-    assert len(small) == 24 and small.deaths.sum() == 7
-    assert (
-        small[(small.group == policy.CONTROL) & (small.period == "2016-02-01")].deaths.iloc[0] == 1
-    )
-
-
-def test_intervention_windows_and_the_toll_covariate() -> None:
+def test_intervention_windows() -> None:
     points = policy.INTERVENTIONS["points_licence"]
     assert points.post_months == 17
     assert points.second_break == pd.Timestamp("2007-12-01")
-    speed = policy.INTERVENTIONS["speed_limit_90"]
-    assert speed.post_months == 13 and speed.design == "did"
     series = policy.monthly_series()
     inside = policy.window(series, points.pre_start, points.post_end)
     assert len(inside) == 78 + 17
-    # The toll covariate is the network's intensity, not its vehicle-km, which step with the
-    # length of the network in service at the very month of the break.
-    from dgt_stats import io_traffic
-
-    toll = io_traffic.read_toll_traffic().set_index("period")
-    june, july = toll.loc["2006-06-01"], toll.loc["2006-07-01"]
-    assert july.network_km > june.network_km
-    covariate = policy.exposure_covariate(inside.period, "toll")
-    logged = np.log(inside.period.map(toll.imd).to_numpy(dtype=float))
-    assert covariate.log_toll.to_numpy() == pytest.approx(logged - logged.mean())
 
 
 def _synthetic_series(
@@ -188,63 +131,6 @@ def test_placebo_calibration_counts_misses_and_widens_the_interval() -> None:
     assert row.se_ratio > 1
 
 
-def test_death_definition_ratio_finds_where_the_ratio_starts_to_vary() -> None:
-    periods = pd.date_range("2000-01-01", "2003-12-01", freq="MS")
-    one_day = pd.DataFrame({"period": periods, "deaths": 100.0})
-    wobble = np.where(periods.year >= 2002, np.tile([0.1, -0.1], 24), np.tile([0.01, -0.01], 24))
-    thirty = pd.DataFrame({"period": periods, "deaths": 100.0 * (1.15 + wobble)})
-    out = policy.death_definition_ratio(thirty, one_day)
-    assert list(out.year) == [2000, 2001, 2002, 2003]
-    assert (out.regime_from == 2002).all()
-    assert list(out.later_regime) == [False, False, True, True]
-    assert out["mean"].to_numpy() == pytest.approx(1.15)
-    steady = policy.death_definition_ratio(
-        pd.DataFrame({"period": periods, "deaths": 115.0}), one_day
-    )
-    assert steady.regime_from.isna().all() and not steady.later_regime.any()
-
-
-def test_placebo_distribution_ranks_a_real_break_first() -> None:
-    it = policy.INTERVENTIONS["points_licence"]
-    placebo = policy.placebo_fits(_synthetic_series(-0.2, "2006-07-01"), it)
-    assert placebo.is_true.sum() == 1
-    true = placebo[placebo.is_true].iloc[0]
-    assert true["rank"] == 1 and placebo.n_fits.iloc[0] == len(placebo) == 39
-    assert placebo.break_date.min() == it.pre_start + pd.DateOffset(months=it.placebo_pre)
-    assert placebo[~placebo.is_true].break_date.max() < it.date - pd.DateOffset(
-        months=it.post_months - 1
-    )
-    assert placebo[~placebo.is_true].level_change.abs().mean() < 0.1
-
-
-def test_did_fit_recovers_a_treated_change_and_a_flat_control() -> None:
-    rng = np.random.default_rng(5)
-    periods = pd.date_range("2016-01-01", "2020-02-01", freq="MS")
-    post = (periods >= pd.Timestamp("2019-02-01")).astype(float)
-    season = 0.15 * np.sin(2 * np.pi * (periods.month - 1) / 12)
-    rows = []
-    for group, base, effect in ((policy.TREATED, 60, -0.25), (policy.CONTROL, 40, 0.0)):
-        mu = np.exp(
-            np.log(base) - 0.003 * np.arange(len(periods)) + season + np.log1p(effect) * post
-        )
-        rows.append(pd.DataFrame({"period": periods, "group": group, "deaths": rng.poisson(mu)}))
-    panel = pd.concat(rows, ignore_index=True).astype({"deaths": float})
-    it = policy.INTERVENTIONS["speed_limit_90"]
-    fit = policy.did_fit(panel, it)
-    assert fit.level_change == pytest.approx(-0.25, abs=0.08)
-    control = fit.coefficients.set_index("term")
-    assert abs(np.expm1(control.estimate["post"])) < 0.12
-    assert control.low["post"] < 0 < control.high["post"]
-    interleaved = panel.sort_values(["period", "group"]).reset_index(drop=True)
-    again = policy.did_fit(interleaved, it)
-    assert again.level_low == pytest.approx(fit.level_low)  # errors do not depend on row order
-    assert again.level_high == pytest.approx(fit.level_high)
-    placebo = policy.did_placebos(panel, it)
-    assert list(placebo.break_date) == [*it.placebo_dates, it.date]
-    assert placebo[placebo.is_true].level_change.iloc[0] == fit.level_change
-    assert (placebo[~placebo.is_true].low < 0).all() and (placebo[~placebo.is_true].high > 0).all()
-
-
 def test_points_licence_fits_assembles_the_published_tables() -> None:
     tables = policy.points_licence_fits()
     assert set(tables) == {
@@ -252,10 +138,8 @@ def test_points_licence_fits_assembles_the_published_tables() -> None:
         "q8_points_series",
         "q8_points_sensitivity",
         "q8_points_trend_choice",
-        "q8_points_placebo",
         "q8_points_calendar_placebo",
         "q8_points_calibration",
-        "q8_points_death_definitions",
         "q8_points_transitions",
         "q8_points_forecast",
     }
@@ -266,13 +150,11 @@ def test_points_licence_fits_assembles_the_published_tables() -> None:
         "linear_trend",
         "quadratic",
         "knot_2004",
-        "fuel",
-        "toll",
-        "24h",
-        "interurban",
-        "urban",
+        "no_slope",
+        "negative_binomial",
         "long",
     }
+    assert not {"fuel", "toll", "24h", "interurban", "urban"} & set(sens.variant)
     assert "fleet_offset" not in set(sens.variant)  # the fleet does not divide every road user
     long_row = sens[sens.variant == "long"].iloc[0]
     assert long_row.n_months > sens[sens.variant == "main"].iloc[0].n_months
@@ -310,8 +192,8 @@ def test_points_licence_fits_assembles_the_published_tables() -> None:
     assert (forecast["rank"] == forecast.log_ratio.rank(method="min")).all()
     series = tables["q8_points_series"]
     assert {"fitted_main", "counterfactual_main", "counterfactual_linear"} <= set(series.columns)
-    placebo = tables["q8_points_placebo"]
-    assert placebo.is_true.sum() == 1 and int(placebo[placebo.is_true]["rank"].iloc[0]) >= 1
+    assert not {"z", "rank_z", "dispersion"} & set(forecast.columns)
+    assert not {"deaths_after", "deaths_before"} & set(tables["q8_points_transitions"].columns)
 
 
 def test_calendar_placebos_use_clean_windows_at_the_same_month() -> None:
@@ -347,10 +229,10 @@ def test_seasonal_transitions_cancel_seasonality_and_rank_2006() -> None:
     ranked = transitions[transitions["rank"].notna()]
     assert len(ranked) == int(transitions.n_ranked.iloc[0])
     row = transitions[transitions.year == 2006].iloc[0]
-    assert row.deaths_before > row.deaths_after > 0
-    assert row.twelve_month_ratio == pytest.approx(
-        float(np.log(row.deaths_after / row.deaths_before))
-    )
+    values = series.set_index("period").deaths
+    after = values["2006-07-01":"2007-06-01"].sum()
+    before = values["2005-07-01":"2006-06-01"].sum()
+    assert row.twelve_month_ratio == pytest.approx(float(np.log(after / before)))
     assert 1 < row["rank"] <= 6  # a large fall, but not the largest in the series
     # The deadliest month of each year: usually July or August, but not always.
     by_month = series.assign(year=series.period.dt.year, month=series.period.dt.month)
@@ -368,11 +250,10 @@ def test_forecast_validation_compares_like_with_like() -> None:
     assert (forecast.predicted > 0).all() and (forecast.observed > 0).all()
     assert np.allclose(forecast.log_ratio, np.log(forecast.observed / forecast.predicted))
     true = forecast[forecast.is_true].iloc[0]
-    assert true.log_ratio < 0 and true.z < 0  # fewer deaths than the pre-July fit projects
+    assert true.log_ratio < 0  # fewer deaths than the pre-July fit projects
     assert int(true["rank"]) > 1  # other Julys undershot their own forecast by more
-    # The rank is the proportional shortfall the page describes; the z score keeps its own.
+    # The rank is the proportional shortfall the page describes.
     assert int(true["rank"]) == int((forecast.log_ratio < true.log_ratio).sum()) + 1
-    assert int(true.rank_z) == int((forecast.z < true.z).sum()) + 1
 
 
 def test_flexible_pre_trend_is_chosen_on_the_pre_period_only() -> None:
@@ -400,35 +281,3 @@ def test_flexible_pre_trend_is_chosen_on_the_pre_period_only() -> None:
             series, it, trend="piecewise", knots=(pd.Timestamp(month),)
         )
         assert -0.11 < alternative.level_change < -0.05
-
-
-def test_exposure_covariate_is_a_centred_log_series() -> None:
-    it = policy.INTERVENTIONS["points_licence"]
-    series = policy.window(policy.monthly_series(), it.pre_start, it.post_end)
-    for name in policy.EXPOSURE_SERIES:
-        column = policy.exposure_covariate(series.period, name)
-        assert list(column.columns) == [f"log_{name}"]
-        assert column.iloc[:, 0].mean() == pytest.approx(0.0, abs=1e-12)
-        assert column.notna().all().all()
-    with pytest.raises(ValueError):
-        policy.exposure_covariate(series.period, "not a series")
-    # Fuel consumption starts in 1996, so a window that reaches 1993 has to raise rather than fill.
-    with pytest.raises(ValueError):
-        policy.exposure_covariate(policy.monthly_series().period.head(24), "fuel")
-
-
-def test_speed_limit_fits_keep_only_the_negative_result_tables() -> None:
-    tables = policy.speed_limit_fits()
-    assert set(tables) == {"q8_speed_placebo", "q8_speed_sensitivity"}
-    sens = tables["q8_speed_sensitivity"]
-    it = policy.INTERVENTIONS["speed_limit_90"]
-    main = policy.did_fit(policy.monthly_by_road_group(), it)
-    assert sens.variant.iloc[0] == "main"
-    assert sens.level_change.iloc[0] == pytest.approx(main.level_change)
-    assert sens.control_change.notna().all()
-    placebo = tables["q8_speed_placebo"]
-    assert placebo.is_true.sum() == 1
-    assert sorted(pd.to_datetime(placebo.break_date)) == sorted([*it.placebo_dates, it.date])
-    # The design fails: at least one placebo break moves the two groups apart on its own.
-    fake = placebo[~placebo.is_true]
-    assert ((fake.low > 0) | (fake.high < 0)).any()

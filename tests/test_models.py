@@ -37,23 +37,20 @@ def test_fit_recovers_known_odds_ratios() -> None:
     assert fit.events == int(frame.fatal.sum())
 
 
-def test_coefficient_table_marginal_effects_and_predictions() -> None:
+def test_coefficient_table_and_predictions() -> None:
     frame = _synthetic(20_000)
     fit = models.fit_severity(frame, "fatal", ("x1", "x2"), cluster=None)
     table = models.coefficient_table(frame, fit)
     assert table.is_reference.sum() == 2 and len(table) == 5
     assert not table.is_nuisance.any()  # no level here stands for a missing value
     assert table.crashes.sum() == 2 * len(frame)
-    effects = models.marginal_effects(frame, fit)
-    b = effects[(effects.predictor == "x1") & (effects.level == "b")].iloc[0]
-    assert b.effect > 0 and abs(b.effect) < 0.2
     design = models.design_matrix(frame, ("x1", "x2"))
     assert list(design.columns) == ["intercept", "x1=b", "x1=c", "x2=q"]
     probabilities = models.predict(fit, design)
     assert probabilities.mean() == pytest.approx(frame.fatal.mean(), abs=0.005)
 
 
-def test_holdout_and_stability_on_synthetic_years(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_holdout_on_synthetic_years(monkeypatch: pytest.MonkeyPatch) -> None:
     frame = _synthetic(30_000)
     monkeypatch.setattr(
         features,
@@ -71,23 +68,6 @@ def test_holdout_and_stability_on_synthetic_years(monkeypatch: pytest.MonkeyPatc
     # With no missing-value level, folding them away changes nothing and they alone rank nothing.
     assert summary.auc_recorded_only.iloc[0] == pytest.approx(summary.auc.iloc[0])
     assert summary.auc_missing_only.iloc[0] == pytest.approx(0.5)
-    full = models.fit_severity(frame, "fatal", ("x1", "x2"), cluster=None)
-    stability = models.year_stability(frame, full, terms=3)
-    assert set(stability.year.unique()) == {2016, 2017, 2023, 2024}
-    assert stability.within_full_interval.mean() > 0.5
-    # One term followed beyond the largest, and a heterogeneity test that a constant effect
-    # passes: the synthetic effects do not change between years.
-    stability = models.year_stability(frame, full, terms=1, extra=(("x2", "q"), ("x9", "z")))
-    followed = set(zip(stability.predictor, stability.level))
-    assert len(followed) == 2 and ("x2", "q") in followed  # the unknown extra term is skipped
-    assert stability[stability.level == "q"].is_largest.eq(False).all()
-    assert stability[stability.predictor == "x1"].is_largest.all()
-    assert (stability.heterogeneity_p > 0.01).all()
-    rows = stability[stability.level == "q"]
-    weights = 1 / rows.se**2
-    mean = (weights * rows.log_odds).sum() / weights.sum()
-    expected = (weights * (rows.log_odds - mean) ** 2).sum()
-    assert rows.heterogeneity_q.iloc[0] == pytest.approx(expected)
 
 
 def test_holdout_measures_what_the_missing_levels_rank(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -184,7 +164,7 @@ def test_location_contrasts_add_zone_and_road_with_their_covariance() -> None:
     assert alone.log_odds == pytest.approx(fit.params["road=other road"])
 
 
-def test_model_frame_levels_and_groupings() -> None:
+def test_model_frame_levels() -> None:
     raw = pd.DataFrame(
         {
             "ANYO": [2019, 2020, 2024],
@@ -225,20 +205,6 @@ def test_model_frame_levels_and_groupings() -> None:
     assert list(frame.vehicles) == ["2 vehicles", "1 vehicle", "3 or more vehicles"]
     assert list(frame.year) == ["2019", "2020", "2024"]
     assert frame.year.cat.categories[0] == "2019"
-    groupings = features.grouping_table()
-    assert groupings.groupby("predictor").reference.any().all()
-    crash_type = groupings[groupings.predictor == "Crash type"]
-    assert len(crash_type) == 23  # 20 dictionary codes, 999, 998 and the fallback row
-    assert set(crash_type.code.tail(3)) == {"999", "998", features.FALLBACK_CODE}
-    # A count and the year are not coded fields, so they carry no 999 or 998 row.
-    vehicles = groupings[groupings.predictor == "Vehicles involved"]
-    assert list(vehicles.code) == ["0", "1", "2", features.FALLBACK_CODE]
-    assert list(groupings[groupings.predictor == "Year"].code) == [
-        *(str(year) for year in range(2016, 2025)),
-        features.FALLBACK_CODE,
-    ]
-    merged = features.grouping_table(frame)
-    assert merged.columns.tolist() == groupings.columns.tolist()
 
 
 def test_a_repeated_column_is_dropped_and_reported() -> None:
@@ -255,9 +221,6 @@ def test_a_repeated_column_is_dropped_and_reported() -> None:
     table = models.coefficient_table(frame, fit)
     left_out = table[table.level == "same"].iloc[0]
     assert np.isnan(left_out.odds_ratio) and np.isnan(left_out.or_low)
-    effects = models.marginal_effects(frame, fit).set_index(["predictor", "level"])
-    # A level the fit left out carries NaN in the marginal effects, not a zero effect.
-    assert np.isnan(effects.loc[("x3", "same"), "effect"])
     assert models.odds_ratios(fit).set_index("level").loc["c", "odds_ratio"] == pytest.approx(
         0.5, rel=0.3
     )
@@ -296,21 +259,6 @@ def test_small_levels_merge_into_the_reference() -> None:
     assert list(frame.crash_type.cat.categories) == ["side or front-side collision"]
     assert list(frame.alignment.cat.categories) == ["straight"]
     assert frame.attrs["merged_levels"] == {"crash_type": {"not specified": 10}}
-    groupings = features.grouping_table(frame).set_index(["predictor", "code"])
-    merged = groupings.loc[("Crash type", "999")]
-    assert (
-        merged.level
-        == "side or front-side collision (merged: the not specified level's 10 crashes, fewer than 500)"
-        and merged.reference
-    )
-    # No crash reaches the fallback row, so it says so instead of repeating the merged count.
-    fallback = groupings.loc[("Crash type", features.FALLBACK_CODE)]
-    assert fallback.level == (
-        "side or front-side collision (the not specified level was merged; no crash takes this code)"
-    )
-    absent = groupings.loc[("Crash type", "1")]
-    assert absent.level == "head-on collision (no crash takes this value)" and not absent.reference
-    assert groupings.loc[("Crash type", "2")].level == "side or front-side collision"
 
 
 def test_profiles(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -439,16 +387,6 @@ def test_adverse_conditions_separates_two_collinear_predictors(
     assert out.loc[("interurban", "wet"), "n_crashes"] < len(frame)
 
 
-def test_level_composition_and_exclusions_describe_where_a_level_is() -> None:
-    frame = _adverse_frame()
-    frame["road"] = frame.zone  # the composition helper looks at province, zone and road
-    frame.loc[frame.index[:1_000], "province"] = "99"
-    composition = models.level_composition(frame, "surface", "wet", top=3)
-    assert set(composition.dimension) == {"province", "zone", "road"}
-    assert composition.share_of_level.between(0, 1).all()
-    assert composition.attrs["n_level"] == int((frame.surface == "wet").sum())
-
-
 def test_missing_state_levels_are_flagged_as_nuisance() -> None:
     for level in features.MISSING_LEVELS:
         assert features.is_nuisance(level)
@@ -462,8 +400,6 @@ def test_missing_state_levels_are_flagged_as_nuisance() -> None:
     fit = models.fit_severity(frame, "fatal", ("x1", "x2"), cluster=None)
     table = models.coefficient_table(frame, fit).set_index("level")
     assert bool(table.loc[features.UNKNOWN, "is_nuisance"]) and not table.loc["b", "is_nuisance"]
-    effects = models.marginal_effects(frame, fit).set_index("level")
-    assert bool(effects.loc[features.UNKNOWN, "is_nuisance"])
 
 
 def test_holdout_merges_are_decided_on_the_training_years() -> None:

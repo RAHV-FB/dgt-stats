@@ -42,14 +42,14 @@ def to_float(series: pd.Series, decimal_comma: bool = False) -> pd.Series:
 
 
 def wilson(successes: np.ndarray | pd.Series, totals: np.ndarray | pd.Series, z: float = 1.96):
-    """Wilson score interval for a proportion; returns (low, high) arrays."""
+    """Wilson score interval for a proportion; returns (low, high) arrays, clipped to [0, 1]."""
     k = np.asarray(successes, dtype=float)
     n = np.asarray(totals, dtype=float)
     with np.errstate(invalid="ignore", divide="ignore"):
         p = k / n
         centre = (p + z * z / (2 * n)) / (1 + z * z / n)
         half = z * np.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / (1 + z * z / n)
-    return centre - half, centre + half
+    return np.clip(centre - half, 0.0, 1.0), np.clip(centre + half, 0.0, 1.0)
 
 
 def write_parquet(frame: pd.DataFrame, path: Path, provenance: dict) -> Path:

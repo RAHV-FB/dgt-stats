@@ -69,17 +69,6 @@ def _coding_breaks() -> dict[str, object]:
     }
 
 
-def describe() -> dict[str, str]:
-    first, last = _years(_table())
-    return {
-        "title": "Crash statistics explorer",
-        "what": "Recorded injury crashes, fatal crashes and deaths by year, region, road type and "
-        "crash type, with fatal shares and their intervals.",
-        "coverage": f"Spain, crashes recorded in {first}–{last}",
-        "kind": "Observed counts and shares",
-    }
-
-
 def data_files() -> dict[str, object]:
     table = _table()
     dimensions = {

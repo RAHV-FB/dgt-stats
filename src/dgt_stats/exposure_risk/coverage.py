@@ -1,17 +1,18 @@
 """How much of DGT's car kilometres the EMEF's working days account for, what the rest is made
-of, and how far the national ratios move if the rest has another age mix.
+of, and which age mixes the rest can be given.
 
-Method A (:mod:`dgt_stats.exposure_risk.national`) carries the EMEF's working-day car-driver km
-per resident, by age and sex, to Spain's population. Over the working days of 2024 that is about
-half of DGT's 2024 car kilometres less taxis and ride-hailing cars. The central estimate spreads
-DGT's whole total with the working-day age mix, so it assumes that the other half has the same
-age mix. This module measures the pieces of that half with the data in the repository, and tests
-the assumption with explicit allocations.
+The central estimate (:mod:`dgt_stats.exposure_risk.national`) carries the EMEF's and the Madrid
+survey's working-day car-driver km per resident, by age and sex, to Spain's population. Over the
+working days of 2024 that is about half of DGT's 2024 car kilometres less taxis and ride-hailing
+cars. The central estimate spreads DGT's whole total with the working-day age mix, so it assumes
+that the other half has the same age mix. This module measures the pieces of that half with the
+data in the repository, and gives the rest other age mixes, which
+:mod:`dgt_stats.exposure_risk.ranges` uses.
 
 **Components** (:func:`components`), added in this order, each at the setting that explains least
 and at the one that explains most:
 
-1. *Working days*: Method A's km per working day times the working days of 2024 (weekdays less
+1. *Working days*: the EMEF's km per working day times the working days of 2024 (weekdays less
    the fourteen paid public holidays a year that Spanish law allows, two of them local).
 2. *Professionals' work driving*: the EMEF counts, but does not describe, the trips in the course
    of work of people who make eight or more a day; 25% or 50% of them as car trips of the age
@@ -28,32 +29,14 @@ and at the one that explains most:
 The *remainder* is DGT's total less components 1-5; it is what no measured piece accounts for.
 Company-registered cars and car hire without driver are reported beside the components and not
 added: residents' driving of them on working days is already in component 1, and the rest
-overlaps components 2 and 4 and the remainder. Non-residents' driving of Spanish-registered cars
-is bounded by car hire without driver.
+overlaps components 2 and 4 and the remainder.
 
-**Age mixes** (:func:`mixes`). The covered part keeps the EMEF working-day mix. Each other part
-takes an explicit mix, labelled as an assumption. A mix is *credible* when it comes from a
-measured age pattern of driving or car travel by the traveller's own age (the EMEF, MOVILIA 2006
-and 2007), and a *bound* otherwise. Two bounds are constructed: equal km per B-licence holder at
-every age, and no driving at 65 and over. Every measured pattern gives licence holders aged 65 and
-over less driving than those aged 45-64, and gives residents aged 65 and over some, so both lie
-outside the evidence. The third bound is DGT's kilometres by the age of the car's private owner:
-measured, but by the owner's age, and a car's owner is often not its driver (young people drive
-cars registered to their parents; older owners' cars are partly driven by others), which is why
-the former owner-age figure was withdrawn. All three are reported, with their values, and left
-out of the published ranges.
-
-**Scenarios** (:func:`scenario_km`). The components are set to explain least: that gives the
-remainder its largest share, and the non-working days and the remainder together, the two parts
-that take other age mixes, a larger share of the total than any other setting does. Each
-scenario gives the non-working days one of three mixes and
-the remainder one of seven, and is computed with Method A's profile and with each other profile
-of :func:`dgt_stats.exposure_risk.national.exposure_profiles` for the covered part, because the
-regional profile and the uncovered half are separate uncertainties. The 65+ km are split between
-65-74 and 75 and over under each assumption of :func:`national.older_split`, in every part and
-every mix except the licence-holder bound, whose definition (equal km per holder at every age)
-fixes its own split. The owner-age bound takes each scenario's split too: owner km never say how
-far drivers aged 75 and over drive.
+**Age mixes** (:func:`structure_shares`). The covered part keeps the survey's working-day mix.
+The non-working days and the remainder each take one of the measured patterns of driving or car
+travel by the traveller's own age: the working-day mix itself, the EMEF's overnight weekend
+stays away, MOVILIA 2006's car trips on a weekend day, and (for the remainder) MOVILIA 2007's
+car journeys over 50 km. The parts are weighted as at the setting that explains least, which
+gives the remainder its largest share.
 """
 
 from __future__ import annotations
@@ -73,7 +56,6 @@ YEAR = national.YEAR
 GROUPS = national.GROUPS
 REFERENCE = national.REFERENCE
 BILLION = national.BILLION
-CENTRAL_KM = "less taxi and ride-hailing"
 PUBLIC_HOLIDAYS = national.PUBLIC_HOLIDAYS
 NON_WORKING_RATIOS = national.NON_WORKING_RATIOS
 working_days = national.working_days
@@ -101,29 +83,14 @@ MOVILIA_BANDS = {
 
 WORKING_DAY_MIX = "working-day mix (EMEF)"
 PROFESSIONAL_MIX = "professionals' work trips (EMEF)"
-OWNER_MIX = "km of cars by the private owner's age, DGT 2024 (owner, not driver: bound)"
 LONG_DISTANCE_MIX = "car journeys over 50 km per resident (MOVILIA 2007, Spain)"
-LICENCE_MIX = "B-licence holders: equal km per holder at every age (bound)"
-UNDER_65_MIX = "under 65 only: working-day mix without 65 and over (bound)"
 NON_WORKING_MIXES = (WORKING_DAY_MIX, national.EMEF_WEEKEND_PROXY, national.MOVILIA_WEEKEND)
 REMAINDER_MIXES = (
     WORKING_DAY_MIX,
     LONG_DISTANCE_MIX,
     national.EMEF_WEEKEND_PROXY,
     national.MOVILIA_WEEKEND,
-    OWNER_MIX,
-    LICENCE_MIX,
-    UNDER_65_MIX,
 )
-# The two allocations no source supports, and the mix measured by the owner's age instead of the
-# driver's: reported with their values, left out of the published ranges.
-CONSTRUCTED_BOUNDS = (LICENCE_MIX, UNDER_65_MIX)
-BOUNDS = (OWNER_MIX, *CONSTRUCTED_BOUNDS)
-MIX_STATUS = {
-    OWNER_MIX: "bound: owner's age, not the driver's",
-    LICENCE_MIX: "bound: constructed",
-    UNDER_65_MIX: "bound: constructed",
-}
 
 
 # ----------------------------------------------------------------------------- evidence
@@ -279,63 +246,9 @@ def seasonal_factors() -> tuple[float, float]:
 
 
 @cache
-def travel_evidence() -> pd.DataFrame:
-    """MOVILIA 2006: car trips and trip duration on a weekend day against a working day; MOVILIA
-    2007: the share of car journeys over 50 km that start in July or August."""
-    for sheet in ("T72-1", "T72-2"):
-        _check_title(MOVILIA_2006, sheet, "72. Duración media de los desplazamientos")
-    for sheet in ("T61-1", "T61-5"):
-        _check_title(MOVILIA_2006, sheet, "61. Desplazamientos según modo principal")
-    _check_title(MOVILIA_2007, "T18", "18. Número de viajes por mes de inicio")
-    spain = {"Total": "Spain"}
-    car_working = _movilia_rows(MOVILIA_2006, "T61-1", 3, spain)["Spain"]
-    car_weekend = _movilia_rows(MOVILIA_2006, "T61-5", 3, spain)["Spain"]
-    minutes_working = _movilia_rows(MOVILIA_2006, "T72-1", 1, spain)["Spain"]
-    minutes_weekend = _movilia_rows(MOVILIA_2006, "T72-2", 1, spain)["Spain"]
-    months = _movilia_rows(
-        MOVILIA_2007, "T18", 2, {"Total": "year", "Julio": "July", "Agosto": "August"}
-    )
-    working, other = working_days()
-    return pd.DataFrame(
-        [
-            {
-                "evidence": "non-working days",
-                "measure": "car or motorcycle trips on an average weekend day over a working day "
-                "(MOVILIA 2006, Spain; drivers and passengers)",
-                "value": float(car_weekend / car_working),
-            },
-            {
-                "evidence": "non-working days",
-                "measure": "mean trip duration on a weekend day over a working day, all modes "
-                "(MOVILIA 2006, Spain)",
-                "value": float(minutes_weekend / minutes_working),
-            },
-            {
-                "evidence": "months outside the fieldwork",
-                "measure": "share of car journeys over 50 km starting in July or August "
-                "(MOVILIA 2007, Spain; drivers and passengers)",
-                "value": float((months["July"] + months["August"]) / months["year"]),
-            },
-            {
-                "evidence": "calendar",
-                "measure": f"working days of {YEAR} (weekdays less {PUBLIC_HOLIDAYS} public "
-                "holidays)",
-                "value": float(working),
-            },
-            {
-                "evidence": "calendar",
-                "measure": f"non-working days of {YEAR}",
-                "value": float(other),
-            },
-        ]
-    ).assign(used_as_regional_factor=False)
-
-
-@cache
 def fleet_evidence() -> pd.DataFrame:
     """Kilometres of company-registered cars, car hire without driver and driving schools (DGT
     2024): reported beside the components, not added to them."""
-    owner = national.owner_km_by_group()
     km = io_exposure.read_exposure("km_edad_propietario_2024")
     company = float(
         km[(km.vehicle_group == "car") & (km.year == YEAR) & km.is_company].total_km.sum()
@@ -347,19 +260,10 @@ def fleet_evidence() -> pd.DataFrame:
         ("cars registered to companies", company),
         ("car hire without driver", float(cars.loc["A01", "km"])),
         ("driving schools", float(cars.loc["A03", "km"])),
-        ("cars registered to private owners", float(owner[list(GROUPS)].sum())),
     ]
     return pd.DataFrame(
         [{"evidence": "fleet", "measure": label, "value": value / BILLION} for label, value in rows]
     ).assign(used_as_regional_factor=False)
-
-
-def evidence() -> pd.DataFrame:
-    """Every measured value the decomposition rests on."""
-    return pd.concat(
-        [regional_evidence(), seasonal_evidence(), travel_evidence(), fleet_evidence()],
-        ignore_index=True,
-    )
 
 
 # ----------------------------------------------------------------------------- components
@@ -422,7 +326,7 @@ def _cumulative(setting: dict[str, float]) -> dict[str, float]:
 
 def components() -> pd.DataFrame:
     """The decomposition of DGT's 2024 car km less taxis and ride-hailing cars."""
-    total = national.dgt_car_km()[CENTRAL_KM]
+    total = national.dgt_car_km()
     km, professional = _daily_km()
     working_mix = km / km.sum()
     professional_mix = professional / professional.sum()
@@ -489,7 +393,7 @@ def scenario_weights() -> dict[str, float]:
     """Shares of DGT's total held by each part at the setting that explains least. The regional
     level and the months outside the fieldwork scale the parts they apply to, so they keep those
     parts' mixes."""
-    total = national.dgt_car_km()[CENTRAL_KM]
+    total = national.dgt_car_km()
     setting = _settings()["least explained"]
     working, other = working_days()
     km, _ = _daily_km()
@@ -530,27 +434,6 @@ def long_distance_rates() -> pd.Series:
 
 
 @cache
-def _absolute_mixes() -> dict[str, tuple[pd.Series, float | None]]:
-    """Mixes that are national km shares by group in their own right, with the 75+ share of their
-    65+ km when their definition fixes it (equal km per licence holder at every age). The owner
-    mix brings none: the age of a car's owner says nothing of how far drivers aged 75 and over
-    drive, so its 65+ km are split by the scenario's own assumption."""
-    owner = national.owner_km_by_group()
-    licences = national.licence_holders()
-    people = national.population_by_group().groupby("group").population.sum()
-    distance = long_distance_rates() * people[list(GROUPS)]
-    groups = list(GROUPS)
-    return {
-        OWNER_MIX: (owner[groups] / owner[groups].sum(), None),
-        LONG_DISTANCE_MIX: (distance / distance.sum(), None),
-        LICENCE_MIX: (
-            licences[groups] / licences[groups].sum(),
-            float(licences["75+"] / licences["65+"]),
-        ),
-    }
-
-
-@cache
 def _relative_weights() -> dict[str, pd.Series]:
     """Mixes defined as weights on the covered part's own mix."""
     ones = pd.Series(1.0, index=list(GROUPS))
@@ -558,224 +441,48 @@ def _relative_weights() -> dict[str, pd.Series]:
         WORKING_DAY_MIX: ones,
         national.EMEF_WEEKEND_PROXY: national.weekend_weights(),
         national.MOVILIA_WEEKEND: national.movilia_weekend_weights(),
-        UNDER_65_MIX: ones.where(ones.index != "65+", 0.0),
     }
 
 
-def mix_shares(name: str, base: pd.Series) -> tuple[pd.Series, float | None]:
-    """A mix's km shares by group given the covered part's shares ``base``, and its own 75+ share
-    of 65+ km if it measures one."""
-    weights = _relative_weights()
-    if name in weights:
-        shares = weights[name] * base
-        return shares / shares.sum(), None
-    return _absolute_mixes()[name]
-
-
-def mixes() -> pd.DataFrame:
-    """Each mix with Method A's profile as the covered part: km shares by group, km per resident
-    and per B-licence holder relative to 45-64, and whether it is credible or a bound (and which
-    kind of bound)."""
-    km, professional = _daily_km()
-    base = km / km.sum()
-    people = national.population_by_group().groupby("group").population.sum()
-    licences = national.licence_holders()
-    candidates = {PROFESSIONAL_MIX: (professional / professional.sum(), None)}
-    for name in REMAINDER_MIXES:
-        candidates[name] = mix_shares(name, base)
-    roles = {
-        WORKING_DAY_MIX: "covered part; non-working days; remainder",
-        PROFESSIONAL_MIX: "professionals' work driving",
-        national.EMEF_WEEKEND_PROXY: "non-working days; remainder",
-        national.MOVILIA_WEEKEND: "non-working days; remainder",
-    }
-    rows = []
-    for name, (shares, older) in candidates.items():
-        per_resident = shares / people[list(GROUPS)]
-        per_holder = shares / licences[list(GROUPS)]
-        for group in GROUPS:
-            rows.append(
-                {
-                    "mix": name,
-                    "role": roles.get(name, "remainder"),
-                    "credible": name not in BOUNDS,
-                    "status": MIX_STATUS.get(name, "credible"),
-                    "group": group,
-                    "share_of_km": float(shares[group]),
-                    "km_per_resident_relative_to_45_64": float(
-                        per_resident[group] / per_resident[REFERENCE]
-                    ),
-                    "km_per_licence_holder_relative_to_45_64": float(
-                        per_holder[group] / per_holder[REFERENCE]
-                    ),
-                    "share_75_plus_of_65_plus": older if group == "65+" else np.nan,
-                }
-            )
-    return pd.DataFrame(rows)
-
-
-# ----------------------------------------------------------------------------- scenarios
-
-
-@cache
-def _profiles() -> dict[str, dict]:
-    """The profile of the covered part: Method A's and every other of
-    :func:`national.exposure_profiles`."""
-    out = {
-        national.BARCELONA_METHOD: national.emef_profile(),
-        national.LICENCE_METHOD: national.licence_calibrated(national.emef_profile()),
-    }
-    for area in exposure.AREAS:
-        out[f"C: EMEF, {area}"] = national.emef_profile(area)
-    out["C: Madrid survey 2018"] = national.edm_profile()
-    return out
+# ----------------------------------------------------------------------------- age mixes
 
 
 def structure_shares(
     base: pd.Series | np.ndarray,
-    older_share: float | np.ndarray,
     non_working: str = WORKING_DAY_MIX,
     remainder: str = WORKING_DAY_MIX,
-    professional_mix: str = PROFESSIONAL_MIX,
-) -> tuple[pd.Series | np.ndarray, float | np.ndarray]:
-    """One scenario's annual km shares by group and the 75+ share of its 65+ km.
+) -> pd.Series | np.ndarray:
+    """Annual km shares by group when the non-working days and the remainder take the given age
+    mixes (:data:`NON_WORKING_MIXES`, :data:`REMAINDER_MIXES`) and the covered part keeps the
+    survey's working-day mix.
 
     ``base`` is the covered part's km shares: a Series indexed by group, or an array whose first
-    axis follows :data:`GROUPS` (replicates along the others). ``older_share`` is the split's 75+
-    share of the covered part's 65+ km. Every part keeps that share, except a remainder mix whose
-    definition fixes its own (the licence-holder bound; never the owner-age bound, since owner km
-    do not say who drove). ``professional_mix`` is :data:`PROFESSIONAL_MIX`, the professionals' own
-    age mix as measured, or :data:`WORKING_DAY_MIX`, the covered part's, which varies one choice
-    at a time (:func:`dgt_stats.exposure_risk.national.older_decomposition`)."""
+    axis follows :data:`GROUPS` (replicates along the others). The professionals' extra km take
+    the covered part's mix too, so that the working-day mix for both parts gives ``base`` back."""
     weights = scenario_weights()
     series = isinstance(base, pd.Series)
     b = np.asarray(base.reindex(list(GROUPS)) if series else base, dtype=float)
 
-    def column(values: pd.Series) -> np.ndarray:
-        return np.asarray(values.reindex(list(GROUPS)), dtype=float).reshape(
-            (len(GROUPS),) + (1,) * (b.ndim - 1)
-        )
-
-    def mix(name: str) -> tuple[np.ndarray, float | None]:
+    def mix(name: str) -> np.ndarray:
         relative = _relative_weights()
         if name in relative:
-            shares = column(relative[name]) * b
-            return shares / shares.sum(axis=0), None
-        shares, older = _absolute_mixes()[name]
-        return column(shares), older
+            shares = (
+                np.asarray(relative[name].reindex(list(GROUPS)), dtype=float).reshape(
+                    (len(GROUPS),) + (1,) * (b.ndim - 1)
+                )
+                * b
+            )
+            return shares / shares.sum(axis=0)
+        people = national.population_by_group().groupby("group").population.sum()
+        distance = long_distance_rates() * people[list(GROUPS)]
+        shares = np.asarray((distance / distance.sum()).reindex(list(GROUPS)), dtype=float).reshape(
+            (len(GROUPS),) + (1,) * (b.ndim - 1)
+        )
+        return shares
 
-    if professional_mix == WORKING_DAY_MIX:
-        professional = b
-    else:
-        _, extra = _daily_km()
-        professional = column(extra / extra.sum())
-    other, _ = mix(non_working)
-    rest, rest_older = mix(remainder)
     shares = (
-        weights["covered"] * b
-        + weights["professional"] * professional
-        + weights["non_working"] * other
-        + weights["remainder"] * rest
+        (weights["covered"] + weights["professional"]) * b
+        + weights["non_working"] * mix(non_working)
+        + weights["remainder"] * mix(remainder)
     )
-    i65 = list(GROUPS).index("65+")
-    inherited = (
-        weights["covered"] * b[i65]
-        + weights["professional"] * professional[i65]
-        + weights["non_working"] * other[i65]
-    )
-    own = weights["remainder"] * rest[i65]
-    oldest = (
-        inherited * older_share + own * (older_share if rest_older is None else rest_older)
-    ) / shares[i65]
-    if series:
-        return pd.Series(shares, index=list(GROUPS)), float(oldest)
-    return shares, oldest
-
-
-@cache
-def scenario_km() -> tuple[dict, ...]:
-    """Every scenario's annual km shares by group, and its 75+ share of the 65+ km under each
-    split assumption. The result is cached: callers must not change it."""
-    splits = national._older_ratios()
-    out = []
-    for profile_name, profile in _profiles().items():
-        km, _ = national.national_km(profile)
-        base = km / km.sum()
-        older = {}
-        for assumption, ratios in splits.items():
-            split = national._split_older(profile, ratios)
-            older[assumption] = split["75+"] / (split["75+"] + split["65-74"])
-        for non_working in NON_WORKING_MIXES:
-            for remainder in REMAINDER_MIXES:
-                oldest = {}
-                for assumption, q in older.items():
-                    shares, oldest[assumption] = structure_shares(base, q, non_working, remainder)
-                out.append(
-                    {
-                        "profile": profile_name,
-                        "non_working_mix": non_working,
-                        "remainder_mix": remainder,
-                        "credible": remainder not in BOUNDS,
-                        "shares": shares,
-                        "share_75_plus_of_65_plus": oldest,
-                    }
-                )
-    return tuple(out)
-
-
-@cache
-def _counts() -> pd.DataFrame:
-    return national.drivers_involved().set_index("group")
-
-
-def ratios(shares: pd.Series, older_share: float | None = None) -> dict[str, float]:
-    """Involvement (and deaths) per km over 45-64's for each group, from km shares; with the 75+
-    share of the 65+ km, also for 65-74 and 75 and over."""
-    counts = _counts()
-    out = {}
-    for measure in ("involved", "killed"):
-        reference = float(counts.loc[REFERENCE, measure]) / float(shares[REFERENCE])
-        for group in GROUPS:
-            out[f"{measure}:{group}"] = (
-                float(counts.loc[group, measure]) / float(shares[group]) / reference
-            )
-        if older_share is not None:
-            parts = {"65-74": 1 - older_share, "75+": older_share}
-            for group, part in parts.items():
-                out[f"{measure}:{group}"] = (
-                    float(counts.loc[group, measure]) / (part * float(shares["65+"])) / reference
-                )
-    return out
-
-
-def scenarios() -> pd.DataFrame:
-    """Every scenario under every split assumption: shares and involvement ratios to 45-64."""
-    rows = []
-    for scenario in scenario_km():
-        shares = scenario["shares"]
-        for assumption, older in scenario["share_75_plus_of_65_plus"].items():
-            ratio = ratios(shares, older)
-            rows.append(
-                {
-                    "profile": scenario["profile"],
-                    "non_working_mix": scenario["non_working_mix"],
-                    "remainder_mix": scenario["remainder_mix"],
-                    "credible": scenario["credible"],
-                    "assumption": assumption,
-                    "share_18_29": float(shares["16-29"]),
-                    "share_65_plus": float(shares["65+"]),
-                    "share_75_plus_of_65_plus": older,
-                    "ratio_18_29": ratio["involved:16-29"],
-                    "ratio_30_44": ratio["involved:30-44"],
-                    "ratio_65_plus": ratio["involved:65+"],
-                    "ratio_65_74": ratio["involved:65-74"],
-                    "ratio_75_plus": ratio["involved:75+"],
-                }
-            )
-    return pd.DataFrame(rows)
-
-
-def scenario_label(scenario: dict) -> str:
-    return (
-        f"remainder: {scenario['remainder_mix']}; non-working days: {scenario['non_working_mix']}"
-    )
+    return pd.Series(shares, index=list(GROUPS)) if series else shares

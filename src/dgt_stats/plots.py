@@ -49,6 +49,13 @@ CHART_FONT_FILES = {
     600: FONT_DIR / "STIXTwoText-SemiBold.ttf",
 }
 HEADING_WEIGHT = 600
+# Lay chart text out with the committed files even where the system has its own copy of the
+# family: another version would measure the text differently and move the layout.
+font_manager.fontManager.ttflist = [
+    entry
+    for entry in font_manager.fontManager.ttflist
+    if entry.name != CHART_FONT or Path(entry.fname).parent == FONT_DIR
+]
 for _font_file in CHART_FONT_FILES.values():
     font_manager.fontManager.addfont(str(_font_file))
 
@@ -516,98 +523,6 @@ def _line_look(
     return looks
 
 
-def line_series(
-    frame: pd.DataFrame,
-    x: str,
-    y: str,
-    path: Path,
-    title: str,
-    series: str | None = None,
-    ylabel: str = "",
-    percent: bool = False,
-    zero_based: bool = True,
-    reference: float | None = None,
-    height: float = 4.2,
-    end_labels: bool = True,
-    band: tuple[str, str] | None = None,
-    focal: str | None = None,
-    colors: dict[str, str] | None = None,
-    linestyles: dict[str, object] | None = None,
-) -> Path:
-    """One or more lines on a single axis, labelled at their ends when there are up to five.
-
-    ``focal`` names the series drawn in the accent, the others in greys; without it the series
-    take the categorical colours. ``colors`` and ``linestyles`` fix a series' look by name.
-    Pass ``end_labels=False`` when the series converge at the right edge (a legend is drawn
-    instead) and ``band=(low_column, high_column)`` to show an interval around each line: shaded
-    for one line, as thin dotted bounds for several.
-    """
-    apply_style()
-    fig, axis = _subplots(figsize=(FIGURE_WIDTH, height))
-    groups = [(None, frame)] if series is None else list(frame.groupby(series, sort=False))
-    if len(groups) > len(CATEGORICAL):
-        raise ValueError("more series than fixed colours; fold to 'Other' or facet")
-    looks = _line_look([name for name, _ in groups], focal, colors)
-    if series is None:
-        looks = {None: {"color": ACCENT, "linestyle": "-", "linewidth": 2.0}}
-    labelled = end_labels and series is not None and len(groups) <= 5
-    entries = []
-    for name, group in groups:
-        group = group.sort_values(x)
-        look = dict(looks[name])
-        if linestyles and str(name) in linestyles:
-            look["linestyle"] = linestyles[str(name)]
-        colour = look["color"]
-        if band is not None and len(groups) == 1:
-            axis.fill_between(
-                group[x], group[band[0]], group[band[1]], color=colour, alpha=0.13, linewidth=0
-            )
-        elif band is not None:
-            # Several intervals are drawn as thin bounds in each line's colour: shaded, they
-            # would overlap into one colour that belongs to no line.
-            for bound in band:
-                axis.plot(
-                    group[x],
-                    group[bound],
-                    color=colour,
-                    linewidth=0.8,
-                    alpha=1.0,
-                    linestyle=(0, (1, 1.6)),
-                )
-        axis.plot(group[x], group[y], label=None if name is None else str(name), **look)
-        last = group.dropna(subset=[y]).iloc[-1] if group[y].notna().any() else None
-        if last is not None:
-            axis.plot(
-                [last[x]],
-                [last[y]],
-                marker="o",
-                markersize=5,
-                color=colour,
-                markeredgecolor=SURFACE,
-                markeredgewidth=1.2,
-                linestyle="none",
-            )
-            if labelled:
-                entries.append((last[x], last[y], str(name), colour))
-    if reference is not None:
-        _reference_line(axis, reference)
-    if zero_based:
-        axis.set_ylim(bottom=0)
-    if percent:
-        _percent(axis)
-    else:
-        _thousands(axis)
-    _integer_x(axis)
-    _title(path, title)
-    axis.set_ylabel(_axis_text(ylabel))
-    axis.set_xlabel("")
-    if labelled:
-        _end_labels(axis, entries)
-    elif len(groups) >= 2:
-        _legend_below(axis, -0.1, min(len(groups), 3))
-    return save(fig, path)
-
-
 def bar_shares(
     frame: pd.DataFrame,
     x: str,
@@ -1002,118 +917,6 @@ def dot_interval(
     return save(fig, path)
 
 
-def dot_range(
-    frame: pd.DataFrame,
-    label: str,
-    value: str,
-    low: str,
-    high: str,
-    alternative: str,
-    path: Path,
-    title: str,
-    xlabel: str = "",
-    value_label: str = "",
-    alternative_label: str = "",
-    log: bool = False,
-    reference: float | None = None,
-    reference_label: str = "",
-) -> Path:
-    """One row per label (first row at the top): an estimate with its interval, and the same
-    quantity under an alternative assumption joined to it by a broad grey band.
-
-    The band is a sensitivity range, not an interval, so it is drawn differently from the
-    whisker: broad, light and behind, with a hollow grey diamond at the alternative value. Rows
-    where the two agree show no band. The legend names the three marks.
-    """
-    apply_style()
-    ordered = frame.reset_index(drop=True)
-    labels = [_fit(v) for v in ordered[label]]
-    positions = _row_positions(labels)
-    top = positions[0]
-    height = max(2.6, 0.36 * (top + 1) + 1.5)
-    fig, axis = _subplots(figsize=(FIGURE_WIDTH, height))
-    for position, (_, row) in zip(positions, ordered.iterrows()):
-        a, b = float(row[value]), float(row[alternative])
-        if not np.isclose(a, b, rtol=1e-6):
-            axis.hlines(
-                position,
-                min(a, b),
-                max(a, b),
-                color=NEUTRAL_LIGHT,
-                linewidth=8,
-                alpha=0.6,
-                capstyle="butt",
-                zorder=1,
-            )
-            axis.plot(
-                [b],
-                [position],
-                marker="D",
-                markersize=_mark(6),
-                markerfacecolor=SURFACE,
-                markeredgecolor=NEUTRAL,
-                markeredgewidth=1.4,
-                linestyle="none",
-                zorder=3,
-            )
-    _dots(axis, ordered[value], positions, ordered[low], ordered[high], "focal")
-    if reference is not None:
-        _reference_line(axis, reference, vertical=True)
-        if reference_label:
-            axis.annotate(
-                reference_label,
-                (reference, top + 0.45),
-                xytext=(4, 0),
-                textcoords="offset points",
-                fontsize=NOTE_SIZE,
-                color=TEXT_SECONDARY,
-                va="center",
-            )
-    if log:
-        axis.set_xscale("log")
-        axis.xaxis.set_major_locator(
-            matplotlib.ticker.FixedLocator([100, 200, 300, 500, 1000, 2000, 3000, 5000])
-        )
-        axis.xaxis.set_minor_locator(matplotlib.ticker.NullLocator())
-        axis.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(_tick))
-    axis.set_yticks(positions, labels, fontsize=TICK_SIZE)
-    axis.tick_params(axis="y", length=0)
-    axis.spines["left"].set_visible(False)
-    axis.grid(True, axis="x")
-    axis.grid(False, axis="y")
-    axis.set_ylim(-0.7, top + 0.7)
-    handles = [
-        matplotlib.lines.Line2D(
-            [],
-            [],
-            color=ACCENT,
-            marker="o",
-            markersize=_mark(6.5),
-            markeredgecolor=SURFACE,
-            linewidth=1.6,
-            label=_axis_text(value_label),
-        ),
-        matplotlib.lines.Line2D(
-            [],
-            [],
-            color=NEUTRAL,
-            marker="D",
-            markersize=_mark(6),
-            markerfacecolor=SURFACE,
-            markeredgewidth=1.4,
-            linestyle="none",
-            label=_axis_text(alternative_label),
-        ),
-        matplotlib.lines.Line2D(
-            [], [], color=NEUTRAL_LIGHT, linewidth=8, alpha=0.6, label="Range between the two"
-        ),
-    ]
-    _legend_below(axis, -0.16, 1, handles=handles)
-    _title(path, title)
-    axis.set_xlabel(_axis_text(xlabel))
-    return save(fig, path)
-
-
 def forest(
     frame: pd.DataFrame,
     group: str,
@@ -1245,71 +1048,6 @@ def calibration(
             color=LABEL_SHADES.get(CATEGORICAL[index], CATEGORICAL[index]),
             bbox={"facecolor": SURFACE, "edgecolor": "none", "pad": 0.6},
         )
-    return save(fig, path)
-
-
-def calibration_intervals(
-    frame: pd.DataFrame,
-    path: Path,
-    title: str,
-    xlabel: str = "Predicted probability (mean in the band)",
-    ylabel: str = "Observed share",
-) -> Path:
-    """Observed share against mean predicted probability by probability band, one dot per band
-    with its 95% interval (``observed_low``, ``observed_high``) and its number of records (``n``)
-    written below and to the right of it, on equal axes with the diagonal on which prediction equals observation."""
-    apply_style()
-    fig, axis = _subplots(figsize=(FIGURE_WIDTH, 5.2 if not NARROW else FIGURE_WIDTH + 0.4))
-    frame = frame.sort_values("mean_predicted")
-    top = float(frame[["mean_predicted", "observed_high"]].max().max()) * 1.08
-    axis.plot([0, top], [0, top], color=REFERENCE, linewidth=1.1, linestyle=":", zorder=1)
-    axis.annotate(
-        "predicted = observed",
-        (top * 0.70, top * 0.60),
-        ha="left",
-        va="top",
-        fontsize=NOTE_SIZE,
-        color=TEXT_SECONDARY,
-    )
-    axis.vlines(
-        frame.mean_predicted,
-        frame.observed_low,
-        frame.observed_high,
-        color=ACCENT,
-        linewidth=1.6,
-        zorder=2,
-    )
-    axis.plot(
-        frame.mean_predicted,
-        frame.observed,
-        marker="o",
-        markersize=_mark(7),
-        linestyle="none",
-        color=ACCENT,
-        markeredgecolor=SURFACE,
-        markeredgewidth=1,
-        zorder=3,
-    )
-    for _, row in frame.iterrows():
-        axis.annotate(
-            f"{int(row.n):,}",
-            (float(row.mean_predicted), float(row.observed)),
-            xytext=(7, -6),
-            textcoords="offset points",
-            ha="left",
-            va="top",
-            fontsize=NOTE_SIZE,
-            color=TEXT_SECONDARY,
-        )
-    axis.set_xlim(0, top)
-    axis.set_ylim(0, top)
-    axis.set_aspect("equal", adjustable="box")
-    axis.grid(True, axis="both")
-    _percent(axis, 0)
-    axis.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(lambda v, _: f"{v * 100:.0f}%"))
-    _title(path, title)
-    axis.set_xlabel(_axis_text(xlabel))
-    axis.set_ylabel(_axis_text(ylabel))
     return save(fig, path)
 
 

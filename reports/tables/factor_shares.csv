@@ -19,16 +19,6 @@ year,zone,factor,crashes,all_crashes,share,zone_label,segment
 2021,all,Distraction or inattention,10186,63508,0.1603892423,All roads,2
 2022,all,Distraction or inattention,11692,70399,0.1660819046,All roads,2
 2023,all,Distraction or inattention,12475,73249,0.1703094923,All roads,2
-2014,all,Drugs,69,63062,0.001094161302,All roads,0
-2015,all,Drugs,181,67920,0.002664899882,All roads,1
-2016,all,Drugs,283,70502,0.004014070523,All roads,2
-2017,all,Drugs,425,70458,0.006031962304,All roads,3
-2018,all,Drugs,838,70640,0.01186296716,All roads,4
-2019,all,Drugs,683,72652,0.009400980014,All roads,5
-2020,all,Drugs,99,51374,0.001927044809,All roads,6
-2021,all,Drugs,87,63508,0.001369906154,All roads,7
-2022,all,Drugs,94,70399,0.001335246239,All roads,8
-2023,all,Drugs,85,73249,0.001160425398,All roads,9
 2014,all,Illegal manoeuvres,17584,63062,0.2788367004,All roads,0
 2015,all,Illegal manoeuvres,19656,67920,0.2893992933,All roads,0
 2016,all,Illegal manoeuvres,23104,70502,0.3277070154,All roads,0
@@ -69,16 +59,6 @@ year,zone,factor,crashes,all_crashes,share,zone_label,segment
 2021,interurban,Distraction or inattention,6233,22877,0.2724570529,Interurban roads,0
 2022,interurban,Distraction or inattention,6273,23735,0.2642932378,Interurban roads,0
 2023,interurban,Distraction or inattention,6592,25053,0.263122181,Interurban roads,0
-2014,interurban,Drugs,47,25598,0.001836080944,Interurban roads,0
-2015,interurban,Drugs,142,24529,0.005789066004,Interurban roads,1
-2016,interurban,Drugs,222,25738,0.008625378817,Interurban roads,2
-2017,interurban,Drugs,343,26526,0.01293070949,Interurban roads,3
-2018,interurban,Drugs,746,26781,0.02785556925,Interurban roads,4
-2019,interurban,Drugs,558,26659,0.02093101767,Interurban roads,5
-2020,interurban,Drugs,72,19409,0.003709619249,Interurban roads,6
-2021,interurban,Drugs,68,22877,0.002972417712,Interurban roads,7
-2022,interurban,Drugs,67,23735,0.002822835475,Interurban roads,8
-2023,interurban,Drugs,62,25053,0.002474753523,Interurban roads,9
 2014,interurban,Illegal manoeuvres,6495,25598,0.2537307602,Interurban roads,0
 2015,interurban,Illegal manoeuvres,7060,24529,0.2878225774,Interurban roads,0
 2016,interurban,Illegal manoeuvres,8211,25738,0.3190224571,Interurban roads,0
@@ -119,16 +99,6 @@ year,zone,factor,crashes,all_crashes,share,zone_label,segment
 2021,urban,Distraction or inattention,3953,40631,0.09729024636,Urban streets,2
 2022,urban,Distraction or inattention,5419,46664,0.1161280645,Urban streets,2
 2023,urban,Distraction or inattention,5883,48196,0.1220640717,Urban streets,2
-2014,urban,Drugs,22,37464,0.0005872304079,Urban streets,0
-2015,urban,Drugs,39,43391,0.0008988038994,Urban streets,1
-2016,urban,Drugs,61,44764,0.001362702171,Urban streets,2
-2017,urban,Drugs,82,43932,0.001866520987,Urban streets,3
-2018,urban,Drugs,92,43859,0.002097631045,Urban streets,4
-2019,urban,Drugs,125,45993,0.002717804883,Urban streets,5
-2020,urban,Drugs,27,31965,0.000844673862,Urban streets,6
-2021,urban,Drugs,19,40631,0.0004676232433,Urban streets,7
-2022,urban,Drugs,27,46664,0.0005786044917,Urban streets,8
-2023,urban,Drugs,23,48196,0.0004772180264,Urban streets,9
 2014,urban,Illegal manoeuvres,11089,37464,0.2959908179,Urban streets,0
 2015,urban,Illegal manoeuvres,12596,43391,0.2902906133,Urban streets,0
 2016,urban,Illegal manoeuvres,14893,44764,0.3327003842,Urban streets,0

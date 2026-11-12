@@ -1,11 +1,9 @@
 """Fit the crash-severity models and write their result tables.
 
 Usage:
-    python scripts/model.py            # reports/tables/q3_*.csv (about fifteen minutes)
+    python scripts/model.py            # reports/tables/q3_*.csv (about three minutes)
 
-The site build never refits: scripts/analyse.py and scripts/build_site.py read these tables. The
-same run writes the crash explorer's counts by year, region, road type and crash type
-(``explore_dgt_crashes.csv``, from :mod:`dgt_stats.crash_cells`), from the same records.
+The site build never refits: scripts/analyse.py and scripts/build_site.py read these tables.
 """
 
 from __future__ import annotations
@@ -19,7 +17,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 import pandas as pd  # noqa: E402
 
-from dgt_stats import crash_cells, features, models  # noqa: E402
+from dgt_stats import features, models  # noqa: E402
 from dgt_stats.paths import TABLES_DIR  # noqa: E402
 
 log = logging.getLogger("model")
@@ -40,14 +38,12 @@ def main() -> int:
     )
 
     fits: dict[str, models.Fit] = {}
-    coefficients, effects, calibrations, summaries, stability = [], [], [], [], []
-    periods, locations = [], []
+    coefficients, calibrations, summaries, periods, locations = [], [], [], [], []
     for outcome in features.OUTCOMES:
         fit = models.fit_severity(frame, outcome)
         fits[outcome] = fit
         log.info("%s: fitted on %s crashes, %s events", outcome, f"{fit.n:,}", f"{fit.events:,}")
         coefficients.append(models.coefficient_table(frame, fit))
-        effects.append(models.marginal_effects(frame, fit))
         locations.append(models.location_contrasts(frame, fit))
         periods.append(models.period_refits(frame, outcome))
         calibration, summary = models.holdout_check(frame, outcome)
@@ -56,21 +52,12 @@ def main() -> int:
         log.info(
             "%s: holdout AUC %.3f, Brier %.4f", outcome, summary.auc.iloc[0], summary.brier.iloc[0]
         )
-        stability.append(models.year_stability(frame, fit))
 
     adverse = pd.concat(
         [models.adverse_conditions(frame, outcome) for outcome in features.OUTCOMES],
         ignore_index=True,
     )
     log.info("adverse conditions: %d variant estimates", len(adverse))
-    composition = pd.concat(
-        [
-            models.level_composition(frame, predictor, level)
-            for predictor, level in (("weather", "hail or snow"), ("weather", "rain"))
-        ],
-        ignore_index=True,
-    )
-    exclusions = models.level_exclusions(frame, "weather", "hail or snow")
     regime = models.recording_regime(frame)
     regime_fits = models.regime_sensitivity(frame, fits)
     log.info("recording regime: refitted without %s", ", ".join(features.CATALAN_PROVINCES))
@@ -79,22 +66,16 @@ def main() -> int:
 
     outputs = {
         "q3_model_coefficients": pd.concat(coefficients, ignore_index=True),
-        "q3_marginal_effects": pd.concat(effects, ignore_index=True),
         "q3_calibration": pd.concat(calibrations, ignore_index=True),
         "q3_holdout_summary": pd.concat(summaries, ignore_index=True),
-        "q3_year_stability": pd.concat(stability, ignore_index=True),
         "q3_period_refits": pd.concat(periods, ignore_index=True),
         "q3_location_contrasts": pd.concat(locations, ignore_index=True),
         "q3_profiles": models.profiles(frame, fits),
         "q3_adverse_conditions": adverse,
-        "q3_adverse_composition": composition,
-        "q3_adverse_exclusions": exclusions,
         "q3_recording_regime": regime,
         "q3_regime_sensitivity": regime_fits,
-        "q3_groupings": features.grouping_table(frame),
         "q3_junction_coding": features.junction_coding_table(crashes),
         "q3_junction_sensitivity": junction,
-        crash_cells.NAME: crash_cells.crash_cells(),
     }
     for name, table in outputs.items():
         target = TABLES_DIR / f"{name}.csv"

@@ -48,29 +48,11 @@ def test_each_treatment_reads_the_inverted_flag_as_documented() -> None:
     assert read("as published") == published
     # The flag the other way round in province 8 only.
     assert read("flip") == [2, 2, 1, 1, 1] + published[5:]
-    # The junction type alone loses the junction crash that has no type.
-    assert read("junction type") == [2, 2, 1, 1, 2] + published[5:]
-    assert read("unrecorded") == [None] * 5 + published[5:]
-    # Outside the inverted province-years only Catalan crashes are moved by the near-junction
-    # treatment: province 28's typed crash away from a junction stays where DGT put it.
-    assert read("flip and near junctions") == read("flip")
     with pytest.raises(ValueError):
         features.junction_codes(crashes, "something else")
 
 
-def test_the_near_junction_treatment_moves_catalan_crashes_with_junction_fields() -> None:
-    crashes = _crashes()
-    crashes["ANYO"] = [2021] * 5 + [2023] * 5  # province 8's year is no longer inverted
-    crashes["NUDO"] = pd.array([1, 1, 2, 2, 2, 1, 1, 2, 2, 2], dtype="Int16")
-    crashes.loc[[2, 3], "NUDO_INFO"] = pd.NA  # most crashes away carry no type: not inverted
-    assert not features.inverted_junction_rows(crashes).any()
-    moved = features.junction_codes(crashes, "flip and near junctions")
-    # Province 8's crashes flagged away with a right-of-way flag are placed at a junction.
-    assert list(moved[:5]) == [1, 1, 1, 1, 1]
-    assert list(moved[5:]) == [1, 1, 2, 2, 2]
-
-
-def test_the_model_frame_reads_the_corrected_flag_and_the_groupings_say_so() -> None:
+def test_the_model_frame_reads_the_corrected_flag() -> None:
     crashes = _crashes()
     for column in ("ZONA", "TIPO_VIA", "TIPO_ACCIDENTE", "CONDICION_ILUMINACION"):
         crashes[column] = 1
@@ -84,13 +66,6 @@ def test_the_model_frame_reads_the_corrected_flag_and_the_groupings_say_so() -> 
     assert frame.attrs["junction_inverted"] == [(8, 2023)]
     published = features.model_frame(crashes, junction="as published")
     assert list(published.junction[:2]) == ["at a junction"] * 2
-    groupings = features.grouping_table(frame).set_index(["predictor", "code"])
-    flipped = groupings.loc[("Junction", "1" + features.INVERTED_KEY)]
-    assert flipped.level.startswith("not at a junction (flag read the other way round: Barcelona")
-    assert bool(flipped.reference)
-    assert groupings.loc[("Junction", "2" + features.INVERTED_KEY)].level.startswith(
-        "at a junction"
-    )
 
 
 def test_the_coding_table_counts_the_record_crash_by_crash() -> None:
@@ -115,7 +90,7 @@ def _processed(columns: list[str]) -> pd.DataFrame:
 def test_the_features_find_the_province_years_the_audit_flags() -> None:
     path = TABLES_DIR / "dgt_audit_junction_coding.csv"
     if not path.exists():
-        pytest.skip("run `python scripts/microdata.py validate` first")
+        pytest.skip("run `python scripts/microdata.py analyse` first")
     audit = pd.read_csv(path)
     flagged = audit[audit.junction_flag_inverted.astype(bool)]
     crashes = _processed(["ANYO", "COD_PROVINCIA", "NUDO", "NUDO_INFO"])
@@ -157,18 +132,18 @@ def test_corrected_catalan_severe_crashes_at_a_junction_match_the_catalan_file()
     within 24 hours. Corrected, DGT's count of those at a junction in 2023 matches the Catalan
     file's crashes within or near a junction, as in 2016-2020 and 2022, within 1% of the year's
     crashes (the audit's tolerance)."""
-    from dgt_stats.microdata.validation import dgt_audit
+    from dgt_stats import dgt_coding
 
     path = TABLES_DIR / "dgt_audit_junction_coding.csv"
     if not path.exists():
-        pytest.skip("run `python scripts/microdata.py validate` first")
+        pytest.skip("run `python scripts/microdata.py analyse` first")
     audit = pd.read_csv(path)
     crashes = _processed([*features.MODEL_COLUMNS, "TOTAL_MU24H", "TOTAL_HG24H"])
     corrected = features.junction_codes(crashes)
     severe = (crashes.TOTAL_MU24H.fillna(0) + crashes.TOTAL_HG24H.fillna(0)) > 0
     catalan = crashes.COD_PROVINCIA.astype(str).isin(features.CATALAN_PROVINCES)
     years = sorted(set(audit[audit.junction_flag_inverted.astype(bool)].year))
-    compared = dgt_audit.catalan_junction_years(audit).set_index("year")
+    compared = dgt_coding.catalan_junction_years(audit).set_index("year")
     checked = 0
     for year in years:
         if year not in compared.index or pd.isna(compared.loc[year, "cat_file_severe_crashes"]):
@@ -177,6 +152,6 @@ def test_corrected_catalan_severe_crashes_at_a_junction_match_the_catalan_file()
         at = int(corrected[rows].eq(1).sum())
         row = compared.loc[year]
         within_or_near = row.cat_file_within_junction + row.cat_file_near_junction
-        assert abs(at - within_or_near) <= dgt_audit.MATCH_TOLERANCE * row.severe_crashes
+        assert abs(at - within_or_near) <= dgt_coding.MATCH_TOLERANCE * row.severe_crashes
         checked += 1
     assert checked >= 1

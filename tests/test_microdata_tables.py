@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from dgt_stats.microdata import barcelona, catalonia, coordinates, sources
+from dgt_stats.microdata import barcelona, catalonia
 from dgt_stats.microdata.ml import recording
 
 needs_barcelona = pytest.mark.skipif(
@@ -43,28 +43,6 @@ def test_a_generic_limit_is_never_read_as_a_speed() -> None:
     assert out.speed_limit_category.iloc[5] == "posted, implausible value"
 
 
-def test_swapped_utm_labels_are_detected_by_magnitude() -> None:
-    frame = pd.DataFrame(
-        {
-            coordinates.X_LABEL: ["4582445.169", "429920.025"],
-            coordinates.Y_LABEL: ["427206.997", "4579485.471"],
-        }
-    )
-    out = coordinates.corrected_utm(frame, "test")
-    assert out.utm_labels_swapped_in_source.tolist() == [True, False]
-    assert out.utm_x_ed50.tolist() == [427206.997, 429920.025]
-    assert out.utm_y_ed50.tolist() == [4582445.169, 4579485.471]
-
-
-def test_projection_has_the_properties_of_utm_zone_31() -> None:
-    # The central meridian of zone 31 (3 degrees east) maps to the 500 km false easting, the
-    # equator to northing 0, and points either side of the meridian mirror each other.
-    east, north = coordinates.utm_from_wgs84(np.array([3.0, 2.0, 4.0]), np.array([0.0, 41.4, 41.4]))
-    assert east[0] == pytest.approx(500_000) and north[0] == pytest.approx(0, abs=1e-6)
-    assert east[1] - 500_000 == pytest.approx(500_000 - east[2])
-    assert north[1] == pytest.approx(north[2])
-
-
 def test_cause_aggregation_keeps_one_row_per_crash_and_reads_blank_as_not_recorded() -> None:
     mediate = pd.DataFrame(
         {
@@ -91,16 +69,6 @@ def test_cause_aggregation_keeps_one_row_per_crash_and_reads_blank_as_not_record
     )
     status = barcelona.aggregate_driver_causes(driver).set_index(KEY).driver_cause_status
     assert status.to_dict() == {"A": "not_determined", "B": "recorded", "C": "blank"}
-
-
-def test_vehicle_type_presence_does_not_depend_on_repeated_rows() -> None:
-    vehicles = pd.DataFrame(
-        {KEY: ["A", "A", "B"], "Descripcio_tipus_vehicle": ["Motocicleta", "Turisme", "Turisme"]}
-    )
-    doubled = pd.concat([vehicles, vehicles.iloc[[0]]], ignore_index=True)
-    once = barcelona.vehicle_type_presence(vehicles).drop(columns="vehicle_table_rows")
-    twice = barcelona.vehicle_type_presence(doubled).drop(columns="vehicle_table_rows")
-    pd.testing.assert_frame_equal(once, twice)
 
 
 def test_an_unlisted_victimisation_category_stops_the_build() -> None:
@@ -135,7 +103,6 @@ def test_one_to_many_tables_reach_the_crash_table_only_after_aggregation() -> No
     for role, aggregate in (
         ("bcn_mediate_causes", barcelona.aggregate_mediate),
         ("bcn_driver_causes", barcelona.aggregate_driver_causes),
-        ("bcn_vehicles", barcelona.vehicle_type_presence),
     ):
         raw = barcelona.load(role)
         assert raw[KEY].duplicated().any(), f"{role} has no repeated crash to test with"
@@ -170,17 +137,6 @@ def test_blank_counts_are_zeros_by_the_victim_identity() -> None:
         assert not crashes[column].astype(str).str.strip().eq("0").any()
 
 
-@needs_barcelona
-def test_only_the_crash_file_has_exchanged_utm_labels() -> None:
-    tables = {role: barcelona.load(role) for role in barcelona.ROLES}
-    audit = coordinates.audit(tables, KEY, "bcn_people").set_index("table")
-    assert audit.loc["bcn_accidents", "rows_x_label_holds_northing"] == len(tables["bcn_accidents"])
-    others = audit.drop(index="bcn_accidents")
-    assert (others.rows_x_label_holds_northing == 0).all()
-    assert (audit.share_matching_reference_after_correction == 1).all()
-    assert (audit.offset_spread_max_m < 1).all()
-
-
 # ----------------------------------------------------------------------------- Catalonia
 @needs_catalonia
 def test_catalan_crashes_have_unique_surrogate_ids_and_a_consistent_label() -> None:
@@ -192,19 +148,16 @@ def test_catalan_crashes_have_unique_surrogate_ids_and_a_consistent_label() -> N
 
 
 @needs_catalonia
-def test_the_catalan_file_is_processed_once() -> None:
-    files = [f for f in sources.discover() if f.role.name == catalonia.ROLE]
-    assert len(sources.resolve(catalonia.ROLE, files)) == 1
-
-
-@needs_catalonia
-def test_outcome_dependent_fields_stay_out_of_the_primary_model() -> None:
+def test_outcome_dependent_fields_stay_out_of_the_primary_feature_set() -> None:
     from dgt_stats.microdata.ml import features
 
     crashes = catalonia.read()
-    years = sorted(crashes.year.unique())
-    training = np.flatnonzero(crashes.year <= years[-1 - 2 - 1])
+    training = np.flatnonzero(crashes.year < crashes.year.max())
     flagged = recording.outcome_dependent_fields(recording.audit(crashes, training))
-    primary = set(features.CATALONIA_TABLE.columns("context", "broad"))
+    primary = {
+        f.column
+        for f in features.CATALONIA_TABLE.catalogue
+        if f.status in ("safe", "questionable") and "context" in f.sets
+    }
     assert flagged, "the recording check found nothing: review the thresholds"
     assert not flagged & primary

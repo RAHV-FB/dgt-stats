@@ -1,16 +1,12 @@
 name: Publish site
 
+# Deploys only after the Checks workflow has succeeded on main, so a page the checks would reject
+# is never published. Checks already ran the tests, so none run here.
 on:
-  push:
+  workflow_run:
+    workflows: ["Checks"]
+    types: [completed]
     branches: [main]
-    paths:
-      - "site/**"
-      - "reports/**"
-      - "src/dgt_stats/**"
-      - "scripts/build_site.py"
-      - "requirements.lock"
-      - "pyproject.toml"
-      - ".github/workflows/pages.yml"
   workflow_dispatch:
 
 permissions:
@@ -24,33 +20,31 @@ concurrency:
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.ref }}
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.11"
-      - run: |
-          pip install --require-hashes -r requirements.lock
-          pip install "playwright==1.56.0"
-          python -m playwright install --with-deps chromium
-      - run: python scripts/build_site.py
+          cache: pip
+          cache-dependency-path: requirements.lock
+      - name: Install the locked dependencies
+        run: pip install --require-hashes -r requirements.lock
+      - name: Build the site
+        run: python scripts/build_site.py
       # Deploy only pages that match the committed ones, with no page the build writes that is
-      # not committed, and that pass the site's own tests, the calculator's engine against the
-      # exported model and the pages in a browser: a push straight to main cannot publish a page
-      # the checks would reject. Four engine tests need the regional feature layer, which this
-      # job does not build; they skip here and run in the Checks workflow.
-      - run: |
+      # not committed.
+      - name: Check the build matches the committed pages
+        run: |
           git diff --exit-code -- site
           test -z "$(git status --porcelain -- site)" || { git status --porcelain -- site; exit 1; }
-      - run: pytest -q tests/test_site.py tests/test_site_editorial.py tests/test_site_design.py tests/test_severity_engine.py tests/test_tools.py
-      - run: pytest -q tests/test_site_browser.py tests/test_tools_browser.py
-        env:
-          REQUIRE_BROWSER: "1"
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

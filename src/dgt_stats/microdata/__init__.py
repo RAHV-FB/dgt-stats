@@ -12,22 +12,15 @@ units the project did not have:
 
 Modules, in pipeline order:
 
-``sources``     find the raw files by their columns, de-duplicate them by SHA-256, read them as text
-``inventory``   the reproducible inventory of every file under ``data/``
+``sources``     the raw files and how they are read as text
 ``barcelona``   staging and canonical Barcelona tables, cause aggregation, the cardinality checks
 ``catalonia``   staging and canonical Catalonia table
-``coordinates`` the UTM/WGS84 audit of the Barcelona coordinates
-``vehicles``    the audit of the Barcelona vehicle-record table (quarantined for unique-vehicle use)
-``quality``     the data-quality report
-``descriptive`` transparent rates with their N behind every model
+``quality``     the structure and consistency checks of the two regional files
+``ml``          the Catalan feature table (``ml.features``) and the recording check on its
+                placeholder fields (``ml.recording``)
+``descriptive`` transparent rates with their N
 ``crosssource`` the aggregate-level comparisons with the DGT and INE layers that a real key allows
 ``charts``      the figures of the regional pages
-
-``ml``          the feature catalogue and tables (``ml.features``), the source models
-                (``ml.modelling``), the rule baselines (``ml.rules``), the recording checks
-                (``ml.recording``) and the cards and result tables (``ml.reporting``)
-``validation``  harmonisation across sources, transfer tests, the Barcelona diagnosis, the DGT
-                microdata audit, generalisability and the model decisions
 
 The rule every module follows: an observation, a key or a variable must exist in the rows of a
 file under ``data/raw``. Nothing is imputed from outside studies, and the two regional sources are

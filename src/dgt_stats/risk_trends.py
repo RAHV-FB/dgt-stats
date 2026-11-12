@@ -3,38 +3,27 @@
 Two questions share this module because they share the denominators.
 
 * **2019 to 2024.** Did the counts change after the pandemic once they are divided by something?
-  Deaths, hospitalised injured and injury crashes are set against residents and road fuel; driver
-  casualties against licence holders; motor-vehicle occupant casualties against the registered
-  fleet. Each is indexed to 2019, with the uncertainty of the change.
+  Deaths, hospitalised injured and injury crashes are set against residents and road fuel. Each is
+  indexed to 2019, with the uncertainty of the change.
 * **1993 to 2024.** Which of the changes in the long series are structural and which are the
   pandemic? A segmented (joinpoint) log-linear trend is fitted to the deaths of 1993–2019, with the
   number and position of its turning points chosen by the data, and its last segment, refitted on
-  its own years, is projected through 2020–2024: for the count, for motor-vehicle occupant deaths
-  over the registered fleet, and for deaths over road fuel. ``long_run_projection_sensitivity``
-  shows how the reading of those years moves with the choices behind the projection.
+  its own years, is projected through 2020–2024: for the count and for deaths over road fuel.
+  ``long_run_projection_sensitivity`` shows how the reading of those years moves with the choices
+  behind the projection.
 
-Denominators, what each is, and the numerator each is paired with:
+Denominators:
 
 * ``residents``: INE resident population on 1 July (2002 onwards), against every casualty. A rate
   per resident is a population rate, not a risk of travelling.
-* ``licence_holders``: DGT driver census at the end of the year (2014 onwards), every permit class,
-  against the *drivers* of motorcycles, cars, vans, trucks and buses (``MOTOR_VEHICLE_TYPES``) in
-  the yearbook's driver series. Pedestrians, passengers, cyclists and riders of personal mobility
-  vehicles need no licence for the trip in which they are hurt, so they are left out of it.
-* ``vehicle_fleet``: DGT's registered vehicle fleet from the yearbook rate table (1993 onwards),
-  used or not, against the *occupants* (drivers and passengers) of the same vehicle types.
-  Pedestrians and cyclists are in no registered vehicle.
 * ``road_fuel_tonnes``: CORES automotive petrol plus diesel sold, complete years only (1996
   onwards), against every casualty. It covers all roads and all vehicles and is the only annual
   traffic series that does; it is a proxy for vehicle-kilometres, not a count of them: fuel per
   kilometre changes, electric kilometres burn no fuel, freight and cars are mixed, and fuel bought
   in Spain is not all burnt on Spanish roads. No series in the repository measures how kilometres
-  per tonne moved on all roads since 2019; ``fuel_efficiency_sensitivity`` shows only how far the
-  per-fuel change moves under hypothetical drifts, and ``km_crosscheck`` sets DGT's kilometre
+  per tonne moved on all roads since 2019; ``long_run_efficiency_sensitivity`` shows how far the
+  per-fuel reading moves under hypothetical drifts, and ``km_crosscheck`` sets DGT's kilometre
   estimates for 2022–2024 beside fuel over the years they cover.
-
-Injury crashes are not split by vehicle type in the yearbook series, so they are set against
-residents and road fuel only.
 """
 
 from __future__ import annotations
@@ -53,7 +42,6 @@ from dgt_stats.paths import DGT_PROCESSED_CRASHES
 
 BASE_YEAR = 2019
 FIRST_YEAR = 1993
-PANDEMIC_YEARS = (2020, 2021)
 # Two-sided coverage of every interval in this module.
 COVERAGE = 0.95
 NORMAL_QUANTILE = float(stats.norm.ppf(0.5 + COVERAGE / 2))
@@ -71,49 +59,11 @@ OUTCOMES = {
     "hospitalised_30d": "Injured and hospitalised",
     "crashes": "Injury crashes",
 }
-# The vehicle types of the yearbook's driver and occupant series whose drivers need a licence and
-# which are in the registered fleet. Bicycles and personal mobility vehicles need neither. "Otros"
-# is left out because it held personal mobility vehicles until they got their own column in 2020
-# (its 2019 count of drivers slightly injured is nearly three times 2018's), and mopeds because the
-# repository does not establish whether the fleet in the rate table counts them.
-MOTOR_VEHICLE_TYPES = (
-    "Motocicletas",
-    "Turismos",
-    "Camiones hasta 3.500 kg y furgonetas",
-    "Camiones más de 3.500 kg",
-    "Autobuses",
-)
-MOTOR_VEHICLES = "motorcycles, cars, vans, trucks and buses"
-# Numerator group -> the yearbook road-user population it is summed from.
-ROAD_USER_GROUPS = {"drivers": "drivers", "occupants": "drivers_and_passengers"}
-# The outcomes the road-user series split by vehicle type (it has no crash counts).
-ROAD_USER_OUTCOMES = ("deaths_30d", "hospitalised_30d")
-NUMERATORS = {
-    **OUTCOMES,
-    "drivers_deaths_30d": f"Drivers of {MOTOR_VEHICLES} killed within 30 days",
-    "drivers_hospitalised_30d": f"Drivers of {MOTOR_VEHICLES} injured and hospitalised",
-    "occupants_deaths_30d": f"Occupants of {MOTOR_VEHICLES} killed within 30 days",
-    "occupants_hospitalised_30d": f"Occupants of {MOTOR_VEHICLES} injured and hospitalised",
-}
-# Denominator key -> (exposure column, label, rate per this many units of exposure, numerator
-# group). A group of None divides the whole outcome; "drivers" and "occupants" divide only the
-# casualties that the denominator can contain (``ROAD_USER_GROUPS``).
-DENOMINATORS: dict[str, tuple[str | None, str, float, str | None]] = {
-    "count": (None, "Count, no denominator", 1.0, None),
-    "residents": ("residents", "Per 100,000 residents", 1e5, None),
-    "licence_holders": (
-        "licence_holders",
-        "Drivers only, per 100,000 licence holders",
-        1e5,
-        "drivers",
-    ),
-    "vehicles": (
-        "vehicle_fleet",
-        "Vehicle occupants only, per 100,000 registered vehicles",
-        1e5,
-        "occupants",
-    ),
-    "road_fuel": ("road_fuel_tonnes", "Per million tonnes of road fuel", 1e6, None),
+# Denominator key -> (exposure column, label, rate per this many units of exposure).
+DENOMINATORS: dict[str, tuple[str | None, str, float]] = {
+    "count": (None, "Count, no denominator", 1.0),
+    "residents": ("residents", "Per 100,000 residents", 1e5),
+    "road_fuel": ("road_fuel_tonnes", "Per million tonnes of road fuel", 1e6),
 }
 
 
@@ -126,48 +76,13 @@ def t_quantile(df: float) -> float:
     return float(stats.t.ppf(0.5 + COVERAGE / 2, df))
 
 
-def numerator_for(outcome: str, denominator: str) -> str | None:
-    """The numerator column paired with ``denominator`` for ``outcome``; None if there is none."""
-    group = DENOMINATORS[denominator][3]
-    if group is None:
-        return outcome
-    if outcome not in ROAD_USER_OUTCOMES:
-        return None
-    return f"{group}_{outcome}"
-
-
 # --------------------------------------------------------------------------- inputs
-
-
-def road_user_outcomes() -> pd.DataFrame:
-    """Driver and occupant deaths and hospitalised of ``MOTOR_VEHICLE_TYPES`` per year, national.
-
-    Summed from the yearbook's road-user series (all roads); a year in which any of the vehicle
-    types is missing stays NA rather than being summed short.
-    """
-    users = io_tables.read_table("series_road_users")
-    users = users[
-        (users.zone == "all")
-        & users.vehicle_type.isin(MOTOR_VEHICLE_TYPES)
-        & users.severity.isin(ROAD_USER_OUTCOMES)
-    ]
-    columns = {}
-    for group, population in ROAD_USER_GROUPS.items():
-        for outcome in ROAD_USER_OUTCOMES:
-            rows = users[(users.population == population) & (users.severity == outcome)]
-            columns[f"{group}_{outcome}"] = rows.groupby("year").value.sum(
-                min_count=len(MOTOR_VEHICLE_TYPES)
-            )
-    out = pd.DataFrame(columns)
-    out.index = out.index.astype(int)
-    return out
 
 
 def annual_outcomes() -> pd.DataFrame:
     """Injury crashes, 30-day deaths and hospitalised injured per year, national, 1993 onwards.
 
-    With the driver and occupant counts of ``road_user_outcomes`` beside them, injury crashes on
-    interurban roads and in towns (``crashes_interurban``, ``crashes_urban``: the recording of
+    With injury crashes on interurban roads and in towns (``crashes_interurban``, ``crashes_urban``: the recording of
     urban crashes rose in steps that the national count inherits), and deaths within 24 hours
     (``deaths_24h``: counted directly by the police in every year, whereas DGT estimated the 30-day
     deaths of 1993–2010 from them with correction factors).
@@ -187,20 +102,14 @@ def annual_outcomes() -> pd.DataFrame:
     )
     out.index = out.index.astype(int)
     out.columns.name = None
-    return out.join(road_user_outcomes(), how="left")
+    return out
 
 
 def annual_exposure() -> pd.DataFrame:
-    """The four denominators by year; NA where a series has not started.
+    """The two denominators by year; NA where a series has not started.
 
     Fuel is summed over complete years only, so a partly published final year never enters.
     """
-    annual = io_tables.read_table("series_annual")
-    fleet = (
-        annual[(annual.metric == "vehicle_fleet") & (annual.zone == "all")]
-        .set_index("year")
-        .value.rename("vehicle_fleet")
-    )
     population = io_population.read_population()
     residents = (
         population[
@@ -212,13 +121,9 @@ def annual_exposure() -> pd.DataFrame:
         .set_index("year")
         .population.rename("residents")
     )
-    licences = io_exposure.read_exposure("conductores_por_edad")
-    licence_holders = (
-        licences[licences.sex == "total"].groupby("year").n_drivers.sum().rename("licence_holders")
-    )
     fuel = io_traffic.read_cores_fuel().groupby("year").road_fuel_tonnes.agg(["sum", "count"])
     road_fuel = fuel.loc[fuel["count"] == 12, "sum"].rename("road_fuel_tonnes")
-    out = pd.concat([residents, licence_holders, fleet, road_fuel], axis=1)
+    out = pd.concat([residents, road_fuel], axis=1)
     out.index = out.index.astype(int)
     return out.sort_index().astype(float)
 
@@ -244,7 +149,7 @@ def year_to_year_dispersion(years: tuple[int, int] = SCATTER_YEARS) -> pd.DataFr
     Poisson count of the same size: recording practice, weather and the calendar all move a year,
     and the pure Poisson interval does not see them. Crashes, whose count depends on how
     completely slight injuries are recorded, scatter far more than deaths. One row per numerator
-    in ``NUMERATORS``, the driver and occupant counts included.
+    in ``OUTCOMES``.
 
     Seven years leave five residual degrees of freedom (``df_resid``), so each factor is itself
     uncertain: ``pearson_dispersion`` is the estimate before the floor, ``dispersion_low`` and
@@ -255,7 +160,7 @@ def year_to_year_dispersion(years: tuple[int, int] = SCATTER_YEARS) -> pd.DataFr
     t = (panel.index.to_numpy(dtype=float) - years[0]).reshape(-1, 1)
     design = sm.add_constant(t)
     records = []
-    for outcome, label in NUMERATORS.items():
+    for outcome, label in OUTCOMES.items():
         fit = sm.GLM(panel[outcome].to_numpy(), design, family=sm.families.Poisson()).fit(
             scale="X2"
         )
@@ -281,11 +186,9 @@ def year_to_year_dispersion(years: tuple[int, int] = SCATTER_YEARS) -> pd.DataFr
 
 
 def risk_index(base_year: int = BASE_YEAR) -> pd.DataFrame:
-    """Each outcome under each denominator it can be paired with, as a rate and a ratio to 2019.
+    """Each outcome under each denominator, as a rate and a ratio to 2019.
 
-    The numerator is the outcome itself, or for licence holders and the registered fleet only the
-    drivers or occupants of ``MOTOR_VEHICLE_TYPES`` (``numerator_for``); injury crashes have no
-    such split and are not divided by those two. ``ratio_to_base`` is (rate this year) / (rate in
+    ``ratio_to_base`` is (rate this year) / (rate in
     ``base_year``), with a log-normal interval that treats both counts as Poisson and the
     denominators as known. For the count itself the "denominator" is 1 and the ratio is the change
     in the count. ``ratio_low_yty`` and ``ratio_high_yty`` widen that interval by the numerator's
@@ -300,10 +203,8 @@ def risk_index(base_year: int = BASE_YEAR) -> pd.DataFrame:
     years = range(base_year, last_year + 1)
     records = []
     for outcome, outcome_label in OUTCOMES.items():
-        for key, (column, label, per, _) in DENOMINATORS.items():
-            numerator = numerator_for(outcome, key)
-            if numerator is None:
-                continue
+        numerator = outcome
+        for key, (column, label, per) in DENOMINATORS.items():
             base_count = float(panel.loc[base_year, numerator])
             base_exposure = 1.0 if column is None else float(panel.loc[base_year, column])
             for year in years:
@@ -323,8 +224,6 @@ def risk_index(base_year: int = BASE_YEAR) -> pd.DataFrame:
                     {
                         "outcome": outcome,
                         "outcome_label": outcome_label,
-                        "numerator": numerator,
-                        "numerator_label": NUMERATORS[numerator],
                         "denominator": key,
                         "denominator_label": label,
                         "year": year,
@@ -389,44 +288,8 @@ def frequency_severity(base_year: int = FREQUENCY_SEVERITY_BASE) -> pd.DataFrame
 
 # Hypothetical yearly growth in kilometres per tonne of road fuel. They are a grid, not estimates:
 # no series in the repository measures kilometres per tonne on all roads, so none of them is more
-# likely than another, and the tables built on them support no conclusion about kilometres.
+# likely than another, and the table built on them supports no conclusion about kilometres.
 HYPOTHETICAL_GAINS = (0.0, 0.01, 0.02)
-
-
-def fuel_efficiency_sensitivity(base_year: int = BASE_YEAR) -> pd.DataFrame:
-    """How far the per-fuel change since ``base_year`` moves under hypothetical drifts of the proxy.
-
-    If kilometres per tonne grew by ``g`` a year, dividing by fuel grossed up by
-    ``(1 + g) ** (year - base_year)`` gives the ratio to the base year under that assumption.
-    ``g`` takes the values of ``HYPOTHETICAL_GAINS``; the output shows how much the per-fuel
-    figure depends on a drift the data do not measure, not what the change per kilometre was.
-    """
-    panel = annual_panel().set_index("year")
-    last_year = int(panel.index.max())
-    records = []
-    for outcome in ("deaths_30d", "hospitalised_30d"):
-        for gain in HYPOTHETICAL_GAINS:
-            base_km = float(panel.loc[base_year, "road_fuel_tonnes"])
-            for year in range(base_year, last_year + 1):
-                km = float(panel.loc[year, "road_fuel_tonnes"]) * (1 + gain) ** (year - base_year)
-                ratio, low, high = rates.rate_ratio(
-                    float(panel.loc[year, outcome]),
-                    km,
-                    float(panel.loc[base_year, outcome]),
-                    base_km,
-                )
-                records.append(
-                    {
-                        "outcome": outcome,
-                        "outcome_label": OUTCOMES[outcome],
-                        "hypothetical_annual_gain": gain,
-                        "year": year,
-                        "ratio_to_base": ratio,
-                        "ratio_low": low,
-                        "ratio_high": high,
-                    }
-                )
-    return pd.DataFrame.from_records(records)
 
 
 # The 2022 release's kilometre types that table 6 of the 2024 release repeats one for one; the
@@ -706,18 +569,10 @@ def project_segment(
     return pd.DataFrame({"year": years, "expected": mu, "low": mu - q * sd, "high": mu + q * sd})
 
 
-# The three views of the long series: measure -> (exposure column, label, first year, numerator,
-# denominator key in ``DENOMINATORS``). The registered fleet is paired with the occupants of
-# ``MOTOR_VEHICLE_TYPES``, as in the 2019 to 2024 index; the count and road fuel with all deaths.
+# The two views of the long series: measure -> (exposure column, label, first year, numerator,
+# denominator key in ``DENOMINATORS``).
 LONG_RUN_MEASURES: dict[str, tuple[str | None, str, int, str, str]] = {
     "count": (None, "Deaths", FIRST_YEAR, "deaths_30d", "count"),
-    "occupants_per_vehicle": (
-        "vehicle_fleet",
-        "Vehicle occupant deaths per registered vehicle",
-        FIRST_YEAR,
-        "occupants_deaths_30d",
-        "vehicles",
-    ),
     "road_fuel": (
         "road_fuel_tonnes",
         "Deaths per tonne of road fuel",
@@ -740,15 +595,9 @@ DEATHS_30D_COUNTED_FROM = 2011
 DEATHS_LABELS = {DEATHS_30D: "within 30 days", DEATHS_24H: "within 24 hours"}
 
 
-def _numerator(numerator: str, deaths: str) -> str | None:
-    """The measure's numerator counted with ``deaths``; None if the yearbook has no such count.
-
-    Only all deaths are published within 24 hours, so the per-vehicle measure, whose numerator is
-    occupant deaths, has no 24-hour version.
-    """
-    if deaths == DEATHS_30D:
-        return numerator
-    return deaths if numerator == DEATHS_30D else None
+def _numerator(numerator: str, deaths: str) -> str:
+    """The measure's numerator counted with ``deaths``: 30-day deaths, or 24-hour deaths."""
+    return numerator if deaths == DEATHS_30D else deaths
 
 
 @cache
@@ -757,8 +606,6 @@ def _long_run_fits(last_pre_year: int = BASE_YEAR, deaths: str = DEATHS_30D):
     fits = {}
     for key, (column, label, start, numerator, _) in LONG_RUN_MEASURES.items():
         numerator = _numerator(numerator, deaths)
-        if numerator is None:
-            continue
         window = panel.loc[start:last_pre_year]
         years = window.index.to_numpy()
         counts = window[numerator].to_numpy(dtype=float)
@@ -769,7 +616,7 @@ def _long_run_fits(last_pre_year: int = BASE_YEAR, deaths: str = DEATHS_30D):
 
 
 def long_run_segments() -> pd.DataFrame:
-    """The chosen turning points and each segment's annual change, for the three measures."""
+    """The chosen turning points and each segment's annual change, for the two measures."""
     _, fits = _long_run_fits()
     frames = []
     for key, (fit, _, label, _, _) in fits.items():
@@ -781,16 +628,6 @@ def long_run_segments() -> pd.DataFrame:
     return pd.concat(frames, ignore_index=True)
 
 
-def long_run_model_choice() -> pd.DataFrame:
-    """QBIC for 0 to 3 turning points, per measure, and which model was chosen."""
-    _, fits = _long_run_fits()
-    frames = []
-    for key, (_, table, label, _, _) in fits.items():
-        frames.append(table.assign(measure=key, measure_label=label))
-    columns = ["measure", "measure_label", "n_breaks", "breaks", "deviance", "qbic", "chosen"]
-    return pd.concat(frames, ignore_index=True)[columns]
-
-
 def _offset(frame: pd.DataFrame, column: str | None) -> np.ndarray | None:
     return None if column is None else np.log(frame[column].to_numpy(dtype=float))
 
@@ -800,13 +637,12 @@ def _segment_projection(
     key: str,
     start: int,
     deaths: str = DEATHS_30D,
-    quantile: float | None = None,
     last_pre_year: int = BASE_YEAR,
 ) -> tuple[SegmentTrend, pd.DataFrame]:
     """The trend of ``start``–``last_pre_year`` refitted alone and projected to every later year.
 
-    The projection is multiplied by each later year's fleet or fuel for the two rates, so it is in
-    deaths of the measure's numerator, like ``observed``.
+    The projection is multiplied by each later year's fuel for the per-fuel measure, so it is in
+    deaths, like ``observed``.
     """
     column = LONG_RUN_MEASURES[key][0]
     numerator = _numerator(LONG_RUN_MEASURES[key][3], deaths)
@@ -815,7 +651,7 @@ def _segment_projection(
         window.index.to_numpy(), window[numerator].to_numpy(dtype=float), _offset(window, column)
     )
     after = panel.loc[last_pre_year + 1 :]
-    projected = project_segment(trend, after.index.to_numpy(), _offset(after, column), quantile)
+    projected = project_segment(trend, after.index.to_numpy(), _offset(after, column))
     projected["observed"] = after[numerator].to_numpy(dtype=float)
     return trend, projected
 
@@ -835,7 +671,7 @@ def _read_against_trend(frame: pd.DataFrame) -> pd.DataFrame:
 
 
 def long_run_series() -> pd.DataFrame:
-    """Observed deaths against the pre-pandemic trend, every year, for the three measures.
+    """Observed deaths against the pre-pandemic trend, every year, for the two measures.
 
     Up to 2019 ``expected`` is the fitted joinpoint trend, with its prediction interval. From 2020
     it is the projection of the last segment: the trend of the years from the last turning point
@@ -844,10 +680,8 @@ def long_run_series() -> pd.DataFrame:
     degrees of freedom (``projection_df``). Refitting the segment keeps the misfit of the early
     years out of the scatter a projected year is read against.
 
-    Values are in deaths of the measure's numerator (``numerator``: all deaths, or the occupant
-    deaths of the per-vehicle measure); for the per-vehicle and per-fuel measures the trend is
-    multiplied by the actual fleet or fuel of each year, so ``observed / expected`` reads the same
-    way for all three. ``range_low`` and ``range_high`` are the interval over the expected count.
+    Values are in deaths; for the per-fuel measure the trend is multiplied by the actual fuel of
+    each year, so ``observed / expected`` reads the same way for both. ``range_low`` and ``range_high`` are the interval over the expected count.
     """
     panel, fits = _long_run_fits()
     last_year = int(panel.index.max())
@@ -888,18 +722,14 @@ def long_run_projection_sensitivity() -> pd.DataFrame:
     For every measure and every year after 2019, one row per variant:
 
     * ``main``: the projection of ``long_run_series``;
-    * ``start_<year>``: the last segment taken to start in a year where one of the other measures
-      puts its last turning point, refitted and projected the same way;
-    * ``normal_quantile``: the main projection with the normal quantile in place of Student's t;
-    * ``joinpoint``: the continuous joinpoint trend continued, with the scatter of the whole fit
-      from the first year to 2019 and the normal quantile;
+    * ``start_<year>``: the last segment taken to start in a year where the other measure puts its
+      last turning point, refitted and projected the same way;
     * ``deaths_24h``: deaths within 24 hours instead of 30 days, with the joinpoint search re-run
-      on them and its last segment projected as in ``main`` (the count and per tonne of fuel only:
-      occupant deaths are not published within 24 hours).
+      on them and its last segment projected as in ``main``.
 
     ``breaks`` are the turning points of the joinpoint fit the variant uses and ``segment_start``
     the first year of the projected trend, whose ``annual_change``, ``dispersion`` and ``df`` are
-    given with the ``interval_quantile`` used (for ``joinpoint`` those of the whole fit's last segment and scatter).
+    given with the ``interval_quantile`` used.
     """
     panel, fits = _long_run_fits()
     _, fits_24h = _long_run_fits(deaths=DEATHS_24H)
@@ -937,7 +767,7 @@ def long_run_projection_sensitivity() -> pd.DataFrame:
                 }
             )
 
-    for key, (fit, _, _, column, _) in fits.items():
+    for key, (fit, *_) in fits.items():
         own = int(fit.breaks[-1])
         trend, projected = _segment_projection(panel, key, own)
         values = (own, trend.slope(), trend.dispersion, trend.df, t_quantile(trend.df))
@@ -955,48 +785,18 @@ def long_run_projection_sensitivity() -> pd.DataFrame:
                 (start, trend.slope(), trend.dispersion, trend.df, t_quantile(trend.df)),
                 projected,
             )
-        trend, projected = _segment_projection(panel, key, own, quantile=NORMAL_QUANTILE)
+        fit_24h = fits_24h[key][0]
+        start = int(fit_24h.breaks[-1])
+        trend, projected = _segment_projection(panel, key, start, deaths=DEATHS_24H)
         add(
             key,
-            "normal_quantile",
-            "Main projection, normal quantile",
-            DEATHS_30D,
-            fit.breaks,
-            (own, trend.slope(NORMAL_QUANTILE), trend.dispersion, trend.df, NORMAL_QUANTILE),
+            "deaths_24h",
+            "Deaths within 24 hours, own turning points",
+            DEATHS_24H,
+            fit_24h.breaks,
+            (start, trend.slope(), trend.dispersion, trend.df, t_quantile(trend.df)),
             projected,
         )
-        after = panel.loc[BASE_YEAR + 1 :]
-        projected = project(fit, after.index.to_numpy(), _offset(after, column), NORMAL_QUANTILE)
-        projected["observed"] = after[LONG_RUN_MEASURES[key][3]].to_numpy(dtype=float)
-        last_segment = segment_changes(fit).iloc[-1]
-        add(
-            key,
-            "joinpoint",
-            "Joinpoint trend continued, scatter of the whole fit, normal quantile",
-            DEATHS_30D,
-            fit.breaks,
-            (
-                own,
-                (last_segment.annual_change, last_segment.low, last_segment.high),
-                fit.dispersion,
-                fit.result.df_resid,
-                NORMAL_QUANTILE,
-            ),
-            projected,
-        )
-        if key in fits_24h:
-            fit_24h = fits_24h[key][0]
-            start = int(fit_24h.breaks[-1])
-            trend, projected = _segment_projection(panel, key, start, deaths=DEATHS_24H)
-            add(
-                key,
-                "deaths_24h",
-                "Deaths within 24 hours, own turning points",
-                DEATHS_24H,
-                fit_24h.breaks,
-                (start, trend.slope(), trend.dispersion, trend.df, t_quantile(trend.df)),
-                projected,
-            )
     return pd.DataFrame.from_records(records)
 
 
@@ -1053,28 +853,6 @@ KM_MEASURES = {
 # Road owners in the microdata (``TITULARIDAD_VIA``) whose roads table 1.2.14 counts: State,
 # regions, and provincial councils, cabildos and consells.
 KM_NETWORK_OWNERS = (1, 2, 3)
-
-
-def fuel_bio_share() -> pd.DataFrame:
-    """Biofuel in road fuel by year: the mass CORES reports blended into petrol and diesel.
-
-    Biofuel carries less energy per tonne than the petrol and diesel it replaces, so a change in
-    its share would change the kilometres a tonne of road fuel stands for. Only years in which
-    CORES reports the share for all twelve months are kept.
-    """
-    fuel = io_traffic.read_cores_fuel()
-    fuel = fuel.assign(
-        bio_tonnes=fuel.petrol_tonnes * fuel.petrol_bio_share
-        + fuel.diesel_tonnes * fuel.diesel_bio_share
-    )
-    annual = fuel.groupby("year").agg(
-        road_fuel_tonnes=("road_fuel_tonnes", "sum"),
-        bio_tonnes=("bio_tonnes", "sum"),
-        months=("bio_tonnes", "count"),
-    )
-    annual = annual[annual.months == 12].drop(columns="months")
-    annual["bio_share"] = annual.bio_tonnes / annual.road_fuel_tonnes
-    return annual.reset_index()
 
 
 def interurban_km_panel() -> pd.DataFrame:

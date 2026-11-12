@@ -1,4 +1,4 @@
-"""Shared helpers for the regional, model, validation and sources pages.
+"""Shared helpers for the regional, model and sources pages.
 
 Every number on those pages is read from a committed table in ``reports/tables`` written by
 ``scripts/microdata.py``; qualitative sentences are guarded by ``_check``, which stops the build

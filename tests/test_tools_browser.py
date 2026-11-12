@@ -1,4 +1,4 @@
-"""The trends explorer and the driver risk comparison in Chromium: they load, every control
+"""The driver risk comparison in Chromium: they load, every control
 changes the result, the numbers shown are the tables', and they fit a phone.
 
 Needs the optional ``browser`` dependencies and a built site; with REQUIRE_BROWSER set (as in CI)
@@ -10,16 +10,14 @@ from __future__ import annotations
 import functools
 import http.server
 import os
-import random
 import re
 import threading
 from pathlib import Path
 
-import pandas as pd
 import pytest
 
-from dgt_stats.paths import PROJECT_ROOT, TABLES_DIR
-from dgt_stats.site import tool_driver_risk, tool_trends
+from dgt_stats.paths import PROJECT_ROOT
+from dgt_stats.site import tool_driver_risk
 
 REQUIRED = bool(os.environ.get("REQUIRE_BROWSER"))
 if REQUIRED:
@@ -32,7 +30,7 @@ PHONE = {"width": 390, "height": 844}
 LAPTOP = {"width": 1280, "height": 900}
 SMALL = {"width": 320, "height": 640}
 
-if not (SITE / "tools" / "trends-explorer.json").exists():
+if not (SITE / "tools" / "driver-risk.json").exists():
     if REQUIRED:
         raise RuntimeError("REQUIRE_BROWSER is set but the site is not built: run build_site.py")
     pytest.skip("run scripts/build_site.py first", allow_module_level=True)
@@ -97,67 +95,6 @@ def _pct(value: float) -> str:
     text = f"{abs(value) * 100:,.1f}%"
     sign = "+" if value > 0 and text.strip("0.%") else ("−" if value < 0 else "")
     return sign + text
-
-
-# --------------------------------------------------------------------------- trends explorer
-
-
-def test_the_trends_explorer_shows_each_indicator_and_its_change(browser, server) -> None:
-    page, errors = _open(browser, server, "trends-explorer")
-    indicators = tool_trends.indicators()
-    rng = random.Random(20261009)
-    for item in indicators:
-        first, last = item["first"], item["first"] + len(item["values"]) - 1
-        start = rng.randint(first, last - 1)
-        end = rng.randint(start + 1, last)
-        page.select_option("[name='indicator']", item["id"])
-        page.select_option("[name='from']", str(start))
-        page.select_option("[name='to']", str(end))
-        a, b = item["values"][start - first], item["values"][end - first]
-        headline = _text(page, "[data-headline]")
-        assert headline == f"{item['label']} in {end}: {b:,.{item['decimals']}f}", item["id"]
-        change = _text(page, "[data-change]")
-        annual = (b / a) ** (1 / (end - start)) - 1
-        assert change.startswith(f"{_pct(b / a - 1)} since {start} ({a:,.{item['decimals']}f})")
-        assert f"{_pct(annual)} a year on average" in change, item["id"]
-        # The chart and the table cover exactly the chosen years.
-        rows = page.locator("[data-table] tbody tr")
-        assert rows.count() == end - start + 1
-        assert _text(page, "[data-table] caption") == f"{item['label']}, {start}–{end}"
-        assert page.locator("[data-chart] svg").count() == 1
-    assert not errors
-    page.close()
-
-
-def test_the_trends_explorer_offers_only_years_an_indicator_has(browser, server) -> None:
-    page, _ = _open(browser, server, "trends-explorer")
-    for item in tool_trends.indicators():
-        page.select_option("[name='indicator']", item["id"])
-        years = page.eval_on_selector_all(
-            "[name='from'] option", "options => options.map(o => Number(o.value))"
-        )
-        assert min(years) >= item["first"], item["id"]
-        last = item["first"] + len(item["values"]) - 1
-        ends = page.eval_on_selector_all(
-            "[name='to'] option", "options => options.map(o => Number(o.value))"
-        )
-        assert max(ends) <= last, item["id"]
-    page.close()
-
-
-def test_comparing_two_indicators_shows_indices_and_reset_restores(browser, server) -> None:
-    page, _ = _open(browser, server, "trends-explorer")
-    page.select_option("[name='indicator']", "deaths_30d")
-    page.select_option("[name='compare']", "crashes")
-    assert "Index" in _text(page, "[data-chart]")
-    panel = pd.read_csv(TABLES_DIR / "risk_annual_panel.csv").set_index("year")
-    start, end = int(page.input_value("[name='from']")), int(page.input_value("[name='to']"))
-    crashes = panel.crashes.loc[end] / panel.crashes.loc[start] - 1
-    assert f"Injury crashes: {_pct(crashes)} over the same years" in _text(page, "[data-change]")
-    page.click("[data-reset]")
-    assert page.input_value("[name='compare']") == ""
-    assert page.input_value("[name='indicator']") == "deaths_30d"
-    page.close()
 
 
 # --------------------------------------------------------------------------- driver risk
@@ -234,7 +171,7 @@ def test_men_and_women_side_by_side(browser, server) -> None:
 # --------------------------------------------------------------------------- both
 
 
-@pytest.mark.parametrize("slug", ["trends-explorer", "driver-risk"])
+@pytest.mark.parametrize("slug", ["driver-risk"])
 @pytest.mark.parametrize("size", [SMALL, PHONE, LAPTOP])
 @pytest.mark.parametrize("scheme", ["light", "dark"])
 def test_the_tools_fit_their_page_and_load_cleanly(browser, server, slug, size, scheme) -> None:
@@ -252,7 +189,7 @@ def test_the_tools_fit_their_page_and_load_cleanly(browser, server, slug, size, 
     page.close()
 
 
-@pytest.mark.parametrize("slug", ["trends-explorer", "driver-risk"])
+@pytest.mark.parametrize("slug", ["driver-risk"])
 def test_the_tools_work_from_the_keyboard(browser, server, slug) -> None:
     page, _ = _open(browser, server, slug, PHONE)
     before = _text(page, "[data-headline]")
@@ -269,7 +206,7 @@ def test_the_tools_work_from_the_keyboard(browser, server, slug) -> None:
     page.close()
 
 
-@pytest.mark.parametrize("slug", ["trends-explorer", "driver-risk"])
+@pytest.mark.parametrize("slug", ["driver-risk"])
 def test_a_tool_says_so_when_its_data_cannot_load(browser, server, slug) -> None:
     page = browser.new_page(viewport=PHONE)
     page.route(f"**/tools/{slug}.json", lambda route: route.fulfill(status=404, body=""))

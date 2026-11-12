@@ -13,8 +13,8 @@ mediate causes         1 or more (blank = none)   aggregated to one row per cras
 driver causes          1 or more (no person key)  aggregated to one row per crash first
 people                 1 or more                  stays person-level; crash context joins
                                                   onto it ``validate="many_to_one"``
-vehicle records        1 or more (semantics       only type *presence* per crash is used;
-                       unproven, see vehicles.py) row counts are not read as vehicles
+vehicle records        1 or more (semantics       staged and counted only: their rows are not
+                       unproven)                  read as vehicles
 =====================  =========================  ==========================================
 
 Every source column is kept with its published values; derived columns are added beside them in
@@ -30,13 +30,12 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from dgt_stats.microdata import coordinates, sources
+from dgt_stats.microdata import sources
 from dgt_stats.microdata.common import (
     assert_unique,
     blank,
     read_provenance,
     slug,
-    to_float,
     to_int,
     write_parquet,
 )
@@ -58,7 +57,6 @@ PROCESSED_ACCIDENTS = PROCESSED_DATA_DIR / "barcelona_accidents.parquet"
 PROCESSED_PEOPLE = PROCESSED_DATA_DIR / "barcelona_people.parquet"
 PROCESSED_MEDIATE = PROCESSED_DATA_DIR / "barcelona_crash_mediate_causes.parquet"
 PROCESSED_DRIVER_CAUSES = PROCESSED_DATA_DIR / "barcelona_crash_driver_causes.parquet"
-PROCESSED_VEHICLE_TYPES = PROCESSED_DATA_DIR / "barcelona_crash_vehicle_types.parquet"
 
 
 def staging_path(role: str) -> Path:
@@ -157,21 +155,6 @@ VEHICLE_GROUPS = {
     "Sense Informar": "not_recorded",
     "": "not_recorded",
 }
-VEHICLE_GROUP_ORDER = (
-    "car",
-    "taxi",
-    "motorcycle",
-    "moped",
-    "bicycle",
-    "personal_mobility_vehicle",
-    "van_or_light_truck",
-    "heavy_truck",
-    "bus_or_coach",
-    "tram_or_train",
-    "other",
-    "not_recorded",
-)
-
 AGE_BANDS = (
     (0, 15, "0-15"),
     (16, 24, "16-24"),
@@ -216,13 +199,13 @@ PEDESTRIAN_CAUSES = {
 # ----------------------------------------------------------------------------- staging
 def stage(force: bool = False) -> dict[str, Path]:
     """Copy each raw table into ``data/staging/barcelona`` as text with normalised column names."""
-    files = sources.discover()
     written = {}
     for role in ROLES:
         target = staging_path(role)
-        item = sources.resolve_one(role, files)
+        item = sources.SOURCES[role]
+        digest = item.sha256
         if target.exists() and not force:
-            if read_provenance(target).get("source_sha256") == item.sha256:
+            if read_provenance(target).get("source_sha256") == digest:
                 written[role] = target
                 continue
         frame = sources.read_raw(item.path)
@@ -232,11 +215,10 @@ def stage(force: bool = False) -> dict[str, Path]:
             target,
             {
                 "table": role,
-                "unit_of_observation": item.role.unit,
-                "cardinality": item.role.cardinality,
+                "unit_of_observation": item.unit,
+                "cardinality": item.cardinality,
                 "source_file": item.relative,
-                "source_sha256": item.sha256,
-                "years": list(item.years),
+                "source_sha256": digest,
             },
         )
         log.info("staged %s: %s rows from %s", role, f"{len(frame):,}", item.relative)
@@ -294,10 +276,6 @@ def crash_core(accidents: pd.DataFrame) -> pd.DataFrame:
         out["pedestrian_cause"].fillna(out["Descripcio_causa_vianant"]).astype("string")
     )
     out["pedestrian_cause_recorded"] = (~blank(out["Descripcio_causa_vianant"])).astype(bool)
-    corrected = coordinates.corrected_utm(out, "bcn_accidents")
-    out = pd.concat([out, corrected], axis=1)
-    out["longitude"] = to_float(out["Longitud_WGS84"])
-    out["latitude"] = to_float(out["Latitud_WGS84"])
     return out
 
 
@@ -395,24 +373,6 @@ def aggregate_driver_causes(driver: pd.DataFrame) -> pd.DataFrame:
     return out
 
 
-def vehicle_type_presence(vehicles: pd.DataFrame) -> pd.DataFrame:
-    """One row per crash: which vehicle groups appear among its vehicle records.
-
-    Only presence is used, so whether a vehicle record is one vehicle, a duplicate or a record per
-    person (see :mod:`vehicles`) does not change the answer: a crash with any record of a
-    motorcycle involved a motorcycle. Row counts of this table are never read as vehicle counts.
-    """
-    groups = vehicles["Descripcio_tipus_vehicle"].fillna("").map(VEHICLE_GROUPS)
-    groups = groups.fillna("other")
-    present = pd.crosstab(vehicles[KEY], groups).gt(0)
-    present = present.reindex(columns=list(VEHICLE_GROUP_ORDER), fill_value=False)
-    present.columns = [f"vehicle_records_include_{name}" for name in present.columns]
-    present.insert(0, "vehicle_table_rows", vehicles.groupby(KEY).size())
-    out = present.reset_index()
-    assert_unique(out, KEY, "vehicle-type presence")
-    return out
-
-
 def person_composition(people: pd.DataFrame) -> pd.DataFrame:
     """One row per crash: how many person records of each role it has (records, not people)."""
     roles = people["Descripcio_tipus_persona"].map(ROLES_OF_PERSON).fillna("other")
@@ -435,7 +395,6 @@ def build_crashes(tables: dict[str, pd.DataFrame]) -> pd.DataFrame:
     for extra in (
         aggregate_mediate(tables["bcn_mediate_causes"]),
         aggregate_driver_causes(tables["bcn_driver_causes"]),
-        vehicle_type_presence(tables["bcn_vehicles"]),
         person_composition(tables["bcn_people"]),
     ):
         unknown = set(extra[KEY]) - set(out[KEY])
@@ -514,13 +473,11 @@ def build(force: bool = False) -> dict[str, Path]:
         raise ValueError(f"{len(orphans)} person records point at unknown crashes")
     mediate = aggregate_mediate(tables["bcn_mediate_causes"])
     driver = aggregate_driver_causes(tables["bcn_driver_causes"])
-    vehicles = vehicle_type_presence(tables["bcn_vehicles"])
     outputs = {
         PROCESSED_ACCIDENTS: (crashes, "one crash (Numero_expedient)", KEY),
         PROCESSED_PEOPLE: (people, "one person record (no source person id)", "person_record_id"),
         PROCESSED_MEDIATE: (mediate, "one crash (aggregated mediate causes)", KEY),
         PROCESSED_DRIVER_CAUSES: (driver, "one crash (aggregated driver causes)", KEY),
-        PROCESSED_VEHICLE_TYPES: (vehicles, "one crash (vehicle-type presence)", KEY),
     }
     written = {}
     for path, (frame, unit, key) in outputs.items():

@@ -48,14 +48,12 @@ FIGURES_DIR = REPORTS_DIR / "figures"
 # The same figures drawn for a phone's column (``plots.narrow``), which the site serves to phones.
 NARROW_FIGURES_DIR = FIGURES_DIR / "narrow"
 TABLES_DIR = REPORTS_DIR / "tables"
-DOCS_DIR = PROJECT_ROOT / "docs"
 
 DICTIONARY_PATH = RAW_MICRODATA_DIR / "diccionario.xlsx"
 SERIES_PATH = RAW_TABLES_DIR / "series_historicas_2024.xlsx"
 TABLES_2024_PATH = RAW_TABLES_DIR / "tablas_estadisticas_2024.xlsx"
 CENSUS_TABLES_2025_PATH = RAW_CENSUS_DIR / "censo_tablas_2025.xlsx"
 KM_MEAN_2022_PATH = RAW_DGT_DIR / "km_itv_2022" / "media_km_antiguedad_tipo_2022.xlsx"
-KM_ESTIMATED_2022_PATH = RAW_DGT_DIR / "km_itv_2022" / "km_recorridos_estimados_2022.xlsx"
 POPULATION_PATH = RAW_INE_DIR / "ine_poblacion_provincias_edad_sexo.csv"
 KM_BY_OWNER_AGE_2024_PATH = RAW_DGT_DIR / "km_itv_2024" / "km_edad_propietario_2024.xlsx"
 KM_MEAN_BY_TYPE_2024_PATH = RAW_DGT_DIR / "km_itv_2024" / "km_medios_tipo_2024.xlsx"
@@ -65,12 +63,12 @@ ROAD_TRAFFIC_PATH = RAW_TRANSPORTES_DIR / "anuario_carreteras_2023.pdf"
 
 MICRODATA_YEARS = tuple(range(2016, 2025))
 CENSUS_YEARS = (2023, 2024, 2025)
-CENSUS_AGE_YEARS = (2023, 2024, 2025)
 CENSUS_TABLE_YEARS = tuple(range(2014, 2026))
 TABLE_YEARS = tuple(range(2014, 2025))
-# Years whose statistical tables are published as one workbook per chapter (grupo_N).
+# Years whose statistical tables are published as one workbook per chapter (grupo_N); only the
+# chapters the code reads are kept: 4 (drivers) and 6 (infractions).
 TABLE_CHAPTER_YEARS = tuple(range(2014, 2020))
-TABLE_CHAPTERS = tuple(range(1, 9))
+TABLE_CHAPTERS = (4, 6)
 
 
 def microdata_raw_path(year: int) -> Path:
@@ -102,12 +100,12 @@ def tables_raw_path(year: int, chapter: int | None = None) -> Path:
     """Published crash statistics workbook for one year.
 
     From 2020 the DGT publishes one workbook per year; 2014-2019 have one workbook per chapter
-    (``grupo_1`` ... ``grupo_8``), so ``chapter`` is required for those years. 2014 is the only
-    year still in the legacy ``.xls`` format.
+    (``grupo_4`` and ``grupo_6`` are kept), so ``chapter`` is required for those years. 2014 is the
+    only year still in the legacy ``.xls`` format.
     """
     if year in TABLE_CHAPTER_YEARS:
         if chapter is None:
-            raise ValueError(f"{year} tables are split by chapter; pass chapter=1..8")
+            raise ValueError(f"{year} tables are split by chapter; pass chapter=4 or 6")
         suffix = "xls" if year == 2014 else "xlsx"
         return RAW_TABLES_DIR / "chapters" / str(year) / f"grupo_{chapter}.{suffix}"
     return RAW_TABLES_DIR / f"tablas_estadisticas_{year}.xlsx"

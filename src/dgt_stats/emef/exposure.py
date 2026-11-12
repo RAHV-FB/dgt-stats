@@ -23,8 +23,7 @@ learn from, so its mean for them is an extrapolation. The central treatment take
 mean but no more than the distance the duration allows at ``UNBANDED_MAX_SPEED`` (80 km/h) door
 to door, a long-distance average that allows for stops and slower roads at either end. The
 alternatives in :data:`TRIP_VARIANTS` (60 and 100 km/h, durations capped at four hours, no bound,
-the trips left out) are carried into every national ratio as a sensitivity range, because a
-few long trips weigh heavily: in 2022–2024 the 79 car-driver trips without a band made by
+the trips left out) are tested in :func:`sensitivity`, because a few long trips weigh heavily: in 2022–2024 the 79 car-driver trips without a band made by
 respondents aged 65 and over carry about a fifth of that group's car-driver kilometres. A banded
 trip whose band cannot be reached in its duration (the band's lower edge, by road, at more than
 ``BAND_SPEED_LIMIT`` door to door) is a recording error and is treated as unbanded.
@@ -373,87 +372,6 @@ def contemporary(years: tuple[int, ...] = CONTEMPORARY_YEARS) -> pd.DataFrame:
     return publishable_estimates(out)
 
 
-def by_area(years: tuple[int, ...] = CONTEMPORARY_YEARS) -> pd.DataFrame:
-    """The mean working day of ``years`` by area of residence and four age groups."""
-    frame = person_day()
-    frame = frame[frame.year.isin(years)].reset_index(drop=True)
-    area = pd.Series(pd.NA, index=frame.index, dtype="object")
-    for name, zones in AREAS.items():
-        area[frame.zone_code.isin(zones)] = name
-    frame["area"] = area
-    factors = replicate_factors(frame)
-    out = pd.concat(
-        [
-            estimates(frame, ["area", "age4"], factors, pooled=True),
-            estimates(frame.assign(age4="16+"), ["area", "age4"], factors, pooled=True),
-        ],
-        ignore_index=True,
-    )
-    out.insert(0, "years", f"{min(years)}-{max(years)}")
-    return publishable_estimates(out)
-
-
-def series() -> pd.DataFrame:
-    """Each year 2014-2024 by the three age groups every year supports, for the survey area of
-    that year and for the seven-comarca metropolitan region every edition covers (RMB). Before
-    2021 the kilometres are modelled from durations."""
-    frame = person_day()
-    factors = replicate_factors(frame)
-    pieces = []
-    for area, mask in (("survey area", np.ones(len(frame), bool)), ("RMB", frame.rmb.to_numpy())):
-        part = frame[mask]
-        f = factors[mask]
-        table = pd.concat(
-            [
-                estimates(part.reset_index(drop=True), ["year", "age3"], f),
-                estimates(part.assign(age3="16+").reset_index(drop=True), ["year", "age3"], f),
-            ],
-            ignore_index=True,
-        )
-        table.insert(0, "area", area)
-        pieces.append(table)
-    out = pd.concat(pieces, ignore_index=True)
-    out["km_source"] = np.where(out.year >= v.DISTANCE_FROM, "measured band", "modelled")
-    out["area_definition"] = np.where(
-        out.area == "RMB", "constant (seven comarques)", out.year.map(v.AREA)
-    )
-    return publishable_estimates(out)
-
-
-PERIODS: dict[str, tuple[int, ...]] = {
-    "2014-2016": (2014, 2015, 2016),
-    "2017-2019": (2017, 2018, 2019),
-    "2021-2024": (2021, 2022, 2023, 2024),
-    "2014-2024 without 2020": tuple(y for y in v.YEARS if y != 2020),
-}
-
-
-def periods() -> pd.DataFrame:
-    """Pooled periods by the three age groups every year supports, in the metropolitan region
-    every edition covers (RMB). 2020, surveyed under COVID-19 restrictions, is left out."""
-    frame = person_day()
-    frame = frame[frame.rmb].reset_index(drop=True)
-    pieces = []
-    for label, years in PERIODS.items():
-        part = frame[frame.year.isin(years)].reset_index(drop=True)
-        factors = replicate_factors(part)
-        table = pd.concat(
-            [
-                estimates(part, ["age3"], factors, pooled=True),
-                estimates(part.assign(age3="16+"), ["age3"], factors, pooled=True),
-            ],
-            ignore_index=True,
-        )
-        table.insert(0, "period", label)
-        table.insert(
-            1, "km_source", "modelled" if min(years) < v.DISTANCE_FROM else "measured band"
-        )
-        pieces.append(table)
-    out = pd.concat(pieces, ignore_index=True)
-    out.loc[out.period.str.startswith("2014-2024"), "km_source"] = "modelled to 2020, band after"
-    return publishable_estimates(out)
-
-
 def km_shares(frame: pd.DataFrame, column: str = "car_km", by: str = "age4") -> pd.Series:
     """Share of the group's car-driver kilometres by age, years weighted equally."""
     totals = frame.assign(wkm=frame.weight * frame[column]).groupby(["year", by]).wkm.sum()
@@ -508,54 +426,8 @@ def bounded_road_ratio(max_speed_kmh: float) -> float:
     return float(optimize.brentq(gap, 1.0, 3.0))
 
 
-BAND_LABELS: dict[int, str] = {
-    code: f"{low:g} km or more" if np.isinf(high) else f"{low:g}-{high:g} km"
-    for code, (low, high) in v.DISTANCE_BANDS.items()
-}
-
-
-def km_by_band(
-    years: tuple[int, ...] = CONTEMPORARY_YEARS, publishable: bool = True
-) -> pd.DataFrame:
-    """Each straight-line band's share of car-driver trips and kilometres by age group, with the
-    sample trips behind it and the median door-to-door road speed the central method implies.
-
-    A band with fewer than 20 sample trips in an age group is suppressed (:mod:`publication`);
-    ``publishable=False`` keeps every value, for checks only."""
-    car = car_driver_trips()
-    car = car[car.year.isin(years)]
-    car = car.assign(
-        band=car.distance_band.astype("Int64").map(BAND_LABELS).fillna("no band"),
-        wkm=car.weight * car.km_road,
-        speed=car.km_road / (car.duration_min.astype(float) * car.car_share / 60),
-    )
-    rows = []
-    for (age, label), group in car.groupby(["age4", "band"]):
-        within = car[car.age4 == age]
-        rows.append(
-            {
-                "age4": age,
-                "band": label,
-                "sample_trips": len(group),
-                "share_of_trips": float(group.weight.sum() / within.weight.sum()),
-                "share_of_km": float(group.wkm.sum() / within.wkm.sum()),
-                "mean_straight_km": float(np.average(group.km_straight, weights=group.weight)),
-                "median_road_speed_kmh": float(group.speed.median()),
-            }
-        )
-    order = [*BAND_LABELS.values(), "no band"]
-    out = pd.DataFrame(rows)
-    out["band"] = pd.Categorical(out.band, order, ordered=True)
-    out = out.sort_values(["age4", "band"]).reset_index(drop=True)
-    if not publishable:
-        return out
-    measures = ["share_of_trips", "share_of_km", "mean_straight_km", "median_road_speed_kmh"]
-    return publication.suppress_small_cells(out, "sample_trips", measures, flag=True)
-
-
-# Alternatives to the central distance treatment, carried into every national ratio. Each is a
-# defensible choice where the data do not decide; band edges, which are bounds rather than
-# choices, appear only in :func:`sensitivity`.
+# Alternatives to the central distance treatment (:func:`sensitivity`). Each is a defensible
+# choice where the data do not decide.
 TRIP_VARIANTS: dict[str, dict[str, object]] = {
     "unbanded trips bounded at 100 km/h": {"max_speed": 100.0},
     "unbanded trips bounded at 60 km/h": {"max_speed": 60.0},
@@ -674,112 +546,54 @@ def employment_reweighted(frame: pd.DataFrame) -> pd.Series:
 
 
 def sensitivity() -> pd.DataFrame:
-    """Kilometres per resident and each age group's share of car-driver kilometres under
-    alternative choices: years pooled, area, every distance variant of :data:`TRIP_VARIANTS` and
-    the band midpoints, the edges of the bands that carry most kilometres, professionals' work
-    driving and the older sample's employment. Rates here are means of yearly rates, so the
-    central row differs slightly from :func:`contemporary`, which divides pooled totals."""
+    """Kilometres per resident and each age group's share of car-driver kilometres under the
+    central treatment and seven alternatives, one row each, by age group: one survey year, the
+    metropolitan region only, three treatments of trip distances, professionals' work driving
+    and the older sample's employment set to the census. Rates here are means of yearly rates, so
+    the central row differs slightly from :func:`contemporary`, which divides pooled totals."""
     base = person_day()
-    trips = trip_km_variants()
-    rows = []
-
-    def record(label: str, choice: str, frame: pd.DataFrame, column: str = "car_km") -> None:
-        shares = km_shares(frame, column)
-        rates = per_resident(frame, column)
-        for age in shares.index:
-            rows.append(
-                {
-                    "variant": label,
-                    "choice": choice,
-                    "age4": age,
-                    "km_per_resident": float(rates[age]),
-                    "share_of_km": float(shares[age]),
-                }
-            )
-
-    contemporary_mask = base.year.isin(CONTEMPORARY_YEARS)
-    record(
-        "central",
-        "2022-2024, unbanded bounded at 80 km/h, multimodal half",
-        base[contemporary_mask],
-    )
-    for years in ((2021, 2022, 2023, 2024), (2023, 2024), (2024,), (2019, 2021, 2022, 2023, 2024)):
-        record("years", "-".join(map(str, years)), base[base.year.isin(years)])
-    record("area", "RMB only", base[contemporary_mask & base.rmb])
-    totals = trips.groupby(["year", "person_id"])[trip_variant_names()].sum()
+    mask = base.year.isin(CONTEMPORARY_YEARS)
+    totals = trip_km_variants().groupby(["year", "person_id"])[trip_variant_names()].sum()
     with_variants = base.merge(totals, on=["year", "person_id"], how="left").fillna(
         {name: 0.0 for name in trip_variant_names()}
     )
-    for name in trip_variant_names():
-        record("distance", name, with_variants[contemporary_mask.to_numpy()], name)
-    # The two bands that carry most kilometres, pushed to their edges (bounds, not choices).
-    car = car_driver_trips()
-    band = car.distance_band.astype("Int64")
-    measured = (car.km_source == "band and duration").to_numpy()
-    for code, edge, choice in (
-        (5, 10.0, "10-50 km band at 10 km"),
-        (5, 50.0, "10-50 km band at 50 km"),
-        (7, 100.0, "over-100 km band at 100 km"),
-    ):
-        at_edge = band.eq(code).fillna(False).to_numpy() & measured
-        km = np.where(at_edge, edge * ROAD_RATIO * car.car_share.to_numpy(), car.km_road)
-        total = car.assign(alt=km).groupby(["year", "person_id"]).alt.sum().rename("alt_km")
-        frame = base.merge(total, on=["year", "person_id"], how="left").fillna({"alt_km": 0.0})
-        record("band edges", choice, frame[contemporary_mask.to_numpy()], "alt_km")
-    for fraction in PROFESSIONAL_CAR_SHARES:
-        frame = base.assign(alt_km=base.car_km + professional_km(fraction))
-        record(
-            "professionals' work driving",
-            f"{fraction:.0%} of work trips by car",
-            frame[contemporary_mask],
+    frames = {
+        ("central", "2022-2024, unbanded bounded at 80 km/h, multimodal half"): (
+            base[mask],
+            "car_km",
+        ),
+        ("years", "2024 only"): (base[base.year == 2024], "car_km"),
+        ("area", "RMB only"): (base[mask & base.rmb], "car_km"),
+        ("distance", "unbanded trips left out"): (
+            with_variants[mask.to_numpy()],
+            "unbanded trips left out",
+        ),
+        ("distance", "unbanded trips bounded at 100 km/h"): (
+            with_variants[mask.to_numpy()],
+            "unbanded trips bounded at 100 km/h",
+        ),
+        ("distance", "arithmetic midpoints within bands"): (
+            with_variants[mask.to_numpy()],
+            "arithmetic midpoints within bands",
+        ),
+        ("professionals' work driving", "50% of work trips by car"): (
+            base.assign(alt_km=base.car_km + professional_km(0.5))[mask],
             "alt_km",
-        )
-    frame = base[contemporary_mask].copy()
-    frame["weight"] = employment_reweighted(frame)
-    record("older sample", "65+ employed share set to the census", frame)
-    return pd.DataFrame(rows)
-
-
-FREQUENCY_LABELS = {
-    0: "never",
-    1: "occasionally",
-    2: "less than monthly",
-    3: "once a month",
-    4: "several times a month",
-    5: "once a week",
-    6: "several times a week",
-    7: "every day or almost",
-}
-
-
-def usual_frequency(years: tuple[int, ...] = CONTEMPORARY_YEARS) -> pd.DataFrame:
-    """How often respondents say they drive a car, by age, and the share who drove on the
-    reference working day within each frequency (2022-2024, eight-point scale). A frequency
-    answered by fewer than 20 respondents of an age group is suppressed (:mod:`publication`)."""
-    scales = {v.CAR_DRIVER_FREQUENCY.get(year, (None, None))[1] for year in years}
-    if scales != {"eight_point"}:
-        raise ValueError(f"usual_frequency: the labels are for the eight-point years, not {years}")
-    frame = person_day()
-    frame = frame[frame.year.isin(years) & frame.car_driver_frequency.notna()]
-    frame = frame.assign(frequency=frame.car_driver_frequency.astype(int).map(FREQUENCY_LABELS))
+        ),
+    }
+    older = base[mask].copy()
+    older["weight"] = employment_reweighted(older)
+    frames[("older sample", "65+ employed share set to the census")] = (older, "car_km")
     rows = []
-    for (age, label), group in frame.groupby(["age4", "frequency"]):
-        within = frame[frame.age4 == age]
-        rows.append(
-            {
-                "age4": age,
-                "frequency": label,
-                "code": int(group.car_driver_frequency.iloc[0]),
-                "respondents": len(group),
-                "share_of_age": float(group.weight.sum() / within.weight.sum()),
-                "share_drove_on_reference_day": float(
-                    (group.weight * group.drove).sum() / group.weight.sum()
-                ),
-            }
-        )
-    out = pd.DataFrame(rows).sort_values(["age4", "code"]).reset_index(drop=True)
-    measures = ["share_of_age", "share_drove_on_reference_day"]
-    return publication.suppress_small_cells(out, "respondents", measures, flag=True)
+    for (variant, choice), (frame, column) in frames.items():
+        shares, rates = km_shares(frame, column), per_resident(frame, column)
+        row = {"variant": variant, "choice": choice}
+        for age in shares.index:
+            row[f"km_per_resident_{age}"] = float(rates[age])
+        for age in shares.index:
+            row[f"share_of_km_{age}"] = float(shares[age])
+        rows.append(row)
+    return pd.DataFrame(rows)
 
 
 WEEKEND_MODES = ("V14A_1", "V14A_2", "V14A_3", "V14B_1", "V14B_2", "V14B_3")

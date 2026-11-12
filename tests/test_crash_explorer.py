@@ -116,7 +116,7 @@ def test_the_table_has_one_row_per_non_empty_cell(table: pd.DataFrame) -> None:
 
 @needs_table
 def test_the_table_reconciles_with_the_published_yearly_totals(table: pd.DataFrame) -> None:
-    published = pd.read_csv(TABLES_DIR / "q1_annual_headline.csv").set_index("year")
+    published = pd.read_csv(TABLES_DIR / "risk_annual_panel.csv").set_index("year")
     yearly = table.groupby("year")[["injury_crashes", "deaths_30d"]].sum()
     assert set(yearly.index) <= set(published.index)
     for year, row in yearly.iterrows():
@@ -159,11 +159,3 @@ def test_the_data_file_decodes_back_to_the_table(table: pd.DataFrame) -> None:
         breaks["dualUntil"] < breaks["otherFrom"] and breaks["junction"][0] <= breaks["junction"][1]
     )
     assert breaks["junction"][-1] <= table.year.max()
-
-
-@needs_table
-def test_the_page_describes_the_years_the_table_covers(table: pd.DataFrame) -> None:
-    from dgt_stats.site import tool_crashes
-
-    coverage = tool_crashes.describe()["coverage"]
-    assert f"{table.year.min()}–{table.year.max()}" in coverage

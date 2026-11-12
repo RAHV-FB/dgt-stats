@@ -24,13 +24,7 @@ from scipy import stats
 
 from dgt_stats.exposure_risk import national
 from dgt_stats.site.components import read_table
-from dgt_stats.site.numbers import (
-    CENTRAL_KM,
-    _older_numbers,
-    joint_interval,
-    mc_interval,
-    rate_interval,
-)
+from dgt_stats.site.numbers import joint_interval, mc_interval, rate_interval
 from dgt_stats.site.tool_frame import tool_page
 
 Z = stats.norm.ppf(0.975)
@@ -82,13 +76,14 @@ def _per_km(rates: pd.DataFrame, column: str) -> dict[str, object]:
 
 def _age_measures() -> list[dict[str, object]]:
     rates = read_table("risk_national_rates")
-    rates = rates[
-        (rates.km_total == CENTRAL_KM) & (rates.method == national.CENTRAL_METHOD)
-    ].set_index("group")
+    rates = rates[rates.method == national.CENTRAL_METHOD].set_index("group")
     involved_per_km = _per_km(rates, "involved_ratio")
     killed_per_km = _per_km(rates, "killed_ratio")
     # Ages 65-74 and 75 and over: the 65-and-over kilometres split as in Madrid's survey.
-    conditional = _older_numbers()["conditional"]
+    split = read_table("risk_older_split")
+    conditional = split[
+        (split.profile == national.CENTRAL_METHOD) & (split.assumption == national.REFERENCE_SPLIT)
+    ].set_index("group")
     for group in SPLIT_GROUPS:
         row = conditional.loc[group]
         involved_per_km[group] = {"label": AGE_LABELS[group]} | _estimate(
@@ -242,18 +237,6 @@ def driver_data() -> dict[str, object]:
         "age_labels": AGE_LABELS,
         "age": _age_measures(),
         "sex": _sex_measures(),
-    }
-
-
-def describe() -> dict[str, str]:
-    data = driver_data()
-    return {
-        "title": "Driver risk comparison",
-        "what": "Two groups of car drivers side by side, by age or sex: involvement in injury "
-        "crashes and deaths, per licence holder, per driver involved and per kilometre driven.",
-        "coverage": f"Spain, {data['year']} (men and women: {data['sex']['years']})",
-        "kind": "Observed rates with 95% intervals; per-kilometre figures are estimates that "
-        "depend on assumptions about distance driven",
     }
 
 
