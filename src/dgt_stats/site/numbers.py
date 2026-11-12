@@ -108,63 +108,46 @@ def _window(windows: pd.DataFrame, zone: str, factor: str, year: int) -> pd.Seri
     return match.iloc[0]
 
 
-CENTRAL_KM = "less taxi and ride-hailing"
-
-
 def _driver_numbers() -> dict[str, object]:
-    """Involvement per km by driver age (the central average of the Barcelona and Madrid
-    profiles; Method A, from which the sensitivity analysis varies each choice; the
-    licence-calibrated A2; every sensitivity), the Barcelona working-day check and the split at
-    75 (``older``: the central profile's rows), read from ``risk_*``."""
+    """Involvement per km by driver age and sex, read from ``risk_*``: the central estimate
+    (the average of the Barcelona and Madrid profiles; ``central`` for the four age groups,
+    ``older`` for 65-74 and 75 and over under the Madrid split), the ranges across alternative
+    assumptions (``ranges``, a table by measure and group), deaths once involved (``severity``)
+    and the working-day check in Barcelona (``city``)."""
     from dgt_stats.exposure_risk import national
 
     rates = read_table("risk_national_rates")
-    rates = rates[rates.km_total == CENTRAL_KM]
     central = rates[rates.method == national.CENTRAL_METHOD].set_index("group")
-    barcelona = rates[rates.method == national.BARCELONA_METHOD].set_index("group")
-    licence = rates[rates.method == national.LICENCE_METHOD].set_index("group")
-    sensitivity = read_table("risk_national_sensitivity")
-    ranges = sensitivity.groupby("group").involved_ratio.agg(["min", "max"])
-    by_source = sensitivity.groupby(["source", "group"]).involved_ratio.agg(["min", "max"])
     split = read_table("risk_older_split")
-    older = split[split.profile == national.CENTRAL_METHOD]
-    older_range = read_table("risk_older_sensitivity")
+    older = split[
+        (split.profile == national.CENTRAL_METHOD) & (split.assumption == national.REFERENCE_SPLIT)
+    ].set_index("group")
+    ranges = read_table("risk_national_ranges")
     city = read_table("risk_barcelona_rates")
-    city = city[city.numerator == city.numerator.iloc[0]]
-    city_older = read_table("risk_barcelona_older")
     return {
-        "rates": rates,
         "central": central,
-        "barcelona": barcelona,
-        "licence": licence,
-        "sensitivity": sensitivity,
-        "ranges": ranges,
-        "by_source": by_source,
         "older": older,
-        "older_barcelona": split[split.profile == national.BARCELONA_METHOD],
-        "older_range": {
-            "65-74": (float(older_range.ratio_65_74.min()), float(older_range.ratio_65_74.max())),
-            "75+": (float(older_range.ratio_75_plus.min()), float(older_range.ratio_75_plus.max())),
-        },
-        "city": city,
-        "city_all": read_table("risk_barcelona_rates"),
-        "city_older": city_older,
+        "ranges": ranges,
+        "involved_ranges": ranges[ranges.measure == "involved per km"].set_index("group"),
+        "city": city[city.numerator == city.numerator.iloc[0]],
+        "city_all": city,
         "severity": read_table("risk_severity_and_licences").set_index("group"),
     }
 
 
-# The three wordings of what the per-km figures say about drivers aged 75 and over, from the
-# strongest to the weakest; :func:`_older_numbers` picks the one the tables support.
-PASS, INTERMEDIATE, FAIL = "pass", "intermediate", "fail"
-# What the 75+ sensitivity range allows, as a clause after "the sensitivity range is a to b times
-# the 45-64 rate", for every page that states it: the same evidence gets the same words.
-OLDER_CONCLUSION = {
-    PASS: "; every combination tested that agrees with surveys of men's driving puts them above "
-    "that rate, even allowing for sampling error, but how far above is not established",
-    INTERMEDIATE: ", so the data do not establish that they are involved more often per "
-    "kilometre than drivers aged 45–64, or by how much",
-    FAIL: ", so whether they are involved more or less often per kilometre is not established",
-}
+def per_km_ratio(numbers: dict[str, object], group: str) -> dict[str, float | str]:
+    """One group's involvement per km against drivers aged 45-64: the central ratio, its 95%
+    sampling interval and the range across the alternative assumptions, all to one decimal."""
+    row = numbers["involved_ranges"].loc[group]
+    return {
+        "ratio": f"{row.ratio:.1f}",
+        "interval": f"{row.ratio_low:.1f}–{row.ratio_high:.1f}",
+        "range": f"{row.range_min:.1f}–{row.range_max:.1f}",
+        "low": float(row.range_min),
+        "high": float(row.range_max),
+    }
+
+
 # How many Monte Carlo standard errors an end of a joint sampling interval must stand from the
 # 45-64 rate for a wording to rest on which side of it the end lies.
 MC_MARGIN = 3
@@ -249,77 +232,3 @@ def rate_interval(row: pd.Series, column: str, sep: str = "–", coarsest: int =
         sep=sep,
         coarsest=coarsest,
     )
-
-
-def side_of_one_shown(value: float, se: float, *standard_errors: float) -> bool:
-    """Whether a sentence may rest on which side of 1 an interval end lies: the end stands
-    :data:`MC_MARGIN` Monte Carlo standard errors clear of 1, and printed as :func:`mc_interval`
-    prints it, at the precision the interval's errors (``standard_errors``, both ends') support
-    or finer, it does not read as 1."""
-    digits = _clear_of_one(value, se, mc_digits(*standard_errors))
-    return abs(float(value) - 1) >= MC_MARGIN * float(se) and round(float(value), digits) != 1
-
-
-def _older_numbers() -> dict[str, object]:
-    """Ages 75 and over: the conditional (Madrid-pattern) estimate with its joint sampling
-    interval, on the central average profile (``barcelona_conditional``: on Method A, from which
-    the sensitivity analysis varies each choice), the sensitivity range, the span of the combinations not marked as at odds with
-    men's driving, the sampling intervals at its ends, and the wording the tables allow.
-
-    PASS needs the lowest unmarked combination above the 45-64 rate even at the bottom of its
-    sampling interval, and the conditional estimate's interval above it too; INTERMEDIATE, the
-    lowest unmarked combination above it at its point value; otherwise FAIL."""
-    from dgt_stats.exposure_risk import national
-
-    split = read_table("risk_older_split")
-    older = read_table("risk_older_sensitivity")
-    extremes = read_table("risk_older_extremes").set_index(["group", "end"])
-    madrid_split = split[split.assumption == national.REFERENCE_SPLIT]
-    conditional = madrid_split[madrid_split.profile == national.CENTRAL_METHOD].set_index("group")
-    barcelona_conditional = madrid_split[
-        madrid_split.profile == national.BARCELONA_METHOD
-    ].set_index("group")
-    unmarked = older[~older.at_odds_with_mens_driving]
-    lowest = extremes.loc[("75+", "lowest unmarked")]
-    clear_min = float(unmarked.ratio_75_plus.min())
-    if abs(float(lowest.value) - clear_min) > 1e-9:
-        raise ValueError("risk_older_extremes does not match risk_older_sensitivity")
-    # A wording that rests on which side of the 45-64 rate an interval's lower end lies needs
-    # that end clear of it by more than its Monte Carlo error; otherwise more replicates decide.
-    for name, row in (
-        ("the lowest unmarked combination", lowest),
-        ("the conditional estimate", conditional.loc["75+"]),
-    ):
-        if abs(float(row.ratio_low) - 1) < MC_MARGIN * float(row.mc_se_low):
-            raise ValueError(
-                f"75+: the sampling interval of {name} ends within Monte Carlo error of the "
-                "45-64 rate; rerun with more replicates before choosing a wording"
-            )
-    if (
-        clear_min > 1
-        and float(lowest.ratio_low) > 1
-        and float(conditional.loc["75+", "ratio_low"]) > 1
-    ):
-        tier = PASS
-    elif clear_min > 1:
-        tier = INTERMEDIATE
-    else:
-        tier = FAIL
-    return {
-        "split": split,
-        "older": older,
-        "unmarked": unmarked,
-        "extremes": extremes,
-        "conditional": conditional,
-        "barcelona_conditional": barcelona_conditional,
-        "range": {
-            "65-74": (float(older.ratio_65_74.min()), float(older.ratio_65_74.max())),
-            "75+": (float(older.ratio_75_plus.min()), float(older.ratio_75_plus.max())),
-        },
-        "clear": {
-            "65-74": (float(unmarked.ratio_65_74.min()), float(unmarked.ratio_65_74.max())),
-            "75+": (clear_min, float(unmarked.ratio_75_plus.max())),
-        },
-        "lowest_clear": lowest,
-        "tier": tier,
-    }

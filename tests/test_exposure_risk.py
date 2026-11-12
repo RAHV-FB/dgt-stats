@@ -1,9 +1,11 @@
-"""Crash involvement per kilometre by driver age: calendar, numerators, exposure and rates.
+"""Crash involvement per kilometre by driver age: calendar, numerators, exposure, rates and ranges.
 
 These guard the errors the per-kilometre comparison is most exposed to: counting a holiday as a
 working day, a numerator and a denominator that cover different drivers, an age group whose
 population is double counted, shares that do not add up, a 65-74/75+ split that changes the
-measured 65-and-over total, and a ratio that does not follow from its rates.
+measured 65-and-over total, a ratio that does not follow from its rates, and a range that does
+not contain the estimate it surrounds. They need the DGT table layer
+(``python scripts/ingest.py``); without it the module is skipped.
 """
 
 from __future__ import annotations
@@ -15,19 +17,28 @@ import pandas as pd
 import pytest
 
 from dgt_stats import edm2018, io_tables
-from dgt_stats.emef import older_routing
-from dgt_stats.exposure_risk import barcelona, calendar, coverage, national
+from dgt_stats.exposure_risk import barcelona, calendar, coverage, national, ranges
+from dgt_stats.paths import STAGING_DATA_DIR
 
-
-@pytest.fixture(scope="module")
-def older_table() -> pd.DataFrame:
-    """Every 65-74 and 75+ combination (about two minutes to compute, so computed once)."""
-    return national.older_sensitivity()
+pytestmark = pytest.mark.skipif(
+    not (STAGING_DATA_DIR / "dgt").exists(),
+    reason="run `python scripts/ingest.py` first: the DGT table layer is missing",
+)
 
 
 @pytest.fixture(scope="module")
 def older_split_table() -> pd.DataFrame:
     return national.older_split()
+
+
+@pytest.fixture(scope="module")
+def rates_table() -> pd.DataFrame:
+    return national.rates()
+
+
+@pytest.fixture(scope="module")
+def ranges_table(rates_table, older_split_table) -> pd.DataFrame:
+    return ranges.ranges(rates_table, older_split_table, national.sex_per_km())
 
 
 def test_barcelona_2025_calendar() -> None:
@@ -110,31 +121,12 @@ def test_the_central_profile_averages_the_barcelona_and_madrid_shares() -> None:
     mean = (shares(national.emef_profile()) + shares(national.edm_profile())) / 2
     assert central.sum() == pytest.approx(1.0)
     assert np.allclose(central, mean, atol=0.001)
-    # Every central ratio lies inside its sensitivity range.
-    rates = national.rates()
-    central_rates = rates[rates.method == national.CENTRAL_METHOD].set_index("group")
-    spread = national.sensitivity().groupby("group").involved_ratio.agg(["min", "max"])
-    for group in national.GROUPS:
-        value = central_rates.loc[group, "involved_ratio"]
-        assert spread.loc[group, "min"] <= value <= spread.loc[group, "max"], group
-
-
-def test_uniform_weekend_mix_reproduces_the_central_ratios() -> None:
-    weekend = national.weekend_sensitivity()
-    uniform = weekend[weekend.non_working_age_mix.str.startswith("same")]
-    central = national.rates().query("method.str.startswith('A:')").set_index("group")
-    for _, row in uniform.iterrows():
-        assert row.ratio_to_45_64 == pytest.approx(central.loc[row.group, "involved_ratio"])
 
 
 def test_barcelona_numerator_and_denominators() -> None:
     drivers = barcelona.involved_drivers()
     assert set(drivers.day_type) <= set(calendar.DAY_TYPES)
-    days = barcelona.counts_by_day_type()
     cars = drivers[drivers.vehicle == "car"]
-    assert days.query(
-        "age in ['16-29', '30-44', '45-64', '65+', 'not recorded']"
-    ).drivers.sum() == (len(cars) - int(((cars.age < 16) & cars.age.notna()).sum()))
     # Ride-hailing cars (trip motive "Taxi" on an ordinary car) count as taxis, as nationally.
     assert not cars[barcelona.MOTIVE].eq(barcelona.TAXI).any()
     rates = barcelona.rates()
@@ -144,31 +136,10 @@ def test_barcelona_numerator_and_denominators() -> None:
     assert (km[barcelona.DENOMINATORS[1]] < km[barcelona.DENOMINATORS[2]]).all()
     reference = rates[rates.age4 == barcelona.REFERENCE]
     assert np.allclose(reference.ratio_to_45_64, 1.0)
-    # Each further exclusion removes drivers and never adds any.
+    assert list(rates.numerator.unique()) == list(barcelona.NUMERATORS)
+    # Leaving out the drivers on duty removes drivers and never adds any.
     counts = rates.groupby("numerator", sort=False).drivers_involved.sum()
     assert counts.is_monotonic_decreasing
-
-
-def test_sensitivity_holds_the_central_estimate_and_every_source() -> None:
-    table = national.sensitivity()
-    central = table[table.source == "central"].set_index("group").involved_ratio
-    rates = national.rates().query("method.str.startswith('A:')").set_index("group")
-    assert np.allclose(central, rates.involved_ratio.reindex(central.index))
-    assert {
-        "regional profile",
-        "licence-calibrated transfer",
-        "distance",
-        "survey years",
-        "professionals' work driving",
-        "older sample",
-        "non-working days",
-        national.COVERAGE_SOURCE,
-        national.COVERAGE_PROFILE_SOURCE,
-    } <= set(table.source)
-    assert np.allclose(table[table.group == national.REFERENCE].involved_ratio, 1.0)
-    # Professionals' work driving adds kilometres mostly at working ages, so it raises 65+.
-    professional = table[(table.source == "professionals' work driving") & (table.group == "65+")]
-    assert (professional.involved_ratio > central["65+"]).all()
 
 
 def test_licence_calibration_scales_by_prevalence_only() -> None:
@@ -180,26 +151,15 @@ def test_licence_calibration_scales_by_prevalence_only() -> None:
         assert calibrated[key][0] == pytest.approx(point * spain[key] / province[key])
 
 
-def test_older_ranges_cover_the_central_split(older_table, older_split_table) -> None:
-    split = older_split_table.set_index(["assumption", "group"]).ratio_to_45_64
-    ranges = older_table
-    assert set(ranges.assumption) == set(national.SPLITS)
-    assert ranges.ratio_75_plus.min() <= split.xs("75+", level="group").min() + 1e-9
-    assert ranges.ratio_75_plus.max() >= split.xs("75+", level="group").max() - 1e-9
-    assert "registered owners' split of the 65+ km" not in set(ranges.assumption)
-
-
 def test_spanish_calendar_and_non_working_shares() -> None:
     # 2024: 262 weekdays less the fourteen public holidays the law allows; 366 days.
     assert national.working_days(2024) == (248, 118)
-    low, high = national.NON_WORKING_SHARES
-    assert high == pytest.approx(118 / 366)
-    assert low == pytest.approx(118 * 0.6 / (248 + 118 * 0.6))
+    assert national.NON_WORKING_RATIOS == (0.6, 1.0)
 
 
 def test_coverage_components_add_up_to_dgt_total() -> None:
     parts = coverage.components().set_index("component")
-    total = national.dgt_car_km()["less taxi and ride-hailing"]
+    total = national.dgt_car_km()
     additive = parts[parts.additive]
     for setting in ("least_explained", "most_explained"):
         assert additive[f"bn_km_{setting}"].sum() * 1e9 == pytest.approx(total)
@@ -249,65 +209,6 @@ def test_scenario_weights_match_the_components() -> None:
     )
 
 
-def test_coverage_mixes_and_scenarios() -> None:
-    km, _ = national.national_km(national.emef_profile())
-    base = km / km.sum()
-    same, older = coverage.mix_shares(coverage.WORKING_DAY_MIX, base)
-    assert np.allclose(same, base) and older is None
-    # A weekend mix is the same weights on the covered part as in the weekend sensitivity.
-    weekend = national.weekend_sensitivity()
-    movilia = weekend[weekend.non_working_age_mix == national.MOVILIA_WEEKEND]
-    weights = movilia.drop_duplicates("group").set_index("group").weekend_weight
-    shares, _ = coverage.mix_shares(national.MOVILIA_WEEKEND, base)
-    expected = weights.reindex(base.index) * base
-    assert np.allclose(shares, expected / expected.sum())
-    # The under-65 bound gives no km at 65 and over; every mix's shares add up to one.
-    under, _ = coverage.mix_shares(coverage.UNDER_65_MIX, base)
-    assert under["65+"] == 0
-    mixes = coverage.mixes()
-    assert np.allclose(mixes.groupby("mix").share_of_km.sum(), 1.0)
-    assert set(mixes[~mixes.credible].mix) == set(coverage.BOUNDS)
-    # With every part at the working-day mix, a scenario differs from the central estimate only
-    # through professionals' work driving.
-    scenario = next(
-        s
-        for s in coverage.scenario_km()
-        if s["profile"] == national.BARCELONA_METHOD
-        and s["non_working_mix"] == s["remainder_mix"] == coverage.WORKING_DAY_MIX
-    )
-    _, professional = coverage._daily_km()
-    w = coverage.scenario_weights()["professional"]
-    expected = (1 - w) * base + w * professional / professional.sum()
-    assert np.allclose(scenario["shares"], expected)
-    for s in coverage.scenario_km():
-        assert s["shares"].sum() == pytest.approx(1.0)
-        assert all(0 < q < 1 for q in s["share_75_plus_of_65_plus"].values())
-
-
-def test_sensitivity_carries_credible_coverage_scenarios_only(older_table) -> None:
-    table = national.sensitivity()
-    assert {national.COVERAGE_SOURCE, national.COVERAGE_PROFILE_SOURCE} <= set(table.source)
-    coverage_rows = table[
-        table.source.isin([national.COVERAGE_SOURCE, national.COVERAGE_PROFILE_SOURCE])
-    ]
-    assert not coverage_rows.variant.str.contains("(bound)", regex=False).any()
-    older = older_table
-    assert {national.COVERAGE_SOURCE, national.COVERAGE_PROFILE_SOURCE} <= set(older.source)
-    older_coverage = older[
-        older.source.isin([national.COVERAGE_SOURCE, national.COVERAGE_PROFILE_SOURCE])
-    ]
-    assert not older_coverage.variant.str.contains("(bound)", regex=False).any()
-    # The scenarios table holds the bounds too, flagged as not credible, and the published range
-    # is the span of the credible ones and the other alternatives.
-    scenarios = coverage.scenarios()
-    assert set(scenarios[~scenarios.credible].remainder_mix) == set(coverage.BOUNDS)
-    credible = scenarios[scenarios.credible]
-    assert older.ratio_75_plus.min() <= credible.ratio_75_plus.min() + 1e-9
-    groups = table.groupby("group").involved_ratio
-    assert groups.min()["65+"] <= credible.ratio_65_plus.min() + 1e-9
-    assert groups.max()["16-29"] >= credible.ratio_18_29.max() - 1e-9
-
-
 def test_madrid_survey_reading() -> None:
     people = edm2018.person_day()
     # No car-driver day is longer than the distance limit allows trip by trip.
@@ -338,9 +239,6 @@ def test_madrid_survey_reading() -> None:
     assert like.loc["female", "ratio_low"] < 1 < like.loc["female", "ratio_high"]
 
 
-# ----------------------------------------------------------------------------- ages 75 and over
-
-
 def test_older_split_joint_interval(older_split_table) -> None:
     split = older_split_table.set_index(["profile", "assumption", "group"]).sort_index()
     barcelona = split.loc[(national.BARCELONA_METHOD, national.REFERENCE_SPLIT)]
@@ -359,22 +257,6 @@ def test_older_split_joint_interval(older_split_table) -> None:
         assert reference.loc["75+", "ratio_low"] > 1
         # Another set of replicates would not bring the interval down to the 45-64 rate.
         assert reference.loc["75+", "ratio_low"] - 3 * reference.loc["75+", "mc_se_low"] > 1
-    # A regression check, not an invariant: adding the Madrid survey's sampling error widens
-    # the interval of the two Madrid splits.
-    for profile in (national.BARCELONA_METHOD, national.CENTRAL_METHOD):
-        for assumption in national.EDM_SPLITS:
-            row = split.loc[(profile, assumption, "75+")]
-            joint = np.log(row.ratio_high / row.ratio_low) / 2
-            fixed = np.log(row.ratio_high_split_fixed / row.ratio_low_split_fixed) / 2
-            assert joint >= fixed - 0.02
-            assert "EDM2018" in row.sampling_sources
-    # The central average carries both surveys' sampling error under every split.
-    for (_, _, _), row in split.loc[[national.CENTRAL_METHOD]].iterrows():
-        assert "EMEF" in row.sampling_sources and "EDM2018" in row.sampling_sources
-    assert (
-        "RACC constant"
-        in split.loc[(national.BARCELONA_METHOD, national.RACC_SPLIT, "75+"), "sampling_sources"]
-    )
 
 
 def test_interval_monte_carlo_error_respects_crossed_replicates() -> None:
@@ -402,203 +284,6 @@ def test_interval_monte_carlo_error_respects_crossed_replicates() -> None:
     # Paired draws are one-dimensional.
     paired = national._interval(rng.normal(0, 1.0, 300), 100)
     assert 0.05 < paired["mc_se_low"] < 0.4
-
-
-def test_racc_limit_derivation() -> None:
-    assert national.racc_men_limit() == pytest.approx(0.677, abs=0.005)
-    for midpoints in ((0.5, 2.5, 4.5, 6.0), (1.5, 2.5, 4.5, 6.5), (1.0, 2.5, 4.5, 6.5)):
-        assert 0.66 <= national.racc_men_limit(midpoints) <= 0.69
-    # Both sexes' interviews add up to the survey's 3,003 holders.
-    assert sum(sum(ages.values()) for ages in national.RACC_INTERVIEWS.values()) == 3003
-
-
-def test_racc_split_between(older_table) -> None:
-    """An empirical check, not a construction: the RACC split gives 75 and over less driving
-    than the equal split and more than the Madrid split per resident in every structure. (Its
-    women's ratio per resident, 0.262, is below Madrid's 0.282, so the ordering is not
-    guaranteed by the inputs.)"""
-    ratios = national._older_ratios()
-    assert ratios[national.RACC_SPLIT]["female"] < ratios[national.REFERENCE_SPLIT]["female"]
-    wide = older_table.pivot_table(
-        index=["source", "variant"], columns="assumption", values="ratio_75_plus"
-    )
-    assert (wide[national.EQUAL_SPLIT] < wide[national.RACC_SPLIT]).all()
-    assert (wide[national.RACC_SPLIT] < wide[national.REFERENCE_SPLIT]).all()
-
-
-def test_marking_rule(older_table) -> None:
-    table = older_table
-    # Nothing is filtered: every structure under every split. 115 structures: 31 one at a time
-    # and 7 profiles x 3 non-working-day mixes x 4 credible remainder mixes.
-    structures = table.drop_duplicates(["source", "variant"])
-    assert len(table) == len(national.SPLITS) * len(structures) == 460
-    # The men's ratio recomputed from the km allocation and DGT's holders matches the column,
-    # and is a property of the split.
-    holders = national.older_licence_prevalence().set_index(["sex", "group"]).b_licence_holders
-    for split, part in table.groupby("assumption"):
-        km = national._split_older_by_sex(national.emef_profile(), national._older_ratios()[split])
-        men = (km[("male", "75+")] / holders[("male", "75+")]) / (
-            km[("male", "65-74")] / holders[("male", "65-74")]
-        )
-        assert np.allclose(part.men_km_per_holder_75_vs_65_74, men)
-    # The licence split carries Madrid's km per DGT licence holder, so it implies Madrid's own
-    # men's ratio per DGT licence holder (0.48, like the Madrid split), not the 0.45 it gave
-    # when it divided by the survey's self-reported licence holding.
-    expected = {
-        national.REFERENCE_SPLIT: 0.48,
-        national.LICENCE_SPLIT: 0.48,
-        national.RACC_SPLIT: 0.677,
-        national.EQUAL_SPLIT: 1.0,
-    }
-    by_split = table.groupby("assumption").men_km_per_holder_75_vs_65_74
-    for split, value in expected.items():
-        assert by_split.min()[split] == pytest.approx(value, abs=0.005)
-        assert by_split.max()[split] == pytest.approx(value, abs=0.005)
-    marked = table.at_odds_with_mens_driving
-    assert marked.equals(table.assumption == national.EQUAL_SPLIT)
-    for threshold in (0.7, 0.9, 1.0):
-        assert (table.men_km_per_holder_75_vs_65_74 >= threshold - 1e-9).equals(marked)
-    # The full range is over all rows; the lowest row is marked; the lowest unmarked one is the
-    # RACC split at Barcelona city's profile with MOVILIA's weekend mix for the km outside the
-    # working days.
-    assert table.loc[table.ratio_75_plus.idxmin(), "at_odds_with_mens_driving"]
-    unmarked = table[~marked]
-    lowest = unmarked.loc[unmarked.ratio_75_plus.idxmin()]
-    assert lowest.ratio_75_plus == pytest.approx(1.214, abs=0.002)
-    assert lowest.assumption == national.RACC_SPLIT
-    assert lowest.profile == "C: EMEF, Barcelona city"
-    assert lowest.non_working_mix == lowest.remainder_mix == national.MOVILIA_WEEKEND
-
-
-def test_composition_bound(older_table, older_split_table) -> None:
-    shares = national.composition_shares()
-    for sample, population in shares.values():
-        assert 0 < sample < population < 1
-    routing = older_routing.routing_share().set_index("sex")
-    assert (routing.respondents_flagged >= 20).all()
-    assert (routing.routing_share_75_plus < routing.ine_share_75_plus).all()
-    # In 2014, when the routing identified the 75+ correctly, it matches the population share.
-    early = older_routing.routing_share((2014,)).set_index("sex")
-    assert np.allclose(early.routing_share_75_plus, early.ine_share_75_plus, atol=0.02)
-    table = older_table
-    bound = table[table.variant == national.COMPOSITION_VARIANT].set_index("assumption")
-    assert set(bound.index) == set(national.SPLITS)
-    split = older_split_table[older_split_table.profile == national.BARCELONA_METHOD]
-    split = split.set_index(["assumption", "group"]).ratio_to_45_64
-    for assumption, row in bound.iterrows():
-        rise = row.ratio_75_plus / split[(assumption, "75+")] - 1
-        assert 0.04 < rise < 0.13, (assumption, rise)
-    # The bound moves neither end of the range.
-    others = table[table.variant != national.COMPOSITION_VARIANT]
-    assert others.ratio_75_plus.min() == table.ratio_75_plus.min()
-    assert others.ratio_75_plus.max() == table.ratio_75_plus.max()
-    # And it has its own 65+ row in the national sensitivity table.
-    national_table = national.sensitivity()
-    assert (
-        (national_table.variant == national.COMPOSITION_VARIANT) & (national_table.group == "65+")
-    ).sum() == 1
-
-
-def test_older_extremes(older_table) -> None:
-    extremes = national.older_extremes(older_table)
-    assert set(zip(extremes.group, extremes.end)) == {
-        (group, end) for group in ("75+", "65-74") for end, _, _ in national.EXTREMES
-    }
-    assert (extremes.ratio_low <= extremes.value).all()
-    assert (extremes.value <= extremes.ratio_high).all()
-    for row in extremes.itertuples():
-        if row.profile == national.MADRID_METHOD and row.assumption in national.EDM_SPLITS:
-            assert row.replicates.startswith("paired")
-        assert "counts" in row.sampling_sources
-    assert extremes.set_index(["group", "end"]).loc[("75+", "full minimum"), "value"] == (
-        pytest.approx(older_table.ratio_75_plus.min())
-    )
-    fixed = extremes.set_index(["group", "end"]).loc[("75+", "lowest unmarked")]
-    assert "fixed:" in fixed.sampling_sources and "RACC constant" in fixed.sampling_sources
-
-
-def test_decomposition_table(older_table, older_split_table) -> None:
-    table = national.older_decomposition(older_table, older_split_table)
-    assert "sampling" not in set(table.kind)
-    whole = table[table.kind == "all"].iloc[0]
-    unmarked = older_table[~older_table.at_odds_with_mens_driving].ratio_75_plus
-    assert whole.low == older_table.ratio_75_plus.min()
-    assert whole.high == older_table.ratio_75_plus.max()
-    assert whole.clear_low == unmarked.min() and whole.clear_high == unmarked.max()
-    factors = table[table.kind == "factor"].set_index("factor")
-    estimate = float(whole.estimate)
-    reference = older_table[older_table.assumption == national.REFERENCE_SPLIT]
-    for source in ("regional profile", "distance", "non-working days", "survey years"):
-        values = list(reference[reference.source == source].ratio_75_plus) + [estimate]
-        assert factors.loc[source, "low"] == pytest.approx(min(values))
-        assert factors.loc[source, "high"] == pytest.approx(max(values))
-    assert factors.loc["split", "low"] == pytest.approx(
-        older_split_table.query("group == '75+'").ratio_to_45_64.min()
-    )
-    assert factors.loc["split", "hatched_high"] == pytest.approx(factors.loc["split", "clear_low"])
-    # The remainder alone, with every other part at the working-day mix, reproduces the
-    # estimate when the remainder takes the working-day mix too.
-    remainder = national._remainder_only()
-    assert remainder[coverage.WORKING_DAY_MIX] == pytest.approx(estimate, abs=1e-9)
-    assert (table.low <= table.high).all() and (table.low > 0).all()
-    assert list(factors.log_width) == sorted(factors.log_width, reverse=True)
-
-
-def test_decomposition_labels_keep_their_subject() -> None:
-    # Each chart label names the same assumption as its long label: the remainder is the
-    # unexplained km, never "outside working days", which would also hold the weekends of the
-    # separate weekend bar.
-    subjects = {
-        "regional profile": "region",
-        "split": "split",
-        "remainder": "unexplained",
-        "distance": "conversion",
-        "non-working days": "weekend",
-        "professionals' work driving": "professional",
-        "composition": "share",
-        "licence-calibrated transfer": "per licence holder",
-        "employment": "share in work",
-        "survey years": "survey years",
-    }
-    assert set(subjects) == set(national.DECOMPOSITION_FACTORS)
-    for factor, (label, short) in national.DECOMPOSITION_FACTORS.items():
-        assert subjects[factor] in label.lower() and subjects[factor] in short.lower(), factor
-        assert "working days" not in short.lower(), factor
-    shorts = [short for _, short in national.DECOMPOSITION_FACTORS.values()]
-    assert len(set(shorts)) == len(shorts)
-
-
-def test_reference_checks_licence_trend() -> None:
-    checks = national.reference_checks().set_index(["check", "subject"])
-    gradient = checks.xs(national.CHECK_LICENCE_GRADIENT_TREND, level="check").value
-    level = checks.xs(national.CHECK_LICENCE_TREND, level="check").value
-    # Licence holding at 75 and over rose against 65-74 for both sexes, by less than at 75 and
-    # over alone, and the cohort update lowers the conditional estimate.
-    assert (gradient > 1).all() and (gradient < level).all()
-    cohort = float(checks.loc[(national.CHECK_COHORT_UPDATE, "both sexes"), "value"])
-    split = national.older_split()
-    split = split[split.profile == national.BARCELONA_METHOD].set_index(["assumption", "group"])
-    assert 1 < cohort < float(split.loc[(national.REFERENCE_SPLIT, "75+"), "ratio_to_45_64"])
-
-
-def test_attribution_shares(older_table) -> None:
-    shares = national.older_attribution(older_table)
-    for column in ("share_all_splits", "share_without_equal_split"):
-        assert shares[column].sum() == pytest.approx(1.0, abs=1e-9)
-        assert (shares[column] >= -1e-12).all()
-
-
-def test_barcelona_older() -> None:
-    table = barcelona.older_ratios()
-    assert set(table.assumption) == set(national.SPLITS)
-    assert (table.ratio_low <= table.ratio_to_45_64).all()
-    assert (table.ratio_to_45_64 <= table.ratio_high).all()
-    # Each end carries its Monte Carlo error, so the pages can print it to a supported precision.
-    assert (table.mc_se_low > 0).all() and (table.mc_se_high > 0).all()
-    assert (table.mc_se_high < 0.1 * (table.ratio_high - table.ratio_low)).all()
-
-
-# ----------------------------------------------------------------------------- October 2026 review
 
 
 def test_madrid_profile_is_standardised_to_spain() -> None:
@@ -638,7 +323,6 @@ def test_licence_split_counts_licence_holders_one_way() -> None:
     spain = national.older_prevalence_ratio()
     madrid = national.older_prevalence_ratio(national.MADRID_PROVINCE)
     like = edm2018.like_for_like_per_holder(madrid).set_index("sex")
-    implied = national.implied_km_per_holder(ratios[national.LICENCE_SPLIT])
     replicates = national._split_replicates(national.LICENCE_SPLIT)
     for sex in national.SEXES:
         transfer = spain[sex] / madrid[sex]
@@ -646,33 +330,10 @@ def test_licence_split_counts_licence_holders_one_way() -> None:
             survey[sex]["per_resident"][0] * transfer
         )
         assert np.allclose(replicates[sex], survey[sex]["per_resident"][1] * transfer)
-        assert implied[sex] == pytest.approx(like.loc[sex, "ratio_per_dgt_holder"])
-    assert "DGT licence prevalence" in national._sampling_sources(national.LICENCE_SPLIT)
-
-
-def test_owner_age_mix_is_a_bound_with_the_scenarios_own_split() -> None:
-    assert coverage.OWNER_MIX in coverage.BOUNDS and "bound" in coverage.OWNER_MIX
-    km, _ = national.national_km(national.emef_profile())
-    _, own = coverage.mix_shares(coverage.OWNER_MIX, km / km.sum())
-    assert own is None
-    mixes = coverage.mixes().drop_duplicates("mix").set_index("mix")
-    assert not mixes.loc[coverage.OWNER_MIX, "credible"]
-    assert mixes.loc[coverage.OWNER_MIX, "status"].startswith("bound")
-    assert np.isnan(mixes.loc[coverage.OWNER_MIX, "share_75_plus_of_65_plus"])
-    # With no split of its own, the owner-age remainder keeps each scenario's 75+ share, as the
-    # working-day remainder does.
-    keyed = {
-        (s["profile"], s["non_working_mix"], s["remainder_mix"]): s for s in coverage.scenario_km()
-    }
-    for (profile, non_working, remainder), scenario in keyed.items():
-        if remainder != coverage.OWNER_MIX:
-            continue
-        assert not scenario["credible"]
-        same = keyed[(profile, non_working, coverage.WORKING_DAY_MIX)]
-        for split, share in scenario["share_75_plus_of_65_plus"].items():
-            assert share == pytest.approx(same["share_75_plus_of_65_plus"][split])
-    # It is in no published range.
-    assert not national.sensitivity().variant.str.contains("owner", regex=False).any()
+        # Per DGT licence holder the split is Madrid's own ratio.
+        assert ratios[national.LICENCE_SPLIT][sex] / spain[sex] == pytest.approx(
+            like.loc[sex, "ratio_per_dgt_holder"]
+        )
 
 
 def test_rate_intervals_cross_count_draws_with_the_replicates() -> None:
@@ -697,3 +358,79 @@ def test_rate_intervals_cross_count_draws_with_the_replicates() -> None:
     assert (city.mc_se_low >= 0).all() and (city.mc_se_high >= 0).all()
     severity = national.severity_and_licences().set_index("group")
     assert severity.killed_per_1000_involved_mc_se_high.max() < 0.05
+
+
+# ----------------------------------------------------------------------------- age mixes and ranges
+
+
+def test_structure_shares_keep_the_working_day_mix_unless_told_otherwise() -> None:
+    km, _ = national.national_km(national.average_profile())
+    base = km / km.sum()
+    same = coverage.structure_shares(base)
+    assert np.allclose(same, base)
+    # A weekend mix shifts shares towards the groups that drive more at weekends, and every mix
+    # gives shares that add up to one.
+    for non_working in coverage.NON_WORKING_MIXES:
+        for remainder in coverage.REMAINDER_MIXES:
+            shares = coverage.structure_shares(base, non_working, remainder)
+            assert shares.sum() == pytest.approx(1.0)
+            assert (shares > 0).all()
+    weights = national.movilia_weekend_weights()
+    weekend = coverage.structure_shares(base, national.MOVILIA_WEEKEND)
+    expected = weights.reindex(base.index) * base
+    mixed = coverage.scenario_weights()
+    manual = (mixed["covered"] + mixed["professional"] + mixed["remainder"]) * base + mixed[
+        "non_working"
+    ] * expected / expected.sum()
+    assert np.allclose(weekend, manual)
+    # The array form (replicates along the second axis) agrees with the Series form.
+    array = coverage.structure_shares(
+        np.tile(base.to_numpy()[:, None], 3), national.MOVILIA_WEEKEND
+    )
+    assert np.allclose(array[:, 0], weekend)
+
+
+def test_ranges_surround_the_published_estimate(
+    ranges_table, rates_table, older_split_table
+) -> None:
+    table = ranges_table
+    involved = table[table.measure == "involved per km"].set_index("group")
+    assert set(involved.index) == {"16-29", "30-44", "45-64", "65+", "65-74", "75+", "men to women"}
+    assert (involved.range_min <= involved.ratio + 1e-9).all()
+    assert (involved.ratio <= involved.range_max + 1e-9).all()
+    assert (involved.ratio_low <= involved.ratio).all()
+    assert (involved.ratio <= involved.ratio_high).all()
+    # The central rows are the published ones.
+    central = rates_table[rates_table.method == national.CENTRAL_METHOD].set_index("group")
+    for group in national.GROUPS:
+        assert involved.loc[group, "ratio"] == central.loc[group, "involved_ratio"]
+    split = older_split_table[
+        (older_split_table.profile == national.CENTRAL_METHOD)
+        & (older_split_table.assumption == national.REFERENCE_SPLIT)
+    ].set_index("group")
+    for group in national.OLDER:
+        assert involved.loc[group, "ratio"] == split.loc[group, "ratio_to_45_64"]
+    assert involved.loc["45-64", ["range_min", "range_max"]].tolist() == [1.0, 1.0]
+    # The reference group, the youngest and the oldest: the direction the pages state.
+    assert involved.loc["16-29", "range_min"] > 1.2
+    assert involved.loc["75+", "range_min"] < 1.2 < involved.loc["75+", "range_max"]
+    killed = table[table.measure == "killed per km"].set_index("group")
+    assert {"16-29", "30-44", "45-64", "65+", "men to women"} == set(killed.index)
+
+
+def test_the_grid_of_alternatives_contains_the_central_combination_once() -> None:
+    grid = ranges.alternatives()
+    assert (grid.label == "central").sum() == 2  # involved and killed
+    assert set(grid.how) == {"combination", "unrecorded age"}
+    # Three splits, three weekend mixes and four remainder mixes for each of eight profiles.
+    combos = grid[(grid.how == "combination") & (grid.measure == "involved per km")]
+    assert len(combos) == 8 * len(national.SPLITS) * 3 * 4
+    # Assigning all unrecorded ages to a group raises that group's ratio and leaves the others'.
+    unrecorded = grid[(grid.how == "unrecorded age") & (grid.measure == "involved per km")]
+    assert len(unrecorded) == len(national.GROUPS)
+    young = unrecorded[unrecorded.label.str.endswith("18-29")].iloc[0]
+    centre = grid[(grid.label == "central") & (grid.measure == "involved per km")].iloc[0]
+    assert young["16-29"] > centre["16-29"]
+    assert young["65+"] == pytest.approx(centre["65+"])
+    older = unrecorded[unrecorded.label.str.endswith("65+")].iloc[0]
+    assert older["65+"] > centre["65+"] and older["75+"] > centre["75+"]
