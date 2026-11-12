@@ -30,28 +30,22 @@ def test_the_withdrawn_models_and_their_scripts_are_gone() -> None:
     package = PROJECT_ROOT / "src" / "dgt_stats"
     for name in ("simulator.py", "factor_models.py", "site/simulator.py", "site/factor_pages.py"):
         assert not (package / name).exists(), name
-    # The scripts in the package are the interactive tools'. The severity calculator's engine
-    # computes from the exported model and holds no coefficient of its own (its only decimal
-    # constant is the 97.5% normal quantile). The tools' shared helpers hold only the geometry of
-    # their charts. Every tool's own script, the calculator's form included, only moves values
-    # between its controls and the data it loads, and holds no decimal constant and no year.
+    # The scripts in the package are the interactive tools'. The tools' shared helpers hold only
+    # the geometry of their charts. Every tool's own script only moves values between its controls
+    # and the data it loads, and holds no decimal constant and no year.
     scripts = sorted(path.relative_to(package).as_posix() for path in package.rglob("*.js"))
     assert scripts == [
         "site/assets/crash-explorer.js",
         "site/assets/driver-risk.js",
-        "site/assets/severity-calculator.js",
-        "site/assets/severity-engine.js",
         "site/assets/tools.js",
         "site/assets/trends-explorer.js",
     ]
-    engine = (package / "site/assets/severity-engine.js").read_text(encoding="utf-8")
-    assert set(re.findall(r"\b\d+\.\d+\b", engine)) == {"1.959964"}
     shared = (package / "site/assets/tools.js").read_text(encoding="utf-8")
     # (The SVG namespace's URL is the one four-digit number it may hold.)
     shared = shared.replace("http://www.w3.org/2000/svg", "")
     assert not re.findall(r"\b(19|20)\d\d\b", shared)
     for name in scripts:
-        if name.endswith(("severity-engine.js", "tools.js")):
+        if name.endswith("tools.js"):
             continue
         page = (package / name).read_text(encoding="utf-8")
         assert not re.findall(r"\b\d+\.\d+\b", page), name

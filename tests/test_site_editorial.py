@@ -18,7 +18,7 @@ from dgt_stats.site import components
 pytestmark = pytest.mark.skipif(
     not (FIGURES_DIR / "captions.json").exists()
     or not (TABLES_DIR / "q1_annual_headline.csv").exists()
-    or not (TABLES_DIR / "ml_model_decisions.csv").exists()
+    or not (TABLES_DIR / "sev_tests.csv").exists()
     or not summaries.model_tables_present(),
     reason="run `python scripts/model.py`, `python scripts/analyse.py all` and "
     "`python scripts/microdata.py all` first",
@@ -79,7 +79,7 @@ def test_navigation_follows_the_argument(built: dict[str, str]) -> None:
         "Data and methods",
     ]
     groups = dict(site.NAV_GROUPS)
-    assert [slug for slug, _ in groups["Crash severity"]][-2:] == ["severity-models", "validation"]
+    assert [slug for slug, _ in groups["Crash severity"]][-1:] == ["severity-models"]
     assert [slug for slug, _ in groups["Crash severity"]][1:3] == ["catalonia", "barcelona"]
     assert [slug for slug, _ in groups["Data and methods"]] == ["sources", "data"]
     assert dict(groups["Data and methods"])["sources"] == "Data sources and scope"
@@ -91,8 +91,8 @@ def test_navigation_follows_the_argument(built: dict[str, str]) -> None:
     assert 'href="vehicles.html" rel="prev"' in built["speed"]
     assert 'href="factors.html" rel="next"' in built["speed"]
     assert '<p class="eyebrow">Over time</p>' in built["policy"]
-    assert '<p class="eyebrow">Explore</p>' in built["calculator"]
-    assert '<p class="eyebrow">Crash severity</p>' in built["validation"]
+    assert '<p class="eyebrow">Explore</p>' in built["driver-risk"]
+    assert '<p class="eyebrow">Crash severity</p>' in built["severity-models"]
     assert '<p class="eyebrow">' not in built["index"]
 
 
@@ -199,7 +199,7 @@ def test_the_front_page_is_a_research_overview(built: dict[str, str]) -> None:
     assert not re.search(r"<h2>\d+\. ", main)
     for slug in ("trends", "drivers", "vehicles", "catalonia", "barcelona", "severity-models"):
         assert f'href="{slug}.html"' in main, slug
-    for slug in ("validation", "data", "sources"):
+    for slug in ("data", "sources"):
         assert f'href="{slug}.html' in main, slug
     # The interactive tools are reached from the top of the page, before the findings.
     assert main.find('<p class="summary">') < main.find('href="explore.html"') < main.find("<h2")
@@ -210,58 +210,30 @@ def test_the_front_page_is_a_research_overview(built: dict[str, str]) -> None:
     assert "Association analysis of DGT crash records" not in visible
 
 
-def test_the_models_page_leads_with_predicted_against_observed(built: dict[str, str]) -> None:
+def test_the_models_page_states_its_contrasts_ranking_and_limits(built: dict[str, str]) -> None:
     visible = _visible(built["severity-models"])
     main = _main(built["severity-models"])
-    # Predicted against observed, what the model shows and where it was tested; how it was
-    # built and the scores are on the Model method and tests page. The headings say what each
-    # finds.
+    # The contrasts come first, then how well the model ranks against the table, then calibration
+    # and where it misses, then the tests, all within Catalonia.
     headings = re.findall(r"<h2[^>]*>(.*?)</h2>", main, re.S)
-    assert headings[:3] == [
-        "The estimates matched later years overall, but not in every province",
+    assert headings[:4] == [
         "Crashes involving a heavy vehicle: about twice the fatal share",
+        "It ranks crashes better than a table, but only moderately",
+        "The estimates matched later years overall, but not in every province",
         "Tested only within Catalonia",
     ]
-    assert main.find("sev1_predicted_observed") < main.find('id="calculator"')
-    assert 'href="validation.html#later-years"' in main
-    assert 'id="later-years"' in built["validation"]
-    # One name for the published model; ranking skill is described by the fatal shares of the
-    # fifths, and ROC-AUC is left to the Model method and tests page.
-    assert "the Catalan severity model" in visible
-    assert "times in 100" not in visible
-    assert "ROC-AUC" not in visible
-    # The calculator has its own page; the model page links to it at the old anchor.
-    assert '<p id="calculator">' in main and 'href="calculator.html"' in main
-    assert "uncertainty of its coefficients" not in visible
-    # What the calculator answers, and what its inputs are not, are said in plain words.
-    assert "a posted limit is not a speed" in visible.lower()
+    assert main.find("sev1_predicted_observed") < main.find("sev2_held_out")
+    # On roads through towns the model does not beat the table, said next to the pooled score.
+    assert "On roads through towns it does not beat the table" in visible
+    assert "calculator" not in visible.lower()
     assert "cannot say whether a crash will happen" in visible
+    assert "a posted limit is not a speed" in visible.lower()
     assert "died within 24 hours" in visible
-    # No withdrawn page is linked.
-    assert 'href="forecast.html"' not in main
-
-
-def test_the_validation_page_does_not_claim_national_transferability(
-    built: dict[str, str],
-) -> None:
-    import pandas as pd
-
-    path = pd.read_csv(TABLES_DIR / "ml_outward_path.csv")
-    visible = _visible(built["validation"])
-    if not path.verdict.eq("potentially nationally transferable").any():
-        assert "nationally transferable" not in visible
-        assert "national use of the models is not established" in visible
-    # The two scores of a validation are named in plain words, the published and the retired
-    # model each by one name, and ranking skill on the models page's scale.
-    assert "fitted on the Catalan file alone" in visible
-    assert re.search(r"fitted (in|within) the test population", visible)
-    assert "the Catalan severity model" in visible and "original Catalan model (retired)" in visible
-    # The figure titles and captions, written with the charts, use the same names.
-    for old in ("calculator's model", "Catalonia model", "Catalonia crash-severity", "trained"):
-        assert old not in visible, old
-    assert visible.count("the share of pairs in which the fatal one gets the higher") == 1
-    # No pair of headline numbers without intervals.
-    assert 'class="compare"' not in built["validation"]
+    assert "should not be used for a place it was not fitted on" in visible
+    # No retired model, withdrawn page or review is mentioned.
+    for text in ("rules engine", "retired", "model review", "Barcelona models"):
+        assert text not in visible, text
+    assert 'href="forecast.html"' not in main and 'href="validation.html' not in main
 
 
 # The regional crash-record pages and the methodology section that holds each one's technical
@@ -290,16 +262,14 @@ def test_record_pages_are_short_and_keep_their_detail_on_the_methodology_page(
         assert '<details class="technical"' not in main, slug
         assert f'href="data.html#{notes}"' in main, slug
         assert f'<h2 id="{notes}">' in built["data"], slug
-    # Catalonia's fatal shares by circumstance lead to the calculator built on the same file.
-    assert 'href="calculator.html"' in _main(built["catalonia"])
-    # Barcelona's records are one city's in one year, named in the opening, and the models
-    # fitted on them give no probability.
+    # Catalonia's fatal shares by circumstance lead to the model built on the same file.
+    assert 'href="severity-models.html"' in _main(built["catalonia"])
+    # Barcelona's records are one city's in one year, named in the opening.
     year = _year_label(pd.read_csv(TABLES_DIR / "bcn_person_severity_share.csv"))
     opening = re.search(r'<p class="summary">(.*?)</p>', built["barcelona"]).group(1)
     assert f"crashes in {year}:" in opening
     visible = " ".join(_visible(built["barcelona"]).split())
     assert "one year in one city" in visible
-    assert "neither gives probabilities" in visible and "kept for research only" in visible
 
 
 def test_pages_carry_no_template_furniture(built: dict[str, str]) -> None:

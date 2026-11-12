@@ -160,12 +160,10 @@ def _facts() -> SimpleNamespace:
     junction_sensitivity = junction_sensitivity[junction_sensitivity.outcome == "fatal"]
     artefacts = read_table("dgt_audit_artefacts")
     audit = read_table("dgt_audit_checks")
-    # The published Catalan model (the calculator's), scored on the years it had not seen.
+    # The published Catalan model, scored on the years it had not seen.
     rolling = read_table("sev_rolling_scores")
     pooled_span = str(rolling.subset[rolling.subset.str.fullmatch(r"\d{4}-\d{4}")].iloc[0])
-    catalonia_model = (
-        rolling[rolling.subset == pooled_span].set_index("estimator").loc["calculator"]
-    )
+    catalonia_model = rolling[rolling.subset == pooled_span].set_index("estimator").loc["model"]
 
     def orr(variant: str, level: str) -> str:
         return _ci_of(adverse.loc[(variant, level)])
