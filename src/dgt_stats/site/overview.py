@@ -142,7 +142,7 @@ def _drivers() -> str:
         },
     )
     per_km = _finding(
-        "Young drivers are in more crashes for the distance they drive",
+        "Drivers aged 18–29 are in more crashes than drivers aged 45–64 for the distance they drive",
         "per kilometre, car drivers aged 18–29 were involved in injury crashes, whoever caused "
         f"them, an estimated {young['ratio']} times as often as drivers aged 45–64 in "
         f"{national_rates.YEAR} (95% {definition_link('Sampling interval')} {young['interval']}; "
@@ -173,7 +173,8 @@ def _vehicles() -> str:
     return _finding(
         "Per kilometre driven, motorcycles are in fatal crashes far more often than cars",
         f"in {f.year}, {f.bike_per_km:.1f} times as often as cars, mostly because they are in "
-        f"more crashes; per vehicle on the road the ratio is {f.bike_per_vehicle:.1f}.",
+        f"more crashes; the rate rests on DGT's modelled kilometres, and per vehicle on the road "
+        f"the ratio is {f.bike_per_vehicle:.1f}.",
         [("vehicles", "")],
     )
 

@@ -30,6 +30,10 @@ jobs:
       - name: Install the locked dependencies
         run: pip install --require-hashes -r requirements.lock
 
+      # Every generated file under reports/ must be rewritten after this moment.
+      - name: Mark the start of the pipeline
+        run: touch "$RUNNER_TEMP/pipeline-start"
+
       - name: Lint
         run: |
           ruff check src scripts tests
@@ -114,7 +118,7 @@ jobs:
           git status --short -- reports docs
           git diff --exit-code -- docs ':(exclude)docs/FINDINGS.md'
           test -z "$(git status --porcelain -- docs ':(exclude)docs/FINDINGS.md')"
-          python scripts/compare_reports.py
+          python scripts/compare_reports.py --rebuilt-after "$RUNNER_TEMP/pipeline-start"
 
       - name: Test
         run: pytest

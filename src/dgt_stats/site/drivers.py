@@ -270,7 +270,7 @@ def page_drivers(captions: dict[str, str]) -> str:
     # ------------------------------------------------------------------- per kilometre
     body += (
         '<h2 id="involvement-in-crashes-per-kilometre-driven">'
-        "Crashes per kilometre: highest among drivers aged 18–29</h2>"
+        "Crashes per kilometre: clearly higher at 18–29 than at 45–64</h2>"
         "<p>No source counts kilometres by the driver's age in Spain, so they are estimated: "
         "DGT's car kilometres are shared out by age with the average of two travel surveys' age "
         f"profiles, the Barcelona area's ({SURVEY_YEARS}) and Madrid's ({edm2018.SURVEY_YEAR}) "

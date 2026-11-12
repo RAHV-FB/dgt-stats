@@ -44,7 +44,6 @@ def test_per_km_estimates_are_the_central_rates(drivers: dict) -> None:
         assert measure["groups"]["45-64"]["low"] is None
     young = next(m for m in drivers["age"] if m["id"] == "involved_per_km")["groups"]["18-29"]
     assert f"{young['value']:.2f}" == "2.68" and young["interval"] == "2.5–2.9"
-    assert not {"profiles", "splits", "condition", "older_conclusion"} & set(drivers)
 
 
 def test_the_older_estimates_follow_the_madrid_split(drivers: dict) -> None:

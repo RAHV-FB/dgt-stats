@@ -93,9 +93,20 @@ def _long_run() -> list[str]:
     fuel_years = list(f.recent)
     later = {int(year): row for year, row in zip(f.recent, f.fuel_later)}
     km = f.km_row
+    alone, hosp_fuel = f.count_alone, f.hosp.loc["road_fuel"]
     _require(
         "long run",
         {
+            "the count's last segment refitted alone has no clear trend": float(
+                alone.annual_change_low
+            )
+            < 0
+            < float(alone.annual_change_high),
+            "admissions per tonne of fuel are above ordinary year-to-year variation": float(
+                hosp_fuel.ratio_to_base
+            )
+            > 1
+            and float(hosp_fuel.ratio_low_yty) > 1,
             "deaths fell by about three quarters to the end of the steep fall": 0.7 < fall < 0.8,
             "the steepest fall is the fall to the last segment": int(f.steep.end)
             == int(f.flat.start),
@@ -132,9 +143,10 @@ def _long_run() -> list[str]:
         ),
         _claim(
             "Strong",
-            f"There is no clear trend after {end}: the fitted change for {f.flat.start}–"
-            f"{f.flat.end} is {_signed(f.flat.annual_change)} a year ({_signed(f.flat.low)} to "
-            f"{_signed(f.flat.high)}), and {last} had {_fmt_int(deaths.loc[last])} deaths.",
+            f"There is no clear trend after {end}: fitted alone, the change for {f.flat.start}–"
+            f"{f.flat.end} is {_signed(alone.annual_change)} a year "
+            f"({_signed(alone.annual_change_low)} to {_signed(alone.annual_change_high)}), and "
+            f"{last} had {_fmt_int(deaths.loc[last])} deaths.",
         ),
         _claim(
             "Moderate",
@@ -156,6 +168,14 @@ def _long_run() -> list[str]:
             "trend, inside its range.",
         ),
         _claim(
+            "Weak",
+            f"Hospital admissions per tonne of road fuel in {last} are "
+            f"{_fmt_pct(hosp_fuel.ratio_to_base - 1, 0)} above {f.base_year}, beyond ordinary "
+            f"year-to-year variation (interval {_signed(hosp_fuel.ratio_low_yty - 1)} to "
+            f"{_signed(hosp_fuel.ratio_high_yty - 1)}). This depends on how completely "
+            "admissions are recorded, and fuel sold is not kilometres driven.",
+        ),
+        _claim(
             "Not established",
             f"A change since {f.base_year}. Deaths in {last} are "
             f"{_fmt_pct(count_ratio.ratio_to_base - 1, 1)} above {f.base_year}, within the "
@@ -173,7 +193,39 @@ def _long_run() -> list[str]:
     )
 
 
-# ----------------------------------------------------------------------------- 2. seasons
+# ----------------------------------------------------------------------------- 2. road classes
+def _road_classes() -> list[str]:
+    f = long_run._facts()
+    ratios = f.road_years
+    first, last = int(ratios.index.min()), int(ratios.index.max())
+    _require(
+        "road classes",
+        {
+            "conventional roads have three to four times the deaths per km of motorways in "
+            "every year": 3 <= float(ratios.min()) and float(ratios.max()) < 4.5,
+            "the last year's interval excludes equal rates": float(f.road_low) > 1,
+        },
+    )
+    claims = [
+        _claim(
+            "Strong",
+            f"Per measured kilometre, deaths on conventional interurban roads were "
+            f"{_times(ratios.min(), 2)} to {_times(ratios.max(), 2)} times those on motorways "
+            f"in each year of {first}–{last}; in {f.road_year}, {_times(f.road_deaths, 2)} times "
+            f"(95% interval {_ci(f.road_low, f.road_high, 2)}).",
+        ),
+    ]
+    return _section(
+        2,
+        "Which roads are deadliest per kilometre?",
+        "Conventional roads, single and dual carriageway, much more than motorways.",
+        claims,
+        "the measured network covers the state and regional interurban roads only, so urban "
+        "streets and local roads are not compared.",
+    )
+
+
+# ----------------------------------------------------------------------------- seasons
 def _seasons() -> list[str]:
     f = seasons._facts()
     july, august = f.july_fuel, f.august_fuel
@@ -202,7 +254,7 @@ def _seasons() -> list[str]:
         ),
     ]
     return _section(
-        2,
+        3,
         "When in the year are deaths highest?",
         "In summer, and not only because more fuel is sold then.",
         claims,
@@ -215,9 +267,23 @@ def _seasons() -> list[str]:
 def _policy() -> list[str]:
     f = policy._facts()
     main, cal, calibration = f.main, f.true_calendar, f.calibration
+    linear, straight = f.linear, f.straight
     _require(
         "points licence",
         {
+            "the straight-line trend gives a larger step than the preferred one": float(
+                linear.level_change
+            )
+            < float(main.level_change)
+            < 0,
+            "the straight-line trend gives a lasting fall": float(linear.mean_high) < 0,
+            "the straight-line trend fits the earlier months worse by between 4 and 10 QAIC": 4
+            < float(straight.delta_qaic)
+            < 10,
+            "the placebos and the calibration are for the straight-line step": abs(
+                float(cal.level_change) - float(calibration.level_change)
+            )
+            < 1e-9,
             "the model finds a step down at July 2006": float(main.level_high) < 0,
             "July 2006 has the largest step of the placebo Julys": int(cal["rank"]) == 1,
             "several placebo Julys also exclude zero": int(calibration.n_excluding_zero) >= 3,
@@ -229,25 +295,35 @@ def _policy() -> list[str]:
     claims = [
         _claim(
             "Weak",
-            f"The model puts a step at {f.break_month} at {_signed(main.level_change)} "
+            f"Under the preferred trend, which bends once, the model puts a step at "
+            f"{f.break_month} at {_signed(main.level_change)} "
             f"(95% interval {_signed(main.level_low)} to {_signed(main.level_high)}); averaged "
             f"over the {main.post_months} months from it the change is "
             f"{_signed(main.mean_change)} ({_signed(main.mean_low)} to {_signed(main.mean_high)}).",
         ),
         _claim(
+            "Weak",
+            f"A straight-line trend gives a larger step, {_signed(linear.level_change, 0)}, and a "
+            f"lasting fall, {_signed(linear.mean_change)} on average ({_signed(linear.mean_low)} "
+            f"to {_signed(linear.mean_high)}), but fits the earlier months worse, by about "
+            f"{float(straight.delta_qaic):.0f} points of QAIC.",
+        ),
+        _claim(
             "Not established",
-            f"That the licence caused the fall. {int(calibration.n_excluding_zero)} of {int(calibration.n_placebos)} placebo "
-            "Julys with no policy change also have an interval that excludes zero, so the "
-            "model's intervals are too narrow; the interval recalibrated on the placebos runs "
-            f"from {_signed(calibration.calibrated_low)} to {_signed(calibration.calibrated_high)}, "
-            "which includes no change.",
+            f"That the licence caused the fall. The placebo count and the recalibrated interval "
+            f"are for the straight-line specification, whose July {f.it.date.year} step is "
+            f"{_signed(cal.level_change)}: {int(calibration.n_excluding_zero)} of "
+            f"{int(calibration.n_placebos)} placebo Julys with no policy change also have an "
+            "interval that excludes zero, so the model's intervals are too narrow; the interval "
+            f"recalibrated on the placebos runs from {_signed(calibration.calibrated_low)} to "
+            f"{_signed(calibration.calibrated_high)}, which includes no change.",
         ),
     ]
     return _section(
-        3,
+        4,
         "Did the 2006 points licence cut deaths?",
         "Deaths fell around its introduction, but the series cannot show that the licence caused "
-        "it.",
+        "the fall or that it lasted.",
         claims,
         "one national monthly series, a long downward trend and no comparison group.",
     )
@@ -274,6 +350,10 @@ def _drivers() -> list[str]:
                 oldest.killed_ratio_low
             )
             > 2,
+            "drivers aged 75 and over have the highest ratio of deaths once involved": float(
+                oldest.killed_ratio_to_45_64
+            )
+            == float(f.severity.killed_ratio_to_45_64.max()),
             "drivers aged 18-29 are involved clearly more often per km on every assumption": float(
                 ranges.loc["18-29", "range_min"]
             )
@@ -339,10 +419,11 @@ def _drivers() -> list[str]:
         ),
     ]
     return _section(
-        4,
+        5,
         "Which drivers are at higher risk?",
-        "Older drivers are the most likely to die once in a crash; the youngest are the most "
-        "often in one for the distance they drive.",
+        "Older drivers are the most likely to die once in a crash. Per kilometre, drivers aged "
+        "18–29 are clearly more often in one than drivers aged 45–64; the comparison with "
+        "drivers aged 75 and over is not established.",
         claims,
         "no national source counts kilometres by the driver's age, so the kilometres are "
         "estimated from regional surveys (the EMEF in the Barcelona area and Madrid's 2018 "
@@ -373,7 +454,8 @@ def _vehicles() -> list[str]:
             f"Per kilometre in {f.year}, motorcycles were in fatal crashes "
             f"{_times(f.bike_per_km)} times as often as cars ({_ci(bike.per_billion_km_low, bike.per_billion_km_high)} "
             f"against {_ci(car.per_billion_km_low, car.per_billion_km_high)} per billion km, "
-            "95% intervals), mostly because they are in more crashes.",
+            "95% intervals; the intervals cover the crash counts only, and the rate rests on DGT's "
+            "modelled kilometres), mostly because they are in more crashes.",
         ),
         _claim(
             "Moderate",
@@ -385,7 +467,7 @@ def _vehicles() -> list[str]:
         ),
     ]
     return _section(
-        5,
+        6,
         "Which vehicles are in the most fatal crashes?",
         "Per kilometre, motorcycles; per vehicle on the road, buses and heavy trucks.",
         claims,
@@ -410,8 +492,13 @@ def _factors() -> list[str]:
             "the adjusted ratio lies between the road types'": float(low.rate_ratio)
             < float(adjusted.rate_ratio)
             < float(high.rate_ratio),
-            "the recorded speed share is flat to 2020 and lower at the end": f.flat_to == 2020
-            and float(f.speed_all.change_in_share) < 0,
+            "the interurban speed share is flat to 2020, then lower": f.flat_to == 2020
+            and abs(f.inter_flat) < 0.05
+            and f.inter_late_fall < -0.2,
+            "the all-roads share fell, and by more than the same mix of crashes would give": (
+                float(f.speed_all.share_last) < float(f.speed_all.share_first)
+                and f.speed_all_fall > f.speed_same_mix_fall > 0
+            ),
         },
     )
     claims = [
@@ -425,15 +512,19 @@ def _factors() -> list[str]:
         ),
         _claim(
             "Weak",
-            f"The share of crashes with inappropriate speed recorded was flat to {f.flat_to} and "
-            f"fell from {_fmt_pct(f.speed_all.share_first)} in {f.speed_all.first_year} to "
-            f"{_fmt_pct(f.speed_all.share_last)} in {f.speed_all.last_year}; a change in "
+            f"On interurban roads the share of crashes with inappropriate speed recorded was flat "
+            f"to {f.flat_to} ({_fmt_pct(f.inter_series.loc[f.first])} in {f.first}, "
+            f"{_fmt_pct(f.inter_series.loc[f.flat_to])} in {f.flat_to}) and fell to "
+            f"{_fmt_pct(f.inter_series.loc[f.fall_to])} in {f.fall_to}. On all roads it fell "
+            f"from {_fmt_pct(f.speed_all.share_first)} in {f.speed_all.first_year} to "
+            f"{_fmt_pct(f.speed_all.share_last)} in {f.speed_all.last_year}, partly because "
+            "crashes shifted to urban streets, where speed is rarely recorded. A change in "
             "recording practice is not excluded, so the series is not read as a change in "
             "behaviour.",
         ),
     ]
     return _section(
-        6,
+        7,
         "How do speed and the other recorded factors relate to deaths?",
         "Crashes recorded with inappropriate speed are deadlier.",
         claims,
@@ -457,8 +548,6 @@ def _circumstances() -> list[str]:
                 place.or_low
             )
             > 1,
-            "a wet surface lowers the odds of a death, clearly": float(f.wet_full_row.or_high) < 1,
-            "a junction lowers the odds of a death, clearly": float(f.junction.or_high) < 1,
         },
     )
     claims = [
@@ -471,18 +560,9 @@ def _circumstances() -> list[str]:
             f"By place, the highest contrast with an urban street is an {place.zone} on a "
             f"{place.road} road, {_times(place.odds_ratio)} ({_ci(place.or_low, place.or_high)}).",
         ),
-        _claim(
-            "Weak",
-            f"A wet surface (odds ratio {_times(f.wet_full_row.odds_ratio, 2)}, "
-            f"{_ci(f.wet_full_row.or_low, f.wet_full_row.or_high, 2)}) and a junction "
-            f"({_times(f.junction.odds_ratio, 2)}, {_ci(f.junction.or_low, f.junction.or_high, 2)}) "
-            "go with fewer fatal injury crashes among injury crashes. This is conditional on a "
-            "crash having happened and says nothing about whether wet roads or junctions are "
-            "safer.",
-        ),
     ]
     return _section(
-        7,
+        8,
         "What goes with a death in Spain's injury crashes?",
         "The kind of crash and where it happens, much more than the weather or the light.",
         claims,
@@ -528,10 +608,12 @@ def _catalonia() -> list[str]:
             "heavy vehicle involved.",
         ),
         _claim(
-            "Strong",
+            "Moderate",
             f"With the other recorded circumstances held equal, the model puts the fatal share "
             f"{_times(heavy_ratio.ratio)} times as high with a heavy vehicle involved "
-            f"(95% interval {_ci(heavy_ratio.ratio_low, heavy_ratio.ratio_high)}).",
+            f"(95% interval {_ci(heavy_ratio.ratio_low, heavy_ratio.ratio_high)}). The interval "
+            "covers coefficient uncertainty only, and the model was tested only within "
+            "Catalonia.",
         ),
         _claim(
             "Strong",
@@ -548,7 +630,7 @@ def _catalonia() -> list[str]:
         ),
     ]
     return _section(
-        8,
+        9,
         "Which severe crashes in Catalonia were fatal?",
         "Those on interurban roads, involving heavy vehicles and in head-on collisions.",
         claims,
@@ -595,7 +677,7 @@ def _barcelona() -> list[str]:
         ),
     ]
     return _section(
-        9,
+        10,
         f"Who is seriously hurt in Barcelona's crashes ({b.year})?",
         "Pedestrians, motorcyclists and the oldest.",
         claims,
@@ -614,14 +696,9 @@ def _data() -> list[str]:
             f"The national files reconcile with DGT's published totals: all "
             f"{_fmt_int(len(validation))} reconciliation checks pass.",
         ),
-        _claim(
-            "Strong",
-            "Nothing in the study is a causal estimate. Every result is a count, a rate or an "
-            "association in recorded data.",
-        ),
     ]
     return _section(
-        10,
+        11,
         "How far can the data be trusted?",
         "As counts, well; as measures of causes or of kilometres by age, only as far as the "
         "limits above allow.",
@@ -665,6 +742,7 @@ def render() -> str:
     ]
     for section in (
         _long_run,
+        _road_classes,
         _seasons,
         _policy,
         _drivers,

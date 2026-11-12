@@ -42,7 +42,6 @@ from dgt_stats.paths import DGT_PROCESSED_CRASHES
 
 BASE_YEAR = 2019
 FIRST_YEAR = 1993
-PANDEMIC_YEARS = (2020, 2021)
 # Two-sided coverage of every interval in this module.
 COVERAGE = 0.95
 NORMAL_QUANTILE = float(stats.norm.ppf(0.5 + COVERAGE / 2))
@@ -629,16 +628,6 @@ def long_run_segments() -> pd.DataFrame:
     return pd.concat(frames, ignore_index=True)
 
 
-def long_run_model_choice() -> pd.DataFrame:
-    """QBIC for 0 to 3 turning points, per measure, and which model was chosen."""
-    _, fits = _long_run_fits()
-    frames = []
-    for key, (_, table, label, _, _) in fits.items():
-        frames.append(table.assign(measure=key, measure_label=label))
-    columns = ["measure", "measure_label", "n_breaks", "breaks", "deviance", "qbic", "chosen"]
-    return pd.concat(frames, ignore_index=True)[columns]
-
-
 def _offset(frame: pd.DataFrame, column: str | None) -> np.ndarray | None:
     return None if column is None else np.log(frame[column].to_numpy(dtype=float))
 
@@ -864,28 +853,6 @@ KM_MEASURES = {
 # Road owners in the microdata (``TITULARIDAD_VIA``) whose roads table 1.2.14 counts: State,
 # regions, and provincial councils, cabildos and consells.
 KM_NETWORK_OWNERS = (1, 2, 3)
-
-
-def fuel_bio_share() -> pd.DataFrame:
-    """Biofuel in road fuel by year: the mass CORES reports blended into petrol and diesel.
-
-    Biofuel carries less energy per tonne than the petrol and diesel it replaces, so a change in
-    its share would change the kilometres a tonne of road fuel stands for. Only years in which
-    CORES reports the share for all twelve months are kept.
-    """
-    fuel = io_traffic.read_cores_fuel()
-    fuel = fuel.assign(
-        bio_tonnes=fuel.petrol_tonnes * fuel.petrol_bio_share
-        + fuel.diesel_tonnes * fuel.diesel_bio_share
-    )
-    annual = fuel.groupby("year").agg(
-        road_fuel_tonnes=("road_fuel_tonnes", "sum"),
-        bio_tonnes=("bio_tonnes", "sum"),
-        months=("bio_tonnes", "count"),
-    )
-    annual = annual[annual.months == 12].drop(columns="months")
-    annual["bio_share"] = annual.bio_tonnes / annual.road_fuel_tonnes
-    return annual.reset_index()
 
 
 def interurban_km_panel() -> pd.DataFrame:

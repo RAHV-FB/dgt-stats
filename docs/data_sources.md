@@ -138,7 +138,7 @@ the register and are available on request to DGT's Observatorio Nacional de Segu
 description sheet in the 2023 and 2024 workbooks is a stale copy of the 2022 one and must not be
 used for validation. Each year's rows and 30-day victim sums reconcile exactly with the yearbook
 series, and the 2024 province and month tables agree with the microdata (`reports/tables/validation.csv`,
-produced by `scripts/build_tables.py`). `TOTAL_VEHICULOS` falls short of the 2024 table 2.3 by a few
+written by `scripts/ingest.py validate`, which `ingest.py all` runs). `TOTAL_VEHICULOS` falls short of the 2024 table 2.3 by a few
 dozen vehicles in 2023 and 2024 (2020-2022 are exact); the check accepts those years within 0.1%
 because the microdata hold no vehicle-level rows that could locate the missing units.
 
@@ -229,7 +229,6 @@ year and province by province.
 | `dgt/census/censo_conductores_edad_<2023..2025>.txt` | 2023-2025 | province x sex x age band (15-17, 18-20, 21-24, then five-year bands to 70-74, "Más de 74", "Se desconoce") -> permits and licences by class, including `NUM_PERMISOS_B`. 2023 and 2024 are Latin-1, 2025 UTF-8 with a byte-order mark |
 | `dgt/census/censo_tablas_<2014..2025>.xlsx` | 2014-2025 | published census tables; 2014-2023 include drivers by licence class x age band (plus men and women sheets), 2024 has only the province tables. Province totals are read from the 2025 workbook only, so `censo_tablas_2024.xlsx` is archived but not read |
 | `dgt/km_itv_2022/media_km_antiguedad_tipo_2022.xlsx` | 2022 | circulating fleet ("parque circulante": vehicles with an ITV, insurance, ownership-change, re-registration or fine record in the previous ten years) and mean annual km by vehicle type (7) and age band (5); multiplied, total vehicle-km by type |
-| `dgt/km_itv_2022/metodologia.pdf` | 2014-2023 ITV | how the kilometres are modelled (gamma-regression imputation of annualised odometer readings, valid in aggregate, not per vehicle); the definition of the circulating fleet (Anexo III) and the category definitions that settle the heavy-truck mapping |
 | `dgt/km_itv_2024/km_edad_propietario_2024.xlsx` | 2024 | vehicle category x age band of the **registered owner** (and a row for vehicles in a company's name) -> vehicles, total and mean annual km. Summed over the bands it reproduces the release's own fleet and kilometres per category to within 0.1%; the reader enforces 0.5%. The owner's age is not the driver's: there are about 0.23 cars per B-permit holder at 18-24 and about 1.1 at 75 and over |
 | `dgt/km_itv_2024/km_medios_tipo_2024.xlsx` | 2022-2024 | table 6 of the release: mean annual km by category for 2022, 2023 and 2024 as one series (its 2022 values equal the 2022 release's), and a 2024 detail sheet of vehicles and total km |
 | `dgt/km_itv_2024/km_servicio_2024.xlsx` | 2024 | vehicle category x class of service (private; public: taxi, car hire with and without driver, driving school...) -> vehicles, total and mean annual km; the national car-km total, less taxis and ride-hailing cars |

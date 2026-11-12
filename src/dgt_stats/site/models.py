@@ -294,6 +294,16 @@ def _facts() -> SimpleNamespace:
         bool(held) and bool(unsettled),
         "some worked examples hold in both periods and some do not",
     )
+    rain = [stability.loc[(p, "weather", "heavy_rain_snow")] for p in stability_periods[:2]]
+    run_off = [stability.loc[(p, "crash_type", "run_off_road")] for p in stability_periods[:2]]
+    _check(
+        len(unsettled) == 2
+        and (float(rain[0].ratio) - 1) * (float(rain[1].ratio) - 1) < 0
+        and float(run_off[0].ratio_low) <= 1 <= float(run_off[0].ratio_high)
+        and float(run_off[1].ratio_low) > 1,
+        "of the worked examples, only heavy rain or snow reverses direction between the periods "
+        "and only running off the road is clear in the later period alone",
+    )
     heavy_label = EXAMPLES[0][2]
     _check(
         any(entry.startswith(heavy_label[:1].lower() + heavy_label[1:]) for entry in held),
@@ -423,8 +433,11 @@ def page_severity_models(captions: dict[str, str]) -> str:
         f"{float(f.heavy.ratio_high):.2f}), the largest increase of any input. A crash within a "
         f"junction carries {float(f.junction.ratio):.2f} times the share of one between "
         f"junctions. Refitted separately on {f.first_period} and on {f.second_period}, "
-        f"{_words(len(f.held))} of the {_words(len(EXAMPLES))} changes below kept the same "
-        f"direction; the other {_words(len(f.unsettled))} should not be read as settled.</p>"
+        f"the interval excluded 1, on the same side, in both periods for "
+        f"{_words(len(f.held))} of the {_words(len(EXAMPLES))} changes below; heavy rain or "
+        f"snow reversed direction ({float(f.rain[0].ratio):.2f}, then "
+        f"{float(f.rain[1].ratio):.2f}) and running off the road was clear only in the later "
+        f"period ({float(f.run_off[0].ratio):.2f}, then {float(f.run_off[1].ratio):.2f}).</p>"
     )
     body += _examples_table(f.contrasts, f.base)
     body += evidence_note(

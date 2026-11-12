@@ -16,9 +16,6 @@ from dgt_stats.paths import TABLES_DIR
 KEY = barcelona.KEY
 EXPLICIT_ZERO = "count cells holding an explicit zero (all five count columns)"
 
-# Placeholders the Catalonia export uses for "not stated".
-CAT_PLACEHOLDERS = ("", "NA", "Sense especificar", "Sense Especificar")
-
 
 # ----------------------------------------------------------------------------- Barcelona
 def bcn_tables() -> dict[str, pd.DataFrame]:

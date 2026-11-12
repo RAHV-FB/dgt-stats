@@ -174,7 +174,7 @@ TABLE_REFERENCE = re.compile(r'href="tables/([^"/]+\.csv)"')
 
 def publish_tables(site_dir: Path, pages: list[Path], source_dir: Path = TABLES_DIR) -> list[Path]:
     """Copy into ``site_dir/tables`` the result tables that ``pages`` link, and nothing else: a
-    table no page links (a withdrawn analysis's record, a check behind a generated document) stays
+    table no page links (one that a figure, a test or the generated findings read) stays
     in the repository and is not published. A page that links a table the reports do not hold
     fails the build."""
     target_dir = site_dir / "tables"

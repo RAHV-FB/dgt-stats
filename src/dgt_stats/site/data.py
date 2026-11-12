@@ -37,8 +37,6 @@ from dgt_stats.site.components import (
 from dgt_stats.site.regional_common import _year_label
 
 TITLES = dict(ALL_PAGES)
-# Harmonised variables, in words.
-FIELD_LABELS = {"road_class": "road type", "hour_band": "hour"}
 # A circumstance field unrecorded in more than this share of crashes counts as often unrecorded.
 MOSTLY_BLANK = 0.3
 # A field above that share by less than this is named as only just above it.
@@ -55,9 +53,6 @@ CORE_FIELDS = {
     "TIPO_VIA": "road type",
     "TIPO_ACCIDENTE": "crash type",
 }
-# The step in recorded urban injury crashes that inflates the crash dispersion ends this many
-# years after the scatter window opens.
-URBAN_STEP_YEARS = 3
 NUMBER_WORDS = {
     1: "one",
     2: "two",
@@ -103,15 +98,6 @@ def _words(number: int) -> str:
 
 def _manifest() -> pd.DataFrame:
     return pd.read_csv(RAW_DATA_DIR / "manifest.csv")
-
-
-def _path_year(prefix: str, contains: str) -> int:
-    """The year in the name of the one raw file under ``prefix`` whose path contains ``contains``."""
-    paths = _manifest().path
-    found = paths[paths.str.startswith(prefix) & paths.str.contains(contains, regex=False)]
-    years = {int(y) for path in found for y in re.findall(r"(?<!\d)(\d{4})(?!\d)", path)}
-    _require({f"one year names the raw file {prefix}…{contains}": len(years) == 1})
-    return years.pop()
 
 
 # ----------------------------------------------------------------------------- definitions

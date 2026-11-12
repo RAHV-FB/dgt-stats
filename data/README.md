@@ -8,7 +8,7 @@ for, and what it may never be joined to, is in [`docs/DATA_CONTRACT.md`](../docs
 
 | Layer | Contents | Written by | In Git |
 |---|---|---|---|
-| `raw/<source>/` | source files byte for byte, listed in `raw/manifest.csv` (path, size, SHA-256, source URL, description, date added, name it was downloaded as) | download; `python scripts/microdata.py organise` for new regional files | yes |
+| `raw/<source>/` | source files byte for byte, listed in `raw/manifest.csv` (path, size, SHA-256, source URL, description, date added, name it was downloaded as) | download | yes |
 | `staging/<source>/` | parsed files: harmonised column names and types, values unchanged | `scripts/ingest.py` (`staging/dgt`), `scripts/microdata.py build` (`staging/barcelona`, `staging/catalonia`) | no |
 | `processed/` | validated tables at one documented unit of observation | `scripts/build_tables.py`, `scripts/microdata.py build` | no |
 | `features/` | model matrices: id, target, grouping key, features and a provenance record | `scripts/microdata.py features` | no |
@@ -18,7 +18,8 @@ The raw sources:
 | Folder | Publisher | Files |
 |---|---|---|
 | `raw/dgt/microdata/` | Dirección General de Tráfico | crash microdata 2016–2024 (one row per crash with victims), code dictionary, catalogue record |
-| `raw/dgt/tables/` | DGT | yearbook historical series 1993–2024, statistical tables 2014–2024 |
+| `raw/dgt/tables/` | DGT | yearbook historical series 1993–2024; statistical tables as 2020–2024 workbooks plus the 2014–2019 chapters |
+| `raw/dgt/tables/chapters/<year>/` | DGT | for 2014–2019 only the statistical tables of group 4 and group 6 |
 | `raw/dgt/census/` | DGT | driver census by class and by age (text extracts 2023–2025) and published census tables 2014–2025 |
 | `raw/dgt/km_itv_2022/`, `raw/dgt/km_itv_2024/` | DGT | kilometre estimates from ITV inspections |
 | `raw/dgt/reports/` | DGT | thematic reports and yearbook errata (PDF) |
@@ -29,6 +30,8 @@ The raw sources:
 | `raw/idescat/` | Idescat | the release on the 2024 census and economic activity (employed people aged 65 and over in Catalonia) |
 | `raw/catalonia/` | Servei Català de Trànsit | crashes with a death or serious injury, 2010–2023 (downloaded as `export.csv`) |
 | `raw/barcelona/2025/` | Ajuntament de Barcelona, Guàrdia Urbana | six crash tables for 2025 sharing `Numero_expedient` (downloaded as `download.csv` … `download(5).csv`) |
+| `raw/emef/2024/emef_2024_executive_summary.pdf` | AMB, Institut Metròpoli | the EMEF 2024 executive summary, used to check the survey processing |
+| `raw/emef/docs/` | IERMB (now Institut Metròpoli) | the EMEF methodology report 2003–2018 (sampling strata by year) |
 | `raw/emef/<year>/` | Autoritat del Transport Metropolità (ATM), Idescat and Institut Metròpoli, published on the Observatori de la Mobilitat de Catalunya (omc.cat) | EMEF working-day mobility survey, public-use microdata 2014–2024: one trip file, one respondent file (published as `Individus` or, in 2018–2020 and 2023, `Opinió`) and one dictionary per year; the 2022 dictionary in its first and revised releases |
 
 The EMEF files were downloaded from the survey's page on omc.cat and renamed `emef_<year>_trips.csv`,
@@ -50,7 +53,7 @@ python scripts/microdata.py build     # Catalonia and Barcelona: staging and pro
 python scripts/microdata.py features  # model matrices (after `quality`)
 ```
 
-The data layers have separate roles (`src/dgt_stats/layers.py`, the data contract): DGT and INE are
+The data layers have separate roles (`docs/DATA_CONTRACT.md`): DGT and INE are
 the national context; the Catalan file is the crash microdata the severity model is fitted to; the
 Barcelona files are the person-level microdata. Records are never merged across sources.
 
