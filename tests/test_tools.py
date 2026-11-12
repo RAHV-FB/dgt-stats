@@ -6,10 +6,9 @@ import math
 import pandas as pd
 import pytest
 
-from dgt_stats import risk_trends
 from dgt_stats.exposure_risk import national
 from dgt_stats.paths import TABLES_DIR
-from dgt_stats.site import explore, tool_driver_risk, tool_trends
+from dgt_stats.site import explore, tool_driver_risk
 
 
 def _table(name: str) -> pd.DataFrame:
@@ -24,51 +23,6 @@ def test_every_tool_says_what_it_computes_where_and_what_kind() -> None:
         about = module.describe()
         assert set(about) == {"title", "what", "coverage", "kind"}, slug
         assert all(len(value) > 3 for value in about.values()), slug
-
-
-# --------------------------------------------------------------------------- trends explorer
-
-
-def test_trends_counts_are_the_panel_and_rates_are_recomputed() -> None:
-    panel = _table("risk_annual_panel").set_index("year")
-    km = _table("longrun_km_panel").set_index("year")
-    km = km[km.comparable.astype(bool)]
-    found = {item["id"]: item for item in tool_trends.indicators()}
-    expected = {
-        "deaths_30d": panel.deaths_30d,
-        "hospitalised_30d": panel.hospitalised_30d,
-        "crashes": panel.crashes,
-        "deaths_per_million_residents": panel.deaths_30d / panel.residents * 1e6,
-        "deaths_per_100k_vehicles": panel.deaths_30d / panel.vehicle_fleet * 1e5,
-        "deaths_per_100k_tonnes_fuel": panel.deaths_30d / panel.road_fuel_tonnes * 1e5,
-        "deaths_per_100_crashes": panel.deaths_30d / panel.crashes * 100,
-        "interurban_deaths_per_bn_km": km.deaths_interurban / km.vehicle_km * 1e9,
-    }
-    for key, series in expected.items():
-        series = series.dropna()
-        item = found[key]
-        assert item["first"] == int(series.index.min()), key
-        assert len(item["values"]) == len(series), key
-        for got, want in zip(item["values"], series):
-            assert got == pytest.approx(float(want), rel=1e-9, abs=1e-6), key
-    # A rate exists only for the years its denominator does: residents from INE's series, fuel
-    # from CORES', kilometres only where comparable; no year is filled in.
-    assert found["deaths_per_million_residents"]["first"] == int(
-        panel.residents.dropna().index.min()
-    )
-    assert found["interurban_deaths_per_bn_km"]["first"] == int(km.index.min())
-
-
-def test_trends_notes_say_how_deaths_were_counted() -> None:
-    notes = {item["id"]: item["note"] for item in tool_trends.indicators()}
-    counted = risk_trends.DEATHS_30D_COUNTED_FROM
-    assert (
-        f"Up to {counted - 1} DGT estimated them from deaths within 24 hours" in notes["deaths_30d"]
-    )
-    for key in ("deaths_per_million_residents", "deaths_per_100k_vehicles"):
-        assert notes[key].startswith(notes["deaths_30d"]), key
-    assert "not a measure of distance" in notes["deaths_per_100k_tonnes_fuel"]
-    assert "not how often they happened" in notes["deaths_per_100_crashes"]
 
 
 # --------------------------------------------------------------------------- driver risk

@@ -116,7 +116,7 @@ def test_the_table_has_one_row_per_non_empty_cell(table: pd.DataFrame) -> None:
 
 @needs_table
 def test_the_table_reconciles_with_the_published_yearly_totals(table: pd.DataFrame) -> None:
-    published = pd.read_csv(TABLES_DIR / "q1_annual_headline.csv").set_index("year")
+    published = pd.read_csv(TABLES_DIR / "risk_annual_panel.csv").set_index("year")
     yearly = table.groupby("year")[["injury_crashes", "deaths_30d"]].sum()
     assert set(yearly.index) <= set(published.index)
     for year, row in yearly.iterrows():

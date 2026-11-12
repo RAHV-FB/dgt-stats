@@ -1,16 +1,12 @@
-"""Produce the national result tables, every figure and the national model cards.
+"""Produce the national result tables and every figure.
 
 Usage:
     python scripts/analyse.py tables     # reports/tables/q*.csv and the other national tables
     python scripts/analyse.py figures    # reports/figures/*.svg and captions.json
-    python scripts/analyse.py cards      # docs/models/dgt_*.md (needs model.py and the DGT audit)
     python scripts/analyse.py all
-    python scripts/analyse.py withdrawn  # the withdrawn forecast's tables (slow; nothing reads them
-                                         # but its model card and the model review)
 
 Run ``tables`` before ``scripts/microdata.py validate``, which decides the models from them, and
-``figures`` and ``cards`` after it: the figures include the regional ones, and the card of the DGT
-association analysis quotes the DGT microdata audit.
+``figures`` after it: the figures include the regional ones.
 """
 
 from __future__ import annotations
@@ -25,7 +21,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 import pandas as pd  # noqa: E402
 
-from dgt_stats import figures, model_cards, summaries  # noqa: E402
+from dgt_stats import figures, summaries  # noqa: E402
 from dgt_stats.paths import TABLES_DIR  # noqa: E402
 
 log = logging.getLogger("analyse")
@@ -54,7 +50,7 @@ def run_figures(frames: dict[str, pd.DataFrame] | None = None) -> None:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("step", choices=("tables", "figures", "cards", "all", "withdrawn"))
+    parser.add_argument("step", choices=("tables", "figures", "all"))
     args = parser.parse_args(argv)
     logging.basicConfig(
         level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s", datefmt="%H:%M:%S"
@@ -63,13 +59,8 @@ def main(argv: list[str] | None = None) -> int:
     frames = None
     if args.step in ("tables", "all"):
         frames = run_tables()
-    if args.step == "withdrawn":
-        run_tables(summaries.WITHDRAWN_SUMMARIES)
     if args.step in ("figures", "all"):
         run_figures(frames)
-    if args.step in ("cards", "all"):
-        for path in (model_cards.write_forecast_card(), model_cards.write_severity_card()):
-            log.info("model card %s", path.name)
     log.info("done in %.1f s", time.perf_counter() - started)
     return 0
 

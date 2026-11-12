@@ -20,10 +20,8 @@ from dgt_stats import (
     agebands,
     driver_risk,
     factors,
-    forecast,
     io_exposure,
     io_population,
-    io_tables,
     labels,
     policy,
     risk_trends,
@@ -35,9 +33,6 @@ from dgt_stats import (
 from dgt_stats.paths import DGT_PROCESSED_CRASHES, TABLES_DIR
 
 PROCESSED_CRASHES = DGT_PROCESSED_CRASHES
-
-BASE_YEAR = 2019
-SEVERITY_METRICS = ("crashes", "deaths_30d", "hospitalised_30d", "non_hospitalised_30d")
 
 CRASH_COLUMNS = [
     "ANYO",
@@ -61,45 +56,7 @@ def read_crashes(columns: list[str] | None = None) -> pd.DataFrame:
     return pd.read_parquet(PROCESSED_CRASHES, columns=columns or CRASH_COLUMNS)
 
 
-# --------------------------------------------------------------------------- Q1 trends
-
-
-def annual_headline() -> pd.DataFrame:
-    """Crashes, deaths, hospitalised and non-hospitalised per year, 1993–2024, with index 2019 = 100."""
-    annual = io_tables.read_table("series_annual")
-    wide = (
-        annual[(annual.zone == "all") & annual.metric.isin(SEVERITY_METRICS)]
-        .pivot(index="year", columns="metric", values="value")
-        .reindex(columns=list(SEVERITY_METRICS))
-        .reset_index()
-    )
-    for metric in SEVERITY_METRICS:
-        base = wide.loc[wide.year == BASE_YEAR, metric].iloc[0]
-        wide[f"{metric}_index"] = (wide[metric] / base * 100).round(1)
-    wide["deaths_per_100_crashes"] = (wide.deaths_30d / wide.crashes * 100).round(2)
-    return wide
-
-
-# --------------------------------------------------------------------------- Q2 timing
-
-
-def night_share_by_year_zone() -> pd.DataFrame:
-    """Share of crashes and of deaths that happen in darkness, by year and zone."""
-    crashes = read_crashes(["ANYO", "zone", "night", "fatal", "n_deaths"])
-    grouped = crashes.groupby(["ANYO", "zone"], observed=True)
-    out = grouped.agg(crashes=("fatal", "size"), deaths_30d=("n_deaths", "sum")).reset_index()
-    night = (
-        crashes[crashes.night]
-        .groupby(["ANYO", "zone"], observed=True)
-        .agg(night_crashes=("fatal", "size"), night_deaths=("n_deaths", "sum"))
-        .reset_index()
-    )
-    out = out.merge(night, on=["ANYO", "zone"], how="left").fillna(
-        {"night_crashes": 0, "night_deaths": 0}
-    )
-    out["night_crash_share"] = (out.night_crashes / out.crashes).round(4)
-    out["night_death_share"] = (out.night_deaths / out.deaths_30d).round(4)
-    return out.rename(columns={"ANYO": "year"})
+# --------------------------------------------------------------------------- context
 
 
 def other_road_by_period() -> pd.DataFrame:
@@ -211,12 +168,10 @@ def read_model_table(name: str) -> pd.DataFrame:
 # --------------------------------------------------------------------------- Q8 policy
 
 _points_licence = cache(policy.points_licence_fits)
-_speed_limit = cache(policy.speed_limit_fits)
 
 
 def _policy_table(name: str):
-    source = _points_licence if name.startswith("q8_points") else _speed_limit
-    return lambda: source()[name].copy()
+    return lambda: _points_licence()[name].copy()
 
 
 def _recording_by_year() -> pd.DataFrame:
@@ -246,7 +201,6 @@ SUMMARIES = {
     "risk_index": risk_trends.risk_index,
     "risk_dispersion": risk_trends.year_to_year_dispersion,
     "risk_frequency_severity": risk_trends.frequency_severity,
-    "risk_fuel_efficiency": risk_trends.fuel_efficiency_sensitivity,
     "risk_km_crosscheck": risk_trends.km_crosscheck,
     # The long run and the pandemic
     "longrun_series": risk_trends.long_run_series,
@@ -263,10 +217,8 @@ SUMMARIES = {
     "road_class_risk": road_class.class_risk,
     # Seasonality and mobility
     "season_profile": seasonality.seasonal_profile,
-    "season_profile_long": seasonality.seasonal_profile_long,
     "season_month_effects": seasonality.month_effects,
     "season_lockdown": seasonality.lockdown_months,
-    "season_lockdown_long": seasonality.lockdown_long,
     # Drivers by sex
     "drivers_sex_rates": driver_risk.sex_age_rates,
     "drivers_sex_ratios": driver_risk.sex_ratios,
@@ -278,9 +230,7 @@ SUMMARIES = {
     "factor_shares": factors.factor_shares_segmented,
     "factor_changes": factors.factor_consistency,
     "factor_windows": factors.comparable_windows,
-    # Context: the long-run headline series, darkness by zone and the 2024 road-type recoding
-    "q1_annual_headline": annual_headline,
-    "q2_night_share": night_share_by_year_zone,
+    # Context: the 2024 road-type recoding
     "q2_other_road_by_period": other_road_by_period,
     "q9_infraction_shares": speed.infraction_shares,
     # The data page's missing-values chart: the audited fields by the audit's applicability rule
@@ -308,28 +258,10 @@ SUMMARIES = {
             "q8_points_series",
             "q8_points_sensitivity",
             "q8_points_trend_choice",
-            "q8_points_placebo",
             "q8_points_calendar_placebo",
             "q8_points_calibration",
-            "q8_points_death_definitions",
             "q8_points_transitions",
             "q8_points_forecast",
-            "q8_speed_placebo",
-            "q8_speed_sensitivity",
         )
     },
-}
-
-
-# The withdrawn monthly deaths forecast: its tables are the record behind its model card and the
-# model review, and no page or figure reads them. They take longer to fit than every other table
-# together, so `analyse.py tables` leaves them as committed and `analyse.py withdrawn` rebuilds
-# them.
-WITHDRAWN_SUMMARIES = {
-    "forecast_selection": forecast.model_selection,
-    "forecast_validation": forecast.validation,
-    "forecast_backtest": forecast.backtest,
-    "forecast_horizons": forecast.horizon_errors,
-    "forecast_detectability": forecast.detectability,
-    "forecast_coefficients": forecast.coefficients,
 }

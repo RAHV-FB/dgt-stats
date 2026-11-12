@@ -20,7 +20,7 @@ REGIONAL_PAGES = ("catalonia", "barcelona", "severity-models", "validation", "so
 
 pytestmark = pytest.mark.skipif(
     not (FIGURES_DIR / "captions.json").exists()
-    or not (TABLES_DIR / "q1_annual_headline.csv").exists()
+    or not (TABLES_DIR / "risk_annual_panel.csv").exists()
     or not summaries.model_tables_present(),
     reason="run `python scripts/model.py` and `python scripts/analyse.py all` first",
 )
@@ -44,8 +44,7 @@ def test_every_page_is_written_with_one_heading(built: Path) -> None:
         assert f'href="{slug}.html" aria-current="page"' in text
     # The navigation follows the questions a reader brings: the interactive tools; deaths over
     # time; drivers, vehicles and recorded factors; how deadly a crash is once it has happened; and
-    # the data and methods. Old pages that no builder writes (renamed pages, withdrawn analyses)
-    # are gone.
+    # the data and methods. Old pages that no builder writes are gone.
     assert [group for group, _ in site.NAV_GROUPS] == [
         "Overview",
         "Explore",
@@ -59,7 +58,6 @@ def test_every_page_is_written_with_one_heading(built: Path) -> None:
         "calculator",
         "driver-risk",
         "crash-explorer",
-        "trends-explorer",
     ]
     assert [slug for slug, _ in dict(site.NAV_GROUPS)["Crash severity"]] == [
         "severity",
@@ -69,8 +67,7 @@ def test_every_page_is_written_with_one_heading(built: Path) -> None:
         "validation",
     ]
     assert {slug for slug, _ in site.ALL_PAGES} == {p.stem for p in built.glob("*.html")}
-    # The site's one site-wide script is its own reading aid; the withdrawn models' scripts and
-    # registers are not shipped. The calculator's engine, page script and exported model live
+    # The site's one site-wide script is its own reading aid. The calculator's engine, page script and exported model live
     # apart in models/, the other tools' scripts and data in tools/, and only the tool pages load
     # them.
     assert [p.name for p in built.glob("*.js")] == ["site.js"]
@@ -80,7 +77,8 @@ def test_every_page_is_written_with_one_heading(built: Path) -> None:
         "severity_model.json",
     ]
     tools = {p.name for p in (built / "tools").iterdir()}
-    assert {"tools.js", "driver-risk.js", "crash-explorer.js", "trends-explorer.js"} <= tools
+    assert {"tools.js", "driver-risk.js", "crash-explorer.js"} <= tools
+    assert "trends-explorer.js" not in tools
     assert {p.suffix for p in (built / "tools").iterdir()} <= {".js", ".json"}
     published = {p.name for p in (built / "tables").glob("*.csv")}
     assert not published & {"simulator_evidence.csv", "factor_evidence.csv"}
@@ -93,8 +91,7 @@ CALCULATOR_SCRIPTS = [
 
 
 def _runs_no_script(slug: str, text: str) -> None:
-    """No page runs a script of its own, except the tools: the simulator and factor models that
-    did were withdrawn.
+    """No page runs a script of its own, except the tools.
 
     Every page loads the site's reading aid (menus and contents), after a one-line flag that says
     scripting is on; each tool page also loads the tools' shared helpers and its own script, and
@@ -111,7 +108,7 @@ def _runs_no_script(slug: str, text: str) -> None:
     assert JS_FLAG in text, slug
 
 
-# Pages that were renamed or whose analysis was withdrawn. They are removed, not kept as pointers.
+# Pages that were renamed or removed. They are not kept as pointers.
 DEFUNCT_PAGES = (
     "older-drivers",
     "context",
@@ -121,6 +118,8 @@ DEFUNCT_PAGES = (
     "distraction",
     "alcohol-drugs",
     "enforcement",
+    "trends",
+    "trends-explorer",
 )
 
 
@@ -131,9 +130,13 @@ def test_defunct_pages_are_gone_and_nothing_links_to_them(built: Path) -> None:
         text = (built / f"{slug}.html").read_text(encoding="utf-8")
         for defunct in DEFUNCT_PAGES:
             assert f'href="{defunct}.html"' not in text, (slug, defunct)
-    # No figure of the withdrawn forecast survives.
-    assert not (built / "figures" / "k1_forecast_check.svg").exists()
-    assert not (built / "figures" / "k2_detectability.svg").exists()
+    for name in (
+        "k1_forecast_check",
+        "k2_detectability",
+        "r1_risk_change",
+        "l2_observed_over_trend",
+    ):
+        assert not (built / "figures" / f"{name}.svg").exists(), name
 
 
 def test_reuse_names_each_provider_its_terms_and_its_dates(built: Path) -> None:
@@ -202,9 +205,10 @@ def test_full_result_tables_are_published_as_csv(built: Path) -> None:
     assert published == linked
     assert {f"{name}.csv" for name in summaries.MODEL_TABLES} <= published
     assert "validation.csv" in published
-    # Withdrawn analyses leave no download behind.
-    withdrawn = {f"{name}.csv" for name in summaries.WITHDRAWN_SUMMARIES}
-    assert not published & (withdrawn | {"review_forecast.csv", "q7_breakeven_km.csv"})
+    # Removed analyses leave no download behind.
+    removed = {"q7_breakeven_km", "risk_fuel_efficiency", "q1_annual_headline", "q2_night_share"}
+    removed |= {"q8_speed_placebo", "q8_speed_sensitivity", "q8_points_placebo"}
+    assert not published & {f"{name}.csv" for name in removed}
     # Every page that shows a headline number also links the table it came from.
     for slug in ANALYSIS_PAGES + ("severity", "policy"):
         text = (built / f"{slug}.html").read_text(encoding="utf-8")
@@ -688,21 +692,13 @@ def test_policy_page_reports_the_falsification_not_the_headline(built: Path) -> 
     assert "too narrow" in opening
     assert components._signed_pct(float(calibration.calibrated_low)) in text
     assert "strong evidence" not in text and "QAIC" in text
-    # The 2019 speed-limit design, whose placebo test fails, is a technical note on the
-    # methodology page with its fits linked; its series is drawn nowhere.
+    # The model's notes are on the methodology page, without a speed-limit design.
     data = (built / "data.html").read_text(encoding="utf-8")
     notes = data[data.index('id="policy-method"') :]
     notes = notes[: notes.index("<h2", 1)]
-    assert "2019 speed limit on conventional roads" in notes
-    assert 'href="tables/q8_speed_placebo.csv"' in notes
-    assert 'src="figures/q8_speed_series.svg"' not in text + data
+    assert "speed limit" not in notes and "q8_speed" not in text + data
     assert 'href="data.html#policy-method"' in text
-    # The exposure series are named and their effect reported; the toll series is its
-    # intensity, which does not step with the network's length, and no offset is used.
-    assert "CORES" in text and "toll" in text and "intensity" in text
-    assert "fleet_offset" not in set(sensitivity.index)
-    toll = float(sensitivity.loc["toll", "level_change"])
-    assert signed(toll) in text
+    assert not {"fuel", "toll", "24h", "interurban", "urban"} & set(sensitivity.index)
 
 
 def test_speed_page_carries_severity_and_the_recording_discontinuity(built: Path) -> None:
@@ -792,33 +788,41 @@ def test_factors_page_reads_trends_only_within_comparable_runs(built: Path) -> N
     assert f"Of the {len(changes)} year-to-year changes, {int(changes.is_break.sum())} are" in notes
 
 
-def test_trend_pages_show_every_denominator_and_the_projection(built: Path) -> None:
-    trends = (built / "trends.html").read_text(encoding="utf-8")
-    index = pd.read_csv(TABLES_DIR / "risk_index.csv")
-    for label in index.denominator_label.unique():
-        assert site.esc(label) in trends, label
-    # Licence holders and the fleet divide only drivers and occupants, and the page says so.
-    for label in index.numerator_label.unique():
-        assert site.esc(label) in trends, label
-    latest = index[index.year == index.year.max()].set_index(["outcome", "denominator"])
-    for key in ("count", "residents", "licence_holders", "vehicles", "road_fuel"):
-        change = components._change(float(latest.loc[("deaths_30d", key), "ratio_to_base"]))
-        assert change in trends, key
-    assert 'src="figures/r1_risk_change.svg"' in trends
-    # The fuel-drift grid is a labelled hypothetical, not a per-kilometre finding.
-    assert "roughly flat" not in trends and "per unit of traffic" not in trends
-    assert "hypothetical" in trends
+def test_long_run_page_shows_the_trends_the_projection_and_the_last_year(built: Path) -> None:
     long_run = (built / "long-run.html").read_text(encoding="utf-8")
-    # The ratio-to-trend figure, the projection under other choices and the interurban series in
-    # detail are the long-run page's technical notes on the methodology page, which it links to.
+    index = pd.read_csv(TABLES_DIR / "risk_index.csv")
+    # The last year against 2019: deaths as a count, per resident and per tonne of fuel, and
+    # admissions per tonne, each with its change and its interval for an ordinary year.
+    since = long_run[long_run.index('id="since-2019"') :]
+    since = since[: since.index("<h2", 1)]
+    latest = index[index.year == index.year.max()].set_index(["outcome", "denominator"])
+    for outcome, key in (
+        ("deaths_30d", "count"),
+        ("deaths_30d", "residents"),
+        ("deaths_30d", "road_fuel"),
+        ("hospitalised_30d", "road_fuel"),
+    ):
+        row = latest.loc[(outcome, key)]
+        assert components._change(float(row.ratio_to_base)) in since, (outcome, key)
+        assert components._change(float(row.ratio_low_yty)) in since, (outcome, key)
+        assert components._change(float(row.ratio_high_yty)) in since, (outcome, key)
+    assert "licence holder" not in since and "registered vehicle" not in since
+    dispersion = pd.read_csv(TABLES_DIR / "risk_dispersion.csv").set_index("outcome")
+    assert components._fmt_dec(dispersion.loc["deaths_30d", "dispersion"]) in since
+    # The projection under other choices is a technical note on the methodology page; the
+    # measured-kilometre check, with its figure in the notes, is stated on the page itself.
     data = (built / "data.html").read_text(encoding="utf-8")
     notes = data[data.index('id="long-run-method"') :]
     notes = notes[: notes.index("<h2", 1)]
-    for name in ("l2_observed_over_trend", "l4_km_against_fuel"):
-        assert f'src="figures/{name}.svg"' in notes and name not in long_run, name
-    assert "Observed deaths against the pre-pandemic trend under other projections" in notes
+    assert 'src="figures/l4_km_against_fuel.svg"' in notes and "l4_km" not in long_run
+    assert "l2_observed_over_trend" not in long_run + notes
+    assert 'href="tables/longrun_segments.csv"' in notes
     assert 'href="data.html#long-run-method"' in long_run
+    assert "occupant" not in long_run.lower() and "per registered vehicle" not in long_run
+    sensitivity = pd.read_csv(TABLES_DIR / "longrun_projection_sensitivity.csv")
+    assert not {"normal_quantile", "joinpoint"} & set(sensitivity.variant)
     series = pd.read_csv(TABLES_DIR / "longrun_series.csv")
+    assert set(series.measure) == {"count", "road_fuel"}
     fuel = series[(series.measure == "road_fuel") & (series.period == "projected")]
     last = fuel[fuel.year == fuel.year.max()].iloc[0]
     assert site._signed_pct(float(last.ratio) - 1, 0) in long_run
@@ -836,13 +840,13 @@ def test_trend_pages_show_every_denominator_and_the_projection(built: Path) -> N
     assert "carries more traffic" not in long_run and "carried more traffic" not in long_run
     assert "diagnostic" not in long_run
     assert "check on road fuel as a measure of traffic" in long_run
-    # The long-run fall split into crashes per tonne of fuel and deaths per crash, and the
-    # road-type comparison per measured kilometre, live on this page.
-    assert 'src="figures/l3_frequency_severity.svg"' in long_run
+    # The long-run fall split into crashes per tonne of fuel and deaths per crash is one
+    # paragraph and a table; the road-type comparison per measured kilometre lives on this page.
+    assert "l3_frequency_severity" not in long_run
+    assert 'href="tables/risk_frequency_severity.csv"' in long_run
     assert 'href="tables/road_class_risk.csv"' in long_run
     # The split is shown both ways and not attributed to severity (the home page leaves it to this
-    # page); the per-fuel excess is shown under another start of the trend; DGT's kilometre series
-    # is not called unjoinable.
+    # page); the per-fuel excess is shown under another start of the trend.
     assert "admitted to hospital" in long_run
     for page in (long_run, (built / "index.html").read_text(encoding="utf-8")):
         assert "mostly because crashes became less deadly" not in page
@@ -857,26 +861,16 @@ def test_trend_pages_show_every_denominator_and_the_projection(built: Path) -> N
         assert f"{needed * 100:.1f}" in long_run, year
     assert "deaths per tonne of fuel would be" not in long_run
     assert "dual carriageways" not in long_run
-    # The two pages answer 'has it got worse?' side by side: each states the other's comparison
-    # and links to it, and the long-run page gives each year's count since the count's last
-    # turning point.
+    # The page gives each year's count since the count's last turning point.
     base = latest.loc[("deaths_30d", "road_fuel")]
-    assert f"{components._fmt_pct(float(base.ratio_to_base) - 1)} higher" in long_run
-    assert 'href="trends.html"' in long_run and 'href="long-run.html#recent-years"' in trends
-    excess = [
-        components._fmt_pct(float(ratio) - 1, 0)
-        for ratio in fuel[fuel.year >= fuel.year.max() - 1].sort_values("year").ratio
-    ]
-    assert f"{excess[0]} and {excess[1]} above the projected trend" in trends
-    counts = pd.read_csv(TABLES_DIR / "q1_annual_headline.csv").set_index("year").deaths_30d
+    assert f"{components._fmt_pct(float(base.ratio_to_base) - 1)} above 2019" in notes
+    counts = pd.read_csv(TABLES_DIR / "risk_annual_panel.csv").set_index("year").deaths_30d
     plateau = int(
         pd.read_csv(TABLES_DIR / "longrun_segments.csv").query("measure == 'count'").start.max()
     )
     for year in range(plateau, int(fuel.year.max()) + 1):
         assert f'<td class="num">{components._fmt_int(counts.loc[year])}</td>' in long_run, year
-    for page in (trends, (built / "vehicles.html").read_text(encoding="utf-8")):
-        assert "cannot be joined" not in page and "different method" not in page
-    assert "deaths per tonne of fuel would show" not in trends
+    assert "cannot be joined" not in long_run and "different method" not in long_run
     seasons = (built / "seasons.html").read_text(encoding="utf-8")
     for name in ("m1_season_profile", "m2_month_effects", "m3_lockdown"):
         assert f'src="figures/{name}.svg"' in seasons
@@ -951,7 +945,7 @@ def test_front_page_is_an_overview_of_the_study(built: Path) -> None:
         sentence = components.html.unescape(re.sub(r"<[^>]+>", "", item.split("</p>")[0]))
         assert sentence.endswith(".") and not re.search(r"\.\s+[A-Z]", sentence), sentence
         assert re.search(r'<p class="finding-more"><a href="[a-z-]+\.html', item), item
-    for slug in ("trends", "long-run", "drivers", "speed", "severity-models"):
+    for slug in ("long-run", "drivers", "speed", "severity-models"):
         assert f'href="{slug}.html' in sections["Main findings"], slug
     assert 'href="validation.html' in sections["Main findings"]
     # The list of pages follows the navigation's groups and lists every page once.
@@ -964,7 +958,7 @@ def test_front_page_is_an_overview_of_the_study(built: Path) -> None:
     latest = risk[(risk.year == risk.year.max()) & (risk.outcome == "deaths_30d")]
     deaths = latest[latest.denominator == "count"].iloc[0]
     assert components._fmt_int(deaths["count"]) in sections["Main findings"]
-    counts = pd.read_csv(TABLES_DIR / "q1_annual_headline.csv").set_index("year").deaths_30d
+    counts = pd.read_csv(TABLES_DIR / "risk_annual_panel.csv").set_index("year").deaths_30d
     steep_end = int(
         pd.read_csv(TABLES_DIR / "longrun_segments.csv").query("measure == 'count'").start.max()
     )
@@ -1140,7 +1134,7 @@ def test_methodology_lists_every_assumption_the_methods_document_tests(built: Pa
     ]
     for value in later.ratio:
         assert components._fmt_pct(float(value) - 1, 0) in row("The excess of deaths per tonne")
-    # The dispersion factors are given on the trends page, not repeated here: the factor as a
+    # The dispersion factors are given on the long-run page, not repeated here: the factor as a
     # number of its own, not the last digits of another ratio in the text.
     scatter = pd.read_csv(TABLES_DIR / "risk_dispersion.csv").set_index("outcome").dispersion
     factor = components._fmt_dec(scatter["crashes"], 0)

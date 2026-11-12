@@ -67,7 +67,7 @@ CORE_FIELDS = {
     "TIPO_ACCIDENTE": "crash type",
 }
 # The step in recorded urban injury crashes that inflates the crash dispersion ends this many
-# years after the scatter window opens (as on the trends page).
+# years after the scatter window opens.
 URBAN_STEP_YEARS = 3
 NUMBER_WORDS = {
     1: "one",
@@ -241,7 +241,7 @@ def _rates() -> str:
             ),
         }
     )
-    vehicles = risk_trends.MOTOR_VEHICLES
+    vehicles = "motorcycles, cars, vans, trucks and buses"
     denominators = [
         (
             "Per resident",
@@ -250,9 +250,8 @@ def _rates() -> str:
         ),
         (
             "Per licence holder",
-            f"Counts only drivers: on the trend pages the drivers of {vehicles} killed or "
-            "admitted to hospital, and on the drivers page car drivers involved in injury "
-            "crashes, injured or not.",
+            "Counts only drivers: on the drivers page, car drivers involved in injury crashes, "
+            "injured or not.",
         ),
         ("Per registered vehicle", f"Counts only the occupants of {vehicles}."),
         (
@@ -274,7 +273,7 @@ def _rates() -> str:
             "death. It needs no measure of travel.",
         ),
     ]
-    trends = f'<a href="trends.html">{TITLES["trends"]}</a>'
+    since_2019 = f'<a href="long-run.html#since-{risk_trends.BASE_YEAR}">{TITLES["long-run"]}</a>'
     assumptions = '<a href="#assumptions-tested">assumptions tested</a>'
     return (
         '<h2 id="rates">Rates, denominators and intervals</h2>'
@@ -285,8 +284,8 @@ def _rates() -> str:
         "only. Road fuel stands in for the kilometres driven on all roads, and the kilometres "
         "by driver age carry one region's survey to Spain; neither can be tested for Spain as "
         f"a whole ({assumptions}). Some rates do not fully meet the rule, and each page says "
-        "so: rates per resident count visitors' deaths, rates per licence holder (by sex, and "
-        "on Since 2019) count unlicensed and foreign drivers, rates per registered vehicle and "
+        "so: rates per resident count visitors' deaths, rates per licence holder (by sex) "
+        "count unlicensed and foreign drivers, rates per registered vehicle and "
         "by vehicle type count foreign vehicles, and interurban deaths are compared with "
         "national road fuel only as a check.</p>"
         "<h3>How often crashes happen and how deadly they are</h3>"
@@ -304,7 +303,7 @@ def _rates() -> str:
         "ratios of two rates carry log-normal intervals. Spain's annual counts scatter around "
         "their trend more than Poisson chance allows, so changes against "
         f"{risk_trends.BASE_YEAR} are read against intervals widened to span an ordinary "
-        f"year's variation ({trends}; {assumptions}).</p>"
+        f"year's variation ({since_2019}; {assumptions}).</p>"
     )
 
 
@@ -1139,11 +1138,6 @@ def _assumption_rows() -> list[tuple[str, str, str]]:
     last = int(projection.index.get_level_values("year").max())
     recent = (last - 1, last)
     from_count = f"start_{count_start}"
-    review = read_table("review_forecast")
-    held_out = review[review.set.eq("holdout")]
-    model = held_out[held_out.method.str.contains("published model")].sort_values("window")
-    naive = held_out[held_out.method.str.startswith("naive")]
-    model_error, naive_error = float(model.rmse.iloc[0]), float(naive.rmse.iloc[0])
     counted_from = risk_trends.DEATHS_30D_COUNTED_FROM
     ratio_30_24 = panel.deaths_30d / panel.deaths_24h
     # The ratio while DGT estimated 30-day deaths, the years after the change below the last
@@ -1249,11 +1243,9 @@ def _assumption_rows() -> list[tuple[str, str, str]]:
                 and float(at("road_fuel", from_count, y).ratio) > 1
                 for y in recent
             ),
-            "the forecast loses to last year's count on the held-out years": len(naive) == 1
-            and model_error > naive_error,
         }
     )
-    fuel_pages = _join([TITLES[slug] for slug in ("trends", "long-run", "seasons")])
+    fuel_pages = _join([TITLES[slug] for slug in ("long-run", "seasons")])
     drivers_page, long_run = TITLES["drivers"], TITLES["long-run"]
 
     def projected(variant: str) -> str:
@@ -1263,7 +1255,7 @@ def _assumption_rows() -> list[tuple[str, str, str]]:
     starts = [at("road_fuel", from_count, year) for year in recent]
     return [
         (
-            f"A year's count varies around its trend only by chance ({TITLES['trends']})",
+            f"A year's count varies around its trend only by chance ({TITLES['long-run']})",
             f"The scatter of each annual count around its {scatter_first}–{scatter_last} trend, "
             "against the Poisson variance.",
             "Does not hold for hospital admissions or injury crashes: the 95% interval of each "
@@ -1272,7 +1264,7 @@ def _assumption_rows() -> list[tuple[str, str, str]]:
             "so the data cannot tell whether deaths vary beyond chance. Intervals for changes "
             "against "
             f"{reference} are widened to match, with Student's t for the trend's "
-            f"{_words(scatter_df)} residual degrees of freedom; {TITLES['trends']} gives the "
+            f"{_words(scatter_df)} residual degrees of freedom; {TITLES['long-run']} gives the "
             "factors. The crash factor also carries a step in recorded urban crashes between "
             f"{scatter_first} and {step_end}, so the crash intervals are too wide to show "
             "whether a change is beyond an ordinary year.",
@@ -1412,26 +1404,16 @@ def _assumption_rows() -> list[tuple[str, str, str]]:
             f"{_where(starts[0]).replace('the range', 'its range')} in {recent[0]} and "
             f"{_where(starts[1]).replace('the range', 'its range')} in {recent[1]}.",
         ),
-        (
-            "A forecast of monthly deaths can show whether a year's deaths changed",
-            "The forecast model's error in a year's deaths on ordinary years held back from its "
-            "choice, against repeating the same months of the year before.",
-            f"Does not hold: its error was {_fmt_pct(model_error)} against "
-            f"{_fmt_pct(naive_error)} for last year's count. The forecast, and the detectable "
-            "changes computed from its errors, were withdrawn.",
-        ),
     ]
 
 
 def _assumptions() -> str:
     """The assumptions behind the results that the data can test, each with what testing found."""
     frame = pd.DataFrame(_assumption_rows(), columns=["Assumption", "Check", "Result"])
-    review = f'<a href="{DOCS_URL}/research/ML_MODEL_REVIEW.md">model review</a>'
     return (
         '<h2 id="assumptions-tested">Assumptions tested</h2>'
         "<p>Several results rest on assumptions that the data can test in full or in part. "
-        "Each assumption names the pages whose results rest on it; the withdrawn forecast is "
-        f"documented in the {review}.</p>"
+        "Each assumption names the pages whose results rest on it.</p>"
         + table(frame, "Assumptions behind the results, how each was checked, and what was found.")
     )
 
@@ -1619,7 +1601,6 @@ def _reuse() -> str:
 # ``technical_notes(captions)``, which returns one or more sections (each opening with an h2), in
 # the order of the navigation.
 NOTE_MODULES = (
-    "trends",
     "long_run",
     "seasons",
     "policy",

@@ -15,10 +15,7 @@ from dgt_stats.paths import TABLES_DIR
 # build_all writes these from the summary tables plus missingness_by_year.csv; the Q3 ones need
 # the model tables.
 EXPECTED_FIGURES = {
-    "r1_risk_change",
     "l1_trend_projection",
-    "l2_observed_over_trend",
-    "l3_frequency_severity",
     "l4_km_against_fuel",
     "m1_season_profile",
     "m2_month_effects",
@@ -1029,12 +1026,19 @@ def test_season_long_run_and_sex_ratio_charts(
     figures._sex_figures(tmp_path, captions, summary)
     figures._long_run_figures(tmp_path, captions, summary)
     season_profile, _, lockdown, sex_ratios, trend = drawn[:5]
-    # The road-use series in both season charts take their own colour and marker.
-    for axes in (season_profile, lockdown):
+    # The road-use series take their own colour and marker; the lockdown chart draws road fuel
+    # alone beside deaths.
+    for axes, names in (
+        (season_profile, list(figures.SEASON_STYLES)),
+        (lockdown, ["Road fuel sold (petrol + diesel)"]),
+    ):
         lines = {line.get_label(): line for line in axes[0].get_lines()}
-        for name, look in figures.SEASON_STYLES.items():
+        assert set(lines) >= set(names)
+        for name in names:
+            look = figures.SEASON_STYLES[name]
             assert lines[name].get_color() == look["color"], name
             assert lines[name].get_marker() == look["marker"], name
+    assert "Petrol sold only" not in {line.get_label() for line in lockdown[0].get_lines()}
     # Ratios of men's to women's rates on a log axis, the same in every panel, and labelled so.
     assert all(axis.get_xscale() == "log" for axis in sex_ratios)
     assert "log scale" in sex_ratios[0].figure.get_supxlabel()
@@ -1042,7 +1046,7 @@ def test_season_long_run_and_sex_ratio_charts(
     titles = [axis.get_title(loc="left").replace("\n", " ") for axis in trend]
     assert titles == list(figures.LONG_RUN_PANELS.values())
     assert all("deaths a year" in title for title in titles)
-    assert "per registered vehicle" in titles[1] and "per tonne of road fuel" in titles[2]
+    assert len(titles) == 2 and "per tonne of road fuel" in titles[1]
 
 
 @pytest.mark.skipif(not summaries.model_tables_present(), reason="run `python scripts/model.py`")

@@ -10,7 +10,7 @@ the tables a page links are copied into ``site/tables``, and only the figures a 
 ``site/figures``, with their drawings for a phone's column in ``site/figures/narrow``; the other
 result tables stay in the repository, unpublished.
 
-One module per page: ``overview``, ``trends``, ``long_run``, ``seasons``, ``drivers``,
+One module per page: ``overview``, ``long_run``, ``seasons``, ``drivers``,
 ``vehicles``, ``speed``, ``factors``, the supporting ``severity`` and ``policy``,
 ``regional`` (Catalonia and Barcelona), ``models``, ``validation``, ``sources`` and ``data``. The
 shared furniture is in ``components``, the stylesheet in ``style``, the script in ``script``, the result tables several
@@ -19,8 +19,7 @@ pages quote in ``numbers`` and the helpers of the regional, model and validation
 
 The interactive tools (``explore`` and the ``tool_*`` modules) are pages like the others; their
 scripts and the data they read are published in ``site/tools``, and the calculator's engine and
-model in ``site/models``. Pages that no builder writes any more, such as the notices of withdrawn
-analyses, are removed from ``site``.
+model in ``site/models``. A page no builder writes is removed from ``site``.
 """
 
 from __future__ import annotations
@@ -59,7 +58,6 @@ from dgt_stats.site.severity import page_severity
 from dgt_stats.site.sources import page_sources
 from dgt_stats.site.speed import page_speed
 from dgt_stats.site.style import STYLE
-from dgt_stats.site.trends import page_trends
 from dgt_stats.site.validation import page_validation
 from dgt_stats.site.vehicles import page_vehicles
 
@@ -72,7 +70,6 @@ __all__ = [
     "REPO_URL",
     "SITE_DIR",
     "SUPPORTING_PAGES",
-    "WITHDRAWN_PAGES",
     "_signed_pct",
     "build",
     "esc",
@@ -102,8 +99,6 @@ PAGE_BUILDERS = {
     "calculator": explore.tool_calculator.page_calculator,
     "driver-risk": explore.tool_driver_risk.page_driver_risk,
     "crash-explorer": explore.tool_crashes.page_crash_explorer,
-    "trends-explorer": explore.tool_trends.page_trends_explorer,
-    "trends": page_trends,
     "long-run": page_long_run,
     "seasons": page_seasons,
     "drivers": page_drivers,
@@ -135,8 +130,7 @@ def build(site_dir: Path = SITE_DIR) -> list[Path]:
         target = fonts_dir / path.name
         shutil.copyfile(path, target)
         written.append(target)
-    # The one site-wide script is the site's own; any other, such as those of the withdrawn
-    # simulator and factor models, is removed. The calculator's engine, its page script and the
+    # The one site-wide script is the site's own; any other is removed. The calculator's engine, its page script and the
     # exported model it reads live apart, in ``models/``, and only its page loads them.
     for stale in site_dir.glob("*.js"):
         stale.unlink()

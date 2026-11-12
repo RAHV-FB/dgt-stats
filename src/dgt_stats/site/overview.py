@@ -12,6 +12,7 @@ page is written.
 from __future__ import annotations
 
 from dgt_stats.exposure_risk import national as national_rates
+from dgt_stats.risk_trends import BASE_YEAR
 from dgt_stats.site.components import (
     ALL_PAGES,
     NAV_GROUPS,
@@ -90,7 +91,7 @@ def _finding(answer: str, evidence: str, links: list[tuple[str, str]]) -> str:
 
 
 def _deaths() -> str:
-    headline = read_table("q1_annual_headline").set_index("year").deaths_30d
+    headline = read_table("risk_annual_panel").set_index("year").deaths_30d
     first, last = int(headline.index.min()), int(headline.index.max())
     segments = _long_run_numbers()["segments"]
     count = segments[segments.measure == "count"].sort_values("start")
@@ -111,7 +112,10 @@ def _deaths() -> str:
         "clear rise or fall since",
         f"{_fmt_int(headline.loc[first])} people died in {first}, "
         f"{_fmt_int(headline.loc[end])} in {end} and {_fmt_int(headline.loc[last])} in {last}.",
-        [("long-run", ""), ("trends", "")],
+        [
+            ("long-run", ""),
+            (f"long-run#since-{BASE_YEAR}", f"Long-run trends: since {BASE_YEAR}"),
+        ],
     )
 
 

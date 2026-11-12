@@ -17,7 +17,7 @@ from dgt_stats.site import components
 
 pytestmark = pytest.mark.skipif(
     not (FIGURES_DIR / "captions.json").exists()
-    or not (TABLES_DIR / "q1_annual_headline.csv").exists()
+    or not (TABLES_DIR / "risk_annual_panel.csv").exists()
     or not (TABLES_DIR / "ml_model_decisions.csv").exists()
     or not summaries.model_tables_present(),
     reason="run `python scripts/model.py`, `python scripts/analyse.py all` and "
@@ -197,7 +197,7 @@ def test_the_front_page_is_a_research_overview(built: dict[str, str]) -> None:
     assert "Finding" not in _visible(built["index"])
     assert '<div class="finding">' not in main
     assert not re.search(r"<h2>\d+\. ", main)
-    for slug in ("trends", "drivers", "vehicles", "catalonia", "barcelona", "severity-models"):
+    for slug in ("long-run", "drivers", "vehicles", "catalonia", "barcelona", "severity-models"):
         assert f'href="{slug}.html"' in main, slug
     for slug in ("validation", "data", "sources"):
         assert f'href="{slug}.html' in main, slug
@@ -237,8 +237,8 @@ def test_the_models_page_leads_with_predicted_against_observed(built: dict[str, 
     assert "a posted limit is not a speed" in visible.lower()
     assert "cannot say whether a crash will happen" in visible
     assert "died within 24 hours" in visible
-    # No withdrawn page is linked.
-    assert 'href="forecast.html"' not in main
+    # No removed page is linked.
+    assert 'href="forecast.html"' not in main and 'href="trends.html"' not in main
 
 
 def test_the_validation_page_does_not_claim_national_transferability(
@@ -320,7 +320,6 @@ def test_pages_carry_no_template_furniture(built: dict[str, str]) -> None:
 # The pages on deaths over time and the methodology section that holds each one's technical notes.
 TIME_PAGES = {
     "long-run": "long-run-method",
-    "trends": "trends-method",
     "seasons": "seasons-method",
     "policy": "policy-method",
 }
@@ -343,9 +342,6 @@ def test_time_pages_are_short_and_keep_their_detail_on_the_methodology_page(
         assert '<details class="technical"' not in main, slug
         assert f'href="data.html#{notes}"' in main, slug
         assert f'<h2 id="{notes}">' in built["data"], slug
-    # The yearly series can be explored from the pages that read them.
-    for slug in ("long-run", "trends"):
-        assert 'href="trends-explorer.html"' in _main(built[slug]), slug
 
 
 # The pages that quote the figures for drivers aged 75 and over.

@@ -71,9 +71,25 @@ def test_lockdown_compares_each_month_with_the_same_month_before() -> None:
     assert change.to_numpy() == pytest.approx(
         lockdown.deaths_per_road_fuel_tonnes_change.to_numpy()
     )
-    # Petrol and toll-motorway traffic are traffic beside deaths, never a denominator.
-    assert {"petrol_tonnes_change", "toll_intensity_change"} <= set(lockdown.columns)
-    assert not [c for c in lockdown.columns if "per_petrol" in c or "per_toll" in c]
-    # The toll network the intensity is measured on shrank between the baseline and 2020.
-    assert (lockdown.toll_network_km <= lockdown.toll_network_km_baseline).all()
-    assert lockdown.loc[4, "toll_network_km"] < lockdown.loc[4, "toll_network_km_baseline"]
+    # Road fuel is the only traffic comparator of the lockdown months.
+    assert not [c for c in lockdown.columns if "petrol" in c or "toll" in c]
+
+
+def test_raw_month_effects_allow_for_the_length_of_the_month(monkeypatch) -> None:
+    # Deaths proportional to the days in the month, with no other seasonality: per day, every
+    # month is the same, and February is not low just for being short.
+    months = np.tile(np.arange(1, 13), 4)
+    years = np.repeat([2015, 2017, 2018, 2019], 12)
+    days = np.array([[31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][m - 1] for m in months])
+    panel = pd.DataFrame(
+        {
+            "year": years,
+            "month": months,
+            "deaths_all": 10 * days.astype(float),
+            "road_fuel_tonnes": 1e6 * days.astype(float),
+        }
+    )
+    monkeypatch.setattr(seasonality, "monthly_panel", lambda: panel)
+    effects = seasonality.month_effects(years=(2015, 2017, 2018, 2019))
+    raw = effects[effects.exposure == "none"].rate_ratio
+    assert raw.to_numpy() == pytest.approx(np.ones(12), abs=1e-6)

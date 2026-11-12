@@ -17,7 +17,7 @@ from dgt_stats.site.style import FIGURE_SWITCH_REMS, STYLE
 
 pytestmark = pytest.mark.skipif(
     not (FIGURES_DIR / "captions.json").exists()
-    or not (TABLES_DIR / "q1_annual_headline.csv").exists()
+    or not (TABLES_DIR / "risk_annual_panel.csv").exists()
     or not summaries.model_tables_present(),
     reason="run `python scripts/model.py` and `python scripts/analyse.py all` first",
 )
