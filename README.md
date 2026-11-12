@@ -131,8 +131,8 @@ pytest                                # tests, including the reconciliation chec
 pytest -m slow                        # raw-file checksums against data/raw/manifest.csv
 ```
 
-CI runs the whole pipeline and fails if any committed table, document or page changes, or a
-figure moves by more than a tenth of a point.
+CI runs the whole pipeline and fails if a committed document or page changes, a table's numbers
+move by more than one part in a thousand, or a figure prints anything different.
 `scripts/fetch_ine.py` and `scripts/fetch_edm.py` rebuild committed extracts and stand outside the
 build. Details of each script are in [`scripts/README.md`](scripts/README.md).
 

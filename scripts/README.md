@@ -24,8 +24,9 @@ outside the build.
 - `exposure_risk.py {barcelona,madrid,national,all}`: the exposure methods and car drivers involved
   per kilometre by driver age, with the ranges across assumptions (`risk_*`, `edm_*` tables).
 - `build_site.py`: `site/` and `docs/FINDINGS.md`, from the committed tables and figures.
-- `compare_figures.py`: after `analyse.py figures`, checks that every figure matches its committed
-  copy to within a tenth of a point (CI runs it; tables and documents are compared byte for byte).
+- `compare_reports.py`: after the pipeline, checks the rebuilt tables and figures against the
+  committed ones: no file new or missing, every table number within one part in a thousand, and
+  everything a figure prints identical (CI runs it; documents are compared byte for byte).
 - `fetch_ine.py [--table provinces|single_age] [--from-file CSV]`: rebuilds the committed INE
   population extracts in `data/raw/ine/`, or filters an already downloaded copy.
 - `fetch_edm.py [--from-dir DIR]`: rebuilds the committed extracts of the Madrid household travel

@@ -104,15 +104,17 @@ jobs:
       # Every table, figure and document the steps above regenerate must match the committed copy,
       # and none may be new. docs/FINDINGS.md is written by the site build, so it is checked in the
       # browser job and left out here.
-      # Tables and documents must match byte for byte. A figure's coordinates carry the last
-      # digits of floating-point layout arithmetic, which differ between machines, so the
-      # figures are compared to within a tenth of a point (scripts/compare_figures.py).
-      - name: Check the regenerated tables, documents and figures match the committed copies
+      # On one machine every file reproduces byte for byte. Across machines the last digits of some
+      # fitted results move with the processor's numerical kernels, and a figure is laid out from
+      # text measured on the machine that draws it. So the documents must match byte for byte, and
+      # scripts/compare_reports.py checks the tables (every number within one part in a thousand)
+      # and the figures (everything they print identical), and that no file is new or missing.
+      - name: Check the rebuilt tables, figures and documents match the committed copies
         run: |
           git status --short -- reports docs
-          git diff --exit-code -- reports docs ':(exclude)docs/FINDINGS.md' ':(exclude)reports/figures/*.svg'
-          test -z "$(git status --porcelain -- reports docs ':(exclude)docs/FINDINGS.md' ':(exclude)reports/figures/*.svg')"
-          python scripts/compare_figures.py
+          git diff --exit-code -- docs ':(exclude)docs/FINDINGS.md'
+          test -z "$(git status --porcelain -- docs ':(exclude)docs/FINDINGS.md')"
+          python scripts/compare_reports.py
 
       - name: Test
         run: pytest
