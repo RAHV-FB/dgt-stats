@@ -76,7 +76,7 @@ def test_no_summary_table_carries_a_withdrawn_result() -> None:
         "drivers_sex_travel",
     }
     assert not names & withdrawn
-    assert {"road_class_baseline", "road_class_risk"} <= names
+    assert "road_class_risk" in names
 
 
 WITHDRAWN_TABLES = re.compile(

@@ -615,25 +615,16 @@ def _presence_breaks() -> str:
     )
 
 
-def _missingness_alt(missing: pd.DataFrame, applicability: pd.DataFrame) -> str:
+def _missingness_alt(missing: pd.DataFrame) -> str:
     """The missing-values figure's alt text: what it shows, from the shares it draws."""
     years = missing.year
-    shown = figure_data.recorded_where_applicable(missing, applicability)
+    shown = figure_data.recorded_where_applicable(missing)
     names = figure_data.MISSINGNESS_FIELDS
     core = shown.loc[[names[field] for field in CORE_FIELDS]]
-    priority = shown.loc[shown.index.str.startswith("Right of way")].iloc[0]
-    junction_type = shown.loc[names["NUDO_INFO"]]
-    # The years whose Catalan junction flag is inverted, read the other way round in the figure,
-    # checked not to leave the junction fields recorded less often than in every other year.
-    flipped = figure_data.inverted_junction_years(shown, read_table("dgt_audit_junction_coding"))
     _require(
         {
             "the fields that describe every crash are recorded in nearly every crash": bool(
                 (core > ALWAYS_RECORDED).all().all()
-            ),
-            "every year the junction type is recorded in nine crashes at a junction in ten and "
-            "the right-of-way flags in most": bool(
-                (junction_type > 0.9).all() and (priority > 0.5).all()
             ),
             "the pavement and island fields are recorded in most crashes they apply to": bool(
                 (shown.loc[[names["ACERA"], names["ISLA"]]] > 0.5).all().all()
@@ -643,13 +634,10 @@ def _missingness_alt(missing: pd.DataFrame, applicability: pd.DataFrame) -> str:
     return (
         "Share of DGT crash records with a value recorded, among the crashes each field applies "
         f"to, by field and year, {_span(years)}, from the most completely recorded field down. "
-        f"The {_join(list(CORE_FIELDS.values()))} are recorded in nearly every crash. Among "
-        "crashes at a junction, the junction type is recorded in "
-        f"{_pct_range(junction_type)} and the right-of-way flags in "
-        f"{_pct_range(priority)} a year, with the junction flag of the Catalan provinces' "
-        f"records for {_join([str(y) for y in flipped])} read the other way round. "
+        f"The {_join(list(CORE_FIELDS.values()))} are recorded in nearly every crash. "
         "Fields that apply only to some crashes, such as the pavement and island fields, are "
-        "recorded in most of the crashes they apply to."
+        "recorded in most of the crashes they apply to. The fields that apply only at a "
+        "junction are not drawn."
     )
 
 
@@ -658,7 +646,6 @@ def _records(captions: dict[str, str]) -> str:
     artefacts = read_table("ml_recording_artefacts")
     semantics = read_table("mq_bcn_count_semantics").set_index("check").value
     missing = read_table("missingness_by_year")
-    applicability = read_table("missingness_where_applicable")
     limit = recording.RATIO_LIMIT
     catalan = artefacts[artefacts.verdict == "outcome-dependent recording"]
     catalogue = read_table("ml_feature_catalogue")
@@ -702,45 +689,16 @@ def _records(captions: dict[str, str]) -> str:
         rows = missing[missing.column == column]
         return float((rows[share] * rows.rows).sum() / rows.rows.sum())
 
-    audited = applicability.groupby("column")[["rows", "applies", "recorded"]].sum()
-    pavement_na = float(1 - audited.loc["ACERA"].applies / audited.loc["ACERA"].rows)
-    junction_type_na = float(1 - audited.loc["NUDO_INFO"].applies / audited.loc["NUDO_INFO"].rows)
+    pavement_na = overall("ACERA", "share_not_applicable")
     island_empty = overall("ISLA", "share_empty")
-    # What the figure draws: for the fields the audit examines, the share recorded among the
-    # crashes the audit's rule says they apply to; for the island field, the share recorded among
-    # the crashes left once "not applicable" and the empty cell are set aside.
-    shown = figure_data.recorded_where_applicable(missing, applicability)
-    by_year = missing.set_index(["column", "year"])
-    audited_by_year = applicability.set_index(["column", "year"])
-    island_applies = 1 - by_year.loc["ISLA"].share_not_applicable - by_year.loc["ISLA"].share_empty
+    shown = figure_data.recorded_where_applicable(missing)
     names = figure_data.MISSINGNESS_FIELDS
-
-    def audit_share(column: str) -> pd.Series:
-        rows = audited_by_year.loc[column]
-        return rows.recorded / rows.applies
-
-    leaves_out_not_applicable = bool(
-        all(
-            (shown.loc[names[column]] - audit_share(column)).abs().max() < 1e-9
-            for column in ("ACERA", "NUDO_INFO", "CONDICION_NIEBLA")
-        )
-        and (shown.loc[names["ISLA"]] - by_year.loc["ISLA"].share_observed / island_applies)
-        .abs()
-        .max()
-        < 1e-9
-    )
-    applies = regional.set_index("field").applies_share
     _require(
         {
-            "the audit reads blank fog and wind fields as no fog or wind, and only those": [
-                field for field in regional.field if dgt_audit.presence_field(field)
-            ]
-            == ["CONDICION_NIEBLA", "CONDICION_VIENTO"],
-            "the junction type and right-of-way flags apply to some crashes only": set(
-                dgt_audit.JUNCTION_FIELDS
-            )
-            == {"NUDO_INFO", *codes.PRIORI_COLUMNS}
-            and bool((applies.loc[list(dgt_audit.JUNCTION_FIELDS)] < 1).all()),
+            "the figure draws fog and wind recorded in every crash, an empty cell being the "
+            "recorded “no”": bool(
+                (shown.loc[[names["CONDICION_NIEBLA"], names["CONDICION_VIENTO"]]] == 1).all().all()
+            ),
             "the right-of-way flags are unrecorded together": float(
                 regional[priority].unrecorded_share.max()
                 - regional[priority].unrecorded_share.min()
@@ -749,22 +707,15 @@ def _records(captions: dict[str, str]) -> str:
             "unrecorded shares split into fields nearly always recorded and fields often not": 0
             < mostly_blank
             < len(questions) / 2,
-            "the figure reads the audited fields by the audit's rule and leaves “not "
-            "applicable” and the island's empty cells out of its shares, and its caption says "
-            "so": leaves_out_not_applicable
-            and all(
+            "the figure leaves “not applicable” and the island's empty cells out of its shares, "
+            "and its caption says so": all(
                 phrase in captions.get("d1_missingness", "")
                 for phrase in (
                     "998 (not applicable)",
                     "among the crashes the field applies to",
-                    "in a crash recorded away from a junction",
                     "fog or strong wind field counts as recorded",
-                    "the flag is read the other way round",
+                    "not drawn",
                 )
-            ),
-            "the junction type does not apply to most crashes": junction_type_na > 0.5,
-            "the audit's fog and wind fields are recorded in every crash": bool(
-                (shown.loc[[names["CONDICION_NIEBLA"], names["CONDICION_VIENTO"]]] == 1).all().all()
             ),
             "the pavement field is mostly not applicable": pavement_na > 0.5,
             "DGT's dictionary defines an empty island field as not applicable": codes.load_dictionary()
@@ -809,15 +760,14 @@ def _records(captions: dict[str, str]) -> str:
             else ""
         )
         + f". How unevenly the provinces record them is set out under {sources}.</p>"
-        "<p>The figure reads the fields the audit examines by the same rule and leaves “not "
-        "applicable” out of each field's share, so a field that applies only to some crashes is "
-        "judged on the crashes it applies to. The pavement field is “not applicable” in "
-        f"{_fmt_pct(pavement_na, 0)} of crashes, the junction type in "
-        f"{_fmt_pct(junction_type_na, 0)} (those away from a junction), and the island field is "
+        "<p>The figure leaves “not applicable” out of each field's share, so a field that "
+        "applies only to some crashes is judged on the crashes it applies to. The pavement field "
+        f"is “not applicable” in {_fmt_pct(pavement_na, 0)} of crashes, and the island field is "
         "empty, which DGT's dictionary defines as not applicable, in "
-        f"{_fmt_pct(island_empty, 0)}. In the figure an empty fog or strong-wind field counts as "
-        "recorded.</p>"
-        + figure("d1_missingness", _missingness_alt(missing, applicability), captions)
+        f"{_fmt_pct(island_empty, 0)}. In the figure an empty fog or strong-wind field counts "
+        "as recorded. The junction type, the right-of-way flags and the crossing road apply "
+        "only at a junction, which this table cannot identify, so they are not drawn.</p>"
+        + figure("d1_missingness", _missingness_alt(missing), captions)
         + "<p>Recording can also depend on the outcome. Fatal crashes may be investigated more "
         "fully, so fields left unspecified in non-fatal crashes are more often filled in for "
         f"fatal ones. In the Catalan file, {_words(levels)} placeholder levels in "
@@ -1625,7 +1575,6 @@ NOTE_MODULES = (
     "policy",
     "drivers",
     "vehicles",
-    "speed",
     "factors",
     "severity",
     "regional",
@@ -1666,7 +1615,6 @@ def page_data(captions: dict[str, str]) -> str:
             ("validation", "reconciliation checks"),
             ("risk_dispersion", "year-to-year dispersion"),
             ("missingness_by_year", "missing values by field and year"),
-            ("missingness_where_applicable", "values recorded where each field applies"),
             ("dgt_audit_presence_coding", "fog and wind coding by province and year"),
             ("ml_split_isolation", "training and test splits"),
             ("ml_rule_comparison", "models against their tables"),

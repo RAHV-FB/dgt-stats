@@ -58,14 +58,13 @@ def _facts() -> SimpleNamespace:
     """Every figure the page and its technical notes quote, read from the tables, with the checks
     that the sentences built on them still hold."""
     rates = read_table("q6_summary_2022").set_index("group")
-    split = read_table("q6_van_light_truck_split").set_index("group")
     year = int(read_table("q6_rates_2022").year.iloc[0])
     car, truck, bike = rates.loc["car"], rates.loc["heavy_truck"], rates.loc["motorcycle"]
     # DGT's kilometre series, as its later release sets it out.
     km_years = sorted(int(year) for year in read_table("risk_km_crosscheck").year)
     # The rates with their 95% intervals, all roads.
     intervals = read_table("q6_rates_2022")
-    intervals = intervals[intervals.zone == "all"].set_index(["measure", "group"])
+    intervals = intervals.set_index(["measure", "group"])
 
     def bounds(measure: str, group: str) -> tuple[float, float]:
         row = intervals.loc[(measure, group)]
@@ -90,10 +89,6 @@ def _facts() -> SimpleNamespace:
     truck_occupants = float(truck.occupant_deaths_per_fatal_involvement)
     bike_occupants = float(bike.occupant_deaths_per_fatal_involvement)
     car_occupants = float(car.occupant_deaths_per_fatal_involvement)
-    van_gap = float(
-        split.loc["light_truck", "fatal_involvement_per_bn_km"]
-        / split.loc["van", "fatal_involvement_per_bn_km"]
-    )
     top_per_vehicle = set(rates.fatal_involvement_per_100k_vehicles.nlargest(2).index)
     truck_class = str(truck.label).removeprefix("Trucks ")
     order = rates.sort_values("fatal_involvement_per_bn_km", ascending=False)
@@ -246,19 +241,15 @@ def page_vehicles(captions: dict[str, str]) -> str:
         "than for individual vehicles, and cover all roads, so rates per kilometre cannot be "
         "split between urban and interurban roads. The crash counts include foreign-registered "
         "vehicles and the kilometres do not, which bears most on heavy trucks and buses "
-        f'(<a href="data.html#{NOTES_ANCHOR}">how counts and kilometres are matched</a>).'
+        "The 95% intervals in the rates table cover the counts only, not the uncertainty of the "
+        f'modelled kilometres (<a href="data.html#{NOTES_ANCHOR}">how counts and kilometres are '
+        "matched</a>)."
     )
     body += downloads(
         [
             ("q6_summary_2022", "rates by vehicle type"),
-            (
-                "q6_rates_2022",
-                "rates with 95% intervals (urban and interurban roads only as counts and "
-                "rates per vehicle)",
-            ),
+            ("q6_rates_2022", "rates with 95% intervals"),
             ("q6_vehicle_km_2022", "fleet and kilometres"),
-            ("q6_vehicle_groups", "how the source categories map to these groups"),
-            ("q6_van_light_truck_split", "vans and light trucks separately"),
         ],
         method=("data.html#rates", "rates and denominators"),
     )
@@ -276,43 +267,21 @@ def technical_notes(captions: dict[str, str]) -> str:
     the kilometres are matched: one section of the methodology page."""
     del captions
     f = _facts()
-    year, order = f.year, f.order
-    fleet = pd.DataFrame(
-        {
-            "Vehicle type": [_label(label) for label in order.label],
-            "Vehicles in circulation": order.n_vehicles,
-            "Km per vehicle a year": order.km_per_vehicle,
-        }
-    )
+    year = f.year
     return (
         f'<h2 id="{NOTES_ANCHOR}">Vehicle types: fleet, kilometres and crash counts</h2>'
         '<p>The rates on the <a href="vehicles.html">vehicles page</a> divide DGT\'s counts of '
         f"vehicles involved in injury and fatal crashes in {year} by the vehicles in circulation "
         "and by the kilometres they were driven. DGT models the kilometres from odometer readings "
-        "taken at roadworthiness inspections over several years, annualised and attached to the "
-        f"{year} fleet, and describes them as valid for aggregates rather than for individual "
-        "vehicles.</p>"
-        + table(
-            fleet,
-            f"Vehicles in circulation and distance driven, by vehicle type, Spain, {year}: the "
-            "denominators of the rates on the vehicles page, whose result tables give the rates "
-            "with their crash counts and 95% intervals.",
-            {"Vehicles in circulation": "int", "Km per vehicle a year": "int"},
-        )
-        + "<p>Quadricycles count with mopeds and motorcycles in the kilometres but among other "
-        "vehicles in the crash tables. Vans and light trucks form one group because the crash "
-        "records and the vehicle register divide them differently; taken apart, light trucks "
-        f"would have {_fmt_pct(f.van_gap, 0)} of a van's rate per kilometre, and the data cannot "
-        "show how much of that gap is real and how much comes from the split.</p>"
+        "taken at roadworthiness inspections, annualised and attached to the "
+        f"{year} fleet; they are valid for aggregates, not individual vehicles, and cover all "
+        "roads. Vans and trucks up to 3,500 kg form one group because the crash records and the "
+        "vehicle register divide them differently; quadricycles count with mopeds and "
+        "motorcycles in the kilometres but among other vehicles in the crash tables.</p>"
         "<p>DGT's later release gives mean kilometres by vehicle type for "
         f"{_join([str(y) for y in f.later_km_years])} on the same basis (see "
-        f'<a href="trends.html#road-fuel">{_page_name("trends")}</a>); the vehicles page matches '
-        f"the crash tables and the kilometres for {year} only. The kilometres cover all roads, so "
-        "rates per kilometre cannot be split between urban and interurban roads.</p>"
-        "<p>The crash counts include foreign-registered vehicles driven in Spain, while the "
-        "kilometres are those of Spanish-registered vehicles, including their travel abroad. The "
-        "size of that mismatch cannot be measured from these sources, and its direction is "
-        "unknown. It bears most on the rates of heavy trucks and buses, the types used for "
-        "international haulage and coach travel. The intervals in the result tables reflect "
-        "the crash counts only and treat the kilometres as exact.</p>"
+        f'<a href="trends.html#road-fuel">{_page_name("trends")}</a>); this page matches the '
+        f"crash tables and the kilometres for {year} only. The crash counts include "
+        "foreign-registered vehicles while the kilometres are those of Spanish-registered vehicles, a "
+        "mismatch that cannot be measured and bears most on heavy trucks and buses.</p>"
     )
