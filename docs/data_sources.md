@@ -138,7 +138,7 @@ the register and are available on request to DGT's Observatorio Nacional de Segu
 description sheet in the 2023 and 2024 workbooks is a stale copy of the 2022 one and must not be
 used for validation. Each year's rows and 30-day victim sums reconcile exactly with the yearbook
 series, and the 2024 province and month tables agree with the microdata (`reports/tables/validation.csv`,
-produced by `scripts/build_tables.py`). `TOTAL_VEHICULOS` falls short of the 2024 table 2.3 by a few
+written by `scripts/ingest.py validate`, which `ingest.py all` runs). `TOTAL_VEHICULOS` falls short of the 2024 table 2.3 by a few
 dozen vehicles in 2023 and 2024 (2020-2022 are exact); the check accepts those years within 0.1%
 because the microdata hold no vehicle-level rows that could locate the missing units.
 

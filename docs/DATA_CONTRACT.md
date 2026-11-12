@@ -9,10 +9,14 @@ the national files against the published statistics is `reports/tables/validatio
 
 1. **The data define the analysis.** Every result comes from rows and columns of files under
    `data/raw`. External publications may define a variable or a method; they never supply an
-   observation, a coefficient, a missing variable or a join. One typed input remains: the EMEF's
-   road-to-straight-line distance ratio for driving trips, 1.45, taken from the EMEF 2021
-   distance report (`src/dgt_stats/emef/distance.py`). The report is not archived, so the value
-   rests on the transcription.
+   observation, a coefficient, a missing variable or a join. One typed value comes from a document
+   that is not archived here: the EMEF's road-to-straight-line distance ratio for driving trips,
+   1.45, and its 2021 benchmarks, from the EMEF 2021 distance report
+   (`src/dgt_stats/emef/distance.py`), so that value rests on the transcription. A few other values
+   are typed from documents archived in `data/raw`: Idescat's count of employed people aged 65 and
+   over (`emef/exposure.py`) and the EMEF 2024 executive summary's published figures, which only
+   check the survey processing (`emef/distance.py`). Definitions such as the public-holiday
+   calendars are typed too.
 2. **Raw files are immutable.** `data/raw/<source>/` holds files byte for byte, each listed in
    `data/raw/manifest.csv` with its SHA-256 (checked by `tests/test_paths.py`). Only files the
    code reads, or a published document a check compares against, are kept. Cleaning writes new

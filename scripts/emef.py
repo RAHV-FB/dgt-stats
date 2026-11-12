@@ -9,8 +9,7 @@ Usage:
 
 The checks themselves (the harmonisation checks of ``ingest.validate``, the published 2024
 figures, the distance report's benchmarks and the duration-only distance check) are asserted by
-``tests/test_emef.py`` and write no tables. ``build`` takes about a minute; ``exposure`` about
-five.
+``tests/test_emef.py`` and write no tables. ``all`` takes about a minute.
 """
 
 from __future__ import annotations

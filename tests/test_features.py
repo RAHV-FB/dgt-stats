@@ -90,7 +90,7 @@ def _processed(columns: list[str]) -> pd.DataFrame:
 def test_the_features_find_the_province_years_the_audit_flags() -> None:
     path = TABLES_DIR / "dgt_audit_junction_coding.csv"
     if not path.exists():
-        pytest.skip("run `python scripts/microdata.py validate` first")
+        pytest.skip("run `python scripts/microdata.py analyse` first")
     audit = pd.read_csv(path)
     flagged = audit[audit.junction_flag_inverted.astype(bool)]
     crashes = _processed(["ANYO", "COD_PROVINCIA", "NUDO", "NUDO_INFO"])
@@ -136,7 +136,7 @@ def test_corrected_catalan_severe_crashes_at_a_junction_match_the_catalan_file()
 
     path = TABLES_DIR / "dgt_audit_junction_coding.csv"
     if not path.exists():
-        pytest.skip("run `python scripts/microdata.py validate` first")
+        pytest.skip("run `python scripts/microdata.py analyse` first")
     audit = pd.read_csv(path)
     crashes = _processed([*features.MODEL_COLUMNS, "TOTAL_MU24H", "TOTAL_HG24H"])
     corrected = features.junction_codes(crashes)

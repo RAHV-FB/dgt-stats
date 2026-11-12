@@ -1,12 +1,12 @@
 """Produce the national result tables and every figure.
 
 Usage:
-    python scripts/analyse.py tables     # reports/tables/q*.csv and the other national tables
-    python scripts/analyse.py figures    # reports/figures/*.svg and captions.json
+    python scripts/analyse.py tables     # the national result tables (about a minute)
+    python scripts/analyse.py figures    # reports/figures/*.svg and captions.json (under a minute)
     python scripts/analyse.py all
 
-Run ``tables`` before ``scripts/microdata.py validate``, which decides the models from them, and
-``figures`` after it: the figures include the regional ones.
+``tables`` needs only the processed layer (``scripts/build_tables.py``). ``figures`` comes after ``scripts/microdata.py`` and
+``scripts/severity_model.py``, because the figures include the regional ones.
 """
 
 from __future__ import annotations

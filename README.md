@@ -9,7 +9,7 @@ A statistical study of road deaths and injuries in Spain, built only from publis
 how road safety has changed since 1993 and how it differs between drivers, vehicles and roads once
 each count of deaths or crashes is set against a measure of who could be on the road or how much
 they travel. Every number is computed by the code in this repository from the files in
-[`data/raw`](data/raw) and one value typed in from a cited document.
+[`data/raw`](data/raw) and a few values typed in from cited documents (see below).
 
 The numbers are not repeated here, where they could drift from the data. They are in
 [`docs/FINDINGS.md`](docs/FINDINGS.md) and on the site, both generated from the committed result
@@ -19,43 +19,44 @@ tables.
 
 Nothing below is causal. The national data reconcile with DGT's published totals.
 
-1. **Has road safety improved over the long run?** Road deaths fell by about three quarters between
-   1993 and 2013, most steeply in 2003-2013, and have shown no clear trend since 2013. A
-   post-pandemic rise in risk is not established: deaths per tonne of fuel sit above one
-   pre-pandemic trend but not another, and deaths per measured kilometre on interurban roads stayed
-   within trend.
+1. **Has road safety improved over the long run?** Road deaths fell steeply until 2013 and have
+   shown no clear trend since. A post-pandemic rise in risk is not established: it depends on
+   which pre-pandemic trend deaths per tonne of fuel are compared with, and deaths per measured
+   kilometre on interurban roads stayed within trend.
    [Long-run trends](https://rahv-fb.github.io/dgt-stats/long-run.html).
 2. **Is summer riskier?** Deaths peak in July to September, even per tonne of fuel sold. Whether
    summer is riskier per kilometre cannot be told.
    [Seasons](https://rahv-fb.github.io/dgt-stats/seasons.html).
-3. **Did the 2006 points licence save lives?** Deaths fell around its introduction, but similar
-   falls occur in Julys without a policy change. The series cannot show a lasting effect.
+3. **Did the 2006 points licence save lives?** Deaths fell around its introduction. Whether the
+   fall lasted depends on the trend assumed before it, and placebo Julys with no policy change
+   show that the series cannot attribute a fall to the licence.
    [The 2006 points licence](https://rahv-fb.github.io/dgt-stats/policy.html).
-4. **Which drivers are at higher risk?** Once in an injury crash, drivers aged 75 and over die
-   several times as often as drivers aged 45-64 (strong, counted). Per kilometre, drivers aged
-   18-29 are involved in injury crashes clearly more often than those aged 45-64 (central estimate
-   about 2.7 times; about 1.5 to 3.6 across alternative assumptions about distance driven). Drivers
-   aged 65-74 cannot be told apart from 45-64, and the 75-and-over result per kilometre is not
-   established. Men die several times as often as women per licence holder.
-   [Drivers](https://rahv-fb.github.io/dgt-stats/drivers.html),
+4. **Which drivers are at higher risk?** Older drivers are the most likely to die once in an injury
+   crash (counted). Per kilometre, drivers aged 18-29 are involved in injury crashes clearly more
+   often than drivers aged 45-64; the comparison with the oldest drivers is not established, and
+   all per-kilometre results rest on estimated distances. Men die more often than women per
+   licence holder. [Drivers](https://rahv-fb.github.io/dgt-stats/drivers.html),
    [method](docs/DRIVER_AGE_EXPOSURE.md).
 5. **Which vehicles?** Per kilometre, motorcyclists are in fatal crashes far more often than car
-   drivers. [Vehicles](https://rahv-fb.github.io/dgt-stats/vehicles.html).
+   drivers, on DGT's modelled kilometres.
+   [Vehicles](https://rahv-fb.github.io/dgt-stats/vehicles.html).
 6. **What goes with a deadly crash?** Crashes where the police recorded inappropriate speed are
-   about twice as deadly as others on the same kind of road (an association open to recording
-   bias). Crash type and place dominate whether an injury crash is fatal.
+   deadlier than others on the same kind of road (an association open to recording bias). Crash
+   type and place dominate whether an injury crash is fatal.
    [Speed and other recorded factors](https://rahv-fb.github.io/dgt-stats/factors.html),
    [crash circumstances in Spain](https://rahv-fb.github.io/dgt-stats/severity.html).
 7. **What do the Catalan crash records show?** Severe crashes involving a heavy vehicle are fatal
-   about twice as often. The Catalan file matches DGT's 24-hour fatal crash counts exactly in every
-   province and year from 2016 to 2023. The severity model ranks crashes only modestly better than
-   a simple table and was tested only within Catalonia.
+   more often. The Catalan file matches DGT's 24-hour fatal crash counts exactly in every province
+   and year from 2016 to 2023. The severity model ranks crashes only modestly better than a simple
+   table and was tested only within Catalonia.
    [Catalonia](https://rahv-fb.github.io/dgt-stats/catalonia.html),
    [the model](https://rahv-fb.github.io/dgt-stats/severity-models.html),
    [`docs/SEVERITY_MODEL.md`](docs/SEVERITY_MODEL.md).
-8. **Who is hurt in Barcelona?** Pedestrians are the road users most often seriously hurt or killed
-   in police-attended crashes, and car drivers the least.
+8. **Who is hurt in Barcelona?** Pedestrians and motorcyclists are far more often seriously hurt or
+   killed than car drivers in police-attended crashes.
    [Barcelona](https://rahv-fb.github.io/dgt-stats/barcelona.html).
+
+Each answer, its strength and its main limit are in [`docs/FINDINGS.md`](docs/FINDINGS.md).
 
 Two tools let readers work with the tables: the
 [driver risk comparison](https://rahv-fb.github.io/dgt-stats/driver-risk.html) and the
@@ -97,8 +98,12 @@ No record is linked across sources and there is no merged crash database.
   that fail when the tables stop supporting them.
 - Published studies may define a method but never supply an observation, a coefficient or an effect
   size.
-- One value is typed in: the ratio of road distance to straight-line distance for driving trips
-  (1.45), with its 2021 benchmarks, from the EMEF 2021 distance report. The report is not archived.
+- A few values are typed in. One comes from a document that is not archived here: the EMEF 2021
+  distance report's ratio of road distance to straight-line distance for driving trips (1.45) and
+  its 2021 benchmarks, which the tests use. A few come from documents archived in `data/raw`:
+  Idescat's count of employed people aged 65 and over, and the EMEF 2024 executive summary's
+  published figures, which only check the survey processing. Definitions such as the public-holiday
+  calendars are typed too.
 
 The full account is in [`docs/methodology.md`](docs/methodology.md).
 
@@ -112,19 +117,19 @@ python -m pip install -r requirements.lock          # pinned and hashed
 
 export OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1   # the fitted models need one BLAS thread
 
-python scripts/ingest.py all          # data/raw -> data/staging/dgt, reconciliation checks (~5 min)
+python scripts/ingest.py all          # data/raw -> data/staging/dgt, reconciliation checks (~4-5 min)
 python scripts/build_tables.py        # data/processed/dgt_accidentes.parquet
 python scripts/model.py               # associations in DGT crash records (~3 min)
 python scripts/analyse.py tables      # national result tables, incl. the crash explorer's (~1 min)
-python scripts/microdata.py build     # Catalonia and Barcelona: staging and processed tables
+python scripts/microdata.py build     # Catalonia and Barcelona: staging and processed tables (the five microdata.py steps take under a minute together)
 python scripts/microdata.py quality
 python scripts/microdata.py features
 python scripts/microdata.py analyse
 python scripts/microdata.py sources
-python scripts/severity_model.py      # Catalan severity model and its evaluation (~6 min)
-python scripts/emef.py all            # EMEF survey: car-driving distance by age (~1-2 min)
+python scripts/severity_model.py      # Catalan severity model and its evaluation (~5 min)
+python scripts/emef.py all            # EMEF survey: car-driving distance by age (~1 min)
 python scripts/exposure_risk.py all   # involvement per km by driver age and the ranges (~1-2 min)
-python scripts/analyse.py figures     # SVG figures and captions
+python scripts/analyse.py figures     # SVG figures and captions (under a minute)
 python scripts/build_site.py          # site/ and docs/FINDINGS.md
 
 pytest                                # tests, including the reconciliation checks

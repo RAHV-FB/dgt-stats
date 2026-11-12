@@ -8,7 +8,7 @@ Usage:
 
 Needs the EMEF tables (``scripts/emef.py build``), the Barcelona crash layer
 (``scripts/microdata.py``) and the DGT table layer (``scripts/ingest.py``). Writes
-``reports/tables/risk_*.csv`` and ``edm_older_split.csv``; ``all`` takes about ten minutes.
+``reports/tables/risk_*.csv`` and ``edm_older_split.csv``; ``all`` takes about 1-2 minutes.
 """
 
 from __future__ import annotations

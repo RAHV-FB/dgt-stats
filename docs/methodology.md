@@ -10,9 +10,12 @@ divided by a denominator that could contain it, and each analysis is compared wi
 the same data could have been read. The regional crash records add a severity model, which is kept
 only because it was tested against a simple table. Every result comes from rows of the files in
 `data/raw/`. Studies published elsewhere may define a variable or a method but never supply an
-observation, a coefficient or an effect size. One value is typed in from a document: the
-road-to-straight-line distance ratio of driving trips (1.45) and the 2021 distance benchmarks, from
-the EMEF 2021 distance report, which measured them on the same survey's trips and is not archived.
+observation, a coefficient or an effect size. One value comes from a document that is not archived
+here: the road-to-straight-line distance ratio of driving trips (1.45) and the 2021 distance
+benchmarks, from the EMEF 2021 distance report, which measured them on the same survey's trips. A
+few values are typed from documents archived in `data/raw`: Idescat's count of employed people aged
+65 and over, and the EMEF 2024 executive summary's published figures, used only to check the survey
+processing. Definitions such as the public-holiday calendars are typed too.
 
 ## Units and records
 

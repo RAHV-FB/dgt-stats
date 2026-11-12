@@ -5,17 +5,19 @@ outside the build.
 
 - `ingest.py {microdata,tables,exposure,reports,validate,all} [--years Y ...] [--force] [-v]`: the
   DGT, INE, traffic and fuel files under `data/raw/` parsed into `data/staging/dgt/`, and the
-  reconciliation against DGT's published totals (about five minutes for `all`).
+  reconciliation against DGT's published totals (about 4-5 minutes for `all`).
 - `build_tables.py [--force]`: `data/staging/dgt/` to `data/processed/dgt_accidentes.parquet`
   (derived fields and labels).
 - `model.py`: the associations between recorded circumstances and crash severity in DGT's crash
   records, with their sensitivity fits and holdout (`q3_*` tables; about three minutes).
 - `analyse.py {tables,figures,all}`: the national result tables, including the crash explorer's
-  table, and the SVG figures with their captions.
+  table (`explore_dgt_crashes`; about a minute), and the SVG figures with their captions (under a
+  minute). `tables` needs only the processed layer; `figures` also needs the regional tables from
+  `microdata.py` and `severity_model.py`.
 - `microdata.py {build,quality,features,analyse,sources}`: the Catalan and Barcelona layers. `build`
   makes staging and processed tables from the raw files, `quality` the data-quality checks,
-  `features` the model matrices, `analyse` the descriptive tables, and `sources` the comparison of the
-  Catalan file with DGT's counts.
+  `features` the model matrices, `analyse` the descriptive tables and DGT's coding tables, and `sources` the comparison of the
+  Catalan file with DGT's counts (the steps take under a minute together).
 - `severity_model.py`: the Catalan penalised logistic model, its nested rolling-origin evaluation
   against a simple table, and the tests within Catalonia (`sev_*` tables; about five minutes).
 - `emef.py {build,exposure,all}`: the EMEF 2014-2024 survey read and harmonised, and working-day

@@ -5,7 +5,7 @@ Usage:
 
 Reads the Catalan feature table written by ``scripts/microdata.py features`` and writes
 ``reports/tables/sev_*.csv``. The nested choices refit the model a few hundred times: expect
-about twenty minutes on one core.
+about five minutes on one core.
 """
 
 from __future__ import annotations
