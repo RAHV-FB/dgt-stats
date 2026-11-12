@@ -87,9 +87,8 @@ BARCELONA_PROVINCE = "08"
 KM_SERVICE_PATH = RAW_DATA_DIR / "dgt" / "km_itv_2024" / "km_servicio_2024.xlsx"
 # Service classes of DGT's kilometre table: taxi (A04) and car hire with driver (A02, the
 # ride-hailing licences) are driven for a living; car hire without driver (A01) and driving
-# schools (A03) are driven by ordinary drivers and learners, and are removed only in a variant.
+# schools (A03) are driven by ordinary drivers and learners, and stay in.
 PROFESSIONAL_SERVICES = ("A04", "A02")
-RENTAL_AND_SCHOOL_SERVICES = ("A01", "A03")
 
 
 # ----------------------------------------------------------------------------- population
