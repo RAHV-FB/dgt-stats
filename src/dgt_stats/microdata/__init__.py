@@ -20,8 +20,6 @@ Modules, in pipeline order:
                 placeholder fields (``ml.recording``)
 ``descriptive`` transparent rates with their N
 ``crosssource`` the aggregate-level comparisons with the DGT and INE layers that a real key allows
-``validation``  how the DGT microdata record junctions, fog, wind and unrecorded values
-                (``validation.dgt_audit``)
 ``charts``      the figures of the regional pages
 
 The rule every module follows: an observation, a key or a variable must exist in the rows of a

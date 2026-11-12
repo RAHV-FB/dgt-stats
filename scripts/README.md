@@ -17,8 +17,8 @@ outside the build.
   `features` the model matrices, `analyse` the descriptive tables, and `sources` the comparison of the
   Catalan file with DGT's counts.
 - `severity_model.py`: the Catalan penalised logistic model, its nested rolling-origin evaluation
-  against a simple table, and the tests within Catalonia (`sev_*` tables, `gen_calculator_transfer`
-  and the figure inputs; about six minutes).
+  against a simple table, and the tests within Catalonia (`sev_*` tables and the figure
+  inputs; about six minutes).
 - `emef.py {build,exposure,all}`: the EMEF 2014-2024 survey read and harmonised, and working-day
   car-driving distance by age (`emef_*` tables). Its checks against the published figures run as
   tests.

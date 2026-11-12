@@ -25,10 +25,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from dgt_stats import source_profile
+from dgt_stats import dgt_coding, source_profile
 from dgt_stats.microdata import barcelona, catalonia, crosssource, descriptive, quality
 from dgt_stats.microdata.ml import features, recording
-from dgt_stats.microdata.validation import dgt_audit
 
 log = logging.getLogger("microdata")
 
@@ -49,7 +48,7 @@ def run(step: str, force: bool) -> None:
     elif step == "analyse":
         descriptive.write()
         crosssource.write()
-        dgt_audit.write()
+        dgt_coding.write()
     elif step == "sources":
         source_profile.write()
 

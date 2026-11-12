@@ -132,7 +132,7 @@ def test_corrected_catalan_severe_crashes_at_a_junction_match_the_catalan_file()
     within 24 hours. Corrected, DGT's count of those at a junction in 2023 matches the Catalan
     file's crashes within or near a junction, as in 2016-2020 and 2022, within 1% of the year's
     crashes (the audit's tolerance)."""
-    from dgt_stats.microdata.validation import dgt_audit
+    from dgt_stats import dgt_coding
 
     path = TABLES_DIR / "dgt_audit_junction_coding.csv"
     if not path.exists():
@@ -143,7 +143,7 @@ def test_corrected_catalan_severe_crashes_at_a_junction_match_the_catalan_file()
     severe = (crashes.TOTAL_MU24H.fillna(0) + crashes.TOTAL_HG24H.fillna(0)) > 0
     catalan = crashes.COD_PROVINCIA.astype(str).isin(features.CATALAN_PROVINCES)
     years = sorted(set(audit[audit.junction_flag_inverted.astype(bool)].year))
-    compared = dgt_audit.catalan_junction_years(audit).set_index("year")
+    compared = dgt_coding.catalan_junction_years(audit).set_index("year")
     checked = 0
     for year in years:
         if year not in compared.index or pd.isna(compared.loc[year, "cat_file_severe_crashes"]):
@@ -152,6 +152,6 @@ def test_corrected_catalan_severe_crashes_at_a_junction_match_the_catalan_file()
         at = int(corrected[rows].eq(1).sum())
         row = compared.loc[year]
         within_or_near = row.cat_file_within_junction + row.cat_file_near_junction
-        assert abs(at - within_or_near) <= dgt_audit.MATCH_TOLERANCE * row.severe_crashes
+        assert abs(at - within_or_near) <= dgt_coding.MATCH_TOLERANCE * row.severe_crashes
         checked += 1
     assert checked >= 1
