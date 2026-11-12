@@ -1457,11 +1457,10 @@ def _reproduce() -> str:
         "tests rerun the checks on every change.</p>"
         f'<p>The repository also holds the <a href="{DOCS_URL}/methodology.md">implementation '
         "notes</a>, with the module behind each method, the "
-        f'<a href="{DOCS_URL}/data_sources.md">source register</a>, with what each source is '
-        "and its terms of use, the manifest of the "
+        f'<a href="{DOCS_URL}/data_sources.md">source register</a>, with what each source is, '
+        "its known coding breaks and its terms of use, and the manifest of the "
         f'<a href="{REPO_URL}/tree/main/data/raw">raw files</a>, with each file\'s checksum '
-        "and, where recorded, its download address, and the "
-        f'<a href="{DOCS_URL}/data_inventory.md">data inventory</a>.</p>'
+        "and, where recorded, its download address.</p>"
         "<p>The project was developed through a reproducible, source-driven workflow. The "
         "research questions, the choice of sources, the statistical design, the interpretation "
         "and the decision to publish each result are the author's, and so is responsibility for "
