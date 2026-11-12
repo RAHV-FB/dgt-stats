@@ -282,14 +282,15 @@ def page_policy(captions: dict[str, str]) -> str:
         f"that it lasted: averaged over the {post_months} months to {_month(it.post_end)}, "
         f"deaths were {abs(float(main.mean_change)) * 100:.1f}% below the projection from the "
         f"earlier trend (95% interval {_signed_pct(float(main.mean_low), 1)} to "
-        f"{_signed_pct(float(main.mean_high), 1)}). The model's intervals are too narrow: at "
-        f"{int(calibration.n_excluding_zero)} of the {int(calibration.n_placebos)} other Julys, "
-        "when nothing was introduced, it finds a step whose interval excludes zero."
+        f"{_signed_pct(float(main.mean_high), 1)}). Fitted with a straight-line trend, the "
+        f"model's intervals are too narrow: at {int(calibration.n_excluding_zero)} of the "
+        f"{int(calibration.n_placebos)} other Julys, when nothing was introduced, it finds a "
+        "step whose interval excludes zero."
     )
 
     body += (
-        f'<h2 id="estimate">An immediate fall of about {abs(float(main.level_change)) * 100:.0f}% '
-        "that did not last</h2>"
+        f'<h2 id="estimate">An immediate fall of about {abs(float(main.level_change)) * 100:.0f}%, '
+        "which did not last under the preferred trend</h2>"
         "<p>A Poisson regression of monthly deaths within 30 days from "
         f"{_month(it.pre_start)} to {_month(it.post_end)}, with a term for each calendar month, "
         f"a trend, and a step and a change of slope at {f.break_month}, finds an immediate step "
@@ -346,11 +347,11 @@ def page_policy(captions: dict[str, str]) -> str:
         captions,
     )
     body += (
-        "<p>The same fits show the model's intervals to be too narrow: at "
+        "<p>The same straight-line fits show that specification's intervals to be too narrow: at "
         f"{int(calibration.n_excluding_zero)} of the {int(calibration.n_placebos)} other Julys "
         "the 95% interval excludes zero, where about "
         f"{float(calibration.expected_excluding_zero):.1f} would be expected. An interval set "
-        f"by the spread of the placebo steps puts July {it.date.year} at "
+        f"by the spread of the placebo steps puts the straight-line step for July {it.date.year} at "
         f"{_signed_pct(float(calibration.calibrated_low))} to "
         f"{_signed_pct(float(calibration.calibrated_high))}, which includes no change. "
         "Forecasts made before each July agree: the months after "
@@ -471,6 +472,7 @@ def technical_notes(captions: dict[str, str]) -> str:
         shown,
         f"Change in deaths at {break_month} and averaged over the {post_months} months from "
         "it under each specification, with model-based 95% intervals, which the July "
-        "placebos show to be too narrow.",
+        "placebos, fitted with a straight-line trend, show to be too narrow for that "
+        "specification.",
     )
     return body

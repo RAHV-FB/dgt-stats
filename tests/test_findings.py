@@ -4,7 +4,7 @@ import re
 
 from dgt_stats import findings
 
-SECTIONS = 10
+SECTIONS = 11
 
 
 def test_the_committed_document_is_the_build() -> None:
