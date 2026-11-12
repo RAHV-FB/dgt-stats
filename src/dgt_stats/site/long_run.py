@@ -258,7 +258,7 @@ def _facts() -> SimpleNamespace:
     def needed(year: int) -> float:
         return float(at_pace.loc[year, "ratio_low"]) ** (1 / (year - fit_end)) - 1
 
-    # Conventional roads, single and dual carriageway, against autopistas and autovías.
+    # Conventional and multi-lane roads against autopistas and autovías.
     roads = read_table("road_class_risk")
     road_year = int(roads.year.max())
     roads_last = roads[roads.year == road_year].set_index("road_class")

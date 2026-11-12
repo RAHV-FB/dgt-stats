@@ -210,7 +210,8 @@ def _road_classes() -> list[str]:
         _claim(
             "Strong",
             f"Per measured kilometre, deaths on conventional interurban roads were "
-            f"{_times(ratios.min(), 2)} to {_times(ratios.max(), 2)} times those on motorways "
+            f"{_times(ratios.min(), 2)} to {_times(ratios.max(), 2)} times those on motorways and "
+            f"autovías "
             f"in each year of {first}–{last}; in {f.road_year}, {_times(f.road_deaths, 2)} times "
             f"(95% interval {_ci(f.road_low, f.road_high, 2)}).",
         ),
@@ -218,7 +219,7 @@ def _road_classes() -> list[str]:
     return _section(
         2,
         "Which roads are deadliest per kilometre?",
-        "Conventional roads, single and dual carriageway, much more than motorways.",
+        "Conventional roads, much more than motorways and autovías.",
         claims,
         "the measured network covers the state and regional interurban roads only, so urban "
         "streets and local roads are not compared.",
@@ -581,9 +582,17 @@ def _catalonia() -> list[str]:
     through_model = float(m.zone["through_town"].roc_auc)
     through_table = float(m.zone_table["through_town"].roc_auc)
     pooled = m.pooled
+    # The crash subtype with the highest fatal share, among subtypes with enough crashes to rank.
+    subtypes = read_table("cat_fatal_share")
+    subtypes = subtypes[(subtypes.dimension == "crash subtype") & ~subtypes.small_n.astype(bool)]
+    top_subtype = subtypes.sort_values("share", ascending=False).iloc[0]
     _require(
         "Catalonia",
         {
+            "head-on collisions have the highest fatal share of the crash subtypes": str(
+                top_subtype.level
+            )
+            == "Col·lisió frontal",
             "the fatal share is higher with a heavy vehicle than on average": float(c.heavy.share)
             > float(c.overall.events) / float(c.overall.n),
             "the model's heavy-vehicle ratio is clearly above 1": float(heavy_ratio.ratio_low) > 1,
@@ -604,8 +613,9 @@ def _catalonia() -> list[str]:
             f"Of {_fmt_int(c.overall.n)} crashes with a death or serious injury in Catalonia "
             f"({c.period}), {_fmt_pct(c.overall.events / c.overall.n)} were fatal. The fatal "
             f"share was {_fmt_pct(c.interurban.share)} on interurban roads and "
-            f"{_fmt_pct(c.urban.share)} on urban streets, and {_fmt_pct(c.heavy.share)} with a "
-            "heavy vehicle involved.",
+            f"{_fmt_pct(c.urban.share)} on urban streets, {_fmt_pct(c.heavy.share)} with a "
+            f"heavy vehicle involved and {_fmt_pct(top_subtype.share)} in head-on collisions "
+            "(the highest of any kind of crash).",
         ),
         _claim(
             "Moderate",

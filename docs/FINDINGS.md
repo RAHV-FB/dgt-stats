@@ -37,10 +37,11 @@ interurban roads; neither measures all travel.
 
 ## 2. Which roads are deadliest per kilometre?
 
-Conventional roads, single and dual carriageway, much more than motorways.
+Conventional roads, much more than motorways and autovías.
 
 - **Strong.** Per measured kilometre, deaths on conventional interurban roads were 3.04 to 3.84
-  times those on motorways in each year of 2016–2023; in 2023, 3.45 times (95% interval 3.03–3.92).
+  times those on motorways and autovías in each year of 2016–2023; in 2023, 3.45 times (95% interval
+  3.03–3.92).
 
 Main limit: the measured network covers the state and regional interurban roads only, so urban
 streets and local roads are not compared.
@@ -146,8 +147,8 @@ odds ratios are associations conditional on a crash, with recording that differs
 Those on interurban roads, involving heavy vehicles and in head-on collisions.
 
 - **Strong.** Of 24,478 crashes with a death or serious injury in Catalonia (2010–2023), 12.6% were
-  fatal. The fatal share was 19.2% on interurban roads and 6.9% on urban streets, and 27.8% with a
-  heavy vehicle involved.
+  fatal. The fatal share was 19.2% on interurban roads and 6.9% on urban streets, 27.8% with a heavy
+  vehicle involved and 25.0% in head-on collisions (the highest of any kind of crash).
 - **Moderate.** With the other recorded circumstances held equal, the model puts the fatal share 2.0
   times as high with a heavy vehicle involved (95% interval 1.7–2.2). The interval covers
   coefficient uncertainty only, and the model was tested only within Catalonia.
