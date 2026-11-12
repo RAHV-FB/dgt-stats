@@ -1,4 +1,5 @@
-"""Render the static site into site/ from reports/tables and reports/figures.
+"""Render the static site into site/ and the findings document docs/FINDINGS.md from
+reports/tables and reports/figures.
 
 Usage:
     python scripts/build_site.py
@@ -12,7 +13,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from dgt_stats import site  # noqa: E402
+from dgt_stats import findings, site  # noqa: E402
 
 log = logging.getLogger("build_site")
 
@@ -24,6 +25,7 @@ def main() -> int:
     written = site.build()
     pages = [path.name for path in written if path.suffix == ".html"]
     log.info("wrote %d files to %s (pages: %s)", len(written), site.SITE_DIR, ", ".join(pages))
+    log.info("wrote %s", findings.write())
     return 0
 
 
