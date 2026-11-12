@@ -203,7 +203,23 @@ def test_full_result_tables_are_published_as_csv(built: Path) -> None:
         for name in re.findall(r'href="tables/([^"/]+\.csv)"', page.read_text("utf-8"))
     }
     assert published == linked
-    assert {f"{name}.csv" for name in summaries.MODEL_TABLES} <= published
+    # The severity page links the model tables its text rests on; the rest stay unpublished.
+    assert {f"{name}.csv" for name in summaries.MODEL_TABLES} >= {
+        "q3_model_coefficients.csv",
+        "q3_location_contrasts.csv",
+        "q3_adverse_conditions.csv",
+        "q3_junction_sensitivity.csv",
+        "q3_regime_sensitivity.csv",
+        "q3_holdout_summary.csv",
+    }
+    assert {
+        "q3_model_coefficients.csv",
+        "q3_location_contrasts.csv",
+        "q3_adverse_conditions.csv",
+        "q3_junction_sensitivity.csv",
+        "q3_regime_sensitivity.csv",
+        "q3_holdout_summary.csv",
+    } <= published
     assert "validation.csv" in published
     # Removed analyses leave no download behind.
     removed = {"q7_breakeven_km", "risk_fuel_efficiency", "q1_annual_headline", "q2_night_share"}
@@ -282,11 +298,19 @@ def test_severity_page_leads_with_the_adverse_finding(built: Path) -> None:
     assert 'href="data.html#severity-method"' in text
     adverse = pd.read_csv(TABLES_DIR / "q3_adverse_conditions.csv")
     fatal = adverse[adverse.outcome == "fatal"].set_index(["variant", "level"])
-    wet_alone = float(fatal.loc[("no_weather", "wet"), "odds_ratio"])
-    # The headline number is computed from the table, not typed.
-    assert f"{wet_alone:.2f} times the odds" in text
-    assert "Odds ratios for the adverse conditions under every model variant" in notes
-    assert 'src="figures/s2_adverse_conditions.svg"' in text
+    # The reduced set of variants: the full model, each of weather and surface left out, and the
+    # two kinds of road; no hail-and-snow row, no composition or exclusion tables.
+    assert set(adverse.variant) == {"full", "no_surface", "no_weather", "interurban", "street"}
+    assert "hail or snow" not in set(adverse.level)
+    for name in ("q3_marginal_effects", "q3_year_stability", "q3_adverse_composition"):
+        assert not (TABLES_DIR / f"{name}.csv").exists(), name
+    assert "s2_adverse_conditions" not in text
+    # The wet-surface odds ratio is the full model's, with its interval, not the no-weather one.
+    wet = fatal.loc[("full", "wet")]
+    assert f"{wet.odds_ratio:.2f}, {wet.or_low:.2f}–{wet.or_high:.2f}" in text
+    opening = re.search(r'<p class="summary">(.*?)</p>', text, re.S).group(1)
+    assert f"({wet.odds_ratio:.2f}, {wet.or_low:.2f}–{wet.or_high:.2f})" in opening
+    assert "Odds ratios for a wet surface, rain and a junction under each model variant" in notes
     assert 'src="figures/s1_forest_fatal.svg"' in text
     # The page says what kind of analysis it is, and the distinction the finding depends on.
     assert "an analysis of associations, not a predictive model" in text
@@ -305,17 +329,38 @@ def test_severity_page_leads_with_the_adverse_finding(built: Path) -> None:
     assert components._fmt_pct(float(alignment.share_of_catalan_crashes)) in notes
     assert 'href="tables/q3_regime_sensitivity.csv"' in text
     sensitivity = pd.read_csv(TABLES_DIR / "q3_regime_sensitivity.csv")
-    wet = sensitivity[(sensitivity.outcome == "fatal") & (sensitivity.level == "wet")].iloc[0]
-    assert f"moves from {wet.odds_ratio:.2f} to {wet.odds_ratio_without:.2f}" in notes
-    # The holdout is reported with its Brier skill against the training years' base rate.
+    sensitivity = sensitivity[sensitivity.outcome == "fatal"]
+    wet_row = sensitivity[sensitivity.level == "wet"].iloc[0]
+    assert f"moves from {wet_row.odds_ratio:.2f} to {wet_row.odds_ratio_without:.2f}" in notes
+    # The robustness statement compares in both directions: how many full-model estimates lie
+    # inside the without-Catalonia interval, and the largest moves by name.
+    kept = sensitivity[~sensitivity.is_nuisance.astype(bool)]
+    inside = int(
+        ((kept.odds_ratio >= kept.or_low_without) & (kept.odds_ratio <= kept.or_high_without)).sum()
+    )
+    assert (
+        f"The full model's odds ratio lies inside the interval of the refit for {inside} "
+        f"of the {len(kept)} terms" in notes
+    )
+    moves = kept.loc[(kept.ratio_without_to_full - 1).abs().sort_values(ascending=False).index]
+    biggest = moves.iloc[0]
+    assert f"({biggest.odds_ratio:.2f} to {biggest.odds_ratio_without:.2f})" in notes
+    assert "stay inside the full model's interval" not in notes
+    # The later-years check gives the AUC and the calibration beside the Brier skill, and says
+    # the regressions are not used for prediction as a matter of purpose.
     holdout = pd.read_csv(TABLES_DIR / "q3_holdout_summary.csv").set_index("outcome")
     assert components._fmt_pct(float(holdout.loc["fatal", "brier_skill"])) in notes
-    # The full coefficient table is linked, not printed.
+    assert f"in {holdout.loc['fatal', 'auc']:.2f} of pairs" in notes
+    assert "calibrated" in notes and "not used for prediction, as a matter of purpose" in notes
+    assert "improve little" not in text + notes
+    # The full coefficient table is linked, not printed, and the download list stays short.
     assert 'href="tables/q3_model_coefficients.csv"' in text
     assert text.count("<table>") <= 4
+    downloads = re.search(r'<ul class="downloads">(.*?)</ul>', text, re.S)
+    if downloads:
+        assert downloads.group(1).count("<li>") <= 7
     # The summary names location beside crash type, from the joint zone and road-type contrast,
     # and gives the junction association with the inverted Catalan flag read the other way round.
-    opening = re.search(r'<p class="summary">(.*?)</p>', text, re.S).group(1)
     locations = pd.read_csv(TABLES_DIR / "q3_location_contrasts.csv")
     conventional = locations[
         (locations.outcome == "fatal")
@@ -329,49 +374,37 @@ def test_severity_page_leads_with_the_adverse_finding(built: Path) -> None:
     ].iloc[0]
     assert f"({junction.odds_ratio:.2f}, {junction.or_low:.2f}–{junction.or_high:.2f})" in opening
     assert "read the other way round" in opening
-    assert "in every model variant, and so does that of the junction" not in text
     # The page states the junction coding problem, how it was corrected, the period refits and
-    # the flag as published; the notes add the evidence and every alternative reading, every
+    # the flag as published; the notes add the evidence and the one alternative reading, every
     # number from the tables.
-    sensitivity = pd.read_csv(TABLES_DIR / "q3_junction_sensitivity.csv")
-    full = sensitivity[(sensitivity.outcome == "fatal") & (sensitivity.fit == "full")]
-    full = full.set_index("treatment")
-    for treatment in ("junction type", "unrecorded", "as published"):
-        assert f"{full.loc[treatment, 'odds_ratio']:.2f}" in notes, treatment
+    junction_sensitivity = pd.read_csv(TABLES_DIR / "q3_junction_sensitivity.csv")
+    assert set(junction_sensitivity.treatment) == {"flip", "as published"}
+    assert set(junction_sensitivity.fit) == {"full", "from break"}
+    full = junction_sensitivity[
+        (junction_sensitivity.outcome == "fatal") & (junction_sensitivity.fit == "full")
+    ].set_index("treatment")
     published = full.loc["as published"]
     assert f"{published.odds_ratio:.2f} ({published.or_low:.2f}–{published.or_high:.2f})" in text
     recoded = int(pd.read_csv(TABLES_DIR / "q3_junction_coding.csv").recoded.sum())
     assert f"{recoded:,} crashes" in text and f"{recoded:,} crashes" in notes
     periods = pd.read_csv(TABLES_DIR / "q3_period_refits.csv")
+    assert set(periods.level) == {"at a junction"}
     later = periods[
         (periods.outcome == "fatal")
-        & (periods.level == "at a junction")
         & (periods.scope == "all provinces")
         & (periods.period == "from")
     ].iloc[0]
     assert f"{later.odds_ratio:.2f} ({later.or_low:.2f}–{later.or_high:.2f})" in text
     assert 'href="tables/q3_junction_sensitivity.csv"' in text
-    for phrase in ("until the coding changed", "only the junction term"):
+    for phrase in ("until the coding changed", "only the junction term", "Cochran"):
         assert phrase not in text + notes, phrase
-    # The ranking is quoted with what the missing-value levels contribute to it, as ROC-AUC to
-    # two decimals, the scale of the severity model and validation pages.
     recorded_only = holdout.loc["fatal", "auc_recorded_only"]
     missing_only = holdout.loc["fatal", "auc_missing_only"]
-    assert f"death scores {recorded_only:.2f}, and those levels on their own" in notes
-    assert f"on their own {missing_only:.2f}" in notes
-    assert "the two regressions keep their ordering" in notes
+    assert (
+        f"death scores {recorded_only:.2f}, and those levels on their own {missing_only:.2f}"
+        in (notes)
+    )
     assert "times in 100" not in text + notes
-    # The yearly refits are the regression for a death's; the term of the other regression that
-    # does vary between years is named with its p-value.
-    assert "the regression for a death gives" in notes
-    stability = pd.read_csv(TABLES_DIR / "q3_year_stability.csv")
-    serious = stability[stability.outcome == "serious"].drop_duplicates(["predictor", "level"])
-    varying = serious[serious.heterogeneity_p < 0.05]
-    assert not varying.empty
-    for row in varying.itertuples():
-        assert f"“{row.level}” (p = {row.heterogeneity_p:.3f}) does vary" in notes
-    # The earlier Catalan junction shares are given without the year of the narrower definition.
-    assert "metres of a junction away from it" in notes
     # The page leads with what the records show: the results come first, then what the records
     # cannot show; the description of the records and the regressions opens the notes.
     main = text[text.find("<main>") : text.find("</main>")]
@@ -381,7 +414,6 @@ def test_severity_page_leads_with_the_adverse_finding(built: Path) -> None:
     assert headings[2].startswith("The records show which crashes were deadlier")
     assert "The records and the regressions" not in headings
     assert '<h3 id="severity-regressions">The records and the regressions</h3>' in notes
-    assert main.find("s1_forest_fatal") < main.find("s2_adverse_conditions")
     # The opening paragraph names the other two pages on severity, once each, with their
     # populations and definitions.
     assert opening.count('href="catalonia.html"') == opening.count('href="barcelona.html"') == 1
@@ -701,91 +733,64 @@ def test_policy_page_reports_the_falsification_not_the_headline(built: Path) -> 
     assert not {"fuel", "toll", "24h", "interurban", "urban"} & set(sensitivity.index)
 
 
-def test_speed_page_carries_severity_and_the_recording_discontinuity(built: Path) -> None:
-    text = (built / "speed.html").read_text(encoding="utf-8")
+def test_factors_page_carries_speed_severity_and_reads_trends_within_comparable_runs(
+    built: Path,
+) -> None:
+    text = (built / "factors.html").read_text(encoding="utf-8")
+    assert not (built / "speed.html").exists()
     pooled = pd.read_csv(TABLES_DIR / "speed_severity_pooled.csv").set_index("road_type")
     adjusted = pooled.loc["adjusted"]
     opening = re.search(r'<p class="summary">(.*?)</p>', text, re.S).group(1)
     assert f"{adjusted.rate_ratio:.2f} times" in opening
     assert f"{adjusted.ratio_low:.2f}–{adjusted.ratio_high:.2f}" in opening
     assert f"{adjusted.crude_ratio:.2f}" in opening  # the unadjusted ratio is shown beside it
-    # The road-type ratios differ, so the summary gives their range and calls the adjusted ratio
-    # a weighted summary; the home page says the same, with the pooled years.
     assert f"{pooled.loc['dual_carriageway', 'rate_ratio']:.2f} times on dual" in opening
     assert f"{pooled.loc['urban', 'rate_ratio']:.2f} times on urban streets" in opening
     assert "weighted summary" in opening
     home = (built / "index.html").read_text(encoding="utf-8")
     assert f"{pooled.loc['urban', 'rate_ratio']:.1f} times on urban streets" in home
-    assert f"{pooled.loc['dual_carriageway', 'rate_ratio']:.1f} times on dual" in home
     assert f"{adjusted.rate_ratio:.1f} times as many deaths per crash" in home
-    assert f"over {str(adjusted.year).replace('-', '–')}, those crashes" in home
-    # The summary says plainly that a recorded factor is an association, not a cause.
+    assert 'href="factors.html#road-types"' in home
     assert "These are associations in police records, not estimates of what speed causes" in (
         opening
     )
-    # The two biases are named, in both directions, and what a recorded factor is is explained
-    # once, on the factors page, which this page links to.
+    # Recorded speed is not called a steady decline, and a change in recording is not excluded.
+    assert (
+        "not in steady decline" in opening and "change in recording cannot be excluded" in opening
+    )
     assert "which would raise it" in text and "which would lower it" in text
-    assert 'href="factors.html#recorded-factors"' in text
+    # The driver tables' break is stated once, and the dropped series and figure are gone.
     shares = pd.read_csv(TABLES_DIR / "q9_infraction_shares.csv")
     all_roads = shares[shares.zone == "all"].set_index("year")
-    for year in (2014, 2016, int(all_roads.index.max())):
+    assert "no trend in speeding" in text
+    for year in (2015, 2016):
         assert f"{all_roads.loc[year, 'share_unknown'] * 100:.0f}%" in text
-    assert 'src="figures/c3_speed_status.svg"' in text
-    # Both readings of the broken driver tables are shown, so neither is read as a trend.
-    for column in ("share_speed_infraction", "share_among_known"):
-        for year in (2014, int(all_roads.index.max())):
-            assert components._fmt_pct(float(all_roads.loc[year, column])) in text
-    # Nothing on the page sizes speed's effect from outside the data, and the road-type mapping
-    # is said to be checked only through the zone totals, in the page's technical notes on the
-    # methodology page, which it links to.
-    for phrase in ("simulator", "Power Model", "physics"):
-        assert phrase not in text, phrase
-    data = (built / "data.html").read_text(encoding="utf-8")
-    notes = data[data.index('id="speed-method"') :]
-    notes = notes[: notes.index("<h2", 1)]
-    assert "not road type by road type" in notes
-    assert 'href="data.html#speed-method"' in text
-    for phrase in ("simulator", "Power Model", "physics"):
-        assert phrase not in notes, phrase
-    # The transcribed speed report is not republished on the site: no table of the report's
-    # breakdowns by limit, vehicle, licence class or hour survives anywhere.
-    for page in built.glob("*.html"):
-        page_text = page.read_text(encoding="utf-8")
-        assert "by the road's speed limit" not in page_text, page.name
-        assert "licence class" not in page_text, page.name
-
-
-def test_factors_page_reads_trends_only_within_comparable_runs(built: Path) -> None:
-    text = (built / "factors.html").read_text(encoding="utf-8")
-    windows = pd.read_csv(TABLES_DIR / "factor_windows.csv")
-    alcohol = windows[(windows.zone == "interurban") & (windows.factor == "Alcohol")]
-    assert len(alcohol) == 1  # no recording break in the interurban alcohol series
-    assert f"{alcohol.share_first.iloc[0] * 100:.1f}%" in text
-    assert f"{alcohol.share_last.iloc[0] * 100:.1f}%" in text
+    assert "c3_speed_status" not in text and "Drugs" not in text
+    for column in shares.columns:
+        assert "known" not in column.replace("unknown", "")
+    # Interurban alcohol and the speed series come from the published shares.
+    factor_shares = pd.read_csv(TABLES_DIR / "factor_shares.csv")
+    assert "Drugs" not in set(factor_shares.factor)
+    alcohol = factor_shares[
+        (factor_shares.zone == "interurban") & (factor_shares.factor == "Alcohol")
+    ]
+    assert f"{alcohol.share.iloc[0] * 100:.1f}%" in text
+    assert f"{alcohol.share.iloc[-1] * 100:.1f}%" in text
     assert 'src="figures/f2_factor_shares.svg"' in text
-    assert "break in comparability" in text and "Drugs" in text
-    # A break is a threshold, never an explanation of what changed.
+    assert 'src="figures/f1_speed_severity.svg"' in text
+    assert "break in comparability" in text
     assert "cannot say whether a break" in text and "from recording or from both" in text
-    # The summary gives the fall in recorded speed within each kind of road, not only the
-    # all-roads fall that the shift towards urban crashes enlarges, and makes no claim that the
-    # recording is consistent.
-    opening = re.search(r'<p class="summary">(.*?)</p>', text, re.S).group(1)
-    speed = windows[windows.factor == "Inappropriate speed"].set_index("zone")
-    for zone in ("interurban", "urban", "all"):
-        assert f"{speed.loc[zone, 'share_last'] * 100:.1f}%" in opening
-    assert "recording is consistent" not in opening and "point to changes in recording" not in text
-    # The driver tables' break is set out once, on the speed page, which this page links to.
-    assert 'href="speed.html#driver-tables"' in text
-    # The rule's thresholds and every break are the page's technical notes on the methodology
-    # page, which it links to; the notes too call a break a threshold, not an explanation.
     data = (built / "data.html").read_text(encoding="utf-8")
     notes = data[data.index('id="factors-method"') :]
     notes = notes[: notes.index("<h2", 1)]
     assert 'href="data.html#factors-method"' in text
-    assert "break in comparability" in notes and "point to changes in recording" not in notes
-    changes = pd.read_csv(TABLES_DIR / "factor_changes.csv")
-    assert f"Of the {len(changes)} year-to-year changes, {int(changes.is_break.sum())} are" in notes
+    assert "only through the interurban total" in notes
+    for phrase in ("simulator", "Power Model", "physics"):
+        assert phrase not in text and phrase not in notes, phrase
+    for page in built.glob("*.html"):
+        page_text = page.read_text(encoding="utf-8")
+        assert "by the road's speed limit" not in page_text, page.name
+        assert "licence class" not in page_text, page.name
 
 
 def test_long_run_page_shows_the_trends_the_projection_and_the_last_year(built: Path) -> None:
@@ -945,7 +950,7 @@ def test_front_page_is_an_overview_of_the_study(built: Path) -> None:
         sentence = components.html.unescape(re.sub(r"<[^>]+>", "", item.split("</p>")[0]))
         assert sentence.endswith(".") and not re.search(r"\.\s+[A-Z]", sentence), sentence
         assert re.search(r'<p class="finding-more"><a href="[a-z-]+\.html', item), item
-    for slug in ("long-run", "drivers", "speed", "severity-models"):
+    for slug in ("long-run", "drivers", "factors", "severity-models"):
         assert f'href="{slug}.html' in sections["Main findings"], slug
     assert 'href="validation.html' in sections["Main findings"]
     # The list of pages follows the navigation's groups and lists every page once.
@@ -1196,35 +1201,26 @@ def test_coding_breaks_name_the_fog_and_wind_fields_coded_another_way(built: Pat
     )
 
 
-def test_the_missing_values_figure_reads_the_audit_rule(built: Path) -> None:
-    """The records section's figure and its text judge the junction fields where they apply and
-    read a blank fog or wind field as the recorded "no", as the DGT microdata audit does."""
+def test_the_missing_values_figure_leaves_not_applicable_out(built: Path) -> None:
+    """The records section's figure and its text judge each field where it applies, read a blank
+    fog or wind field as the recorded "no", and leave the junction-only fields out."""
     data = (built / "data.html").read_text(encoding="utf-8")
     block = data[data.index('id="records"') : data.index('id="coding-breaks"')]
     block = components.html.unescape(block)
-    assert "figure reads the fields the audit examines by the same rule" in block
+    assert "figure leaves “not applicable” out of each field's share" in block
     assert "In the figure an empty fog or strong-wind field counts as recorded" in block
-    applicability = pd.read_csv(TABLES_DIR / "missingness_where_applicable.csv")
-    junction_type = applicability[applicability.column == "NUDO_INFO"]
-    away = 1 - junction_type.applies.sum() / junction_type.rows.sum()
-    assert f"the junction type in {components._fmt_pct(away, 0)}" in block
+    assert "so they are not drawn" in block
     captions = json.loads((FIGURES_DIR / "captions.json").read_text(encoding="utf-8"))
     caption = captions["d1_missingness"]
-    assert "in a crash recorded away from a junction" in caption
     assert "fog or strong wind field counts as recorded" in caption
-    # The crossing road follows the junction rule, and is named with the kilometre post as a
-    # field whose empty cell may mean there was nothing to record.
-    assert "the crossing road, when the cell is empty or 999" in caption
-    assert "kilometre post and crossing road fields" in caption
-    # The inverted Catalan junction flag is read the other way round, not shown as a drop.
-    assert "the flag is read the other way round" in caption
+    assert "and are not drawn" in caption
+    assert "kilometre post field" in caption
+    assert "the flag is read the other way round" not in caption
     assert "recorded less often" not in caption
-    assert "optional fields (fog" not in caption
-    assert "right-of-way flags and the junction type in under half" not in block
 
 
 def test_navigation_groups_its_pages_under_labels(built: Path) -> None:
-    text = (built / "speed.html").read_text(encoding="utf-8")
+    text = (built / "factors.html").read_text(encoding="utf-8")
     nav = re.search(r'<nav aria-label="Sections">(.*?)</nav>', text, re.S).group(1)
     labels = re.findall(r'<span class="nav-label" id="(label-[a-z-]+)">([^<]+)</span>', nav)
     # Every section but the overview link is labelled, in navigation order.
@@ -1242,11 +1238,11 @@ def test_navigation_groups_its_pages_under_labels(built: Path) -> None:
     assert links == [slug for _, pages in site.NAV_GROUPS for slug, _ in pages]
     # A page names its section and links to its neighbours in reading order.
     assert '<p class="eyebrow">Drivers, vehicles and factors</p>' in text
-    assert 'href="vehicles.html" rel="prev"' in text and 'href="factors.html" rel="next"' in text
+    assert 'href="vehicles.html" rel="prev"' in text and 'href="severity.html" rel="next"' in text
     # Each group leads on to the next in reading order.
     for slug, before, after in (
         ("policy", "seasons", "drivers"),
-        ("factors", "speed", "severity"),
+        ("factors", "vehicles", "severity"),
         ("validation", "severity-models", "sources"),
     ):
         page = (built / f"{slug}.html").read_text(encoding="utf-8")
@@ -1289,12 +1285,10 @@ def test_vehicles_page_quotes_per_km_rates_for_all_roads_only(built: Path) -> No
     # The occupant shares are computed, not typed.
     assert f"{bike.occupant_deaths_per_fatal_involvement:.2f} for a motorcycle" in text
     assert f"A figure of {truck.occupant_deaths_per_fatal_involvement:.2f}" in text
-    # Zone counts are not divided by all-road kilometres, and the download says so.
+    # The table has all-roads rows only, and the intervals are said to cover the counts only.
     rates = pd.read_csv(TABLES_DIR / "q6_rates_2022.csv")
-    assert rates[rates.zone != "all"].per_billion_km.isna().all()
-    assert rates[rates.zone == "all"].per_billion_km.notna().all()
-    assert "urban and interurban roads only as counts and rates per vehicle" in text
-    assert "rates per kilometre cannot be split between urban and interurban roads" in text
+    assert "zone" not in rates.columns and rates.per_billion_km.notna().all()
+    assert "not the uncertainty of the modelled kilometres" in text
     # At most one closing synthesis, and only after the evidence; no generic heading.
     conclusions = text.count('<div class="conclusion">')
     assert conclusions <= 1

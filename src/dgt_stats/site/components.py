@@ -58,8 +58,7 @@ NAV_GROUPS: tuple[tuple[str, tuple[tuple[str, str], ...]], ...] = (
         (
             ("drivers", "Drivers"),
             ("vehicles", "Vehicles"),
-            ("speed", "Speed"),
-            ("factors", "Recorded factors"),
+            ("factors", "Speed and other recorded factors"),
         ),
     ),
     (
@@ -94,8 +93,8 @@ PAGE_QUESTIONS = {
     "drivers": "How often drivers of each age and sex are in crashes per kilometre, and how "
     "often a crash kills them.",
     "vehicles": "Crashes and deaths by type of vehicle, per vehicle and per kilometre.",
-    "speed": "Crashes in which the police recorded inappropriate speed, and their deaths.",
-    "factors": "The other circumstances the police record, and how their shares have moved.",
+    "factors": "Deaths in crashes where the police recorded inappropriate speed, and how often "
+    "they recorded speed, alcohol and other factors.",
     "severity": "Which recorded circumstances go with a death in Spain's injury crashes.",
     "catalonia": "Crashes with a death or serious injury in Catalonia, 2010–2023.",
     "barcelona": "Every crash the Guàrdia Urbana attended in Barcelona in 2025.",

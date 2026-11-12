@@ -20,7 +20,6 @@ import pandas as pd
 
 from dgt_stats import codes, factors, plots, policy, seasonality, summaries
 from dgt_stats.microdata import charts as microdata_charts
-from dgt_stats.microdata.validation import dgt_audit
 from dgt_stats.paths import FIGURES_DIR, NARROW_FIGURES_DIR, TABLES_DIR
 
 CAPTIONS_PATH = FIGURES_DIR / "captions.json"
@@ -42,16 +41,6 @@ TRAFFIC_SOURCE = (
     "CORES, consumo de productos petrolíferos; Ministerio de Transportes y Movilidad Sostenible, "
     "tráfico en autopistas estatales de peaje"
 )
-
-SPEED_STATUS_LABELS = {
-    "speed_infraction": "Speed infraction recorded",
-    "none": "No speed infraction recorded",
-    "unknown": "No speed status recorded",
-}
-# Drivers recorded as driving too slowly count in each year's total but are not drawn: they are
-# below this share of drivers in every year, too few to see.
-TOO_SLOW = "too_slow"
-TOO_SLOW_MAX_SHARE = 0.001
 
 
 def _caption(shown: str, source: str, n: str | int | None = None) -> str:
@@ -154,7 +143,6 @@ def _draw_all(figures_dir: Path, captions: dict[str, str], summary) -> None:
     _season_figures(figures_dir, captions, summary)
     _sex_figures(figures_dir, captions, summary)
     _factor_figures(figures_dir, captions, summary)
-    _speed_status_figure(figures_dir, captions, summary)
     if summaries.model_tables_present():
         _severity_figures(figures_dir, captions)
     else:
@@ -167,43 +155,6 @@ def _draw_all(figures_dir: Path, captions: dict[str, str], summary) -> None:
     # when the microdata tables are not built.
     microdata_charts.build(figures_dir, captions)
     _severity_calculator_figures(figures_dir, captions)
-
-
-# --------------------------------------------------------------------------- context
-
-
-def _speed_status_figure(figures_dir: Path, captions: dict[str, str], summary) -> None:
-    shares = summary("q9_infraction_shares")
-    block = shares[shares.zone == "all"]
-    too_slow = block[TOO_SLOW] / block[[*SPEED_STATUS_LABELS, TOO_SLOW]].sum(axis=1)
-    if not (too_slow < TOO_SLOW_MAX_SHARE).all():
-        raise ValueError("c3: drivers recorded as too slow are now too many to leave undrawn")
-    long = block.melt(
-        id_vars="year",
-        value_vars=[*SPEED_STATUS_LABELS, TOO_SLOW],
-        var_name="status",
-        value_name="drivers",
-    )
-    long["status"] = long.status.map({**SPEED_STATUS_LABELS, TOO_SLOW: TOO_SLOW})
-    plots.bar_shares(
-        long,
-        "year",
-        "status",
-        "drivers",
-        figures_dir / "c3_speed_status.svg",
-        "Drivers in injury crashes by recorded speed status, all roads",
-        order=list(SPEED_STATUS_LABELS.values()),
-        colors=[plots.ACCENT, "#d4d4cf", "#8f8f8a"],
-        hidden=(TOO_SLOW,),
-    )
-    captions["c3_speed_status"] = _caption(
-        "Drivers involved in injury crashes by the police record of a speed infraction, Spain, "
-        f"all roads, {int(block.year.min())}–{int(block.year.max())}; the share with no speed "
-        "status recorded changes in 2016, which shifts every share below it. Drivers recorded "
-        f"as driving too slowly, under {TOO_SLOW_MAX_SHARE:.1%} in every year, are not drawn",
-        TABLES_SOURCE,
-        f"{int(block.total.sum()):,} drivers",
-    )
 
 
 # --------------------------------------------------------------------------- counts and risk
@@ -502,15 +453,6 @@ def _factor_figures(figures_dir: Path, captions: dict[str, str], summary) -> Non
 
     shares = summary("factor_shares")
     shares = shares[shares.zone != "all"]
-    # A series that breaks at every year is drawn as unjoined points; the caption names the
-    # factors whose series do so on both kinds of road, and the build stops on any other.
-    runs = shares.groupby(["factor", "zone"]).agg(
-        years=("year", "size"), runs=("segment", "nunique")
-    )
-    every_year = (runs.years == runs.runs).groupby(level="factor").agg(["all", "any"])
-    unjoined = list(every_year.index[every_year["all"]])
-    if len(unjoined) != 1 or every_year["any"].sum() != len(unjoined):
-        raise ValueError(f"f2 caption: series that break at every year: {every_year}")
     plots.segmented_small_multiples(
         shares,
         "factor",
@@ -525,7 +467,6 @@ def _factor_figures(figures_dir: Path, captions: dict[str, str], summary) -> Non
             "Inappropriate speed",
             "Distraction or inattention",
             "Illegal manoeuvres",
-            "Drugs",
         ],
         series_order=["Interurban roads", "Urban streets"],
     )
@@ -535,9 +476,7 @@ def _factor_figures(figures_dir: Path, captions: dict[str, str], summary) -> Non
         "the Basque Country, 2014–2023; a line breaks, at a short vertical mark, where the share "
         f"rises by more than {factors.BREAK_RATIO - 1:.0%} or falls by more than "
         f"{1 - 1 / factors.BREAK_RATIO:.0%} in a year, or a year has fewer than "
-        f"{factors.MIN_CRASHES} crashes. The {unjoined[0].lower()} series breaks at every year "
-        "on both kinds of road, so its points are not joined and are not comparable from year "
-        "to year",
+        f"{factors.MIN_CRASHES} crashes",
         SPEED_REPORT_SOURCE,
     )
 
@@ -603,40 +542,6 @@ def _severity_figures(figures_dir: Path, captions: dict[str, str]) -> None:
             if len(nuisance)
             else ""
         ),
-        MICRODATA_SOURCE,
-        f"{n_model:,} crashes",
-    )
-
-    adverse = summaries.read_model_table("q3_adverse_conditions")
-    fatal = adverse[adverse.outcome == "fatal"].copy()
-    plots.dot_interval_panels(
-        fatal.assign(panel=fatal.level.map(str.capitalize)),
-        "panel",
-        "variant_label",
-        "odds_ratio",
-        "or_low",
-        "or_high",
-        figures_dir / "s2_adverse_conditions.svg",
-        "Adverse conditions and a fatal outcome: the same odds ratio under "
-        f"{fatal.variant.nunique()} models",
-        order=list(dict.fromkeys(fatal.variant_label)),
-        panel_order=[
-            level.capitalize()
-            for level in ("wet", "rain", "hail or snow", "at a junction")
-            if level.capitalize() in set(fatal.level.map(str.capitalize))
-        ],
-        xlabel="Odds ratio against the reference level, log scale (dotted line: no difference)",
-        reference=1.0,
-        from_zero=False,
-        shared=True,
-        log=True,
-    )
-    captions["s2_adverse_conditions"] = _caption(
-        "Odds ratios for at least one death in an injury crash under each adverse condition "
-        f"shown, against its reference level, in the full model and {fatal.variant.nunique() - 1} "
-        "variants that drop a correlated variable or fit one kind of road alone, Spain, "
-        f"{years.min()}–{years.max()}, with 95% intervals; a missing row is a level the variant "
-        "does not contain",
         MICRODATA_SOURCE,
         f"{n_model:,} crashes",
     )
@@ -755,7 +660,6 @@ def _driver_exposure_figures(figures_dir: Path, captions: dict[str, str]) -> Non
 
 def _vehicle_figures(figures_dir: Path, captions: dict[str, str], summary) -> None:
     rates = summary("q6_rates_2022")
-    rates = rates[rates.zone == "all"]
     # Unrounded rates in the group order of the rates table, so the printed values round like the
     # page's table.
     slope_frame = rates[rates.measure == "fatal_involvement"][
@@ -903,7 +807,7 @@ def _policy_figures(figures_dir: Path, captions: dict[str, str], summary) -> Non
 
 
 # The fields of DGT's crash records in the missing-values chart, in English; the table of missing
-# values keeps DGT's field names. The right-of-way flags (``codes.PRIORI_COLUMNS``) share one row.
+# values keeps DGT's field names.
 MISSINGNESS_FIELDS = {
     "DIA_SEMANA": "Day of the week",
     "COD_PROVINCIA": "Province",
@@ -913,13 +817,11 @@ MISSINGNESS_FIELDS = {
     "ZONA_AGRUPADA": "Interurban or urban",
     "CARRETERA": "Road number",
     "KM": "Kilometre post",
-    "CARRETERA_CRUCE": "Crossing road",
     "SENTIDO_1F": "Direction of travel",
     "TITULARIDAD_VIA": "Road owner",
     "TIPO_VIA": "Road type",
     "TIPO_ACCIDENTE": "Crash type",
     "NUDO": "At a junction or not",
-    "NUDO_INFO": "Junction type",
     "CONDICION_NIVEL_CIRCULA": "Traffic level",
     "CONDICION_FIRME": "Road surface",
     "CONDICION_ILUMINACION": "Lighting",
@@ -930,13 +832,15 @@ MISSINGNESS_FIELDS = {
     "ACERA": "Pavement",
     "TRAZADO_PLANTA": "Road alignment",
 }
-# The right-of-way flags are drawn as one row only while their shares stay this close together.
-PRIORITY_SPREAD = 0.01
+# The fields that apply only at a junction (junction type, right-of-way flags, crossing road): the
+# missing-values table cannot say which crashes they apply to, so the chart leaves them out.
+JUNCTION_ONLY = {"NUDO_INFO", "CARRETERA_CRUCE", *codes.PRIORI_COLUMNS}
+# Fields DGT fills in only when the condition was present: an empty cell is the recorded "no".
+PRESENCE_FIELDS = ("CONDICION_NIEBLA", "CONDICION_VIENTO")
 # Optional fields whose empty cells DGT's dictionary does not define, named in the caption as
 # fields where an empty cell may also mean there was nothing to record; each is empty in most
-# crashes. The crossing road applies only at a junction (``dgt_audit.CROSSING_ROAD``), and even
-# there names a road only where the junction is with a numbered one.
-OPTIONAL_FIELDS = ("KM", "CARRETERA_CRUCE")
+# crashes.
+OPTIONAL_FIELDS = ("KM",)
 
 
 def empty_means(column: str) -> str | None:
@@ -951,137 +855,71 @@ def empty_means(column: str) -> str | None:
     return None
 
 
-def priority_row(count: int) -> str:
-    return f"Right of way, {count} flags"
-
-
-def recorded_where_applicable(profile: pd.DataFrame, applicability: pd.DataFrame) -> pd.DataFrame:
+def recorded_where_applicable(profile: pd.DataFrame) -> pd.DataFrame:
     """Field × year share of crashes with a value recorded, among the crashes the field applies
-    to, as the chart draws it.
+    to, as the chart draws it (from the missing-values table, ``missingness_by_year``).
 
-    The fields the DGT microdata audit examines, and the crossing road, take their shares from
-    ``applicability`` (``missingness_where_applicable``, from :func:`dgt_audit.recording_by_year`),
-    so they follow the audit's rule (:func:`dgt_audit.statuses`): a 998 code does not apply, an
-    empty fog or strong-wind cell is the recorded "no", and an empty or 999 junction type,
-    right-of-way flag or crossing road does not apply to a crash recorded away from a junction
-    (whether it is at one read as the association analysis reads it, the other way round where
-    the flag is inverted: ``summaries._recording_by_year``). The other fields take theirs from the
-    missing-values table (``missingness_by_year``): a value is not applicable when it is coded 998,
-    when it is a non-coded field's own "not applicable" placeholder (both in
-    ``share_not_applicable``) or when the cell is empty in a field whose dictionary defines an
-    empty cell as not applicable (the island field); every other empty cell, 999, an explicit
-    unknown code and the placeholders count as missing. The right-of-way flags are one row, their
-    mean, and the rows run from the most completely recorded down.
+    A value is not applicable when it is coded 998, when it is a non-coded field's own "not
+    applicable" placeholder (both in ``share_not_applicable``) or when the cell is empty in a
+    field whose dictionary defines an empty cell as not applicable (the island field). An empty
+    fog or strong-wind cell is the recorded "no". Every other empty cell, 999, an explicit
+    unknown code and the placeholders count as missing. The fields that apply only at a junction
+    are left out (:data:`JUNCTION_ONLY`), and the rows run from the most completely recorded
+    down.
     """
-    if set(applicability.year) != set(profile.year):
-        raise ValueError("d1: the two missing-values tables cover different years")
-    audited = applicability.assign(
-        share=applicability.recorded / applicability.applies.where(applicability.applies > 0)
-    )
-    rest = profile[~profile.column.isin(set(audited.column))]
+    rest = profile[~profile.column.isin(JUNCTION_ONLY)]
     meaning = rest.column.map(empty_means)
     not_applicable = rest.share_not_applicable + rest.share_empty.where(
         meaning.eq("not applicable"), 0.0
     )
-    recorded = rest.share_observed + rest.share_empty.where(meaning.eq("no"), 0.0)
+    says_no = meaning.eq("no") | rest.column.isin(PRESENCE_FIELDS)
+    recorded = rest.share_observed + rest.share_empty.where(says_no, 0.0)
     applies = 1 - not_applicable
-    shares = pd.concat(
-        [
-            rest.assign(share=(recorded / applies).where(applies > 0)),
-            audited,
-        ],
-        ignore_index=True,
-    )
-    matrix = shares.pivot(index="column", columns="year", values="share")
-    priority = matrix[matrix.index.isin(codes.PRIORI_COLUMNS)]
-    unnamed = set(matrix.index) - set(MISSINGNESS_FIELDS) - set(priority.index)
+    shown = rest.assign(share=(recorded / applies).where(applies > 0))
+    matrix = shown.pivot(index="column", columns="year", values="share")
+    unnamed = set(matrix.index) - set(MISSINGNESS_FIELDS)
     if unnamed:
         raise ValueError(f"d1: no English name for the fields {sorted(unnamed)}")
-    if len(priority):
-        if ((priority.max() - priority.min()) >= PRIORITY_SPREAD).any():
-            raise ValueError("d1: the right-of-way flags are no longer recorded together")
-        matrix = matrix.drop(index=priority.index)
-        matrix.loc[priority_row(len(priority))] = priority.mean()
     matrix = matrix.rename(index=MISSINGNESS_FIELDS)
     means = matrix.mean(axis=1).round(6)
     return matrix.loc[sorted(matrix.index, key=lambda row: (-means[row], row))]
 
 
-def inverted_junction_years(shown: pd.DataFrame, junctions: pd.DataFrame) -> list[int]:
-    """The years whose Catalan junction flag is inverted (``dgt_audit_junction_coding``), checked
-    to be the Catalan provinces', and, with the flag read the other way round there, to be years
-    in which the junction type and right-of-way flags are recorded where they apply no less often
-    than in the least complete other year."""
-    inverted = junctions[junctions.junction_flag_inverted.astype(bool)]
-    if set(inverted.province) != set(junctions[junctions.catalan.astype(bool)].province):
-        raise ValueError("d1: the inverted junction flag is no longer the Catalan provinces'")
-    years = sorted({int(year) for year in inverted.year})
-    junction_type = shown.loc[MISSINGNESS_FIELDS["NUDO_INFO"]]
-    priority = shown.loc[shown.index.str.startswith("Right of way")].iloc[0]
-    others = [year for year in shown.columns if year not in years]
-    if not (
-        years
-        and float(junction_type[years].min()) >= float(junction_type[others].min())
-        and float(priority[years].min()) >= float(priority[others].min())
-    ):
-        raise ValueError("d1: the junction fields drop in the inverted years once read corrected")
-    return years
-
-
 def _data_figures(figures_dir: Path, captions: dict[str, str]) -> None:
     profile = pd.read_csv(TABLES_DIR / "missingness_by_year.csv")
-    applicability = pd.read_csv(TABLES_DIR / "missingness_where_applicable.csv")
-    matrix = recorded_where_applicable(profile, applicability)
+    matrix = recorded_where_applicable(profile)
     plots.missingness_heatmap(
         matrix,
         figures_dir / "d1_missingness.svg",
         "Share of crashes with a value recorded where the field applies, by field and year",
     )
-    audited = set(applicability.column)
-    columns = sorted(set(profile.column) - audited)
+    columns = sorted(set(profile.column) - JUNCTION_ONLY)
     meaning = {column: empty_means(column) for column in columns}
     empty_na = [MISSINGNESS_FIELDS[c].lower() for c in columns if meaning[c] == "not applicable"]
-    presence = [
-        MISSINGNESS_FIELDS[c].lower()
-        for c in dgt_audit.CANDIDATES
-        if c in audited and dgt_audit.presence_field(c)
-    ]
     optional = profile[profile.column.isin(OPTIONAL_FIELDS)].groupby("column").share_empty.mean()
-    junction_only = set(dgt_audit.AT_JUNCTION_ONLY)
     if (
         len(empty_na) != 1
-        or any(meaning[c] == "no" for c in columns)
-        or presence != ["fog", "strong wind"]
-        or set(dgt_audit.JUNCTION_FIELDS) != {"NUDO_INFO", *codes.PRIORI_COLUMNS}
-        or junction_only != {*dgt_audit.JUNCTION_FIELDS, "CARRETERA_CRUCE"}
-        or not junction_only <= audited
+        or {c for c in columns if meaning[c] == "no"} - set(PRESENCE_FIELDS)
+        or not set(PRESENCE_FIELDS) <= set(columns)
         or len(optional) != len(OPTIONAL_FIELDS)
         or not (optional > 0.5).all()
         or any(empty_means(c) for c in OPTIONAL_FIELDS)
-        or any(c in audited and c not in junction_only for c in OPTIONAL_FIELDS)
     ):
         raise ValueError("d1 caption: the fields whose empty cells it describes have changed")
-    junctions = pd.read_csv(TABLES_DIR / "dgt_audit_junction_coding.csv")
-    years = inverted_junction_years(matrix, junctions)
-    priority = profile[profile.column.isin(codes.PRIORI_COLUMNS)].column.nunique()
     optional_names = _join_words([MISSINGNESS_FIELDS[c].lower() for c in OPTIONAL_FIELDS])
     captions["d1_missingness"] = _caption(
         "Share of crashes with a value recorded in each field of the DGT crash records, among "
         f"the crashes the field applies to, by year, Spain, {int(profile.year.min())}–"
         f"{int(profile.year.max())}. A value is not applicable, and is left out, when it is 998 "
-        "(not applicable), when the road is 'No inventariada' (no road number), when the "
-        f"{empty_na[0]} field is empty, which DGT's dictionary defines as not applicable, and, "
-        f"for the junction type, the {priority} right-of-way flags and the crossing road, when "
-        "the cell is empty or 999 in a crash recorded away from a junction; a value recorded there "
-        "still counts. In the records for the four Catalan provinces, whose junction flag is "
-        f"the wrong way round in {_join_words([str(y) for y in years])}, the flag is read the "
-        "other way round, as in the association analysis. An empty cell in the "
-        f"{' or '.join(presence)} field counts as recorded, as the 'no' of a field filled in "
-        "only when the condition was present. A value is missing when it is 999 (not "
+        "(not applicable), when the road is 'No inventariada' (no road number) and when the "
+        f"{empty_na[0]} field is empty, which DGT's dictionary defines as not applicable. An "
+        "empty cell in the fog or strong wind field counts as recorded, as the 'no' of a field "
+        "filled in only when the condition was present. A value is missing when it is 999 (not "
         "specified), an explicit unknown code, a placeholder (kilometre post 9999, and 1000 in "
         "2019; municipality 00000) or any other empty cell, although in the "
-        f"{optional_names} fields an empty cell may also mean there was nothing to record. The "
-        "right-of-way flags, recorded together, share one row",
+        f"{optional_names} field an empty cell may also mean there was nothing to record. The "
+        "junction type, the right-of-way flags and the crossing road apply only at a junction "
+        "and are not drawn",
         MICRODATA_SOURCE,
         f"{int(profile.groupby('year').rows.first().sum()):,} crashes",
     )

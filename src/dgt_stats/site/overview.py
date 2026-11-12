@@ -191,7 +191,7 @@ def _speed() -> str:
         "crashes on the same kind of road, from "
         f"{float(lowest.rate_ratio):.1f} times on dual carriageways to "
         f"{float(highest.rate_ratio):.1f} times on urban streets.",
-        [("speed", "")],
+        [("factors#road-types", "")],
     )
 
 

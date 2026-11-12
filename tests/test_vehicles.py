@@ -44,15 +44,13 @@ def test_rates_recompute_from_their_columns_and_intervals_hold() -> None:
     long = vehicles.rates_2022()
     assert set(long.measure) == set(vehicles.MEASURES)
     assert set(long.group) == set(vehicles.RATE_GROUPS)
-    assert len(long) == len(vehicles.RATE_GROUPS) * 3 * len(vehicles.MEASURES)
-    # Vehicle-km exist for all roads only, so only the all-roads rows have a rate per km; the
-    # zone rows keep their counts and the rate per circulating vehicle.
-    roads, zones = long[long.zone == "all"], long[long.zone != "all"]
+    assert len(long) == len(vehicles.RATE_GROUPS) * len(vehicles.MEASURES)
+    # Vehicle-km exist for all roads only, so the table has all-roads rows only.
+    assert "zone" not in long.columns
+    roads = long
     km_columns = ["vehicle_km", "per_billion_km", "per_billion_km_low", "per_billion_km_high"]
-    assert zones[km_columns].isna().all(axis=None)
     assert roads[km_columns].notna().all(axis=None)
-    assert set(zones.denominator) == {vehicles.DENOMINATORS["zone"]}
-    assert set(roads.denominator) == {vehicles.DENOMINATORS["all"]}
+    assert set(roads.denominator) == {vehicles.DENOMINATOR}
     per_km = roads["count"] / roads.vehicle_km * vehicles.BILLION
     assert np.allclose(per_km, roads.per_billion_km)
     per_vehicle = long["count"] / long.n_vehicles * vehicles.PER_VEHICLES
@@ -62,16 +60,13 @@ def test_rates_recompute_from_their_columns_and_intervals_hold() -> None:
     assert (long.per_100k_vehicles_low <= long.per_100k_vehicles).all()
     assert (long.per_100k_vehicles <= long.per_100k_vehicles_high).all()
     # Pinned to the published inputs: TABLA 2.3 2022 car rows and the km table car strata.
-    car = long[(long.group == "car") & (long.zone == "all")].set_index("measure")
+    car = long[long.group == "car"].set_index("measure")
     car_km = 1.040664e11 + 6.569315e10 + 4.612673e10 + 5.686434e10 + 3.019795e10
     assert car.loc["fatal_involvement", "count"] == 1_290 + 2 + 7
     assert car.loc["fatal_involvement", "per_billion_km"] == pytest.approx(
         1_299 / car_km * vehicles.BILLION, rel=1e-4
     )
     assert car.loc["occupant_deaths", "count"] == 681  # equals TOT_TUR_MU30DF in the microdata
-    involvement = long[long.measure != "occupant_deaths"]
-    zones = involvement.pivot_table(index=["group", "measure"], columns="zone", values="count")
-    assert (zones.interurban + zones.urban == zones["all"]).all()
 
 
 def test_summary_matches_the_yearbook_and_the_long_table() -> None:
@@ -85,7 +80,7 @@ def test_summary_matches_the_yearbook_and_the_long_table() -> None:
     assert summary.loc["motorcycle", "occupant_deaths_per_fatal_involvement"] > 0.9
     assert sorted(summary.rank_fatal_per_bn_km) == list(range(1, len(summary) + 1))
     long = vehicles.rates_2022()
-    row = long[(long.group == "bus") & (long.zone == "all") & (long.measure == "fatal_involvement")]
+    row = long[(long.group == "bus") & (long.measure == "fatal_involvement")]
     # Rates are kept unrounded, so a printed value is rounded once: vans and light trucks were
     # involved in 278 fatal crashes over 62.54 bn km, 4.445 per bn km, which prints as 4.4.
     assert summary.loc["bus", "fatal_involvement_per_bn_km"] == pytest.approx(
@@ -93,24 +88,3 @@ def test_summary_matches_the_yearbook_and_the_long_table() -> None:
     )
     vans = summary.loc[vehicles.MERGED_GROUP]
     assert f"{vans.fatal_involvement_per_bn_km:.1f}" == "4.4"
-
-
-def test_van_split_and_vehicle_groups() -> None:
-    split = vehicles.van_light_truck_split().set_index("group")
-    assert list(split.index) == ["van", "light_truck"]
-    assert split.loc["van", "fatal_involvement"] == 215
-    assert split.loc["light_truck", "fatal_involvement"] == 62 + 1
-    assert (
-        split.fatal_involvement.sum()
-        == vehicles.summary_2022()
-        .set_index("group")
-        .loc[vehicles.MERGED_GROUP, "fatal_involvement"]
-    )
-
-    groups = vehicles.vehicle_groups_table()
-    assert len(groups) == len(vehicles.VEHICLE_GROUPS)
-    assert groups.has_km_denominator.sum() == len(vehicles.KM_GROUPS)
-    assert (
-        groups[groups.group.isin(["van", "light_truck"])].series_column
-        == vehicles.SERIES_MERGED_COLUMN
-    ).all()

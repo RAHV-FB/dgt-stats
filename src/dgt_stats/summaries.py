@@ -18,6 +18,7 @@ import pandas as pd
 
 from dgt_stats import (
     agebands,
+    crash_cells,
     driver_risk,
     factors,
     io_exposure,
@@ -129,23 +130,18 @@ def licence_share_by_age(years: tuple[int, ...] = (2014, 2019, 2024)) -> pd.Data
     return out.astype({"sex": "string"})
 
 
-# Written by scripts/model.py (the fits take about fifteen minutes); analyse.py and the site only
+# Written by scripts/model.py (the fits take several minutes); analyse.py and the site only
 # read them.
 MODEL_TABLES = (
     "q3_model_coefficients",
-    "q3_marginal_effects",
     "q3_calibration",
     "q3_holdout_summary",
-    "q3_year_stability",
     "q3_period_refits",
     "q3_location_contrasts",
     "q3_profiles",
     "q3_adverse_conditions",
-    "q3_adverse_composition",
-    "q3_adverse_exclusions",
     "q3_recording_regime",
     "q3_regime_sensitivity",
-    "q3_groupings",
     "q3_junction_coding",
     "q3_junction_sensitivity",
 )
@@ -174,25 +170,6 @@ def _policy_table(name: str):
     return lambda: _points_licence()[name].copy()
 
 
-def _recording_by_year() -> pd.DataFrame:
-    """The DGT microdata audit's fields and the crossing road per year: crashes, crashes each
-    applies to and those with a value recorded (``dgt_audit.recording_by_year``), for the data
-    page's missing-values chart.
-
-    Whether a crash is at a junction, which decides where the junction fields and the crossing
-    road apply, is read as the association analysis reads it (``features.junction_codes``): the
-    other way round in the province-years whose flag is inverted, so that the chart shows how
-    often those fields are recorded rather than the inversion. Imported here so that reading the
-    other summaries does not load the audit's model stack."""
-    from dgt_stats import features
-    from dgt_stats.microdata.validation import dgt_audit
-
-    columns = (*dgt_audit.CANDIDATES, dgt_audit.CROSSING_ROAD)
-    frame = pd.read_parquet(DGT_PROCESSED_CRASHES, columns=["ANYO", "COD_PROVINCIA", *columns])
-    frame["NUDO"] = features.junction_codes(frame)
-    return dgt_audit.recording_by_year(frame, columns=columns)
-
-
 # --------------------------------------------------------------------------- registry
 
 SUMMARIES = {
@@ -213,7 +190,6 @@ SUMMARIES = {
     "longrun_km_coverage": risk_trends.interurban_network_coverage,
     "longrun_fuel_bio": risk_trends.fuel_bio_share,
     # Casualties by road class, and deaths per measured vehicle-km on interurban roads
-    "road_class_baseline": road_class.baseline,
     "road_class_risk": road_class.class_risk,
     # Seasonality and mobility
     "season_profile": seasonality.seasonal_profile,
@@ -228,13 +204,11 @@ SUMMARIES = {
     "speed_severity": factors.speed_severity,
     "speed_severity_pooled": factors.speed_severity_pooled,
     "factor_shares": factors.factor_shares_segmented,
-    "factor_changes": factors.factor_consistency,
-    "factor_windows": factors.comparable_windows,
     # Context: the 2024 road-type recoding
     "q2_other_road_by_period": other_road_by_period,
+    # The crash statistics explorer's counts by year, region, road type and crash type
+    crash_cells.NAME: crash_cells.crash_cells,
     "q9_infraction_shares": speed.infraction_shares,
-    # The data page's missing-values chart: the audited fields by the audit's applicability rule
-    "missingness_where_applicable": _recording_by_year,
     # Age and driving exposure
     "q7_km_by_owner_age": driver_risk.car_kilometres,
     "q7_km_rates": driver_risk.km_rates,
@@ -245,11 +219,9 @@ SUMMARIES = {
     "q7_denominator_contrast": driver_risk.denominator_contrast,
     "q7_licence_share": licence_share_by_age,
     # Vehicles per kilometre
-    "q6_vehicle_groups": vehicles.vehicle_groups_table,
     "q6_vehicle_km_2022": vehicles.vehicle_km,
     "q6_rates_2022": vehicles.rates_2022,
     "q6_summary_2022": vehicles.summary_2022,
-    "q6_van_light_truck_split": vehicles.van_light_truck_split,
     # Policy
     **{
         name: _policy_table(name)

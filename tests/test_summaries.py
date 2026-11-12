@@ -41,10 +41,10 @@ def test_registry_holds_only_tables_the_site_or_a_figure_uses() -> None:
     # One prefix per page: the six pillars (risk, longrun, season, drivers, speed, factor), the
     # road classes (road), the earlier analyses they keep
     # (q6 vehicles, q7 age, q8 policy, q9 speed status), the 2024 road-type recoding (q2) and the
-    # data page's missing-values chart (missingness). The severity models are written by
-    # scripts/model.py and are not here.
+    # crash explorer's counts (explore). The severity models are written by scripts/model.py and
+    # are not here.
     assert {name.split("_")[0] for name in names} == {
-        "missingness",
+        "explore",
         "risk",
         "road",
         "longrun",

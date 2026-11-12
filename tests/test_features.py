@@ -48,29 +48,11 @@ def test_each_treatment_reads_the_inverted_flag_as_documented() -> None:
     assert read("as published") == published
     # The flag the other way round in province 8 only.
     assert read("flip") == [2, 2, 1, 1, 1] + published[5:]
-    # The junction type alone loses the junction crash that has no type.
-    assert read("junction type") == [2, 2, 1, 1, 2] + published[5:]
-    assert read("unrecorded") == [None] * 5 + published[5:]
-    # Outside the inverted province-years only Catalan crashes are moved by the near-junction
-    # treatment: province 28's typed crash away from a junction stays where DGT put it.
-    assert read("flip and near junctions") == read("flip")
     with pytest.raises(ValueError):
         features.junction_codes(crashes, "something else")
 
 
-def test_the_near_junction_treatment_moves_catalan_crashes_with_junction_fields() -> None:
-    crashes = _crashes()
-    crashes["ANYO"] = [2021] * 5 + [2023] * 5  # province 8's year is no longer inverted
-    crashes["NUDO"] = pd.array([1, 1, 2, 2, 2, 1, 1, 2, 2, 2], dtype="Int16")
-    crashes.loc[[2, 3], "NUDO_INFO"] = pd.NA  # most crashes away carry no type: not inverted
-    assert not features.inverted_junction_rows(crashes).any()
-    moved = features.junction_codes(crashes, "flip and near junctions")
-    # Province 8's crashes flagged away with a right-of-way flag are placed at a junction.
-    assert list(moved[:5]) == [1, 1, 1, 1, 1]
-    assert list(moved[5:]) == [1, 1, 2, 2, 2]
-
-
-def test_the_model_frame_reads_the_corrected_flag_and_the_groupings_say_so() -> None:
+def test_the_model_frame_reads_the_corrected_flag() -> None:
     crashes = _crashes()
     for column in ("ZONA", "TIPO_VIA", "TIPO_ACCIDENTE", "CONDICION_ILUMINACION"):
         crashes[column] = 1
@@ -84,13 +66,6 @@ def test_the_model_frame_reads_the_corrected_flag_and_the_groupings_say_so() -> 
     assert frame.attrs["junction_inverted"] == [(8, 2023)]
     published = features.model_frame(crashes, junction="as published")
     assert list(published.junction[:2]) == ["at a junction"] * 2
-    groupings = features.grouping_table(frame).set_index(["predictor", "code"])
-    flipped = groupings.loc[("Junction", "1" + features.INVERTED_KEY)]
-    assert flipped.level.startswith("not at a junction (flag read the other way round: Barcelona")
-    assert bool(flipped.reference)
-    assert groupings.loc[("Junction", "2" + features.INVERTED_KEY)].level.startswith(
-        "at a junction"
-    )
 
 
 def test_the_coding_table_counts_the_record_crash_by_crash() -> None:
