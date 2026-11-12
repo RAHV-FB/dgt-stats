@@ -17,14 +17,15 @@ outside the build.
   `features` the model matrices, `analyse` the descriptive tables, and `sources` the comparison of the
   Catalan file with DGT's counts.
 - `severity_model.py`: the Catalan penalised logistic model, its nested rolling-origin evaluation
-  against a simple table, and the tests within Catalonia (`sev_*` tables, `gen_calculator_transfer`
-  and the figure inputs; about six minutes).
+  against a simple table, and the tests within Catalonia (`sev_*` tables; about five minutes).
 - `emef.py {build,exposure,all}`: the EMEF 2014-2024 survey read and harmonised, and working-day
   car-driving distance by age (`emef_*` tables). Its checks against the published figures run as
   tests.
 - `exposure_risk.py {barcelona,madrid,national,all}`: the exposure methods and car drivers involved
   per kilometre by driver age, with the ranges across assumptions (`risk_*`, `edm_*` tables).
 - `build_site.py`: `site/` and `docs/FINDINGS.md`, from the committed tables and figures.
+- `compare_figures.py`: after `analyse.py figures`, checks that every figure matches its committed
+  copy to within a tenth of a point (CI runs it; tables and documents are compared byte for byte).
 - `fetch_ine.py [--table provinces|single_age] [--from-file CSV]`: rebuilds the committed INE
   population extracts in `data/raw/ine/`, or filters an already downloaded copy.
 - `fetch_edm.py [--from-dir DIR]`: rebuilds the committed extracts of the Madrid household travel

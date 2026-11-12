@@ -49,6 +49,13 @@ CHART_FONT_FILES = {
     600: FONT_DIR / "STIXTwoText-SemiBold.ttf",
 }
 HEADING_WEIGHT = 600
+# Lay chart text out with the committed files even where the system has its own copy of the
+# family: another version would measure the text differently and move the layout.
+font_manager.fontManager.ttflist = [
+    entry
+    for entry in font_manager.fontManager.ttflist
+    if entry.name != CHART_FONT or Path(entry.fname).parent == FONT_DIR
+]
 for _font_file in CHART_FONT_FILES.values():
     font_manager.fontManager.addfont(str(_font_file))
 

@@ -221,8 +221,10 @@ versions in `requirements.lock`, compiled with hashes from `pyproject.toml`.
   modules that draw random numbers (the severity model, the survey bootstraps). Result tables are
   written with a fixed number of significant digits so that last-bit differences between library
   versions do not reach the committed files.
-- CI rebuilds every table, figure and document from the raw files and fails if any differs from
-  the committed copy, then builds the site and compares it with the committed pages.
+- CI rebuilds every table, figure and document from the raw files and fails if a table or
+  document differs from the committed copy, or a figure by more than a tenth of a point (a
+  figure's coordinates carry last digits that differ between machines). It then builds the site
+  and compares it with the committed pages.
 - `pytest` runs the reconciliation, the data-contract, analysis and site tests. `pytest -m slow`
   checks every raw file against its checksum in `data/raw/manifest.csv`.
 - Numbers on the site and in `FINDINGS.md` are computed from the committed tables. Tests guard the
