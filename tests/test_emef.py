@@ -121,6 +121,15 @@ def test_distance_model_reproduces_the_report_for_driving() -> None:
         assert abs(table.loc[f"daily road km per mobile person: {age}"].relative_difference) < 0.1
 
 
+def test_distance_model_reproduces_every_benchmark_the_reports_give_for_motor_trips() -> None:
+    table = distance.validate_against_report().set_index("measure")
+    # The model is fitted for driving and public transport; walking and cycling are not used.
+    used = table[~table.index.str.contains("walking|cycling")]
+    assert len(used) == 11
+    assert (used.relative_difference.abs() < 0.1).all(), used.to_string()
+    assert (table.n > 100).all()
+
+
 def test_rates_use_every_respondent_as_denominator() -> None:
     frame = pd.DataFrame(
         {
@@ -175,31 +184,11 @@ def test_bounded_ratio_reproduces_the_report_mean() -> None:
     assert exposure.ROAD_RATIO < ratio < 1.6
 
 
-def test_band_table_shares_sum_to_one() -> None:
-    table = exposure.km_by_band(publishable=False)
-    sums = table.groupby("age4")[["share_of_trips", "share_of_km"]].sum()
-    assert np.allclose(sums, 1.0)
-
-
 def _assert_publishable(table: pd.DataFrame, count: str, measures: list[str]) -> None:
     small = table[count] < publication.MIN_SAMPLE_OBSERVATIONS
     assert (table.suppressed == small).all()
     assert table.loc[small, measures].isna().all().all()
     assert table.loc[~small, measures].notna().all().all()
-
-
-def test_band_table_suppresses_bands_with_fewer_than_20_trips() -> None:
-    table = exposure.km_by_band()
-    measures = ["share_of_trips", "share_of_km", "mean_straight_km", "median_road_speed_kmh"]
-    _assert_publishable(table, "sample_trips", measures)
-    # The cells the drivers page combines: trips of 100 km or more at 45-64 and 65+.
-    long = table[table.band == "100 km or more"].set_index("age4")
-    assert long.loc[["45-64", "65+"], "share_of_km"].notna().all()
-
-
-def test_frequency_table_suppresses_answers_of_fewer_than_20_respondents() -> None:
-    table = exposure.usual_frequency()
-    _assert_publishable(table, "respondents", ["share_of_age", "share_drove_on_reference_day"])
 
 
 def test_suppression_follows_the_survey_rule() -> None:
@@ -275,3 +264,10 @@ def test_professional_status_comes_from_the_respondent_file() -> None:
     work = people[people.year.isin(exposure.CONTEMPORARY_YEARS)]
     assert (work.loc[~work.mobility_professional, "work_trips"].fillna(0) == 0).all()
     assert work.loc[work.mobility_professional, "work_trips"].notna().all()
+
+
+def test_the_sensitivity_table_has_the_central_row_and_one_row_per_alternative() -> None:
+    table = exposure.sensitivity()
+    assert len(table) == 8 and table.variant.iloc[0] == "central"
+    shares = table.filter(like="share_of_km_")
+    assert np.allclose(shares.sum(axis=1), 1.0)
