@@ -240,7 +240,7 @@ def page_vehicles(captions: dict[str, str]) -> str:
         f"The kilometres are DGT's modelled estimates for {year}, valid for aggregates rather "
         "than for individual vehicles, and cover all roads, so rates per kilometre cannot be "
         "split between urban and interurban roads. The crash counts include foreign-registered "
-        "vehicles and the kilometres do not, which bears most on heavy trucks and buses "
+        "vehicles and the kilometres do not, which bears most on heavy trucks and buses. "
         "The 95% intervals in the rates table cover the counts only, not the uncertainty of the "
         f'modelled kilometres (<a href="data.html#{NOTES_ANCHOR}">how counts and kilometres are '
         "matched</a>)."
