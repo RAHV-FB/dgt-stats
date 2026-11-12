@@ -11,7 +11,7 @@ import re
 import pandas as pd
 
 from dgt_stats import codes
-from dgt_stats.exposure_risk import national as national_rates
+from dgt_stats.exposure_risk import coverage
 from dgt_stats.microdata.ml import recording
 from dgt_stats.microdata.validation import dgt_audit
 from dgt_stats.site.components import (
@@ -128,26 +128,17 @@ def _source_table(numbers: dict[str, str], inventory: pd.DataFrame) -> str:
     emef_years = _span(_inventory_years(inventory, "raw/emef/", "_persons"))
     edm_year = _span(_inventory_years(inventory, "raw/crtm/"))
     toll_from = min(_inventory_years(inventory, "raw/transportes/peaje"))
-    # The MOVILIA surveys behind the weekend and long-distance age mixes, the RACC survey behind
-    # one split of the 65-and-over kilometres, and the employment benchmark, all of which enter the
-    # sensitivity range of the rates per km by driver age.
-    labels = list(read_table("risk_weekend_sensitivity").non_working_age_mix.dropna()) + list(
-        read_table("risk_national_sensitivity").variant.dropna()
+    # The MOVILIA surveys behind the weekend and long-distance age mixes, and the employment
+    # benchmark, which enter the ranges of the rates per km by driver age.
+    movilia = sorted(
+        re.findall(r"MOVILIA (\d{4})", f"{coverage.MOVILIA_DAILY} {coverage.MOVILIA_LONG}")
     )
-    movilia = sorted({m for label in labels for m in re.findall(r"MOVILIA (\d{4})", label)})
-    extremes = read_table("risk_older_extremes").set_index(["group", "end"])
-    top_75 = extremes.loc[("75+", "full maximum")]
-    lowest_75 = extremes.loc[("75+", "lowest unmarked")]
     benchmark = read_table("emef_employment_benchmark")
     census = benchmark[benchmark.source.str.startswith("census")]
     _check(
-        len(movilia) == 2
-        and len(census) == 1
-        and f"MOVILIA {movilia[-1]}" in " ".join(str(v) for v in top_75.values)
-        and str(lowest_75.assumption) == national_rates.RACC_SPLIT,
+        len(movilia) == 2 and len(census) == 1,
         "sources",
-        "two MOVILIA surveys enter the sensitivity range, the later one sets the top of the 75+ "
-        "range, the RACC split its lowest unmarked combination, and one census benchmark",
+        "two MOVILIA surveys enter the ranges and there is one census benchmark",
     )
     rows = [
         (
@@ -199,8 +190,8 @@ def _source_table(numbers: dict[str, str], inventory: pd.DataFrame) -> str:
             "readings of roadworthiness inspections, in two releases; the later one gives every "
             "year since the earlier one as one series, and kilometres by the owner's age band.",
             f"The national car-kilometre total behind the rates per kilometre by driver age "
-            f"({km_owner}); rates per kilometre by vehicle type ({km_type}); kilometres by the "
-            "owner's age band, as a comparison only.",
+            f"({km_owner}), of which company-registered cars are a part; rates per kilometre by "
+            f"vehicle type ({km_type}).",
         ),
         (
             "Resident population",
@@ -243,28 +234,15 @@ def _source_table(numbers: dict[str, str], inventory: pd.DataFrame) -> str:
             f"Published tables: trips by age, main mode and type of day ({movilia[0]}); car "
             f"journeys over 50 km by age and by month of start ({movilia[1]}).",
             "Age mixes for weekend days and for long car journeys, given to the kilometres the "
-            "working-day survey does not cover in the sensitivity range of the rates per "
-            f"kilometre by driver age; the {movilia[1]} mix sets the top of the range at 75 and "
-            "over.",
-        ),
-        (
-            "Survey of older licence holders (Mayores al volante)",
-            "Fundació RACC",
-            f"Spain, licence holders aged 65 and over, published {national_rates.RACC_YEAR}",
-            "Published slides: the shares of licence holders who do not drive and the days a "
-            "week the others drive, by age. Quoted, not redistributed: RACC grants no reuse "
-            "licence.",
-            "An upper limit on men's kilometres at 75 and over in one split of the 65-and-over "
-            "kilometres, which sets the lowest combination at 75 and over not at odds with "
-            "surveys of men's driving.",
+            "working-day survey does not cover in the ranges of the rates per kilometre by driver "
+            "age.",
         ),
         (
             "Population census, relation with economic activity",
             "Idescat",
             f"Catalonia, 1 January {int(census.year.iloc[0])}",
             "Employed residents aged 65 and over.",
-            "A check on the share of the EMEF's older respondents in work, one of the choices "
-            "in the sensitivity range of the rates per kilometre by driver age.",
+            "A check on the share of the EMEF's older respondents in work.",
         ),
         (
             "Road fuel",

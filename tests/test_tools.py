@@ -83,10 +83,8 @@ def test_per_km_estimates_are_the_central_rates(drivers: dict) -> None:
     # One estimate per age group, the average of the Barcelona and Madrid profiles, with its 95%
     # sampling interval; the tool offers no choice of assumptions and quotes no range.
     rates = _table("risk_national_rates")
-    rates = rates[
-        (rates.km_total == "less taxi and ride-hailing") & (rates.method == national.CENTRAL_METHOD)
-    ]
-    rates = rates.set_index("group")
+    assert "km_total" not in rates.columns
+    rates = rates[rates.method == national.CENTRAL_METHOD].set_index("group")
     for measure_id, column in (
         ("involved_per_km", "involved_ratio"),
         ("killed_per_km", "killed_ratio"),

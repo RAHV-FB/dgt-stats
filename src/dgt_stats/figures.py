@@ -768,7 +768,7 @@ OLDER_GROUPS = ("65-74", "75+")
 def _driver_exposure_figures(figures_dir: Path, captions: dict[str, str]) -> None:
     """Involvement per kilometre by driver age and deaths once involved, from the committed
     ``risk_*`` tables (``scripts/exposure_risk.py``): the central estimate with its 95% sampling
-    interval, and no sensitivity bands, which the methodology page sets out in words."""
+    interval; the caption gives the range across alternative assumptions beside each ratio."""
     from dgt_stats.exposure_risk import national
 
     path = TABLES_DIR / "risk_national_rates.csv"
@@ -776,9 +776,9 @@ def _driver_exposure_figures(figures_dir: Path, captions: dict[str, str]) -> Non
         log.warning("risk_national_rates.csv missing: run scripts/exposure_risk.py national")
         return
     rates = pd.read_csv(path)
-    rates = rates[
-        (rates.km_total == "less taxi and ride-hailing") & (rates.method == national.CENTRAL_METHOD)
-    ].set_index("group")
+    rates = rates[rates.method == national.CENTRAL_METHOD].set_index("group")
+    ranges = pd.read_csv(TABLES_DIR / "risk_national_ranges.csv")
+    ranges = ranges[ranges.measure == "involved per km"].set_index("group")
     split = pd.read_csv(TABLES_DIR / "risk_older_split.csv")
     split = split[
         (split.assumption == national.REFERENCE_SPLIT) & (split.profile == national.CENTRAL_METHOD)
@@ -819,12 +819,18 @@ def _driver_exposure_figures(figures_dir: Path, captions: dict[str, str]) -> Non
         reference_row=GROUP_LABELS["45-64"],
         log=True,
     )
+    shown = "; ".join(
+        f"{GROUP_LABELS[group]} {ranges.loc[group, 'ratio']:.1f} "
+        f"(range {ranges.loc[group, 'range_min']:.1f}–{ranges.loc[group, 'range_max']:.1f})"
+        for group in ("18-29", "30-44", "65-74", "75+")
+    )
     captions["dr1_involved_per_km"] = _caption(
         "Car drivers involved in injury crashes in Spain in 2024 per kilometre driven, as ratios "
         "to drivers aged 45–64 (log scale), with 95% sampling intervals. The kilometres by age "
         "share out DGT's car kilometres with the average of the Barcelona and Madrid travel "
         "surveys' age profiles; at 65–74 and 75 and over they also use the Madrid survey's split "
-        "of the 65-and-over kilometres",
+        "of the 65-and-over kilometres. The range across alternative assumptions, which the "
+        f"intervals leave out: {shown}",
         f"{TABLES_SOURCE}; {EMEF_SOURCE}; {EDM_SOURCE}; {KM_2024_SOURCE}; {POPULATION_SOURCE}",
         f"{int(sum(counts[group] for group in ('18-29', '30-44', '45-64', '65+'))):,} drivers "
         "involved",
