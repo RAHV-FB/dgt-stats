@@ -11,7 +11,7 @@ the tables a page links are copied into ``site/tables``, and only the figures a 
 result tables stay in the repository, unpublished.
 
 One module per page: ``overview``, ``trends``, ``long_run``, ``seasons``, ``drivers``,
-``vehicles``, ``speed``, ``factors``, the supporting ``severity`` and ``policy``,
+``vehicles``, ``factors``, the supporting ``severity`` and ``policy``,
 ``regional`` (Catalonia and Barcelona), ``models``, ``validation``, ``sources`` and ``data``. The
 shared furniture is in ``components``, the stylesheet in ``style``, the script in ``script``, the result tables several
 pages quote in ``numbers`` and the helpers of the regional, model and validation pages in
@@ -57,7 +57,6 @@ from dgt_stats.site.script import SCRIPT
 from dgt_stats.site.seasons import page_seasons
 from dgt_stats.site.severity import page_severity
 from dgt_stats.site.sources import page_sources
-from dgt_stats.site.speed import page_speed
 from dgt_stats.site.style import STYLE
 from dgt_stats.site.trends import page_trends
 from dgt_stats.site.validation import page_validation
@@ -108,7 +107,6 @@ PAGE_BUILDERS = {
     "seasons": page_seasons,
     "drivers": page_drivers,
     "vehicles": page_vehicles,
-    "speed": page_speed,
     "factors": page_factors,
     "severity": page_severity,
     "policy": page_policy,

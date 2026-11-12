@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import pandas as pd
 
+from dgt_stats import factors
 from dgt_stats.site.components import read_table
 
 
@@ -90,9 +91,11 @@ def _speed_numbers() -> dict[str, object]:
 
 
 def _factor_numbers() -> dict[str, object]:
-    windows = read_table("factor_windows")
-    changes = read_table("factor_changes")
-    shares = read_table("factor_shares").set_index(["zone", "factor", "year"])
+    table = read_table("factor_shares")
+    # The comparable runs and the year-to-year changes follow from the published shares.
+    windows = factors.comparable_windows(shares=table)
+    changes = factors.factor_consistency(shares=table)
+    shares = table.set_index(["zone", "factor", "year"])
     return {"windows": windows, "changes": changes, "shares": shares}
 
 

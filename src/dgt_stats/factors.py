@@ -2,7 +2,8 @@
 
 DGT's speed report (``io_reports``) publishes, for Spain without Cataluña and País Vasco and for
 2014–2023, the injury crashes in which the police recorded each of five *concurrent factors*
-(inappropriate speed, distraction, alcohol, drugs, illegal manoeuvres), and for speed alone the
+(inappropriate speed, distraction, alcohol, drugs, illegal manoeuvres; the drug series is left
+out, as every change in it is a break), and for speed alone the
 deaths in those crashes by road type. Two uses follow, each with its own limit.
 
 **Speed as a severity factor.** The deaths per 100 injury crashes in which speed was recorded are
@@ -61,8 +62,10 @@ FACTOR_LABELS = {
     "Velocidad inadecuada": "Inappropriate speed",
     "Maniobras antirreglamentarias*": "Illegal manoeuvres",
     "Alcohol": "Alcohol",
-    "Drogas": "Drugs",
 }
+# The drug series is not published: every year-to-year change in it breaks the rule below, so it
+# supports no comparison.
+OMITTED_FACTORS = ("Drogas",)
 ZONE_LABELS = {"all": "All roads", "interurban": "Interurban roads", "urban": "Urban streets"}
 # A single-year change in a factor's share beyond this ratio (either way) is a recording break.
 BREAK_RATIO = 1.25
@@ -323,6 +326,7 @@ def factor_shares() -> pd.DataFrame:
     """Injury crashes with each concurrent factor recorded, and their share, per year and zone."""
     report = _report()
     rows = report[(report.breakdown == "factors") & (report.metric == "crashes")]
+    rows = rows[~rows.category.isin(OMITTED_FACTORS)]
     rows = rows.assign(year=rows.column.astype(int), factor=rows.category.map(FACTOR_LABELS))
     if rows.factor.isna().any():
         unknown = sorted(rows.loc[rows.factor.isna(), "category"].unique())
@@ -337,10 +341,15 @@ def factor_shares() -> pd.DataFrame:
 
 
 def factor_consistency(
-    break_ratio: float = BREAK_RATIO, min_crashes: int = MIN_CRASHES
+    break_ratio: float = BREAK_RATIO,
+    min_crashes: int = MIN_CRASHES,
+    shares: pd.DataFrame | None = None,
 ) -> pd.DataFrame:
-    """Every year-to-year change in each factor's share, and whether it is a recording break."""
-    shares = factor_shares()
+    """Every year-to-year change in each factor's share, and whether it is a recording break.
+
+    ``shares`` is ``factor_shares()`` unless given (the site passes the committed table).
+    """
+    shares = factor_shares() if shares is None else shares
     records = []
     for (zone, factor), group in shares.groupby(["zone", "factor"], sort=False):
         group = group.sort_values("year")
@@ -372,15 +381,17 @@ def factor_consistency(
 
 
 def comparable_windows(
-    break_ratio: float = BREAK_RATIO, min_crashes: int = MIN_CRASHES
+    break_ratio: float = BREAK_RATIO,
+    min_crashes: int = MIN_CRASHES,
+    shares: pd.DataFrame | None = None,
 ) -> pd.DataFrame:
     """Runs of consecutive years with no recording break, per factor and zone.
 
     A single-year run whose count is below ``min_crashes`` is marked ``too_few``: it is too small
     to test against its neighbours and is not compared with anything.
     """
-    shares = factor_shares().set_index(["zone", "factor", "year"])
-    changes = factor_consistency(break_ratio, min_crashes)
+    shares = (factor_shares() if shares is None else shares).set_index(["zone", "factor", "year"])
+    changes = factor_consistency(break_ratio, min_crashes, shares=shares.reset_index())
     records = []
     for (zone, factor), group in changes.groupby(["zone", "factor"], sort=False):
         group = group.sort_values("to_year")

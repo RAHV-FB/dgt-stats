@@ -26,7 +26,6 @@ EXPECTED_FIGURES = {
     "a3_sex_ratios",
     "f1_speed_severity",
     "f2_factor_shares",
-    "c3_speed_status",
     "v1_per_vehicle_vs_per_km",
     "p1_points_series",
     "p2_july_placebos",
@@ -34,7 +33,6 @@ EXPECTED_FIGURES = {
 }
 EXPECTED_MODEL_FIGURES = {
     "s1_forest_fatal",
-    "s2_adverse_conditions",
 }
 # The driver-age figures, drawn from the committed risk tables (scripts/exposure_risk.py).
 EXPECTED_DRIVER_FIGURES = (
@@ -116,17 +114,6 @@ def _profile(rows: list[tuple[str, dict[str, float]]]) -> pd.DataFrame:
     return pd.DataFrame(records)
 
 
-def _applicability(rows: list[tuple[str, int, int]]) -> pd.DataFrame:
-    """The audited fields' table (``missingness_where_applicable``) for one year of 1000 crashes:
-    each field with the crashes it applies to and those with a value recorded."""
-    return pd.DataFrame(
-        [
-            {"year": 2020, "column": column, "rows": 1000, "applies": applies, "recorded": recorded}
-            for column, applies, recorded in rows
-        ]
-    )
-
-
 def test_the_missing_values_chart_leaves_not_applicable_out() -> None:
     from dgt_stats import codes
 
@@ -135,84 +122,38 @@ def test_the_missing_values_chart_leaves_not_applicable_out() -> None:
             ("DIA_SEMANA", {}),
             # The dictionary defines the island's empty cell as "No aplica".
             ("ISLA", {"empty": 0.9, "not_specified": 0.02}),
-            # Fields the audit examines: their shares in this table are not read.
+            # 998: left out of the denominator.
             ("ACERA", {"not_applicable": 0.8, "not_specified": 0.05}),
+            # A presence field: every crash is recorded, a blank being the recorded "no".
             ("CONDICION_NIEBLA", {"empty": 0.9}),
+            # The fields that apply only at a junction are not drawn.
             ("NUDO_INFO", {"empty": 0.6}),
             ("CARRETERA_CRUCE", {"empty": 0.97}),
             *[(column, {"not_specified": 0.6}) for column in codes.PRIORI_COLUMNS],
         ]
     )
-    applicability = _applicability(
-        [
-            ("DIA_SEMANA", 1000, 1000),
-            # 998: left out of the denominator.
-            ("ACERA", 200, 150),
-            # A presence field: every crash is recorded, a blank being the recorded "no".
-            ("CONDICION_NIEBLA", 1000, 1000),
-            # Not applicable away from a junction.
-            ("NUDO_INFO", 400, 380),
-            # The crossing road, like the junction fields, applies only at a junction.
-            ("CARRETERA_CRUCE", 400, 30),
-            *[(column, 450, 360 + i // 10) for i, column in enumerate(codes.PRIORI_COLUMNS)],
-        ]
-    )
-    shown = figures.recorded_where_applicable(profile, applicability)[2020]
+    shown = figures.recorded_where_applicable(profile)[2020]
     names = figures.MISSINGNESS_FIELDS
     assert shown[names["ACERA"]] == pytest.approx(0.75)
     assert shown[names["ISLA"]] == pytest.approx(0.08 / 0.1)
     assert shown[names["CONDICION_NIEBLA"]] == pytest.approx(1.0)
-    assert shown[names["NUDO_INFO"]] == pytest.approx(0.95)
-    assert shown[names["CARRETERA_CRUCE"]] == pytest.approx(0.075)
-    # The right-of-way flags share one row, and no raw field name is left.
-    row = figures.priority_row(len(codes.PRIORI_COLUMNS))
-    assert shown[row] == pytest.approx(0.8, abs=0.01)
+    assert len(shown) == 4
     assert not any("_" in label for label in shown.index)
     # Most completely recorded first.
     assert list(shown) == sorted(shown, reverse=True)
-    # Flags that are no longer recorded together stop the build.
-    apart = applicability.copy()
-    apart.loc[apart.column == "PRIORI_OTRA", "recorded"] = 450
+    # A field without an English name stops the build.
     with pytest.raises(ValueError):
-        figures.recorded_where_applicable(profile, apart)
-    # So does a field without an English name, or tables of different years.
-    with pytest.raises(ValueError):
-        figures.recorded_where_applicable(
-            _profile([("NEW_FIELD", {})]), _applicability([("DIA_SEMANA", 1000, 1000)])
-        )
-    with pytest.raises(ValueError):
-        figures.recorded_where_applicable(profile, applicability.assign(year=2021))
+        figures.recorded_where_applicable(_profile([("NEW_FIELD", {})]))
 
 
-def test_the_missing_values_chart_reads_the_audit_rule() -> None:
-    """On the committed tables, the chart's audited rows are the audit's: the fog and strong-wind
-    fields are always recorded, and, with the inverted Catalan junction flag read the other way
-    round, the junction fields are not recorded less often in the inverted years."""
+def test_the_missing_values_chart_reads_fog_and_wind_as_always_recorded() -> None:
     profile_path = TABLES_DIR / "missingness_by_year.csv"
-    audited_path = TABLES_DIR / "missingness_where_applicable.csv"
-    junctions_path = TABLES_DIR / "dgt_audit_junction_coding.csv"
-    if not (profile_path.exists() and audited_path.exists() and junctions_path.exists()):
-        pytest.skip("the missing-values tables are not built")
-    applicability = pd.read_csv(audited_path)
-    shown = figures.recorded_where_applicable(pd.read_csv(profile_path), applicability)
+    if not profile_path.exists():
+        pytest.skip("the missing-values table is not built")
+    shown = figures.recorded_where_applicable(pd.read_csv(profile_path))
     names = figures.MISSINGNESS_FIELDS
     assert (shown.loc[[names["CONDICION_NIEBLA"], names["CONDICION_VIENTO"]]] == 1).all().all()
-    junctions = pd.read_csv(junctions_path)
-    years = figures.inverted_junction_years(shown, junctions)
-    assert years == [2023, 2024]
-    for column in ("NUDO_INFO", "CARRETERA_CRUCE"):
-        rows = applicability[applicability.column == column]
-        assert (rows.applies < rows.rows).all()
-    # Read as published, the inverted years' junction type would fall far below every other
-    # year's; read the other way round, it does not.
-    junction_type = shown.loc[figures.MISSINGNESS_FIELDS["NUDO_INFO"]]
-    others = [year for year in shown.columns if year not in years]
-    assert junction_type[years].min() >= junction_type[others].min()
-    # A table that shows the drop is refused.
-    dropped = shown.copy()
-    dropped.loc[figures.MISSINGNESS_FIELDS["NUDO_INFO"], years] = 0.7
-    with pytest.raises(ValueError):
-        figures.inverted_junction_years(dropped, junctions)
+    assert not any(label.startswith(("Right of way", "Junction type")) for label in shown.index)
 
 
 def test_caption_format() -> None:
@@ -727,8 +668,6 @@ def test_build_all_writes_every_registered_figure(tmp_path: Path) -> None:
     assert captions["f1_speed_severity"].endswith(
         f"n = {n_speed:,} crashes with inappropriate speed recorded."
     )
-    n_drivers = int(frames["q9_infraction_shares"].query("zone == 'all'").total.sum())
-    assert captions["c3_speed_status"].endswith(f"n = {n_drivers:,} drivers.")
     if EXPECTED_DRIVER_FIGURES:
         severity = pd.read_csv(TABLES_DIR / "risk_severity_and_licences.csv")
         n_involved = int(severity[severity.group != "65+"].involved.sum())

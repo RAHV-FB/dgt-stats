@@ -83,13 +83,13 @@ def test_navigation_follows_the_argument(built: dict[str, str]) -> None:
     assert [slug for slug, _ in groups["Crash severity"]][1:3] == ["catalonia", "barcelona"]
     assert [slug for slug, _ in groups["Data and methods"]] == ["sources", "data"]
     assert dict(groups["Data and methods"])["sources"] == "Data sources and scope"
-    nav = re.search(r'<nav aria-label="Sections">(.*?)</nav>', built["speed"], re.S).group(1)
+    nav = re.search(r'<nav aria-label="Sections">(.*?)</nav>', built["factors"], re.S).group(1)
     links = re.findall(r'href="([a-z-]+)\.html"', nav)
     assert links == [slug for _, pages in site.NAV_GROUPS for slug, _ in pages]
     # Each page names its group above the title and links to its neighbours in reading order.
-    assert '<p class="eyebrow">Drivers, vehicles and factors</p>' in built["speed"]
-    assert 'href="vehicles.html" rel="prev"' in built["speed"]
-    assert 'href="factors.html" rel="next"' in built["speed"]
+    assert '<p class="eyebrow">Drivers, vehicles and factors</p>' in built["factors"]
+    assert 'href="vehicles.html" rel="prev"' in built["factors"]
+    assert 'href="severity.html" rel="next"' in built["factors"]
     assert '<p class="eyebrow">Over time</p>' in built["policy"]
     assert '<p class="eyebrow">Explore</p>' in built["calculator"]
     assert '<p class="eyebrow">Crash severity</p>' in built["validation"]
@@ -437,7 +437,6 @@ def test_older_driver_wording_carries_no_probability_or_ranking(built: dict[str,
 # The pages on recorded factors and crash circumstances, and the methodology section that holds
 # each one's technical notes.
 FACTOR_PAGES = {
-    "speed": "speed-method",
     "factors": "factors-method",
     "severity": "severity-method",
 }
@@ -461,8 +460,8 @@ def test_factor_pages_are_short_and_keep_their_detail_on_the_methodology_page(
         assert f'href="data.html#{notes}"' in main, slug
         assert f'<h2 id="{notes}">' in built["data"], slug
     # A recorded factor is never read as a cause.
-    assert "not estimates of what speed causes" in _visible(built["speed"])
+    assert "not estimates of what speed causes" in _visible(built["factors"])
     assert "not a finding that the factor caused it" in _visible(built["factors"])
     # The crash records behind the speed and severity pages can be explored by road type.
-    for slug in ("speed", "severity"):
+    for slug in ("factors", "severity"):
         assert 'href="crash-explorer.html"' in _main(built[slug]), slug
