@@ -8,21 +8,11 @@ import pytest
 
 from dgt_stats.exposure_risk import national
 from dgt_stats.paths import TABLES_DIR
-from dgt_stats.site import explore, tool_driver_risk
+from dgt_stats.site import tool_driver_risk
 
 
 def _table(name: str) -> pd.DataFrame:
     return pd.read_csv(TABLES_DIR / f"{name}.csv")
-
-
-# --------------------------------------------------------------------------- landing page
-
-
-def test_every_tool_says_what_it_computes_where_and_what_kind() -> None:
-    for slug, module in explore.TOOLS:
-        about = module.describe()
-        assert set(about) == {"title", "what", "coverage", "kind"}, slug
-        assert all(len(value) > 3 for value in about.values()), slug
 
 
 # --------------------------------------------------------------------------- driver risk

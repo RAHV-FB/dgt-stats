@@ -1,9 +1,7 @@
 """Every annual rate per resident divides by the mid-year (1 July) population.
 
-The national rates always did; the Catalan per-resident rates and the provincial rates of the
-generalisability check used 1 January until the statistical audit aligned them
-(``docs/research/STATISTICAL_AUDIT.md``). These tests read the committed tables, so they run
-without the data layers.
+The national rates and the Catalan per-resident rates use the same reference date, so they can be
+compared. These tests read the committed tables, so they run without the data layers.
 """
 
 from __future__ import annotations

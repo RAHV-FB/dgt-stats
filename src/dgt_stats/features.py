@@ -252,7 +252,7 @@ AT_JUNCTION = "at a junction"
 NOT_AT_JUNCTION = "not at a junction"
 # A province-year in which more than this share of the crashes flagged away from a junction carry
 # a junction type has the flag the wrong way round. It is the DGT microdata audit's rule and share
-# (``dgt_audit.junction_coding``, column ``junction_flag_inverted``), and a test holds the two to
+# (``dgt_coding.junction_coding``, column ``junction_flag_inverted``), and a test holds the two to
 # the same province-years.
 INVERTED_TYPE_SHARE = 0.5
 # How the model reads the junction flag of the inverted province-years, and the alternative

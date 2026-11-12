@@ -1,5 +1,5 @@
-"""Methodology: definitions, rates and denominators, crash records, models, checks, the
-assumptions tested, reproduction and reuse.
+"""Methodology: definitions, rates and denominators, the police crash records, the checks on the
+data, reproduction, reuse and each page's technical notes.
 
 What each source is, what it covers and what it cannot show is on the sources page; this page
 says how the results are produced from them.
@@ -12,13 +12,12 @@ import re
 
 import pandas as pd
 
-from dgt_stats import codes, edm2018, features, io_exposure, risk_trends, severity_model
+from dgt_stats import codes, dgt_coding, features, io_exposure, risk_trends, severity_model
 from dgt_stats import figures as figure_data
 from dgt_stats.derive import ROAD_GROUP_BY_TYPE
 from dgt_stats.microdata.ml import features as catalan_features
 from dgt_stats.microdata.ml import recording
-from dgt_stats.microdata.validation import dgt_audit
-from dgt_stats.paths import RAW_DATA_DIR, TABLES_DIR
+from dgt_stats.paths import RAW_DATA_DIR
 from dgt_stats.site.components import (
     ALL_PAGES,
     DEFINITION_IDS,
@@ -34,10 +33,7 @@ from dgt_stats.site.components import (
     read_table,
     render_page,
     summary,
-    table,
 )
-from dgt_stats.site.long_run import _where
-from dgt_stats.site.numbers import _driver_numbers
 from dgt_stats.site.regional_common import _year_label
 
 TITLES = dict(ALL_PAGES)
@@ -267,7 +263,6 @@ def _rates() -> str:
         ),
     ]
     since_2019 = f'<a href="long-run.html#since-{risk_trends.BASE_YEAR}">{TITLES["long-run"]}</a>'
-    assumptions = '<a href="#assumptions-tested">assumptions tested</a>'
     return (
         '<h2 id="rates">Rates, denominators and intervals</h2>'
         "<p>Each rate pairs a count with a denominator meant to contain it:</p>"
@@ -276,7 +271,7 @@ def _rates() -> str:
         "travel in no registered vehicle, so they are counted against residents and road fuel "
         "only. Road fuel stands in for the kilometres driven on all roads, and the kilometres "
         "by driver age carry one region's survey to Spain; neither can be tested for Spain as "
-        f"a whole ({assumptions}). Some rates do not fully meet the rule, and each page says "
+        "a whole. Some rates do not fully meet the rule, and each page says "
         "so: rates per resident count visitors' deaths, rates per licence holder (by sex) "
         "count unlicensed and foreign drivers, rates per registered vehicle and "
         "by vehicle type count foreign vehicles, and interurban deaths are compared with "
@@ -296,7 +291,7 @@ def _rates() -> str:
         "ratios of two rates carry log-normal intervals. Spain's annual counts scatter around "
         "their trend more than Poisson chance allows, so changes against "
         f"{risk_trends.BASE_YEAR} are read against intervals widened to span an ordinary "
-        f"year's variation ({since_2019}; {assumptions}).</p>"
+        f"year's variation ({since_2019}).</p>"
     )
 
 
@@ -385,7 +380,7 @@ def _coding_breaks() -> str:
     blank_at = cat_j.at_junction_type_not_specified / cat_j.at_junction
     typed_away = cat_j.away_with_junction_type / cat_j.away_from_junction
     after_years = [int(year) for year in cat_share.loc[flip:].index]
-    matched = dgt_audit.catalan_junction_years(junctions)
+    matched = dgt_coding.catalan_junction_years(junctions)
     flipped = matched[matched.junction_flag_inverted.astype(bool)]
     compared = flipped.iloc[0]
     # The years whose Catalan records count only crashes within a junction at one (2021), and the
@@ -498,7 +493,7 @@ def _coding_breaks() -> str:
         "crashes at a junction matches the Catalan file's crashes within a junction, where in "
         + _runs(wider.year)
         + " it matches those within or within "
-        + f"{dgt_audit.NEAR_JUNCTION_METRES} metres of one. That year "
+        + f"{dgt_coding.NEAR_JUNCTION_METRES} metres of one. That year "
         + _join([_fmt_int(near.loc[y]) for y in narrow_years])
         + " Catalan crashes coded away from a junction carry a junction type or a right-of-way "
         f"flag, against {_fmt_int(near_others.sum())} in all the other years before {flip}; "
@@ -526,12 +521,12 @@ def _presence_breaks() -> str:
     """The fog and strong-wind fields where a province's records code them another way, from the
     DGT microdata audit's presence table."""
     presence = read_table("dgt_audit_presence_coding")
-    breaks = dgt_audit.presence_breaks(presence)
+    breaks = dgt_coding.presence_breaks(presence)
     if breaks.empty:
         return ""
     fog = breaks[breaks.field.eq("CONDICION_NIEBLA")]
     wind = breaks[breaks.field.eq("CONDICION_VIENTO")]
-    flags = [f"{field}_coding_break" for field in dgt_audit.PRESENCE_NAMES]
+    flags = [f"{field}_coding_break" for field in dgt_coding.PRESENCE_NAMES]
     others = presence[~presence[flags].astype(bool).any(axis=1)]
     _require({"one province's records code fog their own way": len(fog) == 1})
     fog_province = fog.iloc[0]
@@ -543,13 +538,13 @@ def _presence_breaks() -> str:
     unread = {
         str(spec["source"])
         for spec in features.PREDICTORS.values()
-        if str(spec["source"]) in dgt_audit.PRESENCE_NAMES
+        if str(spec["source"]) in dgt_coding.PRESENCE_NAMES
     }
     model_source = inspect.getsource(severity_model)
     _require(
         {
-            "the presence fields are fog and strong wind": set(dgt_audit.PRESENCE_NAMES)
-            == {c for c in dgt_audit.CANDIDATES if dgt_audit.presence_field(c)},
+            "the presence fields are fog and strong wind": set(dgt_coding.PRESENCE_NAMES)
+            == {c for c in dgt_coding.CANDIDATES if dgt_coding.presence_field(c)},
             "one province codes fog its own way, every year from its break to the last": len(fog)
             == 1
             and fog_years == list(range(min(fog_years), int(presence.year.max()) + 1))
@@ -588,9 +583,9 @@ def _presence_breaks() -> str:
     return (
         "<p>The fog and strong-wind fields are filled in only when there was fog or strong "
         "wind, so a blank in them is read as none, except where a province's records give the "
-        f"condition to more than {_fmt_pct(dgt_audit.MAX_PRESENCE_SHARE, 0)} of their crashes. "
+        f"condition to more than {_fmt_pct(dgt_coding.MAX_PRESENCE_SHARE, 0)} of their crashes. "
         "Elsewhere fog or strong wind is recorded in at most "
-        f"{_fmt_pct(max(float(others[f'{c}_share'].max()) for c in dgt_audit.PRESENCE_NAMES))} "
+        f"{_fmt_pct(max(float(others[f'{c}_share'].max()) for c in dgt_coding.PRESENCE_NAMES))} "
         "of a province-year's crashes.</p>"
         f"<p>From {min(fog_years)} the records for the province of "
         f"{fog_province.province_name} code fog in {_fmt_pct(fog_province.share_low, 0)} to "
@@ -773,46 +768,20 @@ def _records(captions: dict[str, str]) -> str:
     )
 
 
-# ----------------------------------------------------------------------------- models
-def _models() -> str:
-    model = f'<a href="severity-models.html">{TITLES["severity-models"]}</a>'
-    note = f'<a href="{DOCS_URL}/SEVERITY_MODEL.md">model note</a>'
-    return (
-        '<h2 id="models">The one fitted model</h2>'
-        "<p>The study fits one model: a penalised logistic regression of whether a crash with "
-        "a death or serious injury in Catalonia was fatal. Its penalty, form and treatment of "
-        "roads through towns are chosen on earlier years only, each year of 2016–2023 is "
-        "predicted from the years before it, and the result is compared with a table of fatal "
-        f"shares by road and crash type. The results, the tests and the limits are on {model}; "
-        f"the method is in the {note}.</p>"
-    )
-
-
 # ----------------------------------------------------------------------------- checks
 def _checks() -> str:
-    validation = pd.read_csv(TABLES_DIR / "validation.csv")
-    passed = int(validation.passed.astype(bool).sum())
-    total = int(len(validation))
-    tables_year = int(validation[validation.check.eq("table_1_1_province")].year.max())
-    outcome = (
-        "All the checks pass, and the crash records match the yearbook exactly, year by year. "
-        if passed == total
-        else f"{_fmt_int(total - passed)} of the {_fmt_int(total)} checks do not pass; the list "
-        "says which. "
-    )
+    validation = read_table("validation")
+    failing = validation[~validation.passed.astype(bool)]
+    _require({"every reconciliation check passes": failing.empty})
     return (
         '<h2 id="checks">Checks on the data</h2>'
-        f"<p>Before any analysis, {_fmt_int(total)} checks tie DGT's crash records, yearbook "
-        "tables and driver census to DGT's published totals. On the crash records they check "
-        "that each crash has one identifier and every code is in DGT's dictionary, and they "
-        "compare:</p>"
-        "<ul><li>Crashes and victims per year with the yearbook.</li>"
-        "<li>Crashes and deaths by province and by month with DGT's "
-        f"{tables_year} tables.</li>"
-        "<li>Deaths and vehicles by type with DGT's statistical tables.</li>"
-        "<li>The crashes and deaths of the speed report's provinces with that report.</li></ul>"
-        "<p>The other checks compare the driver census and the yearbook's driver tables with "
-        f"DGT's published totals. {outcome}The kilometre table by owner's age reconciles with "
+        "<p>Before any analysis, reconciliation checks tie DGT's crash records, yearbook tables "
+        "and driver census to DGT's published totals. Every check passes. On the crash records "
+        "they confirm that every code is in DGT's dictionary and compare crashes, victims and "
+        "deaths by year, province, month and vehicle type with the yearbook and DGT's "
+        "statistical tables, and the crashes and deaths of the speed report's provinces with "
+        "that report. The other checks compare the driver census and the yearbook's driver "
+        "tables with DGT's published totals. The kilometre table by owner's age reconciles with "
         "the same release's published fleet to within "
         f"{_fmt_pct(io_exposure.KM_OWNER_TOLERANCE)}, the margin left by owners DGT could not "
         'classify. The <a href="tables/validation.csv">full list of checks</a> is published as '
@@ -820,312 +789,46 @@ def _checks() -> str:
     )
 
 
-def _assumption_rows() -> list[tuple[str, str, str]]:
-    """Every assumption the methods document tests, with how and what the test found."""
-    scatter = read_table("risk_dispersion").set_index("outcome")
-    dispersion = {key: float(scatter.loc[key, "dispersion"]) for key in scatter.index}
-    scatter_df = int(scatter.loc["deaths_30d", "df_resid"])
-
-    def spread(outcome: str, bound: str = "") -> float:
-        return float(scatter.loc[outcome, f"dispersion_{bound}" if bound else "dispersion"])
-
-    panel = read_table("risk_annual_panel").set_index("year")
-    km = read_table("longrun_km_panel").set_index("year")
-    km_check = read_table("longrun_km_check").set_index(["measure", "year"])
-    km_last = int(km.index.max())
-    segments = read_table("longrun_segments")
-    fuel_start = int(segments[segments.measure == "road_fuel"].start.max())
-    count_start = int(segments[segments.measure == "count"].start.max())
-    bio = read_table("longrun_fuel_bio").set_index("year").bio_share
-    drivers = _driver_numbers()
-    ranges = drivers["involved_ranges"]
-    central = drivers["central"].involved_ratio
-    oldest = drivers["older"].loc["75+"]
-    city_older = drivers["city"][drivers["city"].age4 == "65+"].ratio_to_45_64
-    madrid_year = edm2018.SURVEY_YEAR
-    covered = float(
-        read_table("risk_coverage")
-        .set_index("component")
-        .loc["working days", "share_least_explained"]
-    )
-    split = read_table("risk_frequency_severity").set_index("year")
-    split_first, split_last = int(split.index.min()), int(split.index.max())
-    end = split.loc[split_last]
-    frequency = float(end.frequency_index) / 100
-    severity = float(end.severity_index) / 100
-    per_fuel = float(end.deaths_per_fuel_index) / 100
-    admitted = float(end.hospitalised_per_fuel_index) / 100
-    per_admission = float(end.deaths_per_hospitalised_index) / 100
-    projection = read_table("longrun_projection_sensitivity").set_index(
-        ["measure", "variant", "year"]
-    )
-    last = int(projection.index.get_level_values("year").max())
-    recent = (last - 1, last)
-    from_count = f"start_{count_start}"
-    counted_from = risk_trends.DEATHS_30D_COUNTED_FROM
-    ratio_30_24 = panel.deaths_30d / panel.deaths_24h
-    # The ratio while DGT estimated 30-day deaths, the years after the change below the last
-    # estimated year's ratio, and the years from the first one back at it.
-    estimated = ratio_30_24.loc[: counted_from - 1]
-    counted = ratio_30_24.loc[counted_from:]
-    recovered = int(counted[counted >= float(estimated.iloc[-1])].index.min())
-    dip, since = ratio_30_24.loc[counted_from : recovered - 1], ratio_30_24.loc[recovered:]
-    reference = risk_trends.BASE_YEAR
-    per_km_last = km_check.loc[("per_km", km_last)]
-    scatter_first, scatter_last = risk_trends.SCATTER_YEARS
-    step_end = scatter_first + URBAN_STEP_YEARS
-    urban_step = (
-        float(panel.loc[step_end, "crashes_urban"] / panel.loc[scatter_first, "crashes_urban"]) - 1
-    )
-    interurban_step = (
-        float(
-            panel.loc[step_end, "crashes_interurban"]
-            / panel.loc[scatter_first, "crashes_interurban"]
-        )
-        - 1
-    )
-
-    def at(measure: str, variant: str, year: int) -> pd.Series:
-        return projection.loc[(measure, variant, year)]
-
-    def growth(a: int, b: int) -> float:
-        ratio = float(km.loc[b, "km_per_tonne"] / km.loc[a, "km_per_tonne"])
-        return ratio ** (1 / (b - a)) - 1
-
-    early, later = growth(fuel_start, reference), growth(reference, km_last)
-    _require(
-        {
-            "deaths scatter least and injury crashes most around their trend": 1
-            < dispersion["deaths_30d"]
-            < dispersion["hospitalised_30d"]
-            < dispersion["crashes"],
-            "urban injury crashes stepped up early in the scatter window, interurban ones did "
-            "not": urban_step > 0.2 and interurban_step < 0,
-            "interurban km per tonne of national fuel rose, faster after the base year": later
-            > early
-            > 0,
-            "per measured interurban km the last year is above trend and inside its range": not bool(
-                per_km_last.outside_interval
-            )
-            and float(per_km_last.ratio) > 1,
-            "the biofuel share rose, which lowers km per tonne": float(bio.loc[km_last])
-            > float(bio.loc[reference]),
-            "every assumption keeps the young above the middle-aged per km": float(
-                ranges.loc["18-29", "range_min"]
-            )
-            > 1.2,
-            "the survey's working days cover about half of DGT's car km": 0.45 < covered < 0.55,
-            "the 75-and-over range spans the middle-aged rate, and its sampling interval does "
-            "not": float(ranges.loc["75+", "range_min"]) < 1 < float(ranges.loc["75+", "range_max"])
-            and float(oldest.ratio_low) > 1,
-            "by injury crashes most of the fall is severity": severity < frequency < 1,
-            "by admissions all of the fall is frequency": admitted < per_fuel and per_admission > 1,
-            "admissions and injury crashes scatter beyond Poisson chance; for deaths it is not "
-            "established": spread("hospitalised_30d", "low") > 1
-            and spread("crashes", "low") > 1
-            and spread("deaths_30d", "low") < 1 < spread("deaths_30d", "high"),
-            "the ratio of 30-day to 24-hour deaths dips to its lowest when the method changes, "
-            "stays below the last estimated year until it recovers, and stays inside its earlier "
-            "range from then on": float(ratio_30_24.loc[counted_from]) == float(ratio_30_24.min())
-            and float(dip.max()) < float(ratio_30_24.loc[counted_from - 1])
-            and bool(since.between(estimated.min(), estimated.max()).all()),
-            "on 24-hour deaths the trends turn in the same years": all(
-                str(at(measure, "deaths_24h", last).breaks) == str(at(measure, "main", last).breaks)
-                for measure in ("count", "road_fuel")
-            ),
-            "on 24-hour deaths per fuel the last two years stay above the range": all(
-                bool(at("road_fuel", "deaths_24h", y).outside_interval)
-                and float(at("road_fuel", "deaths_24h", y).ratio) > 1
-                for y in recent
-            ),
-            "per fuel from the main start the last two years lie above the range": all(
-                bool(at("road_fuel", "main", y).outside_interval)
-                and float(at("road_fuel", "main", y).ratio) > 1
-                for y in recent
-            ),
-            "per fuel from the count's turning point the last two years are above trend, inside": all(
-                not bool(at("road_fuel", from_count, y).outside_interval)
-                and float(at("road_fuel", from_count, y).ratio) > 1
-                for y in recent
-            ),
-        }
-    )
-    fuel_pages = _join([TITLES[slug] for slug in ("long-run", "seasons")])
-    drivers_page, long_run = TITLES["drivers"], TITLES["long-run"]
-
-    def projected(variant: str) -> str:
-        rows = [at("road_fuel", variant, year) for year in recent]
-        return " and ".join(f"{_fmt_pct(float(row.ratio) - 1, 0)}" for row in rows)
-
-    starts = [at("road_fuel", from_count, year) for year in recent]
-    return [
-        (
-            f"A year's count varies around its trend only by chance ({TITLES['long-run']})",
-            f"The scatter of each annual count around its {scatter_first}–{scatter_last} trend, "
-            "against the Poisson variance.",
-            "Does not hold for hospital admissions or injury crashes: the 95% interval of each "
-            "one's scatter, as a multiple of the Poisson variance, lies above 1. Not established "
-            "for deaths: their scatter is the smallest of the three and its interval includes 1, "
-            "so the data cannot tell whether deaths vary beyond chance. Intervals for changes "
-            "against "
-            f"{reference} are widened to match, with Student's t for the trend's "
-            f"{_words(scatter_df)} residual degrees of freedom; {TITLES['long-run']} gives the "
-            "factors. The crash factor also carries a step in recorded urban crashes between "
-            f"{scatter_first} and {step_end}, so the crash intervals are too wide to show "
-            "whether a change is beyond an ordinary year.",
-        ),
-        (
-            f"Road fuel tracks the kilometres driven ({fuel_pages})",
-            "Measured vehicle-kilometres on State, regional and provincial interurban roads, set "
-            "against national road fuel. The scopes differ, so this checks the proxy and gives "
-            "no rate.",
-            "Cannot be tested on all roads. Interurban kilometres per tonne of national fuel "
-            f"grew {_fmt_pct(early)} a year over {fuel_start}–{reference} and "
-            f"{_fmt_pct(later)} a year over {reference}–{km_last}, so part of the recent excess "
-            "in deaths per tonne of fuel may reflect more driving per tonne. Per measured "
-            f"interurban kilometre, deaths in {km_last} were "
-            f"{_fmt_pct(float(per_km_last.ratio) - 1, 0)} above their "
-            f"{int(per_km_last.projection_start)}–{reference} trend, within its range "
-            f"({long_run}).",
-        ),
-        (
-            f"A tonne of road fuel means the same every year ({fuel_pages})",
-            "CORES subtotals against the sum of their products, biofuels included, every month; "
-            "the published biofuel share.",
-            "Holds. The subtotals equal their products every month. Biofuel was "
-            f"{_fmt_pct(float(bio.loc[reference]))} of road fuel by mass in {reference} and "
-            f"{_fmt_pct(float(bio.loc[km_last]))} in {km_last}; it carries less energy per "
-            "tonne, so its rise would lower kilometres per tonne slightly and cannot explain "
-            "the rise in interurban kilometres per tonne.",
-        ),
-        (
-            "The average of the Barcelona-area and Madrid age profiles of driving holds for "
-            f"Spain ({drivers_page})",
-            "No source measures driving by age for Spain as a whole, so the transfer cannot be "
-            "tested. The survey's working days are set against DGT's car kilometres, and the "
-            "ratios are recomputed under other regional profiles, other age mixes for the "
-            "weekends and for the kilometres the survey does not cover, other splits of the "
-            "65-and-over kilometres and other placings of the drivers of unrecorded age.",
-            "Not exact, and incomplete. The survey's working days account for "
-            f"{_fmt_pct(covered, 0)} of DGT's car kilometres, and the central estimate gives the "
-            "rest the same age mix. Across the alternatives the ratio to the 45–64 rate is "
-            f"{float(ranges.loc['18-29', 'range_min']):.1f}–"
-            f"{float(ranges.loc['18-29', 'range_max']):.1f} at 18–29 (central "
-            f"{float(central['18-29']):.1f}) and "
-            f"{float(ranges.loc['65+', 'range_min']):.1f}–"
-            f"{float(ranges.loc['65+', 'range_max']):.1f} at 65 and over; only the direction at "
-            "18–29 is firm. They are ratios of involvement in injury crashes, not of "
-            "responsibility for them, and say nothing of how often a crash kills the driver. "
-            "Inside Barcelona on working days, with no transfer, the ratio at 65 and over is "
-            f"{float(city_older.min()):.1f}–{float(city_older.max()):.1f} under "
-            f"{_words(len(city_older))} versions of the city's kilometres.",
-        ),
-        (
-            "People aged 75 and over drive as much less than those aged 65–74 as in Madrid in "
-            f"{madrid_year} (the conditional estimate on {drivers_page})",
-            "No source measures it for Spain. Compared with DGT licence holding by age in the "
-            "province of Madrid, the province of Barcelona and Spain, and replaced by two other "
-            "splits: Madrid's kilometres per licence holder, and equal kilometres per licence "
-            "holder at 65–74 and 75 and over.",
-            "Conditional. Licence holding falls alike in the three places, which is consistent "
-            "with the assumption but does not test the kilometres. On the Madrid pattern, 75 and "
-            f"over: {float(oldest.ratio_to_45_64):.1f} times the 45–64 rate (95% sampling "
-            f"interval {float(oldest.ratio_low):.1f}–{float(oldest.ratio_high):.1f}); the range "
-            f"across the alternatives is {float(ranges.loc['75+', 'range_min']):.1f}–"
-            f"{float(ranges.loc['75+', 'range_max']):.1f}, which includes 1, so a higher rate "
-            "is not established. Rising licence holding since "
-            f"{madrid_year} would lower the figure.",
-        ),
-        (
-            f"Working-day driving represents the year ({drivers_page})",
-            "No source measures weekend kilometres by age. Instead, weekends and public holidays "
-            "are given the age mix of the EMEF's module on overnight weekend stays, or that of "
-            "car trips on weekend days in MOVILIA 2006, in place of the working-day mix.",
-            "Cannot be tested directly. Both mixes are among the alternatives the ranges span.",
-        ),
-        (
-            f"The fall in deaths per tonne of fuel was a fall in how deadly crashes are "
-            f"({long_run})",
-            "Deaths per tonne split exactly into casualties per tonne and deaths per casualty, "
-            f"once by injury crashes and once by hospital admissions, {split_first}–{split_last}.",
-            f"Not established. Deaths per tonne fell {_fmt_pct(1 - per_fuel, 0)}. By injury "
-            f"crashes, crashes per tonne fell {_fmt_pct(1 - frequency, 0)} and deaths per crash "
-            f"{_fmt_pct(1 - severity, 0)}; by admissions, admissions per tonne fell "
-            f"{_fmt_pct(1 - admitted, 0)} and deaths per admission rose "
-            f"{_fmt_pct(per_admission - 1, 0)}. The fall in deaths per tonne is firm; how it "
-            "divides between how often and how deadly cannot be told from these series.",
-        ),
-        (
-            f"The 30-day death series means the same throughout ({long_run})",
-            f"DGT estimated 30-day deaths from 24-hour deaths until {counted_from - 1} and has "
-            f"counted them since {counted_from}. The trends were refitted on 24-hour deaths, "
-            "which the police count directly throughout.",
-            "The change shows as a temporary dip in the ratio of 30-day to 24-hour deaths, not "
-            f"a lasting step. The ratio fell from {float(estimated.iloc[-1]):.3f} in "
-            f"{counted_from - 1} to {float(ratio_30_24.loc[counted_from]):.3f} in {counted_from}, "
-            f"the lowest in the series, and stayed between {float(dip.min()):.3f} and "
-            f"{float(dip.max()):.3f} until {recovered - 1}; from {recovered} it has been "
-            f"{float(since.min()):.3f}–{float(since.max()):.3f}, inside its "
-            f"{int(estimated.index.min())}–{counted_from - 1} range of "
-            f"{float(estimated.min()):.3f}–{float(estimated.max()):.3f}. Refitted on 24-hour "
-            "deaths, the trends turn in the same years, and deaths per tonne of fuel in "
-            f"{recent[0]} and {recent[1]} still lie above their range, so the long-run results "
-            "do not rest on the change.",
-        ),
-        (
-            f"The excess of deaths per tonne of fuel in {recent[0]}–{recent[1]} does not depend "
-            f"on where the trend starts ({long_run})",
-            f"The trend's last segment refitted from {count_start}, the count's last turning "
-            f"point, instead of from {fuel_start}.",
-            f"It does. From {fuel_start}, deaths per tonne of fuel in {recent[0]} and "
-            f"{recent[1]} were {projected('main')} above the trend, outside its range; from "
-            f"{count_start}, {projected(from_count)} above it, "
-            f"{_where(starts[0]).replace('the range', 'its range')} in {recent[0]} and "
-            f"{_where(starts[1]).replace('the range', 'its range')} in {recent[1]}.",
-        ),
-    ]
-
-
-def _assumptions() -> str:
-    """The assumptions behind the results that the data can test, each with what testing found."""
-    frame = pd.DataFrame(_assumption_rows(), columns=["Assumption", "Check", "Result"])
-    return (
-        '<h2 id="assumptions-tested">Assumptions tested</h2>'
-        "<p>Several results rest on assumptions that the data can test in full or in part. "
-        "Each assumption names the pages whose results rest on it.</p>"
-        + table(frame, "Assumptions behind the results, how each was checked, and what was found.")
-    )
-
-
 # ----------------------------------------------------------------------------- reproduction
 def _reproduce() -> str:
+    steps = (
+        ("ingest.py all", "reads data/raw into data/staging and runs the reconciliation checks"),
+        ("build_tables.py", "builds the processed table of DGT crash records"),
+        ("model.py", "fits the associations in DGT's crash records"),
+        ("analyse.py tables", "writes the national result tables, including the explorer's"),
+        ("microdata.py build", "builds the Catalan and Barcelona tables"),
+        ("microdata.py quality", "checks the Catalan and Barcelona files"),
+        ("microdata.py features", "builds the model's features"),
+        ("microdata.py analyse", "writes the Catalan and Barcelona result tables"),
+        ("microdata.py sources", "compares the Catalan file with DGT's"),
+        ("severity_model.py", "fits and evaluates the Catalan severity model"),
+        ("emef.py all", "estimates car-driving distance by age from the EMEF survey"),
+        ("exposure_risk.py all", "computes involvement per kilometre by driver age and its ranges"),
+        ("analyse.py figures", "draws the figures and captions"),
+        ("build_site.py", "writes this site and docs/FINDINGS.md"),
+    )
+    rows = "".join(
+        f"<li><code>python scripts/{command}</code> {what}.</li>" for command, what in steps
+    )
     return (
         '<h2 id="reproduce">Reproducing the results</h2>'
-        "<p>Every result in the study is computed by the code in the repository from the raw "
-        "published files. The code also holds a few values typed from documents, each cited "
-        "where it is used:</p>"
-        "<ul><li>Definitions, such as the public-holiday calendars that separate working "
-        "days.</li>"
-        "<li>Figures read from archived files.</li>"
-        "<li>One set of measurements whose document is not archived: the road-to-straight-line "
-        "ratio and benchmarks of the EMEF's 2021 distance report.</li></ul>"
-        "<p>The raw files are kept with their checksums and, "
-        "where recorded, their download addresses, and one command sequence in the "
-        f'<a href="{REPO_URL}#reproduce">README</a> rebuilds the checks, tables, models, '
-        "figures and pages in order. Each page reads its numbers from the result tables, and "
-        "the build stops if a table no longer supports a sentence that describes it. Automated "
-        "tests rerun the checks on every change.</p>"
-        f'<p>The repository also holds the <a href="{DOCS_URL}/methodology.md">implementation '
-        "notes</a>, with the module behind each method, the "
-        f'<a href="{DOCS_URL}/data_sources.md">source register</a>, with what each source is, '
-        "its known coding breaks and its terms of use, and the manifest of the "
-        f'<a href="{REPO_URL}/tree/main/data/raw">raw files</a>, with each file\'s checksum '
-        "and, where recorded, its download address.</p>"
-        "<p>The project was developed through a reproducible, source-driven workflow. The "
-        "research questions, the choice of sources, the statistical design, the interpretation "
-        "and the decision to publish each result are the author's, and so is responsibility for "
-        "them. AI coding assistants were used during implementation, debugging, data-processing "
-        "work and review.</p>"
+        "<p>Every result is computed by the code in the repository from the raw published "
+        "files, which are kept with their checksums and, where recorded, their download "
+        "addresses. The code also holds a few values typed from cited documents: definitions "
+        "such as the public-holiday calendars that separate working days, figures read from "
+        "archived files, and the road-to-straight-line ratio and benchmarks of the EMEF's 2021 "
+        "distance report. Run in this order, from the repository root:</p>"
+        f"<ol>{rows}</ol>"
+        "<p>Each page reads its numbers from the result tables, and the build stops if a table "
+        "no longer supports a sentence that describes it. Automated tests rerun the checks on "
+        f'every change. The <a href="{REPO_URL}#reproduce">README</a> gives the set-up and the '
+        f'running times; the <a href="{DOCS_URL}/methodology.md">implementation notes</a> name '
+        f'the module behind each method and the <a href="{DOCS_URL}/data_sources.md">source '
+        "register</a> gives each source's known coding breaks and terms of use.</p>"
+        "<p>The research questions, the choice of sources, the statistical design, the "
+        "interpretation and the decision to publish each result are the author's, and so is "
+        "responsibility for them. AI coding assistants were used during implementation, "
+        "debugging, data-processing work and review.</p>"
     )
 
 
@@ -1304,25 +1007,22 @@ def _technical_notes(captions: dict[str, str]) -> str:
 
 def page_data(captions: dict[str, str]) -> str:
     body = summary(
-        "This page defines the terms the site uses and explains how each rate is built, how a "
-        "change is judged against the variation of an ordinary year, and the "
-        "model was tested. The technical notes of the analysis pages follow, page by page: definitions, "
-        "assumptions, sensitivity analyses and corrections. The last sections list the checks "
-        "on the data and every assumption the data can test, with what the test found."
+        "This page defines the terms the site uses, explains how each rate is built and how a "
+        "change is judged against the variation of an ordinary year, and describes the police "
+        "records' coding breaks and missing values. The checks on the data, how to reproduce "
+        "the results and the terms of reuse follow; the technical notes of the analysis pages "
+        "come last, page by page."
     )
     body += _definitions()
     body += _rates()
     body += _records(captions)
-    body += _models()
-    body += _technical_notes(captions)
     body += _checks()
-    body += _assumptions()
     body += _reproduce()
     body += _reuse()
+    body += _technical_notes(captions)
     body += downloads(
         [
             ("validation", "reconciliation checks"),
-            ("risk_dispersion", "year-to-year dispersion"),
             ("missingness_by_year", "missing values by field and year"),
             ("dgt_audit_presence_coding", "fog and wind coding by province and year"),
         ]
@@ -1330,7 +1030,7 @@ def page_data(captions: dict[str, str]) -> str:
     return render_page(
         "data",
         "Methodology",
-        "How the study's results are produced: definitions, rates, police records, models, "
-        "checks on the data and the assumptions tested.",
+        "How the study's results are produced: definitions, rates, police records, checks on "
+        "the data, reproduction, reuse and each page's technical notes.",
         body,
     )

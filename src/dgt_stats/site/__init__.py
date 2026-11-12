@@ -2,8 +2,8 @@
 
 No template engine, one small script (``script``) that only makes reading easier (every page
 works without it) and two self-hosted open fonts (``fonts``). The navigation (``NAV_GROUPS``) follows the argument: the
-national picture from DGT and INE with three supporting analyses, the Catalan and Barcelona crash
-records, the severity model, and the sources and methods.
+national picture from DGT and INE, the crash records of Spain, Catalonia and Barcelona and the
+severity model, the two interactive tools, and the sources and methods.
 Every sentence that carries a number computes it from a committed result table at build time, so
 the prose cannot drift from the tables; full tables are linked as CSV rather than printed. Only
 the tables a page links are copied into ``site/tables``, and only the figures a page shows into
@@ -17,7 +17,7 @@ shared furniture is in ``components``, the stylesheet in ``style``, the script i
 pages quote in ``numbers`` and the helpers of the regional and model pages in
 ``regional_common``.
 
-The interactive tools (``explore`` and the ``tool_*`` modules) are pages like the others; their
+The interactive tools (the ``tool_*`` modules) are pages like the others; their
 scripts and the data they read are published in ``site/tools``. A page no builder writes any
 more is removed from ``site``.
 """
@@ -30,7 +30,7 @@ import shutil
 from pathlib import Path
 
 from dgt_stats.paths import FIGURES_DIR, PROJECT_ROOT, TABLES_DIR
-from dgt_stats.site import explore
+from dgt_stats.site import tool_crashes, tool_driver_risk
 from dgt_stats.site.components import (
     ALL_PAGES,
     NAV_GROUPS,
@@ -68,6 +68,7 @@ __all__ = [
     "REPO_URL",
     "SITE_DIR",
     "SUPPORTING_PAGES",
+    "TOOLS",
     "_signed_pct",
     "build",
     "esc",
@@ -81,17 +82,18 @@ __all__ = [
 SITE_DIR = PROJECT_ROOT / "site"
 FONTS_DIR = Path(__file__).resolve().parent / "fonts"
 ASSETS_DIR = Path(__file__).resolve().parent / "assets"
-# The other tools' scripts: the shared helpers and one per tool, published in ``site/tools``.
-TOOL_ASSETS = tuple(
-    ASSETS_DIR / f"{name}.js" for name in ("tools", *(slug for slug, _ in explore.TOOLS))
+# The interactive tools: slug and module. Each module builds its page and computes the data it
+# publishes as JSON in ``site/tools``.
+TOOLS = (
+    ("driver-risk", tool_driver_risk),
+    ("crash-explorer", tool_crashes),
 )
+# The tools' scripts: the shared helpers and one per tool, published in ``site/tools``.
+TOOL_ASSETS = tuple(ASSETS_DIR / f"{name}.js" for name in ("tools", *(slug for slug, _ in TOOLS)))
 
 
 PAGE_BUILDERS = {
     "index": page_index,
-    "explore": explore.page_explore,
-    "driver-risk": explore.tool_driver_risk.page_driver_risk,
-    "crash-explorer": explore.tool_crashes.page_crash_explorer,
     "long-run": page_long_run,
     "seasons": page_seasons,
     "drivers": page_drivers,
@@ -102,6 +104,8 @@ PAGE_BUILDERS = {
     "catalonia": page_catalonia,
     "barcelona": page_barcelona,
     "severity-models": page_severity_models,
+    "driver-risk": tool_driver_risk.page_driver_risk,
+    "crash-explorer": tool_crashes.page_crash_explorer,
     "sources": page_sources,
     "data": page_data,
 }
@@ -137,7 +141,7 @@ def build(site_dir: Path = SITE_DIR) -> list[Path]:
         target = tools_dir / source.name
         shutil.copyfile(source, target)
         written.append(target)
-    for _, module in explore.TOOLS:
+    for _, module in TOOLS:
         for name, payload in module.data_files().items():
             target = tools_dir / name
             target.write_text(

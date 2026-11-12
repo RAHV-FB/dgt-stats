@@ -159,11 +159,3 @@ def test_the_data_file_decodes_back_to_the_table(table: pd.DataFrame) -> None:
         breaks["dualUntil"] < breaks["otherFrom"] and breaks["junction"][0] <= breaks["junction"][1]
     )
     assert breaks["junction"][-1] <= table.year.max()
-
-
-@needs_table
-def test_the_page_describes_the_years_the_table_covers(table: pd.DataFrame) -> None:
-    from dgt_stats.site import tool_crashes
-
-    coverage = tool_crashes.describe()["coverage"]
-    assert f"{table.year.min()}–{table.year.max()}" in coverage

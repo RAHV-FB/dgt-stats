@@ -2,7 +2,7 @@
 
 Fonts and tokens first (colour, type, spacing, widths), then the frame (header, navigation, theme
 switch, page grid, local contents, footer), then the components an article is built from (summary,
-calculator, figure, table, technical details, limitation, data and method, pager), then the home
+figure, table, technical details, limitation, data and method, pager), then the home
 page, the dark theme, print and reduced motion. The text column is narrower than the figures and
 tables, which break out of it; most elements have no box, no radius and no shadow, and hierarchy
 comes from type size, weight and spacing, with thin rules where a separator is needed.
@@ -51,8 +51,8 @@ DARK = {
 }
 
 
-# The characters the font subsets hold (scripts/build_fonts.py), so that no file is fetched for a
-# character it does not contain.
+# The characters the font subsets hold, so that no file is fetched for a character it does not
+# contain.
 UNICODE_RANGE = (
     "U+0020-007E, U+00A0-00FF, U+0131, U+0152-0153, U+0160-0161, U+0178, U+017D-017E, U+02C6, "
     "U+02DA, U+02DC, U+2009-200A, U+2010-2014, U+2018-201E, U+2022, U+2026, U+2030, "
@@ -320,19 +320,9 @@ main { padding: var(--space-7) 0 var(--space-7); min-width: 0; }
 .toc-inline li + li { margin-top: var(--space-1); }
 
 /* ------------------------------------------------------------------ interactive tools */
-/* The landing page lists the tools; each tool is a column of compact controls and a result with a
+/* Each tool is a column of compact controls and a result with a
    chart and its figures. On a wide screen the controls sit beside the result. The charts are drawn
    by tools.js in the site's own colours, with their text at the size it is read. */
-.tool-list { list-style: none; margin: var(--space-6) 0; padding: 0; max-width: var(--wide);
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr)); gap: var(--space-5); }
-.tool-card { margin: 0; padding: var(--space-4) 0 0; border-top: 2px solid var(--mark); max-width: none; }
-.tool-card h2 { margin: 0 0 var(--space-2); font-size: var(--text-md); }
-.tool-card p { margin: 0 0 var(--space-3); }
-.tool-facts { margin: 0; font-size: var(--text-sm); }
-.tool-facts div { display: flex; gap: var(--space-2); }
-.tool-facts dt { color: var(--text-muted); min-width: 4.5rem; }
-.tool-facts dd { margin: 0; }
-.tool-landing-note { color: var(--text-muted); font-size: var(--text-sm); }
 .tool { margin: var(--space-5) 0 var(--space-6); max-width: var(--wide); container-type: inline-size; }
 .tool-layout { display: grid; gap: var(--space-5); }
 .tool-controls { margin: 0; }
@@ -340,13 +330,13 @@ main { padding: var(--space-7) 0 var(--space-7); min-width: 0; }
 .tool-controls legend { padding: 0 0 var(--space-2); font-weight: 600; }
 .tool-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3) var(--space-4); }
 .tool-field { min-width: 0; }
-.tool-field label, .tool-field .tool-field-label { display: block; margin-bottom: var(--space-1); font-size: var(--text-sm); color: var(--text-muted); }
+.tool-field label { display: block; margin-bottom: var(--space-1); font-size: var(--text-sm); color: var(--text-muted); }
 .tool-field select, .tool-field input[type="number"] {
   width: 100%; min-height: 2.75rem; padding: 0 var(--space-2); font: inherit; font-size: var(--text-base);
   color: var(--text); background: var(--bg); border: 1px solid var(--rule-strong); border-radius: 0;
 }
 .tool-actions { display: flex; flex-wrap: wrap; gap: var(--space-3); margin: var(--space-3) 0 0; }
-.tool-actions button, .tool-choice button {
+.tool-actions button {
   min-height: 2.75rem; padding: 0 var(--space-4); font: inherit; font-size: var(--text-sm);
   color: var(--text); background: var(--surface); border: 1px solid var(--rule-strong); cursor: pointer;
 }
@@ -359,7 +349,6 @@ main { padding: var(--space-7) 0 var(--space-7); min-width: 0; }
 .tool-headline strong { font-size: var(--text-xl); font-weight: 500; font-variant-numeric: tabular-nums lining-nums; }
 .tool-meaning { margin: var(--space-2) 0 0; }
 .tool-note { margin: var(--space-2) 0 0; font-size: var(--text-sm); color: var(--text-muted); }
-.tool-warning { margin: var(--space-3) 0 0; padding-left: var(--space-3); border-left: 3px solid var(--rule-strong); font-size: var(--text-sm); }
 .tool-chart { margin: var(--space-4) 0 var(--space-2); min-width: 0; }
 .tool-svg { display: block; max-width: 100%; height: auto; font-family: var(--font); }
 .tool-svg text { fill: var(--text); font-size: 14px; }
@@ -396,79 +385,6 @@ main { padding: var(--space-7) 0 var(--space-7); min-width: 0; }
   .tool-fields { grid-template-columns: 1fr; }
   .tool-table th, .tool-table td { padding-right: var(--space-2); }
   .tool-table .num { padding-left: var(--space-2); }
-}
-
-/* ------------------------------------------------------------------ calculator */
-/* The form, then a panel with the result and the comparison. Where the calculator has room, the
-   panel sits beside the form and stays in view while the form scrolls, so that changing an input
-   never moves the estimate off the screen; on a phone it follows the form. */
-.calculator { margin: var(--space-6) 0; max-width: var(--wide); container-type: inline-size; }
-.calc-layout > form, .calc-panel { max-width: var(--measure); }
-.calculator form { margin: 0; }
-.calculator fieldset {
-  margin: 0 0 var(--space-5); padding: 0; border: 0; border-top: 1px solid var(--rule);
-}
-.calculator legend { padding: var(--space-3) 0 var(--space-2); font-weight: 600; }
-.calc-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4) var(--space-5); }
-.calc-field label { display: block; margin-bottom: var(--space-1); font-size: var(--text-sm); color: var(--text-muted); }
-.calc-field select {
-  width: 100%; min-height: 2.75rem; padding: var(--space-2); font: inherit; font-size: var(--text-sm);
-  color: var(--text); background: var(--bg); border: 1px solid var(--rule-strong); border-radius: 2px;
-}
-/* The kind of crash spans the form; the selects it shows follow it. */
-.calc-field[data-wide] { grid-column: 1 / -1; }
-.calc-group { margin-top: var(--space-4); }
-/* What the description sets in the model, and a change the conditions forced, in one line each. */
-.calc-derived, .calc-adjusted { margin: var(--space-3) 0 0; font-size: var(--text-sm); }
-.calc-derived { color: var(--text-muted); }
-.calc-adjusted { padding-left: var(--space-3); border-left: 3px solid var(--mark); }
-.calc-actions { display: flex; flex-wrap: wrap; gap: var(--space-3); margin: var(--space-4) 0; }
-.calc-actions button {
-  min-height: 2.75rem; padding: var(--space-2) var(--space-4); font: inherit; font-size: var(--text-sm);
-  color: var(--text); background: var(--surface); border: 1px solid var(--rule-strong); border-radius: 2px; cursor: pointer;
-}
-.calc-actions button:disabled { opacity: 0.5; cursor: not-allowed; }
-.calculator select:focus-visible, .calculator input:focus-visible, .calc-actions button:focus-visible {
-  outline: 3px solid var(--mark); outline-offset: 2px;
-}
-.calc-result, .calc-baseline { border-top: 1px solid var(--rule); padding: var(--space-4) 0; }
-.calc-value { margin: 0; font-size: 2.25rem; font-weight: 500; line-height: 1.05; font-variant-numeric: tabular-nums lining-nums; }
-.calc-interval { margin: var(--space-1) 0 0; font-variant-numeric: tabular-nums lining-nums; }
-.calc-label, .calc-compare { margin: var(--space-2) 0 0; font-size: var(--text-base); }
-.calc-note, .calc-kept { margin: var(--space-2) 0 0; font-size: var(--text-sm); color: var(--text-muted); }
-.calc-warnings { margin: var(--space-3) 0 0; padding-left: 1.2em; font-size: var(--text-sm); }
-.calc-result[data-state="error"] { border-top-color: var(--rule-strong); }
-.calc-error-title, .calc-pending { margin: 0; font-weight: 600; }
-/* Scenarios A and B, their difference and their ratio: four short rows that fit a phone. */
-.calc-ab { width: 100%; margin: 0; }
-.calc-ab caption { text-align: left; padding-bottom: var(--space-2); font-weight: 600; }
-.calc-ab th, .calc-ab td { padding-right: var(--space-3); }
-.calc-ab tbody th { white-space: normal; }
-.calc-meta { margin: 0; padding-top: var(--space-3); border-top: 1px solid var(--rule); font-size: var(--text-sm); color: var(--text-muted); }
-/* The estimate pinned to the foot of the screen while the form scrolls, where the panel follows it. */
-.calc-sticky {
-  position: sticky; bottom: 0; z-index: 1; margin: 0; padding: var(--space-2) var(--space-3);
-  font-size: var(--text-sm); font-variant-numeric: tabular-nums lining-nums;
-  background: var(--surface); border-top: 1px solid var(--rule-strong);
-}
-.calc-sticky:empty { display: none; }
-/* While the line is pinned, the page keeps a focused control above it, so it never covers the
-   control in use. The line shows below a 50rem calculator, in viewports up to about 64rem. */
-@media (max-width: 64rem) {
-  html:has(.calc-sticky:not(:empty)) { scroll-padding-bottom: 7rem; }
-}
-@container (min-width: 50rem) {
-  .calc-sticky { display: none; }
-  .calc-layout {
-    display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
-    column-gap: var(--space-6); align-items: start;
-  }
-  .calc-panel {
-    position: sticky; top: var(--space-4);
-    max-height: calc(100vh - 2 * var(--space-4)); overflow-y: auto;
-  }
-  .calc-baseline { padding-bottom: 0; }
-  .calc-label, .calc-compare { font-size: var(--text-sm); }
 }
 
 /* ------------------------------------------------------------------ definition lists */
@@ -629,7 +545,7 @@ nav.pager a[rel="next"] .pager-title::after { transform: rotate(-45deg); margin-
 .site-footer p { max-width: var(--measure); margin: 0 0 var(--space-2); }
 
 /* ------------------------------------------------------------------ home page */
-/* The way into the tools is marked like the cards of the tools page; the pages are listed in two
+/* The way into the tools is marked by a rule above it; the pages are listed in two
    columns, each title beside what its page answers. */
 .home .page-header { margin-bottom: var(--space-6); }
 .home h2 { margin-top: var(--space-7); }
@@ -664,7 +580,6 @@ nav.pager a[rel="next"] .pager-title::after { transform: rotate(-45deg); margin-
 
 /* ------------------------------------------------------------------ small screens */
 @media (max-width: 40rem) {
-  .calc-fields { grid-template-columns: 1fr; }
   body { font-size: 1.0625rem; }
   h1 { font-size: 1.875rem; }
   h2 { font-size: 1.3125rem; margin-top: var(--space-6); }

@@ -84,26 +84,6 @@ def _interval(low: float, high: float) -> str:
     return f"{_fmt_pct(low).removesuffix('%')}–{_fmt_pct(high)}"
 
 
-def _cat_share_rows(shares: pd.DataFrame, dimensions: list[str]) -> pd.DataFrame:
-    """Fatal share by group, the groups of each breakdown ordered from most to least often fatal."""
-    rows = shares[shares.dimension.isin(dimensions) & (shares.n >= MIN_N) & (shares.level != "all")]
-    rows = rows.assign(order=rows.dimension.map(dimensions.index)).sort_values(
-        ["order", "share"], ascending=[True, False]
-    )
-    return pd.DataFrame(
-        {
-            "Group": [
-                f"{CAT_DIMENSIONS[d]}: {CAT_LABELS.get(label, label)}"
-                for d, label in zip(rows.dimension, rows.label)
-            ],
-            "Crashes": rows.n,
-            "Fatal": rows.events,
-            "Fatal share": rows.share,
-            "95% interval": [_interval(lo, hi) for lo, hi in zip(rows.ci_low, rows.ci_high)],
-        }
-    )
-
-
 def _field_phrase(column: str) -> str:
     """One Catalan field named in words, as the subject of a sentence."""
     if column in CAT_INFLUENCES:
@@ -452,32 +432,7 @@ def _catalonia_notes(captions: dict[str, str]) -> str:
     """Every fatal share with its count and interval, the counts by year, the comparison with
     DGT's records and the recording check on the Catalan file."""
     f = _catalonia_facts()
-    overall = f.overall
     page = f'<a href="catalonia.html">{TITLES["catalonia"]}</a>'
-    every_share = pd.concat(
-        [
-            pd.DataFrame(
-                {
-                    "Group": ["All crashes with a death or serious injury"],
-                    "Crashes": [overall.n],
-                    "Fatal": [overall.events],
-                    "Fatal share": [overall.share],
-                    "95% interval": [_interval(overall.ci_low, overall.ci_high)],
-                }
-            ),
-            _cat_share_rows(
-                f.shares,
-                [
-                    "zone",
-                    "road type",
-                    "unit type involved",
-                    "crash subtype",
-                    "lighting",
-                    "intersection",
-                ],
-            ),
-        ]
-    )
     years = f.by_year.reset_index().rename(
         columns={
             "year": "Year",
@@ -497,12 +452,9 @@ def _catalonia_notes(captions: dict[str, str]) -> str:
         "<p>Each group is one circumstance at a time, so the groups overlap. A crash involving "
         "several kinds of vehicle or road user counts in each, and zone and road type are "
         "separate fields of the file, so their urban-street groups differ slightly.</p>"
-        + table(
-            every_share,
-            "Fatal share of crashes with a death or serious injury, Catalonia, "
-            f"{f.period} (groups with at least {MIN_N} crashes).",
-            {"Crashes": "int", "Fatal": "int", "Fatal share": "pct"},
-        )
+        + "<p>Every group's crashes, fatal crashes, fatal share and 95% interval, for groups "
+        f'with at least {MIN_N} crashes, are in the <a href="tables/cat_fatal_share.csv">'
+        "table of fatal shares</a>.</p>"
         + figure(
             "cat4_fatal_by_crash_type",
             "Dot chart of the fatal share by type of crash, with 95% intervals; head-on "
@@ -567,37 +519,6 @@ def _cause_rows(causes: pd.DataFrame) -> pd.DataFrame:
             "Serious or fatal": causes.events.to_numpy(),
             "Share": causes.share.to_numpy(),
         }
-    )
-
-
-def _person_label(dimension: str, label: str) -> str:
-    """A group of people as its table row names it; the column already names the breakdown."""
-    if dimension == "age band":
-        label = "75 and over" if label == "75+" else _dash(label)
-    elif dimension == "road user":
-        # The same names the road-user figure uses.
-        label = ROAD_USER_LABELS.get(label, label)
-    return label[:1].upper() + label[1:]
-
-
-def _person_table(people: pd.DataFrame, dimension: str, column: str, caption: str) -> str:
-    """Serious or fatal injury for one breakdown of the people. Road users are ordered as in
-    their figure, from the highest share; age bands and sexes keep the table's order."""
-    rows = people[(people.dimension == dimension) & (people.n >= MIN_N)]
-    if dimension == "road user":
-        rows = rows.sort_values(["share", "n"], ascending=False, kind="stable")
-    return table(
-        pd.DataFrame(
-            {
-                column: [_person_label(dimension, label) for label in rows.label],
-                "People": rows.n,
-                "Serious or fatal": rows.events,
-                "Share": rows.share,
-                "95% interval": [_interval(lo, hi) for lo, hi in zip(rows.ci_low, rows.ci_high)],
-            }
-        ),
-        caption,
-        {"People": "int", "Serious or fatal": "int", "Share": "pct"},
     )
 
 
@@ -892,10 +813,6 @@ def _barcelona_notes() -> str:
         if f.natural
         else ""
     )
-    note = (
-        f"People with a recorded outcome, Barcelona, {f.year}, in groups of at least {MIN_N} "
-        "people."
-    )
     driver_status, mediate_status = f.driver_status, f.mediate_status
     return (
         f'<h2 id="{BCN_NOTES}">{TITLES["barcelona"]}: the people left out, the rear-end codes '
@@ -910,11 +827,9 @@ def _barcelona_notes() -> str:
         "uninjured, the people without a recorded outcome would lower the overall share from "
         f"{_fmt_pct(f.severe_people / f.labelled)} to "
         f"{_fmt_pct(f.severe_people / (f.labelled + f.not_recorded))}.</p>"
-        + _person_table(
-            f.people, "road user", "Road user", f"Serious or fatal injury by road user. {note}"
-        )
-        + _person_table(f.people, "age band", "Age", f"Serious or fatal injury by age. {note}")
-        + _person_table(f.people, "sex", "Sex", f"Serious or fatal injury by sex. {note}")
+        + "<p>The shares for every road user, age band and sex, for groups of at least "
+        f'{MIN_N} people, are in the <a href="tables/bcn_person_severity_share.csv">table of '
+        "injury by person group</a>.</p>"
         + '<h3 id="barcelona-crashes">Crashes without a victim, and the two rear-end codes</h3>'
         f"<p>The police recorded no victim in {_fmt_int(f.no_victim)} of the "
         f"{_fmt_int(f.n_crashes)} crashes they attended. Among the crashes with a victim, "

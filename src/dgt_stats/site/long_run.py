@@ -749,7 +749,6 @@ def technical_notes(captions: dict[str, str]) -> str:
         f"<p>DGT estimated the 30-day deaths of {first} to "
         f"{risk_trends.DEATHS_30D_COUNTED_FROM - 1} from deaths within 24 hours, with "
         f"correction factors, and has counted them since {risk_trends.DEATHS_30D_COUNTED_FROM} "
-        'by matching crash records with the register of deaths (<a href="#assumptions-tested">'
-        "assumptions tested</a>).</p>"
+        "by matching crash records with the register of deaths.</p>"
     )
     return body

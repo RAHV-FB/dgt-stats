@@ -15,9 +15,6 @@ def test_scripts_hold_no_result_numbers_or_years() -> None:
         # The SVG namespace's URL is the one four-digit number a script may hold.
         text = text.replace("http://www.w3.org/2000/svg", "")
         decimals = set(re.findall(r"\b\d+\.\d+\b", text))
-        if path.name == "severity-engine.js":
-            # The 97.5% normal quantile, the engine's only constant.
-            assert decimals <= {"1.959964"}, path.name
-        elif path.name != "tools.js":
+        if path.name != "tools.js":
             assert not decimals, path.name
         assert not re.findall(r"\b(19|20)\d\d\b", text), path.name

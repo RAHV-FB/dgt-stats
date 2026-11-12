@@ -175,7 +175,7 @@ def _facts() -> SimpleNamespace:
     recent = survey.loc[list(exposure.CONTEMPORARY_YEARS), "employed_share"]
     _check(
         bool((recent > 1.3 * census).all()),
-        "the survey's employed share at 65+ exceeds the census share in 2022-2024",
+        "the survey's employed share at 65+ exceeds the census share in the contemporary years",
     )
     level_65 = "km_per_resident_65+"
     employment_effect = 1 - float(
@@ -514,8 +514,8 @@ def technical_notes(captions: dict[str, str]) -> str:
         "denominator is estimated.</p>"
         "<h3>From the surveys to Spain</h3>"
         "<p>The EMEF, the working-day mobility survey of the province of Barcelona, records the "
-        "car trips its respondents drove on one working day, with each trip's duration and, from "
-        f"2021, its straight-line distance in bands, from which the kilometres are estimated "
+        "car trips its respondents drove on one working day, with each trip's duration and, in the "
+        "later editions, its straight-line distance in bands, from which the kilometres are estimated "
         f"(road distance is 1.45 times the straight line). Its {SURVEY_YEARS} editions give each "
         "age group's car-driver kilometres per resident, by sex. Madrid's "
         f"{edm2018.SURVEY_YEAR} household travel survey (Consorcio Regional de Transportes de "
@@ -545,8 +545,8 @@ def technical_notes(captions: dict[str, str]) -> str:
         "each computed around the published estimate: another regional profile (each survey "
         "alone, the Barcelona area carrying driving per licence holder instead of per resident, "
         "or one part of the province alone); another age mix for the weekends and holidays and "
-        "for the remainder (the EMEF's weekend stays away, MOVILIA 2006's weekend trips and "
-        "MOVILIA 2007's long car journeys); another split of the 65-and-over kilometres at 75; "
+        "for the remainder (the EMEF's weekend stays away, MOVILIA's weekend trips and "
+        "long car journeys); another split of the 65-and-over kilometres at 75; "
         "and all the drivers of unrecorded age placed in one age group. The first three are "
         "combined in every way; the last is tried alone. A range is the spread of the "
         "alternatives tried, not a confidence interval and not a bound: other choices would "
