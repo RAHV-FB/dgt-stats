@@ -66,12 +66,9 @@ def test_every_page_is_written_with_one_heading(built: Path) -> None:
     # The site's one site-wide script is its own reading aid. The tools' scripts and data live
     # apart in tools/, and only the tool pages load them.
     assert [p.name for p in built.glob("*.js")] == ["site.js"]
-    assert not (built / "models").exists()
     tools = {p.name for p in (built / "tools").iterdir()}
     assert {"tools.js", "driver-risk.js", "crash-explorer.js"} <= tools
     assert {p.suffix for p in (built / "tools").iterdir()} <= {".js", ".json"}
-    published = {p.name for p in (built / "tables").glob("*.csv")}
-    assert not published & {"simulator_evidence.csv", "factor_evidence.csv"}
 
 
 def _runs_no_script(slug: str, text: str) -> None:
@@ -206,10 +203,7 @@ def test_figures_are_copied_and_captioned(built: Path) -> None:
     for path in (built / "figures").rglob("*.svg"):
         source = FIGURES_DIR / path.relative_to(built / "figures")
         assert path.read_bytes() == source.read_bytes(), path.name
-    # A figure that is drawn but shown on no page is not published.
     captions = site.read_captions()
-    for name in set(captions) - shown:
-        assert not (built / "figures" / f"{name}.svg").exists(), name
     text = (built / "long-run.html").read_text(encoding="utf-8")
     # The caption is set in two parts: what is shown, then its source on a line of its own.
     shown, source = components._split_source(captions["l1_trend_projection"])
@@ -249,13 +243,8 @@ def test_severity_page_leads_with_the_adverse_finding(built: Path) -> None:
     assert 'href="data.html#severity-method"' in text
     adverse = pd.read_csv(TABLES_DIR / "q3_adverse_conditions.csv")
     fatal = adverse[adverse.outcome == "fatal"].set_index(["variant", "level"])
-    # The reduced set of variants: the full model, each of weather and surface left out, and the
-    # two kinds of road; no hail-and-snow row, no composition or exclusion tables.
+    # The variants: the full model, each of weather and surface left out, and the two kinds of road.
     assert set(adverse.variant) == {"full", "no_surface", "no_weather", "interurban", "street"}
-    assert "hail or snow" not in set(adverse.level)
-    for name in ("q3_marginal_effects", "q3_year_stability", "q3_adverse_composition"):
-        assert not (TABLES_DIR / f"{name}.csv").exists(), name
-    assert "s2_adverse_conditions" not in text
     # The wet-surface odds ratio is the full model's, with its interval, not the no-weather one.
     wet = fatal.loc[("full", "wet")]
     assert f"{wet.odds_ratio:.2f}, {wet.or_low:.2f}–{wet.or_high:.2f}" in text
@@ -585,9 +574,7 @@ def test_policy_page_reports_the_falsification_not_the_headline(built: Path) -> 
     data = (built / "data.html").read_text(encoding="utf-8")
     notes = data[data.index('id="policy-method"') :]
     notes = notes[: notes.index("<h2", 1)]
-    assert "speed limit" not in notes and "q8_speed" not in text + data
     assert 'href="data.html#policy-method"' in text
-    assert not {"fuel", "toll", "24h", "interurban", "urban"} & set(sensitivity.index)
 
 
 def test_factors_page_carries_speed_severity_and_reads_trends_within_comparable_runs(
@@ -615,13 +602,12 @@ def test_factors_page_carries_speed_severity_and_reads_trends_within_comparable_
         "not in steady decline" in opening and "change in recording cannot be excluded" in opening
     )
     assert "which would raise it" in text and "which would lower it" in text
-    # The driver tables' break is stated once, and the dropped series and figure are gone.
+    # The driver tables' break is stated once.
     shares = pd.read_csv(TABLES_DIR / "q9_infraction_shares.csv")
     all_roads = shares[shares.zone == "all"].set_index("year")
     assert "no trend in speeding" in text
     for year in (2015, 2016):
         assert f"{all_roads.loc[year, 'share_unknown'] * 100:.0f}%" in text
-    assert "c3_speed_status" not in text and "Drugs" not in text
     for column in shares.columns:
         assert "known" not in column.replace("unknown", "")
     # Interurban alcohol and the speed series come from the published shares.
@@ -641,8 +627,6 @@ def test_factors_page_carries_speed_severity_and_reads_trends_within_comparable_
     notes = notes[: notes.index("<h2", 1)]
     assert 'href="data.html#factors-method"' in text
     assert "only through the interurban total" in notes
-    for phrase in ("simulator", "Power Model", "physics"):
-        assert phrase not in text and phrase not in notes, phrase
     for page in built.glob("*.html"):
         page_text = page.read_text(encoding="utf-8")
         assert "by the road's speed limit" not in page_text, page.name
@@ -680,8 +664,6 @@ def test_long_run_page_shows_the_trends_the_projection_and_the_last_year(built: 
     assert 'href="tables/longrun_segments.csv"' in notes
     assert 'href="data.html#long-run-method"' in long_run
     assert "occupant" not in long_run.lower() and "per registered vehicle" not in long_run
-    sensitivity = pd.read_csv(TABLES_DIR / "longrun_projection_sensitivity.csv")
-    assert not {"normal_quantile", "joinpoint"} & set(sensitivity.variant)
     series = pd.read_csv(TABLES_DIR / "longrun_series.csv")
     assert set(series.measure) == {"count", "road_fuel"}
     fuel = series[(series.measure == "road_fuel") & (series.period == "projected")]

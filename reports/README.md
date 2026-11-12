@@ -13,7 +13,7 @@ committed copy.
 | `scripts/microdata.py` | `mq_*` (data quality), `cat_*` and `bcn_*` (descriptive), `ml_recording_artefacts`, `source_comparison`; `analyse` also writes `gen_coding_by_region` and `dgt_audit_*` |
 | `scripts/severity_model.py` | `sev_*` (the Catalan model and its evaluation) |
 | `scripts/emef.py` | `emef_*` (car-driving distance by age) |
-| `scripts/exposure_risk.py` | `risk_national_*`, `risk_barcelona_*`, `risk_older_*` and the other driver-age `risk_*` tables, `edm_*`; `risk_national_ranges` holds the ranges across assumptions |
+| `scripts/exposure_risk.py` | `risk_national_*`, `risk_barcelona_*`, `risk_older_*` and the other driver-age `risk_*` tables; `risk_national_ranges` holds the ranges across assumptions |
 
 Tables that rest on fewer than 20 survey observations are not published, as the EMEF survey
 requires.

@@ -198,7 +198,7 @@ def test_the_held_out_tests_come_from_the_table(pages: dict[str, str]) -> None:
     assert "has been tested only on crashes from the same file" in text
 
 
-def test_the_models_page_names_no_other_model(pages: dict[str, str]) -> None:
+def test_the_models_page_links_its_method_notes(pages: dict[str, str]) -> None:
     text = pages["severity-models"]
     assert 'href="data.html#how-the-model-was-built"' in text
     assert 'id="how-the-model-was-built"' in pages["data"]

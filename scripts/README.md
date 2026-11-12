@@ -23,12 +23,15 @@ outside the build.
 - `emef.py {build,exposure,all}`: the EMEF 2014-2024 survey read and harmonised, and working-day
   car-driving distance by age (`emef_*` tables). Its checks against the published figures run as
   tests.
-- `exposure_risk.py {barcelona,madrid,national,all}`: the exposure methods and car drivers involved
-  per kilometre by driver age, with the ranges across assumptions (`risk_*`, `edm_*` tables).
+- `exposure_risk.py {barcelona,national,all}`: the exposure methods and car drivers involved
+  per kilometre by driver age, with the ranges across assumptions (`risk_*` tables).
 - `build_site.py`: `site/` and `docs/FINDINGS.md`, from the committed tables and figures.
 - `compare_reports.py`: after the pipeline, checks the rebuilt tables and figures against the
   committed ones: no file new or missing, every table number within one part in a thousand, and
   everything a figure prints identical (CI runs it; documents are compared byte for byte).
+  `--rebuilt-after FILE` also fails for every tracked generated file under `reports/` (`.csv`,
+  `.svg`, `.json`) that is older than FILE, so a committed file the pipeline no longer rewrites is
+  reported as "committed but not rebuilt"; CI touches FILE before the pipeline starts.
 - `fetch_ine.py [--table provinces|single_age] [--from-file CSV]`: rebuilds the committed INE
   population extracts in `data/raw/ine/`, or filters an already downloaded copy.
 - `fetch_edm.py [--from-dir DIR]`: rebuilds the committed extracts of the Madrid household travel

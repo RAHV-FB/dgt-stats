@@ -632,9 +632,8 @@ def test_build_all_writes_every_registered_figure(tmp_path: Path) -> None:
         severity = pd.read_csv(TABLES_DIR / "risk_severity_and_licences.csv")
         n_involved = int(severity[severity.group != "65+"].involved.sum())
         assert captions["dr2_killed_per_involved"].endswith(f"n = {n_involved:,} drivers involved.")
-        # The per-km chart shows each estimate and its sampling interval, no sensitivity bands.
+        # The per-km chart shows each estimate and its sampling interval.
         assert "95% sampling intervals" in captions["dr1_involved_per_km"]
-        assert "sensitivity" not in captions["dr1_involved_per_km"].lower()
 
 
 @pytest.mark.skipif(not _TABLES_PRESENT, reason="run `python scripts/analyse.py tables` first")

@@ -44,8 +44,6 @@ CATALAN_PROVINCES = ("8", "17", "25", "43")
 # A level with fewer crashes than this is merged into the reference level: it cannot be estimated
 # (several such levels have no events at all) and would only add noise to the table.
 MIN_LEVEL_CRASHES = 500
-# The level for every value a predictor's map does not list, and for empty cells.
-FALLBACK_CODE = "any other value or empty"
 
 # Each predictor: source column, ordered levels (reference first) and a code -> level map.
 # Codes not listed fall to ``fallback`` (the missing markers 999/998 are handled first).

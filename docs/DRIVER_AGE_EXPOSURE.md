@@ -138,7 +138,7 @@ direction is established.
 ## Drivers aged 75 and over
 
 The EMEF groups everyone aged 65 and over. The split of its 65-and-over kilometres between 65-74 and
-75 and over is taken from the Madrid survey's ratio of kilometres per resident (`edm_older_split`),
+75 and over is taken from the Madrid survey's ratio of kilometres per resident,
 which makes the estimate for 75 and over a *conditional* estimate: it holds if drivers aged 75 and
 over drive as much less than those aged 65-74 in Spain as in Madrid. Two other splits are tried
 (`risk_older_split`): Madrid's kilometres per licence holder applied to Spain's licence holders, and

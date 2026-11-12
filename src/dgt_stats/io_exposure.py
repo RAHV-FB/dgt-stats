@@ -8,7 +8,7 @@ from pathlib import Path
 import openpyxl
 import pandas as pd
 
-from dgt_stats import agebands, io_population
+from dgt_stats import agebands
 from dgt_stats.paths import (
     CENSUS_TABLES_2025_PATH,
     CENSUS_YEARS,
@@ -516,7 +516,6 @@ EXPOSURE_BUILDERS = {
     "censo_edad": read_census_age_all,
     "censo_edad_tablas": read_census_age_tables_all,
     "conductores_por_edad": licence_holders_by_age,
-    "poblacion_ine": io_population.read_population,
     "km_medios_2022": read_km_mean_2022,
     "km_edad_propietario_2024": read_km_by_owner_age_2024,
     "km_medios_tipo_2024": read_km_means_2024,

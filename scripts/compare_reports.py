@@ -10,12 +10,19 @@ by a few points, so a figure counts as reproduced when everything it prints (lab
 titles, legends and the embedded font) is identical. A file that is new, missing or different
 beyond that fails.
 
+With ``--rebuilt-after FILE`` the check also fails for every tracked generated file under
+``reports/`` (suffix ``.csv``, ``.svg`` or ``.json``; not ``README.md`` or ``.gitkeep``) whose
+modification time is older than FILE's: such a file is committed but was not rewritten by the
+pipeline, so the comparison above would pass on the committed copy alone. Touch FILE before the
+pipeline starts.
+
 Usage (in a git checkout, after the pipeline has rebuilt ``reports/``):
-    python scripts/compare_reports.py
+    python scripts/compare_reports.py [--rebuilt-after FILE]
 """
 
 from __future__ import annotations
 
+import argparse
 import re
 import subprocess
 import sys
@@ -28,6 +35,7 @@ ABSOLUTE = 1e-6
 NUMBER = re.compile(r"-?\d+(?:\.\d+)?(?:e[-+]?\d+)?")
 # What an SVG prints: the text between its tags (labels, numbers, titles, the embedded font).
 PRINTED = re.compile(r">([^<>]*\S[^<>]*)<")
+GENERATED_SUFFIXES = (".csv", ".svg", ".json")
 
 
 def _git(*args: str) -> str:
@@ -54,7 +62,25 @@ def same_file(committed: str, rebuilt: str, figure: bool) -> bool:
     return len(old) == len(new) and all(_close(a, b) for a, b in zip(old, new, strict=True))
 
 
+def not_rebuilt(paths: set[str], marker: Path) -> list[str]:
+    """The generated files among ``paths`` last modified before ``marker`` was."""
+    started = marker.stat().st_mtime_ns
+    return sorted(
+        path
+        for path in paths
+        if path.endswith(GENERATED_SUFFIXES) and (ROOT / path).stat().st_mtime_ns < started
+    )
+
+
 def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
+    parser.add_argument(
+        "--rebuilt-after",
+        type=Path,
+        metavar="FILE",
+        help="fail for every generated file under reports/ last modified before FILE",
+    )
+    args = parser.parse_args()
     tracked = set(_git("ls-files", REPORTS).split())
     present = {
         str(path.relative_to(ROOT)) for path in (ROOT / REPORTS).rglob("*") if path.is_file()
@@ -65,6 +91,9 @@ def main() -> int:
         rebuilt = (ROOT / path).read_text("utf-8")
         if not same_file(_git("show", f"HEAD:{path}"), rebuilt, path.endswith(".svg")):
             problems.append(f"differs beyond tolerance: {path}")
+    if args.rebuilt_after is not None:
+        stale = not_rebuilt(tracked & present, args.rebuilt_after)
+        problems += [f"committed but not rebuilt: {path}" for path in stale]
     for problem in problems:
         print(problem)
     print(f"{len(tracked & present)} files compared, {len(problems)} problems")

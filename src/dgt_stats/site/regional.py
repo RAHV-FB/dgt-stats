@@ -47,7 +47,6 @@ CAT_DIMENSIONS = {
     "unit type involved": "Involving",
     "crash subtype": "Crash type",
 }
-CAT_LABELS = {"road section": "away from a junction", "other unit": "other"}
 
 # The Catalan fields whose blanks depend on the outcome, by their human names. Fields that record
 # whether a condition influenced the crash are named by the condition.

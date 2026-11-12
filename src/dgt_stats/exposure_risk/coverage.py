@@ -246,59 +246,6 @@ def seasonal_factors() -> tuple[float, float]:
 
 
 @cache
-def travel_evidence() -> pd.DataFrame:
-    """MOVILIA 2006: car trips and trip duration on a weekend day against a working day; MOVILIA
-    2007: the share of car journeys over 50 km that start in July or August."""
-    for sheet in ("T72-1", "T72-2"):
-        _check_title(MOVILIA_2006, sheet, "72. Duración media de los desplazamientos")
-    for sheet in ("T61-1", "T61-5"):
-        _check_title(MOVILIA_2006, sheet, "61. Desplazamientos según modo principal")
-    _check_title(MOVILIA_2007, "T18", "18. Número de viajes por mes de inicio")
-    spain = {"Total": "Spain"}
-    car_working = _movilia_rows(MOVILIA_2006, "T61-1", 3, spain)["Spain"]
-    car_weekend = _movilia_rows(MOVILIA_2006, "T61-5", 3, spain)["Spain"]
-    minutes_working = _movilia_rows(MOVILIA_2006, "T72-1", 1, spain)["Spain"]
-    minutes_weekend = _movilia_rows(MOVILIA_2006, "T72-2", 1, spain)["Spain"]
-    months = _movilia_rows(
-        MOVILIA_2007, "T18", 2, {"Total": "year", "Julio": "July", "Agosto": "August"}
-    )
-    working, other = working_days()
-    return pd.DataFrame(
-        [
-            {
-                "evidence": "non-working days",
-                "measure": "car or motorcycle trips on an average weekend day over a working day "
-                "(MOVILIA 2006, Spain; drivers and passengers)",
-                "value": float(car_weekend / car_working),
-            },
-            {
-                "evidence": "non-working days",
-                "measure": "mean trip duration on a weekend day over a working day, all modes "
-                "(MOVILIA 2006, Spain)",
-                "value": float(minutes_weekend / minutes_working),
-            },
-            {
-                "evidence": "months outside the fieldwork",
-                "measure": "share of car journeys over 50 km starting in July or August "
-                "(MOVILIA 2007, Spain; drivers and passengers)",
-                "value": float((months["July"] + months["August"]) / months["year"]),
-            },
-            {
-                "evidence": "calendar",
-                "measure": f"working days of {YEAR} (weekdays less {PUBLIC_HOLIDAYS} public "
-                "holidays)",
-                "value": float(working),
-            },
-            {
-                "evidence": "calendar",
-                "measure": f"non-working days of {YEAR}",
-                "value": float(other),
-            },
-        ]
-    ).assign(used_as_regional_factor=False)
-
-
-@cache
 def fleet_evidence() -> pd.DataFrame:
     """Kilometres of company-registered cars, car hire without driver and driving schools (DGT
     2024): reported beside the components, not added to them."""
