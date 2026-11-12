@@ -1,7 +1,7 @@
 """Result tables for the site, and the registry that names them.
 
-``SUMMARIES`` is the whole published set: the context series, the kilometre-based driver-risk
-tables (``driver_risk``), the per-kilometre vehicle rates (``vehicles``), the interrupted time
+``SUMMARIES`` is the whole published set: the context series, the driver tables by sex
+(``driver_risk``), the per-kilometre vehicle rates (``vehicles``), the interrupted time
 series (``policy``) and the speed-status shares (``speed``). The severity models are written
 separately by ``scripts/model.py`` and read back with :func:`read_model_table`.
 
@@ -17,12 +17,9 @@ import numpy as np
 import pandas as pd
 
 from dgt_stats import (
-    agebands,
     driver_risk,
     factors,
     forecast,
-    io_exposure,
-    io_population,
     io_tables,
     labels,
     policy,
@@ -133,45 +130,6 @@ def other_road_by_period() -> pd.DataFrame:
 # ------------------------------------------------------------------- licence holders by age
 
 
-def _to_analysis_band(fine: pd.Series) -> pd.Series:
-    """Map fine DGT band keys to analysis band keys (children and unknown become NA)."""
-    mapping = {
-        key: agebands.band_for(low, high, agebands.ANALYSIS_BANDS)
-        for key, (low, high) in agebands.DGT_BANDS.items()
-    }
-    return fine.map(mapping).astype("string")
-
-
-def _licence_holders(sex: str) -> pd.DataFrame:
-    licences = io_exposure.read_exposure("conductores_por_edad")
-    rows = licences[licences.sex == sex]
-    rows = rows.assign(band=_to_analysis_band(rows.band)).dropna(subset=["band"])
-    out = rows.groupby(["year", "band"]).n_drivers.sum().reset_index()
-    return out.rename(columns={"n_drivers": "licence_holders"}).astype(
-        {"year": "int16", "band": "string"}
-    )
-
-
-def _residents(years: tuple[int, ...], sex: str) -> pd.DataFrame:
-    frames = [io_population.population_by_band(year, sex=sex).assign(year=year) for year in years]
-    out = pd.concat(frames, ignore_index=True).rename(columns={"population": "residents"})
-    return out.astype({"year": "int16", "band": "string"})
-
-
-def licence_share_by_age(years: tuple[int, ...] = (2014, 2019, 2024)) -> pd.DataFrame:
-    """Share of residents holding a licence, by analysis band and sex, for a few years."""
-    frames = []
-    for sex in ("total", "male", "female"):
-        residents = _residents(years, sex)
-        licences = _licence_holders(sex)
-        merged = residents.merge(licences, on=["year", "band"], how="left")
-        merged["licence_share"] = merged.licence_holders / merged.residents
-        merged["sex"] = sex
-        frames.append(merged)
-    out = pd.concat(frames, ignore_index=True)
-    return out.astype({"sex": "string"})
-
-
 # Written by scripts/model.py (the fits take about fifteen minutes); analyse.py and the site only
 # read them.
 MODEL_TABLES = (
@@ -270,7 +228,6 @@ SUMMARIES = {
     # Drivers by sex
     "drivers_sex_rates": driver_risk.sex_age_rates,
     "drivers_sex_ratios": driver_risk.sex_ratios,
-    "drivers_sex_trend": driver_risk.sex_trend,
     "drivers_sex_b_licence": driver_risk.sex_b_licence,
     # Speed as a severity factor, and the other concurrent factors
     "speed_severity": factors.speed_severity,
@@ -285,15 +242,6 @@ SUMMARIES = {
     "q9_infraction_shares": speed.infraction_shares,
     # The data page's missing-values chart: the audited fields by the audit's applicability rule
     "missingness_where_applicable": _recording_by_year,
-    # Age and driving exposure
-    "q7_km_by_owner_age": driver_risk.car_kilometres,
-    "q7_km_rates": driver_risk.km_rates,
-    "q7_km_ratio": driver_risk.km_rate_ratios,
-    "q7_km_ratio_65_74": lambda: driver_risk.km_rate_ratios(reference_band="65-74"),
-    "q7_company_km": driver_risk.company_km_sensitivity,
-    "q7_owner_age_check": driver_risk.owner_age_check,
-    "q7_denominator_contrast": driver_risk.denominator_contrast,
-    "q7_licence_share": licence_share_by_age,
     # Vehicles per kilometre
     "q6_vehicle_groups": vehicles.vehicle_groups_table,
     "q6_vehicle_km_2022": vehicles.vehicle_km,
