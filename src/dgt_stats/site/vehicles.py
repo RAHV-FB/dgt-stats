@@ -306,7 +306,7 @@ def technical_notes(captions: dict[str, str]) -> str:
         "show how much of that gap is real and how much comes from the split.</p>"
         "<p>DGT's later release gives mean kilometres by vehicle type for "
         f"{_join([str(y) for y in f.later_km_years])} on the same basis (see "
-        f'<a href="trends.html#road-fuel">{_page_name("trends")}</a>); the vehicles page matches '
+        f'<a href="long-run.html#road-fuel">{_page_name("long-run")}</a>); the vehicles page matches '
         f"the crash tables and the kilometres for {year} only. The kilometres cover all roads, so "
         "rates per kilometre cannot be split between urban and interurban roads.</p>"
         "<p>The crash counts include foreign-registered vehicles driven in Spain, while the "

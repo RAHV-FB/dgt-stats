@@ -11,7 +11,6 @@ from pathlib import Path
 import pandas as pd
 
 from dgt_stats.paths import FIGURES_DIR, NARROW_FIGURES_DIR, TABLES_DIR
-from dgt_stats.risk_trends import BASE_YEAR
 from dgt_stats.site.script import CONTENT_SECURITY_POLICY, JS_FLAG
 from dgt_stats.site.style import FIGURE_SWITCH_REMS
 
@@ -44,14 +43,12 @@ NAV_GROUPS: tuple[tuple[str, tuple[tuple[str, str], ...]], ...] = (
             ("calculator", "Crash severity calculator"),
             ("driver-risk", "Driver risk comparison"),
             ("crash-explorer", "Crash statistics explorer"),
-            ("trends-explorer", "Trends and rates explorer"),
         ),
     ),
     (
         OVER_TIME,
         (
             ("long-run", "Long-run trends"),
-            ("trends", f"Since {BASE_YEAR}"),
             ("seasons", "Seasons"),
             ("policy", "The 2006 points licence"),
         ),
@@ -80,7 +77,7 @@ NAV_GROUPS: tuple[tuple[str, tuple[tuple[str, str], ...]], ...] = (
 # The line above a page's title: the group it belongs to.
 EYEBROWS = {group: group for group, _ in NAV_GROUPS}
 # The interactive tools, each on a page of its own under ``explore``.
-TOOL_SLUGS = ("calculator", "driver-risk", "crash-explorer", "trends-explorer")
+TOOL_SLUGS = ("calculator", "driver-risk", "crash-explorer")
 # What each page answers, one line each, for the home page's list of pages.
 PAGE_QUESTIONS = {
     "explore": "Calculators and explorers that compute results from the site's data.",
@@ -90,10 +87,8 @@ PAGE_QUESTIONS = {
     "side.",
     "crash-explorer": "Spain's recorded injury crashes and deaths by year, region, road and crash "
     "type.",
-    "trends-explorer": "Road deaths, injuries and crashes since 1993, as counts and as rates.",
-    "long-run": "How road deaths have changed since 1993, against vehicles, fuel sold and "
+    "long-run": "How road deaths have changed since 1993 and since 2019, against fuel sold and "
     "kilometres driven.",
-    "trends": f"Deaths, hospital admissions and injury crashes in 2024 against {BASE_YEAR}.",
     "seasons": "Which months are deadliest, and how the 2020 lockdown changed them.",
     "policy": "Whether the points-based licence of July 2006 changed monthly deaths.",
     "drivers": "How often drivers of each age and sex are in crashes per kilometre, and how "

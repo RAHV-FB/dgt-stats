@@ -13,26 +13,6 @@ pytestmark = pytest.mark.skipif(
 )
 
 
-def test_annual_headline_matches_yearbook() -> None:
-    headline = summaries.annual_headline()
-    row = headline[headline.year == 2024].iloc[0]
-    assert row.crashes == 101_996
-    assert row.deaths_30d == 1_785
-    assert row.hospitalised_30d == 9_561
-    base = headline[headline.year == summaries.BASE_YEAR].iloc[0]
-    assert base.crashes_index == 100.0 and base.deaths_30d_index == 100.0
-    assert headline.year.min() == 1993 and len(headline) == 32
-
-
-def test_night_share_by_year_and_zone() -> None:
-    night = summaries.night_share_by_year_zone()
-    assert set(night.zone) == {"interurban", "urban"}
-    assert ((night.night_crash_share > 0) & (night.night_crash_share < 1)).all()
-    # Darkness holds a larger share of deaths than of crashes in every year and zone, which is the
-    # one sentence the context page draws from this table.
-    assert (night.night_death_share > night.night_crash_share).all()
-
-
 def test_licence_share_by_age() -> None:
     share = summaries.licence_share_by_age()
     assert set(share.sex.unique()) == {"total", "male", "female"}
@@ -58,12 +38,9 @@ def test_other_road_by_period_splits_the_pooled_row() -> None:
 
 def test_registry_holds_only_tables_the_site_or_a_figure_uses() -> None:
     names = set(summaries.SUMMARIES)
-    # The withdrawn forecast's tables are rebuilt only on request (``analyse.py withdrawn``).
-    assert {name.split("_")[0] for name in summaries.WITHDRAWN_SUMMARIES} == {"forecast"}
-    assert not names & set(summaries.WITHDRAWN_SUMMARIES)
     # One prefix per page: the six pillars (risk, longrun, season, drivers, speed, factor), the
     # road classes (road), the earlier analyses they keep
-    # (q6 vehicles, q7 age, q8 policy, q9 speed status), the context tables (q1, q2) and the
+    # (q6 vehicles, q7 age, q8 policy, q9 speed status), the 2024 road-type recoding (q2) and the
     # data page's missing-values chart (missingness). The severity models are written by
     # scripts/model.py and are not here.
     assert {name.split("_")[0] for name in names} == {
@@ -75,7 +52,6 @@ def test_registry_holds_only_tables_the_site_or_a_figure_uses() -> None:
         "drivers",
         "speed",
         "factor",
-        "q1",
         "q2",
         "q6",
         "q7",

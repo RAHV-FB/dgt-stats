@@ -271,16 +271,14 @@ def _source_table(numbers: dict[str, str], inventory: pd.DataFrame) -> str:
             "CORES",
             f"Spain, monthly; the analysis uses {numbers['fuel_span']}",
             "Tonnes of automotive petrol and diesel sold, biofuels included.",
-            "The traffic denominator of the national trends and seasons; a covariate in the "
-            "points-licence study.",
+            "The traffic denominator of the national trends and seasons.",
         ),
         (
             "Toll-motorway traffic",
             "Ministerio de Transportes",
             f"State toll motorways, monthly from {toll_from}",
             "Average daily traffic and vehicle-kilometres on the toll network.",
-            "A traffic index beside deaths by month; a covariate in the points-licence study; "
-            "never a denominator.",
+            "A traffic index beside deaths by month; never a denominator.",
         ),
         (
             "Interurban vehicle-kilometres",
@@ -312,21 +310,18 @@ def _source_table(numbers: dict[str, str], inventory: pd.DataFrame) -> str:
     frame = pd.DataFrame(
         rows, columns=["Source", "Published by", "Coverage", "Records", "Used for"]
     )
-    pages = _join(
-        [f'<a href="{slug}.html">{esc(TITLES[slug])}</a>' for slug in ("long-run", "policy")]
-    )
+    page = f'<a href="long-run.html">{esc(TITLES["long-run"])}</a>'
     long_run = read_table("longrun_projection_sensitivity")
-    policy = read_table("q8_points_sensitivity")
     _check(
-        long_run.variant.eq("deaths_24h").any() and policy.variant.eq("24h").any(),
+        long_run.variant.eq("deaths_24h").any(),
         "sources",
-        "the long-run trends and the points-licence study each have a 24-hour sensitivity test",
+        "the long-run trends have a 24-hour sensitivity test",
     )
     return (
         table(frame, "Sources used in the study.")
         + "<p>The yearbook series and the statistical tables count deaths within 30 days. The "
         "yearbook's deaths within 24 hours are used only to check the crash records and in "
-        f"sensitivity tests on {pages} "
+        f"a sensitivity test on {page} "
         '(<a href="data.html#definitions">definitions</a>).</p>'
     )
 
@@ -642,7 +637,7 @@ def page_sources(captions: dict[str, str]) -> str:
     numbers = {
         "dgt_rows": _fmt_int(rows.actual.sum()),
         "dgt_span": _span_of(rows.year),
-        "yearbook_span": _span_of(read_table("q1_annual_headline").year),
+        "yearbook_span": _span_of(read_table("risk_annual_panel").year),
         "factor_span": _span_of(read_table("factor_shares").year),
         "fuel_span": _span_of(read_table("risk_frequency_severity").year),
         "km_span": _span_of(read_table("longrun_km_panel").year),

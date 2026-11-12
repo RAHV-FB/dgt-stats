@@ -18,7 +18,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from dgt_stats import codes, factors, plots, policy, summaries
+from dgt_stats import codes, factors, plots, policy, seasonality, summaries
 from dgt_stats.microdata import charts as microdata_charts
 from dgt_stats.microdata.validation import dgt_audit
 from dgt_stats.paths import FIGURES_DIR, NARROW_FIGURES_DIR, TABLES_DIR
@@ -42,7 +42,6 @@ TRAFFIC_SOURCE = (
     "CORES, consumo de productos petrolíferos; Ministerio de Transportes y Movilidad Sostenible, "
     "tráfico en autopistas estatales de peaje"
 )
-VEHICLE_FLEET_SOURCE = "DGT registered vehicle fleet"
 
 SPEED_STATUS_LABELS = {
     "speed_infraction": "Speed infraction recorded",
@@ -151,7 +150,6 @@ def svg_width(path: Path) -> float:
 def _draw_all(figures_dir: Path, captions: dict[str, str], summary) -> None:
     """Every figure, into ``figures_dir``, with its caption added to ``captions``."""
     figures_dir.mkdir(parents=True, exist_ok=True)
-    _trend_figures(figures_dir, captions, summary)
     _long_run_figures(figures_dir, captions, summary)
     _season_figures(figures_dir, captions, summary)
     _sex_figures(figures_dir, captions, summary)
@@ -211,61 +209,11 @@ def _speed_status_figure(figures_dir: Path, captions: dict[str, str], summary) -
 # --------------------------------------------------------------------------- counts and risk
 
 
-SHORT_DENOMINATORS = {
-    "count": "Count",
-    "residents": "Per resident",
-    "licence_holders": "Drivers per licence holder",
-    "vehicles": "Occupants per registered vehicle",
-    "road_fuel": "Per tonne of road fuel",
-}
-
-
-def _trend_figures(figures_dir: Path, captions: dict[str, str], summary) -> None:
-    index = summary("risk_index")
-    base, last = int(index.year.min()), int(index.year.max())
-    latest = index[index.year == last].assign(
-        denominator_short=lambda f: f.denominator.map(SHORT_DENOMINATORS)
-    )
-    plots.dot_interval_panels(
-        latest,
-        "outcome_label",
-        "denominator_short",
-        "ratio_to_base",
-        "ratio_low_yty",
-        "ratio_high_yty",
-        figures_dir / "r1_risk_change.svg",
-        f"{last} against {base}: each outcome under the denominators it can be paired with",
-        order=list(SHORT_DENOMINATORS.values()),
-        panel_order=list(dict.fromkeys(latest.outcome_label)),
-        xlabel=f"Ratio, {last} to {base} (dotted line: no change)",
-        reference=1.0,
-        from_zero=False,
-        shared=True,
-    )
-    captions["r1_risk_change"] = _caption(
-        f"Each outcome's {last} rate as a ratio to its {base} rate, under every denominator it "
-        "can be paired with, Spain, all roads, with 95% intervals that allow for ordinary "
-        "year-to-year variation; road fuel sold stands in for distance driven",
-        f"{SERIES_SOURCE}; {POPULATION_SOURCE}; {CENSUS_SOURCE}; {VEHICLE_FLEET_SOURCE}; "
-        f"{FUEL_SOURCE}",
-    )
-
-
-# Panel titles of the trend chart. Every panel plots a count of deaths a year, the middle one only
-# the occupant deaths of the vehicles in the fleet; what differs is the measure the trend was
-# fitted to, so each title names what is counted and that measure.
+# Panel titles of the trend chart. Both panels plot a count of deaths a year; what differs is the
+# measure the trend was fitted to, so each title names what is counted and that measure.
 LONG_RUN_PANELS = {
     "Deaths": "All deaths a year; trend fitted to the count",
-    "Vehicle occupant deaths per registered vehicle": (
-        "Vehicle occupant deaths a year; trend fitted per registered vehicle"
-    ),
     "Deaths per tonne of road fuel": "All deaths a year; trend fitted per tonne of road fuel",
-}
-# The same measures in the ratio chart, where every panel is a ratio.
-LONG_RUN_RATIO_PANELS = {
-    "Deaths": "Deaths",
-    "Vehicle occupant deaths per registered vehicle": "Occupant deaths per vehicle",
-    "Deaths per tonne of road fuel": "Deaths per tonne of fuel",
 }
 # The zoom of the ratio charts: the decade before the pandemic and every year after it.
 RATIO_ZOOM_YEARS = 10
@@ -282,7 +230,7 @@ def _long_run_figures(figures_dir: Path, captions: dict[str, str], summary) -> N
     # Each panel title says what the panel counts, so every measure needs one, and each panel
     # must plot a count of deaths (the rates' trends converted back into deaths).
     untitled = set(raw.measure_label) - set(LONG_RUN_PANELS)
-    if untitled or not set(raw.numerator) <= {"deaths_30d", "occupants_deaths_30d"}:
+    if untitled or not set(raw.numerator) <= {"deaths_30d"}:
         raise ValueError(f"l1 panel titles: untitled {untitled} or a panel that is not a count")
     fit_end = int(raw[raw.period == "fitted"].year.max())
     first_projected = fit_end + 1
@@ -297,46 +245,20 @@ def _long_run_figures(figures_dir: Path, captions: dict[str, str], summary) -> N
         "low",
         "high",
         figures_dir / "l1_trend_projection.svg",
-        "Road deaths against the pre-pandemic trend, under three measures",
+        "Road deaths against the pre-pandemic trend, as a count and per tonne of road fuel",
         last_fitted=fit_end,
         order=order,
         ylabel="Deaths within 30 days, a year",
     )
     zoom_first = fit_end - RATIO_ZOOM_YEARS + 1
-    zoom = raw[raw.year >= zoom_first].assign(
-        measure_label=lambda f: f.measure_label.replace(LONG_RUN_RATIO_PANELS)
-    )
-    plots.ratio_panels(
-        zoom,
-        "measure_label",
-        "year",
-        "ratio",
-        "range_low",
-        "range_high",
-        figures_dir / "l2_observed_over_trend.svg",
-        f"Observed deaths as a share of the pre-pandemic trend, {zoom_first}–{int(zoom.year.max())}",
-        last_fitted=fit_end,
-        order=list(dict.fromkeys(zoom.measure_label)),
-        ylabel="Observed ÷ trend",
-    )
-    sources = f"{SERIES_SOURCE}; {VEHICLE_FLEET_SOURCE}; {FUEL_SOURCE}"
-    captions["l2_observed_over_trend"] = _caption(
-        "Observed deaths within 30 days as a ratio to the pre-pandemic trend of each measure "
-        f"(up to {fit_end} the fitted segmented trend; from {first_projected} its last segment, "
-        f"refitted on that segment's years and projected), with the trend's 95% "
-        f"prediction range shaded from {first_projected}, Spain, "
-        f"{zoom_first}–{int(zoom.year.max())}; a year outside the shading is outside the "
-        "trend's range",
-        sources,
-    )
+    sources = f"{SERIES_SOURCE}; {FUEL_SOURCE}"
     fuel = raw[raw.measure == "road_fuel"]
     fuel_note = f" (road fuel from {int(fuel.year.min())})" if not fuel.empty else ""
     captions["l1_trend_projection"] = _caption(
         f"Deaths within 30 days, Spain, {int(raw.year.min())}–{int(raw.year.max())}"
         f"{fuel_note}, against segmented trends fitted up to {fit_end} and projected from "
-        f"{first_projected} with 95% prediction intervals; the middle panel counts the "
-        "occupant deaths of motorcycles, cars, vans, trucks and buses, and the trends of the "
-        "two rates are converted back into deaths",
+        f"{first_projected} with 95% prediction intervals; the trend per tonne of fuel is "
+        "converted back into deaths",
         sources,
     )
 
@@ -377,54 +299,8 @@ def _long_run_figures(figures_dir: Path, captions: dict[str, str], summary) -> N
         f"{SERIES_SOURCE}; {FUEL_SOURCE}; {ROAD_TRAFFIC_SOURCE}",
     )
 
-    split = summary("risk_frequency_severity")
-    per_fuel = "Deaths per tonne of fuel"
-    panels = {
-        "Split by injury crashes": {
-            "deaths_per_fuel_index": per_fuel,
-            "frequency_index": "Injury crashes per tonne",
-            "severity_index": "Deaths per injury crash",
-        },
-        "Split by people admitted to hospital": {
-            "deaths_per_fuel_index": per_fuel,
-            "hospitalised_per_fuel_index": "Admissions per tonne",
-            "deaths_per_hospitalised_index": "Deaths per admission",
-        },
-    }
-    long = pd.concat(
-        [
-            split.melt(
-                id_vars="year", value_vars=list(labels), var_name="measure", value_name="index"
-            ).assign(measure_label=lambda f, labels=labels: f.measure.map(labels), panel=panel)
-            for panel, labels in panels.items()
-        ],
-        ignore_index=True,
-    )
-    base = int(split.year.min())
-    plots.line_panels(
-        long,
-        "panel",
-        "year",
-        "index",
-        "measure_label",
-        figures_dir / "l3_frequency_severity.svg",
-        f"Deaths per tonne of road fuel, split two ways into how often and how deadly ({base} = 100)",
-        order=list(panels),
-        focal=per_fuel,
-        reference=100,
-        ylabel=f"Index, {base} = 100",
-    )
-    captions["l3_frequency_severity"] = _caption(
-        "Deaths within 30 days per tonne of road fuel sold (petrol plus diesel), split into "
-        "injury crashes per tonne and deaths per injury crash (top) and into people admitted to "
-        "hospital per tonne and deaths per admission (bottom), indexed to "
-        f"{base} = 100, Spain, all roads, {base}–{int(split.year.max())}; each pair multiplies "
-        "to deaths per tonne, and the two pairs divide its fall differently",
-        f"{SERIES_SOURCE}; {FUEL_SOURCE}",
-    )
 
-
-# --------------------------------------------------------------------------- forecasts
+# --------------------------------------------------------------------------- seasons
 
 
 # The three measures of road use drawn beside deaths on the seasons page, the same in both of its
@@ -464,7 +340,15 @@ def _season_styles(frame: pd.DataFrame) -> dict[str, dict[str, object]]:
 
 
 def _season_figures(figures_dir: Path, captions: dict[str, str], summary) -> None:
-    profile = summary("season_profile_long")
+    wide = summary("season_profile")
+    labels = {"deaths_all": "Deaths, all roads", **seasonality.TRAFFIC_SERIES}
+    profile = wide.melt(
+        id_vars=["month", "month_label"],
+        value_vars=list(labels),
+        var_name="series",
+        value_name="index",
+    )
+    profile["series_label"] = profile.series.map(labels)
     plots.month_lines(
         profile,
         "series_label",
@@ -488,7 +372,7 @@ def _season_figures(figures_dir: Path, captions: dict[str, str], summary) -> Non
         f"{SERIES_SOURCE}; {TRAFFIC_SOURCE}",
     )
 
-    short = {"none": "Raw deaths", "road_fuel_tonnes": "Per tonne of road fuel sold"}
+    short = {"none": "Deaths per day", "road_fuel_tonnes": "Per tonne of road fuel sold"}
     effects = effects.assign(panel=effects.exposure.map(short))
     plots.dot_interval_panels(
         effects,
@@ -498,7 +382,7 @@ def _season_figures(figures_dir: Path, captions: dict[str, str], summary) -> Non
         "low",
         "high",
         figures_dir / "m2_month_effects.svg",
-        "Deaths by month against the average month, raw and per tonne of road fuel",
+        "Deaths by month against the average month, per day and per tonne of road fuel",
         order=list(dict.fromkeys(effects.month_label)),
         panel_order=list(short.values()),
         xlabel="Deaths against the average month (dotted line: the same)",
@@ -507,19 +391,30 @@ def _season_figures(figures_dir: Path, captions: dict[str, str], summary) -> Non
         shared=True,
     )
     captions["m2_month_effects"] = _caption(
-        "Deaths within 30 days in each month against the average month of the same year, raw "
-        f"and per tonne of road fuel sold, Spain, {years}, with 95% intervals; the raw panel "
-        "compares monthly totals, not adjusted for the number of days in a month",
+        "Deaths within 30 days in each month against the average month of the same year, per "
+        f"day of the month and per tonne of road fuel sold, Spain, {years}, with 95% intervals",
         f"{SERIES_SOURCE}; {FUEL_SOURCE}",
     )
 
-    lockdown = summary("season_lockdown_long")
+    changes = summary("season_lockdown")
+    lockdown = changes.melt(
+        id_vars=["month", "month_label"],
+        value_vars=["deaths_change", "road_fuel_tonnes_change"],
+        var_name="series",
+        value_name="change",
+    )
+    lockdown["series_label"] = lockdown.series.map(
+        {
+            "deaths_change": "Deaths, all roads",
+            "road_fuel_tonnes_change": seasonality.TRAFFIC_SERIES["road_fuel_tonnes"],
+        }
+    )
     plots.month_lines(
         lockdown,
         "series_label",
         "change",
         figures_dir / "m3_lockdown.svg",
-        "2020 against the same month of 2017–2019: deaths and traffic",
+        "2020 against the same month of 2017–2019: deaths and road fuel sold",
         order=list(dict.fromkeys(lockdown.series_label)),
         reference=0,
         percent=True,
@@ -527,10 +422,10 @@ def _season_figures(figures_dir: Path, captions: dict[str, str], summary) -> Non
         styles=_season_styles(lockdown),
     )
     captions["m3_lockdown"] = _caption(
-        "Change in deaths within 30 days and in three measures of road use (road fuel sold, petrol "
-        "sold, toll-motorway traffic per kilometre) in each month of 2020 against the mean of "
-        "the same month in 2017–2019, Spain; the state of alarm began on 14 March 2020",
-        f"{SERIES_SOURCE}; {TRAFFIC_SOURCE}",
+        "Change in deaths within 30 days and in road fuel sold (petrol plus diesel) in each month "
+        "of 2020 against the mean of the same month in 2017–2019, Spain; the state of alarm "
+        "began on 14 March 2020",
+        f"{SERIES_SOURCE}; {FUEL_SOURCE}",
     )
 
 

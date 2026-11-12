@@ -34,7 +34,6 @@ def _policy_numbers() -> dict[str, object]:
         "sensitivity": sensitivity,
         "calendar": calendar,
         "calibration": read_table("q8_points_calibration").iloc[0],
-        "definitions": read_table("q8_points_death_definitions"),
         "forecast": forecast,
         "transitions": transitions,
         "trend": trend,
@@ -46,8 +45,7 @@ def _policy_numbers() -> dict[str, object]:
 
 
 def _risk_numbers() -> dict[str, object]:
-    """``latest``: the last year's rows by (outcome, denominator). Licence holders and the fleet
-    divide only driver and occupant casualties (``numerator``) and have no injury-crash rows."""
+    """``latest``: the last year's rows by (outcome, denominator)."""
     index = read_table("risk_index")
     last = int(index.year.max())
     latest = index[index.year == last].set_index(["outcome", "denominator"])
@@ -69,8 +67,8 @@ def _long_run_numbers() -> dict[str, object]:
 
 
 def _season_numbers() -> dict[str, object]:
-    """Month effects with no exposure (``none``) and per tonne of road fuel (the only exposure);
-    the lockdown table keeps petrol and toll-motorway changes as traffic beside deaths only."""
+    """Month effects per day (``none``) and per tonne of road fuel (the only exposure); the
+    lockdown table compares deaths with road fuel sold."""
     effects = read_table("season_month_effects").set_index(["exposure", "month"])
     lockdown = read_table("season_lockdown").set_index("month")
     return {"effects": effects, "lockdown": lockdown}
