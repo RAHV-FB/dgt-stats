@@ -10,10 +10,9 @@ import re
 
 import pandas as pd
 
-from dgt_stats import codes, io_population, io_traffic
+from dgt_stats import codes, dgt_coding, io_population, io_traffic
 from dgt_stats.exposure_risk import coverage
 from dgt_stats.microdata import sources as microdata_sources
-from dgt_stats.microdata.validation import dgt_audit
 from dgt_stats.paths import RAW_DATA_DIR
 from dgt_stats.site.components import (
     ALL_PAGES,
@@ -357,10 +356,10 @@ def _audit() -> str:
     # fields do not apply away from a junction.
     shares = regional.set_index("field")
     _check(
-        all(dgt_audit.presence_field(f) for f in ("CONDICION_NIEBLA", "CONDICION_VIENTO"))
+        all(dgt_coding.presence_field(f) for f in ("CONDICION_NIEBLA", "CONDICION_VIENTO"))
         and float(shares.loc[["CONDICION_NIEBLA", "CONDICION_VIENTO"]].unrecorded_share.max()) == 0
-        and {"NUDO_INFO", *codes.PRIORI_COLUMNS} == set(dgt_audit.JUNCTION_FIELDS)
-        and bool((shares.loc[list(dgt_audit.JUNCTION_FIELDS)].applies_share < 1).all()),
+        and {"NUDO_INFO", *codes.PRIORI_COLUMNS} == set(dgt_coding.JUNCTION_FIELDS)
+        and bool((shares.loc[list(dgt_coding.JUNCTION_FIELDS)].applies_share < 1).all()),
         "sources",
         "the fog and wind fields are filled in only when present; the junction fields apply "
         "only at a junction",
@@ -386,7 +385,7 @@ def _audit() -> str:
     inverted = junctions[junctions.junction_flag_inverted.astype(bool)]
     inverted_from = int(inverted.year.min())
     catalan = set(junctions[junctions.catalan.astype(bool)].province)
-    matched = dgt_audit.catalan_junction_years(junctions)
+    matched = dgt_coding.catalan_junction_years(junctions)
     flipped = matched[matched.junction_flag_inverted.astype(bool)]
     _check(
         set(inverted.province) == catalan
@@ -411,13 +410,13 @@ def _audit() -> str:
     junction_without = float(junction_type.province_spread_without_inverted_junction_years)
     _check(
         not bool(junction_type.comparable_across_provinces)
-        and junction_without <= dgt_audit.MAX_REGIONAL_SPREAD,
+        and junction_without <= dgt_coding.MAX_REGIONAL_SPREAD,
         "sources",
         "the junction type varies across provinces only through the inverted junction flag",
     )
     _check(
         worst_without < float(priority.province_max.max())
-        and worst_without > dgt_audit.MAX_REGIONAL_SPREAD,
+        and worst_without > dgt_coding.MAX_REGIONAL_SPREAD,
         "sources",
         "without the inverted years the right-of-way fields are still recorded unevenly",
     )
@@ -450,9 +449,9 @@ def _audit() -> str:
         "breaks</a>).</p>"
         f"<p>Of the {_fmt_int(fields)} fields examined (the {_fmt_int(len(priority))} that "
         f"record who had right of way counted as one), {_words(uneven)} have an unrecorded "
-        f"share that varies by more than {dgt_audit.MAX_REGIONAL_SPREAD * 100:.0f} percentage "
+        f"share that varies by more than {dgt_coding.MAX_REGIONAL_SPREAD * 100:.0f} percentage "
         "points across the provinces with at least "
-        f"{_fmt_int(dgt_audit.MIN_PROVINCE_CRASHES)} crashes, counting only the crashes each "
+        f"{_fmt_int(dgt_coding.MIN_PROVINCE_CRASHES)} crashes, counting only the crashes each "
         "field applies to. The junction type is among them only because of the Catalan "
         f"provinces' records from {inverted_from}: without them its unrecorded "
         f"share varies by {junction_without * 100:.0f} points. Among crashes recorded at a "

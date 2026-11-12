@@ -32,6 +32,7 @@ from dgt_stats.site.numbers import (
     per_km_ratio,
 )
 from dgt_stats.site.regional_common import _year_label
+from dgt_stats.site.vehicles import _facts as _vehicle_facts
 
 TITLES = dict(ALL_PAGES)
 
@@ -53,14 +54,16 @@ def page_index(captions: dict[str, str]) -> str:
         "a circumstance is an association in the records, not an estimate of what caused it."
     )
     body += (
-        '<p class="home-tools"><a href="explore.html">Interactive tools</a> See how often severe '
-        "crashes like one you describe were fatal in Catalonia, compare drivers by age or sex, "
-        "and explore crashes, deaths and rates by year, region and road.</p>"
+        '<p class="home-tools">Two interactive tools work from the same tables: the '
+        '<a href="driver-risk.html">driver risk comparison</a> sets drivers of two ages or sexes '
+        'side by side, and the <a href="crash-explorer.html">crash statistics explorer</a> '
+        "shows crashes, deaths and rates by year, region and road.</p>"
     )
     body += "<h2>Main findings</h2>"
     body += '<ul class="findings">'
     body += _deaths()
     body += _drivers()
+    body += _vehicles()
     body += _speed()
     body += _heavy_vehicles()
     body += "</ul>"
@@ -156,6 +159,23 @@ def _drivers() -> str:
         [("drivers#deaths-once-a-crash-has-happened", "Drivers: deaths once in a crash")],
     )
     return per_km + deaths
+
+
+def _vehicles() -> str:
+    f = _vehicle_facts()
+    _require(
+        "vehicles",
+        {
+            "motorcycles are in fatal crashes at least ten times as often per km as cars": f.bike_per_km
+            > 10
+        },
+    )
+    return _finding(
+        "Per kilometre driven, motorcycles are in fatal crashes far more often than cars",
+        f"in {f.year}, {f.bike_per_km:.1f} times as often as cars, mostly because they are in "
+        f"more crashes; per vehicle on the road the ratio is {f.bike_per_vehicle:.1f}.",
+        [("vehicles", "")],
+    )
 
 
 def _speed() -> str:

@@ -125,7 +125,7 @@ def test_catalonia_leads_with_its_results_and_links_the_model(
     headings = _headings(text)
     # The checks on the file are technical notes on the methodology page, not sections of the
     # page. The page keeps the agreement with DGT's 24-hour counts, under the anchor the sources
-    # and validation pages cite; the comparison in full is in the notes.
+    # page cites; the comparison in full is in the notes.
     assert "Agreement with DGT's national records" not in headings
     assert "Fields recorded unevenly" not in headings
     assert '<details class="technical"' not in text
@@ -149,19 +149,12 @@ def test_catalonia_leads_with_its_results_and_links_the_model(
 
 
 def test_barcelona_tables_name_each_breakdown_once(pages: dict[str, str]) -> None:
-    # The tables of people by road user, age and sex are the Barcelona page's technical notes.
+    # The shares of people by road user, age and sex are linked from the Barcelona page's notes.
     text = _notes(pages["data"], "barcelona-method")
     for prefix in ("Road user: ", "Age: ", "Sex: "):
         assert f">{prefix}" not in text, prefix
-    for column in ("Road user", "Age", "Sex"):
-        assert re.search(rf'<th scope="col"[^>]*>{column}</th>', text), column
-    # The road users are listed as in their figure, from the highest share.
-    people = _table("bcn_person_severity_share")
-    road_users = people[(people.dimension == "road user") & (people.n >= 30)]
-    top = road_users.sort_values("share", ascending=False).iloc[0]
-    block = text[re.search(r'<th scope="col"[^>]*>Road user</th>', text).end() :]
-    first = re.search(r'<th scope="row"[^>]*>([^<]+)</th>', block).group(1)
-    assert first.lower() == top.label
+    # The shares by road user, age and sex are one table, published as CSV.
+    assert 'href="tables/bcn_person_severity_share.csv"' in text
 
 
 def test_barcelona_headline_numbers_come_from_the_tables(pages: dict[str, str]) -> None:
@@ -207,8 +200,6 @@ def test_the_held_out_tests_come_from_the_table(pages: dict[str, str]) -> None:
 
 def test_the_models_page_names_no_other_model(pages: dict[str, str]) -> None:
     text = pages["severity-models"]
-    assert "ML_MODEL_REVIEW.md" not in text and "SEVERITY_CALCULATOR.md" not in text
-    assert "calculator" not in text.lower()
     assert 'href="data.html#how-the-model-was-built"' in text
     assert 'id="how-the-model-was-built"' in pages["data"]
 

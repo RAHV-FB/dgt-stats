@@ -98,8 +98,8 @@ def test_the_navigation_holds_only_live_pages_and_marks_the_current_one(
         assert linked == every, slug
         assert nav.count('aria-current="page"') == 1, slug
         assert f'href="{slug}.html" aria-current="page"' in nav, slug
-    # The reading-order links run through the articles; the tools are opened from their page.
-    assert set(components.READING_ORDER) == set(every) - {"explore", *components.TOOL_SLUGS}
+    # The reading-order links run through every page, in the navigation's order.
+    assert list(components.READING_ORDER) == every
 
 
 def test_every_table_has_a_caption_and_header_cells(pages: dict[str, str]) -> None:
@@ -209,7 +209,7 @@ def test_technical_details_and_limitations_use_one_form(pages: dict[str, str]) -
             assert '<span class="limit-label">Limitations.</span> ' in note, slug
         # Every article closes on the same block: its tables, its method (the methodology page is
         # its own) and its sources. A tool page closes on short notes about its numbers instead.
-        if slug not in ("index", "explore", *components.TOOL_SLUGS):
+        if slug not in ("index", *components.TOOL_SLUGS):
             block = re.search(r'<section class="data-method".*?</section>', main, re.S).group(0)
             terms = ["Result tables (CSV)", "Source documentation"]
             if slug != "data":

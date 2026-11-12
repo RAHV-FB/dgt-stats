@@ -184,9 +184,10 @@ def _facts() -> SimpleNamespace:
             int(run.first_year) == first and int(run.last_year) == last
             for run in (speed_inter, speed_urban)
         ),
-        "interurban speed was flat to 2020": abs(inter_flat) < 0.05,
-        "interurban speed fell by a fifth or more from 2020 to 2022": inter_late_fall < -0.2,
-        "interurban speed fell in 2021 and did not recover by the last year": bool(
+        "interurban speed was flat until the turning year": abs(inter_flat) < 0.05,
+        "interurban speed fell by a fifth or more over the two years after it": inter_late_fall
+        < -0.2,
+        "interurban speed fell the year after and did not recover by the last year": bool(
             inter_series.loc[flat_to + 1] < inter_series.loc[flat_to]
             and inter_series.loc[last] < inter_series.loc[flat_to] * 0.85
         ),
@@ -343,7 +344,7 @@ def page_factors(captions: dict[str, str]) -> str:
         "factor recorded on interurban roads and on urban streets. The lines break where "
         f"recording stops being comparable: {'; '.join(break_phrases)}. "
         "On interurban roads alcohol and illegal manoeuvres rise; inappropriate speed is flat "
-        "to 2020 and then falls.",
+        f"to {f.flat_to} and then falls.",
         captions,
     )
     body += (

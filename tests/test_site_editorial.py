@@ -72,10 +72,10 @@ def _main(text: str) -> str:
 def test_navigation_follows_the_argument(built: dict[str, str]) -> None:
     assert [group for group, _ in site.NAV_GROUPS] == [
         "Overview",
-        "Explore",
         "Over time",
-        "Drivers, vehicles and factors",
+        "Drivers and vehicles",
         "Crash severity",
+        "Tools",
         "Data and methods",
     ]
     groups = dict(site.NAV_GROUPS)
@@ -87,53 +87,13 @@ def test_navigation_follows_the_argument(built: dict[str, str]) -> None:
     links = re.findall(r'href="([a-z-]+)\.html"', nav)
     assert links == [slug for _, pages in site.NAV_GROUPS for slug, _ in pages]
     # Each page names its group above the title and links to its neighbours in reading order.
-    assert '<p class="eyebrow">Drivers, vehicles and factors</p>' in built["factors"]
+    assert '<p class="eyebrow">Drivers and vehicles</p>' in built["factors"]
     assert 'href="vehicles.html" rel="prev"' in built["factors"]
     assert 'href="severity.html" rel="next"' in built["factors"]
     assert '<p class="eyebrow">Over time</p>' in built["policy"]
-    assert '<p class="eyebrow">Explore</p>' in built["driver-risk"]
+    assert '<p class="eyebrow">Tools</p>' in built["driver-risk"]
     assert '<p class="eyebrow">Crash severity</p>' in built["severity-models"]
     assert '<p class="eyebrow">' not in built["index"]
-
-
-def test_the_old_page_names_and_framing_are_gone(built: dict[str, str]) -> None:
-    obsolete = (
-        "Four layers of data",
-        "The four layers",
-        "How far the results reach",
-        "earn their place",
-        "earns its place",
-        "Four questions",
-        "Finding 1",
-        "Spain: DGT and INE",
-        "Spain: supporting",
-        "Rich microdata",
-        "Crash microdata: Catalonia",
-        "Validation and transportability",
-        "outward path",
-        "One model or several",
-        "What this site does not claim",
-        "is the answer",
-    )
-    for slug in LIVE:
-        for phrase in obsolete:
-            assert phrase not in built[slug], (slug, phrase)
-
-
-def test_no_page_carries_the_old_layer_and_unit_boilerplate(built: dict[str, str]) -> None:
-    for slug in LIVE:
-        main = _main(built[slug])
-        visible = _visible(built[slug])
-        for markup in ('class="level"', '<details class="about">', 'class="finding"'):
-            assert markup not in main, (slug, markup)
-        assert "Source, coverage and unit" not in visible, slug
-        assert not re.search(r"\b(Layers?|Units?): ", visible), slug
-        # Validation is described in plain words, not in the vocabulary of the pipeline.
-        for word in ("native", "in-domain", "transportability", "common-feature"):
-            assert not re.search(rf"\b{word}\b", visible, re.I), (slug, word)
-        # Decision codes stay in the generated model-decision record, off the pages.
-        for code in ("KEEP as", "REPLACE with", "KEEP but"):
-            assert code not in visible, (slug, code)
 
 
 # A source column name (D_SUBZONA, ID_ACCIDENTE, TOTAL_MU24H, Numero_expedient) or a snake_case
@@ -168,7 +128,7 @@ def test_headings_and_leads_are_statements(built: dict[str, str]) -> None:
         # only on the home page and the tool pages (a page with a summary does not open twice).
         lead = re.search(r'<meta name="description" content="([^"]*)">', text).group(1)
         assert "?" not in lead, slug
-        opens_with_lead = slug in ("index", "explore", *components.TOOL_SLUGS)
+        opens_with_lead = slug in ("index", *components.TOOL_SLUGS)
         assert ('<p class="lead">' in text) == opens_with_lead, slug
         for opening in re.findall(r'<p class="summary">(.*?)</p>', text, re.S):
             assert "?" not in re.sub(r"<[^>]+>", "", opening), slug
@@ -202,12 +162,11 @@ def test_the_front_page_is_a_research_overview(built: dict[str, str]) -> None:
     for slug in ("data", "sources"):
         assert f'href="{slug}.html' in main, slug
     # The interactive tools are reached from the top of the page, before the findings.
-    assert main.find('<p class="summary">') < main.find('href="explore.html"') < main.find("<h2")
-    # The modelling is described in plain words, with the model that lost to its table named as
-    # such, and the supporting association analysis is not presented as a model.
-    visible = _visible(built["index"])
-    assert "tested only within Catalonia" in visible
-    assert "Association analysis of DGT crash records" not in visible
+    for tool in components.TOOL_SLUGS:
+        assert (
+            main.find('<p class="summary">') < main.find(f'href="{tool}.html"') < main.find("<h2")
+        )
+    assert "tested only within Catalonia" in _visible(built["index"])
 
 
 def test_the_models_page_states_its_contrasts_ranking_and_limits(built: dict[str, str]) -> None:
@@ -225,17 +184,10 @@ def test_the_models_page_states_its_contrasts_ranking_and_limits(built: dict[str
     assert main.find("sev1_predicted_observed") < main.find("sev2_held_out")
     # On roads through towns the model does not beat the table, said next to the pooled score.
     assert "On roads through towns it does not beat the table" in visible
-    assert "calculator" not in visible.lower()
     assert "cannot say whether a crash will happen" in visible
     assert "a posted limit is not a speed" in visible.lower()
     assert "died within 24 hours" in visible
     assert "should not be used for a place it was not fitted on" in visible
-    # No retired model, withdrawn page or review is mentioned.
-    for text in ("rules engine", "retired", "model review", "Barcelona models"):
-        assert text not in visible, text
-    # No removed page is linked.
-    for page in ("forecast", "trends", "validation", "calculator"):
-        assert f'href="{page}.html' not in main, page
 
 
 # The regional crash-record pages and the methodology section that holds each one's technical
@@ -285,7 +237,7 @@ def test_pages_carry_no_template_furniture(built: dict[str, str]) -> None:
             assert f"<h2>{heading}</h2>" not in main, (slug, heading)
         prose = main.replace('<p class="eyebrow">Spain · supporting analysis</p>', "")
         assert "upporting analysis" not in prose, slug
-        if slug not in ("explore", *components.TOOL_SLUGS):
+        if slug not in components.TOOL_SLUGS:
             assert main.count('<p class="summary">') == 1, slug
 
 

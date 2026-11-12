@@ -240,18 +240,6 @@ def driver_data() -> dict[str, object]:
     }
 
 
-def describe() -> dict[str, str]:
-    data = driver_data()
-    return {
-        "title": "Driver risk comparison",
-        "what": "Two groups of car drivers side by side, by age or sex: involvement in injury "
-        "crashes and deaths, per licence holder, per driver involved and per kilometre driven.",
-        "coverage": f"Spain, {data['year']} (men and women: {data['sex']['years']})",
-        "kind": "Observed rates with 95% intervals; per-kilometre figures are estimates that "
-        "depend on assumptions about distance driven",
-    }
-
-
 def data_files() -> dict[str, object]:
     return {"driver-risk.json": driver_data()}
 
