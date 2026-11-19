@@ -6,7 +6,7 @@ applicable, and a field's explicit unknown code) are levels of their own and no 
 because missingness is year-dependent. They are *nuisance* levels (``is_nuisance``): they record
 how a police force fills in the form, which differs by jurisdiction and year (alignment "unknown"
 is almost entirely Cataluña's), so their odds ratios are kept in the tables, flagged, and never
-read as an effect. The grouping maps are data, so the severity page can print them.
+read as an effect.
 
 Levels with fewer than ``MIN_LEVEL_CRASHES`` crashes are merged into the reference on the counts of
 the frame passed in, all years together; the counts are of predictors only, never of outcomes.
@@ -44,8 +44,6 @@ CATALAN_PROVINCES = ("8", "17", "25", "43")
 # A level with fewer crashes than this is merged into the reference level: it cannot be estimated
 # (several such levels have no events at all) and would only add noise to the table.
 MIN_LEVEL_CRASHES = 500
-# The grouping table's last row per predictor: every value the map does not list, and empty cells.
-FALLBACK_CODE = "any other value or empty"
 
 # Each predictor: source column, ordered levels (reference first) and a code -> level map.
 # Codes not listed fall to ``fallback`` (the missing markers 999/998 are handled first).
@@ -245,36 +243,26 @@ MODEL_COLUMNS = list(
     )
 )
 # With the right-of-way flags, which describe how priority was regulated at the junction: the
-# columns :func:`junction_coding_table` and the near-junction treatment read.
+# columns :func:`junction_coding_table` reads.
 JUNCTION_COLUMNS = [*MODEL_COLUMNS, *codes.PRIORI_COLUMNS]
 
-# The grouping table's suffix for a junction code in a province-year whose flag is inverted.
-INVERTED_KEY = " where the flag is inverted"
 AT_JUNCTION = "at a junction"
 NOT_AT_JUNCTION = "not at a junction"
 # A province-year in which more than this share of the crashes flagged away from a junction carry
 # a junction type has the flag the wrong way round. It is the DGT microdata audit's rule and share
-# (``dgt_audit.junction_coding``, column ``junction_flag_inverted``), and a test holds the two to
+# (``dgt_coding.junction_coding``, column ``junction_flag_inverted``), and a test holds the two to
 # the same province-years.
 INVERTED_TYPE_SHARE = 0.5
-# How the model reads the junction flag of the inverted province-years, and the alternatives
+# How the model reads the junction flag of the inverted province-years, and the alternative
 # ``models.junction_sensitivity`` fits beside it. The flag read the other way round is the one
 # the rest of each record supports crash by crash (``q3_junction_coding``): the crashes it places
 # away from a junction carry neither a junction type nor a right-of-way flag, and those it places
 # at one carry a junction type or, lacking one, right-of-way flags, as junction crashes do in the
-# earlier years. Reading the junction type alone would place the junction crashes that have no
-# type away from a junction; "unrecorded" drops what the records establish. "near junctions"
-# also places at a junction the Catalan crashes flagged away from one whose record carries a
-# junction type or a right-of-way flag: crashes near a junction that the 2021 records flag away
-# (the Catalan file counts them at a junction in the other years).
+# earlier years.
 JUNCTION_TREATMENT = "flip"
 JUNCTION_TREATMENTS = {
     "flip": "flag read the other way round",
-    "junction type": "at a junction when the record carries a junction type",
-    "unrecorded": "junction unrecorded",
     "as published": "flag as DGT publishes it",
-    "flip and near junctions": "flag read the other way round, and Catalan crashes flagged away "
-    "from a junction with a junction type or a right-of-way flag placed at one",
 }
 
 
@@ -336,25 +324,9 @@ def junction_codes(
     inverted = inverted_junction_rows(crashes, flags)
     at_code, away_code = _junction_code(AT_JUNCTION), _junction_code(NOT_AT_JUNCTION)
     out = pd.to_numeric(crashes["NUDO"], errors="coerce").astype("Int64")
-    if treatment in ("flip", "flip and near junctions"):
+    if treatment == "flip":
         out = out.mask(inverted & flags.flagged_at, away_code)
         out = out.mask(inverted & flags.flagged_away, at_code)
-    elif treatment == "junction type":
-        recorded = inverted & (flags.flagged_at | flags.flagged_away)
-        out = out.mask(recorded & flags.junction_type, at_code)
-        out = out.mask(recorded & ~flags.junction_type, away_code)
-    elif treatment == "unrecorded":
-        out = out.mask(inverted, pd.NA)
-    if treatment == "flip and near junctions":
-        if "right_of_way" not in flags:
-            raise ValueError("the near-junction treatment needs the right-of-way flags")
-        near = (
-            flags.province.isin(CATALAN_PROVINCES)
-            & ~inverted
-            & flags.flagged_away
-            & (flags.junction_type | flags.right_of_way)
-        )
-        out = out.mask(near, at_code)
     return out
 
 
@@ -437,25 +409,6 @@ def _level_series(values: pd.Series, spec: dict[str, object]) -> pd.Series:
     return out
 
 
-def _code_keys(values: pd.Series, spec: dict[str, object]) -> pd.Series:
-    """The grouping table's code for each row: a listed code, 999, 998, or the fallback row.
-
-    Mirrors :func:`_level_series` so the counts describe exactly the rows the grouping table shows.
-    """
-    mapping: dict = spec["map"]  # type: ignore[assignment]
-    out = pd.Series(FALLBACK_CODE, index=values.index, dtype="object")
-    numeric = pd.to_numeric(values, errors="coerce") if values.dtype != bool else values
-    if values.dtype != bool and numeric.notna().any():
-        for code in (codes.NOT_APPLICABLE_CODE, codes.NOT_SPECIFIED_CODE):
-            out[numeric == code] = str(code)
-        for code in mapping:
-            out[numeric == code] = str(code)
-    else:
-        for code in mapping:
-            out[values == code] = str(code)
-    return out
-
-
 def is_nuisance(level: object) -> bool:
     """A missing-state level: what the form says rather than what happened, never an effect."""
     return str(level) in MISSING_LEVELS
@@ -487,16 +440,11 @@ def model_frame(
     flags = junction_flags(crashes)
     inverted = inverted_junction_rows(crashes, flags)
     merged: dict[str, dict[str, int]] = {}
-    code_counts: dict[str, dict[str, int]] = {}
     for name, spec in PREDICTORS.items():
         raw = crashes[str(spec["source"])]
-        keys = _code_keys(raw, spec)
         if name == "junction":
-            # The grouping table counts DGT's codes as published, those of the inverted
-            # province-years apart; the levels come from the flag as the model reads it.
-            keys = keys.where(~inverted, keys + INVERTED_KEY)
+            # The levels come from the flag as the model reads it.
             raw = junction_codes(crashes, junction, flags)
-        code_counts[name] = {str(code): int(count) for code, count in keys.value_counts().items()}
         mapped = _level_series(raw, spec)
         reference = str(list(spec["levels"])[0])  # type: ignore[index]
         for source_level, target in dict(spec.get("fold", {})).items():  # type: ignore[union-attr]
@@ -512,10 +460,8 @@ def model_frame(
             merged[name] = small
         used = [level for level in levels(name) if (mapped == level).any()]
         out[name] = pd.Categorical(mapped, categories=used, ordered=True)
-    # Which levels were merged, how many crashes each had, and how many crashes carry each code:
-    # the grouping table needs all three to describe the model that was actually fitted.
+    # Which levels were merged into their reference, and how many crashes each had.
     out.attrs["merged_levels"] = merged
-    out.attrs["code_counts"] = code_counts
     # The province-years whose junction flag is inverted and how the model reads it there.
     pairs = flags.loc[inverted, ["province", "year"]].drop_duplicates()
     out.attrs["junction_inverted"] = sorted(
@@ -523,94 +469,6 @@ def model_frame(
     )
     out.attrs["junction_treatment"] = junction
     return out
-
-
-def grouping_table(frame: pd.DataFrame | None = None) -> pd.DataFrame:
-    """Every original code with its model level, for the severity page.
-
-    Includes the missing markers and the "any other value" fallback. When ``frame`` (from
-    :func:`model_frame`) is given, the table describes the model that was actually fitted: a code
-    whose level was merged into the reference for having fewer than ``MIN_LEVEL_CRASHES`` crashes
-    says so with the level's count, and a code no crash carries is marked as absent.
-    """
-    records = []
-    for name, spec in PREDICTORS.items():
-        source = str(spec["source"])
-        mapping: dict = spec["map"]  # type: ignore[assignment]
-        fold: dict = spec.get("fold", {})  # type: ignore[assignment]
-        reference = str(list(spec["levels"])[0])  # type: ignore[index]
-        rows: list[tuple[str, str]] = [(str(code), level) for code, level in mapping.items()]
-        # The missing markers belong to the coded source columns only: a count (TOTAL_VEHICULOS)
-        # and the year never carry 999 or 998, and neither do the derived columns.
-        if source not in ("hour_band", "weekend", "TOTAL_VEHICULOS", "ANYO"):
-            rows.append((str(codes.NOT_SPECIFIED_CODE), NOT_SPECIFIED))
-            rows.append(
-                (
-                    str(codes.NOT_APPLICABLE_CODE),
-                    f"{fold[NOT_APPLICABLE]} (folded: code 998 is exactly the street zone)"
-                    if NOT_APPLICABLE in fold
-                    else NOT_APPLICABLE,
-                )
-            )
-        rows.append((FALLBACK_CODE, str(spec["fallback"])))
-        counts: dict[str, int] | None = (
-            None if frame is None else frame.attrs.get("code_counts", {}).get(name, {})
-        )
-        merged: dict[str, int] = (
-            {} if frame is None else frame.attrs.get("merged_levels", {}).get(name, {})
-        )
-        for code, level in rows:
-            shown, is_reference = level, level == reference
-            # A code no crash carries says so; the merged annotation belongs to the codes that
-            # actually brought the crashes, and counts the level, not the code.
-            taken = counts is None or counts.get(code, 0) > 0
-            if level in merged:
-                is_reference = True
-                shown = (
-                    f"{reference} (merged: the {level} level's {merged[level]:,} crashes, "
-                    f"fewer than {MIN_LEVEL_CRASHES})"
-                    if taken
-                    else f"{reference} (the {level} level was merged; no crash takes this code)"
-                )
-            elif not taken:
-                shown = f"{level} (no crash takes this value)"
-            records.append(
-                {
-                    "predictor": PREDICTOR_LABELS[name],
-                    "source": source,
-                    "code": code,
-                    "level": shown,
-                    "reference": is_reference,
-                }
-            )
-        inverted = [] if frame is None else frame.attrs.get("junction_inverted", [])
-        if name == "junction" and inverted:
-            treatment = str(frame.attrs.get("junction_treatment", JUNCTION_TREATMENT))
-            where = province_years(inverted)
-            for code, level in mapping.items():
-                read = _inverted_level(int(code), treatment)
-                records.append(
-                    {
-                        "predictor": PREDICTOR_LABELS[name],
-                        "source": source,
-                        "code": f"{code}{INVERTED_KEY}",
-                        "level": f"{read} ({JUNCTION_TREATMENTS[treatment]}: {where})",
-                        "reference": read == reference,
-                    }
-                )
-    return pd.DataFrame.from_records(records)
-
-
-def _inverted_level(code: int, treatment: str) -> str:
-    """The level a published junction code takes in an inverted province-year."""
-    mapping: dict = PREDICTORS["junction"]["map"]  # type: ignore[assignment]
-    if treatment in ("flip", "flip and near junctions"):
-        return str(next(level for other, level in mapping.items() if other != code))
-    if treatment == "junction type":
-        return f"{AT_JUNCTION} with a junction type, otherwise {NOT_AT_JUNCTION}"
-    if treatment == "unrecorded":
-        return NOT_SPECIFIED
-    return str(mapping[code])
 
 
 def province_years(pairs: list[tuple[int, int]]) -> str:

@@ -12,21 +12,19 @@ are known. Each answer carries its basis:
 * ``documentation``: the publisher's dictionary, catalogue record or download page (in the
   manifest), used for definitions only, never for observations.
 
-Writes ``reports/tables/source_comparison.csv`` (one row per source and question) and
-``docs/SOURCE_COMPARISON.md``. The layer each source belongs to is :mod:`dgt_stats.layers`.
+Writes ``reports/tables/source_comparison.csv`` (one row per source and question).
 """
 
 from __future__ import annotations
 
 import pandas as pd
 
-from dgt_stats import io_population, layers
-from dgt_stats.paths import DGT_PROCESSED_CRASHES, DOCS_DIR, PROCESSED_DATA_DIR, TABLES_DIR
+from dgt_stats import io_population
+from dgt_stats.microdata import sources
+from dgt_stats.paths import DGT_PROCESSED_CRASHES, PROCESSED_DATA_DIR, TABLES_DIR
 
-DOC = DOCS_DIR / "SOURCE_COMPARISON.md"
 TABLE = TABLES_DIR / "source_comparison.csv"
 QUESTIONS = (
-    "layer",
     "who records",
     "unit of observation",
     "inclusion rule",
@@ -71,8 +69,6 @@ def dgt_microdata() -> list[tuple[str, str, str]]:
     later = (d30.sum() - d24.sum()) / d30.sum()
     duplicates = int(frame.duplicated(["ANYO", "ID_ACCIDENTE"]).sum())
     regional = _table("dgt_audit_regional")
-    outcome = _table("dgt_audit_outcome_recording")
-    checks = _table("dgt_audit_checks")
     if regional is not None:
         missing = (
             f"median share unrecorded (not specified, unknown or blank, among the crashes each "
@@ -84,25 +80,7 @@ def dgt_microdata() -> list[tuple[str, str, str]]:
             "points between provinces"
         )
     else:
-        missing = "run `scripts/microdata.py validate` for the measured shares"
-    if outcome is not None:
-        dependent = outcome[
-            (outcome.unrecorded_share_not_fatal >= 0.01)
-            & (
-                (outcome.ratio_fatal_to_not_fatal >= 1.5)
-                | (outcome.ratio_fatal_to_not_fatal <= 1 / 1.5)
-            )
-        ]
-        artefacts = (
-            f"{dependent.field.nunique()} fields whose unrecorded share differs by a factor of "
-            "1.5 or more between fatal and non-fatal crashes in at least one region "
-            f"({', '.join(sorted(dependent.field.unique())[:6])}"
-            + (", ..." if dependent.field.nunique() > 6 else "")
-            + "); unrecorded shares differ between provinces (see the DGT microdata audit)"
-        )
-    else:
-        artefacts = "see the DGT microdata audit"
-    decision = checks.decision.iloc[0] if checks is not None else "see the DGT microdata audit"
+        missing = "run `scripts/microdata.py analyse` for the measured shares"
     return [
         (
             "who records",
@@ -155,14 +133,18 @@ def dgt_microdata() -> list[tuple[str, str, str]]:
             "repository; no key shared with the regional files",
             "measured",
         ),
-        ("known recording artefacts", artefacts, "measured"),
+        (
+            "known recording artefacts",
+            "unrecorded shares differ between provinces; from 2023 the Catalan provinces give "
+            "the junction flag inverted; fog and wind are recorded only when present, and some "
+            "province-years code them the other way (see `dgt_audit_junction_coding` and "
+            "`dgt_audit_presence_coding`)",
+            "measured",
+        ),
         (
             "used for",
-            "national trends, province and year comparisons, shares by zone and road; "
-            "an external test domain for fields validated against the Catalan file (audit decision: "
-            + decision
-            + ")",
-            "measured",
+            "national trends, province and year comparisons, shares by zone and road",
+            "documentation",
         ),
         (
             "never used for",
@@ -174,12 +156,11 @@ def dgt_microdata() -> list[tuple[str, str, str]]:
 
 
 def dgt_aggregates() -> list[tuple[str, str, str]]:
-    inventory = _table("data_inventory")
-    tables = (
-        inventory[inventory.path.str.startswith(("raw/dgt/tables", "raw/dgt/census", "raw/dgt/km"))]
-        if inventory is not None
-        else pd.DataFrame()
-    )
+    tables = [
+        row
+        for row in sources.read_manifest()
+        if row["path"].startswith(("dgt/tables", "dgt/census", "dgt/km"))
+    ]
     population = io_population.read_population()
     return [
         (
@@ -278,10 +259,10 @@ def catalonia_file() -> list[tuple[str, str, str]]:
             f"{len(dependent)} placeholder levels ('Sense especificar' or an unexplained NA) are "
             "much rarer among fatal crashes (outcome-dependent recording): "
             + ", ".join(sorted(dependent.column.unique()))
-            + "; these fields enter only the retrospective administrative model"
+            + "; these fields are not used in the severity model"
         )
     else:
-        artefact_text = "see docs/ML_LEAKAGE_AUDIT.md"
+        artefact_text = "run `scripts/microdata.py features` for the recording check"
     fatal = frame.D_GRAVETAT.astype(str).str.contains("mortal", case=False).sum()
     return [
         (
@@ -337,8 +318,8 @@ def catalonia_file() -> list[tuple[str, str, str]]:
         ("known recording artefacts", artefact_text, "measured"),
         (
             "used for",
-            "the fatal-against-serious crash model, its temporal and geographic "
-            "validation, the training domain of the transfer tests",
+            "the model of whether a severe crash was fatal and its tests on held-out years "
+            "and places",
             "documentation",
         ),
         (
@@ -355,16 +336,12 @@ def barcelona_files() -> list[tuple[str, str, str]]:
     crashes = pd.read_parquet(PROCESSED_DATA_DIR / "barcelona_accidents.parquet")
     people = pd.read_parquet(PROCESSED_DATA_DIR / "barcelona_people.parquet")
     structure = _table("mq_bcn_structure")
-    vehicles = _table("bcn_vehicle_audit_counts")
     victim = people.victimisation.astype(str).value_counts()
-    vehicle_text = ""
-    if vehicles is not None:
-        v = vehicles.set_index("measure").value
-        vehicle_text = (
-            f"; {int(v['vehicle records']):,} vehicle rows against "
-            f"{int(v['vehicles reported by the crash table (sum)']):,} vehicles the crash table "
-            "reports, so vehicle rows are not unique vehicles"
-        )
+    vehicle_rows = int(structure.set_index("table").loc["bcn_vehicles", "rows"])
+    vehicle_text = (
+        f"; {vehicle_rows:,} vehicle rows against {int(crashes.n_vehicles.sum()):,} vehicles the "
+        "crash table reports, so vehicle rows are not unique vehicles"
+    )
     tables_text = (
         ", ".join(f"{r.table} {r.rows:,}" for r in structure.itertuples())
         if structure is not None
@@ -396,7 +373,7 @@ def barcelona_files() -> list[tuple[str, str, str]]:
         (
             "geography",
             f"{crashes.district.nunique()} districts, "
-            f"{crashes.neighbourhood.nunique()} neighbourhoods, street and coordinates",
+            f"{crashes.neighbourhood.nunique()} neighbourhoods and street",
             "measured",
         ),
         (
@@ -431,15 +408,13 @@ def barcelona_files() -> list[tuple[str, str, str]]:
         ),
         (
             "known recording artefacts",
-            "the crash file's UTM columns carry exchanged labels "
-            "(corrected, offset measured against WGS84); driver causes have no key to the driver "
-            "concerned",
+            "driver causes have no key to the driver concerned; the rear-end code "
+            "'Encalc' is far more often serious and may record the outcome",
             "measured",
         ),
         (
             "used for",
-            "person and crash severity, road users, recorded causes; diagnostics and "
-            "external checks of the Catalan model",
+            "person and crash severity shares, road users, recorded causes",
             "documentation",
         ),
         (
@@ -451,17 +426,16 @@ def barcelona_files() -> list[tuple[str, str, str]]:
 
 
 SOURCES = (
-    ("DGT crash microdata", layers.NATIONAL, dgt_microdata),
-    ("DGT and INE published aggregates", layers.NATIONAL, dgt_aggregates),
-    ("Catalonia, Servei Català de Trànsit", layers.CATALONIA, catalonia_file),
-    ("Barcelona, Guàrdia Urbana", layers.BARCELONA, barcelona_files),
+    ("DGT crash microdata", dgt_microdata),
+    ("DGT and INE published aggregates", dgt_aggregates),
+    ("Catalonia, Servei Català de Trànsit", catalonia_file),
+    ("Barcelona, Guàrdia Urbana", barcelona_files),
 )
 
 
 def build() -> pd.DataFrame:
     rows = []
-    for name, layer, facts in SOURCES:
-        rows.append({"source": name, "question": "layer", "answer": layer.title, "basis": "file"})
+    for name, facts in SOURCES:
         for question, answer, basis in facts():
             rows.append({"source": name, "question": question, "answer": answer, "basis": basis})
     frame = pd.DataFrame(rows)
@@ -471,46 +445,8 @@ def build() -> pd.DataFrame:
     return frame
 
 
-def document(frame: pd.DataFrame) -> str:
-    lines = [
-        "# How each source came to exist",
-        "",
-        "Generated by `src/dgt_stats/source_profile.py`; measured answers are computed from the "
-        "files each time the pipeline runs. Do not edit by hand.",
-        "",
-        "Every source is described against the same questions. The *basis* says where each "
-        "answer comes from: measured from the file, reconciled against another source, read off "
-        "the file's own columns, or taken from the publisher's documentation (definitions only).",
-        "",
-        "## Layers",
-        "",
-        "| Layer | Unit | Answers | Not for |",
-        "|---|---|---|---|",
-    ]
-    for layer in layers.LAYERS:
-        lines.append(
-            f"| {layer.title} | {layer.unit} | {'; '.join(layer.answers)} | "
-            f"{'; '.join(layer.not_for)} |"
-        )
-    lines += [
-        "",
-        "No layer is merged into another and no record is linked across sources. Cross-source "
-        "data test models (a model trained in one source scored on another's real records) or "
-        "meet at a shared published aggregate (province and year); they never create "
-        "observations.",
-        "",
-    ]
-    for source, group in frame.groupby("source", sort=False):
-        lines += [f"## {source}", "", "| Question | Answer | Basis |", "|---|---|---|"]
-        for row in group.itertuples():
-            lines.append(f"| {row.question} | {row.answer.replace('|', '/')} | {row.basis} |")
-        lines.append("")
-    return "\n".join(lines)
-
-
 def write() -> pd.DataFrame:
     frame = build()
     TABLE.parent.mkdir(parents=True, exist_ok=True)
     frame.to_csv(TABLE, index=False)
-    DOC.write_text(document(frame), encoding="utf-8")
     return frame

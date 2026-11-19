@@ -4,7 +4,6 @@ import hashlib
 import pytest
 
 from dgt_stats.paths import (
-    CENSUS_AGE_YEARS,
     CENSUS_TABLE_YEARS,
     CENSUS_YEARS,
     DATA_DIR,
@@ -66,7 +65,6 @@ def test_expected_source_files_exist() -> None:
         assert microdata_raw_path(year).is_file(), year
     for year in CENSUS_YEARS:
         assert census_raw_path(year).is_file(), year
-    for year in CENSUS_AGE_YEARS:
         assert census_age_raw_path(year).is_file(), year
     for year in CENSUS_TABLE_YEARS:
         assert census_tables_raw_path(year).is_file(), year

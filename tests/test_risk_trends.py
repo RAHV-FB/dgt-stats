@@ -37,11 +37,7 @@ def test_projection_interval_widens_away_from_the_fitted_years() -> None:
 
 
 pytestmark_data = pytest.mark.skipif(
-    not (
-        io_tables.staging_path("series_annual").exists()
-        and io_exposure.staging_path("conductores_por_edad").exists()
-        and CORES_FUEL_PATH.exists()
-    ),
+    not (io_tables.staging_path("series_annual").exists() and CORES_FUEL_PATH.exists()),
     reason="run `python scripts/ingest.py all` first",
 )
 
@@ -50,40 +46,23 @@ pytestmark_data = pytest.mark.skipif(
 def test_annual_panel_has_every_denominator_where_its_source_runs() -> None:
     panel = risk_trends.annual_panel().set_index("year")
     assert panel.index.min() == 1993
-    assert panel.loc[1993:, "vehicle_fleet"].notna().all()
     assert (
         panel.loc[2002:, "residents"].notna().all() and panel.loc[:2001, "residents"].isna().all()
     )
-    assert panel.loc[2014:, "licence_holders"].notna().all()
     assert panel.loc[1996:, "road_fuel_tonnes"].notna().all()
     # Plausibility of the magnitudes, so a unit slip cannot pass silently.
     assert 45e6 < panel.loc[2024, "residents"] < 52e6
-    assert 25e6 < panel.loc[2024, "licence_holders"] < 30e6
     assert 20e6 < panel.loc[2024, "road_fuel_tonnes"] < 40e6
-    # The driver and occupant numerators run every year, and nest: drivers are occupants, and
-    # occupants of motor vehicles are a part of all casualties.
-    for outcome in risk_trends.ROAD_USER_OUTCOMES:
-        drivers = panel[f"drivers_{outcome}"]
-        occupants = panel[f"occupants_{outcome}"]
-        assert drivers.notna().all() and occupants.notna().all()
-        assert (drivers <= occupants).all() and (occupants < panel[outcome]).all()
 
 
 @pytestmark_data
-def test_licence_holders_and_the_fleet_divide_only_the_casualties_they_can_contain() -> None:
+def test_every_outcome_is_paired_with_every_denominator() -> None:
     index = risk_trends.risk_index()
-    pairs = index.drop_duplicates(["outcome", "denominator"]).set_index(["outcome", "denominator"])
-    for outcome in ("deaths_30d", "hospitalised_30d"):
-        assert pairs.loc[(outcome, "licence_holders"), "numerator"] == f"drivers_{outcome}"
-        assert pairs.loc[(outcome, "vehicles"), "numerator"] == f"occupants_{outcome}"
-        for key in ("count", "residents", "road_fuel"):
-            assert pairs.loc[(outcome, key), "numerator"] == outcome
-    # Injury crashes are not split by vehicle type, so they get neither denominator.
-    crashes = set(index[index.outcome == "crashes"].denominator)
-    assert crashes == {"count", "residents", "road_fuel"}
-    # Every numerator carries its own year-to-year dispersion.
+    pairs = set(zip(index.outcome, index.denominator))
+    assert pairs == {(o, d) for o in risk_trends.OUTCOMES for d in risk_trends.DENOMINATORS}
+    # Every outcome carries its own year-to-year dispersion.
     dispersion = risk_trends.year_to_year_dispersion()
-    assert set(index.numerator) <= set(dispersion.outcome)
+    assert set(index.outcome) == set(dispersion.outcome)
 
 
 @pytestmark_data
@@ -103,10 +82,8 @@ def test_risk_index_is_relative_to_the_base_year_under_every_denominator() -> No
         return panel.loc[final, column] / panel.loc[base_year, column]
 
     assert fuel.ratio_to_base == pytest.approx(count.ratio_to_base / ratio("road_fuel_tonnes"))
-    licence = last.loc[("deaths_30d", "licence_holders")]
-    assert licence.ratio_to_base == pytest.approx(
-        ratio("drivers_deaths_30d") / ratio("licence_holders")
-    )
+    residents = last.loc[("deaths_30d", "residents")]
+    assert residents.ratio_to_base == pytest.approx(count.ratio_to_base / ratio("residents"))
     assert (
         (index.ratio_low <= index.ratio_to_base) & (index.ratio_to_base <= index.ratio_high)
     ).all()
@@ -125,25 +102,18 @@ def test_long_run_measures_agree_on_the_history_and_the_pandemic() -> None:
     assert bool(series.loc[("count", 2020), "outside_interval"])
     assert series.loc[("count", 2020), "ratio"] < 0.85
     assert not bool(series.loc[("road_fuel", 2020), "outside_interval"])
-    # The per-vehicle measure divides occupant deaths, not every death.
-    occupants = series.xs("occupants_per_vehicle", level="measure")
-    panel = risk_trends.annual_panel().set_index("year")
-    assert (occupants.numerator == "occupants_deaths_30d").all()
-    assert occupants.observed.to_numpy() == pytest.approx(
-        panel.loc[occupants.index, "occupants_deaths_30d"].to_numpy()
-    )
 
 
 @pytestmark_data
-def test_the_fuel_drift_grid_is_labelled_hypothetical_and_zero_reproduces_the_index() -> None:
-    grid = risk_trends.fuel_efficiency_sensitivity()
-    assert tuple(sorted(grid.hypothetical_annual_gain.unique())) == risk_trends.HYPOTHETICAL_GAINS
-    at_zero = grid[(grid.hypothetical_annual_gain == 0) & (grid.outcome == "deaths_30d")]
-    index = risk_trends.risk_index()
-    fuel = index[(index.outcome == "deaths_30d") & (index.denominator == "road_fuel")]
-    assert at_zero.ratio_to_base.to_numpy() == pytest.approx(fuel.ratio_to_base.to_numpy())
-    extra = risk_trends.long_run_efficiency_sensitivity()
-    assert "hypothetical_extra_annual_gain" in extra.columns
+def test_the_fuel_drift_grid_is_labelled_hypothetical_and_zero_reproduces_the_trend_ratio() -> None:
+    grid = risk_trends.long_run_efficiency_sensitivity()
+    assert tuple(sorted(grid.hypothetical_extra_annual_gain.unique())) == (
+        risk_trends.HYPOTHETICAL_GAINS
+    )
+    series = risk_trends.long_run_series()
+    fuel = series[(series.measure == "road_fuel") & (series.period == "projected")]
+    at_zero = grid[grid.hypothetical_extra_annual_gain == 0]
+    assert at_zero.ratio.to_numpy() == pytest.approx(fuel.ratio.to_numpy())
 
 
 @pytest.mark.skipif(
@@ -200,7 +170,7 @@ def test_ordinary_variation_uses_t_with_the_scatter_fits_degrees_of_freedom() ->
         & (index.denominator == "count")
         & (index.outcome == row.outcome)
     ].iloc[0]
-    phi = scatter.loc[row.numerator, "dispersion"]
+    phi = scatter.loc[row.outcome, "dispersion"]
     spread = risk_trends.t_quantile(years - 2) * np.sqrt(
         phi * (1 / row["count"] + 1 / base["count"])
     )
@@ -241,9 +211,9 @@ def test_the_projection_continues_the_last_segment_refitted_on_its_own_years() -
     main = sensitivity[sensitivity.variant == "main"].set_index(["measure", "year"])
     shown = series[series.period == "projected"].set_index(["measure", "year"])
     assert main.ratio.to_numpy() == pytest.approx(shown.loc[main.index].ratio.to_numpy())
-    # Occupant deaths are not published within 24 hours, so that variant has no per-vehicle rows.
     within_day = sensitivity[sensitivity.variant == "deaths_24h"]
     assert set(within_day.measure) == {"count", "road_fuel"}
+    assert set(sensitivity.variant) == {"main", "start_2013", "start_2011", "deaths_24h"}
 
 
 @pytest.mark.skipif(

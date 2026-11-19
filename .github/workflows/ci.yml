@@ -15,13 +15,13 @@ concurrency:
 
 jobs:
   checks:
-    name: Lint, build the data layers, test
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
+    name: Lint, rebuild every table and figure, test
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.11"
           cache: pip
@@ -29,6 +29,10 @@ jobs:
 
       - name: Install the locked dependencies
         run: pip install --require-hashes -r requirements.lock
+
+      # Every generated file under reports/ must be rewritten after this moment.
+      - name: Mark the start of the pipeline
+        run: touch "$RUNNER_TEMP/pipeline-start"
 
       - name: Lint
         run: |
@@ -47,8 +51,8 @@ jobs:
           key: >-
             data-${{ hashFiles('data/raw/manifest.csv',
             'src/dgt_stats/io_*.py', 'src/dgt_stats/agebands.py', 'src/dgt_stats/codes.py',
-            'src/dgt_stats/derive.py', 'src/dgt_stats/labels.py',
-            'scripts/ingest.py', 'scripts/build_tables.py') }}
+            'src/dgt_stats/derive.py', 'src/dgt_stats/labels.py', 'src/dgt_stats/validate.py',
+            'src/dgt_stats/paths.py', 'scripts/ingest.py', 'scripts/build_tables.py') }}
 
       - name: Build the staging layer and reconcile against DGT's published totals
         run: python scripts/ingest.py all
@@ -56,18 +60,21 @@ jobs:
       - name: Build the processed layer
         run: python scripts/build_tables.py
 
-      - name: Fit the associations in DGT crash records
-        run: python scripts/model.py
-
-      # The regional crash-record layers (Catalonia, Barcelona): staging, canonical tables, the
-      # data-quality report, the feature tables, the descriptive tables and the source comparison,
-      # rebuilt from the raw files on every run (a few minutes). The source models and their
-      # validation take about half an hour and write committed tables, so CI does not refit them;
-      # the tests check the feature tables, the leakage catalogue, the split isolation, the
-      # decision rules and the committed validation tables directly.
-      - name: Build the regional layers
+      # The fitted models run on one BLAS thread so that their coefficients reproduce byte for byte.
+      - name: Rebuild the national tables
         env:
           OMP_NUM_THREADS: "1"
+          OPENBLAS_NUM_THREADS: "1"
+          MKL_NUM_THREADS: "1"
+        run: |
+          python scripts/model.py
+          python scripts/analyse.py tables
+
+      - name: Rebuild the Catalan and Barcelona layers and tables
+        env:
+          OMP_NUM_THREADS: "1"
+          OPENBLAS_NUM_THREADS: "1"
+          MKL_NUM_THREADS: "1"
         run: |
           python scripts/microdata.py build
           python scripts/microdata.py quality
@@ -75,26 +82,55 @@ jobs:
           python scripts/microdata.py analyse
           python scripts/microdata.py sources
 
-      # Every table and document the steps above regenerate must match the committed copy, and
-      # none may be new, so that a downloadable table or a generated document cannot go stale.
-      # They reproduce byte for byte on this runner, the DGT associations' fits included.
-      - name: Check the regenerated tables and documents match the committed copies
+      - name: Fit the Catalan severity model
+        env:
+          OMP_NUM_THREADS: "1"
+          OPENBLAS_NUM_THREADS: "1"
+          MKL_NUM_THREADS: "1"
+        run: python scripts/severity_model.py
+
+      - name: Rebuild the travel-survey tables and the driver-age risk
+        env:
+          OMP_NUM_THREADS: "1"
+          OPENBLAS_NUM_THREADS: "1"
+          MKL_NUM_THREADS: "1"
+        run: |
+          python scripts/emef.py all
+          python scripts/exposure_risk.py all
+
+      - name: Rebuild the figures
+        env:
+          OMP_NUM_THREADS: "1"
+          OPENBLAS_NUM_THREADS: "1"
+          MKL_NUM_THREADS: "1"
+        run: python scripts/analyse.py figures
+
+      # Every table, figure and document the steps above regenerate must match the committed copy,
+      # and none may be new. docs/FINDINGS.md is written by the site build, so it is checked in the
+      # browser job and left out here.
+      # On one machine every file reproduces byte for byte. Across machines the last digits of some
+      # fitted results move with the processor's numerical kernels, and a figure is laid out from
+      # text measured on the machine that draws it. So the documents must match byte for byte, and
+      # scripts/compare_reports.py checks the tables (every number within one part in a thousand)
+      # and the figures (everything they print identical), and that no file is new or missing.
+      - name: Check the rebuilt tables, figures and documents match the committed copies
         run: |
           git status --short -- reports docs
-          git diff --exit-code -- reports docs
-          test -z "$(git status --porcelain -- reports docs)"
+          git diff --exit-code -- docs ':(exclude)docs/FINDINGS.md'
+          test -z "$(git status --porcelain -- docs ':(exclude)docs/FINDINGS.md')"
+          python scripts/compare_reports.py --rebuilt-after "$RUNNER_TEMP/pipeline-start"
 
       - name: Test
         run: pytest
 
   browser:
     name: Build the site and test it in a browser
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.11"
           cache: pip
@@ -107,16 +143,16 @@ jobs:
           python -m playwright install --with-deps chromium
 
       # The site is built from the committed result tables and figures alone, so this job needs
-      # none of the data layers; the browser tests run the pages, the calculator and both themes.
+      # none of the data layers.
       - name: Build the site
         run: python scripts/build_site.py
 
-      # The committed pages must be the ones the committed tables build; otherwise a page in the
-      # repository would say something its source no longer does.
-      - name: Check the committed pages match the build
+      # The committed pages and findings must be the ones the committed tables build; otherwise a
+      # page in the repository would say something its source no longer does.
+      - name: Check the committed pages and findings match the build
         run: |
-          git diff --exit-code -- site
-          test -z "$(git status --porcelain -- site)" || { git status --porcelain -- site; exit 1; }
+          git diff --exit-code -- site docs/FINDINGS.md
+          test -z "$(git status --porcelain -- site docs/FINDINGS.md)" || { git status --porcelain -- site docs/FINDINGS.md; exit 1; }
 
       - name: Test the built site in a browser
         env:

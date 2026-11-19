@@ -1,4 +1,4 @@
-"""The frame every interactive tool page shares (see ``explore``)."""
+"""The frame every interactive tool page shares (see ``site.TOOLS``)."""
 
 from __future__ import annotations
 

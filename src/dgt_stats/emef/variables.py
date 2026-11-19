@@ -35,17 +35,6 @@ UNIVERSE: dict[int, tuple[int, int]] = {
     2024: (5_019_771, 11_420),
 }
 
-# The survey area changed three times (technical document, Table 1, and the weighted population of
-# zone 5): the whole of Osona joined in 2015, the Berguedà and the Moianès in 2017, and in 2019 the
-# area became the province of Barcelona, which also took out the Baix Penedès and the Selva (in
-# other provinces). A "survey area" series before 2019 is therefore not on a constant area.
-AREA: dict[int, str] = {
-    2014: "STI (Integrated Fare System area)",
-    **{y: "STI with the whole of Osona" for y in (2015, 2016)},
-    **{y: "STI with Osona, the Berguedà and the Moianès" for y in (2017, 2018)},
-    **{y: "SIMMB (province of Barcelona)" for y in range(2019, 2025)},
-}
-
 # Residence zone (``CAMB``), identical codes in every year. Zones 1-4 make up the seven-comarca
 # Barcelona Metropolitan Region (RMB), the only area every edition covers in full; zone 5 is the
 # rest of the survey area, which grew in 2015 and 2017 and shrank in 2019.
@@ -108,10 +97,6 @@ AGE_COLUMN: dict[int, tuple[str, str]] = {
 AGE3_LABELS: dict[int, str] = {1: "16-29", 2: "30-64", 3: "65+"}
 AGE4_LABELS: dict[int, str] = {1: "16-29", 2: "30-44", 3: "45-64", 4: "65+"}
 AGE4_FROM = 2019
-# The last edition that sampled 65-74 and 75 and over as separate strata (methodology report
-# 2003-2018, Table 5 and its note 5, archived as data/raw/emef/docs/emef_methodology_2003_2018.pdf);
-# no public file publishes either group.
-OLDER_STRATA_LAST = 2016
 
 
 def age_labels(year: int) -> dict[int, str]:
@@ -139,7 +124,6 @@ EMPLOYMENT_LABELS: dict[int, str] = {
 MODE_CAR_DRIVER = 12
 MODE_CAR_PASSENGER = 13
 MODE_MOTORCYCLE_DRIVER = 14
-MODE_MOTORCYCLE_PASSENGER = 15
 MODE_WALK = 1
 # Van and lorry: one code (16, "Furgoneta/Camió") to 2019; 16 van and 22 lorry from 2020.
 # Neither says whether the respondent drove, so they are kept apart from car driving.
@@ -186,7 +170,6 @@ PURPOSE3_LABELS: dict[int, str] = {1: "return home", 2: "work or study", 3: "per
 # whose trips in the course of work are not recorded), 3 did not travel. Read from the respondent
 # file (V02A_2R to 2023, TIPOL in 2024): the 2016 trip file's TIPOL disagrees with it for 504
 # respondents, so the trip-file code is not used to identify professionals.
-TIPOL_LABELS: dict[int, str] = {1: "general", 2: "mobility professional"}
 PROFESSIONAL_COLUMN: dict[int, str] = {y: "V02A_2R" for y in YEARS} | {2024: "TIPOL"}
 PROFESSIONAL_CODE = 2
 # Mobility professionals' trips in the course of work on the reference day: counted but not

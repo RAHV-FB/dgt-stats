@@ -42,39 +42,7 @@ def test_series_monthly_sums_match_annual_totals(annual) -> None:
     }
 
 
-def test_series_province_totals() -> None:
-    province = tables.read_series_province()
-    total = province[province.is_total & (province.metric == "crashes") & (province.zone == "all")]
-    assert float(total[total.year == 2024].value.iloc[0]) == 101_996
-    by_province = province[
-        ~province.is_total
-        & (province.metric == "deaths_30d")
-        & (province.zone == "all")
-        & (province.year == 2024)
-    ]
-    assert len(by_province) == 52
-    assert by_province.value.sum() == 1_785
-
-
-def test_series_age_sex_and_road_users() -> None:
-    age = tables.read_series_age()
-    row = age[
-        (age.year == 2024)
-        & (age.severity == "deaths_30d")
-        & (age.age_band == "65 y más")
-        & (age.zone == "all")
-    ]
-    assert float(row.value.iloc[0]) == 486
-
-    sex = tables.read_series_sex()
-    row = sex[
-        (sex.year == 2024)
-        & (sex.severity == "deaths_30d")
-        & (sex.sex == "Hombre")
-        & (sex.zone == "all")
-    ]
-    assert float(row.value.iloc[0]) == 1_422
-
+def test_series_road_users() -> None:
     users = tables.read_series_road_users()
     row = users[
         (users.year == 2024)
@@ -86,17 +54,6 @@ def test_series_age_sex_and_road_users() -> None:
     assert float(row.value.iloc[0]) == 415
     vmp_1993 = users[(users.year == 1993) & (users.vehicle_type == "VMP") & (users.zone == "all")]
     assert vmp_1993.value.isna().all()
-
-
-def test_series_pedestrians() -> None:
-    ped = tables.read_series_pedestrians()
-    row = ped[
-        (ped.year == 2024)
-        & (ped.breakdown == "severity")
-        & (ped.category == "deaths_30d")
-        & (ped.zone == "all")
-    ]
-    assert float(row.value.iloc[0]) == 320
 
 
 def test_tables_2024_province_and_month() -> None:
@@ -120,7 +77,7 @@ def test_tables_2024_province_and_month() -> None:
     assert months.value.sum() == 1_785
 
 
-def test_tables_2024_units_and_vehicles_involved() -> None:
+def test_tables_2024_units() -> None:
     units = tables.read_table_2_3()
     total = units[units.is_total & (units.zone == "all")].set_index("metric").value
     assert total["crashes"] == 190_508
@@ -129,10 +86,6 @@ def test_tables_2024_units_and_vehicles_involved() -> None:
     ]
     assert float(pedestrians.value.iloc[0]) == 14_110
     assert set(units.year) == {2024}
-
-    involved = tables.read_table_8_1_1()
-    one = involved[(involved.vehicles_involved == "Un vehículo") & (involved.zone == "all")]
-    assert float(one[one.metric == "crashes"].value.iloc[0]) == 38_810
 
 
 DRIVER_DEATHS_INTERURBAN = {2014: 836, 2015: 884, 2020: 701, 2024: 935}

@@ -5,7 +5,7 @@ Usage:
     python scripts/ingest.py microdata --years 2020 2024
     python scripts/ingest.py validate
 
-Each sub-command is idempotent. Existing outputs are skipped unless --force is given.
+``all`` takes about 4-5 minutes. Each sub-command is idempotent. Existing outputs are skipped unless --force is given.
 """
 
 from __future__ import annotations

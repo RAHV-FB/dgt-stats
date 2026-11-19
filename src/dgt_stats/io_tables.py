@@ -72,25 +72,6 @@ MONTHLY_SHEETS: dict[str, tuple[str, str]] = {
     "Fallec_24h_U": ("deaths_24h", "urban"),
 }
 
-# Province sheets: sheet -> (metric, zone).
-PROVINCE_SHEETS: dict[str, tuple[str, str]] = {
-    "Acc_Vict_I-U_Provincias": ("crashes", "all"),
-    "Acc_Vict_I_Provincias": ("crashes", "interurban"),
-    "Acc_Vict_U_Provincias": ("crashes", "urban"),
-    "MU_I-U_Provincias": ("deaths_30d", "all"),
-    "MU_I_Provincias": ("deaths_30d", "interurban"),
-    "MU_U_Provincias": ("deaths_30d", "urban"),
-    "HG_I-U-Provincias": ("hospitalised_30d", "all"),
-    "HG_I_Provincias": ("hospitalised_30d", "interurban"),
-    "HG_U_Provincias": ("hospitalised_30d", "urban"),
-    "HL_I-U_Provincias": ("non_hospitalised_30d", "all"),
-    "HL_I_Provincias": ("non_hospitalised_30d", "interurban"),
-    "HL_U_Provincias": ("non_hospitalised_30d", "urban"),
-    "VIC_I-U_Provincias": ("victims_30d", "all"),
-    "VIC_I_Provincias": ("victims_30d", "interurban"),
-    "VIC_U_Provincias": ("victims_30d", "urban"),
-}
-
 # Driver / occupant death sheets by vehicle type: sheet -> (population, severity, zone).
 ROAD_USER_SHEETS: dict[str, tuple[str, str, str]] = {
     "Cond-Pasj_MU_I-U": ("drivers_and_passengers", "deaths_30d", "all"),
@@ -112,31 +93,6 @@ ROAD_USER_SHEETS: dict[str, tuple[str, str, str]] = {
     "Cond_HL_I": ("drivers", "non_hospitalised_30d", "interurban"),
     "Cond_HL_U": ("drivers", "non_hospitalised_30d", "urban"),
 }
-
-AGE_SHEETS: dict[str, str] = {"Vict_ED_I_U": "all", "Vict_ED_I": "interurban", "Vict_ED_U": "urban"}
-SEX_SHEETS: dict[str, str] = {"Vict_SX_I_U": "all", "Vict_SX_I": "interurban", "Vict_SX_U": "urban"}
-PEDESTRIAN_SHEETS: dict[str, str] = {
-    "Pea_Vic_I-U": "all",
-    "Pea_Vic_I": "interurban",
-    "Pea_Vic_U": "urban",
-}
-PEDESTRIAN_AGE_SHEETS: dict[str, str] = {
-    "Edad_Pea_VIC_I-U": "all",
-    "Edad_Pea_VIC_I": "interurban",
-    "Edad_Pea_VIC_U": "urban",
-}
-
-SEVERITY_LABELS = {
-    "Fallecidos": "deaths_30d",
-    "Heridos hospitalizados": "hospitalised_30d",
-    "Heridos no hospitalizados": "non_hospitalised_30d",
-    "Total": "victims_30d",
-    "TOTAL": "victims_30d",
-}
-
-
-# --------------------------------------------------------------------------- generic helpers
-
 
 _WORKBOOKS: dict[Path, openpyxl.Workbook] = {}
 
@@ -298,96 +254,6 @@ def read_series_monthly() -> pd.DataFrame:
     )
 
 
-def read_series_province() -> pd.DataFrame:
-    """Province × year for crashes and victims by severity and zone, 1993–2024."""
-    frames: list[pd.DataFrame] = []
-    for sheet, (metric, zone) in PROVINCE_SHEETS.items():
-        rows = _rows(SERIES_PATH, sheet)
-        header = _find_header(rows, "Provincias")
-        years = [int(cell) for cell in rows[header][1:] if cell is not None]
-        for row in rows[header + 1 :]:
-            name = _text(row[0])
-            if not name:
-                continue
-            values = [_number(v) for v in row[1 : 1 + len(years)]]
-            if all(v is None for v in values):
-                continue
-            frames.append(
-                pd.DataFrame(
-                    {
-                        "province": name,
-                        "is_total": name.upper() == "TOTAL",
-                        "year": years,
-                        "metric": metric,
-                        "zone": zone,
-                        "value": values,
-                        "source_sheet": sheet,
-                    }
-                )
-            )
-    out = pd.concat(frames, ignore_index=True)
-    return out.astype(
-        {
-            "province": "string",
-            "year": "int16",
-            "metric": "string",
-            "zone": "string",
-            "source_sheet": "string",
-        }
-    )
-
-
-def _read_two_level_sheets(
-    sheets: dict[str, str], group_field: str, sub_field: str
-) -> pd.DataFrame:
-    """Sheets with a group header row and a sub-header row (severity × age band, sex × severity).
-
-    Whichever of the two fields is ``severity`` is normalised with :data:`SEVERITY_LABELS`.
-    """
-    frames: list[pd.DataFrame] = []
-    for sheet, zone in sheets.items():
-        rows = _rows(SERIES_PATH, sheet)
-        header = _find_header(rows, "Años")
-        groups = rows[header]
-        subs = rows[header + 1]
-        columns: list[tuple[str, str]] = []
-        current = ""
-        for group, sub in zip(groups[1:], subs[1:]):
-            if group is not None and _text(group):
-                current = _text(group)
-            columns.append((current, _text(sub)))
-        records: list[dict[str, object]] = []
-        for year, *values in _year_rows(rows, header + 1):
-            for (group, sub), value in zip(columns, values):
-                if not sub:
-                    continue
-                record = {"year": year, group_field: group, sub_field: sub}
-                record["severity"] = SEVERITY_LABELS.get(record["severity"], record["severity"])
-                record.update({"zone": zone, "value": _number(value), "source_sheet": sheet})
-                records.append(record)
-        frames.append(pd.DataFrame.from_records(records))
-    out = pd.concat(frames, ignore_index=True)
-    return out.astype(
-        {
-            "year": "int16",
-            group_field: "string",
-            sub_field: "string",
-            "zone": "string",
-            "source_sheet": "string",
-        }
-    )
-
-
-def read_series_age() -> pd.DataFrame:
-    """Victims by age band × severity × zone, 1993–2024."""
-    return _read_two_level_sheets(AGE_SHEETS, "severity", "age_band")
-
-
-def read_series_sex() -> pd.DataFrame:
-    """Victims by sex × severity × zone, 1993–2024."""
-    return _read_two_level_sheets(SEX_SHEETS, "sex", "severity")
-
-
 def read_series_road_users() -> pd.DataFrame:
     """Driver (and passenger) casualties by vehicle type × year × zone, 1993–2024."""
     records: list[dict[str, object]] = []
@@ -416,41 +282,6 @@ def read_series_road_users() -> pd.DataFrame:
             "population": "string",
             "severity": "string",
             "vehicle_type": "string",
-            "zone": "string",
-            "source_sheet": "string",
-        }
-    )
-
-
-def read_series_pedestrians() -> pd.DataFrame:
-    """Pedestrian victims by severity × zone and by age band × zone, 1993–2024."""
-    records: list[dict[str, object]] = []
-    for breakdown, sheets in (("severity", PEDESTRIAN_SHEETS), ("age_band", PEDESTRIAN_AGE_SHEETS)):
-        for sheet, zone in sheets.items():
-            rows = _rows(SERIES_PATH, sheet)
-            header = _find_header(rows, "Años")
-            labels = [_text(cell) for cell in rows[header][1:] if cell is not None]
-            for year, *values in _year_rows(rows, header):
-                for label, value in zip(labels, values):
-                    category = (
-                        SEVERITY_LABELS.get(label, label) if breakdown == "severity" else label
-                    )
-                    records.append(
-                        {
-                            "year": year,
-                            "breakdown": breakdown,
-                            "category": category,
-                            "zone": zone,
-                            "value": _number(value),
-                            "source_sheet": sheet,
-                        }
-                    )
-    out = pd.DataFrame.from_records(records)
-    return out.astype(
-        {
-            "year": "int16",
-            "breakdown": "string",
-            "category": "string",
             "zone": "string",
             "source_sheet": "string",
         }
@@ -678,44 +509,6 @@ def read_victims_by_mode_all(years: tuple[int, ...] = VEHICLE_TABLE_YEARS) -> pd
     out = pd.concat([read_table_2_2(year) for year in years], ignore_index=True)
     close_workbooks()
     return out
-
-
-def read_table_8_1_1() -> pd.DataFrame:
-    """TABLA 8.1.1: 2024 crashes and victims by number of vehicles involved and zone."""
-    rows = _rows(TABLES_2024_PATH, "TABLA 8.1.1")
-    header = _find_header(rows, "VEHÍCULOS IMPLICADOS")
-    zones = ("all", "interurban", "urban")
-    frames: list[pd.DataFrame] = []
-    for row in rows[header + 2 :]:
-        name = _text(row[0])
-        if not name:
-            continue
-        values = [_number(v) for v in row[1:16]]
-        if all(v is None for v in values):
-            continue
-        for zone_index, zone in enumerate(zones):
-            block = values[zone_index * 5 : zone_index * 5 + 5]
-            frames.append(
-                pd.DataFrame(
-                    {
-                        "vehicles_involved": name,
-                        "is_total": name.upper() == "TOTAL",
-                        "zone": zone,
-                        "metric": list(PROVINCE_TABLE_METRICS),
-                        "value": block,
-                        "source_sheet": "TABLA 8.1.1",
-                    }
-                )
-            )
-    out = pd.concat(frames, ignore_index=True)
-    return out.astype(
-        {
-            "vehicles_involved": "string",
-            "zone": "string",
-            "metric": "string",
-            "source_sheet": "string",
-        }
-    )
 
 
 # --------------------------------------------------------------------------- driver tables 2014–2024
@@ -1095,16 +888,11 @@ def read_driver_infractions_all(years: tuple[int, ...] = TABLE_YEARS) -> pd.Data
 TABLE_BUILDERS = {
     "series_annual": read_series_annual,
     "series_monthly": read_series_monthly,
-    "series_province": read_series_province,
-    "series_age": read_series_age,
-    "series_sex": read_series_sex,
     "series_road_users": read_series_road_users,
-    "series_pedestrians": read_series_pedestrians,
     "tables_2024_province": read_table_1_1,
     "tables_2024_month": read_table_3_1,
     "tables_units_by_type": read_units_by_type_all,
     "tables_victims_by_mode": read_victims_by_mode_all,
-    "tables_2024_vehicles_involved": read_table_8_1_1,
     "tables_driver_victims": read_driver_victims_all,
     "tables_drivers_involved": read_drivers_involved_all,
     "tables_driver_infractions": read_driver_infractions_all,

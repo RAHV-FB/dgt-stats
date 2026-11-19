@@ -16,9 +16,11 @@ read, and only one of them is used as a denominator:
 * **toll-motorway intensity** (average daily vehicles per kilometre of the state toll network):
   measured traffic, but on a small part of the network, so it is not the exposure of all-road
   deaths either and is kept, like petrol, only as a traffic index. Intensity rather than
-  vehicle-kilometres is read because the network shrank as concessions expired (``network_km``
-  in the panel), which makes vehicle-kilometres fall for reasons that have nothing to do with
-  traffic.
+  vehicle-kilometres is read because the network shrank as concessions expired, which makes
+  vehicle-kilometres fall for reasons that have nothing to do with traffic.
+
+Petrol and toll intensity appear in the seasonal profile only; the lockdown comparison uses road
+fuel alone, because both were above their baseline before March 2020 and the toll network shrank.
 
 The seasonal profile is computed from 2014–2019 and 2022–2024, leaving out the two pandemic years;
 each month's value is divided by the mean month of its own year, so the trend does not leak into the
@@ -28,6 +30,7 @@ index: 100 means that month's deaths are what its share of the year's fuel sales
 
 from __future__ import annotations
 
+import calendar
 from functools import cache
 
 import numpy as np
@@ -84,8 +87,8 @@ def monthly_panel() -> pd.DataFrame:
     deaths.columns = [f"deaths_{zone}" for zone in deaths.columns]
     deaths = deaths.reset_index()
     fuel = io_traffic.read_cores_fuel()[["year", "month", "road_fuel_tonnes", "petrol_tonnes"]]
-    toll = io_traffic.read_toll_traffic()[["year", "month", "imd", "network_km"]]
-    toll = toll.rename(columns={"imd": "toll_intensity", "network_km": "toll_network_km"})
+    toll = io_traffic.read_toll_traffic()[["year", "month", "imd"]]
+    toll = toll.rename(columns={"imd": "toll_intensity"})
     out = deaths.merge(fuel, on=["year", "month"], how="left").merge(
         toll, on=["year", "month"], how="left"
     )
@@ -116,26 +119,13 @@ def seasonal_profile(years: tuple[int, ...] = PROFILE_YEARS) -> pd.DataFrame:
     return pd.DataFrame.from_records(records)
 
 
-def seasonal_profile_long(years: tuple[int, ...] = PROFILE_YEARS) -> pd.DataFrame:
-    """The deaths and traffic indices of ``seasonal_profile`` stacked for plotting."""
-    profile = seasonal_profile(years)
-    labels = {"deaths_all": "Deaths, all roads", **TRAFFIC_SERIES}
-    out = profile.melt(
-        id_vars=["month", "month_label"],
-        value_vars=list(labels),
-        var_name="series",
-        value_name="index",
-    )
-    out["series_label"] = out.series.map(labels)
-    return out
-
-
 def month_effects(years: tuple[int, ...] = PROFILE_YEARS) -> pd.DataFrame:
-    """Month effects on deaths from quasi-Poisson models with year effects, with and without fuel.
+    """Month effects on deaths from quasi-Poisson models with year effects, per day and per fuel.
 
-    ``deaths ~ year + month`` gives the raw seasonality; adding ``log(road fuel)`` as an offset
-    gives the seasonality of deaths *per tonne of road fuel sold*, the only exposure in
-    ``EXPOSURES``. Effects are rate ratios against the average month (sum-to-zero contrasts), with
+    ``deaths ~ year + month`` with ``log(days in the month)`` as an offset gives the raw seasonality
+    of deaths per day, so that February is not short by its length; ``log(road fuel)`` as the
+    offset instead gives the seasonality of deaths *per tonne of road fuel sold*, the only exposure
+    in ``EXPOSURES`` (fuel sold is a monthly total, so it carries the month's length). Effects are rate ratios against the average month (sum-to-zero contrasts), with
     95 % intervals on the overdispersed scale. A month whose interval straddles 1 under an exposure
     is not distinguishable from an ordinary month once that exposure is allowed for.
     ``first_year``, ``last_year``, ``n_years`` and ``years`` describe the pooled years.
@@ -143,10 +133,15 @@ def month_effects(years: tuple[int, ...] = PROFILE_YEARS) -> pd.DataFrame:
     panel = monthly_panel()
     panel = panel[panel.year.isin(years)].copy()
     variants = {"none": None, **{key: key for key in EXPOSURES}}
-    labels = {"none": "No exposure (raw deaths)", **EXPOSURES}
+    labels = {"none": "Deaths per day", **EXPOSURES}
     records = []
     for key, exposure in variants.items():
-        kwargs = {} if exposure is None else {"offset": np.log(panel[exposure].astype(float))}
+        if exposure is None:
+            days = [calendar.monthrange(y, m)[1] for y, m in zip(panel.year, panel.month)]
+            offset = np.log(np.asarray(days, dtype=float))
+        else:
+            offset = np.log(panel[exposure].astype(float))
+        kwargs = {"offset": offset}
         result = smf.glm(
             "deaths_all ~ C(year) + C(month, Sum)",
             data=panel,
@@ -183,15 +178,10 @@ def month_effects(years: tuple[int, ...] = PROFILE_YEARS) -> pd.DataFrame:
 def lockdown_months(
     year: int = LOCKDOWN_YEAR, baseline: tuple[int, ...] = LOCKDOWN_BASELINE
 ) -> pd.DataFrame:
-    """Each month of 2020 against the same month's 2017–2019 mean: deaths and the three traffic series.
+    """Each month of 2020 against the same month's 2017–2019 mean: deaths and road fuel sold.
 
-    ``<series>_change`` is the proportional change in deaths or in each traffic series.
-    ``deaths_per_<exposure>_change`` is the change in deaths per unit of each exposure in
-    ``EXPOSURES`` (road fuel only); petrol and toll-motorway traffic are changes in traffic, shown
-    beside deaths, and are not used as denominators. ``toll_network_km`` and
-    ``toll_network_km_baseline`` give the length of the toll network the intensity is measured on,
-    in the month and on average in the baseline months: it shrank as concessions expired, so the
-    toll comparison is between different networks.
+    ``deaths_change`` and ``road_fuel_tonnes_change`` are the proportional changes;
+    ``deaths_per_road_fuel_tonnes_change`` is the change in deaths per tonne of road fuel.
     """
     panel = monthly_panel()
     base = panel[panel.year.isin(baseline)].groupby("month").mean(numeric_only=True)
@@ -206,28 +196,9 @@ def lockdown_months(
         record["deaths"] = deaths
         record["deaths_baseline"] = reference
         record["deaths_change"] = deaths / reference - 1
-        for key in TRAFFIC_SERIES:
+        for key in EXPOSURES:
             change = float(current.loc[month, key] / base.loc[month, key])
             record[f"{key}_change"] = change - 1
-            if key in EXPOSURES:
-                record[f"deaths_per_{key}_change"] = (deaths / reference) / change - 1
-        record["toll_network_km"] = float(current.loc[month, "toll_network_km"])
-        record["toll_network_km_baseline"] = float(base.loc[month, "toll_network_km"])
+            record[f"deaths_per_{key}_change"] = (deaths / reference) / change - 1
         records.append(record)
     return pd.DataFrame.from_records(records)
-
-
-def lockdown_long(year: int = LOCKDOWN_YEAR) -> pd.DataFrame:
-    """The 2020 changes stacked for plotting: deaths and the three traffic series by month."""
-    frame = lockdown_months(year)
-    labels = {"deaths_change": "Deaths, all roads"} | {
-        f"{key}_change": label for key, label in TRAFFIC_SERIES.items()
-    }
-    out = frame.melt(
-        id_vars=["month", "month_label"],
-        value_vars=list(labels),
-        var_name="series",
-        value_name="change",
-    )
-    out["series_label"] = out.series.map(labels)
-    return out

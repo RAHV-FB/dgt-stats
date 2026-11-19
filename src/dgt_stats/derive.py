@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import pandas as pd
 
-from dgt_stats import codes, labels
+from dgt_stats import labels
 
 ROAD_GROUP_BY_TYPE: dict[int, str] = {
     1: "motorway",
@@ -47,7 +47,7 @@ def road_group(tipo_via: pd.Series) -> pd.Series:
 
 
 def add_fields(df: pd.DataFrame) -> pd.DataFrame:
-    """Return a copy of ``df`` with outcome flags, groupings, status companions and English labels."""
+    """Return a copy of ``df`` with outcome flags and groupings."""
     out = df.copy()
 
     deaths = out["TOTAL_MU30DF"].fillna(0).astype("int32")
@@ -71,12 +71,6 @@ def add_fields(df: pd.DataFrame) -> pd.DataFrame:
     friday_night = (weekday == 5) & (hour >= 20)
     out["weekend"] = (weekday.isin([6, 7]) | friday_night).fillna(False).astype(bool)
 
-    for column in codes.CONDITION_COLUMNS:
-        out[f"status_{column}"] = codes.status(column, out[column]).astype("string")
-
-    for column in labels.LABELLED_COLUMNS:
-        out[f"{column}_label"] = labels.english(column, out[column])
-
     return out
 
 
@@ -90,6 +84,4 @@ DERIVED_COLUMNS: tuple[str, ...] = (
     "hour_band",
     "night",
     "weekend",
-    *(f"status_{column}" for column in codes.CONDITION_COLUMNS),
-    *(f"{column}_label" for column in labels.LABELLED_COLUMNS),
 )

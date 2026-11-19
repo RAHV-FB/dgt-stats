@@ -290,20 +290,8 @@ def barcelona_crash_severity() -> pd.DataFrame:
         f"driver_cause_{code}_recorded": f"{label} (driver)"
         for code, label in barcelona.DRIVER_CAUSES.values()
     }
-    vehicles = {
-        f"vehicle_records_include_{g}": g.replace("_", " ") for g in barcelona.VEHICLE_GROUP_ORDER
-    }
     parts = [
         out,
-        flag_shares(
-            crashes,
-            "serious_or_fatal_crash",
-            vehicles,
-            _barcelona_label(crashes),
-            "serious or fatal injury",
-            "crash",
-            "vehicle type present",
-        ),
         flag_shares(
             crashes,
             "serious_or_fatal_crash",
@@ -317,28 +305,11 @@ def barcelona_crash_severity() -> pd.DataFrame:
     return pd.concat(parts, ignore_index=True)
 
 
-def barcelona_frequency() -> pd.DataFrame:
-    """Counts of recorded crashes and of people by severity: frequency, not risk."""
-    crashes = barcelona.read_crashes()
+def barcelona_people_by_severity() -> pd.DataFrame:
+    """Counts of person records by role and injury severity: frequency, not risk."""
     people = barcelona.read_people()
-    rows = []
-    for dimension, column in (
-        ("month", "month"),
-        ("hour", "hour"),
-        ("weekday", "weekday"),
-        ("district", "district"),
-    ):
-        counts = crashes.groupby(column).agg(
-            crashes=(barcelona.KEY, "size"),
-            serious_or_fatal_crashes=("serious_or_fatal_crash", "sum"),
-            deaths=("n_deaths", "sum"),
-            serious_injuries=("n_serious_injuries", "sum"),
-        )
-        for level, values in counts.iterrows():
-            rows.append({"dimension": dimension, "level": str(level), **values.to_dict()})
-    out = pd.DataFrame(rows)
     severity = people.groupby(["person_role", "injury_severity"]).size().rename("person_records")
-    return out, severity.reset_index()
+    return severity.reset_index()
 
 
 def catalonia_frequency() -> pd.DataFrame:
@@ -400,14 +371,12 @@ def cause_profiles() -> pd.DataFrame:
 
 
 def write() -> dict[str, pd.DataFrame]:
-    bcn_frequency, bcn_people_counts = barcelona_frequency()
     tables = {
         "cat_fatal_share": catalonia_severity(),
         "cat_frequency": catalonia_frequency(),
         "bcn_person_severity_share": barcelona_person_severity(),
         "bcn_crash_severity_share": barcelona_crash_severity(),
-        "bcn_frequency": bcn_frequency,
-        "bcn_people_by_severity": bcn_people_counts,
+        "bcn_people_by_severity": barcelona_people_by_severity(),
         "bcn_cause_profiles": cause_profiles(),
     }
     TABLES_DIR.mkdir(parents=True, exist_ok=True)

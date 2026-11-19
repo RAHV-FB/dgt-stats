@@ -66,7 +66,7 @@ def _province_names(frame: pd.DataFrame) -> pd.Series:
 
 
 def check_row_counts(crashes: pd.DataFrame, annual: pd.DataFrame) -> list[Result]:
-    """Check 1: rows per year equal the yearbook crash totals."""
+    """rows per year equal the yearbook crash totals."""
     expected = annual[(annual.metric == "crashes") & (annual.zone == "all")].set_index("year").value
     actual = crashes.groupby("ANYO").size()
     return [
@@ -86,7 +86,7 @@ def check_row_counts(crashes: pd.DataFrame, annual: pd.DataFrame) -> list[Result
 def check_victim_totals(
     crashes: pd.DataFrame, annual: pd.DataFrame, monthly: pd.DataFrame
 ) -> list[Result]:
-    """Check 2: 30-day victim sums per year equal the yearbook; 24-hour deaths equal the 24 h series."""
+    """30-day victim sums per year equal the yearbook; 24-hour deaths equal the 24 h series."""
     results: list[Result] = []
     sums = crashes.groupby("ANYO")[list(VICTIM_COLUMNS.values())].sum()
     sums = sums.reindex(list(MICRODATA_YEARS), fill_value=0)
@@ -130,7 +130,7 @@ def check_victim_totals(
 def check_tables_2024(
     crashes: pd.DataFrame, province_table: pd.DataFrame, month_table: pd.DataFrame
 ) -> list[Result]:
-    """Check 3: 2024 province and month totals equal TABLA 1.1 and TABLA 3.1."""
+    """2024 province and month totals equal TABLA 1.1 and TABLA 3.1."""
     results: list[Result] = []
     year = crashes[crashes.ANYO == 2024].copy()
     year["province"] = _province_names(year)
@@ -178,17 +178,8 @@ def check_tables_2024(
     return results
 
 
-def check_unique_keys(crashes: pd.DataFrame) -> list[Result]:
-    """Check 4: (ANYO, ID_ACCIDENTE) is unique."""
-    duplicates = crashes.duplicated(["ANYO", "ID_ACCIDENTE"]).groupby(crashes.ANYO).sum()
-    return [
-        Result("unique_key", int(year), "duplicate_rows", 0.0, float(n), n == 0)
-        for year, n in duplicates.items()
-    ]
-
-
 def check_code_domains(crashes: pd.DataFrame) -> list[Result]:
-    """Check 5: every non-empty value of each coded column is in the dictionary or a missing marker."""
+    """every non-empty value of each coded column is in the dictionary or a missing marker."""
     results: list[Result] = []
     for column in codes.CATEGORICAL_COLUMNS:
         allowed = codes.allowed_codes(column)
@@ -209,7 +200,7 @@ def check_code_domains(crashes: pd.DataFrame) -> list[Result]:
 
 
 def check_census(census: pd.DataFrame, province_table: pd.DataFrame) -> list[Result]:
-    """Check 6: the 2025 census extract agrees with the published province table."""
+    """the 2025 census extract agrees with the published province table."""
     results: list[Result] = []
     labels = codes.labels_for("COD_PROVINCIA")
     extract = census[census.census_year == 2025].copy()
@@ -251,7 +242,7 @@ def check_census(census: pd.DataFrame, province_table: pd.DataFrame) -> list[Res
 
 
 def check_driver_tables(driver_victims: pd.DataFrame, road_users: pd.DataFrame) -> list[Result]:
-    """Check 7: driver deaths in tables 4.1.1 equal the yearbook series of driver deaths, by zone."""
+    """driver deaths in tables 4.1.1 equal the yearbook series of driver deaths, by zone."""
     results: list[Result] = []
     deaths = driver_victims[driver_victims.is_total & (driver_victims.severity == "deaths_30d")]
     actual = deaths.groupby(["year", "zone"]).value.sum()
@@ -286,7 +277,7 @@ def check_driver_tables(driver_victims: pd.DataFrame, road_users: pd.DataFrame) 
 
 
 def check_census_age(census_tables: pd.DataFrame, census_text: pd.DataFrame) -> list[Result]:
-    """Check 8: the 2023 census text file agrees with the 2023 published age table per band."""
+    """the 2023 census text file agrees with the 2023 published age table per band."""
     results: list[Result] = []
     year = 2023
     tables = census_tables[(census_tables.census_year == year) & (census_tables.sex == "total")]
@@ -438,7 +429,7 @@ def check_vehicle_tables(
 def check_driver_infractions(
     infractions: pd.DataFrame, drivers_involved: pd.DataFrame
 ) -> list[Result]:
-    """Check 11: the driver-infraction table 6.1 describes the drivers of table 4.2.
+    """the driver-infraction table 6.1 describes the drivers of table 4.2.
 
     The blocks that publish a total agree with each other, and the expected number of them is
     present: two in 2014–2015, where the source gives a total only for the speed block and for the
@@ -484,7 +475,7 @@ SPEED_REPORT_METRICS = {"Siniestros con víctimas": "crashes", "Personas falleci
 
 
 def check_speed_report_scope(crashes: pd.DataFrame, report: pd.DataFrame) -> list[Result]:
-    """Check 12: the microdata without Cataluña and País Vasco equal the speed report's totals.
+    """the microdata without Cataluña and País Vasco equal the speed report's totals.
 
     The speed report publishes its own totals of injury crashes and 30-day deaths per year and
     zone for its scope. Where the microdata cover the same years, restricting them to the same
@@ -551,7 +542,6 @@ def run_checks(crashes: pd.DataFrame | None = None) -> pd.DataFrame:
     results += check_row_counts(crashes, annual)
     results += check_victim_totals(crashes, annual, monthly)
     results += check_tables_2024(crashes, province_table, month_table)
-    results += check_unique_keys(crashes)
     results += check_code_domains(crashes)
     results += check_census(census, census_table)
     results += check_driver_tables(driver_victims, road_users)

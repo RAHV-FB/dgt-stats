@@ -1,0 +1,13 @@
+measure,group,ratio,ratio_low,ratio_high,range_min,range_max,range_min_from,range_max_from
+involved per km,18-29,2.675859661,2.483055149,2.857537812,1.482098281,3.634109834,Rest of the province alone; weekends and holidays: EMEF weekend stays; remainder: MOVILIA long journeys,Barcelona city alone
+involved per km,30-44,1.244858231,1.180350055,1.309246717,1.116473851,1.721860679,Madrid survey alone,Barcelona city alone; weekends and holidays: MOVILIA weekend trips; remainder: MOVILIA weekend trips
+involved per km,45-64,1,1,1,1,1,central,central
+involved per km,65+,1.406188892,1.270212892,1.553578422,0.8319152673,1.766989602,Barcelona city alone; weekends and holidays: MOVILIA weekend trips; remainder: MOVILIA weekend trips,Madrid survey alone; remainder: MOVILIA long journeys
+involved per km,65-74,1.10821827,0.9960100186,1.242003842,0.6523936854,1.647647608,Barcelona city alone; weekends and holidays: MOVILIA weekend trips; remainder: MOVILIA weekend trips; split at 75: Madrid km per licence holder,Madrid survey alone; remainder: MOVILIA long journeys; split at 75: equal km per licence holder
+involved per km,75+,2.427233714,1.964952097,3.040248926,0.9488860522,3.103646335,Barcelona city alone; weekends and holidays: MOVILIA weekend trips; remainder: MOVILIA weekend trips; split at 75: equal km per licence holder,Madrid survey alone; remainder: MOVILIA long journeys; split at 75: Madrid km per licence holder
+killed per km,18-29,2.387452325,1.825839597,3.105609466,1.322355966,3.242421156,Rest of the province alone; weekends and holidays: EMEF weekend stays; remainder: MOVILIA long journeys,Barcelona city alone
+killed per km,30-44,1.052454969,0.8253107269,1.342977387,0.9439134696,1.455732694,Madrid survey alone,Barcelona city alone; weekends and holidays: MOVILIA weekend trips; remainder: MOVILIA weekend trips
+killed per km,45-64,1,1,1,1,1,central,central
+killed per km,65+,3.444699348,2.71608106,4.444983305,2.037918231,4.328542178,Barcelona city alone; weekends and holidays: MOVILIA weekend trips; remainder: MOVILIA weekend trips,Madrid survey alone; remainder: MOVILIA long journeys
+involved per km,men to women,0.9105077443,0.8714375541,0.9487675633,0.6046846597,1.228449437,other regional profiles,other regional profiles
+killed per km,men to women,2.633700943,2.069766983,3.391120719,1.749088428,3.553367294,other regional profiles,other regional profiles

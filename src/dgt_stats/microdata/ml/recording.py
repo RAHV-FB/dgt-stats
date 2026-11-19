@@ -13,9 +13,8 @@ A placeholder that a structural condition explains ("NA" for the road owner on u
 for the junction type away from junctions) is not a recording artefact. A field is classed as
 *outcome-dependent* when its placeholder covers at least :data:`MIN_RATE` of crashes, is not
 structurally explained, and its rate among fatal crashes differs from the rate among serious
-crashes by a factor of :data:`RATIO_LIMIT` or more. Those fields stay out of the primary model and
-enter only the retrospective administrative model; ``tests/test_microdata_models.py`` checks that
-the catalogue agrees with this verdict.
+crashes by a factor of :data:`RATIO_LIMIT` or more. Those fields are left out of the severity
+model; ``tests/test_microdata_models.py`` checks that the catalogue agrees with this verdict.
 """
 
 from __future__ import annotations
@@ -25,6 +24,7 @@ import pandas as pd
 
 from dgt_stats.microdata import catalonia
 from dgt_stats.microdata.ml import features
+from dgt_stats.paths import TABLES_DIR
 
 PLACEHOLDERS = ("NA", "Sense especificar", "Sense Especificar")
 MIN_RATE = 0.01
@@ -115,3 +115,13 @@ def verdict(row) -> str:
 
 def outcome_dependent_fields(result: pd.DataFrame) -> set[str]:
     return set(result.loc[result.verdict.eq("outcome-dependent recording"), "column"])
+
+
+def write() -> pd.DataFrame:
+    """Write ``ml_recording_artefacts``: the audit on every year but the last, so that the check
+    never reads the most recent year."""
+    frame = catalonia.read()
+    result = audit(frame, np.flatnonzero(frame["year"] < frame["year"].max()))
+    TABLES_DIR.mkdir(parents=True, exist_ok=True)
+    result.to_csv(TABLES_DIR / "ml_recording_artefacts.csv", index=False, float_format="%.6g")
+    return result

@@ -1,38 +1,24 @@
-"""Find, identify, de-duplicate and read the raw Barcelona and Catalonia microdata files.
+"""The raw Barcelona and Catalonia microdata files and how they are read.
 
-A file is identified by its columns, never by its name: the downloads arrived as ``download.csv``,
-``download(1).csv`` ... and ``export.csv``, names that say nothing about their content. Each
-:class:`Role` lists the normalised columns that only its table carries. Byte-identical copies are
-detected by SHA-256 and processed once; two different files claiming the same role and year are a
-conflict that stops the pipeline rather than being silently merged.
-
-Raw values are read as text exactly as published (``dtype=str``, no NA parsing); only the column
-*names* are normalised (accents, stray spaces, one capitalisation variant), so ``Número_expedient``
-and ``Numero_expedient`` become the same key while every cell keeps its source spelling.
+Each table is a fixed file under ``data/raw`` (:data:`SOURCES`), listed with its checksum in the
+manifest. Raw values are read as text exactly as published (``dtype=str``, no NA parsing); only
+the column *names* are normalised (accents, stray spaces, one capitalisation variant), so
+``Número_expedient`` and ``Numero_expedient`` become the same key while every cell keeps its
+source spelling.
 """
 
 from __future__ import annotations
 
 import csv
-import datetime as dt
 import hashlib
-import logging
 import re
-import shutil
 import unicodedata
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 
 import pandas as pd
 
-from dgt_stats.paths import (
-    MANIFEST,
-    RAW_BARCELONA_DIR,
-    RAW_CATALONIA_DIR,
-    RAW_DATA_DIR,
-)
-
-log = logging.getLogger(__name__)
+from dgt_stats.paths import MANIFEST, RAW_BARCELONA_DIR, RAW_CATALONIA_DIR, RAW_DATA_DIR
 
 # The crash identifier the six Barcelona tables share (normalised spelling).
 BCN_ID = "Numero_expedient"
@@ -59,152 +45,72 @@ def normalise_column_name(name: str) -> str:
 
 
 @dataclass(frozen=True)
-class Role:
-    """One kind of source table, recognised by columns only it carries."""
+class Source:
+    """One raw table: where it is, what a row is."""
 
     name: str
-    source: str
-    signature: frozenset[str]
+    path: Path
     unit: str
     cardinality: str
-    description: str
-    file_stem: str
-    # The portal page the file is published on, and its reuse licence as the portal states it.
-    portal: str = ""
-    licence: str = ""
+
+    @property
+    def relative(self) -> str:
+        return str(self.path.relative_to(RAW_DATA_DIR))
+
+    @property
+    def sha256(self) -> str:
+        return sha256(self.path)
 
 
-BCN_PORTAL = "https://opendata-ajuntament.barcelona.cat/data/ca/dataset/"
-BCN_LICENCE = (
-    "Open Data BCN, Ajuntament de Barcelona; licence Creative Commons Attribution 4.0 "
-    "(https://creativecommons.org/licenses/by/4.0/)"
-)
-CAT_PORTAL = "https://analisi.transparenciacatalunya.cat/d/rmgc-ncpb"
-CAT_LICENCE = (
-    "Dades obertes de Catalunya, dataset rmgc-ncpb, attribution Departament d'Interior i "
-    "Seguretat Pública; licence Llicència oberta d'ús d'informació - Catalunya "
-    "(https://administraciodigital.gencat.cat/ca/dades/dades-obertes/informacio-practica/"
-    "llicencies/): cite 'Generalitat de Catalunya. Departament d'Interior i Seguretat Pública. "
-    "Servei Català de Trànsit', state the date of last update, do not alter the content or its "
-    "meaning, no sublicensing"
-)
+_BCN = RAW_BARCELONA_DIR / "2025"
 
-
-ROLES: tuple[Role, ...] = (
-    Role(
-        name="bcn_accidents",
-        source="barcelona",
-        signature=frozenset(
-            {
-                BCN_ID,
-                "Numero_morts",
-                "Numero_lesionats_lleus",
-                "Numero_lesionats_greus",
-                "Numero_victimes",
-                "Numero_vehicles_implicats",
-            }
+SOURCES: dict[str, Source] = {
+    source.name: source
+    for source in (
+        Source(
+            "bcn_accidents",
+            _BCN / "accidents_gu_bcn_2025.csv",
+            "one crash (Numero_expedient)",
+            "one row per crash",
         ),
-        unit="one crash (Numero_expedient)",
-        cardinality="one row per crash",
-        description=(
-            "Barcelona, Guàrdia Urbana: crashes it attended, one row per crash with place, time, "
-            "victim counts by severity and vehicles involved"
+        Source(
+            "bcn_people",
+            _BCN / "accidents_persones_gu_bcn_2025.csv",
+            "one person record in a crash",
+            "one or more rows per crash",
         ),
-        file_stem="accidents_gu_bcn",
-        portal=BCN_PORTAL + "accidents-gu-bcn",
-        licence=BCN_LICENCE,
-    ),
-    Role(
-        name="bcn_people",
-        source="barcelona",
-        signature=frozenset(
-            {BCN_ID, "Descripcio_victimitzacio", "Edat", "Descripcio_tipus_persona"}
+        Source(
+            "bcn_vehicles",
+            _BCN / "accidents_vehicles_gu_bcn_2025.csv",
+            "one vehicle record (not proven to be one vehicle)",
+            "one or more rows per crash",
         ),
-        unit="one person record in a crash",
-        cardinality="one or more rows per crash",
-        description=(
-            "Barcelona, Guàrdia Urbana: people involved in the crashes (drivers, passengers, "
-            "pedestrians, injured or not) with age, sex, role, associated vehicle type and "
-            "victimisation"
+        Source(
+            "bcn_mediate_causes",
+            _BCN / "accidents_causes_mediates_gu_bcn_2025.csv",
+            "one recorded mediate cause of a crash (or a blank row)",
+            "one or more rows per crash",
         ),
-        file_stem="accidents_persones_gu_bcn",
-        portal=BCN_PORTAL + "accidents-persones-gu-bcn",
-        licence=BCN_LICENCE,
-    ),
-    Role(
-        name="bcn_vehicles",
-        source="barcelona",
-        signature=frozenset(
-            {BCN_ID, "Descripcio_tipus_vehicle", "Descripcio_marca", "Descripcio_model"}
+        Source(
+            "bcn_driver_causes",
+            _BCN / "accidents_causa_conductor_gu_bcn_2025.csv",
+            "one recorded driver-related cause of a crash (no person or vehicle key)",
+            "one or more rows per crash",
         ),
-        unit="one vehicle record (semantics audited; not proven to be one vehicle)",
-        cardinality="one or more rows per crash",
-        description=(
-            "Barcelona, Guàrdia Urbana: vehicle records in the crashes (type, make, model, colour, "
-            "licence class and age of licence); see docs/BARCELONA_VEHICLE_AUDIT.md"
+        Source(
+            "bcn_accident_types",
+            _BCN / "accidents_tipus_gu_bcn_2025.csv",
+            "one crash (Numero_expedient)",
+            "one row per crash",
         ),
-        file_stem="accidents_vehicles_gu_bcn",
-        portal=BCN_PORTAL + "accidents-vehicles-gu-bcn",
-        licence=BCN_LICENCE,
-    ),
-    Role(
-        name="bcn_mediate_causes",
-        source="barcelona",
-        signature=frozenset({BCN_ID, "Descripcio_causa_mediata"}),
-        unit="one recorded mediate cause of a crash (or a blank row)",
-        cardinality="one or more rows per crash",
-        description=(
-            "Barcelona, Guàrdia Urbana: mediate causes recorded for each crash (alcohol, speed, "
-            "drugs, road surface, signals, weather, objects or animals)"
+        Source(
+            "cat_severe_crashes",
+            RAW_CATALONIA_DIR / "accidents_morts_ferits_greus_catalunya_2010_2023.csv",
+            "one crash with at least one death or serious injury (no source identifier)",
+            "one row per crash",
         ),
-        file_stem="accidents_causes_mediates_gu_bcn",
-        portal=BCN_PORTAL + "accidents-causes-gu-bcn",
-        licence=BCN_LICENCE,
-    ),
-    Role(
-        name="bcn_driver_causes",
-        source="barcelona",
-        signature=frozenset({BCN_ID, "Causa_conductor"}),
-        unit="one recorded driver-related cause of a crash (no person or vehicle key)",
-        cardinality="one or more rows per crash",
-        description=(
-            "Barcelona, Guàrdia Urbana: driver-related causes recorded for each crash, without a "
-            "key to the person or vehicle concerned"
-        ),
-        file_stem="accidents_causa_conductor_gu_bcn",
-        portal=BCN_PORTAL + "accidents_causa_conductor_gu_bcn",
-        licence=BCN_LICENCE,
-    ),
-    Role(
-        name="bcn_accident_types",
-        source="barcelona",
-        signature=frozenset({BCN_ID, "Descripcio_tipus_accident"}),
-        unit="one crash (Numero_expedient)",
-        cardinality="one row per crash",
-        description="Barcelona, Guàrdia Urbana: the type of each crash (collision, run-over, fall...)",
-        file_stem="accidents_tipus_gu_bcn",
-        portal=BCN_PORTAL + "accidents-tipus-gu-bcn",
-        licence=BCN_LICENCE,
-    ),
-    Role(
-        name="cat_severe_crashes",
-        source="catalonia",
-        signature=frozenset({"Any", "dat", "nomMun", "F_MORTS", "F_FERITS_GREUS", "D_GRAVETAT"}),
-        unit="one crash with at least one death or serious injury (no source identifier)",
-        cardinality="one row per crash",
-        description=(
-            "Catalonia, Servei Català de Trànsit export: crashes with at least one death or "
-            "serious injury, with place, road, conditions, victims and units involved"
-        ),
-        file_stem="accidents_morts_ferits_greus_catalunya",
-        portal=CAT_PORTAL,
-        licence=CAT_LICENCE,
-    ),
-)
-
-
-class SourceConflict(RuntimeError):
-    """Two different files claim the same role and coverage."""
+    )
+}
 
 
 def sha256(path: Path) -> str:
@@ -243,15 +149,6 @@ def header(path: Path) -> list[str]:
         return next(csv.reader(handle, delimiter=detect_delimiter(path, encoding)))
 
 
-def identify(columns: list[str]) -> Role | None:
-    """The single role whose signature the (normalised) columns contain, or ``None``."""
-    names = {normalise_column_name(column) for column in columns}
-    matches = [role for role in ROLES if role.signature <= names]
-    if len(matches) > 1:
-        raise SourceConflict(f"columns match several roles: {[r.name for r in matches]}")
-    return matches[0] if matches else None
-
-
 def read_raw(path: Path) -> pd.DataFrame:
     """Every cell as published text, normalised column names, and the 1-based source data row."""
     encoding = detect_encoding(path)
@@ -270,94 +167,6 @@ def read_raw(path: Path) -> pd.DataFrame:
     return frame
 
 
-def coverage_years(path: Path, role: Role) -> tuple[int, ...]:
-    """The calendar years a file covers, read from its own year column."""
-    column = "NK_Any" if role.source == "barcelona" else "Any"
-    years = pd.to_numeric(read_raw(path)[column], errors="coerce").dropna().astype(int)
-    return tuple(sorted(set(years)))
-
-
-@dataclass
-class SourceFile:
-    path: Path
-    sha256: str
-    role: Role
-    years: tuple[int, ...]
-    duplicate_of: Path | None = None
-    notes: list[str] = field(default_factory=list)
-
-    @property
-    def relative(self) -> str:
-        return str(self.path.relative_to(RAW_DATA_DIR))
-
-
-def discover(roots: tuple[Path, ...] = (RAW_BARCELONA_DIR, RAW_CATALONIA_DIR)) -> list[SourceFile]:
-    """Every recognised CSV under ``roots``; byte-identical copies point at the first copy."""
-    found: list[SourceFile] = []
-    first_by_hash: dict[str, Path] = {}
-    for root in roots:
-        for path in sorted(root.rglob("*.csv")):
-            role = identify(header(path))
-            if role is None:
-                log.warning("unrecognised file, not processed: %s", path)
-                continue
-            digest = sha256(path)
-            item = SourceFile(path, digest, role, coverage_years(path, role))
-            if digest in first_by_hash:
-                item.duplicate_of = first_by_hash[digest]
-                item.notes.append(f"byte-identical to {first_by_hash[digest].name}; not processed")
-            else:
-                first_by_hash[digest] = path
-            found.append(item)
-    return found
-
-
-def same_content(a: Path, b: Path) -> bool:
-    """Two files hold the same rows once column names are normalised and row order ignored."""
-    left, right = read_raw(a).drop(columns="source_row"), read_raw(b).drop(columns="source_row")
-    if sorted(left.columns) != sorted(right.columns) or len(left) != len(right):
-        return False
-    columns = sorted(left.columns)
-    left = left[columns].sort_values(columns).reset_index(drop=True)
-    right = right[columns].sort_values(columns).reset_index(drop=True)
-    return left.equals(right)
-
-
-def resolve(role_name: str, files: list[SourceFile] | None = None) -> list[SourceFile]:
-    """The distinct files for a role, at most one per year; copies are dropped, conflicts raise."""
-    files = discover() if files is None else files
-    chosen: list[SourceFile] = []
-    for item in files:
-        if item.role.name != role_name or item.duplicate_of is not None:
-            continue
-        clash = [other for other in chosen if set(other.years) & set(item.years)]
-        for other in clash:
-            if same_content(other.path, item.path):
-                item.duplicate_of = other.path
-                item.notes.append(f"same rows as {other.path.name}; not processed")
-                break
-        else:
-            if clash:
-                raise SourceConflict(
-                    f"{role_name}: {item.path} and {clash[0].path} cover the same years with "
-                    "different rows; keep one of them under data/raw"
-                )
-            chosen.append(item)
-    if not chosen:
-        raise FileNotFoundError(f"no raw file found for {role_name}")
-    return chosen
-
-
-def resolve_one(role_name: str, files: list[SourceFile] | None = None) -> SourceFile:
-    chosen = resolve(role_name, files)
-    if len(chosen) != 1:
-        raise SourceConflict(
-            f"{role_name}: expected one file, found {[c.relative for c in chosen]}; "
-            "the pipeline handles one Barcelona year at a time"
-        )
-    return chosen[0]
-
-
 # --------------------------------------------------------------------------- manifest
 def read_manifest(path: Path = MANIFEST) -> list[dict[str, str]]:
     with path.open(newline="", encoding="utf-8") as handle:
@@ -366,114 +175,3 @@ def read_manifest(path: Path = MANIFEST) -> list[dict[str, str]]:
         for name in MANIFEST_FIELDS:
             row.setdefault(name, "")
     return rows
-
-
-def write_manifest(rows: list[dict[str, str]], path: Path = MANIFEST) -> None:
-    rows = sorted(rows, key=lambda row: row["path"])
-    with path.open("w", newline="", encoding="utf-8") as handle:
-        writer = csv.DictWriter(handle, fieldnames=MANIFEST_FIELDS, lineterminator="\n")
-        writer.writeheader()
-        writer.writerows({name: row.get(name, "") for name in MANIFEST_FIELDS} for row in rows)
-
-
-def canonical_path(role: Role, years: tuple[int, ...]) -> Path:
-    if role.source == "barcelona":
-        if len(years) != 1:
-            raise SourceConflict(f"a Barcelona {role.name} file must cover one year, got {years}")
-        return RAW_BARCELONA_DIR / str(years[0]) / f"{role.file_stem}_{years[0]}.csv"
-    return RAW_CATALONIA_DIR / f"{role.file_stem}_{years[0]}_{years[-1]}.csv"
-
-
-@dataclass
-class OrganiseResult:
-    moved: list[tuple[Path, Path]] = field(default_factory=list)
-    registered: list[Path] = field(default_factory=list)
-    duplicates: list[tuple[Path, str]] = field(default_factory=list)
-    skipped: list[tuple[Path, str]] = field(default_factory=list)
-
-
-def organise(
-    loose_dirs: tuple[Path, ...] | None = None,
-    downloaded_as: dict[str, str] | None = None,
-    today: dt.date | None = None,
-    raw_dir: Path | None = None,
-    manifest: Path | None = None,
-) -> OrganiseResult:
-    """File loose downloads under ``data/raw/<source>/`` by their content and register them.
-
-    A loose CSV whose SHA-256 is already in the manifest is a duplicate copy: it is reported and
-    left where it is (never deleted, never processed). A recognised new file is moved to its
-    canonical path and added to the manifest with the name it was downloaded under. Files already
-    under ``data/raw/barcelona`` or ``data/raw/catalonia`` but missing from the manifest are
-    registered (``downloaded_as`` maps their current names to the original download names).
-    """
-    today = today or dt.date.today()
-    downloaded_as = downloaded_as or {}
-    raw_dir = raw_dir or RAW_DATA_DIR
-    manifest = manifest or MANIFEST
-    if loose_dirs is None:
-        loose_dirs = (raw_dir.parent, raw_dir.parent / "incoming")
-    roots = (raw_dir / "barcelona", raw_dir / "catalonia")
-    result = OrganiseResult()
-    rows = read_manifest(manifest)
-    by_hash = {row["sha256"]: row["path"] for row in rows}
-    listed = {row["path"] for row in rows}
-
-    def register(path: Path, role: Role, digest: str, original: str) -> None:
-        relative = str(path.relative_to(raw_dir))
-        rows.append(
-            {
-                "path": relative,
-                "bytes": str(path.stat().st_size),
-                "sha256": digest,
-                "source_url": role.portal or "not recorded at download",
-                "description": "; ".join(t for t in (role.description, role.licence) if t),
-                "added": today.isoformat(),
-                "downloaded_as": original,
-            }
-        )
-        by_hash[digest] = relative
-        listed.add(relative)
-        result.registered.append(path)
-
-    for directory in loose_dirs:
-        if not directory.is_dir():
-            continue
-        for path in sorted(directory.glob("*.csv")):
-            role = identify(header(path))
-            if role is None:
-                result.skipped.append((path, "columns match no known source table"))
-                continue
-            digest = sha256(path)
-            if digest in by_hash:
-                result.duplicates.append((path, by_hash[digest]))
-                log.warning(
-                    "%s is a byte-identical copy of raw/%s; left in place",
-                    path.name,
-                    by_hash[digest],
-                )
-                continue
-            target = raw_dir / canonical_path(role, coverage_years(path, role)).relative_to(
-                RAW_DATA_DIR
-            )
-            if target.exists():
-                result.skipped.append((path, f"{target} exists with different content"))
-                continue
-            target.parent.mkdir(parents=True, exist_ok=True)
-            shutil.move(str(path), str(target))
-            result.moved.append((path, target))
-            register(target, role, digest, path.name)
-
-    for root in roots:
-        for path in sorted(root.rglob("*.csv")) if root.is_dir() else []:
-            relative = str(path.relative_to(raw_dir))
-            if relative in listed:
-                continue
-            role = identify(header(path))
-            if role is None:
-                result.skipped.append((path, "columns match no known source table"))
-                continue
-            register(path, role, sha256(path), downloaded_as.get(relative, path.name))
-
-    write_manifest(rows, manifest)
-    return result

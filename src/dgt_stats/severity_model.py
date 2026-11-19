@@ -1,21 +1,21 @@
-"""The crash-severity calculator: P(fatal | a crash with a death or serious injury, its circumstances).
+"""Penalised logistic regression of whether a Catalan severe crash was fatal.
 
 **Question.** Among crashes in Catalonia in which someone was killed or seriously injured, how
 does the share that were fatal vary with the recorded road, conditions and crash? "Fatal" is the
 file's definition: someone died within 24 hours (the file's fatal crashes equal DGT's 24-hour
 counts for the four Catalan provinces in every year). The model is fitted on the Servei Català de
-Trànsit file, 2010–2023. It is a model of severity *given* a severe crash: it cannot say how likely
+Trànsit file, 2010-2023. It is a model of severity *given* a severe crash: it cannot say how likely
 a crash is to happen, because the file holds only crashes, and its differences between scenarios
 are associations in these records, not the effect of changing a road or a condition.
 
 **Inputs.** Each input is a circumstance the police record about the road, the conditions or the
-crash, grouped into categories a reader can choose:
+crash:
 
 * *road*: the zone, the type of road and, for conventional roads, the network that owns it
   (State, regional, provincial, local). Crashes on conventional roads whose owner is recorded as
   "other" or left blank (``EXCLUDED_ROADS``) are left out of the model altogether: they were fatal
-  in 3% and 53% of cases against 15–26% for the named networks, so the field records how a crash
-  was documented rather than the road, and a reader could not choose them anyway;
+  in 3% and 53% of cases against 15-26% for the named networks, so the field records how a crash
+  was documented rather than the road;
 * *crash type*, *lighting*, *weather*, *surface*, *junction*, *posted speed limit* (the signposted
   limit where the record has one: never a vehicle's speed), *time of day*;
 * *road users involved*: pedestrian, bicycle, moped, motorcycle, car or van, heavy vehicle,
@@ -36,16 +36,14 @@ penalties extended until the best value lies inside it. The evaluation is nested
 2016-2023 is predicted by a model whose three choices were made, and whose coefficients were
 fitted, on the years before it (:func:`nested_rolling`), and the table of fatal shares by road
 and crash type is fitted on the same years. The published model is chosen by the same rule on
-every year (validation on the last two) and refitted on all of them (:func:`final_choice`). Its
-coefficients are exported to ``site/models/`` for the browser, with the covariance of the
-coefficients from a bootstrap of the training crashes. Every interval, in the browser and in the
-tables, is ``expit(x'b +- 1.96 sqrt(x'Vx))`` or its delta-method extension to a ratio or difference
-of two scenarios, so a worked example and the calculator always agree.
+every year (validation on the last two) and refitted on all of them (:func:`final_choice`). The
+covariance of its coefficients comes from a bootstrap of the training crashes; every interval is
+``expit(x'b +- 1.96 sqrt(x'Vx))`` or its delta-method extension to a ratio or difference of two
+scenarios.
 """
 
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass, field
 
 import numpy as np
@@ -64,14 +62,6 @@ VALIDATION_SPAN = 2
 C_EXPONENTS: tuple[int, ...] = tuple(range(-6, 4))
 C_LIMITS = (1e-4, 1e3)
 N_BOOTSTRAP = 500
-# The design published before the nested evaluation, kept only to show what nesting changed: one
-# penalty from these six, chosen by fitting on 2010-2020 and scoring 2021-2022, common effects,
-# and the model's estimate on every road. Its rolling-origin score is not a test on untouched
-# years: 2021 and 2022 chose the penalty, and the specification and the through-town rule were
-# decided on the rolling scores themselves.
-PREVIOUS_C_GRID: tuple[float, ...] = (0.1, 0.3, 1.0, 3.0, 10.0, 30.0)
-PREVIOUS_TRAIN_LAST_YEAR = 2020
-PREVIOUS_VALIDATION_YEARS = (2021, 2022)
 
 # --------------------------------------------------------------------------- inputs
 
@@ -181,7 +171,7 @@ CATEGORICAL: dict[str, dict[str, str]] = {
     "hour": HOURS,
     "units": UNITS,
 }
-# The reference (omitted) level of every categorical input, and the calculator's defaults.
+# The reference (omitted) level of every categorical input, and the reference crash's levels.
 REFERENCE: dict[str, str] = {
     "road": "urban_street",
     "crash_type": "side_impact",
@@ -299,7 +289,7 @@ def road_of(frame: pd.DataFrame) -> pd.Series:
 
 
 def scenarios_from_records(frame: pd.DataFrame) -> pd.DataFrame:
-    """The Catalan feature table recoded to the calculator's inputs, one row per crash."""
+    """The Catalan feature table recoded to the model's inputs, one row per crash."""
     units = frame.n_units.astype(int).clip(upper=4).astype(str).replace({"4": "4+"})
     out = pd.DataFrame(
         {
@@ -401,7 +391,7 @@ def specification_columns(specification: str = "common", provinces: bool = True)
 
 
 def design_matrix(scenarios: pd.DataFrame, columns: list[str] | None = None) -> np.ndarray:
-    """The 0/1 design of each scenario; the browser builds exactly the same vector."""
+    """The 0/1 design of each scenario; one row of 0/1 per scenario."""
     columns = columns or design_columns()
     zones = zone_of(scenarios.road).to_numpy()
     roads = scenarios.road.astype(str).to_numpy()
@@ -738,7 +728,7 @@ def fit_chosen(rec: Records, choice: Choice, train: np.ndarray) -> Fitted:
 
 
 def predict_chosen(rec: Records, choice: Choice, train: np.ndarray, test: np.ndarray) -> np.ndarray:
-    """What the calculator would show for each test crash, fitted on ``train`` with ``choice``:
+    """The prediction for each test crash, fitted on ``train`` with ``choice``:
     the model's estimate, or on roads through towns the training average if the choice says so."""
     _, x = rec.design(choice.specification, choice.provinces)
     p = expit(x[test] @ fit_chosen(rec, choice, train).coef)
@@ -748,48 +738,10 @@ def predict_chosen(rec: Records, choice: Choice, train: np.ndarray, test: np.nda
     return p
 
 
-def previous_choice(rec: Records) -> Choice:
-    """The design published before the nested evaluation (``PREVIOUS_C_GRID``): the penalty with
-    the lowest log loss on 2021-2022 after fitting 2010-2020, common effects, the model's estimate
-    on every road. Kept only to show what nesting changed."""
-    columns, x = rec.design("common")
-    train = rec.years <= PREVIOUS_TRAIN_LAST_YEAR
-    valid = np.isin(rec.years, PREVIOUS_VALIDATION_YEARS)
-    losses = {
-        c: _log_loss(
-            rec.y[valid], expit(x[valid] @ fit_logistic(x[train], rec.y[train], c, columns).coef)
-        )
-        for c in PREVIOUS_C_GRID
-    }
-    return Choice(
-        specification="common",
-        c=min(losses, key=losses.get),
-        through_town="model",
-        provinces=True,
-        train_years=(int(rec.years.min()), PREVIOUS_TRAIN_LAST_YEAR),
-        validation_years=(PREVIOUS_VALIDATION_YEARS[0], PREVIOUS_VALIDATION_YEARS[-1]),
-        c_bracketed=False,
-    )
-
-
 # --------------------------------------------------------------------------- evaluation
 
 ROLLING_TEST_YEARS: tuple[int, ...] = tuple(range(2016, 2024))
 TABLE_KEYS = ("road", "crash_type")
-# The steps from the previous design to the nested one, as columns of the rolling predictions:
-# each adds one choice made on the years before the test year.
-STEPS: dict[str, str] = {
-    "previous_design": "previous design: penalty chosen once on 2021-2022, common effects, the "
-    "model's estimate on roads through towns (not nested)",
-    "nested_penalty": "penalty chosen on the years before each test year; common effects; the "
-    "model's estimate on roads through towns",
-    "nested_penalty_specification": "penalty and specification chosen on the years before each "
-    "test year; the model's estimate on roads through towns",
-    "nested_with_provinces": "penalty, specification and through-town rule chosen on the years "
-    "before each test year; one intercept per province and zone kept in every year",
-    "calculator": "nested: penalty, specification, through-town rule and province intercepts "
-    "chosen on the years before each test year (published)",
-}
 
 
 def _trees(seed: int = SEED):
@@ -832,28 +784,25 @@ def _table(train: pd.DataFrame, y: np.ndarray, test: pd.DataFrame) -> np.ndarray
 
 @dataclass(frozen=True)
 class Nested:
-    predictions: pd.DataFrame  # one row per test crash, one column per estimator or step
+    predictions: pd.DataFrame  # one row per test crash, one column per estimator
     choices: pd.DataFrame  # sev_choices: one row per test year
-    grid: pd.DataFrame  # sev_penalty: every grid point of every test year's inner validation
 
 
 def nested_rolling(rec: Records | None = None, comparators: bool = True) -> Nested:
     """Each year 2016-2023 predicted from the years before it, every choice nested.
 
     For test year ``t`` the penalty, the specification, the through-town rule and the province
-    intercepts are chosen by :func:`select` on the years before ``t`` (fit on all but the last two, score those two), the
-    model is refitted on all years before ``t`` and predicts ``t``. The table of fatal shares by
-    road and crash type is fitted on the same years. With ``comparators``, also gradient-boosted
-    trees on the same inputs (fixed settings, fitted on the same years) and the steps from the
-    previous design (``STEPS``)."""
+    intercepts are chosen by :func:`select` on the years before ``t`` (fit on all but the last
+    two, score those two), the model is refitted on all years before ``t`` and predicts ``t``.
+    The table of fatal shares by road and crash type is fitted on the same years. With
+    ``comparators``, also gradient-boosted trees on the same inputs (fixed settings, fitted on
+    the same years)."""
     rec = rec or records()
-    previous = previous_choice(rec) if comparators else None
-    pieces, choices, grids = [], [], []
+    pieces, choices = [], []
     for year in ROLLING_TEST_YEARS:
         train, test = rec.years < year, rec.years == year
         choice, grid = select(rec, train, label=str(year))
         choices.append(choice_row(choice, grid, str(year)) | {"test_year": year})
-        grids.append(grid.assign(test_year=year))
         frame = {
             "cat_crash_id": rec.frame.cat_crash_id[test].to_numpy(),
             "year": year,
@@ -862,51 +811,16 @@ def nested_rolling(rec: Records | None = None, comparators: bool = True) -> Nest
             "province": rec.scenarios.province[test].astype(str).to_numpy(),
             "barcelona_city": (rec.frame.municipality[test] == "Barcelona").to_numpy(),
             "fatal": rec.y[test],
-            "calculator": predict_chosen(rec, choice, train, test),
+            "model": predict_chosen(rec, choice, train, test),
             "road_x_crash_table": _table(rec.scenarios[train], rec.y[train], rec.scenarios[test]),
         }
         if comparators:
-            # The earlier steps keep one intercept per province and zone, as the previous design
-            # did, so their choices come from the selection with province intercepts.
-            kept, kept_grid = (
-                (choice, grid)
-                if choice.provinces
-                else _select_given(rec, train, True, label=str(year))
-            )
-            best = kept_grid[kept_grid.best_for_specification].set_index("specification").c
-            common = Choice(
-                "common",
-                float(best["common"]),
-                "model",
-                True,
-                kept.train_years,
-                kept.validation_years,
-                kept.c_bracketed,
-            )
-            frame["previous_design"] = predict_chosen(rec, previous, train, test)
-            frame["nested_penalty"] = predict_chosen(rec, common, train, test)
-            frame["nested_penalty_specification"] = predict_chosen(
-                rec,
-                Choice(
-                    kept.specification,
-                    kept.c,
-                    "model",
-                    True,
-                    kept.train_years,
-                    kept.validation_years,
-                    kept.c_bracketed,
-                ),
-                train,
-                test,
-            )
-            frame["nested_with_provinces"] = predict_chosen(rec, kept, train, test)
             trees = _trees().fit(rec.scenarios[train], rec.y[train])
             frame["boosted_trees"] = trees.predict_proba(rec.scenarios[test])[:, 1]
         pieces.append(pd.DataFrame(frame))
     return Nested(
         predictions=pd.concat(pieces, ignore_index=True),
         choices=pd.DataFrame(choices),
-        grid=pd.concat(grids, ignore_index=True),
     )
 
 
@@ -914,11 +828,11 @@ def nested_rolling(rec: Records | None = None, comparators: bool = True) -> Nest
 
 
 def geography(rec: Records | None = None) -> pd.DataFrame:
-    """How the calculator's model and the road x crash-type table hold in places they were not
+    """How the model and the road x crash-type table hold in places they were not
     fitted on: each demarcation predicted from the other three, and Barcelona city's urban
     streets predicted from the urban streets of the rest of Catalonia (all years). Every choice
     is made by :func:`select` on the training crashes alone."""
-    from dgt_stats.model_review import scores, wilson
+    from dgt_stats.metrics import scores, wilson
 
     rec = rec or records()
     urban = rec.zones == "urban"
@@ -938,7 +852,7 @@ def geography(rec: Records | None = None) -> pd.DataFrame:
         # A province left out has no intercept of its own to learn, so the test uses none.
         choice, _ = select(rec, train, provinces=False, label=label)
         predictions = {
-            "calculator": predict_chosen(rec, choice, train, test),
+            "model": predict_chosen(rec, choice, train, test),
             "road_x_crash_table": _table(rec.scenarios[train], rec.y[train], rec.scenarios[test]),
         }
         low, high = wilson(rec.y[test].sum(), test.sum())
@@ -965,7 +879,7 @@ def final_choice(rec: Records | None = None) -> tuple[Choice, pd.DataFrame]:
 
 
 def final_fit(choice: Choice, rec: Records | None = None) -> tuple[Fitted, np.ndarray]:
-    """The calculator's model on every crash, and the training design matrix."""
+    """The model on every crash, and the training design matrix."""
     rec = rec or records()
     columns, x = rec.design(choice.specification, choice.provinces)
     return fit_logistic(x, rec.y, choice.c, columns), x
@@ -992,326 +906,9 @@ def prediction_interval(
     return expit(logit), expit(logit - z * se), expit(logit + z * se)
 
 
-# --------------------------------------------------------------------------- export
-
-EXPORT_DECIMALS = 8
-SUPPORT_FEW = 20  # fewer similar training crashes than this: the page warns
-
-
-def support_key(zone: str, crash_type: str, users: list[str], units: str) -> str:
-    """The key of "similar crashes": same zone, crash type, road users and number of units."""
-    return f"{zone}|{crash_type}|{'+'.join(sorted(users)) or 'none'}|{units}"
-
-
-def support_table(scenarios: pd.DataFrame, y: np.ndarray) -> dict[str, list[int]]:
-    zones = zone_of(scenarios.road).to_numpy()
-    flags = scenarios[list(USERS)].to_numpy()
-    keys = [
-        support_key(zone, crash, [u for u, f in zip(USERS, row) if f], units)
-        for zone, crash, row, units in zip(
-            zones, scenarios.crash_type, flags, scenarios.units.astype(str)
-        )
-    ]
-    counts = pd.DataFrame({"key": keys, "y": y}).groupby("key").y.agg(["size", "sum"])
-    return {key: [int(n), int(k)] for key, (n, k) in counts.iterrows()}
-
-
-def level_support(scenarios: pd.DataFrame) -> dict[str, int]:
-    """Training crashes per road and input level ("road|input=level", "road|user"), for the
-    page's warnings: an input level rarely or never recorded on the chosen road is flagged."""
-    roads = scenarios.road.astype(str)
-    out: dict[str, int] = {}
-    for name in CATEGORICAL:
-        counts = pd.crosstab(roads, scenarios[name].astype(str))
-        for road in counts.index:
-            for level in counts.columns:
-                out[f"{road}|{name}={level}"] = int(counts.loc[road, level])
-    for user in USERS:
-        counts = scenarios[scenarios[user] == 1].groupby(roads).size()
-        for road, n in counts.items():
-            out[f"{road}|{user}"] = int(n)
-    return out
-
-
-def _zone_masks(scenarios: pd.DataFrame) -> dict[str, np.ndarray]:
-    zones = zone_of(scenarios.road).to_numpy()
-    provinces = scenarios.province.astype(str).to_numpy()
-    out = {zone: zones == zone for zone in ZONES}
-    for zone in ZONES:
-        for province in PROVINCES:
-            out[f"{zone}|{province}"] = (zones == zone) & (provinces == province)
-    return out | {"all": np.ones(len(scenarios), dtype=bool)}
-
-
-def zone_average(scenarios: pd.DataFrame, y: np.ndarray) -> dict[str, float]:
-    """The share of the fitted crashes that were fatal: overall, in each zone, and in each zone of
-    each province ("zone|province")."""
-    return {key: float(y[mask].mean()) for key, mask in _zone_masks(scenarios).items()}
-
-
-def zone_counts(scenarios: pd.DataFrame, y: np.ndarray) -> dict[str, list[float]]:
-    """For the same keys as :func:`zone_average`: the fitted crashes, the fatal ones, and the
-    Wilson 95% interval of their fatal share, ``[crashes, fatal, low, high]``."""
-    from dgt_stats.model_review import wilson
-
-    out: dict[str, list[float]] = {}
-    for key, mask in _zone_masks(scenarios).items():
-        n, k = int(mask.sum()), int(y[mask].sum())
-        low, high = wilson(k, n)
-        out[key] = [n, k, round(float(low), EXPORT_DECIMALS), round(float(high), EXPORT_DECIMALS)]
-    return out
-
-
-def _broken_counts(scenarios: pd.DataFrame, through_town: str = "average") -> dict[str, int]:
-    counts: dict[str, int] = {}
-    for record in scenarios.to_dict("records"):
-        for rule in check_scenario(record, through_town):
-            counts[rule] = counts.get(rule, 0) + 1
-    return counts
-
-
-def input_specification(
-    scenarios: pd.DataFrame | None = None,
-    y: np.ndarray | None = None,
-    choice: Choice | None = None,
-) -> dict[str, object]:
-    """Every input, its type, its levels with labels, its default, and the rules between them.
-
-    With the training records, the rule texts quote how many records each rare combination has.
-    With the published ``choice``, roads through towns get the "average" rule only if the choice
-    gives them the average, and its text names the years the choice was made on."""
-    inputs: dict[str, object] = {
-        "road": {
-            "label": "Road",
-            "type": "categorical",
-            "levels": [
-                {"value": road, "label": label, "zone": zone}
-                for road, (label, zone) in ROADS.items()
-            ],
-            # The calculator opens on the worked examples' reference crash.
-            "default": REFERENCE_INTERURBAN_ROAD,
-        }
-    }
-    inputs["province"] = {
-        "label": "Province",
-        "type": "place",
-        "levels": [{"value": key, "label": label} for key, label in PROVINCES.items()],
-        "default": REFERENCE_PROVINCE,
-    }
-    labels = {
-        "crash_type": "Type of crash",
-        "lighting": "Lighting",
-        "weather": "Weather",
-        "surface": "Road surface",
-        "junction": "Junction",
-        "speed_limit": "Posted speed limit",
-        "hour": "Time of day",
-        "units": "Vehicles and pedestrians involved",
-    }
-    for name, levels in CATEGORICAL.items():
-        inputs[name] = {
-            "label": labels[name],
-            "type": "categorical",
-            "levels": [{"value": v, "label": label} for v, label in levels.items()],
-            "default": REFERENCE[name],
-        }
-    inputs["users"] = {
-        "label": "Road users involved",
-        "type": "flags",
-        "levels": [{"value": u, "label": label} for u, label in USERS.items()],
-        "default": ["light_vehicle"],
-    }
-    through_town = choice.through_town if choice is not None else "average"
-    total = len(scenarios) if scenarios is not None else None
-    counts = _broken_counts(scenarios, through_town) if scenarios is not None else {}
-
-    def records(rule: str) -> str:
-        if total is None:
-            return ""
-        return f" ({counts.get(rule, 0):,} of {total:,} crashes)"
-
-    rules = [
-        {
-            "id": "at_least_one_user",
-            "kind": "error",
-            "text": "Tick at least one road user involved.",
-        },
-        {
-            "id": "units_cover_users",
-            "kind": "error",
-            "text": "The number of vehicles and pedestrians must be at least the number of "
-            "kinds of road user ticked.",
-        },
-        {
-            "id": "pedestrian_struck_needs_pedestrian",
-            "kind": "error",
-            "text": "A crash in which a pedestrian was struck must involve a pedestrian.",
-        },
-        {
-            "id": "collision_with_one_unit",
-            "kind": "warning",
-            "text": "A collision with only one vehicle or pedestrian involved is rare in the "
-            f"records{records('collision_with_one_unit')}.",
-        },
-        {
-            "id": "pedestrian_without_vehicle",
-            "kind": "warning",
-            "text": "A crash involving a pedestrian and no vehicle is rare in the records"
-            f"{records('pedestrian_without_vehicle')}.",
-        },
-        {
-            "id": "few_similar",
-            "kind": "warning",
-            "threshold": SUPPORT_FEW,
-            "text": "Fewer than {threshold} recorded crashes share this zone, crash type, road "
-            "users and number involved: the estimate rests on the model's assumptions more than "
-            "on similar crashes.",
-        },
-        {
-            "id": "rare_level",
-            "kind": "warning",
-            "threshold": SUPPORT_FEW,
-            "text": "Fewer than {threshold} recorded crashes on this road {input}: the estimate "
-            "for it is extrapolated, and its interval does not show how few records there are.",
-        },
-    ]
-    if through_town == "average":
-        when = (
-            f", on {choice.validation_years[0]}–{choice.validation_years[1]} with the model "
-            f"fitted on {choice.train_years[0]}–{choice.train_years[1]}"
-            if choice is not None
-            else ""
-        )
-        rules.append(
-            {
-                "id": "through_town",
-                "kind": "average",
-                "text": "On roads through towns the average fatal share of such roads in the "
-                "province predicted later crashes better than the model's estimates did"
-                f"{when}, so the average is shown instead of an estimate.",
-            }
-        )
-    return {
-        "inputs": inputs,
-        "rules": rules,
-        "collision_types": list(COLLISION_TYPES),
-        "through_town": through_town,
-    }
-
-
-COLLISION_TYPES = ("head_on", "side_impact", "rear_end", "sideswipe", "pedestrian_struck")
-UNIT_COUNTS = {"1": 1, "2": 2, "3": 3, "4+": None}  # None: four or more, no upper bound
-# The conditions rules use time bands that hold all year in Catalonia: no daylight before 06:00
-# or from 22:00, and neither dawn, dusk nor night between 10:00 and 13:59. The other bands can
-# have every lighting at some time of year.
-DAYLIGHT = ("day", "overcast")
-HOURS_WITHOUT_DAYLIGHT = ("00-05", "22-23")
-HOURS_OF_DAYLIGHT_ONLY = ("10-13",)
-
-
-def check_scenario(scenario: dict[str, object], through_town: str = "average") -> list[str]:
-    """The ids of the rules a scenario breaks (errors and the scenario-level warnings).
-    ``through_town`` is the published choice for roads through towns ("average" or "model").
-    The browser engine's ``check`` applies the same rules (``assets/severity-engine.js``)."""
-    users = [u for u in USERS if scenario.get(u)]
-    units = UNIT_COUNTS[str(scenario["units"])]
-    broken = []
-    if not users:
-        broken.append("at_least_one_user")
-    if units is not None and units < len(users):
-        broken.append("units_cover_users")
-    if scenario["crash_type"] == "pedestrian_struck" and not scenario.get("pedestrian"):
-        broken.append("pedestrian_struck_needs_pedestrian")
-    if scenario["weather"] == "heavy_rain_snow" and scenario["surface"] == "dry":
-        broken.append("heavy_rain_on_dry_surface")
-    daylight = scenario["lighting"] in DAYLIGHT
-    if (scenario["hour"] in HOURS_WITHOUT_DAYLIGHT and daylight) or (
-        scenario["hour"] in HOURS_OF_DAYLIGHT_ONLY and not daylight
-    ):
-        broken.append("lighting_outside_hours")
-    if scenario["crash_type"] in COLLISION_TYPES and units == 1:
-        broken.append("collision_with_one_unit")
-    if users == ["pedestrian"]:
-        broken.append("pedestrian_without_vehicle")
-    if through_town == "average" and ROADS[str(scenario["road"])][1] == "through_town":
-        broken.append("through_town")
-    return broken
-
-
-def model_id(columns: list[str], coefficients: list[float]) -> str:
-    """A short hash of the exported model, so the page can tell that its parts belong together."""
-    import hashlib
-
-    digest = hashlib.sha256(json.dumps([columns, coefficients]).encode()).hexdigest()
-    return digest[:12]
-
-
-def export(
-    fitted: Fitted,
-    covariance: np.ndarray,
-    scenarios: pd.DataFrame,
-    y: np.ndarray,
-    evaluation: dict[str, object],
-    excluded: dict[str, int],
-    years: tuple[int, int],
-    choice: Choice,
-) -> dict[str, object]:
-    """Everything the page needs to reproduce :func:`prediction_interval` for any scenario.
-
-    ``years`` is the first and last year of the fitted crashes, read from the data; ``excluded``
-    the crashes left out (``EXCLUDED_ROADS``) and how many of them were fatal; ``choice`` the
-    published model's choices."""
-    k = len(fitted.columns)
-    lower = [
-        round(float(covariance[i, j]), EXPORT_DECIMALS + 2) for i in range(k) for j in range(i + 1)
-    ]
-    coefficients = [round(float(b), EXPORT_DECIMALS) for b in fitted.coef]
-    return {
-        "model": "catalonia_crash_severity_calculator",
-        "model_id": model_id(fitted.columns, coefficients),
-        "question": "Of crashes in Catalonia with a death or a serious injury, the share that "
-        "were fatal (someone died within 24 hours), given the recorded road, conditions and "
-        "crash",
-        "source": "Servei Català de Trànsit, crashes with a death or serious injury, "
-        f"{years[0]}-{years[1]}",
-        "training": {
-            "years": [int(years[0]), int(years[1])],
-            "crashes": int(len(y)),
-            "fatal": int(y.sum()),
-            "excluded_owner_not_recorded": int(excluded["crashes"]),
-            "excluded_fatal": int(excluded["fatal"]),
-        },
-        "zone_average": zone_average(scenarios, y),
-        "zone_counts": zone_counts(scenarios, y),
-        "estimator": "logistic regression, L2 penalty, one intercept per zone"
-        + (" and province, " if choice.provinces else ", ")
-        + SPECIFICATIONS[choice.specification],
-        "penalty": {"C": fitted.c},
-        "choice": {
-            "specification": choice.specification,
-            "C": choice.c,
-            "through_town": choice.through_town,
-            "provinces": choice.provinces,
-            "train_years": list(choice.train_years),
-            "validation_years": list(choice.validation_years),
-            "c_bracketed": choice.c_bracketed,
-        },
-        "columns": fitted.columns,
-        "coefficients": coefficients,
-        "covariance_lower": lower,
-        "interval": "95% confidence interval for the share among crashes like this one: "
-        "logit +- 1.96 * sqrt(x' V x), V the covariance of the coefficients over "
-        f"{N_BOOTSTRAP} bootstrap refits",
-        **input_specification(scenarios, y, choice),
-        "support": support_table(scenarios, y),
-        "level_support": level_support(scenarios),
-        "evaluation": evaluation,
-    }
-
-
 def scenario_frame(scenario: dict[str, object]) -> pd.DataFrame:
-    """One scenario as a one-row frame; an unknown road or input level is an error, as in the
-    browser, never silently the reference level."""
+    """One scenario as a one-row frame; an unknown road or input level is an error, never silently
+    the reference level."""
     if str(scenario["road"]) not in ROADS:
         raise ValueError(f"unknown road: {scenario['road']}")
     if str(scenario["province"]) not in PROVINCES:
@@ -1322,15 +919,6 @@ def scenario_frame(scenario: dict[str, object]) -> pd.DataFrame:
     row = {name: scenario[name] for name in ("road", "province", *CATEGORICAL)}
     row |= {user: int(bool(scenario.get(user))) for user in USERS}
     return pd.DataFrame([row])
-
-
-def predict_exported(model: dict[str, object], scenario: dict[str, object]) -> dict[str, float]:
-    """The prediction the page shows, computed from the exported JSON (the parity reference)."""
-    columns = list(model["columns"])
-    coef = np.array(model["coefficients"], dtype=float)
-    x = design_matrix(scenario_frame(scenario), columns)
-    p, low, high = prediction_interval(x, coef, _covariance(model))
-    return {"probability": float(p[0]), "low": float(low[0]), "high": float(high[0])}
 
 
 # --------------------------------------------------------------------------- findings
@@ -1354,11 +942,9 @@ URBAN_REFERENCE: dict[str, object] = REFERENCE_SCENARIO | {"road": "urban_street
 
 
 def _variants(base: dict[str, object]) -> list[tuple[str, str, dict[str, object]]]:
-    """``base`` with one input changed at a time (only changes that keep the crash itself
-    possible). The conditions rules are not applied: the worked examples compare the model's
-    terms one at a time from the reference crash (a lighting term is the same at every time of
-    day), so a change such as night at 10:00–13:59 keeps its row although the calculator would
-    ask for another time."""
+    """``base`` with one input changed at a time. A lighting term is the same at every time of
+    day, so a change such as night at 10:00-13:59 keeps its row although the two are
+    inconsistent: the contrasts compare the model's terms one at a time."""
     out = []
     zone = ROADS[str(base["road"])][1]
     for road, (_, road_zone) in ROADS.items():
@@ -1382,22 +968,14 @@ def _variants(base: dict[str, object]) -> list[tuple[str, str, dict[str, object]
         if user == "light_vehicle":
             continue
         out.append(("users", user, base | {user: 1}))
-    return [(n, level, s) for n, level, s in out if not set(check_scenario(s)) & CRASH_ERRORS]
-
-
-# The rules the calculator refuses: those of the crash itself (at most one recorded crash breaks
-# each) and those of the conditions (a few recorded crashes break them, recording
-# inconsistencies kept in the fit).
-CRASH_ERRORS = {"at_least_one_user", "units_cover_users", "pedestrian_struck_needs_pedestrian"}
-CONDITION_ERRORS = {"heavy_rain_on_dry_surface", "lighting_outside_hours"}
-ERRORS = CRASH_ERRORS | CONDITION_ERRORS
+    return out
 
 
 def scenario_contrasts(
     fitted: Fitted, covariance: np.ndarray, base: dict[str, object]
 ) -> pd.DataFrame:
     """Predicted fatal share of ``base`` and of each one-input change, and the ratio of the two,
-    with the intervals the calculator gives (:func:`prediction_interval`, :func:`contrast`).
+    with the intervals of :func:`prediction_interval` and :func:`contrast`.
     Associations between modelled scenarios, not effects."""
     variants = _variants(base)
     frames = [scenario_frame(base)] + [scenario_frame(s) for _, _, s in variants]
@@ -1419,48 +997,6 @@ def scenario_contrasts(
                 "ratio_high": compared["ratio_high"],
             }
         )
-    return pd.DataFrame(rows)
-
-
-def marginal_and_adjusted(
-    fitted: Fitted, draws: np.ndarray, rec: Records | None = None
-) -> pd.DataFrame:
-    """For each input level: the raw fatal share of the crashes with it, and the model's average
-    predicted share when every crash is given that level (standardised to the observed mix)."""
-    rec = rec or records()
-    scenarios, y = rec.scenarios, rec.y
-    rows = []
-    for name in ("road", *CATEGORICAL):
-        levels = list(ROADS) if name == "road" else list(CATEGORICAL[name])
-        for level in levels:
-            has = (scenarios[name].astype(str) == level).to_numpy()
-            if has.sum() == 0:
-                continue
-            if name == "road":
-                # Standardise within the level's own zone: a road is only compared with roads
-                # of the zones it can be.
-                zone = ROADS[level][1]
-                pool = scenarios[(zone_of(scenarios.road) == zone).to_numpy()].copy()
-            else:
-                pool = scenarios.copy()
-            pool[name] = level
-            if level == "pedestrian_struck":
-                pool["pedestrian"] = 1
-            x = design_matrix(pool, fitted.columns)
-            standardised = expit(x @ fitted.coef).mean()
-            boot = expit(x @ draws[:100].T).mean(axis=0)
-            rows.append(
-                {
-                    "input": name,
-                    "level": level,
-                    "crashes": int(has.sum()),
-                    "fatal": int(y[has].sum()),
-                    "raw_share": float(y[has].mean()),
-                    "standardised_share": float(standardised),
-                    "standardised_low": float(np.percentile(boot, 2.5)),
-                    "standardised_high": float(np.percentile(boot, 97.5)),
-                }
-            )
     return pd.DataFrame(rows)
 
 
@@ -1488,29 +1024,6 @@ def stability(choice: Choice, rec: Records | None = None) -> pd.DataFrame:
             table["crashes"] = int(mask.sum())
             rows.append(table)
     return pd.concat(rows, ignore_index=True)
-
-
-def _covariance(model: dict[str, object]) -> np.ndarray:
-    k = len(model["columns"])
-    covariance = np.zeros((k, k))
-    position = 0
-    for i in range(k):
-        for j in range(i + 1):
-            covariance[i, j] = covariance[j, i] = model["covariance_lower"][position]
-            position += 1
-    return covariance
-
-
-def compare_exported(
-    model: dict[str, object], first: dict[str, object], second: dict[str, object]
-) -> dict[str, float]:
-    """The page's two-scenario comparison, computed from the exported JSON (the parity
-    reference): :func:`contrast` on the exported coefficients and covariance."""
-    columns = list(model["columns"])
-    coef = np.array(model["coefficients"], dtype=float)
-    xa = design_matrix(scenario_frame(first), columns)[0]
-    xb = design_matrix(scenario_frame(second), columns)[0]
-    return contrast(xa, xb, coef, _covariance(model))
 
 
 def contrast(

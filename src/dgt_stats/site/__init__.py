@@ -2,25 +2,24 @@
 
 No template engine, one small script (``script``) that only makes reading easier (every page
 works without it) and two self-hosted open fonts (``fonts``). The navigation (``NAV_GROUPS``) follows the argument: the
-national picture from DGT and INE with three supporting analyses, the Catalan and Barcelona crash
-records, the two severity models and their external validation, and the sources and methods.
+national picture from DGT and INE, the crash records of Spain, Catalonia and Barcelona and the
+severity model, the two interactive tools, and the sources and methods.
 Every sentence that carries a number computes it from a committed result table at build time, so
 the prose cannot drift from the tables; full tables are linked as CSV rather than printed. Only
 the tables a page links are copied into ``site/tables``, and only the figures a page shows into
 ``site/figures``, with their drawings for a phone's column in ``site/figures/narrow``; the other
 result tables stay in the repository, unpublished.
 
-One module per page: ``overview``, ``trends``, ``long_run``, ``seasons``, ``drivers``,
-``vehicles``, ``speed``, ``factors``, the supporting ``severity`` and ``policy``,
-``regional`` (Catalonia and Barcelona), ``models``, ``validation``, ``sources`` and ``data``. The
+One module per page: ``overview``, ``long_run``, ``seasons``, ``drivers``,
+``vehicles``, ``factors``, the supporting ``severity`` and ``policy``,
+``regional`` (Catalonia and Barcelona), ``models``, ``sources`` and ``data``. The
 shared furniture is in ``components``, the stylesheet in ``style``, the script in ``script``, the result tables several
-pages quote in ``numbers`` and the helpers of the regional, model and validation pages in
+pages quote in ``numbers`` and the helpers of the regional and model pages in
 ``regional_common``.
 
-The interactive tools (``explore`` and the ``tool_*`` modules) are pages like the others; their
-scripts and the data they read are published in ``site/tools``, and the calculator's engine and
-model in ``site/models``. Pages that no builder writes any more, such as the notices of withdrawn
-analyses, are removed from ``site``.
+The interactive tools (the ``tool_*`` modules) are pages like the others; their
+scripts and the data they read are published in ``site/tools``. A page no builder writes any
+more is removed from ``site``.
 """
 
 from __future__ import annotations
@@ -31,7 +30,7 @@ import shutil
 from pathlib import Path
 
 from dgt_stats.paths import FIGURES_DIR, PROJECT_ROOT, TABLES_DIR
-from dgt_stats.site import explore
+from dgt_stats.site import tool_crashes, tool_driver_risk
 from dgt_stats.site.components import (
     ALL_PAGES,
     NAV_GROUPS,
@@ -57,10 +56,7 @@ from dgt_stats.site.script import SCRIPT
 from dgt_stats.site.seasons import page_seasons
 from dgt_stats.site.severity import page_severity
 from dgt_stats.site.sources import page_sources
-from dgt_stats.site.speed import page_speed
 from dgt_stats.site.style import STYLE
-from dgt_stats.site.trends import page_trends
-from dgt_stats.site.validation import page_validation
 from dgt_stats.site.vehicles import page_vehicles
 
 __all__ = [
@@ -72,7 +68,7 @@ __all__ = [
     "REPO_URL",
     "SITE_DIR",
     "SUPPORTING_PAGES",
-    "WITHDRAWN_PAGES",
+    "TOOLS",
     "_signed_pct",
     "build",
     "esc",
@@ -86,36 +82,30 @@ __all__ = [
 SITE_DIR = PROJECT_ROOT / "site"
 FONTS_DIR = Path(__file__).resolve().parent / "fonts"
 ASSETS_DIR = Path(__file__).resolve().parent / "assets"
-# The crash-severity calculator: its arithmetic, its page script and the model it reads.
-CALCULATOR_ASSETS = (ASSETS_DIR / "severity-engine.js", ASSETS_DIR / "severity-calculator.js")
-CALCULATOR_MODEL = PROJECT_ROOT / "reports" / "models" / "severity_model.json"
-# The other tools' scripts: the shared helpers and one per tool, published in ``site/tools``.
-TOOL_ASSETS = tuple(
-    ASSETS_DIR / f"{name}.js"
-    for name in ("tools", *(slug for slug, _ in explore.TOOLS if slug != "calculator"))
+# The interactive tools: slug and module. Each module builds its page and computes the data it
+# publishes as JSON in ``site/tools``.
+TOOLS = (
+    ("driver-risk", tool_driver_risk),
+    ("crash-explorer", tool_crashes),
 )
+# The tools' scripts: the shared helpers and one per tool, published in ``site/tools``.
+TOOL_ASSETS = tuple(ASSETS_DIR / f"{name}.js" for name in ("tools", *(slug for slug, _ in TOOLS)))
 
 
 PAGE_BUILDERS = {
     "index": page_index,
-    "explore": explore.page_explore,
-    "calculator": explore.tool_calculator.page_calculator,
-    "driver-risk": explore.tool_driver_risk.page_driver_risk,
-    "crash-explorer": explore.tool_crashes.page_crash_explorer,
-    "trends-explorer": explore.tool_trends.page_trends_explorer,
-    "trends": page_trends,
     "long-run": page_long_run,
     "seasons": page_seasons,
     "drivers": page_drivers,
     "vehicles": page_vehicles,
-    "speed": page_speed,
     "factors": page_factors,
     "severity": page_severity,
     "policy": page_policy,
     "catalonia": page_catalonia,
     "barcelona": page_barcelona,
     "severity-models": page_severity_models,
-    "validation": page_validation,
+    "driver-risk": tool_driver_risk.page_driver_risk,
+    "crash-explorer": tool_crashes.page_crash_explorer,
     "sources": page_sources,
     "data": page_data,
 }
@@ -135,19 +125,13 @@ def build(site_dir: Path = SITE_DIR) -> list[Path]:
         target = fonts_dir / path.name
         shutil.copyfile(path, target)
         written.append(target)
-    # The one site-wide script is the site's own; any other, such as those of the withdrawn
-    # simulator and factor models, is removed. The calculator's engine, its page script and the
-    # exported model it reads live apart, in ``models/``, and only its page loads them.
+    # The one site-wide script is the site's own; any other is removed, and so is the folder an
+    # earlier build kept for a model file.
     for stale in site_dir.glob("*.js"):
         stale.unlink()
     models_dir = site_dir / "models"
     if models_dir.exists():
         shutil.rmtree(models_dir)
-    models_dir.mkdir()
-    for source in (*CALCULATOR_ASSETS, CALCULATOR_MODEL):
-        target = models_dir / source.name
-        shutil.copyfile(source, target)
-        written.append(target)
     # The other tools' scripts and the data each computes from the result tables.
     tools_dir = site_dir / "tools"
     if tools_dir.exists():
@@ -157,7 +141,7 @@ def build(site_dir: Path = SITE_DIR) -> list[Path]:
         target = tools_dir / source.name
         shutil.copyfile(source, target)
         written.append(target)
-    for _, module in explore.TOOLS:
+    for _, module in TOOLS:
         for name, payload in module.data_files().items():
             target = tools_dir / name
             target.write_text(
@@ -190,7 +174,7 @@ TABLE_REFERENCE = re.compile(r'href="tables/([^"/]+\.csv)"')
 
 def publish_tables(site_dir: Path, pages: list[Path], source_dir: Path = TABLES_DIR) -> list[Path]:
     """Copy into ``site_dir/tables`` the result tables that ``pages`` link, and nothing else: a
-    table no page links (a withdrawn analysis's record, a check behind a generated document) stays
+    table no page links (one that a figure, a test or the generated findings read) stays
     in the repository and is not published. A page that links a table the reports do not hold
     fails the build."""
     target_dir = site_dir / "tables"

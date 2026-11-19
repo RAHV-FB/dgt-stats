@@ -11,7 +11,6 @@ from pathlib import Path
 import pandas as pd
 
 from dgt_stats.paths import FIGURES_DIR, NARROW_FIGURES_DIR, TABLES_DIR
-from dgt_stats.risk_trends import BASE_YEAR
 from dgt_stats.site.script import CONTENT_SECURITY_POLICY, JS_FLAG
 from dgt_stats.site.style import FIGURE_SWITCH_REMS
 
@@ -24,34 +23,23 @@ PROFILE_URL = "https://github.com/RAHV-FB"
 DOCS_URL = f"{REPO_URL}/blob/main/docs"
 
 
-# The navigation follows the questions a reader brings: the interactive tools first, then how
-# deaths have changed over time, which drivers, vehicles and recorded circumstances go with crashes
-# and deaths, how deadly a crash is once it has happened (in Spain's records, in Catalonia's and
-# Barcelona's, and in the model built on Catalonia's), and where the data and methods come from.
-# The home page lists the same groups.
+# The navigation follows the questions a reader brings: how deaths have changed over time, which
+# drivers, vehicles and recorded circumstances go with crashes and deaths, how deadly a crash is
+# once it has happened (in Spain's records, in Catalonia's and Barcelona's, and in the model built
+# on Catalonia's), the two interactive tools, and where the data and methods come from. The home
+# page lists the same groups.
 OVERVIEW = "Overview"
-EXPLORE = "Explore"
 OVER_TIME = "Over time"
-WHO = "Drivers, vehicles and factors"
+WHO = "Drivers and vehicles"
 SEVERITY = "Crash severity"
+TOOLS_GROUP = "Tools"
 METHODS = "Data and methods"
 NAV_GROUPS: tuple[tuple[str, tuple[tuple[str, str], ...]], ...] = (
     (OVERVIEW, (("index", "Overview"),)),
     (
-        EXPLORE,
-        (
-            ("explore", "Interactive tools"),
-            ("calculator", "Crash severity calculator"),
-            ("driver-risk", "Driver risk comparison"),
-            ("crash-explorer", "Crash statistics explorer"),
-            ("trends-explorer", "Trends and rates explorer"),
-        ),
-    ),
-    (
         OVER_TIME,
         (
             ("long-run", "Long-run trends"),
-            ("trends", f"Since {BASE_YEAR}"),
             ("seasons", "Seasons"),
             ("policy", "The 2006 points licence"),
         ),
@@ -61,8 +49,7 @@ NAV_GROUPS: tuple[tuple[str, tuple[tuple[str, str], ...]], ...] = (
         (
             ("drivers", "Drivers"),
             ("vehicles", "Vehicles"),
-            ("speed", "Speed"),
-            ("factors", "Recorded factors"),
+            ("factors", "Speed and other recorded factors"),
         ),
     ),
     (
@@ -71,44 +58,45 @@ NAV_GROUPS: tuple[tuple[str, tuple[tuple[str, str], ...]], ...] = (
             ("severity", "Crash circumstances in Spain"),
             ("catalonia", "Catalonia"),
             ("barcelona", "Barcelona"),
-            ("severity-models", "Crash severity model"),
-            ("validation", "Model method and tests"),
+            ("severity-models", "Catalan severity model"),
+        ),
+    ),
+    (
+        TOOLS_GROUP,
+        (
+            ("driver-risk", "Driver risk comparison"),
+            ("crash-explorer", "Crash statistics explorer"),
         ),
     ),
     (METHODS, (("sources", "Data sources and scope"), ("data", "Methodology"))),
 )
 # The line above a page's title: the group it belongs to.
 EYEBROWS = {group: group for group, _ in NAV_GROUPS}
-# The interactive tools, each on a page of its own under ``explore``.
-TOOL_SLUGS = ("calculator", "driver-risk", "crash-explorer", "trends-explorer")
+# The interactive tools, each on a page of its own.
+TOOL_SLUGS = ("driver-risk", "crash-explorer")
 # What each page answers, one line each, for the home page's list of pages.
 PAGE_QUESTIONS = {
-    "explore": "Calculators and explorers that compute results from the site's data.",
-    "calculator": "The estimated fatal share of a severe crash in Catalonia, for a crash you "
-    "describe.",
     "driver-risk": "Crash involvement and deaths of drivers of two age groups or sexes, side by "
     "side.",
     "crash-explorer": "Spain's recorded injury crashes and deaths by year, region, road and crash "
     "type.",
-    "trends-explorer": "Road deaths, injuries and crashes since 1993, as counts and as rates.",
-    "long-run": "How road deaths have changed since 1993, against vehicles, fuel sold and "
+    "long-run": "How road deaths have changed since 1993 and since 2019, against fuel sold and "
     "kilometres driven.",
-    "trends": f"Deaths, hospital admissions and injury crashes in 2024 against {BASE_YEAR}.",
     "seasons": "Which months are deadliest, and how the 2020 lockdown changed them.",
     "policy": "Whether the points-based licence of July 2006 changed monthly deaths.",
     "drivers": "How often drivers of each age and sex are in crashes per kilometre, and how "
     "often a crash kills them.",
     "vehicles": "Crashes and deaths by type of vehicle, per vehicle and per kilometre.",
-    "speed": "Crashes in which the police recorded inappropriate speed, and their deaths.",
-    "factors": "The other circumstances the police record, and how their shares have moved.",
+    "factors": "Deaths in crashes where the police recorded inappropriate speed, and how often "
+    "they recorded speed, alcohol and other factors.",
     "severity": "Which recorded circumstances go with a death in Spain's injury crashes.",
     "catalonia": "Crashes with a death or serious injury in Catalonia, 2010–2023.",
     "barcelona": "Every crash the Guàrdia Urbana attended in Barcelona in 2025.",
-    "severity-models": "A model of which severe crashes in Catalonia were fatal, and a "
-    "calculator to try it.",
-    "validation": "How the Catalan models held up on other years, places and records.",
+    "severity-models": "A model of which severe crashes in Catalonia were fatal, and how well "
+    "it holds up.",
     "sources": "Where every figure comes from, what it covers and what it cannot show.",
-    "data": "How the results are produced, the checks they pass and the assumptions tested.",
+    "data": "Definitions, rates and intervals, the checks on the data, how to reproduce the "
+    "results and each page's technical notes.",
 }
 
 
@@ -130,11 +118,8 @@ SPAIN_PAGES: tuple[tuple[str, str], ...] = tuple(
 
 
 ALL_PAGES = PAGES + SUPPORTING_PAGES
-# Every article in reading order, as the navigation lists them; the pager follows it. The tools
-# are opened from their own page and are not part of it.
-READING_ORDER: tuple[str, ...] = tuple(
-    slug for group, pages in NAV_GROUPS if group != EXPLORE for slug, _ in pages
-)
+# Every page in reading order, as the navigation lists them; the pager follows it.
+READING_ORDER: tuple[str, ...] = tuple(slug for _, pages in NAV_GROUPS for slug, _ in pages)
 
 
 # House style for numbers: a typographic minus rather than a hyphen, so a negative figure in a

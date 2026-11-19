@@ -1,4 +1,4 @@
-"""Vehicle groups and the 2022 rates per kilometre driven (question Q6).
+"""Vehicle groups and the 2022 rates per kilometre driven.
 
 The yearbook tables list 22 unit types, the kilometre table 7 vehicle types, the series 9 columns and
 the microdata 12 death columns. One dictionary maps all four onto the same groups so that a rate's
@@ -129,33 +129,12 @@ VEHICLE_GROUPS: dict[str, dict[str, object]] = {
     },
 }
 
-# What the reader must know about a group's sources, printed in the mapping table.
-GROUP_NOTES = {
-    "heavy_truck": (
-        "the kilometre table's category is the union of the methodology note's 'camiones de más de "
-        "3.500 kg' (272,157 vehicles, 6.9 bn km) and 'tractores industriales' (222,594 vehicles, "
-        "19.7 bn km, the note's validation table; the estimation file places 936 of these vehicles "
-        "in the light stratum instead, so the fleet total is unchanged), so tractor units and "
-        "articulated vehicles belong in the numerator"
-    ),
-    "van": "one rate group with trucks up to 3,500 kg",
-    "light_truck": "one rate group with vans",
-    "other": (
-        "agricultural-use vehicles and special vehicles are excluded from the ITV database "
-        "(methodology note, p. 7), so the machinery row has no kilometre denominator and does not "
-        "enter the heavy-truck rate; quadricycle involvement also sits here while the kilometre "
-        "table counts light quadricycles (L6e) as mopeds and heavy ones (L7e) as motorcycles, so "
-        "those two denominators include vehicles whose crashes are counted in this row"
-    ),
-}
-
 # Groups with a kilometre denominator, in the order the page shows them.
 KM_GROUPS = tuple(name for name, spec in VEHICLE_GROUPS.items() if spec["km_type"] is not None)
 
 # The series merges vans with light trucks in one column, and so do the rates: the crash record
 # codes most light commercial vehicles as "Furgoneta" while the register splits them into vans and
 # trucks up to 3,500 kg, so only their sum has the same meaning in numerator and denominator.
-SERIES_MERGED_COLUMN = "Camiones hasta 3.500 kg y furgonetas"
 SERIES_MERGED_GROUPS = ("van", "light_truck")
 MERGED_GROUP = "van_light_truck"
 MERGED_LABEL = "Vans and trucks up to 3,500 kg"
@@ -182,26 +161,6 @@ def label(group: str) -> str:
 
 def _group_column(unit_type: pd.Series) -> pd.Series:
     return unit_type.map(UNIT_TO_GROUP)
-
-
-def vehicle_groups_table() -> pd.DataFrame:
-    """The mapping as a table for the site: one row per group with its names in every source."""
-    records = []
-    for name, spec in VEHICLE_GROUPS.items():
-        records.append(
-            {
-                "group": name,
-                "label": spec["label"],
-                "yearbook_unit_types": "; ".join(spec["units"]),  # type: ignore[arg-type]
-                "km_table_type": spec["km_type"] or "",
-                "microdata_column": spec["microdata"],
-                "series_column": spec["series"]
-                or (SERIES_MERGED_COLUMN if name in SERIES_MERGED_GROUPS else ""),
-                "has_km_denominator": spec["km_type"] is not None,
-                "note": GROUP_NOTES.get(name, ""),
-            }
-        )
-    return pd.DataFrame.from_records(records)
 
 
 def km_by_age() -> pd.DataFrame:
@@ -278,63 +237,50 @@ def vehicle_km(by_rate_group: bool = False) -> pd.DataFrame:
 
 
 def _counts(year: int) -> pd.DataFrame:
-    """Vehicles involved (injury and fatal crashes) and occupant deaths by group, year and zone."""
+    """Vehicles involved (injury and fatal crashes) and occupant deaths by group and year, all
+    roads."""
     units = io_tables.read_table("tables_units_by_type")
     victims = io_tables.read_table("tables_victims_by_mode")
-    units = units[(units.year == year) & ~units.is_total].assign(
+    units = units[(units.year == year) & ~units.is_total & (units.zone == "all")].assign(
         group=lambda d: _group_column(d.unit_type).map(RATE_GROUP_OF)
     )
     involved = (
         units[units.metric.isin(["crashes", "fatal_crashes"])]
-        .groupby(["group", "zone", "metric"])
+        .groupby(["group", "metric"])
         .value.sum()
         .unstack("metric")
         .rename(columns={"crashes": "injury_involvement", "fatal_crashes": "fatal_involvement"})
     )
+    # The victims table is by zone; the deaths of both zones make the all-roads count.
     victims = victims[(victims.year == year) & ~victims.is_total & (victims.metric == "deaths_30d")]
     victims = victims.assign(group=lambda d: _group_column(d.unit_type).map(RATE_GROUP_OF))
     occupants = (
         victims[victims.role.isin(["driver", "passenger"])]
-        .groupby(["group", "zone"])
+        .groupby("group")
         .value.sum()
         .rename("occupant_deaths")
     )
-    both = (
-        occupants.groupby("group")
-        .sum()
-        .to_frame()
-        .assign(zone="all")
-        .set_index("zone", append=True)
-    )
-    occupants = pd.concat([occupants.to_frame(), both]).occupant_deaths
     out = involved.join(occupants, how="left").reset_index()
     out["year"] = year
     return out.rename_axis(columns=None)
 
 
-# What each row is divided by. Vehicle-km exist for all roads only, so a zone row has no per-km
-# rate; the circulating fleet is the population of vehicles at risk on any road, so it divides
-# every row.
-DENOMINATORS = {
-    "all": "circulating fleet and vehicle-km on all roads, 2022",
-    "zone": "circulating fleet, 2022 (no vehicle-km by zone, so no rate per km)",
-}
+DENOMINATOR = "circulating fleet and vehicle-km on all roads, 2022"
 
 
 def rates_2022() -> pd.DataFrame:
-    """Long table: group × zone × measure with counts, denominators, rates and exact intervals.
+    """Long table: group × measure, all roads, with counts, denominators, rates and exact
+    intervals.
 
-    The fleet and the kilometres are national. Per 100,000 circulating vehicles is given for
-    every row: the whole fleet of a type is the population at risk of an urban or an interurban
-    crash. Per billion vehicle-km is given for all roads only, because the kilometre estimates are
-    for all roads: urban crashes divided by kilometres driven everywhere would not be a rate of
-    anything, so ``vehicle_km`` and the per-km columns are empty on the zone rows.
+    The fleet and the kilometres are national. Per 100,000 circulating vehicles and per billion
+    vehicle-km are both given. The intervals cover the counts only, not the uncertainty of the
+    modelled kilometres.
     """
     counts = _counts(KM_YEAR)
     km = vehicle_km(by_rate_group=True).set_index("group")
     records = []
     for measure in MEASURES:
-        block = counts[counts.group.isin(RATE_GROUPS)][["group", "zone", measure]].rename(
+        block = counts[counts.group.isin(RATE_GROUPS)][["group", measure]].rename(
             columns={measure: "count"}
         )
         block = block.assign(
@@ -344,32 +290,20 @@ def rates_2022() -> pd.DataFrame:
         )
         records.append(block)
     out = pd.concat(records, ignore_index=True)
-    out["vehicle_km"] = out.vehicle_km.where(out.zone == "all")
     out = rates.add_rate(out, "count", "vehicle_km", "per_billion_km", per=BILLION)
     out = rates.add_rate(out, "count", "n_vehicles", "per_100k_vehicles", per=PER_VEHICLES)
-    zone_rows = out.zone != "all"
-    if (
-        out.loc[zone_rows, ["per_billion_km", "per_billion_km_low", "per_billion_km_high"]]
-        .notna()
-        .any(axis=None)
-    ):
-        raise ValueError("vehicle rates: a zone row carries a rate per all-road kilometre")
     out["label"] = out.group.map(label)
     out["measure_label"] = out.measure.map(MEASURES)
-    out["denominator"] = DENOMINATORS["all"]
-    out.loc[zone_rows, "denominator"] = DENOMINATORS["zone"]
+    out["denominator"] = DENOMINATOR
     order = {name: index for index, name in enumerate(RATE_GROUPS)}
-    zones = {"all": 0, "interurban": 1, "urban": 2}
     measures = {name: index for index, name in enumerate(MEASURES)}
     out = out.sort_values(
-        ["measure", "zone", "group"],
-        key=lambda s: s.map({"measure": measures, "zone": zones, "group": order}[s.name]),
+        ["measure", "group"], key=lambda s: s.map({"measure": measures, "group": order}[s.name])
     )
     columns = [
         "year",
         "group",
         "label",
-        "zone",
         "measure",
         "measure_label",
         "count",
@@ -396,7 +330,7 @@ def summary_2022() -> pd.DataFrame:
     rounded twice (4.445 printed as 4.5).
     """
     long = rates_2022()
-    wide = long[long.zone == "all"].pivot(index="group", columns="measure", values="count")
+    wide = long.pivot(index="group", columns="measure", values="count")
     km = vehicle_km(by_rate_group=True).set_index("group")
     groups = list(RATE_GROUPS)
     out = pd.DataFrame(
@@ -410,7 +344,7 @@ def summary_2022() -> pd.DataFrame:
     )
     for measure in MEASURES:
         out[measure] = wide[measure].reindex(groups).astype("int64").values
-        rows = long[(long.zone == "all") & (long.measure == measure)].set_index("group")
+        rows = long[long.measure == measure].set_index("group")
         out[f"{measure}_per_bn_km"] = rows.per_billion_km.reindex(groups).values
         out[f"{measure}_per_100k_vehicles"] = rows.per_100k_vehicles.reindex(groups).values
     out["occupant_deaths_per_fatal_involvement"] = out.occupant_deaths / out.fatal_involvement
@@ -421,49 +355,3 @@ def summary_2022() -> pd.DataFrame:
         ascending=False, method="first"
     ).astype(int)
     return out
-
-
-def van_light_truck_split() -> pd.DataFrame:
-    """Vans and trucks up to 3,500 kg taken separately for 2022: the evidence for merging them.
-
-    The crash record codes most light commercial vehicles as vans while the register splits them,
-    so the separate rates are not comparable; the page prints them to show the gap.
-    """
-    units = io_tables.read_table("tables_units_by_type")
-    units = units[(units.year == KM_YEAR) & ~units.is_total & (units.zone == "all")]
-    units = units.assign(group=lambda d: _group_column(d.unit_type))
-    counts = (
-        units[
-            units.group.isin(SERIES_MERGED_GROUPS) & units.metric.isin(["crashes", "fatal_crashes"])
-        ]
-        .groupby(["group", "metric"])
-        .value.sum()
-        .unstack("metric")
-        .rename(columns={"crashes": "injury_involvement", "fatal_crashes": "fatal_involvement"})
-    )
-    km = vehicle_km().set_index("group")
-    out = counts.reindex(list(SERIES_MERGED_GROUPS)).reset_index()
-    out["label"] = out.group.map(label)
-    out["n_vehicles"] = out.group.map(km.n_vehicles).astype("int64")
-    out["vehicle_km"] = out.group.map(km.vehicle_km)
-    for measure in ("injury_involvement", "fatal_involvement"):
-        out[measure] = out[measure].astype("int64")
-        out[f"{measure}_per_bn_km"] = (out[measure] / out.vehicle_km * BILLION).round(2)
-        out[f"{measure}_per_100k_vehicles"] = (out[measure] / out.n_vehicles * PER_VEHICLES).round(
-            2
-        )
-    out["year"] = KM_YEAR
-    columns = [
-        "year",
-        "group",
-        "label",
-        "n_vehicles",
-        "vehicle_km",
-        "injury_involvement",
-        "injury_involvement_per_bn_km",
-        "injury_involvement_per_100k_vehicles",
-        "fatal_involvement",
-        "fatal_involvement_per_bn_km",
-        "fatal_involvement_per_100k_vehicles",
-    ]
-    return out[columns]

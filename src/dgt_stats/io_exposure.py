@@ -8,14 +8,12 @@ from pathlib import Path
 import openpyxl
 import pandas as pd
 
-from dgt_stats import agebands, io_population
+from dgt_stats import agebands
 from dgt_stats.paths import (
-    CENSUS_AGE_YEARS,
     CENSUS_TABLES_2025_PATH,
     CENSUS_YEARS,
     DGT_STAGING_DIR,
     KM_BY_OWNER_AGE_2024_PATH,
-    KM_ESTIMATED_2022_PATH,
     KM_MEAN_2022_PATH,
     KM_MEAN_BY_TYPE_2024_PATH,
     census_age_raw_path,
@@ -139,7 +137,7 @@ def read_census_age_year(year: int) -> pd.DataFrame:
     )
 
 
-def read_census_age_all(years: tuple[int, ...] = CENSUS_AGE_YEARS) -> pd.DataFrame:
+def read_census_age_all(years: tuple[int, ...] = CENSUS_YEARS) -> pd.DataFrame:
     return pd.concat([read_census_age_year(year) for year in years], ignore_index=True)
 
 
@@ -148,7 +146,7 @@ def b_permit_holders_by_age(year: int, province_code: str | None = None) -> pd.D
     one province (``province_code``, two digits).
 
     Read from ``NUM_PERMISOS_B`` of the census text file, which only the text-file years
-    (``CENSUS_AGE_YEARS``) carry. It is the population licensed to drive a car; the census total
+    (``CENSUS_YEARS``) carry. It is the population licensed to drive a car; the census total
     (``n_drivers``) also counts people whose only permit is for a moped or motorcycle and holders
     of the LCM and LVA licences. Read from the raw file, so it needs no staging.
     """
@@ -357,45 +355,6 @@ def read_km_mean_2022() -> pd.DataFrame:
     )
 
 
-def read_km_estimated_2022() -> pd.DataFrame:
-    """Estimated annual km per vehicle by stratum, all six vehicle-type sheets stacked."""
-    workbook = openpyxl.load_workbook(KM_ESTIMATED_2022_PATH, read_only=True, data_only=True)
-    frames = []
-    for sheet in workbook.worksheets:
-        rows = sheet.iter_rows(values_only=True)
-        header = [str(cell).strip() for cell in next(rows)]
-        records = [row for row in rows if any(cell is not None for cell in row)]
-        frame = pd.DataFrame.from_records(records, columns=header)
-        frame["source_sheet"] = sheet.title
-        frames.append(frame)
-    workbook.close()
-    out = pd.concat(frames, ignore_index=True)
-    out = out.rename(
-        columns={
-            "FECHA PARQUE": "year",
-            "TIPO_VEHICULO": "vehicle_type",
-            "EMISIONES_NORM": "emission_standard",
-            "ANTIGUEDAD": "age_band",
-            "CILINDRADA": "engine_size",
-            "CARGA": "payload",
-            "DESC_PROPULSION": "fuel",
-            "kmRecorridos": "km_year",
-        }
-    )
-    out["year"] = pd.to_numeric(out["year"]).astype("int16")
-    out["km_year"] = pd.to_numeric(out["km_year"]).astype("float64")
-    for column in (
-        "vehicle_type",
-        "emission_standard",
-        "age_band",
-        "engine_size",
-        "payload",
-        "fuel",
-    ):
-        out[column] = out[column].astype("string").str.strip()
-    return out
-
-
 # DGT's 2024 kilometre release groups the fleet by the owner's age. The bands are its own; the
 # company row has no age and is kept as a row of its own rather than being spread over the others.
 KM_OWNER_CATEGORIES = {
@@ -557,9 +516,7 @@ EXPOSURE_BUILDERS = {
     "censo_edad": read_census_age_all,
     "censo_edad_tablas": read_census_age_tables_all,
     "conductores_por_edad": licence_holders_by_age,
-    "poblacion_ine": io_population.read_population,
     "km_medios_2022": read_km_mean_2022,
-    "km_estimados_2022": read_km_estimated_2022,
     "km_edad_propietario_2024": read_km_by_owner_age_2024,
     "km_medios_tipo_2024": read_km_means_2024,
     "km_medios_serie_2024": read_km_mean_series_2024,

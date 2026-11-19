@@ -1,5 +1,5 @@
-"""Methodology: definitions, rates and denominators, crash records, models, checks, the
-assumptions tested, reproduction and reuse.
+"""Methodology: definitions, rates and denominators, the police crash records, the checks on the
+data, reproduction, reuse and each page's technical notes.
 
 What each source is, what it covers and what it cannot show is on the sources page; this page
 says how the results are produced from them.
@@ -12,13 +12,12 @@ import re
 
 import pandas as pd
 
-from dgt_stats import codes, edm2018, features, io_exposure, risk_trends, severity_model
+from dgt_stats import codes, dgt_coding, features, io_exposure, risk_trends, severity_model
 from dgt_stats import figures as figure_data
 from dgt_stats.derive import ROAD_GROUP_BY_TYPE
-from dgt_stats.exposure_risk import national as national_rates
-from dgt_stats.microdata.ml import modelling, recording, rules
-from dgt_stats.microdata.validation import dgt_audit, transport
-from dgt_stats.paths import RAW_DATA_DIR, TABLES_DIR
+from dgt_stats.microdata.ml import features as catalan_features
+from dgt_stats.microdata.ml import recording
+from dgt_stats.paths import RAW_DATA_DIR
 from dgt_stats.site.components import (
     ALL_PAGES,
     DEFINITION_IDS,
@@ -34,22 +33,10 @@ from dgt_stats.site.components import (
     read_table,
     render_page,
     summary,
-    table,
-)
-from dgt_stats.site.long_run import _where
-from dgt_stats.site.numbers import (
-    FAIL,
-    INTERMEDIATE,
-    PASS,
-    _driver_numbers,
-    _older_numbers,
-    joint_interval,
 )
 from dgt_stats.site.regional_common import _year_label
 
 TITLES = dict(ALL_PAGES)
-# Harmonised variables, in words.
-FIELD_LABELS = {"road_class": "road type", "hour_band": "hour"}
 # A circumstance field unrecorded in more than this share of crashes counts as often unrecorded.
 MOSTLY_BLANK = 0.3
 # A field above that share by less than this is named as only just above it.
@@ -66,9 +53,6 @@ CORE_FIELDS = {
     "TIPO_VIA": "road type",
     "TIPO_ACCIDENTE": "crash type",
 }
-# The step in recorded urban injury crashes that inflates the crash dispersion ends this many
-# years after the scatter window opens (as on the trends page).
-URBAN_STEP_YEARS = 3
 NUMBER_WORDS = {
     1: "one",
     2: "two",
@@ -114,15 +98,6 @@ def _words(number: int) -> str:
 
 def _manifest() -> pd.DataFrame:
     return pd.read_csv(RAW_DATA_DIR / "manifest.csv")
-
-
-def _path_year(prefix: str, contains: str) -> int:
-    """The year in the name of the one raw file under ``prefix`` whose path contains ``contains``."""
-    paths = _manifest().path
-    found = paths[paths.str.startswith(prefix) & paths.str.contains(contains, regex=False)]
-    years = {int(y) for path in found for y in re.findall(r"(?<!\d)(\d{4})(?!\d)", path)}
-    _require({f"one year names the raw file {prefix}…{contains}": len(years) == 1})
-    return years.pop()
 
 
 # ----------------------------------------------------------------------------- definitions
@@ -241,7 +216,7 @@ def _rates() -> str:
             ),
         }
     )
-    vehicles = risk_trends.MOTOR_VEHICLES
+    vehicles = "motorcycles, cars, vans, trucks and buses"
     denominators = [
         (
             "Per resident",
@@ -250,9 +225,8 @@ def _rates() -> str:
         ),
         (
             "Per licence holder",
-            f"Counts only drivers: on the trend pages the drivers of {vehicles} killed or "
-            "admitted to hospital, and on the drivers page car drivers involved in injury "
-            "crashes, injured or not.",
+            "Counts only drivers: on the drivers page, car drivers involved in injury crashes, "
+            "injured or not.",
         ),
         ("Per registered vehicle", f"Counts only the occupants of {vehicles}."),
         (
@@ -274,8 +248,7 @@ def _rates() -> str:
             "death. It needs no measure of travel.",
         ),
     ]
-    trends = f'<a href="trends.html">{TITLES["trends"]}</a>'
-    assumptions = '<a href="#assumptions-tested">assumptions tested</a>'
+    since_2019 = f'<a href="long-run.html#since-{risk_trends.BASE_YEAR}">{TITLES["long-run"]}</a>'
     return (
         '<h2 id="rates">Rates, denominators and intervals</h2>'
         "<p>Each rate pairs a count with a denominator meant to contain it:</p>"
@@ -284,9 +257,9 @@ def _rates() -> str:
         "travel in no registered vehicle, so they are counted against residents and road fuel "
         "only. Road fuel stands in for the kilometres driven on all roads, and the kilometres "
         "by driver age carry one region's survey to Spain; neither can be tested for Spain as "
-        f"a whole ({assumptions}). Some rates do not fully meet the rule, and each page says "
-        "so: rates per resident count visitors' deaths, rates per licence holder (by sex, and "
-        "on Since 2019) count unlicensed and foreign drivers, rates per registered vehicle and "
+        "a whole. Some rates do not fully meet the rule, and each page says "
+        "so: rates per resident count visitors' deaths, rates per licence holder (by sex) "
+        "count unlicensed and foreign drivers, rates per registered vehicle and "
         "by vehicle type count foreign vehicles, and interurban deaths are compared with "
         "national road fuel only as a check.</p>"
         "<h3>How often crashes happen and how deadly they are</h3>"
@@ -304,7 +277,7 @@ def _rates() -> str:
         "ratios of two rates carry log-normal intervals. Spain's annual counts scatter around "
         "their trend more than Poisson chance allows, so changes against "
         f"{risk_trends.BASE_YEAR} are read against intervals widened to span an ordinary "
-        f"year's variation ({trends}; {assumptions}).</p>"
+        f"year's variation ({since_2019}).</p>"
     )
 
 
@@ -393,7 +366,7 @@ def _coding_breaks() -> str:
     blank_at = cat_j.at_junction_type_not_specified / cat_j.at_junction
     typed_away = cat_j.away_with_junction_type / cat_j.away_from_junction
     after_years = [int(year) for year in cat_share.loc[flip:].index]
-    matched = dgt_audit.catalan_junction_years(junctions)
+    matched = dgt_coding.catalan_junction_years(junctions)
     flipped = matched[matched.junction_flag_inverted.astype(bool)]
     compared = flipped.iloc[0]
     # The years whose Catalan records count only crashes within a junction at one (2021), and the
@@ -506,7 +479,7 @@ def _coding_breaks() -> str:
         "crashes at a junction matches the Catalan file's crashes within a junction, where in "
         + _runs(wider.year)
         + " it matches those within or within "
-        + f"{dgt_audit.NEAR_JUNCTION_METRES} metres of one. That year "
+        + f"{dgt_coding.NEAR_JUNCTION_METRES} metres of one. That year "
         + _join([_fmt_int(near.loc[y]) for y in narrow_years])
         + " Catalan crashes coded away from a junction carry a junction type or a right-of-way "
         f"flag, against {_fmt_int(near_others.sum())} in all the other years before {flip}; "
@@ -516,7 +489,7 @@ def _coding_breaks() -> str:
         "<p>Road-type series are therefore read year by year and alongside zone, the two kinds "
         "of conventional road form one group, and no road-type trend is drawn. Comparisons of "
         "Catalonia with the rest of Spain group every conventional road together for the same "
-        'reason (<a href="validation.html">Model method and tests</a>).</p>'
+        "reason.</p>"
         f"<p>Junction shares as published are not compared across {flip}. The association of "
         "junctions with fatal outcomes reads the flag the other way round in those "
         "province-years, which puts the Catalan share at a junction at "
@@ -534,12 +507,12 @@ def _presence_breaks() -> str:
     """The fog and strong-wind fields where a province's records code them another way, from the
     DGT microdata audit's presence table."""
     presence = read_table("dgt_audit_presence_coding")
-    breaks = dgt_audit.presence_breaks(presence)
+    breaks = dgt_coding.presence_breaks(presence)
     if breaks.empty:
         return ""
     fog = breaks[breaks.field.eq("CONDICION_NIEBLA")]
     wind = breaks[breaks.field.eq("CONDICION_VIENTO")]
-    flags = [f"{field}_coding_break" for field in dgt_audit.PRESENCE_NAMES]
+    flags = [f"{field}_coding_break" for field in dgt_coding.PRESENCE_NAMES]
     others = presence[~presence[flags].astype(bool).any(axis=1)]
     _require({"one province's records code fog their own way": len(fog) == 1})
     fog_province = fog.iloc[0]
@@ -551,13 +524,13 @@ def _presence_breaks() -> str:
     unread = {
         str(spec["source"])
         for spec in features.PREDICTORS.values()
-        if str(spec["source"]) in dgt_audit.PRESENCE_NAMES
+        if str(spec["source"]) in dgt_coding.PRESENCE_NAMES
     }
-    calculator_source = inspect.getsource(severity_model)
+    model_source = inspect.getsource(severity_model)
     _require(
         {
-            "the presence fields are fog and strong wind": set(dgt_audit.PRESENCE_NAMES)
-            == {c for c in dgt_audit.CANDIDATES if dgt_audit.presence_field(c)},
+            "the presence fields are fog and strong wind": set(dgt_coding.PRESENCE_NAMES)
+            == {c for c in dgt_coding.CANDIDATES if dgt_coding.presence_field(c)},
             "one province codes fog its own way, every year from its break to the last": len(fog)
             == 1
             and fog_years == list(range(min(fog_years), int(presence.year.max()) + 1))
@@ -571,9 +544,9 @@ def _presence_breaks() -> str:
             )
             > 0
             and bool((overlap.severe_CONDICION_NIEBLA_recorded == overlap.cat_file_fog).all()),
-            "neither field enters the national association analysis or the calculator": not unread
+            "neither field enters the national association analysis or the severity model": not unread
             and not any(
-                field in calculator_source for field in ("D_BOIRA", "D_VENT", "NIEBLA", "VIENTO")
+                field in model_source for field in ("D_BOIRA", "D_VENT", "NIEBLA", "VIENTO")
             ),
         }
     )
@@ -596,9 +569,9 @@ def _presence_breaks() -> str:
     return (
         "<p>The fog and strong-wind fields are filled in only when there was fog or strong "
         "wind, so a blank in them is read as none, except where a province's records give the "
-        f"condition to more than {_fmt_pct(dgt_audit.MAX_PRESENCE_SHARE, 0)} of their crashes. "
+        f"condition to more than {_fmt_pct(dgt_coding.MAX_PRESENCE_SHARE, 0)} of their crashes. "
         "Elsewhere fog or strong wind is recorded in at most "
-        f"{_fmt_pct(max(float(others[f'{c}_share'].max()) for c in dgt_audit.PRESENCE_NAMES))} "
+        f"{_fmt_pct(max(float(others[f'{c}_share'].max()) for c in dgt_coding.PRESENCE_NAMES))} "
         "of a province-year's crashes.</p>"
         f"<p>From {min(fog_years)} the records for the province of "
         f"{fog_province.province_name} code fog in {_fmt_pct(fog_province.share_low, 0)} to "
@@ -611,29 +584,20 @@ def _presence_breaks() -> str:
         + (f"Strong wind is recorded {wind_text}. " if not wind.empty else "")
         + "In those province-years the field is coded another way: neither a value nor a "
         "blank says whether there was fog or strong wind. Neither field enters the "
-        "national association analysis or the calculator.</p>"
+        "national association analysis or the severity model.</p>"
     )
 
 
-def _missingness_alt(missing: pd.DataFrame, applicability: pd.DataFrame) -> str:
+def _missingness_alt(missing: pd.DataFrame) -> str:
     """The missing-values figure's alt text: what it shows, from the shares it draws."""
     years = missing.year
-    shown = figure_data.recorded_where_applicable(missing, applicability)
+    shown = figure_data.recorded_where_applicable(missing)
     names = figure_data.MISSINGNESS_FIELDS
     core = shown.loc[[names[field] for field in CORE_FIELDS]]
-    priority = shown.loc[shown.index.str.startswith("Right of way")].iloc[0]
-    junction_type = shown.loc[names["NUDO_INFO"]]
-    # The years whose Catalan junction flag is inverted, read the other way round in the figure,
-    # checked not to leave the junction fields recorded less often than in every other year.
-    flipped = figure_data.inverted_junction_years(shown, read_table("dgt_audit_junction_coding"))
     _require(
         {
             "the fields that describe every crash are recorded in nearly every crash": bool(
                 (core > ALWAYS_RECORDED).all().all()
-            ),
-            "every year the junction type is recorded in nine crashes at a junction in ten and "
-            "the right-of-way flags in most": bool(
-                (junction_type > 0.9).all() and (priority > 0.5).all()
             ),
             "the pavement and island fields are recorded in most crashes they apply to": bool(
                 (shown.loc[[names["ACERA"], names["ISLA"]]] > 0.5).all().all()
@@ -643,13 +607,10 @@ def _missingness_alt(missing: pd.DataFrame, applicability: pd.DataFrame) -> str:
     return (
         "Share of DGT crash records with a value recorded, among the crashes each field applies "
         f"to, by field and year, {_span(years)}, from the most completely recorded field down. "
-        f"The {_join(list(CORE_FIELDS.values()))} are recorded in nearly every crash. Among "
-        "crashes at a junction, the junction type is recorded in "
-        f"{_pct_range(junction_type)} and the right-of-way flags in "
-        f"{_pct_range(priority)} a year, with the junction flag of the Catalan provinces' "
-        f"records for {_join([str(y) for y in flipped])} read the other way round. "
+        f"The {_join(list(CORE_FIELDS.values()))} are recorded in nearly every crash. "
         "Fields that apply only to some crashes, such as the pavement and island fields, are "
-        "recorded in most of the crashes they apply to."
+        "recorded in most of the crashes they apply to. The fields that apply only at a "
+        "junction are not drawn."
     )
 
 
@@ -658,13 +619,14 @@ def _records(captions: dict[str, str]) -> str:
     artefacts = read_table("ml_recording_artefacts")
     semantics = read_table("mq_bcn_count_semantics").set_index("check").value
     missing = read_table("missingness_by_year")
-    applicability = read_table("missingness_where_applicable")
     limit = recording.RATIO_LIMIT
     catalan = artefacts[artefacts.verdict == "outcome-dependent recording"]
-    catalogue = read_table("ml_feature_catalogue")
-    catalogue = catalogue[catalogue.feature_table == "catalonia_crash_severity"]
-    in_main = catalogue[catalogue.feature_sets.str.contains("context")].column
-    calculator_source = inspect.getsource(severity_model)
+    in_main = [
+        feature.column
+        for feature in catalan_features.CATALONIA_TABLE.catalogue
+        if "context" in feature.sets
+    ]
+    model_source = inspect.getsource(severity_model)
     explicit_zeros = int(semantics.filter(like="explicit zero").iloc[0])
     adds_up = int(semantics["crashes where victims = deaths + serious + minor (blank read as 0)"])
     _require(
@@ -675,12 +637,12 @@ def _records(captions: dict[str, str]) -> str:
                 (catalan.ratio_fatal_to_serious <= 1 / limit).all()
             )
             and not catalan.empty,
-            "the outcome-dependent Catalan fields stay out of the original model": not set(
+            "the outcome-dependent Catalan fields stay out of the feature set the severity model reads": not set(
                 catalan.column
             )
             & set(in_main),
-            "the calculator reads none of the outcome-dependent Catalan fields": not any(
-                re.search(rf"\b{re.escape(column)}\b", calculator_source)
+            "the severity model reads none of the outcome-dependent Catalan fields": not any(
+                re.search(rf"\b{re.escape(column)}\b", model_source)
                 for column in set(catalan.column)
             ),
         }
@@ -702,45 +664,16 @@ def _records(captions: dict[str, str]) -> str:
         rows = missing[missing.column == column]
         return float((rows[share] * rows.rows).sum() / rows.rows.sum())
 
-    audited = applicability.groupby("column")[["rows", "applies", "recorded"]].sum()
-    pavement_na = float(1 - audited.loc["ACERA"].applies / audited.loc["ACERA"].rows)
-    junction_type_na = float(1 - audited.loc["NUDO_INFO"].applies / audited.loc["NUDO_INFO"].rows)
+    pavement_na = overall("ACERA", "share_not_applicable")
     island_empty = overall("ISLA", "share_empty")
-    # What the figure draws: for the fields the audit examines, the share recorded among the
-    # crashes the audit's rule says they apply to; for the island field, the share recorded among
-    # the crashes left once "not applicable" and the empty cell are set aside.
-    shown = figure_data.recorded_where_applicable(missing, applicability)
-    by_year = missing.set_index(["column", "year"])
-    audited_by_year = applicability.set_index(["column", "year"])
-    island_applies = 1 - by_year.loc["ISLA"].share_not_applicable - by_year.loc["ISLA"].share_empty
+    shown = figure_data.recorded_where_applicable(missing)
     names = figure_data.MISSINGNESS_FIELDS
-
-    def audit_share(column: str) -> pd.Series:
-        rows = audited_by_year.loc[column]
-        return rows.recorded / rows.applies
-
-    leaves_out_not_applicable = bool(
-        all(
-            (shown.loc[names[column]] - audit_share(column)).abs().max() < 1e-9
-            for column in ("ACERA", "NUDO_INFO", "CONDICION_NIEBLA")
-        )
-        and (shown.loc[names["ISLA"]] - by_year.loc["ISLA"].share_observed / island_applies)
-        .abs()
-        .max()
-        < 1e-9
-    )
-    applies = regional.set_index("field").applies_share
     _require(
         {
-            "the audit reads blank fog and wind fields as no fog or wind, and only those": [
-                field for field in regional.field if dgt_audit.presence_field(field)
-            ]
-            == ["CONDICION_NIEBLA", "CONDICION_VIENTO"],
-            "the junction type and right-of-way flags apply to some crashes only": set(
-                dgt_audit.JUNCTION_FIELDS
-            )
-            == {"NUDO_INFO", *codes.PRIORI_COLUMNS}
-            and bool((applies.loc[list(dgt_audit.JUNCTION_FIELDS)] < 1).all()),
+            "the figure draws fog and wind recorded in every crash, an empty cell being the "
+            "recorded “no”": bool(
+                (shown.loc[[names["CONDICION_NIEBLA"], names["CONDICION_VIENTO"]]] == 1).all().all()
+            ),
             "the right-of-way flags are unrecorded together": float(
                 regional[priority].unrecorded_share.max()
                 - regional[priority].unrecorded_share.min()
@@ -749,22 +682,15 @@ def _records(captions: dict[str, str]) -> str:
             "unrecorded shares split into fields nearly always recorded and fields often not": 0
             < mostly_blank
             < len(questions) / 2,
-            "the figure reads the audited fields by the audit's rule and leaves “not "
-            "applicable” and the island's empty cells out of its shares, and its caption says "
-            "so": leaves_out_not_applicable
-            and all(
+            "the figure leaves “not applicable” and the island's empty cells out of its shares, "
+            "and its caption says so": all(
                 phrase in captions.get("d1_missingness", "")
                 for phrase in (
                     "998 (not applicable)",
                     "among the crashes the field applies to",
-                    "in a crash recorded away from a junction",
                     "fog or strong wind field counts as recorded",
-                    "the flag is read the other way round",
+                    "not drawn",
                 )
-            ),
-            "the junction type does not apply to most crashes": junction_type_na > 0.5,
-            "the audit's fog and wind fields are recorded in every crash": bool(
-                (shown.loc[[names["CONDICION_NIEBLA"], names["CONDICION_VIENTO"]]] == 1).all().all()
             ),
             "the pavement field is mostly not applicable": pavement_na > 0.5,
             "DGT's dictionary defines an empty island field as not applicable": codes.load_dictionary()
@@ -809,254 +735,39 @@ def _records(captions: dict[str, str]) -> str:
             else ""
         )
         + f". How unevenly the provinces record them is set out under {sources}.</p>"
-        "<p>The figure reads the fields the audit examines by the same rule and leaves “not "
-        "applicable” out of each field's share, so a field that applies only to some crashes is "
-        "judged on the crashes it applies to. The pavement field is “not applicable” in "
-        f"{_fmt_pct(pavement_na, 0)} of crashes, the junction type in "
-        f"{_fmt_pct(junction_type_na, 0)} (those away from a junction), and the island field is "
+        "<p>The figure leaves “not applicable” out of each field's share, so a field that "
+        "applies only to some crashes is judged on the crashes it applies to. The pavement field "
+        f"is “not applicable” in {_fmt_pct(pavement_na, 0)} of crashes, and the island field is "
         "empty, which DGT's dictionary defines as not applicable, in "
-        f"{_fmt_pct(island_empty, 0)}. In the figure an empty fog or strong-wind field counts as "
-        "recorded.</p>"
-        + figure("d1_missingness", _missingness_alt(missing, applicability), captions)
+        f"{_fmt_pct(island_empty, 0)}. In the figure an empty fog or strong-wind field counts "
+        "as recorded. The junction type, the right-of-way flags and the crossing road apply "
+        "only at a junction, which this table cannot identify, so they are not drawn.</p>"
+        + figure("d1_missingness", _missingness_alt(missing), captions)
         + "<p>Recording can also depend on the outcome. Fatal crashes may be investigated more "
         "fully, so fields left unspecified in non-fatal crashes are more often filled in for "
         f"fatal ones. In the Catalan file, {_words(levels)} placeholder levels in "
         f"{_words(fields)} fields (“not specified” or an unexplained blank) are recorded at "
         f"least {_fmt_dec(limit)} times as often in non-fatal crashes as in fatal ones; these "
-        "fields are left out of every published model. The road owner is the reverse case, "
-        "blank far more often on fatal records, and the calculator leaves out the crashes it "
-        f'affects (<a href="{DOCS_URL}/research/ML_MODEL_REVIEW.md">model review</a>).</p>'
-        + _coding_breaks()
-    )
-
-
-# ----------------------------------------------------------------------------- models
-def _models() -> str:
-    split = read_table("ml_split_isolation").set_index("model")
-    comparison = read_table("ml_rule_comparison").set_index("model")
-    selected = read_table("ml_selected")
-    primary = selected[selected.primary].set_index("model")
-    common = read_table("ml_common_feature_validation")
-    shared = read_table("ml_common_features")
-    catalogue = read_table("ml_feature_catalogue")
-    cat_checks = read_table("mq_cat_checks").set_index("check").value
-    outward = read_table("ml_outward_path").set_index(["model", "stage"])
-    bcn_year = _year_label(read_table("bcn_person_severity_share"))
-    scores = read_table("sev_rolling_scores")
-    choices = read_table("sev_choices")
-    cells = scores[
-        scores.subset.str.startswith("province and zone: ") & (scores.estimator == "calculator")
-    ]
-    pooled = scores[scores.subset.str.fullmatch(r"\d{4}-\d{4}")]
-    rolling = _span(pd.Series([int(y) for y in re.findall(r"\d{4}", pooled.subset.iloc[0])]))
-    pooled = pooled.set_index("estimator")
-    calc, lookup = pooled.loc["calculator"], pooled.loc["road_x_crash_table"]
-    gaps = read_table("sev_comparison").set_index(["estimator", "metric"])
-    against = gaps.loc[("road_x_crash_table", "roc_auc_minus_calculator")]
-    gain_low, gain_high = -float(against.high), -float(against.low)
-    catalan_years = read_table("cat_frequency").year
-    cat_years = re.findall(r"\d{4}", split.loc["catalonia_crash_severity", "design"])
-    bcn_numbers = re.findall(r"\d+", split.loc["barcelona_person_severity", "design"])
-    candidates = common[common.a_priori_status.isin(["exact", "defensible"])]
-    used = candidates[candidates.enters_cross_source_tests.astype(bool)]
-    dropped = candidates[~candidates.enters_cross_source_tests.astype(bool)]
-    bcn_pair = shared[shared.pair.str.contains("Barcelona")]
-    bcn_shared = bcn_pair[bcn_pair.enters_cross_source_tests.astype(bool)]
-    mappable = bcn_pair.status.isin(["exact", "defensible"])
-    catalan_last = int(catalan_years.max())
-    main_sets = catalogue.feature_sets.str.contains("context")
-    adds = comparison.model_adds_signal_over_table.astype(bool)
-    low, high = modelling.CALIBRATION_SLOPE_RANGE
-    tolerance = modelling.CALIBRATION_LARGE_TOLERANCE
-    _require(
-        {
-            "the calculator's model beats its table by the rule": float(
-                calc.roc_auc - lookup.roc_auc
-            )
-            >= rules.MIN_GAIN
-            and gain_low > 0,
-            "the calculator's estimates pass the calibration rule": low
-            <= float(calc.calibration_slope)
-            <= high
-            and abs(float(calc.mean_predicted - calc.prevalence)) <= tolerance * calc.prevalence,
-            "the original Catalan design names training, choice and test years": len(cat_years)
-            == 5,
-            "the Barcelona design names months and folds": len(bcn_numbers) == 5,
-            "no crash or group straddles a split": bool(
-                (split.shared_ids == 0).all() and (split.shared_groups == 0).all()
-            ),
-            "the Barcelona crash model does not beat its table": not bool(
-                adds["barcelona_crash_severity"]
-            ),
-            "the Barcelona person-severity model is for ranking only": not bool(
-                primary.loc["barcelona_person_severity", "probabilities_shown_as_estimates"]
-            ),
-            "the main models use only circumstances of the crash or person": bool(
-                (catalogue[main_sets].status == "safe").all()
-            ),
-            "variables that encode the outcome are in no model": bool(
-                (catalogue[catalogue.status == "direct_leakage"].feature_sets == "none").all()
-            ),
-            "some candidate variables fail the overlap check": not dropped.empty,
-            "the Barcelona variables are exactly those that map exactly or defensibly": bool(
-                (bcn_pair.enters_cross_source_tests.astype(bool) == mappable).all()
-            ),
-            "the Barcelona records share no year with the Catalan file": int(bcn_year[:4])
-            > catalan_last,
-            "the calculator's and the original model are tested on places left out": all(
-                outward.loc[(model, 3), "status"] == "passed"
-                for model in ("calculator", "catalonia_crash_severity")
-            ),
-            "the calculator's model has no test on another source": outward.loc[
-                ("calculator", 4), "status"
-            ]
-            == "not run",
-            "every choice of the calculator's model is nested in its test": bool(
-                (choices.fit != "published model").sum() == len(severity_model.ROLLING_TEST_YEARS)
-            )
-            and bool((choices.c_bracketed | choices.c_at_weak_limit).all())
-            and bool(choices[choices.fit == "published model"].c_bracketed.all()),
-            "some province's estimates by kind of road miss the observed interval": bool(
-                (
-                    (cells.mean_predicted < cells.observed_low)
-                    | (cells.mean_predicted > cells.observed_high)
-                ).any()
-            ),
-        }
-    )
-    provinces = int(cat_checks["demarcations"])
-    excluded = _join([FIELD_LABELS.get(field, field.replace("_", " ")) for field in dropped.field])
-    overlap = read_table("cat_vs_dgt_province_year").year
-    validation = '<a href="validation.html">Model method and tests</a>'
-    calculator = f'<a href="severity-models.html">{TITLES["severity-models"]}</a>'
-    review = f'<a href="{DOCS_URL}/research/ML_MODEL_REVIEW.md">model review</a>'
-    report = f'<a href="{DOCS_URL}/research/SEVERITY_CALCULATOR.md">calculator report</a>'
-    published = choices[choices.fit == "published model"].iloc[0]
-    return (
-        '<h2 id="models">How the models were built and judged</h2>'
-        "<p>The published model is the calculator's: a penalised logistic regression of whether "
-        "a crash with a death or serious injury in Catalonia was fatal, with a death within 24 "
-        f"hours, given circumstances a reader can describe ({calculator}). Crashes on "
-        "conventional roads whose owner is recorded as “other” or left blank are left out, "
-        f"because that field records how a crash was documented ({review}), so the model and "
-        "its tests describe crashes on roads with a named owning network or of another "
-        "type.</p>"
-        "<p>The model is tested by nested rolling origin. For each year of "
-        f"{rolling}, three settings are chosen by fitting on the earlier years except the last "
-        "two and scoring those two:</p>"
-        "<ul><li>The strength of the penalty, from "
-        f"{_words(len(severity_model.C_EXPONENTS))} values and more if the best lies at either "
-        "end.</li>"
-        "<li>Whether each circumstance may count differently on urban streets and interurban "
-        "roads.</li>"
-        "<li>Whether roads through towns get the model's estimate or the average of such roads "
-        "in the province.</li></ul>"
-        "<p>The model is then fitted on all the earlier years and predicts the year, beside a "
-        "table of fatal shares by road and crash type fitted on the same years, so no choice "
-        "sees the year it predicts. The published model was chosen by the same rule, scoring "
-        f"{published.validation_years.replace('-', '–')} after fitting on "
-        f"{published.train_years.replace('-', '–')}, and then fitted on every year. Its "
-        f"intervals come from {_fmt_int(severity_model.N_BOOTSTRAP)} refits on resampled "
-        f"crashes. Its method is set out in the {report}.</p>"
-        "<p>ROC-AUC measures how well a model ranks: it is the probability that the model "
-        "places a randomly chosen case with the outcome above a randomly chosen case without "
-        "it. A value of 0.5 is no better than chance and 1 is a perfect ranking. The site gives "
-        f"it to two decimals: the Catalan severity model's ROC-AUC of {calc.roc_auc:.2f} over "
-        f"{rolling} means that it ranks a fatal crash above a non-fatal one in "
-        f"{calc.roc_auc * 100:.0f}% of such pairs. When the outcome is rare, as "
-        "deaths are, ROC-AUC can be high while most of the cases ranked highest are still "
-        "cases without it.</p>"
-        "<p>A model that ranks well may still add nothing to what a simple table shows. Each "
-        "model is therefore compared, on the same test records, with a table fixed before the "
-        "test: the share of severe outcomes in each group of the training records. A model is "
-        f"kept only if its ROC-AUC exceeds the table's by at least {rules.MIN_GAIN:.2f} and the "
-        "95% interval of the difference excludes zero. Over "
-        f"{rolling} the Catalan severity model scores {calc.roc_auc:.2f} against "
-        f"{lookup.roc_auc:.2f} for its table, a gain of {calc.roc_auc - lookup.roc_auc:.2f} "
-        f"(95% interval {gain_low:.2f}–{gain_high:.2f}).</p>"
-        "<p>A model can rank well and still give probabilities that are too high or too low. "
-        "Calibration compares the predicted probabilities with the observed shares in groups "
-        "of test records; its slope is 1 when the predictions spread exactly as widely as the "
-        "outcomes, and above 1 when they are not spread widely enough. Probabilities are shown "
-        f"as estimates only if the slope lies between {low} and {high} and the mean predicted "
-        f"probability is within {_fmt_pct(tolerance, 0)} of the observed share, a rule fixed in "
-        "advance.</p>"
-        "<p>Over all the test years the Catalan severity model passes this rule: the slope of "
-        f"its recalibration fit is {_fmt_dec(calc.calibration_slope, 2)} and its mean "
-        f"prediction is {_fmt_pct(calc.mean_predicted)} against {_fmt_pct(calc.prevalence)} "
-        "observed, but it does not pass in every province and kind of road "
-        f"({calculator}). The fit's intercept is {_fmt_dec(calc.calibration_intercept, 2)}; for "
-        "estimates that match the outcomes the slope is 1 and the intercept 0. Intervals "
-        f"for the scores come from {_fmt_int(modelling.N_BOOT)} bootstrap resamples of the test "
-        f"records, {_fmt_int(transport.N_BOOT_TRANSPORT)} in the external tests.</p>"
-        "<p>The project's earlier models used a single split by time. The original Catalan "
-        f"model was trained on the crashes of {cat_years[0]}–{cat_years[1]}, its settings were "
-        f"chosen on {cat_years[2]}–{cat_years[3]}, it was refitted on {cat_years[0]}–"
-        f"{cat_years[3]} and tested once on {cat_years[4]}. It was replaced by the Catalan "
-        "severity model, because its strongest predictor was the road's owner.</p>"
-        "<p>The Barcelona models were "
-        f"trained on months {bcn_numbers[0]}–{bcn_numbers[1]} of {bcn_year}, with settings "
-        f"chosen by {bcn_numbers[2]}-fold cross-validation that keeps the people of one crash "
-        f"in the same fold, and tested on months {bcn_numbers[3]}–{bcn_numbers[4]}; no crash "
-        "appears on both sides of a split. The Barcelona crash-severity model ranked unseen "
-        "crashes no better than its table of shares by accident type, so the study reports the "
-        "table instead. The Barcelona person-severity model ranks people without giving "
-        "probabilities and is kept for research. Every model the project fitted was "
-        f"re-evaluated in the {review}."
-        "</p>"
-        "<p>The external tests set each model beside a model of the same kind trained in the "
-        "test population. The Catalan severity model and the original Catalan model are tested "
-        f"with each of the {_words(provinces)} provinces left out in turn and with Barcelona "
-        "city against the rest of Catalonia, and the Barcelona models on one district at a "
-        "time.</p>"
-        "<p>No other source records the calculator's inputs, so it has no test outside the "
-        "Catalan file. For DGT's records elsewhere in Spain, a harmonised version of the "
-        "original model refits the "
-        f"original model's specification on the {len(used)} of {len(candidates)} candidate "
-        "variables whose mapped distributions match on the Catalan crashes of "
-        f"{_span(overlap)}, which both files contain ({excluded} "
-        + ("does" if len(dropped) == 1 else "do")
-        + " not). Barcelona's records "
-        f"share no crash with the Catalan file, so the {_words(len(bcn_shared))} variables "
-        "used for Barcelona were chosen only because their codings map exactly or defensibly "
-        f"({validation}).</p>"
-        "<p>Before fitting, each variable was classified by how far the outcome could shape "
-        "it. The models use only circumstances recorded about the crash or the person. "
-        "Variables the outcome may shape, such as police causes and the Catalan influence "
-        "fields, enter only separate comparison versions of the original models, and variables "
-        "that encode the outcome enter none "
-        f'(<a href="{DOCS_URL}/ML_LEAKAGE_AUDIT.md">audit of the variables</a>). The check for '
-        "fields recorded differently when a crash was fatal looked only for placeholders rarer "
-        "among fatal crashes, pooled over zones, and did not catch the road-owner field; the "
-        "re-evaluation found it.</p>"
+        "fields are left out of the severity model. The road owner is the reverse case, "
+        "blank far more often on fatal records, and the model leaves out the crashes it "
+        f'affects (<a href="{DOCS_URL}/SEVERITY_MODEL.md">model note</a>).</p>' + _coding_breaks()
     )
 
 
 # ----------------------------------------------------------------------------- checks
 def _checks() -> str:
-    validation = pd.read_csv(TABLES_DIR / "validation.csv")
-    passed = int(validation.passed.astype(bool).sum())
-    total = int(len(validation))
-    tables_year = int(validation[validation.check.eq("table_1_1_province")].year.max())
-    outcome = (
-        "All the checks pass, and the crash records match the yearbook exactly, year by year. "
-        if passed == total
-        else f"{_fmt_int(total - passed)} of the {_fmt_int(total)} checks do not pass; the list "
-        "says which. "
-    )
+    validation = read_table("validation")
+    failing = validation[~validation.passed.astype(bool)]
+    _require({"every reconciliation check passes": failing.empty})
     return (
         '<h2 id="checks">Checks on the data</h2>'
-        f"<p>Before any analysis, {_fmt_int(total)} checks tie DGT's crash records, yearbook "
-        "tables and driver census to DGT's published totals. On the crash records they check "
-        "that each crash has one identifier and every code is in DGT's dictionary, and they "
-        "compare:</p>"
-        "<ul><li>Crashes and victims per year with the yearbook.</li>"
-        "<li>Crashes and deaths by province and by month with DGT's "
-        f"{tables_year} tables.</li>"
-        "<li>Deaths and vehicles by type with DGT's statistical tables.</li>"
-        "<li>The crashes and deaths of the speed report's provinces with that report.</li></ul>"
-        "<p>The other checks compare the driver census and the yearbook's driver tables with "
-        f"DGT's published totals. {outcome}The kilometre table by owner's age reconciles with "
+        "<p>Before any analysis, reconciliation checks tie DGT's crash records, yearbook tables "
+        "and driver census to DGT's published totals. Every check passes. On the crash records "
+        "they confirm that every code is in DGT's dictionary and compare crashes, victims and "
+        "deaths by year, province, month and vehicle type with the yearbook and DGT's "
+        "statistical tables, and the crashes and deaths of the speed report's provinces with "
+        "that report. The other checks compare the driver census and the yearbook's driver "
+        "tables with DGT's published totals. The kilometre table by owner's age reconciles with "
         "the same release's published fleet to within "
         f"{_fmt_pct(io_exposure.KM_OWNER_TOLERANCE)}, the margin left by owners DGT could not "
         'classify. The <a href="tables/validation.csv">full list of checks</a> is published as '
@@ -1064,409 +775,46 @@ def _checks() -> str:
     )
 
 
-def _assumption_rows() -> list[tuple[str, str, str]]:
-    """Every assumption the methods document tests, with how and what the test found."""
-    scatter = read_table("risk_dispersion").set_index("outcome")
-    dispersion = {key: float(scatter.loc[key, "dispersion"]) for key in scatter.index}
-    scatter_df = int(scatter.loc["deaths_30d", "df_resid"])
-
-    def spread(outcome: str, bound: str = "") -> float:
-        return float(scatter.loc[outcome, f"dispersion_{bound}" if bound else "dispersion"])
-
-    panel = read_table("risk_annual_panel").set_index("year")
-    km = read_table("longrun_km_panel").set_index("year")
-    km_check = read_table("longrun_km_check").set_index(["measure", "year"])
-    km_last = int(km.index.max())
-    segments = read_table("longrun_segments")
-    fuel_start = int(segments[segments.measure == "road_fuel"].start.max())
-    count_start = int(segments[segments.measure == "count"].start.max())
-    bio = read_table("longrun_fuel_bio").set_index("year").bio_share
-    owner = read_table("q7_owner_age_check").set_index("band")
-    owner_year = _path_year("dgt/km_itv_", "edad_propietario")
-    drivers = _driver_numbers()
-    ranges = drivers["ranges"]
-    central = drivers["central"].involved_ratio
-    barcelona = drivers["barcelona"].involved_ratio
-    licence = drivers["licence"].involved_ratio
-    prevalence = read_table("risk_licence_prevalence")
-    young_licensed = prevalence[prevalence.group == "15-29"].set_index(["place", "sex"]).prevalence
-    city_older = drivers["city"][drivers["city"].age4 == "65+"].ratio_to_45_64
-    oldest_numbers = _older_numbers()
-    oldest = oldest_numbers["conditional"].loc["75+"]
-    oldest_range = oldest_numbers["range"]["75+"]
-    oldest_clear = oldest_numbers["clear"]["75+"][0]
-    madrid_year = edm2018.SURVEY_YEAR
-    oldest_tier = {
-        PASS: "even at the lowest other combination sampling error alone does not reach the "
-        "45–64 rate",
-        INTERMEDIATE: "at the lowest other combination sampling error alone reaches the 45–64 rate",
-        FAIL: "some other combinations are at or below the 45–64 rate",
-    }[oldest_numbers["tier"]]
-    _check_older = (
-        float(oldest.ratio_low) > 1
-        and oldest_range[0] <= 1 < oldest_range[1]
-        and (oldest_clear > 1) == (oldest_numbers["tier"] != FAIL)
-    )
-    if not _check_older:
-        raise ValueError("data page: the tables no longer support the 75+ assumptions row")
-    covered = float(
-        read_table("risk_coverage")
-        .set_index("component")
-        .loc["working days", "share_least_explained"]
-    )
-    weekend = read_table("risk_weekend_sensitivity")
-    # The central estimate gives weekends the working-day age mix; the alternatives have shares.
-    mixes = weekend[weekend.non_working_share_of_km.notna()]
-    mix_labels = sorted(mixes.non_working_age_mix.unique())
-    emef_mix = next(label for label in mix_labels if "EMEF" in label)
-    movilia_mix = next(label for label in mix_labels if "MOVILIA" in label)
-    emef_module = re.search(r"EMEF \d{4}", emef_mix).group(0)
-    movilia_survey = re.search(r"MOVILIA \d{4}", movilia_mix).group(0)
-    weekend_shares = sorted(mixes.non_working_share_of_km.astype(float).unique())
-    weekend_older = mixes[mixes.group == "65+"].ratio_to_45_64
-    weekend_young = mixes[mixes.group == "18-29"].ratio_to_45_64
-    split = read_table("risk_frequency_severity").set_index("year")
-    split_first, split_last = int(split.index.min()), int(split.index.max())
-    end = split.loc[split_last]
-    frequency = float(end.frequency_index) / 100
-    severity = float(end.severity_index) / 100
-    per_fuel = float(end.deaths_per_fuel_index) / 100
-    admitted = float(end.hospitalised_per_fuel_index) / 100
-    per_admission = float(end.deaths_per_hospitalised_index) / 100
-    projection = read_table("longrun_projection_sensitivity").set_index(
-        ["measure", "variant", "year"]
-    )
-    last = int(projection.index.get_level_values("year").max())
-    recent = (last - 1, last)
-    from_count = f"start_{count_start}"
-    review = read_table("review_forecast")
-    held_out = review[review.set.eq("holdout")]
-    model = held_out[held_out.method.str.contains("published model")].sort_values("window")
-    naive = held_out[held_out.method.str.startswith("naive")]
-    model_error, naive_error = float(model.rmse.iloc[0]), float(naive.rmse.iloc[0])
-    counted_from = risk_trends.DEATHS_30D_COUNTED_FROM
-    ratio_30_24 = panel.deaths_30d / panel.deaths_24h
-    # The ratio while DGT estimated 30-day deaths, the years after the change below the last
-    # estimated year's ratio, and the years from the first one back at it.
-    estimated = ratio_30_24.loc[: counted_from - 1]
-    counted = ratio_30_24.loc[counted_from:]
-    recovered = int(counted[counted >= float(estimated.iloc[-1])].index.min())
-    dip, since = ratio_30_24.loc[counted_from : recovered - 1], ratio_30_24.loc[recovered:]
-    reference = risk_trends.BASE_YEAR
-    per_km_last = km_check.loc[("per_km", km_last)]
-    scatter_first, scatter_last = risk_trends.SCATTER_YEARS
-    step_end = scatter_first + URBAN_STEP_YEARS
-    urban_step = (
-        float(panel.loc[step_end, "crashes_urban"] / panel.loc[scatter_first, "crashes_urban"]) - 1
-    )
-    interurban_step = (
-        float(
-            panel.loc[step_end, "crashes_interurban"]
-            / panel.loc[scatter_first, "crashes_interurban"]
-        )
-        - 1
-    )
-
-    def at(measure: str, variant: str, year: int) -> pd.Series:
-        return projection.loc[(measure, variant, year)]
-
-    def growth(a: int, b: int) -> float:
-        ratio = float(km.loc[b, "km_per_tonne"] / km.loc[a, "km_per_tonne"])
-        return ratio ** (1 / (b - a)) - 1
-
-    early, later = growth(fuel_start, reference), growth(reference, km_last)
-    young_band, middle_band, oldest_band = owner.index[0], owner.index[1], owner.index[-1]
-    _require(
-        {
-            "deaths scatter least and injury crashes most around their trend": 1
-            < dispersion["deaths_30d"]
-            < dispersion["hospitalised_30d"]
-            < dispersion["crashes"],
-            "urban injury crashes stepped up early in the scatter window, interurban ones did "
-            "not": urban_step > 0.2 and interurban_step < 0,
-            "interurban km per tonne of national fuel rose, faster after the base year": later
-            > early
-            > 0,
-            "per measured interurban km the last year is above trend and inside its range": not bool(
-                per_km_last.outside_interval
-            )
-            and float(per_km_last.ratio) > 1,
-            "the biofuel share rose, which lowers km per tonne": float(bio.loc[km_last])
-            > float(bio.loc[reference]),
-            "the young own few cars per car-licence holder and the oldest more than one": float(
-                owner.loc[young_band, "cars_per_b_permit"]
-            )
-            < float(owner.loc[middle_band, "cars_per_b_permit"])
-            < 1
-            < float(owner.loc[oldest_band, "cars_per_b_permit"]),
-            "young residents of the province hold car licences less often than Spain's": all(
-                young_licensed[("08", sex)] < young_licensed[("Spain", sex)]
-                for sex in ("male", "female")
-            ),
-            "carrying driving per licence holder lowers the young ratio": float(licence["18-29"])
-            < float(barcelona["18-29"]),
-            "every assumption keeps the young above the middle-aged per km": float(
-                ranges.loc["18-29", "min"]
-            )
-            > 1.2,
-            "the survey's working days cover about half of DGT's car km": 0.45 < covered < 0.55,
-            "the 65-and-over range spans the middle-aged rate": float(ranges.loc["65+", "min"])
-            < 1.05
-            and float(ranges.loc["65+", "max"]) > 1,
-            "two weekend mixes, each lowering both ratios": len(mix_labels) == 2
-            and float(weekend_older.max()) < float(barcelona["65+"])
-            and float(weekend_young.max()) < float(barcelona["18-29"]),
-            "the weekend mixes lie inside the sensitivity ranges": float(ranges.loc["65+", "min"])
-            <= float(weekend_older.min())
-            and float(ranges.loc["18-29", "min"]) <= float(weekend_young.min()),
-            "by injury crashes most of the fall is severity": severity < frequency < 1,
-            "by admissions all of the fall is frequency": admitted < per_fuel and per_admission > 1,
-            "admissions and injury crashes scatter beyond Poisson chance; for deaths it is not "
-            "established": spread("hospitalised_30d", "low") > 1
-            and spread("crashes", "low") > 1
-            and spread("deaths_30d", "low") < 1 < spread("deaths_30d", "high"),
-            "the ratio of 30-day to 24-hour deaths dips to its lowest when the method changes, "
-            "stays below the last estimated year until it recovers, and stays inside its earlier "
-            "range from then on": float(ratio_30_24.loc[counted_from]) == float(ratio_30_24.min())
-            and float(dip.max()) < float(ratio_30_24.loc[counted_from - 1])
-            and bool(since.between(estimated.min(), estimated.max()).all()),
-            "on 24-hour deaths the trends turn in the same years": all(
-                str(at(measure, "deaths_24h", last).breaks) == str(at(measure, "main", last).breaks)
-                for measure in ("count", "road_fuel")
-            ),
-            "on 24-hour deaths per fuel the last two years stay above the range": all(
-                bool(at("road_fuel", "deaths_24h", y).outside_interval)
-                and float(at("road_fuel", "deaths_24h", y).ratio) > 1
-                for y in recent
-            ),
-            "per fuel from the main start the last two years lie above the range": all(
-                bool(at("road_fuel", "main", y).outside_interval)
-                and float(at("road_fuel", "main", y).ratio) > 1
-                for y in recent
-            ),
-            "per fuel from the count's turning point the last two years are above trend, inside": all(
-                not bool(at("road_fuel", from_count, y).outside_interval)
-                and float(at("road_fuel", from_count, y).ratio) > 1
-                for y in recent
-            ),
-            "the forecast loses to last year's count on the held-out years": len(naive) == 1
-            and model_error > naive_error,
-        }
-    )
-    fuel_pages = _join([TITLES[slug] for slug in ("trends", "long-run", "seasons")])
-    drivers_page, long_run = TITLES["drivers"], TITLES["long-run"]
-
-    def projected(variant: str) -> str:
-        rows = [at("road_fuel", variant, year) for year in recent]
-        return " and ".join(f"{_fmt_pct(float(row.ratio) - 1, 0)}" for row in rows)
-
-    starts = [at("road_fuel", from_count, year) for year in recent]
-    return [
-        (
-            f"A year's count varies around its trend only by chance ({TITLES['trends']})",
-            f"The scatter of each annual count around its {scatter_first}–{scatter_last} trend, "
-            "against the Poisson variance.",
-            "Does not hold for hospital admissions or injury crashes: the 95% interval of each "
-            "one's scatter, as a multiple of the Poisson variance, lies above 1. Not established "
-            "for deaths: their scatter is the smallest of the three and its interval includes 1, "
-            "so the data cannot tell whether deaths vary beyond chance. Intervals for changes "
-            "against "
-            f"{reference} are widened to match, with Student's t for the trend's "
-            f"{_words(scatter_df)} residual degrees of freedom; {TITLES['trends']} gives the "
-            "factors. The crash factor also carries a step in recorded urban crashes between "
-            f"{scatter_first} and {step_end}, so the crash intervals are too wide to show "
-            "whether a change is beyond an ordinary year.",
-        ),
-        (
-            f"Road fuel tracks the kilometres driven ({fuel_pages})",
-            "Measured vehicle-kilometres on State, regional and provincial interurban roads, set "
-            "against national road fuel. The scopes differ, so this checks the proxy and gives "
-            "no rate.",
-            "Cannot be tested on all roads. Interurban kilometres per tonne of national fuel "
-            f"grew {_fmt_pct(early)} a year over {fuel_start}–{reference} and "
-            f"{_fmt_pct(later)} a year over {reference}–{km_last}, so part of the recent excess "
-            "in deaths per tonne of fuel may reflect more driving per tonne. Per measured "
-            f"interurban kilometre, deaths in {km_last} were "
-            f"{_fmt_pct(float(per_km_last.ratio) - 1, 0)} above their "
-            f"{int(per_km_last.projection_start)}–{reference} trend, within its range "
-            f"({long_run}).",
-        ),
-        (
-            f"A tonne of road fuel means the same every year ({fuel_pages})",
-            "CORES subtotals against the sum of their products, biofuels included, every month; "
-            "the published biofuel share.",
-            "Holds. The subtotals equal their products every month. Biofuel was "
-            f"{_fmt_pct(float(bio.loc[reference]))} of road fuel by mass in {reference} and "
-            f"{_fmt_pct(float(bio.loc[km_last]))} in {km_last}; it carries less energy per "
-            "tonne, so its rise would lower kilometres per tonne slightly and cannot explain "
-            "the rise in interurban kilometres per tonne.",
-        ),
-        (
-            f"The owner's age stands for the driver's ({drivers_page})",
-            f"Cars and kilometres per car-licence holder in each owner's age band, {owner_year}.",
-            "Does not hold at either end: "
-            f"{_fmt_dec(owner.loc[young_band, 'cars_per_b_permit'], 2)} cars per car-licence "
-            f"holder at {owner.loc[young_band, 'band_label']}, "
-            f"{_fmt_dec(owner.loc[middle_band, 'cars_per_b_permit'], 2)} at "
-            f"{owner.loc[middle_band, 'band_label']} and "
-            f"{_fmt_dec(owner.loc[oldest_band, 'cars_per_b_permit'], 2)} at "
-            f"{owner.loc[oldest_band, 'band_label']}. Kilometres driven by drivers of each age "
-            "replace the owner-age kilometres, which are kept only as a comparison.",
-        ),
-        (
-            "The average of the Barcelona-area and Madrid age profiles of driving holds for "
-            f"Spain ({drivers_page})",
-            "No source measures driving by age for Spain as a whole, so the transfer cannot be "
-            "tested. Each survey's profile alone is an alternative in the range. Car-licence "
-            "holding by age in the province of Barcelona is compared with "
-            "Spain's, the survey's working days are set against DGT's car kilometres, and the "
-            "ratios are recomputed under other regional profiles, distance treatments, survey "
-            "years, weekend mixes and age mixes for the kilometres the survey does not cover.",
-            "Not exact, and incomplete. The survey's working days account for "
-            f"{_fmt_pct(covered, 0)} of DGT's car kilometres, and the central estimate gives the "
-            "rest the same age mix. Young residents of the province hold car licences less often "
-            "than Spain's: carried per licence holder instead of per resident, the survey puts "
-            "involvement per km at 18–29 at "
-            f"{float(licence['18-29']):.2f} times the 45–64 rate instead of "
-            f"{float(barcelona['18-29']):.2f} (the average of the two profiles gives "
-            f"{float(central['18-29']):.2f}). Across every alternative, including other regional "
-            "profiles combined with other age mixes for the uncovered kilometres, the "
-            f"sensitivity range is {float(ranges.loc['18-29', 'min']):.2f}–"
-            f"{float(ranges.loc['18-29', 'max']):.2f} at 18–29 and "
-            f"{float(ranges.loc['65+', 'min']):.2f}–{float(ranges.loc['65+', 'max']):.2f} at 65 "
-            "and over; the ratios are published with these ranges, and only the direction at "
-            "18–29 is firm. They are ratios of involvement in injury crashes, not of "
-            "responsibility for them, and say nothing of how often a crash kills the driver. "
-            "Inside Barcelona on working days, with no transfer, the ratio at 65 and over is "
-            f"{float(city_older.min()):.2f}–{float(city_older.max()):.2f} under "
-            f"{_words(len(city_older))} versions of the city's kilometres.",
-        ),
-        (
-            "People aged 75 and over drive as much less than those aged 65–74 as in Madrid in "
-            f"{madrid_year} (the conditional estimate on {drivers_page})",
-            "No source measures it for Spain. Compared with DGT licence holding by age in the "
-            "province of Madrid, the province of Barcelona and Spain; with Spanish surveys of "
-            "men's driving per licence holder; and replaced by three other splits under every "
-            "other assumption, including an upper bound for too few people aged 75 and over in "
-            "the Barcelona-area sample.",
-            "Conditional. Licence holding falls alike in the three places, which is consistent "
-            "with the assumption but does not test the kilometres. On the Madrid pattern, 75 and "
-            f"over: {float(oldest.ratio_to_45_64):.2f} (95% sampling interval "
-            f"{joint_interval(oldest)}). Sensitivity range "
-            f"{oldest_range[0]:.2f}–{oldest_range[1]:.2f}; below about {oldest_clear:.1f} only "
-            "with equal kilometres per licence holder, which surveys of men's driving in "
-            f"Madrid ({madrid_year}) and by RACC ({national_rates.RACC_YEAR}) are at odds with, kept "
-            f"in the range; {oldest_tier}. Rising licence holding since {madrid_year} would lower "
-            "the figure; too few people aged 75 and over in the survey's sample would raise it.",
-        ),
-        (
-            f"Working-day driving represents the year ({drivers_page})",
-            "No source measures weekend kilometres by age. Instead, "
-            f"{' or '.join(_fmt_pct(share, 0) for share in weekend_shares)} of annual kilometres "
-            "are given one of two weekend age mixes: a proxy from the "
-            f"{emef_module} module on overnight weekend stays, and car trips on weekend days in "
-            f"{movilia_survey}.",
-            "Cannot be tested directly. On the Barcelona-area profile, the weekend mixes lower "
-            f"the 65-and-over ratio from {float(barcelona['65+']):.2f} to "
-            f"{float(weekend_older.min()):.2f}–{float(weekend_older.max()):.2f} and the 18–29 "
-            f"ratio from {float(barcelona['18-29']):.2f} to {float(weekend_young.min()):.2f}–"
-            f"{float(weekend_young.max()):.2f}; both are inside the sensitivity range above.",
-        ),
-        (
-            f"The fall in deaths per tonne of fuel was a fall in how deadly crashes are "
-            f"({long_run})",
-            "Deaths per tonne split exactly into casualties per tonne and deaths per casualty, "
-            f"once by injury crashes and once by hospital admissions, {split_first}–{split_last}.",
-            f"Not established. Deaths per tonne fell {_fmt_pct(1 - per_fuel, 0)}. By injury "
-            f"crashes, crashes per tonne fell {_fmt_pct(1 - frequency, 0)} and deaths per crash "
-            f"{_fmt_pct(1 - severity, 0)}; by admissions, admissions per tonne fell "
-            f"{_fmt_pct(1 - admitted, 0)} and deaths per admission rose "
-            f"{_fmt_pct(per_admission - 1, 0)}. The fall in deaths per tonne is firm; how it "
-            "divides between how often and how deadly cannot be told from these series.",
-        ),
-        (
-            f"The 30-day death series means the same throughout ({long_run})",
-            f"DGT estimated 30-day deaths from 24-hour deaths until {counted_from - 1} and has "
-            f"counted them since {counted_from}. The trends were refitted on 24-hour deaths, "
-            "which the police count directly throughout.",
-            "The change shows as a temporary dip in the ratio of 30-day to 24-hour deaths, not "
-            f"a lasting step. The ratio fell from {float(estimated.iloc[-1]):.3f} in "
-            f"{counted_from - 1} to {float(ratio_30_24.loc[counted_from]):.3f} in {counted_from}, "
-            f"the lowest in the series, and stayed between {float(dip.min()):.3f} and "
-            f"{float(dip.max()):.3f} until {recovered - 1}; from {recovered} it has been "
-            f"{float(since.min()):.3f}–{float(since.max()):.3f}, inside its "
-            f"{int(estimated.index.min())}–{counted_from - 1} range of "
-            f"{float(estimated.min()):.3f}–{float(estimated.max()):.3f}. Refitted on 24-hour "
-            "deaths, the trends turn in the same years, and deaths per tonne of fuel in "
-            f"{recent[0]} and {recent[1]} still lie above their range, so the long-run results "
-            "do not rest on the change.",
-        ),
-        (
-            f"The excess of deaths per tonne of fuel in {recent[0]}–{recent[1]} does not depend "
-            f"on where the trend starts ({long_run})",
-            f"The trend's last segment refitted from {count_start}, the count's last turning "
-            f"point, instead of from {fuel_start}.",
-            f"It does. From {fuel_start}, deaths per tonne of fuel in {recent[0]} and "
-            f"{recent[1]} were {projected('main')} above the trend, outside its range; from "
-            f"{count_start}, {projected(from_count)} above it, "
-            f"{_where(starts[0]).replace('the range', 'its range')} in {recent[0]} and "
-            f"{_where(starts[1]).replace('the range', 'its range')} in {recent[1]}.",
-        ),
-        (
-            "A forecast of monthly deaths can show whether a year's deaths changed",
-            "The forecast model's error in a year's deaths on ordinary years held back from its "
-            "choice, against repeating the same months of the year before.",
-            f"Does not hold: its error was {_fmt_pct(model_error)} against "
-            f"{_fmt_pct(naive_error)} for last year's count. The forecast, and the detectable "
-            "changes computed from its errors, were withdrawn.",
-        ),
-    ]
-
-
-def _assumptions() -> str:
-    """The assumptions behind the results that the data can test, each with what testing found."""
-    frame = pd.DataFrame(_assumption_rows(), columns=["Assumption", "Check", "Result"])
-    review = f'<a href="{DOCS_URL}/research/ML_MODEL_REVIEW.md">model review</a>'
-    return (
-        '<h2 id="assumptions-tested">Assumptions tested</h2>'
-        "<p>Several results rest on assumptions that the data can test in full or in part. "
-        "Each assumption names the pages whose results rest on it; the withdrawn forecast is "
-        f"documented in the {review}.</p>"
-        + table(frame, "Assumptions behind the results, how each was checked, and what was found.")
-    )
-
-
 # ----------------------------------------------------------------------------- reproduction
 def _reproduce() -> str:
+    steps = (
+        ("ingest.py all", "reads data/raw into data/staging and runs the reconciliation checks"),
+        ("build_tables.py", "builds the processed table of DGT crash records"),
+        ("model.py", "fits the associations in DGT's crash records"),
+        ("analyse.py tables", "writes the national result tables, including the explorer's"),
+        ("microdata.py build", "builds the Catalan and Barcelona tables"),
+        ("microdata.py quality", "checks the Catalan and Barcelona files"),
+        ("microdata.py features", "builds the model's features"),
+        ("microdata.py analyse", "writes the Catalan and Barcelona result tables"),
+        ("microdata.py sources", "compares the Catalan file with DGT's"),
+        ("severity_model.py", "fits and evaluates the Catalan severity model"),
+        ("emef.py all", "estimates car-driving distance by age from the EMEF survey"),
+        ("exposure_risk.py all", "computes involvement per kilometre by driver age and its ranges"),
+        ("analyse.py figures", "draws the figures and captions"),
+        ("build_site.py", "writes this site and docs/FINDINGS.md"),
+    )
+    rows = "".join(
+        f"<li><code>python scripts/{command}</code> {what}.</li>" for command, what in steps
+    )
     return (
         '<h2 id="reproduce">Reproducing the results</h2>'
-        "<p>Every result in the study is computed by the code in the repository from the raw "
-        "published files. The code also holds a few values typed from documents, each cited "
-        "where it is used:</p>"
-        "<ul><li>Definitions, such as the public-holiday calendars that separate working "
-        "days.</li>"
-        "<li>Figures read from archived files.</li>"
-        "<li>Two sets of measurements whose documents are not archived: the "
-        "road-to-straight-line ratio and benchmarks of the EMEF's 2021 distance report, and "
-        "the figures of the Fundació RACC's 2013 survey of older drivers.</li></ul>"
-        "<p>The raw files are kept with their checksums and, "
-        "where recorded, their download addresses, and one command sequence in the "
-        f'<a href="{REPO_URL}#reproduce">README</a> rebuilds the checks, tables, models, '
-        "figures and pages in order. Each page reads its numbers from the result tables, and "
-        "the build stops if a table no longer supports a sentence that describes it. Automated "
-        "tests rerun the checks on every change.</p>"
-        f'<p>The repository also holds the <a href="{DOCS_URL}/methodology.md">implementation '
-        "notes</a>, with the module behind each method, the "
-        f'<a href="{DOCS_URL}/data_sources.md">source register</a>, with what each source is '
-        "and its terms of use, the manifest of the "
-        f'<a href="{REPO_URL}/tree/main/data/raw">raw files</a>, with each file\'s checksum '
-        "and, where recorded, its download address, and the "
-        f'<a href="{DOCS_URL}/data_inventory.md">data inventory</a>.</p>'
-        "<p>The project was developed through a reproducible, source-driven workflow. The "
-        "research questions, the choice of sources, the statistical design, the interpretation "
-        "and the decision to publish each result are the author's, and so is responsibility for "
-        "them. AI coding assistants were used during implementation, debugging, data-processing "
-        "work and review.</p>"
+        "<p>Every result is computed by the code in the repository from the raw published "
+        "files, which are kept with their checksums and, where recorded, their download "
+        "addresses. The code also holds a few values typed from cited documents: definitions "
+        "such as the public-holiday calendars that separate working days, figures read from "
+        "archived files, and the road-to-straight-line ratio and benchmarks of the EMEF's 2021 "
+        "distance report. Run in this order, from the repository root:</p>"
+        f"<ol>{rows}</ol>"
+        "<p>Each page reads its numbers from the result tables, and the build stops if a table "
+        "no longer supports a sentence that describes it. Automated tests rerun the checks on "
+        f'every change. The <a href="{REPO_URL}#reproduce">README</a> gives the set-up and the '
+        f'running times; the <a href="{DOCS_URL}/methodology.md">implementation notes</a> name '
+        f'the module behind each method and the <a href="{DOCS_URL}/data_sources.md">source '
+        "register</a> gives each source's known coding breaks and terms of use.</p>"
+        "<p>The research questions, the choice of sources, the statistical design, the "
+        "interpretation and the decision to publish each result are the author's, and so is "
+        "responsibility for them. AI coding assistants were used during implementation, "
+        "debugging, data-processing work and review.</p>"
     )
 
 
@@ -1619,16 +967,15 @@ def _reuse() -> str:
 # ``technical_notes(captions)``, which returns one or more sections (each opening with an h2), in
 # the order of the navigation.
 NOTE_MODULES = (
-    "trends",
     "long_run",
     "seasons",
     "policy",
     "drivers",
     "vehicles",
-    "speed",
     "factors",
     "severity",
     "regional",
+    "models",
 )
 
 
@@ -1646,38 +993,30 @@ def _technical_notes(captions: dict[str, str]) -> str:
 
 def page_data(captions: dict[str, str]) -> str:
     body = summary(
-        "This page defines the terms the site uses and explains how each rate is built, how a "
-        "change is judged against the variation of an ordinary year, and how the models were "
-        "tested. The technical notes of the analysis pages follow, page by page: definitions, "
-        "assumptions, sensitivity analyses and corrections. The last sections list the checks "
-        "on the data and every assumption the data can test, with what the test found."
+        "This page defines the terms the site uses, explains how each rate is built and how a "
+        "change is judged against the variation of an ordinary year, and describes the police "
+        "records' coding breaks and missing values. The checks on the data, how to reproduce "
+        "the results and the terms of reuse follow; the technical notes of the analysis pages "
+        "come last, page by page."
     )
     body += _definitions()
     body += _rates()
     body += _records(captions)
-    body += _models()
-    body += _technical_notes(captions)
     body += _checks()
-    body += _assumptions()
     body += _reproduce()
     body += _reuse()
+    body += _technical_notes(captions)
     body += downloads(
         [
             ("validation", "reconciliation checks"),
-            ("risk_dispersion", "year-to-year dispersion"),
             ("missingness_by_year", "missing values by field and year"),
-            ("missingness_where_applicable", "values recorded where each field applies"),
             ("dgt_audit_presence_coding", "fog and wind coding by province and year"),
-            ("ml_split_isolation", "training and test splits"),
-            ("ml_rule_comparison", "models against their tables"),
-            ("ml_common_feature_validation", "harmonised variables"),
-            ("ml_feature_catalogue", "variable classification"),
         ]
     )
     return render_page(
         "data",
         "Methodology",
-        "How the study's results are produced: definitions, rates, police records, models, "
-        "checks on the data and the assumptions tested.",
+        "How the study's results are produced: definitions, rates, police records, checks on "
+        "the data, reproduction, reuse and each page's technical notes.",
         body,
     )

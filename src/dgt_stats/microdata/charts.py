@@ -1,15 +1,12 @@
 """Figures for the regional pages, drawn from the committed result tables with the site's plots.
 
-Every figure is a single-series dot-and-interval chart in the project's fixed palette (or a
-calibration chart with one line per model), with its N in the caption, and the same numbers
-in a table on the page. Nothing is recomputed here: the tables in ``reports/tables`` are the
-input, so a figure cannot disagree with the table beside it. The labels a reader sees are
-translated from the source field names and pipeline codes by the maps below.
+Every figure is a single-series dot-and-interval chart in the project's fixed palette, with its N
+in the caption, and the same numbers in a table on the page. Nothing is recomputed here: the
+tables in ``reports/tables`` are the input, so a figure cannot disagree with the table beside it.
 """
 
 from __future__ import annotations
 
-import calendar
 import math
 import re
 from pathlib import Path
@@ -22,26 +19,7 @@ from dgt_stats.paths import TABLES_DIR
 MIN_N = 30
 CAT_SOURCE = "Servei Català de Trànsit, crashes with a death or serious injury"
 BCN_SOURCE = "Ajuntament de Barcelona, Guàrdia Urbana crash records"
-# The same publication title as ``figures.MICRODATA_SOURCE``, so the site marks it as Spanish.
-DGT_SOURCE = "DGT, Ficheros de microdatos de accidentes con víctimas 2016–2024"
-REGIONAL_SOURCES = f"{CAT_SOURCE}; {BCN_SOURCE}"
 
-# The three models fitted on regional records, in the order the figures show them, named as the
-# site names them.
-REGIONAL_MODELS = {
-    "catalonia_crash_severity": "Original Catalan model (retired)",
-    "barcelona_person_severity": "Barcelona person-severity model",
-    "barcelona_crash_severity": "Barcelona crash-severity model",
-}
-# The two validation instruments: the original Catalan model restricted to variables recorded
-# alike.
-VALIDATION_MODELS = {
-    "catalonia_common_dgt": "Original model, harmonised with DGT's records",
-    "catalonia_common_bcn": "Original model, restricted to Barcelona's variables",
-}
-# The published model behind the calculator, as the site names it.
-CALCULATOR_MODEL = "Catalan severity model"
-MODEL_LABELS = {**REGIONAL_MODELS, **VALIDATION_MODELS}
 # Barcelona road users as the person table names them (role and vehicle type), where English has
 # a natural word; the other labels are shown as recorded. The regional page uses the same map.
 ROAD_USER_LABELS = {
@@ -50,200 +28,13 @@ ROAD_USER_LABELS = {
     "moped driver": "moped rider",
     "personal mobility vehicle driver": "personal mobility vehicle rider",
 }
-MODEL_SOURCES = {
-    "catalonia_crash_severity": CAT_SOURCE,
-    "barcelona_person_severity": BCN_SOURCE,
-    "barcelona_crash_severity": BCN_SOURCE,
-}
 
-# Human names for every variable a model can use (``ml_feature_catalogue.csv``). Families of
-# flags (a vehicle type present, a cause recorded) are composed in ``feature_label``.
-FEATURE_LABELS = {
-    # Catalonia: the Servei Català de Trànsit fields and the variables derived from them.
-    "year": "Year",
-    "month": "Month",
-    "weekday": "Day of the week",
-    "hour": "Hour of the day",
-    "hour_band": "Time of day",
-    "D_TIPUS_VIA": "Road type",
-    "D_TITULARITAT_VIA": "Road owner",
-    "D_SUBZONA": "Zone",
-    "D_FUNC_ESP_VIA": "Special road function",
-    "D_INTER_SECCIO": "Junction or open road",
-    "D_SUBTIPUS_TRAM": "Junction type",
-    "D_REGULACIO_PRIORITAT": "Right-of-way control",
-    "D_SUPERFICIE": "Road surface",
-    "D_LLUMINOSITAT": "Lighting",
-    "D_CLIMATOLOGIA": "Weather",
-    "D_VENT": "Wind",
-    "D_BOIRA": "Fog",
-    "D_CIRCULACIO_MESURES_ESP": "Special traffic measures",
-    "D_SUBTIPUS_ACCIDENT": "Crash subtype",
-    "speed_limit_category": "Speed limit",
-    "n_units": "Vehicles and pedestrians involved",
-    "single_unit": "Single vehicle or pedestrian",
-    "demarcation": "Province",
-    "comarca": "County (comarca)",
-    "municipality": "Municipality",
-    "D_TRACAT_ALTIMETRIC": "Gradient",
-    "D_CARACT_ENTORN": "Surroundings",
-    "D_SENTITS_VIA": "One-way or two-way road",
-    "D_CARRIL_ESPECIAL": "Special lane",
-    "D_ACC_AMB_FUGA": "A driver left the scene",
-    "D_INFLUIT_BOIRA": "Influence of fog",
-    "D_INFLUIT_CARACT_ENTORN": "Influence of the surroundings",
-    "D_INFLUIT_CIRCULACIO": "Influence of traffic",
-    "D_INFLUIT_ESTAT_CLIMA": "Influence of the weather",
-    "D_INFLUIT_INTEN_VENT": "Influence of wind",
-    "D_INFLUIT_LLUMINOSITAT": "Influence of lighting",
-    "D_INFLUIT_MESU_ESP": "Influence of special measures",
-    "D_INFLUIT_OBJ_CALCADA": "Influence of objects on the road",
-    "D_INFLUIT_SOLCS_RASES": "Influence of ruts or ditches",
-    "D_INFLUIT_VISIBILITAT": "Influence of visibility",
-    # Barcelona: the Guàrdia Urbana tables.
-    "age": "Age",
-    "sex": "Sex",
-    "person_role": "Road-user role",
-    "associated_vehicle_group": "Vehicle group",
-    "pedestrian_location": "Where a pedestrian was struck",
-    "accident_type": "Accident type",
-    "n_vehicles": "Number of vehicles",
-    "district": "District",
-    "neighbourhood": "Neighbourhood",
-    "driver_cause_status": "Whether a driver cause was recorded",
-    "pedestrian_cause": "Pedestrian behaviour recorded",
-    # The harmonised variables, after their source prefix is removed.
-    "zone": "Zone",
-    "crash_type": "Crash type",
-    "vehicles": "Number of vehicles",
-    "lighting": "Lighting",
-    "weather": "Weather",
-    "surface": "Road surface",
-}
-# Vehicle and road-user types in the flag names (``involves_bicycle``,
-# ``vehicle_records_include_bus_or_coach``), with their article.
-VEHICLE_TYPES = {
-    "pedestrian": "a pedestrian",
-    "bicycle": "a bicycle",
-    "moped": "a moped",
-    "motorcycle": "a motorcycle",
-    "light_vehicle": "a light vehicle",
-    "heavy_vehicle": "a heavy vehicle",
-    "other_unit": "another vehicle",
-    "car": "a car",
-    "taxi": "a taxi",
-    "personal_mobility_vehicle": "a personal mobility vehicle",
-    "van_or_light_truck": "a van or light truck",
-    "heavy_truck": "a heavy truck",
-    "bus_or_coach": "a bus or coach",
-    "tram_or_train": "a tram or train",
-    "other": "another vehicle type",
-    "not_recorded": "a vehicle of unrecorded type",
-}
-# Causes the Guàrdia Urbana records for a crash.
-CAUSES = {
-    "alcohol": "alcohol",
-    "speed": "speed",
-    "drugs_medication": "drugs or medication",
-    "road_surface": "road surface",
-    "signalling": "signalling",
-    "weather": "weather",
-    "object_or_animal": "object or animal on the road",
-    "inattention": "inattention",
-    "following_distance": "following too closely",
-    "improper_turn": "improper turn",
-    "traffic_light": "red light",
-    "lane_change": "careless lane change",
-    "other_signal": "other signal disobeyed",
-    "overtaking": "improper overtaking",
-    "merging": "careless merging",
-    "pedestrian_crossing": "pedestrian crossing not respected",
-    "reversing": "careless reversing",
-    "right_of_way": "right of way not given",
-    "wrong_side": "wrong side of the road",
-    "mechanical_failure": "mechanical failure",
-    "other": "other",
-    "not_determined": "not determined",
-}
 
 # Catalan category labels shortened for the charts, so the label column leaves room for the data.
 CAT_SHORT_LABELS = {
     "other unit": "other",
     "hit an object without leaving the road": "hit an object on the road",
 }
-
-# The external tests of the Catalan models, as a reader would name them.
-EXPERIMENT_LABELS = {
-    "rest of Catalonia -> Barcelona municipality": "Rest of Catalonia to Barcelona city",
-    "Barcelona municipality -> rest of Catalonia": "Barcelona city to the rest of Catalonia",
-    "rest of Catalonia to 2019 -> Barcelona municipality after 2019": (
-        "Rest of Catalonia to Barcelona city, later years"
-    ),
-    "same crashes, two sources: Catalan file": "Later years: Catalan file",
-    "same crashes, two sources: DGT records": "Later years: the same crashes in DGT records",
-    "Catalonia, a year the Catalan file does not have (DGT records)": (
-        "Catalonia, a year after the Catalan file (DGT records)"
-    ),
-    "Catalonia -> Spain outside Catalonia": "Spain outside Catalonia (DGT records)",
-    "Catalonia early years -> Spain outside Catalonia later": (
-        "Spain outside Catalonia, fitted on early years (DGT records)"
-    ),
-    "Catalonia reweighted to the national zone x crash-type mix -> Spain outside Catalonia": (
-        "Spain outside Catalonia, fitting reweighted (DGT records)"
-    ),
-}
-
-
-def feature_label(name: str) -> str:
-    """The human name of a model variable; an unlisted name falls back to its words."""
-    if name in FEATURE_LABELS:
-        return FEATURE_LABELS[name]
-    for prefix in ("dgt_", "bcn_"):
-        if name.startswith(prefix):
-            return feature_label(name.removeprefix(prefix))
-    if match := re.fullmatch(r"(?:involves|vehicle_records_include)_(\w+)", name):
-        kind = match.group(1)
-        return f"Crash involves {VEHICLE_TYPES.get(kind, kind.replace('_', ' '))}"
-    if match := re.fullmatch(r"(mediate|driver_cause)_(\w+)_recorded", name):
-        kind, cause = match.groups()
-        prefix = "Recorded cause" if kind == "mediate" else "Recorded driver cause"
-        return f"{prefix}: {CAUSES.get(cause, cause.replace('_', ' '))}"
-    return name.removeprefix("D_").replace("_", " ").lower().capitalize()
-
-
-def _lower_first(text: str) -> str:
-    return text[:1].lower() + text[1:]
-
-
-def _in_sentence(name: str) -> str:
-    """A model's name inside a sentence: 'Original …' lowered, place names kept."""
-    return re.sub(r"^Original\b", "original", name)
-
-
-def rule_label(rule: str) -> str:
-    """A descriptive table's grouping, e.g. ``D_SUBTIPUS_ACCIDENT x D_SUBZONA`` -> 'crash
-    subtype × zone'."""
-    return " × ".join(_lower_first(feature_label(part)) for part in rule.split(" x "))
-
-
-def experiment_label(experiment: str) -> str:
-    """The plain-English name of an external test of a Catalan model."""
-    text = re.sub(r"\s*\((?:DGT|Barcelona)-common features\)$", "", experiment)
-    if text.startswith("temporal holdout"):
-        return "Later year"
-    if text.startswith("rolling origin"):
-        return "Each year from the years before it"
-    if match := re.fullmatch(r"leave out (\w+) demarcation", text):
-        return f"{match.group(1)} province left out"
-    if text in EXPERIMENT_LABELS:
-        return EXPERIMENT_LABELS[text]
-    return text[:1].upper() + text[1:].replace(" -> ", " to ")
-
-
-def _province_name(name: str) -> str:
-    """'Palmas, Las' -> 'Las Palmas': the article the INE list puts after the name, in front."""
-    head, _, article = name.partition(", ")
-    return f"{article} {head}" if article else name
 
 
 def _ranges(text: str) -> str:
@@ -468,305 +259,59 @@ def barcelona_figures(figures_dir: Path, captions: dict[str, str]) -> None:
     )
 
 
-def _test_records(design: str, bcn_year: str) -> str:
-    """The test records of a model, from its design ('… test 2023'; '… test months 10-12')."""
-    if match := re.search(r"test (\d{4})$", design):
-        return f"Catalan crashes of {match.group(1)}"
-    if match := re.search(r"test months (\d+)-(\d+)$", design):
-        first, last = (calendar.month_name[int(m)] for m in match.groups())
-        return f"Barcelona records of {first}–{last} {bcn_year}"
-    raise ValueError(f"unrecognised model design: {design!r}")
+# The model's held-out tests, as a reader would name them.
+TEST_LABELS = {
+    "rest of Catalonia -> Barcelona municipality": "Rest of Catalonia to Barcelona city",
+}
 
 
-def _featured_models(selected: pd.DataFrame) -> list[str]:
-    """The models the site features (the decision table's keepers), in the figures' order."""
-    decisions_path = TABLES_DIR / "ml_model_decisions.csv"
-    if not decisions_path.exists():
-        return [model for model in REGIONAL_MODELS if model in set(selected.model)]
-    from dgt_stats.microdata.validation.decisions import FEATURED
-
-    decisions = pd.read_csv(decisions_path)
-    featured = set(decisions.loc[decisions.decision.isin(FEATURED), "model"])
-    return [model for model in REGIONAL_MODELS if model in featured]
-
-
-def model_figures(figures_dir: Path, captions: dict[str, str]) -> None:
-    selected = table("ml_selected")
-    variants = table("ml_variants")
-    test = variants[(variants.evaluated_on == "test")]
-    rule_path = TABLES_DIR / "ml_rule_comparison.csv"
-    rules = pd.read_csv(rule_path).set_index("model") if rule_path.exists() else pd.DataFrame()
-    bcn_year = str(table("bcn_person_severity_share").dataset.iloc[0]).replace("Barcelona ", "")
-    primary = selected[selected.primary].set_index("model")
-    regional = [model for model in REGIONAL_MODELS if model in primary.index]
-    tests = {model: _test_records(primary.loc[model, "design"], bcn_year) for model in regional}
-    # Each model fitted on regional records (its selected estimator, with the bootstrap
-    # interval), the descriptive table it was compared with, and the baseline.
-    rows = []
-    for model in regional:
-        row = primary.loc[model]
-        block = test[
-            (test.model == model)
-            & (test.feature_set == row.feature_set)
-            & (test.geography == row.geography)
-        ].set_index("estimator")
-        name = REGIONAL_MODELS[model]
-        rows.append(
-            {
-                "model": name,
-                "row": "Model",
-                "kind": "focal",
-                "auc": block.loc[row.estimator, "roc_auc"],
-                "low": row.roc_auc_low,
-                "high": row.roc_auc_high,
-            }
-        )
-        if model in rules.index:
-            auc = rules.loc[model, "rule_roc_auc"]
-            rows.append(
-                {
-                    "model": name,
-                    "row": f"Descriptive table ({rule_label(rules.loc[model, 'rule'])})",
-                    "kind": "context",
-                    "auc": auc,
-                    "low": auc,
-                    "high": auc,
-                }
-            )
-        auc = block.loc["baseline_prior", "roc_auc"]
-        rows.append(
-            {
-                "model": name,
-                "row": "Baseline (one probability for every case)",
-                "kind": "baseline",
-                "auc": auc,
-                "low": auc,
-                "high": auc,
-            }
-        )
-    plots.dot_interval(
-        pd.DataFrame(rows),
-        "row",
-        "auc",
-        "low",
-        "high",
-        figures_dir / "ml1_test_auc.svg",
-        "Test ROC-AUC: each model against its descriptive table and the baseline",
-        xlabel="Test ROC-AUC (0.5 = chance)",
-        reference=0.5,
-        style="kind",
-        group="model",
-        xlim=_roc_limits(pd.DataFrame(rows).high),
+def severity_test_figure(figures_dir: Path, captions: dict[str, str]) -> None:
+    """The Catalan severity model's ROC-AUC on years and places left out of its fitting, beside
+    the same model fitted and cross-validated in the test population."""
+    tests = table("sev_tests")
+    last = tests.experiment.str.extract(r"test (\d{4})$")[0]
+    label = tests.experiment.map(TEST_LABELS)
+    label = label.fillna(
+        tests.experiment.str.extract(r"leave out (\w+) demarcation")[0] + " left out"
     )
-    cat_test = tests.get("catalonia_crash_severity", "")
-    bcn_test = tests.get("barcelona_person_severity", "")
-    captions["ml1_test_auc"] = _caption(
-        "ROC-AUC of each model, of the descriptive table it was compared with and of a baseline "
-        f"that gives every case the same probability, on test records not used to build them "
-        f"({cat_test}; {bcn_test}), with 95% intervals for the models",
-        REGIONAL_SOURCES,
-        f"{int(primary.loc[regional].n.sum()):,} test records",
-    )
-
-    featured = _featured_models(selected)
-    calibration = table("ml_calibration")
-    calibration = calibration.merge(
-        primary.loc[featured].reset_index()[["model", "feature_set"]], on=["model", "feature_set"]
-    )
-    calibration["series"] = calibration.model.map(REGIONAL_MODELS)
-    plots.calibration(
-        calibration.set_index("model").loc[featured].reset_index(),
-        "mean_predicted",
-        "observed",
-        figures_dir / "ml2_calibration.svg",
-        "Calibration on the test records: observed share against predicted probability",
-        series="series",
-        xlabel="Mean predicted probability in the group",
-    )
-    groups = calibration.groupby("model").bin.nunique()
-    captions["ml2_calibration"] = _caption(
-        "Observed share with the outcome against mean predicted probability in equal-size "
-        "groups of test records ("
-        + "; ".join(f"{REGIONAL_MODELS[m]}: {groups[m]} groups, {tests[m]}" for m in featured)
-        + "); on the diagonal, predicted probabilities match observed shares",
-        REGIONAL_SOURCES,
-        f"{int(calibration.n.sum()):,} test records",
-    )
-
-    importance = table("ml_importance")
-    for model in featured:
-        row = primary.loc[model]
-        part = importance[(importance.model == model) & (importance.feature_set == row.feature_set)]
-        part = part.head(10).assign(
-            variable=lambda d: d.feature.map(feature_label),
-            low=lambda d: d.auc_drop_mean - d.auc_drop_std,
-            high=lambda d: d.auc_drop_mean + d.auc_drop_std,
-        )
-        name = REGIONAL_MODELS[model]
-        plots.dot_interval(
-            part,
-            "variable",
-            "auc_drop_mean",
-            "low",
-            "high",
-            figures_dir / f"ml3_importance_{model}.svg",
-            f"{name}: the variables it relies on most",
-            xlabel="Fall in test ROC-AUC when the variable is shuffled",
-            reference=0.0,
-        )
-        captions[f"ml3_importance_{model}"] = _caption(
-            f"The {len(part)} variables the {_in_sentence(name)} relies on most: the mean fall in "
-            "its ROC-AUC "
-            f"on the test records ({tests[model]}) when each variable is randomly shuffled, "
-            "over 30 shuffles, with one standard deviation either side",
-            MODEL_SOURCES[model],
-        )
-
-
-def transport_figures(figures_dir: Path, captions: dict[str, str]) -> None:
-    from dgt_stats.microdata.validation.transport import MIN_POSITIVES
-
-    transport = table("ml_transport_validation")
-    reported = transport[
-        transport.status.eq("reported") & transport.estimator.ne("baseline_prior")
-    ].copy()
-    selected = table("ml_selected")
-    chosen = selected[selected.primary].set_index("model").estimator
-    reported = reported[reported.estimator.eq(reported.model.map(chosen))]
-    # The reverse Barcelona test fits the specification on Barcelona city's crashes alone: a
-    # model of the city, not the Catalan model, so it is not drawn with the model's tests.
-    best = reported.drop_duplicates(["experiment", "model"])
-    best = best[~best.experiment.str.startswith("Barcelona municipality -> rest")]
-    calculator = table("gen_calculator_transfer")
-    calculator = calculator[~calculator.experiment.str.startswith("random")]
-    best = pd.concat([best, calculator], ignore_index=True)
-    best["test"] = best.experiment.map(experiment_label)
-    # The calculator's later year is the last year of its rolling test, drawn alone beside a
-    # model fitted in that year.
-    best.loc[
-        best.model.eq("calculator") & best.experiment.str.startswith("temporal holdout"), "test"
-    ] = "The last of those years alone"
-    # Only the later-year tests of the original model and its versions lack an interval: they
-    # come from each model's own test on that year, which recorded none. The captions say so.
-    no_interval = best[best.roc_auc_low.isna() | best.roc_auc_high.isna()]
-    if not (
-        no_interval.experiment.str.startswith("temporal holdout").all()
-        and not no_interval.model.eq("calculator").any()
-    ):
-        raise ValueError("transfer figures: a test other than a later year has no interval")
-    # Each test is drawn beside its reference: the same kind of model fitted and cross-validated
-    # inside the test population, where one exists.
-    # The tested model's row carries the number of test records.
-    tested = best.assign(
-        row="Model tested, n=" + best.test_n.map("{:,.0f}".format),
+    label = label.where(last.isna(), "Last year (" + last.fillna("") + ") from the years before it")
+    tests = tests.assign(test=label)
+    tested = tests.assign(
+        row="Model tested, n=" + tests.test_n.map("{:,.0f}".format),
         kind="focal",
-        low=best.roc_auc_low.fillna(best.roc_auc),
-        high=best.roc_auc_high.fillna(best.roc_auc),
+        low=tests.roc_auc_low,
+        high=tests.roc_auc_high,
     )
-    references = best[best.in_domain_cv_roc_auc.notna()].assign(
+    references = tests.assign(
         row="Fitted in the test population",
         kind="reference",
-        roc_auc=lambda d: d.in_domain_cv_roc_auc,
-        low=lambda d: d.in_domain_cv_roc_auc,
-        high=lambda d: d.in_domain_cv_roc_auc,
+        roc_auc=tests.in_domain_cv_roc_auc,
+        low=tests.in_domain_cv_roc_auc,
+        high=tests.in_domain_cv_roc_auc,
     )
     drawn = pd.concat([tested, references]).sort_index(kind="stable")
-    provinces = table("ml_transport_provinces")
-    provinces = provinces[provinces.reported].copy()
-    # The four validation charts sit on one page and share one ROC-AUC scale.
-    models = ("calculator", "catalonia_crash_severity", "catalonia_common_dgt")
-    limits = _roc_limits(pd.concat([drawn[drawn.model.isin(models)].high, provinces.roc_auc]))
-    later_year = (
-        "The later-year score comes from the model's own test on that year, which recorded no "
-        "interval. The n beside each tested model is its number of test records"
-    )
-    for model, name, title, shown, source in (
-        (
-            "calculator",
-            "tr0_calculator_transfer",
-            f"The {CALCULATOR_MODEL} on held-out years and places",
-            f"ROC-AUC of the {CALCULATOR_MODEL}, the model behind the calculator, refitted "
-            "without the crashes it is tested on (each year from the years before it, the last "
-            "of those years alone, each province of Catalonia in turn, Barcelona city from the "
-            "rest of Catalonia), with 95% intervals, beside the same model fitted and "
-            "cross-validated in the test population (hollow). The n beside each tested model is "
-            "its number of test records",
-            CAT_SOURCE,
-        ),
-        (
-            "catalonia_crash_severity",
-            "tr1_catalonia_transfer",
-            f"{REGIONAL_MODELS['catalonia_crash_severity']} on held-out places and years",
-            "ROC-AUC of the original Catalan model, retired because it relied on a recording "
-            "artefact, on records held out of its fitting (a later year, each province of "
-            "Catalonia in turn, Barcelona city from the rest of Catalonia), with 95% intervals, "
-            "beside a model of the same kind fitted and cross-validated in the test population "
-            f"(hollow). {later_year}",
-            CAT_SOURCE,
-        ),
-        (
-            "catalonia_common_dgt",
-            "tr2_dgt_transfer",
-            "Harmonised version of the original model on other sources, years and Spain",
-            "ROC-AUC of a harmonised version of the original Catalan model, restricted to the "
-            "variables DGT records in the same way, on records held out of its fitting: a later "
-            "year and each province in the Catalan file, the "
-            "same crashes in DGT records, and DGT records from Spain outside Catalonia, with 95% "
-            "intervals, beside a model of the same kind fitted and cross-validated in the test "
-            f"population (hollow). {later_year}",
-            f"{CAT_SOURCE}; {DGT_SOURCE}",
-        ),
-    ):
-        part = drawn[drawn.model == model]
-        plots.dot_interval(
-            part,
-            "row",
-            "roc_auc",
-            "low",
-            "high",
-            figures_dir / f"{name}.svg",
-            title,
-            xlabel="ROC-AUC on the held-out records",
-            reference=0.5,
-            reference_label="chance",
-            style="kind",
-            group="test",
-            xlim=limits,
-        )
-        captions[name] = _caption(shown, source)
-    rates = table("gen_province_rates")
-    dgt_period = f"{int(rates.year.min())}–{int(rates.year.max())}"
-    names = rates.drop_duplicates("province_code").set_index("province_code").province
-    provinces["row"] = (
-        provinces.province_code.map(names)
-        .map(_province_name, na_action="ignore")
-        .fillna(provinces.province_code.astype(str))
-        + "  ("
-        + provinces.positives.map("{:,}".format)
-        + " fatal)"
-    )
-    provinces["low"] = provinces.roc_auc
-    provinces["high"] = provinces.roc_auc
     plots.dot_interval(
-        provinces,
+        drawn,
         "row",
         "roc_auc",
         "low",
         "high",
-        figures_dir / "tr3_province_auc.svg",
-        "Harmonised version of the original model, province by province outside Catalonia",
-        xlabel="ROC-AUC on the province's DGT records",
+        figures_dir / "sev2_held_out.svg",
+        "The Catalan severity model on held-out years and places",
+        xlabel="ROC-AUC on the held-out crashes",
         reference=0.5,
         reference_label="chance",
-        xlim=limits,
+        style="kind",
+        group="test",
+        xlim=_roc_limits(drawn.high),
     )
-    captions["tr3_province_auc"] = _caption(
-        "ROC-AUC of a harmonised version of the original Catalan model, fitted on the Catalan "
-        "file, on DGT records of crashes with a death or serious injury within 24 hours in each "
-        f"province outside Catalonia, {dgt_period}; provinces with at least {MIN_POSITIVES} "
-        f"fatal and {MIN_POSITIVES} non-fatal crashes, fatal crashes in brackets",
-        DGT_SOURCE,
-        f"{int(provinces.n.sum()):,} crashes",
+    captions["sev2_held_out"] = _caption(
+        "ROC-AUC of the Catalan severity model refitted without the crashes it is tested on (the "
+        "last year from the years before it, each province in turn, Barcelona city from the rest "
+        "of Catalonia), with 95% intervals, beside the same model fitted and cross-validated in "
+        "the test population (hollow). The n beside each tested model is its number of test "
+        "crashes",
+        CAT_SOURCE,
     )
 
 
@@ -774,21 +319,12 @@ def build(figures_dir: Path, captions: dict[str, str]) -> None:
     """Every regional figure; skipped quietly when the microdata tables are not built."""
     needed = (
         "bcn_crash_severity_share",
-        "bcn_frequency",
         "bcn_person_severity_share",
         "cat_fatal_share",
-        "gen_province_rates",
-        "ml_calibration",
-        "ml_importance",
-        "ml_model_decisions",
-        "ml_selected",
-        "ml_transport_provinces",
-        "ml_transport_validation",
-        "ml_variants",
+        "sev_tests",
     )
     if not all((TABLES_DIR / f"{name}.csv").exists() for name in needed):
         return
     catalonia_figures(figures_dir, captions)
     barcelona_figures(figures_dir, captions)
-    model_figures(figures_dir, captions)
-    transport_figures(figures_dir, captions)
+    severity_test_figure(figures_dir, captions)
